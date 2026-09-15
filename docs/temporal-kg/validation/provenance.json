@@ -1,0 +1,35 @@
+{
+  "report": {
+    "title": "Temporal Knowledge Graph: Revised formal definition",
+    "version": "v2 working specification, 15 September 2026",
+    "section": "11: OWL 2 DL compliance and operational gates",
+    "repository_revision_introducing_pdf": "a957d91028c9db06c4c29fb2a57a078897bde2b4",
+    "pdf_matches_original_bytes": true
+  },
+  "original_run": {
+    "date": "2026-09-15",
+    "timezone": "Asia/Riyadh",
+    "check_count": 18,
+    "provenance": "Files recovered unchanged from the report-authoring workspace. The original transcript records PASS and a terminal summary, not raw boolean values, commands, exit codes or timestamps. Per-check booleans are reconstructed from successful assertions in the unchanged checker. Original Java/ROBOT stderr was not retained as a separate file.",
+    "runtime": "OpenJDK 21.0.12.1 (Debian build 21.0.12.1+1-1-deb13u1-Debian)",
+    "full_import_or_query_engine_validation": false
+  },
+  "tools": {
+    "robot": {
+      "version": "1.9.10",
+      "url": "https://github.com/ontodev/robot/releases/download/v1.9.10/robot.jar",
+      "sha256": "16a73c074f3df359a7338a84b4e0788785fe06117f931bb9796e9619ea776105"
+    },
+    "owlapi": "4.5.29",
+    "hermit": "1.4.5.456"
+  },
+  "sha256": {
+    "docs/temporal-kg/ontology/temporal-core.ofn": "37a601d2ff91a0af730368fb97f06cbe71942900ff85cd277d9bb8bfd6e8e142",
+    "docs/temporal-kg/ontology/example.ofn": "0334e88d0932615327874dd500bf513212beed8ee16da02807efd8be078c7e5e",
+    "docs/temporal-kg/validation/ValidateTemporal.java": "bc97604298b8b53822360434abb628f981bca9f71f9d0e8d4df549ac653174b6",
+    "docs/temporal-kg/Temporal_Knowledge_Graph_Formal_Definition_v2.pdf": "bb30830d5e08ab4f02207b48719469a54af1c8c8c71a8ff4b5aacf3e09e5d0f9",
+    "docs/temporal-kg/validation/results/original-2026-09-15/owl2dl-profile.txt": "82e9af84deb82760549964321b2898a85a26d91b5b40d372c8033d3dca0327da",
+    "docs/temporal-kg/validation/results/original-2026-09-15/reasoner-checks.txt": "5618cff92c4c667e4c80b16b5fa6d094bc89ff478bfd240f7cc3d8d5f5fcde9a",
+    "docs/temporal-kg/validation/results/original-2026-09-15/document-checks.txt": "194cb53b6e4c94a77a6228b1ed664e2f8696c927d20bad737b76622b90691c6a"
+  }
+}

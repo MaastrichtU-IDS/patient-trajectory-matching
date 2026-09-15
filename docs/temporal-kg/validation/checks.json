@@ -1,0 +1,146 @@
+[
+  {
+    "id": "C01",
+    "label": "OWL 2 DL profile: formal-definition-v2/temporal-core.ofn",
+    "input": "temporal-core.ofn",
+    "expression": "OWL2DLProfile(core).isInProfile",
+    "expected": true,
+    "checker_line": 29
+  },
+  {
+    "id": "C02",
+    "label": "OWL 2 DL profile: formal-definition-v2/example.ofn",
+    "input": "example.ofn",
+    "expression": "OWL2DLProfile(example).isInProfile",
+    "expected": true,
+    "checker_line": 29
+  },
+  {
+    "id": "C03",
+    "label": "example consistent",
+    "input": "example.ofn",
+    "expression": "isConsistent(example)",
+    "expected": true,
+    "checker_line": 31
+  },
+  {
+    "id": "C04",
+    "label": "all named classes satisfiable",
+    "input": "example.ofn",
+    "expression": "unsatisfiableNamedClasses(example).isEmpty",
+    "expected": true,
+    "checker_line": 32
+  },
+  {
+    "id": "C05",
+    "label": "antibiotic administration inferred",
+    "input": "example.ofn",
+    "expression": "isEntailed(AntibioticAdministration(administration1))",
+    "expected": true,
+    "checker_line": 33
+  },
+  {
+    "id": "C06",
+    "label": "PRO chain infers bearer participation",
+    "input": "example.ofn",
+    "expression": "isEntailed(hasParticipant(administration1, patient1))",
+    "expected": true,
+    "checker_line": 34
+  },
+  {
+    "id": "C07",
+    "label": "interval occurrence inferred as ExtendedProcess",
+    "input": "example.ofn",
+    "expression": "isEntailed(ExtendedProcess(administration1))",
+    "expected": true,
+    "checker_line": 35
+  },
+  {
+    "id": "C08",
+    "label": "point and interval on same individual inconsistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + TimePoint(x) + TimeInterval(x))",
+    "expected": false,
+    "checker_line": 37
+  },
+  {
+    "id": "C09",
+    "label": "identical beginning and end inconsistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + hasBeginning(i,p) + hasEnd(i,p))",
+    "expected": false,
+    "checker_line": 38
+  },
+  {
+    "id": "C10",
+    "label": "interval with unnamed endpoints consistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + TimeInterval(i))",
+    "expected": true,
+    "checker_line": 39
+  },
+  {
+    "id": "C11",
+    "label": "process with unknown extent consistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + Process(event))",
+    "expected": true,
+    "checker_line": 40
+  },
+  {
+    "id": "C12",
+    "label": "point occurrence consistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + TimePoint(p) + exactExtent(event,p))",
+    "expected": true,
+    "checker_line": 41
+  },
+  {
+    "id": "C13",
+    "label": "point and interval exact extents on one process inconsistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + TimePoint(p) + TimeInterval(i) + exactExtent(event,p) + exactExtent(event,i))",
+    "expected": false,
+    "checker_line": 42
+  },
+  {
+    "id": "C14",
+    "label": "two-way pointBefore inconsistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + pointBefore(p,q) + pointBefore(q,p))",
+    "expected": false,
+    "checker_line": 43
+  },
+  {
+    "id": "C15",
+    "label": "functional endpoint infers equality",
+    "input": "temporal-core.ofn",
+    "expression": "isEntailed(SameIndividual(p,q)) with core + hasBeginning(i,p) + hasBeginning(i,q)",
+    "expected": true,
+    "checker_line": 46
+  },
+  {
+    "id": "C16",
+    "label": "different functional endpoint fillers inconsistent",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + hasBeginning(i,p) + hasBeginning(i,q) + DifferentIndividuals(p,q))",
+    "expected": false,
+    "checker_line": 47
+  },
+  {
+    "id": "C17",
+    "label": "pointBefore closure not entailed by core",
+    "input": "temporal-core.ofn",
+    "expression": "isEntailed(pointBefore(p,r)) with core + pointBefore(p,q) + pointBefore(q,r)",
+    "expected": false,
+    "checker_line": 49
+  },
+  {
+    "id": "C18",
+    "label": "reversed interval endpoint order awaits external validation",
+    "input": "temporal-core.ofn",
+    "expression": "isConsistent(core + hasBeginning(i,start) + hasEnd(i,end) + pointBefore(end,start))",
+    "expected": true,
+    "checker_line": 50
+  }
+]
