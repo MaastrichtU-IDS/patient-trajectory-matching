@@ -2,9 +2,9 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: three executable profiles, 127 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: four executable profiles, 156 passing checks, and 10 of 104 tracked requirements marked executable.**
 
-The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0` and `interval-cohort-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
+The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
 Do not infer production readiness from passing fixture reports. The verification reports certify this pack's internal consistency only.
 
@@ -54,6 +54,7 @@ All ten PS requirements are covered by gate **AC19-PRO-SOLID** and verified by t
 | Point anchor (v2.4) | `patterns/pro_solid.py` | Three-slot exemplar matching with priced relaxation |
 | `exact-interval-1.0` | `patterns/exact_intervals.py` | Pairwise temporal operators over recorded intervals |
 | `interval-cohort-1.0` | `patterns/interval_cohort.py` | Conjunctive slot queries across patient episodes |
+| `bounded-interval-1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness possible/certain interval queries |
 
 ## Verification results
 
@@ -66,13 +67,17 @@ Every number below is produced by a command in [validation.md](validation.md) an
 | PRO/SOLID acceptance tests | 42 passed |
 | Exact-interval conformance tests | 51 passed |
 | Interval cohort tests | 18 passed |
-| **Total** | **127 checks passing** |
+| Bounded uncertainty tests | 22 passed |
+| **Total** | **156 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
-| Interval comparisons | 9 evaluated, 4 satisfied / 5 not satisfied as specified |
+| Interval comparisons | 9 evaluated, 5 satisfied / 4 not satisfied as specified |
 | Cohort example | P1 `MATCH`, P2 `NO_RECORDED_MATCH`, P3 `INCOMPARABLE` |
+| Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
+
+The total is 133 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -98,7 +103,7 @@ Every number below is produced by a command in [validation.md](validation.md) an
 | JSON Schema and OpenAPI | Structurally validated | `structural-report.json`; no service implements them |
 | Interval cohort schema | Executable | Enforced by `validate_query` on every run |
 | Time normalizer | Specified | 16 expectations, `normalizer_implemented: false` |
-| Bounded temporal uncertainty | Specified | Designed in `sulo-owl-time-review.md` §11; not built |
+| Bounded temporal uncertainty | Executable | 22 tests; finite-world and certificate checks in the discrete profile |
 | Temporal precedence vocabulary | Proposed | `decisions/temporal-precedence.md`; not adopted into SULO |
 | Refinement service | Specified | `refinement_service_implemented: false` |
 | Temporal replay | Specified | 8 case families, no replay engine |
@@ -121,7 +126,7 @@ Earlier version reports are explicit about their own limits:
 
 ## What passing does not establish
 
-Explicitly, from [addendum 2.4 §8](../addenda/specification-2.4.md):
+The original exclusions in [addendum 2.4 §8](../addenda/specification-2.4.md) establish a limited verification scope. After adding the discrete bounded profile, the following remain outside the demonstrated capabilities:
 
 - full SULO or temporal reasoning
 - specimen mapping
@@ -129,6 +134,6 @@ Explicitly, from [addendum 2.4 §8](../addenda/specification-2.4.md):
 - bitemporal reconstruction
 - generalized matching
 - complete OWL consistency checking
-- bounded temporal uncertainty, joint feasibility and certain/possible answers
+- temporal certainty beyond the bounded discrete profile, including dense-time and general OWL certain answers
 
 See [issues.md](issues.md) for the gaps behind these.

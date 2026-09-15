@@ -60,10 +60,12 @@ Independently authored clinical cases, candidate recall, clinical validity and s
 
 ## Temporal semantics
 
-### T1. The three profiles are not unified **[open]**
+### T1. The four profiles are not unified **[open]**
 *Source: [2.4 §5](../addenda/specification-2.4.md), [exact-interval-profile.md](exact-interval-profile.md)*
 
 Intervals are now implemented, but in a **separate** profile. The point-anchor oracle still uses point anchors and priced relaxation; `exact-interval-1.0` and `interval-cohort-1.0` use exact intervals with no cost model. A trajectory query cannot currently mix them, and the relaxation semantics of the v2.4 matcher have no counterpart in the interval matcher.
+
+The discrete bounded-interval profile now adds shared-variable uncertainty, also as a separate contract with no priced relaxation.
 
 Whether these converge into one matcher, or stay deliberately separate with a documented bridge, is unresolved.
 
@@ -74,24 +76,24 @@ The exact-interval evaluator exposes four request operators — `before`, `meets
 
 The full request interface specified in 2.1 §6 is not exposed. `during`, `starts`, `finishes` and the inverse relations cannot be requested directly.
 
-### T2b. Bounded uncertainty unimplemented **[gap]**
-*Source: [sulo-owl-time-review.md](sulo-owl-time-review.md) §11, [interval-cohort-matching.md](interval-cohort-matching.md)*
+### T2b. Broader uncertainty and RDF ingestion **[partial]**
+*Source: [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md), [sulo-owl-time-review.md](sulo-owl-time-review.md) §11*
 
-**This is the largest remaining temporal gap.** All three profiles handle exact recorded times only. Shared variables, joint feasibility and explicit certain/possible results are designed and unbuilt.
+The discrete bounded profile now implements shared variables, joint feasibility, fixed-witness certain/possible answers, and proof certificates. It accepts validated synthetic JSON and generates PRO/SOLID RDF. Arbitrary bounded RDF ingestion, dense-time semantics, general disjunction, clock reconciliation, and optimized uncertain candidate search remain gaps.
 
-The consequence is visible in the cohort matcher: an unresolved binding means *missing comparability*, explicitly not a proven possible realization of an uncertain temporal system. The vocabulary for the latter does not exist yet.
+INCOMPARABLE still means missing clock comparability; it is never silently upgraded to a possible temporal realization.
 
-**The semantics are now specified.** [Formal definition v2](temporal-kg/) §8 gives the separated baseline — `Supported(mu)` from source eligibility and OWL entailment, then `Certain(mu)` as `UNSAT(Gamma and not C[mu])` and `Possible(mu)` as `SAT(Gamma and C[mu])` — plus the fixed-witness policy `exists mu forall theta`, evaluated before projecting the patient identifier. §8.1 gives the worked reason for that policy: for two candidate times that can be `(12,36)` or `(36,12)`, a 24-hour query has a qualifying candidate in every assignment, yet neither fixed candidate is certain. What remains is the solver integration, not the definition. See v2 Q8.
+**The semantics are now specified.** [Formal definition v2](temporal-kg/) §8 gives the separated baseline — `Supported(mu)` from source eligibility and OWL entailment, then `Certain(mu)` as `UNSAT(Gamma and not C[mu])` and `Possible(mu)` as `SAT(Gamma and C[mu])` — plus the fixed-witness policy `exists mu forall theta`, evaluated before projecting the patient identifier. §8.1 gives the worked reason for that policy: for two candidate times that can be `(12,36)` or `(36,12)`, a 24-hour query has a qualifying candidate in every assignment, yet neither fixed candidate is certain. The bounded profile now implements the discrete temporal checks. Full OWL support, rational strict inequalities, RDF ingestion, and the bridge/interface requirements remain open under v2 Q8.
 
 ### T3. No time normalizer **[gap]**
 *Source: `v21-additions-report.json`*
 
 16 declarative normalization cases exist as expectations. `normalizer_implemented: false`. These are a different set from the 16 matcher cases, which do execute.
 
-### T4. Calendar, age and relative offsets unhandled **[open]**
+### T4. Calendar and age normalization incomplete **[open]**
 *Source: [2.4 §5](../addenda/specification-2.4.md), [2.1 §6](../addenda/specification-2.1.md)*
 
-Ages, calendar dates, relative offsets and duration units need typed information objects and separately declared adapters. A calendar age in years cannot be normalized by assuming a fixed number of seconds per year. A signed relative offset requires an identified anchor and frame, and should not be typed as a SULO Duration when negative. MIMIC-IV `anchor_age` top-codes ages above 89 as 91, which is a de-identification category rather than an age.
+The bounded profile implements signed microsecond offsets between shared variables under one clock. Raw ages, calendar dates, and other relative-time units still need separately declared adapters. A calendar age in years cannot be normalized by assuming a fixed number of seconds per year. A signed relative offset requires an identified anchor and frame, and should not be typed as a SULO Duration when negative. MIMIC-IV `anchor_age` top-codes ages above 89 as 91, which is a de-identification category rather than an age.
 
 ### T5. Bitemporal replay unimplemented **[gap]**
 *Source: [2.3](../addenda/specification-2.3.md), TRP-001 to TRP-011*
@@ -204,19 +206,19 @@ Until they do, [status.md](status.md) and the register disagree about what is im
 |---|---|---|
 | Q1 | Execution boundary — all metric queries | [O1](#o1-no-owl-reasoning-gap) — only a limited closure is executed; whether an external evaluator is permitted decides how far that can go |
 | Q2 | Identity, ingestion and temporal joins | [O4](#o4-hasvalue-rdf-term-counting-is-not-owl-datatype-equality-open) — RDF-term counting is not datatype equality; canonicalization policy is undefined |
-| Q3 | Clocks and numeric comparisons | [T4](#t4-calendar-age-and-relative-offsets-unhandled-open) — calendar, age and relative offsets; also the strict clock rule the interval matcher already enforces |
-| Q4 | Process extents, ongoing or disconnected histories | [T1](#t1-the-three-profiles-are-not-unified-open) — point versus interval profiles; ongoing extents are unasserted in both |
+| Q3 | Clocks and numeric comparisons | [T4](#t4-calendar-and-age-normalization-incomplete-open) — calendar, age and relative offsets; also the strict clock rule the interval matcher already enforces |
+| Q4 | Process extents, ongoing or disconnected histories | [T1](#t1-the-four-profiles-are-not-unified-open) — point versus interval profiles; ongoing extents are unasserted in both |
 | Q5 | State templates and time-varying domain queries | [C1](#c1-quality-is-modeled-at-patient-level-risk), [T5](#t5-bitemporal-replay-unimplemented-gap) — patient-level quality and the unbuilt replay layer |
 | Q6 | Imports and biomedical mappings | [O2](#o2-toy-taxonomy-is-the-only-matcher-reasoning-input-gap), [O3](#o3-sulo-pin-is-unreviewed-for-production-open) — toy taxonomy, unreviewed pin |
 | Q7 | Evidence selection and as-of answers | [T5](#t5-bitemporal-replay-unimplemented-gap), [T6](#t6-revision-selection-not-implemented-gap), [S2](#s2-source-completeness-is-an-input-not-a-check-risk) — replay, revision selection, unverified completeness |
-| Q8 | Logic/solver interface and complete evaluation | [T2b](#t2b-bounded-uncertainty-unimplemented-gap) — the definition now exists; the solver integration does not |
+| Q8 | Logic/solver interface and complete evaluation | [T2b](#t2b-broader-uncertainty-and-rdf-ingestion-partial) — a discrete temporal solver is implemented; the full OWL/rational-time interface remains open |
 | Q9 | Clinical query and application validity | [C2](#c2-not-a-clinical-phenotype-risk), [C3](#c3-no-clinical-validation-gap) — no phenotype validation, no clinical review |
-| Q10 | Relaxation catalogue and robust ranking | [T1](#t1-the-three-profiles-are-not-unified-open) — the point-anchor cost model has no interval counterpart |
+| Q10 | Relaxation catalogue and robust ranking | [T1](#t1-the-four-profiles-are-not-unified-open) — the point-anchor cost model has no interval counterpart |
 | Q11 | Scale and production acceptance | [A1](#a1-no-service-implements-the-api-risk), [E2](#e2-fixture-reports-are-not-evidence-of-readiness-risk) — no service, no benchmark |
 
 Two observations from lining them up.
 
-**Q8 has moved.** When this page was written, bounded uncertainty was an undefined gap. v2 §8 now specifies `Certain` and `Possible` precisely, with a solver contract. It is no longer a modeling question, only an implementation one — the only entry on this list where that is true.
+**Q8 has progressed.** v2 §8 specifies `Certain` and `Possible` with a fixed-witness solver contract. The bounded profile implements a discrete specialization and verifies it against finite worlds. The full interface still requires the reasoner/import choices, exact rational semantics, and answer-preservation obligations in Q8; these fixture checks do not close that decision.
 
 **Nothing in the register corresponds to [R3](#repository-hygiene).** The requirement register's failure to track the interval profiles is a bookkeeping problem local to this repository, not a semantic decision. It is also the cheapest item on either list to close.
 
@@ -228,7 +230,7 @@ The [documentation guide](README.md) gives the current path:
 1. Reproduce the PRO/SOLID adapter and reference oracle
 2. Run the exact-interval adapter and its conformance suite
 3. Run the interval cohort matcher and its differential suite
-4. **Add bounded uncertainty** — shared variables, joint feasibility, explicit certain/possible results, following [formal definition v2](temporal-kg/) §8
+4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; extend RDF ingestion and propagation with the same correctness gates
 5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation
 
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.

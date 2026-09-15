@@ -13,12 +13,13 @@ The pack is a companion to a product specification maintained separately. The ad
 
 Each addendum states its own implementation status in its opening lines, and each was explicit that prior executable contracts remained unchanged.
 
-Two further executable contracts are specified as standalone documents rather than numbered addenda, and two design documents develop the next temporal steps:
+Three further executable contracts are specified as standalone documents rather than numbered addenda, and two design documents develop the next temporal steps:
 
 | Document | Covers | Status |
 |---|---|---|
 | [exact-interval-profile.md](exact-interval-profile.md) | Interval adapter, clocks, endpoint comparisons, evidence | **Executable** `exact-interval-1.0` |
 | [interval-cohort-matching.md](interval-cohort-matching.md) | Slot queries, indexed joins, differential reference | **Executable** `interval-cohort-1.0` |
+| [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty | **Executable** `bounded-interval-1.0` |
 | [sulo-owl-time-review.md](sulo-owl-time-review.md) | Temporal representation, uncertainty, reasoning, indexes | Design guidance |
 | [decisions/temporal-precedence.md](decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact | Proposed; not adopted |
 | [temporal-kg/](temporal-kg/) | Formal definition of the temporal knowledge graph, v1 and v2 | Formal specification |
@@ -87,15 +88,25 @@ Verified by 18 contract and differential tests.
 
 ---
 
+## Bounded temporal uncertainty 1.0
+
+**Executable · discrete integer-microsecond source and query profile**
+
+Shared variables and source difference constraints preserve timing correlations. Whole-pattern possibility and fixed-witness certainty are evaluated over the same nonempty feasible source set. Results include timelines, counterexamples, and replayable path/cycle certificates. The source adapter generates PRO/SOLID RDF without sampled exact endpoints.
+
+Verified by 22 tests, including independent finite-world checks. The [profile contract](bounded-temporal-uncertainty.md) describes the JSON input boundary, clock rules, finite domains, and remaining RDF/compiler and performance work.
+
+---
+
 ## SULO and OWL-Time review
 
 **Design guidance · 17 sections**
 
 The most detailed temporal analysis in the repository. Covers what OWL-Time contributes, what temporal individuals denote, a class-only temporal profile, scalar values and frames, keeping occurrence/validity/evidence history distinct, core changes worth considering, how to allocate reasoning responsibilities, an efficient temporal execution kernel, uncertainty and certain answers, compiling representation into indexes, and an OWL-Time bridge that does not change canonical SULO.
 
-§11 (uncertainty, certain answers and relaxation) and §15 (recommended implementation sequence) are the sections that define the next build step. §16 states the verification boundary.
+§11 (uncertainty, certain answers and relaxation) and §15 (recommended implementation sequence) guide extensions beyond the implemented discrete profile. §16 states the original verification boundary.
 
-Bounded uncertainty and general interval matching remain future work.
+Bounded conjunctive uncertainty is executable in the separate profile above; general temporal matching remains future work.
 
 ---
 
@@ -147,7 +158,7 @@ A working specification that revises v1 substantially:
 
 **Section 13 is a decision register of eleven open questions (Q1–Q11)**, each naming the capability it blocks, a proposed baseline, and the evidence required to close it. See [issues.md](issues.md#relationship-to-the-v2-decision-register) for how these map onto the gaps catalogued there.
 
-The document is explicit that the complete temporal query engine remains to be implemented, and that the application fragment has no end-to-end implementation in the deliverable.
+The document is explicit that the complete temporal query engine remains to be implemented, and that its application fragment has no end-to-end implementation in that deliverable. The later bounded profile implements a discrete specialization of §8, with limited named-class support; its [alignment table](bounded-temporal-uncertainty.md#relationship-to-formal-definition-v2) lists the remaining differences.
 
 
 ---
@@ -246,7 +257,7 @@ The 16 normalization expectations are a **different set** from the 16 executable
 
 **To understand the model:** [formal definition v2](temporal-kg/) → 2.4 → 2.3 (temporal semantics) → 2.1 §6 (time detail)
 
-**To understand the temporal work:** [exact-interval-profile.md](exact-interval-profile.md) → [interval-cohort-matching.md](interval-cohort-matching.md) → [sulo-owl-time-review.md](sulo-owl-time-review.md)
+**To understand the temporal work:** [exact-interval-profile.md](exact-interval-profile.md) → [interval-cohort-matching.md](interval-cohort-matching.md) → [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md) → [sulo-owl-time-review.md](sulo-owl-time-review.md)
 
 **To understand the product:** 2.1 §2 (use cases) → 2.2 (workspace) → 2.3 (replay)
 

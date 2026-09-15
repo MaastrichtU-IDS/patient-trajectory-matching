@@ -28,9 +28,12 @@ python -m patterns.test_exact_intervals  # 51 tests
 
 python -m patterns.interval_cohort       # cohort query
 python -m patterns.test_interval_cohort  # 18 tests
+
+python -m patterns.bounded_cohort         # bounded uncertainty query
+python -m patterns.test_bounded_intervals # 22 tests
 ```
 
-All seven exit 0. **127 checks in total.** Any nonzero exit is a real failure — and for the interval profiles, exit code 2 specifically means invalid profile input.
+All nine exit 0. **156 checks in total:** 133 suite tests, 16 oracle cases, and seven properties. Any nonzero exit is a real failure — and for the interval profiles, exit code 2 means invalid profile input or, in the bounded profile, inconsistent source constraints.
 
 ---
 
@@ -232,6 +235,21 @@ Other flags: `--source`, `--graph`, `--manifest`, `--query`, `--output`.
 
 ---
 
+## Bounded uncertainty pipeline
+
+```sh
+python -m patterns.bounded_cohort
+python -m patterns.test_bounded_intervals  # 22 tests
+```
+
+**Expected:** `certain_patient_ids: ["P1"]`, `possible_patient_ids: ["P1", "P2"]`. The four episodes yield CERTAIN_MATCH, POSSIBLE_MATCH, NO_RECORDED_MATCH, and INCOMPARABLE respectively. The output directory `verification/bounded-interval-run/` contains `graph.ttl` and `result.json`.
+
+The suite independently enumerates small source-variable domains and replays returned certificates. It includes 250 seeded network comparisons, 200 query conjunctions, 144 singleton/operator comparisons with the exact evaluator, shared-anchor and fixed-witness counterexamples, and CLI failures. These nested scenarios are included within the 22 tests, not additional entries in the top-level total.
+
+A contradictory source emits `INCONSISTENT_SOURCE` and exits 2 with a negative-cycle certificate. Other source/query violations emit `INVALID_INPUT`. Neither overwrites prior successful results; check exit status before consuming files. This profile accepts source JSON; it does not yet accept externally supplied bounded RDF. See the [contract](bounded-temporal-uncertainty.md).
+
+---
+
 ## Component 5 — Ontology and shapes
 
 The pipeline loads and enforces these on every run, so a successful `pro_solid` run already validates them. To check syntax independently:
@@ -298,7 +316,9 @@ No service implements these paths.
 | `SATISFIED` / `NOT_SATISFIED` | One exact temporal constraint on a selected recorded pair |
 | `MATCH` / `NO_RECORDED_MATCH` | Cohort verdict for a patient episode |
 | `INCOMPARABLE` | Clocks do not establish a mapping — undecided, not absent |
-| exit code 2 | Invalid profile input; existing output files are left untouched |
+| `CERTAIN_MATCH` / `POSSIBLE_MATCH` | A fixed binding holds in every source timeline / some source timeline |
+| `INCONSISTENT_SOURCE` | No feasible bounded source timeline; not a clinical no-match |
+| exit code 2 | Invalid input or inconsistent bounded source; existing output files are left untouched |
 
 The distinction in the last two rows matters. A `ContractError` means the data fell outside the supported profile and projection stopped. `UNRESOLVED` means the search could not reach a decision — for example when `source_search_complete` is false. Neither is evidence of clinical absence. See [architecture.md §3](architecture.md#3-the-three-level-constraint-model).
 
@@ -314,8 +334,9 @@ The distinction in the last two rows matters. A `ContractError` means the data f
 6. Acceptance suite — 42 tests
 7. Exact-interval pipeline and conformance suite — 51 tests
 8. Interval cohort example and differential suite — 18 tests
-9. Report generated-file drift as a notice
-10. Upload `verification/` as a build artifact
+9. Bounded uncertainty example and finite-world/certificate suite — 22 tests
+10. Report generated-file drift as a notice
+11. Upload `verification/` as a build artifact
 
 A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 
@@ -328,7 +349,7 @@ A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 | `SOLID_LITERAL_PROPERTY` | A literal on a predicate other than `sulo:hasValue` |
 | `ROLE_CARDINALITY:PatientRole` | Not exactly one patient role on a process |
 | `MEASUREMENT_SUBJECT_MISMATCH` | The measured quality's bearer is not the process's patient |
-| Exit code 2 from an interval command | Invalid profile input; read the `INVALID_INPUT` diagnostic |
+| Exit code 2 from an interval command | Read `INVALID_INPUT`, or the bounded profile's `INCONSISTENT_SOURCE` certificate |
 | Indexed and reference engines disagree | The index is wrong; the reference engine is the specification |
 | `pip install` fails on 3.13+ | The lock file targets 3.12; use `python3.12` |
 | Dirty tree after a run | Expected: report files record the interpreter version |
