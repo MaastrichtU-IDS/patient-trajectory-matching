@@ -34,6 +34,7 @@ Start here for the overall design and current state.
 | [Checked Rust semantic support](semantic-support.md) | Restricted class entailment and consistency gate before bounded matching | Executable; 22 Rust/reference tests, full SULO/import reasoning remains open |
 | [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
+| [SULO development proposal](sulo-development/) | Lessons, candidate pattern catalogue, record/occurrence distinction and temporal interoperability | Proposed work programme and evaluation gates; no ontology or executable-profile changes |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |
 | [Temporal precedence](decisions/temporal-precedence.md) | Strict precedence, direct succession, and temporal contact | Proposed decision; no SULO core change adopted |
 | [Replay addendum v2.3](../addenda/specification-2.3.md) | Observation/correction semantics and Graphiti comparison | Specified |
