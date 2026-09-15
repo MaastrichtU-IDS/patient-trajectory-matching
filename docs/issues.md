@@ -95,15 +95,15 @@ INCOMPARABLE still means missing clock comparability; it is never silently upgra
 
 The bounded profile implements signed microsecond offsets between shared variables under one clock. Raw ages, calendar dates, and other relative-time units still need separately declared adapters. A calendar age in years cannot be normalized by assuming a fixed number of seconds per year. A signed relative offset requires an identified anchor and frame, and should not be typed as a SULO Duration when negative. MIMIC-IV `anchor_age` top-codes ages above 89 as 91, which is a de-identification category rather than an age.
 
-### T5. Bitemporal replay unimplemented **[gap]**
+### T5. Full bitemporal replay remains incomplete **[partial]**
 *Source: [2.3](../addenda/specification-2.3.md), TRP-001 to TRP-011*
 
-Source-as-known versus retrospective reconstruction, availability cutoffs, snapshot selection and assertion revision are fully specified with 8 declarative case families. No replay engine exists.
+The [bounded evidence-selection profile](evidence-selection.md) now executes source-as-known and retrospective selection over explicit source-support chains, with per-patient absolute cutoffs and conservative blockers. The 8 broader declarative replay families remain only partially covered: no historical ontology/mapping replay, derived indices, clinical history validation or replay UI is implemented.
 
-### T6. Revision selection not implemented **[gap]**
+### T6. General revision selection remains incomplete **[partial]**
 *Source: [2.4 §2](../addenda/specification-2.4.md)*
 
-The runner consumes one already-selected snapshot. A revision to a recorded observation requires the versioning policy in 2.3.
+The original runner consumes one already-selected snapshot. The new [bounded selection layer](evidence-selection.md) prepares such snapshots from normalized assertion bundles and explicit source-support revisions. General observation/source mappings and the complete versioning policy in 2.3 remain open.
 
 ---
 
@@ -210,9 +210,9 @@ The [response to the revision](temporal-kg/revision-response.md) proposes choice
 | Q2 | Identity, ingestion and temporal joins | [O4](#o4-hasvalue-rdf-term-counting-is-not-owl-datatype-equality-open) — RDF-term counting is not datatype equality; canonicalization policy is undefined |
 | Q3 | Clocks and numeric comparisons | [T4](#t4-calendar-and-age-normalization-incomplete-open) — calendar, age and relative offsets; also the strict clock rule the interval matcher already enforces |
 | Q4 | Process extents, ongoing or disconnected histories | [T1](#t1-the-four-profiles-are-not-unified-open) — point versus interval profiles; ongoing extents are unasserted in both |
-| Q5 | State templates and time-varying domain queries | [C1](#c1-quality-is-modeled-at-patient-level-risk), [T5](#t5-bitemporal-replay-unimplemented-gap) — patient-level quality and the unbuilt replay layer |
+| Q5 | State templates and time-varying domain queries | [C1](#c1-quality-is-modeled-at-patient-level-risk), [T5](#t5-full-bitemporal-replay-remains-incomplete-partial) — patient-level quality and broader replay gaps |
 | Q6 | Imports and biomedical mappings | [O2](#o2-toy-taxonomy-is-the-only-matcher-reasoning-input-gap), [O3](#o3-sulo-pin-is-unreviewed-for-production-open) — toy taxonomy, unreviewed pin |
-| Q7 | Evidence selection and as-of answers | [T5](#t5-bitemporal-replay-unimplemented-gap), [T6](#t6-revision-selection-not-implemented-gap), [S2](#s2-source-completeness-is-an-input-not-a-check-risk) — replay, revision selection, unverified completeness |
+| Q7 | Evidence selection and as-of answers | [T5](#t5-full-bitemporal-replay-remains-incomplete-partial), [T6](#t6-general-revision-selection-remains-incomplete-partial), [S2](#s2-source-completeness-is-an-input-not-a-check-risk) — bounded selection implemented; broader replay and verified completeness remain open |
 | Q8 | Logic/solver interface and complete evaluation | [T2b](#t2b-broader-uncertainty-and-rdf-ingestion-partial) — a discrete temporal solver is implemented; the full OWL/rational-time interface remains open |
 | Q9 | Clinical query and application validity | [C2](#c2-not-a-clinical-phenotype-risk), [C3](#c3-no-clinical-validation-gap) — no phenotype validation, no clinical review |
 | Q10 | Relaxation catalogue and robust ranking | [T1](#t1-the-four-profiles-are-not-unified-open) — the point-anchor cost model has no interval counterpart |
@@ -233,7 +233,7 @@ The [documentation guide](README.md) gives the current path:
 2. Run the exact-interval adapter and its conformance suite
 3. Run the interval cohort matcher and its differential suite
 4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; run the RDF ingestion suite
-5. Review the [v2 response and SULO mapping](temporal-kg/revision-response.md), obtain the accompanying validation artifacts, and specify evidence selection into immutable snapshots
+5. Review the [v2 response and SULO mapping](temporal-kg/revision-response.md), obtain the accompanying validation artifacts, and run the [bounded evidence-selection profile](evidence-selection.md); validate source-specific mappings and history coverage before extending replay
 6. Extend and benchmark the admitted fragment on representative clinical data, preserving differential checks against the reference implementation
 
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.

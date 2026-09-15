@@ -25,6 +25,7 @@ Start here for the overall design and current state.
 | [Interval cohort matching](interval-cohort-matching.md) | Versioned slot queries, indexed joins, exhaustive reference, and evidence | Executable `interval-cohort-1.0`; exact recorded intervals |
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | Shared-variable constraints, possible/certain bindings, and certificates | Executable `bounded-interval-1.0`; discrete microsecond source profile |
 | [Bounded RDF ingestion](bounded-rdf-ingestion.md) | Closed RDF validation, explicit identities, and source evidence | Executable `bounded-rdf-1.0` input route to the bounded matcher |
+| [Evidence selection](evidence-selection.md) | Explicit support revisions, cutoff selection and bounded matcher integration | Executable bounded subset; broader replay remains open |
 | [Temporal KG formal definition](temporal-kg/) | Formal semantics of the graph, matching and entailment; v2 fixes representation to OWL 2 DL and adds a register of eleven open decisions | Formal specification; full OWL/rational-time query engine remains unimplemented |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |
@@ -39,7 +40,7 @@ Start here for the overall design and current state.
 2. Run the exact-interval adapter and its conformance suite, which preserve explicit start/end descriptors, clock scope, PRO role witnesses, and SOLID values.
 3. Run the interval cohort matcher and its differential suite: versioned required/distinct slots, exact conjunctive constraints, and patient-episode joins with retained evidence.
 4. Run the bounded uncertainty and RDF ingestion profiles with their finite-world, certificate, and graph-validation checks.
-5. Review the [v2 response and SULO mapping](temporal-kg/revision-response.md), obtain the accompanying validation artifacts, and specify evidence selection into immutable snapshots.
+5. Review the [v2 response and SULO mapping](temporal-kg/revision-response.md), obtain the accompanying validation artifacts, and run the [evidence-selection profile](evidence-selection.md). Source-specific mapping and history-coverage validation remain open.
 6. Extend and benchmark the admitted fragment on representative clinical data, preserving differential checks against the reference implementation.
 
 The detailed acceptance gates are in section 15 of the review. The Rust/Python stack, including the planned horned-owl/py-horned-owl and rustDL integration, needs operation-specific capability checks; passing the current fixture suite does not establish full OWL or temporal reasoning support.

@@ -34,9 +34,13 @@ python -m patterns.test_bounded_intervals # 22 tests
 
 python -m patterns.bounded_rdf            # bounded RDF input route
 python -m patterns.test_bounded_rdf       # 21 tests
+python -m patterns.evidence_selection     # availability and revision selection
+python -m patterns.test_evidence_selection # 29 tests
 ```
 
-All eleven exit 0. **177 checks in total:** 154 suite tests, 16 oracle cases, and seven properties. Any nonzero exit is a real failure — and for the interval profiles, exit code 2 means invalid profile input or, in the bounded profile, inconsistent source constraints.
+All commands above exit 0. **206 checks in total:** 183 suite tests, 16 oracle cases, and seven properties. Any nonzero exit requires inspecting the reported status. For the interval profiles, exit code 2 means invalid profile input or inconsistent source constraints; the selector also uses it for blocked evidence, with its audit report preserved.
+
+The default [evidence-selection example](evidence-selection.md) yields `READY`, with P1 certain in the nested matcher result. Repeating it with `--request examples/evidence-selection/retrospective-request.json` yields `READY` with no certain patients and `later_evidence_used: true`. Use a different `--output` directory to preserve both reports. The 29-test selection suite includes 60 seeded source histories and selected-answer comparisons with the finite-world reference.
 
 ---
 

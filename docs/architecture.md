@@ -193,6 +193,8 @@ Results distinguish CERTAIN, POSSIBLE, IMPOSSIBLE, and INCOMPARABLE bindings and
 
 The two modes cannot be silently interchanged. A correction creates a successor assertion linked to its predecessor; it does not move or delete the event.
 
+The [evidence-selection profile](evidence-selection.md) now implements these two selection modes for normalized bounded assertion bundles and explicit source revision chains. It uses current pinned semantics in both modes and blocks definitive results when admissible-source availability or declared archive history is incomplete. Historical ontology replay, derived-index replay and the broader bitemporal service remain open.
+
 The bounded profile implements a discrete conjunctive subset of [sulo-owl-time-review.md](sulo-owl-time-review.md) §11. Dense-time semantics, general temporal disjunction, clock reconciliation, broader RDF mappings, and full semantic reasoning remain unimplemented.
 
 ## 6. Matching and cost
@@ -271,7 +273,7 @@ Disjointness is checked only across named upper categories the profile needs —
 Documented in the addendum and repeated here so they are not mistaken for oversights:
 
 - **Quality at patient level.** The measured quality is a feature of the person. A specimen-based laboratory adapter must explicitly model the specimen, sampling process and roles rather than assuming specimen and patient are the same bearer. Not implemented.
-- **One snapshot.** The runner consumes one already-selected snapshot. Revision selection is specified in 2.3 but not implemented.
+- **One snapshot per matcher run.** The [bounded selection layer](evidence-selection.md) can prepare a snapshot from explicit source-support revisions and availability cutoffs. Historical ontology/mapping replay and the full 2.3 replay service remain unimplemented.
 - **No observation merging.** Equal observed values do not justify merging observations. Each record, result datum and process keeps a distinct identifier.
 - **Closed status set.** Only performed measurements and administrations are accepted. Not-given, planned, refused and prescription records are rejected at ingestion and never created as completed administrations.
 
