@@ -21,6 +21,7 @@ Two further executable contracts are specified as standalone documents rather th
 | [interval-cohort-matching.md](interval-cohort-matching.md) | Slot queries, indexed joins, differential reference | **Executable** `interval-cohort-1.0` |
 | [sulo-owl-time-review.md](sulo-owl-time-review.md) | Temporal representation, uncertainty, reasoning, indexes | Design guidance |
 | [decisions/temporal-precedence.md](decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact | Proposed; not adopted |
+| [temporal-kg/](temporal-kg/) | Formal definition of the temporal knowledge graph, v1 and v2 | Formal specification |
 
 ---
 
@@ -105,6 +106,48 @@ Bounded uncertainty and general interval matching remain future work.
 Distinguishes strict whole-interval precedence, direct succession within a sequence, and zero-gap temporal contact — and the scope needed to interpret adjacency under incomplete knowledge.
 
 `precedes`, `directlyPrecedes` and `immediatelyPrecedes` are **not** materialized by the interval evaluator, and are not additions to the pinned ontology or the current application vocabulary. Adoption is a separate upstream SULO release decision.
+
+
+---
+
+## Temporal knowledge graph: formal definition
+
+**Formal specification · two PDFs under [`docs/temporal-kg/`](temporal-kg/)**
+
+The mathematical definition underlying everything else in this repository. Where the addenda specify contracts and the review gives guidance, these define the semantics.
+
+### v1 — `Temporal_Knowledge_Graph_Formal_Definition.pdf` (4 pages)
+
+Defines a temporal knowledge graph as a tuple
+
+```
+K = (Sigma, O, A, T, Gamma)
+```
+
+— signature, ontology axioms, assertions, temporal structure and explicit temporal constraints.
+
+Time positions are rational coordinates on a declared reference axis; proper intervals are half-open `[s,e)`. **A comparison between values from different clocks requires an explicit mapping into a common reference frame; an unknown mapping does not license a temporal comparison.** Uncertain positions are variables constrained by `Gamma`, never arbitrary assigned timestamps — which is the formal statement of the rule the interval cohort matcher enforces as `INCOMPARABLE`.
+
+A temporally qualified assertion `R(a,b)@[s,e)` holds throughout the stated interval and asserts **nothing** outside it. Process occurrence is separate: `Occurs(p,I)` is a claim about the process's temporal extent, and does not expire when `I` ends.
+
+Trajectory patterns split into `Psi_ontology` and `Psi_time`. A binding is a **certain match** when `K |= Psi[mu]`, and a **possible match** when at least one model satisfies it; a possible match that is not certain remains unresolved.
+
+### v2 — `Temporal_Knowledge_Graph_Formal_Definition_v2.pdf` (9 pages, 15 September 2026)
+
+A working specification that revises v1 substantially:
+
+- **Representation fixed to OWL 2 DL.** The family of interpretations `I_t` is replaced by an OWL-native representation; a single interpretation describes an entire history.
+- **Primitive points and intervals** are disjoint classes, with functional and disjoint `hasBeginning` / `hasEnd`.
+- **Temporal situations** represent time-dependent relations as typed individuals with a validity extent, replacing timeless shortcuts.
+- **Evidence, assertion identity and revision** get explicit structure, with a versioned manifest and an immutable selected snapshot.
+- **Finite query language** with a separated baseline: `Supported`, then `Certain` and `Possible` over the constraint system, evaluated by a solver contract.
+- **Controlled relaxation** with a declared cost function and worst-case scoring over feasible assignments.
+
+§11 reports **18 ROBOT v1.9.10 / OWLAPI profile checks passing** with HermiT for the standalone core and example, covering satisfiability, PRO inference, disjointness, endpoint equality consequences and the external endpoint-order condition. §12 positions the result on a six-axis classification.
+
+**Section 13 is a decision register of eleven open questions (Q1–Q11)**, each naming the capability it blocks, a proposed baseline, and the evidence required to close it. See [issues.md](issues.md#relationship-to-the-v2-decision-register) for how these map onto the gaps catalogued there.
+
+The document is explicit that the complete temporal query engine remains to be implemented, and that the application fragment has no end-to-end implementation in the deliverable.
 
 
 ---
@@ -201,7 +244,7 @@ The 16 normalization expectations are a **different set** from the 16 executable
 
 ## Reading order
 
-**To understand the model:** 2.4 → 2.3 (temporal semantics) → 2.1 §6 (time detail)
+**To understand the model:** [formal definition v2](temporal-kg/) → 2.4 → 2.3 (temporal semantics) → 2.1 §6 (time detail)
 
 **To understand the temporal work:** [exact-interval-profile.md](exact-interval-profile.md) → [interval-cohort-matching.md](interval-cohort-matching.md) → [sulo-owl-time-review.md](sulo-owl-time-review.md)
 
