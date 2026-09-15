@@ -68,6 +68,12 @@ jobs:
       - name: Bounded RDF validation and source equivalence
         run: python -m patterns.test_bounded_rdf
 
+      - name: Evidence selection example
+        run: python -m patterns.evidence_selection
+
+      - name: Evidence lifecycle and matcher integration
+        run: python -m patterns.test_evidence_selection
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.

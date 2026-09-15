@@ -151,3 +151,5 @@ only for this declared structure. Full OWL support, rational strict inequalities
 identity normalization, clinical mappings, clock reconciliation, revision selection,
 and optimized uncertainty search remain separate work. See the [formal-definition
 alignment](bounded-temporal-uncertainty.md#relationship-to-formal-definition-v2).
+
+A separate [evidence-selection layer](evidence-selection.md) now selects normalized bounded source bundles before matching. It does not ingest a revision history encoded in this RDF format; source-RDF archive integration remains open.

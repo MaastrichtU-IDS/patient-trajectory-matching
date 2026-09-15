@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Four temporal profiles with 177 passing checks |
+| ✅ **Is** | Four temporal profiles and evidence selection with 206 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -57,6 +57,9 @@ python -m patterns.test_bounded_intervals # 22 finite-world and certificate test
 
 python -m patterns.bounded_rdf            # bounded RDF export/ingestion
 python -m patterns.test_bounded_rdf       # 21 RDF validation and evidence tests
+
+python -m patterns.evidence_selection      # source-as-known selection and matching
+python -m patterns.test_evidence_selection # 29 lifecycle and integration tests
 ```
 
 Installation needs network access. Everything after it runs offline — no Java, no clinical dataset, no AI provider credentials, no subscription.
@@ -73,6 +76,8 @@ The repository contains four independent executable contracts. They share the pi
 | **Exact interval** `1.0` | `patterns/exact_intervals.py` | Pairwise temporal operators over recorded start/end intervals |
 | **Interval cohort** `1.0` | `patterns/interval_cohort.py` | Conjunctive slot queries across patient episodes, with indexed and exhaustive engines |
 | **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
+
+The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
 
 ## How it works
 

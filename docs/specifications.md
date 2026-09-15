@@ -166,7 +166,7 @@ The document is explicit that the complete temporal query engine remains to be i
 
 ## 2.3 — Temporal replay and Graphiti assessment
 
-**Specified, not implemented or benchmarked**
+**Broader specification; bounded selection subset implemented, Graphiti comparison unbenchmarked.** The [evidence-selection contract](evidence-selection.md) defines the executable subset without claiming full 2.3 conformance.
 
 Defines what "temporal knowledge graph" means for this product: a knowledge graph with an explicit temporal interpretation, versioned and source-grounded, representing supported claims, unresolved information and conflicts. Timestamps alone do not establish truth.
 
