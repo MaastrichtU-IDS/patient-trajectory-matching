@@ -335,7 +335,16 @@ python -m patterns.semantic_support
 python -m patterns.test_semantic_support
 ```
 
-This adds 22 tests using rustDL 0.4.28 and the independent finite evaluator: **250 checks overall**, comprising 227 suite tests, 16 oracle cases and seven properties. The semantic example and tests run in their own CI job. See [semantic-support.md](semantic-support.md) for the admitted fragment, source pairing, failure statuses and evidence. A backend problem returns no cohort answer. The original 18 standalone Java/OWL checks remain a separate evidence set and count.
+This adds 22 tests using rustDL 0.4.28 and the independent finite evaluator: **250 checks with semantic support**, comprising 227 suite tests, 16 oracle cases and seven properties. The semantic example and tests run in their own CI job. See [semantic-support.md](semantic-support.md) for the admitted fragment, source pairing, failure statuses and evidence. A backend problem returns no cohort answer. The original 18 standalone Java/OWL checks remain a separate evidence set and count.
+
+## Joint temporal and semantic evidence selection
+
+```sh
+python -m patterns.joint_evidence
+python -m patterns.test_joint_evidence
+```
+
+These use the same optional Rust dependency lock and add 28 tests, bringing the repository total to **278 checks**: 255 suite tests, 16 oracle cases and seven properties. The 24 generated revision histories are nested scenarios, not additional top-level checks. [Joint selection](joint-evidence-selection.md) runs in the Rust CI job with three replay examples; the result audit is uploaded alongside the semantic reasoning evidence. The standalone 18 OWL checks remain separate.
 
 ## Interpreting results
 

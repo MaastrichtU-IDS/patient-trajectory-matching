@@ -119,12 +119,21 @@ jobs:
         run: python -m patterns.semantic_support
       - name: Rust, finite-model and failure-gate checks
         run: python -m patterns.test_semantic_support
+      - name: Joint evidence replay examples
+        run: |
+          python -m patterns.joint_evidence
+          python -m patterns.joint_evidence --request examples/joint-evidence/after-request.json --output verification/joint-evidence-run/after
+          python -m patterns.joint_evidence --request examples/joint-evidence/retrospective-request.json --output verification/joint-evidence-run/retrospective
+      - name: Joint revision, availability and reasoning checks
+        run: python -m patterns.test_joint_evidence
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: semantic-support-output
-          path: verification/semantic-support-run/
+          path: |
+            verification/semantic-support-run/
+            verification/joint-evidence-run/
           retention-days: 14
 
   oracle-compatibility:
