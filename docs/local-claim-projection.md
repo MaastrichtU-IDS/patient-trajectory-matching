@@ -1,6 +1,6 @@
 # Patient-local claim projection
 
-**Status:** executable local-clock extension to [structured claims and controlled projection](claim-projection.md). It connects the claim acceptance layer to the existing [patient-local representation](patient-local-clocks.md), preserving its raw labels, bounded uncertainty and clock isolation. It does not yet ingest MIMIC files into claims or accept measurement timestamps.
+**Status:** executable local-clock extension to [structured claims and controlled projection](claim-projection.md). It connects the claim acceptance layer to the existing [patient-local representation](patient-local-clocks.md), preserving its raw labels, bounded uncertainty and clock isolation. The separate [MIMIC claim importer](mimic-claim-import.md) supplies source-derived recorded claims. Measurement timestamps remain unsupported.
 
 ## Separate profiles
 
@@ -63,4 +63,8 @@ The recorded source profile does not itself imply Infusion or a confirmed clinic
 
 The **32 new tests** cover both variants, cross-profile rejection, raw/normalized evidence, RDF ingestion, the extended isolation model, clock rebasing/date shifts, incomparable clocks, patient isolation, correlated constraints, corrections, withdrawal, surviving support and backend failure. The original 45 claim tests remain unchanged and continue to pass.
 
-The existing limits on claims, rows, decisions, events and candidate combinations still apply. This is the local-clock bridge for the claim layer. Creating source-derived claims from MIMIC, selecting a reviewed clinical policy, and adding mixed point/interval measurement queries remain separate capabilities. No source approval, source-history completeness or clinical truth is fabricated by this extension.
+The existing limits on claims, rows, decisions, events and candidate combinations still apply. This is the local-clock bridge for the claim layer. The MIMIC importer provides source-derived pending claims through a separate entry point. Selecting a reviewed clinical policy and adding mixed point/interval measurement queries remain future capabilities. No source approval, source-history completeness or clinical truth is fabricated by this extension.
+
+## Source adapter
+
+The [MIMIC claim importer](mimic-claim-import.md) now emits this recorded claim-store profile from admitted inputevents, with file/row provenance and a complete reconciliation ledger. It emits empty acceptance policies and proves description isolation. Deliberate acceptance and querying remain separate operations.
