@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Three runnable profiles with 127 passing checks |
+| ✅ **Is** | Four runnable profiles with 156 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -51,21 +51,25 @@ python -m patterns.test_exact_intervals  # 51 conformance tests
 
 python -m patterns.interval_cohort       # cohort query over intervals
 python -m patterns.test_interval_cohort  # 18 contract and differential tests
+
+python -m patterns.bounded_cohort         # possible/certain interval bindings
+python -m patterns.test_bounded_intervals # 22 finite-world and certificate tests
 ```
 
 Installation needs network access. Everything after it runs offline — no Java, no clinical dataset, no AI provider credentials, no subscription.
 
 Full instructions and expected output for every component: **[docs/validation.md](docs/validation.md)**
 
-## Three executable profiles
+## Four executable profiles
 
-The repository contains three independent executable contracts. They share the pinned SULO core and the PRO/SOLID representation discipline, but none of them changes the semantics of another.
+The repository contains four independent executable contracts. They share the pinned SULO core and the PRO/SOLID representation discipline, but none of them changes the semantics of another.
 
 | Profile | Entry point | What it decides |
 |---|---|---|
 | **Point anchor** (v2.4) | `patterns/pro_solid.py` | Three-slot exemplar matching with priced relaxation, over point-in-time events |
 | **Exact interval** `1.0` | `patterns/exact_intervals.py` | Pairwise temporal operators over recorded start/end intervals |
 | **Interval cohort** `1.0` | `patterns/interval_cohort.py` | Conjunctive slot queries across patient episodes, with indexed and exhaustive engines |
+| **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
 
 ## How it works
 
@@ -83,6 +87,8 @@ flowchart LR
 ```
 
 The design rests on one decision: **the RDF graph is the semantic record; the projection is an execution representation.** Where they disagree, the graph wins. Every projected row carries an evidence identifier that leads back to the exact process, role, bearer, result and source record it came from — so a match is a claim with a traversable path, not a bare assertion.
+
+The bounded-time source adapter currently validates JSON and generates its PRO/SOLID graph alongside temporal networks. External bounded RDF ingestion is a separate pending step; see the [bounded contract](docs/bounded-temporal-uncertainty.md).
 
 Three things follow, and they are what this project is really about:
 
@@ -114,6 +120,7 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | [PRO/SOLID addendum v2.4](addenda/specification-2.4.md) | The current point-anchor modeling contract |
 | [Exact-interval profile](docs/exact-interval-profile.md) | Interval adapter, clocks, endpoint comparisons, evidence |
 | [Interval cohort matching](docs/interval-cohort-matching.md) | Slot queries, indexed joins, differential reference |
+| [Bounded temporal uncertainty](docs/bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty, certificates |
 
 **Temporal design guidance**
 
@@ -132,8 +139,9 @@ These develop the next temporal profiles. The precedence names and axioms remain
 | PRO/SOLID adapter | `patterns/pro_solid.py` | Executable — 5-stage point-anchor pipeline |
 | Exact-interval adapter | `patterns/exact_intervals.py` | Executable — intervals, clocks, 4 operators |
 | Interval cohort matcher | `patterns/interval_cohort.py` | Executable — indexed and reference engines |
+| Bounded uncertainty matcher | `patterns/bounded_cohort.py` | Executable — discrete-time solver and finite-world checks |
 | Ontology profiles | `ontology/` | Executable — SULO 0.2.14, pinned and digest-checked |
-| Contract schemas | `schemas/` | Mixed — interval-cohort schema executable; 14 REST paths have no service |
+| Contract schemas | `schemas/` | Mixed — interval-cohort and bounded schemas executable; 14 REST paths have no service |
 | Fixtures | `examples/` | Mixed — executable inputs and specified cases |
 | UI assets | `ui/` | Specified — wireframes and contracts, no interface |
 | Evaluation plan | `evaluation/` | Specified — protocol, no measurements |
@@ -155,7 +163,7 @@ Decimal values and costs, integer microseconds, a declared clock.
 
 A prescription or not-given event cannot satisfy administration. For uncertain exposure times, definite acceptance takes the worst cost over feasible point times — the conservatism runs in the safe direction.
 
-The interval profiles are exact rather than priced: a temporal edge requires the same clock resource and descriptor, and equal coordinate values do not establish a clock mapping.
+The interval profiles use hard constraints without priced relaxation. The bounded profile preserves shared variables, returns jointly possible and fixed-witness certain bindings, and includes proof certificates. In every interval profile, a temporal edge requires the same clock resource and descriptor, and equal coordinate values do not establish a clock mapping.
 
 The oracle searches recorded evidence. A missing baseline within a complete record scope is a record-query failure, not proof of clinical absence. It never claims this creatinine branch is a complete AKI phenotype, nor that exposure caused the lab change.
 
@@ -163,7 +171,7 @@ The oracle searches recorded evidence. A missing baseline within a complete reco
 
 ```
 addenda/        four versioned design specifications (2.4 is current)
-patterns/       three executable profiles and their test suites
+patterns/       four executable profiles and their test suites
 ontology/       SULO pin, application profiles, SHACL shapes, toy taxonomy
 schemas/        JSON Schema and OpenAPI contracts
 examples/       fixtures, exemplar pattern AST, worked graphs, SPARQL
@@ -183,7 +191,7 @@ The contracts are the specification. Any change — human or AI-assisted — mus
 3. If you widen a supported profile, add tests that pin the new boundary and say so explicitly
 4. Keep implemented behaviour distinct from specified behaviour in every document you touch
 
-CI runs all three profiles on every pull request, including a check that the regenerated point-anchor graph stays isomorphic to the committed copy.
+CI runs all four profiles on every pull request, including a check that the regenerated point-anchor graph stays isomorphic to the committed copy.
 
 Open gaps are catalogued in [docs/issues.md](docs/issues.md); the recommended implementation sequence is in the [documentation guide](docs/README.md).
 

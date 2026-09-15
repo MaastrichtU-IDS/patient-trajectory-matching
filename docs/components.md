@@ -9,6 +9,7 @@ Each component's purpose, interface, dependencies and scope limits. Status label
 | [Acceptance suite](#acceptance-suite) | `patterns/test_pro_solid.py` | Executable |
 | [Exact-interval adapter](#exact-interval-adapter) | `patterns/exact_intervals.py` | Executable |
 | [Interval cohort matcher](#interval-cohort-matcher) | `patterns/interval_cohort.py` | Executable |
+| [Bounded uncertainty matcher](#bounded-uncertainty-matcher) | `patterns/bounded_cohort.py` | Executable |
 | [Ontology profile](#ontology-profile) | `ontology/` | Executable |
 | [Contract schemas](#contract-schemas) | `schemas/` | Structurally validated |
 | [Fixtures](#fixtures) | `examples/` | Executable inputs and specified cases |
@@ -184,7 +185,24 @@ A `MATCH` episode can still carry unresolved bindings, which stay visible in the
 
 **Worked example.** Three constructed patients: P1 matches (bindings A→D and C→D), P2 has no recorded match (its infusion follows its collection), P3 is incomparable (its candidate events use different clock resources).
 
-**Scope limits.** Exact recorded intervals only. A temporal edge requires the same clock resource and descriptor; equal coordinate values do not establish a mapping. No comparison crosses episodes. Patients with no projected events are outside the result scope — there is no external cohort roster. Profile or schema failure exits 2 and does not clear an older output file. Uncertainty, clinical source mapping and patient-to-patient similarity remain future work.
+**Scope limits.** Exact recorded intervals only. A temporal edge requires the same clock resource and descriptor; equal coordinate values do not establish a mapping. No comparison crosses episodes. Patients with no projected events are outside the result scope — there is no external cohort roster. Profile or schema failure exits 2 and does not clear an older output file. The separate bounded profile below adds uncertainty. Clinical source mapping and patient-to-patient similarity remain future work.
+
+---
+
+## Bounded uncertainty matcher
+
+**Path:** `patterns/bounded_cohort.py` · **Status:** Executable · **Source profile:** `bounded-interval-1.0` · **Query profile:** `bounded-interval-query-1.0`
+
+```sh
+python -m patterns.bounded_cohort
+python -m patterns.test_bounded_intervals  # 22 tests
+```
+
+`bounded_intervals.py` validates the synthetic source schema, emits PRO/SOLID RDF, and compiles bounded variables and source difference constraints. `temporal_stn.py` computes exact-integer closure and proof paths. The matcher enumerates distinct named bindings within patient episodes, checks whole-pattern possibility, and tests fixed-witness certainty against the original feasible source set. `bounded_reference.py` supplies an independent finite-world oracle for small test cases.
+
+**Outputs:** `graph.ttl` and `result.json` in `verification/bounded-interval-run/`. Results retain source, role, variable, and constraint evidence; feasible timelines, counterexamples, entailment paths, and negative cycles explain decisions. Source inconsistency exits 2 with `INCONSISTENT_SOURCE`; other input violations produce `INVALID_INPUT`.
+
+**Scope:** bounded integer microseconds and conjunctive difference constraints; shared anchors and the four existing temporal operators. JSON is authoritative input in this profile; arbitrary bounded RDF ingestion, dense time, general OWL reasoning, and optimized uncertainty search are pending. See the [full contract](bounded-temporal-uncertainty.md).
 
 ---
 
@@ -200,6 +218,7 @@ A `MATCH` episode can still carry unresolved bindings, which stay visible in the
 | `pro-solid-shapes.ttl` | 10 SHACL node shapes |
 | `exact-interval-profile.ttl` | `ei:` interval, boundary, clock and duration classes |
 | `exact-interval-shapes.ttl` | SHACL shapes for the interval profile |
+| `bounded-interval-profile.ttl` | Shared variables, bounds, and constraint binding classes; no new properties |
 | `toy-taxonomy.json` | The oracle's subclass hierarchy |
 | `toy.ofn` | OWL functional-syntax rendering of the toy hierarchy |
 | `legacy-2.3/` | **Non-normative** archived drafts |
@@ -221,6 +240,7 @@ The archived drafts in `legacy-2.3/` must not be loaded with the current profile
 | `contracts.schema.json` | JSON Schema draft 2020-12, 22 definitions |
 | `openapi.json` | OpenAPI 3.1, 14 paths, version 2.0.0 |
 | `interval-cohort.schema.json` | Interval cohort query contract — **executable and enforced** |
+| `bounded-interval.schema.json` | Bounded source and query contracts — **executable and enforced** |
 
 Paths cover capabilities, dataset snapshots, semantic bundles, ingestion jobs, pattern validation and storage, cohort match jobs, job lifecycle, results, evidence and exports.
 
@@ -242,6 +262,7 @@ Paths cover capabilities, dataset snapshots, semantic bundles, ingestion jobs, p
 | `pro-solid/measurement-bindings.rq` | Executable | SPARQL projection retaining patient and result role bindings |
 | `exact-interval/` | Executable | Source rows, manifest, comparison requests, committed graph |
 | `interval-cohort/` | Executable | Source rows, manifest and query for the three-patient example |
+| `bounded-interval/` | Executable | Correlated variable source and four-patient query example |
 | `cohort-request.json`, `result-page-C05.json`, `evidence-C05.json`, `manifest-C05.json` | Structural | Worked request, result, evidence and manifest examples |
 | `qbe-profile-2.1.json`, `refinement-session-2.1.json` | Specified | Query-by-example profile and refinement session |
 | `time-normalization-cases-2.1.json` | Specified | 16 normalization expectations, no normalizer implemented |

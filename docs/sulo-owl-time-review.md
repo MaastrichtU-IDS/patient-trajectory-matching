@@ -4,7 +4,7 @@
 
 **Status:** Design guidance. The [v2.4 addendum](../addenda/specification-2.4.md) remains the current executable contract. The recommendations below do not activate new ontology axioms or interval/uncertainty support. The [proposed precedence decision](decisions/temporal-precedence.md) develops the follow-up discussion about direct succession and temporal contact.
 
-**Implementation follow-up:** The separate [exact-interval-1.0 profile](exact-interval-profile.md) now implements explicit occurrence intervals, clock validation, projection, and exact endpoint comparisons. This review retains its original design baseline; general interval matching, bounded uncertainty, and proposed core changes remain future work.
+**Implementation follow-up:** The separate [exact-interval-1.0 profile](exact-interval-profile.md) now implements explicit occurrence intervals, clock validation, projection, and exact endpoint comparisons. The [exact cohort matcher](interval-cohort-matching.md) and [bounded discrete-time profile](bounded-temporal-uncertainty.md) add explicitly scoped implementations. This review retains its original design baseline; general temporal semantics and proposed core changes remain separate work.
 
 ## 1. Recommendation and scope
 

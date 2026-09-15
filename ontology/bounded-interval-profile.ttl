@@ -1,0 +1,23 @@
+@prefix bt: <https://example.org/trajectory/bounded/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+bt:Profile a owl:Ontology ; rdfs:comment "Bounded discrete microsecond intervals. Source JSON and its compiler define arithmetic semantics. Load with pinned SULO and the PRO/SOLID and exact-interval class modules. No new properties." .
+bt:IntervalProcess a owl:Class ; rdfs:subClassOf sulo:Process .
+bt:Infusion a owl:Class ; rdfs:subClassOf bt:IntervalProcess .
+bt:SpecimenCollection a owl:Class ; rdfs:subClassOf bt:IntervalProcess .
+bt:OccurrenceInterval a owl:Class ; rdfs:subClassOf sulo:TimeInterval .
+bt:StartDescriptor a owl:Class ; rdfs:subClassOf sulo:StartTime .
+bt:EndDescriptor a owl:Class ; rdfs:subClassOf sulo:EndTime .
+bt:TemporalVariable a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:LowerBound a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:UpperBound a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:DifferenceConstraint a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:LeftOperandBinding a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:RightOperandBinding a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:OperatorDatum a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:Snapshot a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:DatasetIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:SnapshotIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+bt:Microsecond a sulo:Unit .

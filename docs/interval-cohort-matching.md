@@ -168,8 +168,10 @@ These are operation counts on a fixture, not clinical-scale timing results. Wors
 case search and output remain exponential in the slot count, particularly with
 broad selectors, unconstrained slots, or incompatible clocks.
 
-Next, add bounded uncertainty with shared-variable feasibility and explicit
-certain/possible semantics, retaining these exact cases as regression gates.
+The separate [bounded uncertainty profile](bounded-temporal-uncertainty.md) now adds
+shared-variable feasibility and fixed-witness certain/possible semantics. It uses
+exhaustive binding search with a temporal network solver; these exact cases remain
+regression gates for the independently optimized exact engine.
 Before clinical scaling, establish source coverage and terminology mappings,
 benchmark representative distributions, and define cancellation/partial-result
 semantics. Patient-to-patient similarity, relaxation costs, general interval ASTs,

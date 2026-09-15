@@ -18,6 +18,8 @@ These are not two views of equal standing. `patient_id`, `value`, `unit` and `ti
 
 `evidence.json` is the join between them. Every projected row carries an `assertion_id` (`pro-solid:` followed by the SHA-256 of its binding), and the evidence file maps that identifier back to the exact process, role, bearer, result datum, measured quality, unit resource and source record it came from. A match is therefore never a bare assertion; it is a claim with a traversable path back into the graph.
 
+The bounded-time adapter currently validates structured JSON and constructs a PRO/SOLID graph alongside its temporal networks. It does not accept an external bounded RDF graph for ingestion yet. Its separate [contract](bounded-temporal-uncertainty.md) specifies this source boundary and its evidence identifiers.
+
 The evidence identifier is a deterministic identifier for an extracted binding. It is not a new assertion of clinical truth and not an OWL proof.
 
 ## 2. Pipeline
@@ -117,7 +119,7 @@ Ontology annotations and SHACL configuration are separate from instance data and
 
 ## 5. Temporal architecture
 
-Three executable profiles handle time differently, on purpose. None changes the semantics of another.
+Four executable profiles handle time differently, on purpose. None changes the semantics of another.
 
 ### Point-anchor profile (v2.4)
 
@@ -172,6 +174,14 @@ A `MATCH` episode can still carry unresolved bindings, and they stay visible. An
 
 One precondition worth noting: the total endpoint span within each patient/episode/clock group must fit a signed 64-bit positive difference, checked before either search and including unselected events. This is deliberately stricter than admitting arbitrary individually valid int64 coordinates, so that index pruning cannot hide an overflow that pair evaluation would expose.
 
+### Bounded interval profile 1.0
+
+Implemented in [`patterns/bounded_cohort.py`](../patterns/bounded_cohort.py), with the source adapter in `bounded_intervals.py` and exact-integer temporal closure in `temporal_stn.py`. Contract: [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md).
+
+Each endpoint refers to a shared temporal variable with finite inclusive microsecond bounds. Source difference constraints preserve correlations, including offsets from shared anchors. The source network must be feasible before any query executes. Possibility checks the conjunction of all query atoms; certainty tests entailment from the original source network. A certain patient result requires the same named binding to work in every feasible timeline.
+
+Results distinguish CERTAIN, POSSIBLE, IMPOSSIBLE, and INCOMPARABLE bindings and retain feasible witnesses, counterexamples, entailment paths, or negative-cycle certificates. No exact timestamp is asserted for an uncertain endpoint. JSON is the current ingestion contract; RDF is its generated PRO/SOLID evidence projection. Arbitrary bounded RDF ingestion and optimized uncertainty indexes remain pending.
+
 ### Still specified
 
 [Addendum 2.1 §6](../addenda/specification-2.1.md) specifies the full temporal semantics: the complete Allen catalogue, jointly feasible uncertain endpoints, metric gaps with explicit endpoints, calendar-aware age handling, and a normalization envelope retaining raw value, semantic kind, source unit, calendar, offset, precision, bounds and policy version.
@@ -183,7 +193,7 @@ One precondition worth noting: the total endpoint span within each patient/episo
 
 The two modes cannot be silently interchanged. A correction creates a successor assertion linked to its predecessor; it does not move or delete the event.
 
-**Bounded uncertainty is the main unimplemented step.** All three profiles handle exact recorded times. Shared variables, joint feasibility and explicit certain/possible results are designed in [sulo-owl-time-review.md](sulo-owl-time-review.md) §11 and unbuilt.
+The bounded profile implements a discrete conjunctive subset of [sulo-owl-time-review.md](sulo-owl-time-review.md) §11. Dense-time semantics, general temporal disjunction, clock reconciliation, and externally supplied bounded RDF compilation remain unimplemented.
 
 ## 6. Matching and cost
 
@@ -221,7 +231,7 @@ The interval profiles follow the same rule from the other direction: `interval_c
 
 ## 8. Contract surfaces and their versions
 
-Three contract surfaces exist at **different versions**, which is easy to misread:
+Several contract surfaces exist at **different versions**, which is easy to misread:
 
 | Surface | Version | Describes |
 |---|---|---|
@@ -229,12 +239,13 @@ Three contract surfaces exist at **different versions**, which is easy to misrea
 | `schemas/contracts.schema.json` | 2.0 | 22 JSON Schema definitions |
 | Graph contract | 2.4 | PRO/SOLID role and bearer model |
 | `schemas/interval-cohort.schema.json` | 1.0 | Interval cohort query contract — **executable** |
+| `schemas/bounded-interval.schema.json` | 1.0 | Bounded source and query contracts — **executable** |
 
 The OpenAPI document describes the pre-PRO/SOLID event model and **contains no role or bearer vocabulary at all**. The projection stage is what bridges the 2.4 graph to the 2.0 DTOs.
 
 A reader who opens `openapi.json` first will not find the architecture described on this page. That relationship is deliberate — the DTO is a projection — but it is not self-evident from the file. None of the 14 REST paths have an implementation behind them.
 
-`schemas/interval-cohort.schema.json` is the exception: it is a live contract, validated and enforced by `validate_query` on every cohort run.
+The interval-cohort and bounded-interval schemas are live contracts, validated and enforced on every run, with additional semantic checks.
 
 ## 9. Ontology layering
 
@@ -245,6 +256,7 @@ A reader who opens `openapi.json` first will not find the architecture described
 | Application profile | `ontology/pro-solid-profile.ttl` | 25 application classes, disjointness axioms |
 | Ingestion shapes | `ontology/pro-solid-shapes.ttl` | 10 SHACL node shapes |
 | Interval profile | `ontology/exact-interval-profile.ttl` | `ei:` interval, boundary, clock and duration classes |
+| Bounded profile | `ontology/bounded-interval-profile.ttl` | Variables, bounds, constraint bindings; classes and individuals only |
 | Interval shapes | `ontology/exact-interval-shapes.ttl` | SHACL shapes for the interval profile |
 | Matcher taxonomy | `ontology/toy-taxonomy.json` | The oracle's only reasoning input |
 | Archived drafts | `ontology/legacy-2.3/` | **Non-normative.** Must not be loaded with the current profile. |

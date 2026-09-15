@@ -19,6 +19,7 @@ Two further executable contracts are specified as standalone documents rather th
 |---|---|---|
 | [exact-interval-profile.md](exact-interval-profile.md) | Interval adapter, clocks, endpoint comparisons, evidence | **Executable** `exact-interval-1.0` |
 | [interval-cohort-matching.md](interval-cohort-matching.md) | Slot queries, indexed joins, differential reference | **Executable** `interval-cohort-1.0` |
+| [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty | **Executable** `bounded-interval-1.0` |
 | [sulo-owl-time-review.md](sulo-owl-time-review.md) | Temporal representation, uncertainty, reasoning, indexes | Design guidance |
 | [decisions/temporal-precedence.md](decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact | Proposed; not adopted |
 
@@ -86,15 +87,25 @@ Verified by 18 contract and differential tests.
 
 ---
 
+## Bounded temporal uncertainty 1.0
+
+**Executable · discrete integer-microsecond source and query profile**
+
+Shared variables and source difference constraints preserve timing correlations. Whole-pattern possibility and fixed-witness certainty are evaluated over the same nonempty feasible source set. Results include timelines, counterexamples, and replayable path/cycle certificates. The source adapter generates PRO/SOLID RDF without sampled exact endpoints.
+
+Verified by 22 tests, including independent finite-world checks. The [profile contract](bounded-temporal-uncertainty.md) describes the JSON input boundary, clock rules, finite domains, and remaining RDF/compiler and performance work.
+
+---
+
 ## SULO and OWL-Time review
 
 **Design guidance · 17 sections**
 
 The most detailed temporal analysis in the repository. Covers what OWL-Time contributes, what temporal individuals denote, a class-only temporal profile, scalar values and frames, keeping occurrence/validity/evidence history distinct, core changes worth considering, how to allocate reasoning responsibilities, an efficient temporal execution kernel, uncertainty and certain answers, compiling representation into indexes, and an OWL-Time bridge that does not change canonical SULO.
 
-§11 (uncertainty, certain answers and relaxation) and §15 (recommended implementation sequence) are the sections that define the next build step. §16 states the verification boundary.
+§11 (uncertainty, certain answers and relaxation) and §15 (recommended implementation sequence) guide extensions beyond the implemented discrete profile. §16 states the original verification boundary.
 
-Bounded uncertainty and general interval matching remain future work.
+Bounded conjunctive uncertainty is executable in the separate profile above; general temporal matching remains future work.
 
 ---
 
@@ -203,7 +214,7 @@ The 16 normalization expectations are a **different set** from the 16 executable
 
 **To understand the model:** 2.4 → 2.3 (temporal semantics) → 2.1 §6 (time detail)
 
-**To understand the temporal work:** [exact-interval-profile.md](exact-interval-profile.md) → [interval-cohort-matching.md](interval-cohort-matching.md) → [sulo-owl-time-review.md](sulo-owl-time-review.md)
+**To understand the temporal work:** [exact-interval-profile.md](exact-interval-profile.md) → [interval-cohort-matching.md](interval-cohort-matching.md) → [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md) → [sulo-owl-time-review.md](sulo-owl-time-review.md)
 
 **To understand the product:** 2.1 §2 (use cases) → 2.2 (workspace) → 2.3 (replay)
 

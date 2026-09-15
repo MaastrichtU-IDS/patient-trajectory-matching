@@ -58,10 +58,12 @@ Independently authored clinical cases, candidate recall, clinical validity and s
 
 ## Temporal semantics
 
-### T1. The three profiles are not unified **[open]**
+### T1. The four profiles are not unified **[open]**
 *Source: [2.4 §5](../addenda/specification-2.4.md), [exact-interval-profile.md](exact-interval-profile.md)*
 
 Intervals are now implemented, but in a **separate** profile. The point-anchor oracle still uses point anchors and priced relaxation; `exact-interval-1.0` and `interval-cohort-1.0` use exact intervals with no cost model. A trajectory query cannot currently mix them, and the relaxation semantics of the v2.4 matcher have no counterpart in the interval matcher.
+
+The discrete bounded-interval profile now adds shared-variable uncertainty, also as a separate contract with no priced relaxation.
 
 Whether these converge into one matcher, or stay deliberately separate with a documented bridge, is unresolved.
 
@@ -72,22 +74,22 @@ The exact-interval evaluator exposes four request operators — `before`, `meets
 
 The full request interface specified in 2.1 §6 is not exposed. `during`, `starts`, `finishes` and the inverse relations cannot be requested directly.
 
-### T2b. Bounded uncertainty unimplemented **[gap]**
-*Source: [sulo-owl-time-review.md](sulo-owl-time-review.md) §11, [interval-cohort-matching.md](interval-cohort-matching.md)*
+### T2b. Broader uncertainty and RDF ingestion **[partial]**
+*Source: [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md), [sulo-owl-time-review.md](sulo-owl-time-review.md) §11*
 
-**This is the largest remaining temporal gap.** All three profiles handle exact recorded times only. Shared variables, joint feasibility and explicit certain/possible results are designed and unbuilt.
+The discrete bounded profile now implements shared variables, joint feasibility, fixed-witness certain/possible answers, and proof certificates. It accepts validated synthetic JSON and generates PRO/SOLID RDF. Arbitrary bounded RDF ingestion, dense-time semantics, general disjunction, clock reconciliation, and optimized uncertain candidate search remain gaps.
 
-The consequence is visible in the cohort matcher: an unresolved binding means *missing comparability*, explicitly not a proven possible realization of an uncertain temporal system. The vocabulary for the latter does not exist yet.
+INCOMPARABLE still means missing clock comparability; it is never silently upgraded to a possible temporal realization.
 
 ### T3. No time normalizer **[gap]**
 *Source: `v21-additions-report.json`*
 
 16 declarative normalization cases exist as expectations. `normalizer_implemented: false`. These are a different set from the 16 matcher cases, which do execute.
 
-### T4. Calendar, age and relative offsets unhandled **[open]**
+### T4. Calendar and age normalization incomplete **[open]**
 *Source: [2.4 §5](../addenda/specification-2.4.md), [2.1 §6](../addenda/specification-2.1.md)*
 
-Ages, calendar dates, relative offsets and duration units need typed information objects and separately declared adapters. A calendar age in years cannot be normalized by assuming a fixed number of seconds per year. A signed relative offset requires an identified anchor and frame, and should not be typed as a SULO Duration when negative. MIMIC-IV `anchor_age` top-codes ages above 89 as 91, which is a de-identification category rather than an age.
+The bounded profile implements signed microsecond offsets between shared variables under one clock. Raw ages, calendar dates, and other relative-time units still need separately declared adapters. A calendar age in years cannot be normalized by assuming a fixed number of seconds per year. A signed relative offset requires an identified anchor and frame, and should not be typed as a SULO Duration when negative. MIMIC-IV `anchor_age` top-codes ages above 89 as 91, which is a de-identification category rather than an age.
 
 ### T5. Bitemporal replay unimplemented **[gap]**
 *Source: [2.3](../addenda/specification-2.3.md), TRP-001 to TRP-011*
@@ -199,7 +201,7 @@ The [documentation guide](README.md) gives the current path:
 1. Reproduce the PRO/SOLID adapter and reference oracle
 2. Run the exact-interval adapter and its conformance suite
 3. Run the interval cohort matcher and its differential suite
-4. **Add bounded uncertainty** — shared variables, joint feasibility, explicit certain/possible results
+4. Run the bounded uncertainty profile and its finite-world/certificate checks; extend RDF ingestion and propagation with the same correctness gates
 5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation
 
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.
