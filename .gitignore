@@ -30,3 +30,4 @@ verification/mimic-measurement-run/
 verification/mixed-record-query-run/
 verification/source-mixed-query-run/
 verification/clinical-source-preflight-run/
+verification/indexed-source-windows-run/

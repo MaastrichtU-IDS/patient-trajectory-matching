@@ -34,6 +34,7 @@ Start here for the overall design and current state.
 | [Checked Rust semantic support](semantic-support.md) | Restricted class entailment and consistency gate before bounded matching | Executable; 22 Rust/reference tests, full SULO/import reasoning remains open |
 | [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
+| [Indexed source windows](indexed-source-windows.md) | Complete indexed anchor windows, source identities and pending batches | Executable exact-record selector; 24 tests, three separate public-demo strata |
 | [Clinical source preflight](clinical-source-preflight.md) | Proposed item strata, pinned public-demo coverage and measured capacity barriers | Executable aggregate scan; 20 tests; clinical review and mixed evaluation pending |
 | [Source mixed-query pipeline](source-mixed-query.md) | Both CSV importers, explicit review, complete stay roster and independent SQL comparison | Executable exact-source profile; 28 tests, synthetic evaluation |
 | [Mixed record queries](mixed-record-query.md) | Interval treatments and point measurements, with separate eligibility/follow-up | Executable bounded record profile; 34 tests, synthetic evaluation |
