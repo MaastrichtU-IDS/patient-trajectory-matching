@@ -7,3 +7,6 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Reproducible exact-interval CLI outputs (the stable example graph is committed).
+verification/exact-interval-run/

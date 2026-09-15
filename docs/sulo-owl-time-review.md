@@ -4,6 +4,8 @@
 
 **Status:** Design guidance. The [v2.4 addendum](../addenda/specification-2.4.md) remains the current executable contract. The recommendations below do not activate new ontology axioms or interval/uncertainty support. The [proposed precedence decision](decisions/temporal-precedence.md) develops the follow-up discussion about direct succession and temporal contact.
 
+**Implementation follow-up:** The separate [exact-interval-1.0 profile](exact-interval-profile.md) now implements explicit occurrence intervals, clock validation, projection, and exact endpoint comparisons. This review retains its original design baseline; general interval matching, bounded uncertainty, and proposed core changes remain future work.
+
 ## 1. Recommendation and scope
 
 Retain SULO's small property vocabulary and its PRO/SOLID representation. Define a versioned temporal application profile using classes and individuals, then compile that representation into a typed temporal constraint system and compact event indexes. Use OWL reasoning for supported ontological consequences and a dedicated temporal evaluator for ordering, metric constraints, uncertainty and temporal applicability. Query correctness must be established across these components, rather than inferred from any one component's capabilities.
