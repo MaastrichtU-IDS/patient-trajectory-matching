@@ -1,0 +1,5 @@
+PDF: 9 pages.
+All 11 OPEN question boxes present in PDF text.
+Decision register: section 13.
+No overfull boxes or undefined references in final LaTeX build.
+Pages 1, 8 and 9 visually inspected.

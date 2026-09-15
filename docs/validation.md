@@ -2,6 +2,8 @@
 
 Every executable component, how to run it, and what correct output looks like. All commands run offline after setup and need no Java, clinical dataset, AI provider credentials or subscription.
 
+The v2 formal definition has a separate [OWL validation evidence package](temporal-kg/validation/README.md) with its original 18 checks. Reproducing that optional archival package requires Java; the Python profile commands on this page retain their existing dependencies.
+
 ## Setup
 
 Use **Python 3.12** for the full pipeline; that is the tested environment and the lock file targets it.
