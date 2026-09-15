@@ -112,7 +112,7 @@ The original runner consumes one already-selected snapshot. The new [bounded sel
 ### S1. Clinical source-to-matcher handoff incomplete **[gap]**
 *Source: [2.4 §3](../addenda/specification-2.4.md), ETL-001*
 
-`build_graph` still reads constructed synthetic JSON. The separate [MIMIC inputevents staging adapter](mimic-inputevents-staging.md) now reconciles all rows in the pinned demo 2.2 inputevents extract, retaining unsupported and invalid outcomes. It emits no clinical graph or cohort answer. Patient-local clock conversion, occurrence precision, reviewed clinical mappings, source availability and revision-history coverage remain explicit blockers. Other source tables and FHIR ingestion remain unimplemented.
+`build_graph` still reads constructed synthetic JSON. The separate [MIMIC inputevents staging adapter](mimic-inputevents-staging.md) now reconciles all rows in the pinned demo 2.2 inputevents extract, retaining unsupported and invalid outcomes. It emits no clinical graph or cohort answer. The [patient-local clock bridge](patient-local-clocks.md) now converts explicitly bounded labels and supports RDF/query execution. Choosing justified occurrence bounds and reviewed clinical mappings for MIMIC, then integrating source availability and revision-history coverage, remain open; the staging handoff is still blocked. Other source tables and FHIR ingestion remain unimplemented.
 
 ### S2. Source completeness is an input, not a check **[risk]**
 *Source: [2.4 §5](../addenda/specification-2.4.md)*

@@ -65,13 +65,14 @@ def classify(source_network, edges, incomparable):
 
 
 def execute(snapshot, query):
+    ei.require(snapshot.source['profile'] == bt.PROFILE_ID, 'UNSUPPORTED_SNAPSHOT_PROFILE')
     bt.validate(query, query=True)
     types = {kind: bt.selected_classes({'event_kind': kind}) for kind in bt.KINDS}
     return _execute_supported(snapshot, query, {e['id']: types[e['event_kind']]
                                                for e in snapshot.events.values()})
 
 
-def _execute_supported(snapshot, query, supported_classes):
+def _execute_supported(snapshot, query, supported_classes, *, profile_id=bt.QUERY_PROFILE):
     """Internal join over validated, complete class support supplied by an entry point.
 
     Public callers use execute or semantic_support.execute; this function does
@@ -102,10 +103,10 @@ def _execute_supported(snapshot, query, supported_classes):
                                               ('INCOMPARABLE', 'INCOMPARABLE')] if inside in statuses), 'NO_RECORDED_MATCH')
         trajectories.append({'patient_id': scope[0], 'episode_id': scope[1], 'status': status,
                              'source_edges': [asdict(e) for e in source.edges], 'bindings': bindings})
-    context = {'profile': bt.QUERY_PROFILE, 'source_context_id': snapshot.context_id, 'query': query,
+    context = {'profile': profile_id, 'source_context_id': snapshot.context_id, 'query': query,
                'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in (
                    'patterns/bounded_cohort.py', 'patterns/bounded_reference.py')}}
-    return {'profile': bt.QUERY_PROFILE, 'context_id': ei.digest(ei.canonical(context)), 'context': context,
+    return {'profile': profile_id, 'context_id': ei.digest(ei.canonical(context)), 'context': context,
             'search_complete': True, 'scope': 'represented_patient_episodes',
             'certainty_semantics': 'exists_named_binding_forall_feasible_source_timelines',
             'certain_patient_ids': sorted({t['patient_id'] for t in trajectories if t['status'] == 'CERTAIN_MATCH'}),
