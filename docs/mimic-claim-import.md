@@ -81,7 +81,7 @@ An oversized stay receives `BLOCKED_RESOURCE_LIMIT`; **none** of its selected cl
 
 Complete reconciliation and complete description are separate assertions. The ledger can be complete while some selected stays are blocked. `NO_SELECTED_ADMITTED_RECORDS` means only that the stay has no admitted record in the requested item scope. It is not evidence of clinical absence. Likewise, excluded/invalid source rows have not become claim descriptions.
 
-The downstream accepted-view engine has its own limits, including 30 selected events and 20,000 conservative candidate bindings. Successfully describing up to 32 records does not guarantee that accepting all of them will fit a given query. Larger stores, cross-stay query composition, streaming full-release ingestion, measurements and clinical interpretation remain future work.
+The downstream accepted-view engine has its own limits, including 30 selected events and 20,000 conservative candidate bindings. Successfully describing up to 32 records does not guarantee that accepting all of them will fit a given query. Larger stores, cross-stay query composition, streaming full-release ingestion and clinical interpretation remain future work. [Measurement point claims](measurement-claims.md) now have a separate importer and record-selection profile; mixed temporal matching remains open.
 
 ## Verification
 

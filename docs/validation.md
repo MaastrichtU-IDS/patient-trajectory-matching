@@ -453,3 +453,13 @@ python -m patterns.test_mimic_claim_import
 ```
 
 The 25 import tests bring the current total to **459 checks**: 436 suite tests, 16 oracle cases and seven properties. They cover the file-to-description boundary, full row accounting, provenance and limits, plus explicit synthetic acceptance and withdrawal through the checked Rust route. CI runs the synthetic import and checks the committed public-demo aggregate hashes; patient data are not downloaded. See the [import contract](mimic-claim-import.md) for local public-demo reproduction and interpretation limits.
+
+## Measurement point claims
+
+```sh
+python -m patterns.mimic_measurement_import
+python -m patterns.test_measurement_claims
+python -m patterns.verify_measurement_claims
+```
+
+The 35 measurement tests bring the current total to **494 checks**: 471 suite tests, 16 oracle cases and seven properties. They cover exact decimal preservation, point bounds, explicit selection/correction/withdrawal, profile rejection, the 141-axiom isolation closure, bounded chartevents admission, source evidence and complete ledger outcomes. The [measurement contract](measurement-claims.md) describes the synthetic-only evaluation and the remaining mixed point/interval query work. The original claim reports and public-demo inputevents claim report were reproduced to bind the updated shared encoding/checker hashes.

@@ -26,3 +26,4 @@ verification/mimic-record-query-run/
 verification/claim-projection-run/
 verification/local-claim-projection-run/
 verification/mimic-claim-import-run/
+verification/mimic-measurement-run/
