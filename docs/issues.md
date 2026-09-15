@@ -79,11 +79,11 @@ The full request interface specified in 2.1 §6 is not exposed. `during`, `start
 ### T2b. Broader uncertainty and RDF ingestion **[partial]**
 *Source: [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md), [sulo-owl-time-review.md](sulo-owl-time-review.md) §11*
 
-The discrete bounded profile now implements shared variables, joint feasibility, fixed-witness certain/possible answers, and proof certificates. It accepts validated synthetic JSON and generates PRO/SOLID RDF. Arbitrary bounded RDF ingestion, dense-time semantics, general disjunction, clock reconciliation, and optimized uncertain candidate search remain gaps.
+The discrete bounded profile now implements shared variables, joint feasibility, fixed-witness certain/possible answers, and proof certificates. It accepts validated synthetic JSON and, through [bounded-rdf-1.0](bounded-rdf-ingestion.md), supplied PRO/SOLID graphs under a closed contract. Broader RDF mappings, dense-time semantics, general disjunction, clock reconciliation, and optimized uncertain candidate search remain gaps.
 
 INCOMPARABLE still means missing clock comparability; it is never silently upgraded to a possible temporal realization.
 
-**The semantics are now specified.** [Formal definition v2](temporal-kg/) §8 gives the separated baseline — `Supported(mu)` from source eligibility and OWL entailment, then `Certain(mu)` as `UNSAT(Gamma and not C[mu])` and `Possible(mu)` as `SAT(Gamma and C[mu])` — plus the fixed-witness policy `exists mu forall theta`, evaluated before projecting the patient identifier. §8.1 gives the worked reason for that policy: for two candidate times that can be `(12,36)` or `(36,12)`, a 24-hour query has a qualifying candidate in every assignment, yet neither fixed candidate is certain. The bounded profile now implements the discrete temporal checks. Full OWL support, rational strict inequalities, RDF ingestion, and the bridge/interface requirements remain open under v2 Q8.
+**The semantics are now specified.** [Formal definition v2](temporal-kg/) §8 gives the separated baseline — `Supported(mu)` from source eligibility and OWL entailment, then `Certain(mu)` as `UNSAT(Gamma and not C[mu])` and `Possible(mu)` as `SAT(Gamma and C[mu])` — plus the fixed-witness policy `exists mu forall theta`, evaluated before projecting the patient identifier. §8.1 gives the worked reason for that policy: for two candidate times that can be `(12,36)` or `(36,12)`, a 24-hour query has a qualifying candidate in every assignment, yet neither fixed candidate is certain. The bounded profile now implements the discrete temporal checks. Full OWL support, rational strict inequalities, broader RDF mappings, and the bridge/interface requirements remain open under v2 Q8.
 
 ### T3. No time normalizer **[gap]**
 *Source: `v21-additions-report.json`*
@@ -230,7 +230,7 @@ The [documentation guide](README.md) gives the current path:
 1. Reproduce the PRO/SOLID adapter and reference oracle
 2. Run the exact-interval adapter and its conformance suite
 3. Run the interval cohort matcher and its differential suite
-4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; extend RDF ingestion and propagation with the same correctness gates
+4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; run the RDF ingestion suite and extend propagation with the same correctness gates
 5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation
 
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.

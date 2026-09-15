@@ -22,6 +22,7 @@ Three further executable contracts are specified as standalone documents rather 
 | [bounded-temporal-uncertainty.md](bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty | **Executable** `bounded-interval-1.0` |
 | [sulo-owl-time-review.md](sulo-owl-time-review.md) | Temporal representation, uncertainty, reasoning, indexes | Design guidance |
 | [decisions/temporal-precedence.md](decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact | Proposed; not adopted |
+| [bounded-rdf-ingestion.md](bounded-rdf-ingestion.md) | External RDF input, explicit identifiers, and evidence preservation | **Executable** `bounded-rdf-1.0` input route |
 | [temporal-kg/](temporal-kg/) | Formal definition of the temporal knowledge graph, v1 and v2 | Formal specification |
 
 ---
@@ -94,7 +95,7 @@ Verified by 18 contract and differential tests.
 
 Shared variables and source difference constraints preserve timing correlations. Whole-pattern possibility and fixed-witness certainty are evaluated over the same nonempty feasible source set. Results include timelines, counterexamples, and replayable path/cycle certificates. The source adapter generates PRO/SOLID RDF without sampled exact endpoints.
 
-Verified by 22 tests, including independent finite-world checks. The [profile contract](bounded-temporal-uncertainty.md) describes the JSON input boundary, clock rules, finite domains, and remaining RDF/compiler and performance work.
+Verified by 22 tests, including independent finite-world checks. The [profile contract](bounded-temporal-uncertainty.md) describes the JSON input boundary, clock rules, and finite domains. The additional [bounded RDF input contract](bounded-rdf-ingestion.md) has 21 graph-validation, provenance, and source-equivalence tests; optimized uncertainty search remains future work.
 
 ---
 

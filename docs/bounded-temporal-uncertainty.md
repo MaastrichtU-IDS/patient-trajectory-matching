@@ -111,11 +111,12 @@ exact timestamp. Distinct descriptors may refer to the same temporal variable
 without becoming identical RDF resources. Feasible timelines appear only in the
 result's explicitly labeled witness fields; they are not asserted as observed facts.
 
-In this first bounded profile, **validated source JSON is the authoritative input**.
-RDF is the generated evidence projection. Arbitrary Turtle ingestion and SHACL
-validation of externally supplied bounded-time graphs are not implemented. The
-compiler interprets the source constraints; OWL axioms alone do not perform this
-arithmetic. Ontology selection uses named subclass paths from the pinned local
+For the original `bounded_cohort` input route, **validated source JSON is authoritative**
+and RDF is the generated evidence projection. The separate [bounded RDF input
+profile](bounded-rdf-ingestion.md) now validates externally supplied graphs with
+explicit variable/constraint identifiers and preserves their original evidence. It
+uses a closed procedural contract, not general SHACL or OWL validation. The shared
+compiler interprets source constraints; OWL axioms alone do not perform arithmetic. Ontology selection uses named subclass paths from the pinned local
 modules, with no general OWL consistency, existential-generation, or rustDL claim.
 
 ## Query and answer semantics
@@ -245,8 +246,9 @@ structure, evidence context, CLI errors, and wide/int64-boundary domains. It com
 with the exact pair evaluator. Certificate checks independently replay paths and
 cycles and verify witnesses/counterexamples against enumerated worlds.
 
-Next steps are externally supplied RDF validation/compilation, measured incremental
-or sparse temporal propagation, and safe uncertain candidate pruning with these
+The separate RDF input profile now handles validation and compilation of supported
+graphs. Next steps are measured incremental or sparse temporal propagation and
+safe uncertain candidate pruning with these
 cases retained as differential gates. Clinical source coverage, terminology mappings,
 clock reconciliation, dense-time semantics, probabilistic uncertainty, and complete
 semantic reasoning each require explicit additional contracts.

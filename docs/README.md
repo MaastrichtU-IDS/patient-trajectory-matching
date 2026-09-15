@@ -24,6 +24,7 @@ Start here for the overall design and current state.
 | [Exact-interval profile](exact-interval-profile.md) | Source/RDF adapter, explicit clocks, endpoint comparisons, and evidence | Executable `exact-interval-1.0`; separate from the point-anchor oracle |
 | [Interval cohort matching](interval-cohort-matching.md) | Versioned slot queries, indexed joins, exhaustive reference, and evidence | Executable `interval-cohort-1.0`; exact recorded intervals |
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | Shared-variable constraints, possible/certain bindings, and certificates | Executable `bounded-interval-1.0`; discrete microsecond source profile |
+| [Bounded RDF ingestion](bounded-rdf-ingestion.md) | Closed RDF validation, explicit identities, and source evidence | Executable `bounded-rdf-1.0` input route to the bounded matcher |
 | [Temporal KG formal definition](temporal-kg/) | Formal semantics of the graph, matching and entailment; v2 fixes representation to OWL 2 DL and adds a register of eleven open decisions | Formal specification; full OWL/rational-time query engine remains unimplemented |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |
 | [Temporal precedence](decisions/temporal-precedence.md) | Strict precedence, direct succession, and temporal contact | Proposed decision; no SULO core change adopted |
@@ -36,7 +37,7 @@ Start here for the overall design and current state.
 1. Reproduce the existing PRO/SOLID adapter and reference oracle using the repository README.
 2. Run the exact-interval adapter and its conformance suite, which preserve explicit start/end descriptors, clock scope, PRO role witnesses, and SOLID values.
 3. Run the interval cohort matcher and its differential suite: versioned required/distinct slots, exact conjunctive constraints, and patient-episode joins with retained evidence.
-4. Run the bounded uncertainty profile and its finite-world/certificate checks: shared variables, joint feasibility, and fixed-witness certain/possible results.
+4. Run the bounded uncertainty and RDF ingestion profiles with their finite-world, certificate, and graph-validation checks.
 5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation.
 
 The detailed acceptance gates are in section 15 of the review. The Rust/Python stack, including the planned horned-owl/py-horned-owl and rustDL integration, needs operation-specific capability checks; passing the current fixture suite does not establish full OWL or temporal reasoning support.

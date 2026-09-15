@@ -85,7 +85,8 @@ class Snapshot:
     context_id: str
 
 
-def prepare(source):
+def compile_source(source):
+    """Validate and compile normalized records without inventing graph evidence."""
     validate(source)
     # Own the source snapshot rather than retaining mutable caller dictionaries.
     source = json.loads(ei.canonical(source))
@@ -127,6 +128,11 @@ def prepare(source):
         if not network.feasible:
             raise InconsistentSource(group, network, {e.id: edge_evidence[e.id] for e in network.edges})
         networks[group] = network
+    return source, events, variables, networks, edge_evidence
+
+
+def prepare(source):
+    source, events, variables, networks, edge_evidence = compile_source(source)
     graph, evidence = build_graph(source)
     files = ('patterns/bounded_intervals.py', 'patterns/temporal_stn.py', 'schemas/bounded-interval.schema.json',
              'ontology/bounded-interval-profile.ttl', 'ontology/exact-interval-profile.ttl',

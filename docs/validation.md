@@ -31,9 +31,12 @@ python -m patterns.test_interval_cohort  # 18 tests
 
 python -m patterns.bounded_cohort         # bounded uncertainty query
 python -m patterns.test_bounded_intervals # 22 tests
+
+python -m patterns.bounded_rdf            # bounded RDF input route
+python -m patterns.test_bounded_rdf       # 21 tests
 ```
 
-All nine exit 0. **156 checks in total:** 133 suite tests, 16 oracle cases, and seven properties. Any nonzero exit is a real failure — and for the interval profiles, exit code 2 means invalid profile input or, in the bounded profile, inconsistent source constraints.
+All eleven exit 0. **177 checks in total:** 154 suite tests, 16 oracle cases, and seven properties. Any nonzero exit is a real failure — and for the interval profiles, exit code 2 means invalid profile input or, in the bounded profile, inconsistent source constraints.
 
 ---
 
@@ -246,7 +249,19 @@ python -m patterns.test_bounded_intervals  # 22 tests
 
 The suite independently enumerates small source-variable domains and replays returned certificates. It includes 250 seeded network comparisons, 200 query conjunctions, 144 singleton/operator comparisons with the exact evaluator, shared-anchor and fixed-witness counterexamples, and CLI failures. These nested scenarios are included within the 22 tests, not additional entries in the top-level total.
 
-A contradictory source emits `INCONSISTENT_SOURCE` and exits 2 with a negative-cycle certificate. Other source/query violations emit `INVALID_INPUT`. Neither overwrites prior successful results; check exit status before consuming files. This profile accepts source JSON; it does not yet accept externally supplied bounded RDF. See the [contract](bounded-temporal-uncertainty.md).
+A contradictory source emits `INCONSISTENT_SOURCE` and exits 2 with a negative-cycle certificate. Other source/query violations emit `INVALID_INPUT`. Neither overwrites prior successful results; check exit status before consuming files. This command accepts source JSON; the RDF input route is described below. See the [contract](bounded-temporal-uncertainty.md).
+
+---
+
+## Bounded RDF ingestion
+
+```sh
+python -m patterns.bounded_rdf
+python -m patterns.bounded_rdf --graph verification/bounded-rdf-run/graph.ttl --output verification/bounded-rdf-run/reloaded
+python -m patterns.test_bounded_rdf  # 21 tests
+```
+
+The export and RDF reload routes produce the same full result: certain P1, possible P1/P2, with preserved PRO and source evidence. The suite covers arbitrary instance IRIs, lexical forms, declared hashes, inverse role links, complete triple coverage, malformed RDF, scope violations, and inconsistency certificates. Outputs are `graph.ttl` and `result.json`; invalid or inconsistent inputs exit 2. See the [input contract](bounded-rdf-ingestion.md).
 
 ---
 
@@ -335,8 +350,9 @@ The distinction in the last two rows matters. A `ContractError` means the data f
 7. Exact-interval pipeline and conformance suite — 51 tests
 8. Interval cohort example and differential suite — 18 tests
 9. Bounded uncertainty example and finite-world/certificate suite — 22 tests
-10. Report generated-file drift as a notice
-11. Upload `verification/` as a build artifact
+10. Bounded RDF example and graph-validation/source-equivalence suite — 21 tests
+11. Report generated-file drift as a notice
+12. Upload `verification/` as a build artifact
 
 A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 

@@ -62,6 +62,12 @@ jobs:
       - name: Bounded uncertainty finite-world and certificate checks
         run: python -m patterns.test_bounded_intervals
 
+      - name: Bounded RDF ingestion example
+        run: python -m patterns.bounded_rdf
+
+      - name: Bounded RDF validation and source equivalence
+        run: python -m patterns.test_bounded_rdf
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.
