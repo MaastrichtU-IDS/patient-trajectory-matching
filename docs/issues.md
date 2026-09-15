@@ -98,12 +98,12 @@ The bounded profile implements signed microsecond offsets between shared variabl
 ### T5. Full bitemporal replay remains incomplete **[partial]**
 *Source: [2.3](../addenda/specification-2.3.md), TRP-001 to TRP-011*
 
-The [bounded evidence-selection profile](evidence-selection.md) now executes source-as-known and retrospective selection over explicit source-support chains, with per-patient absolute cutoffs and conservative blockers. The 8 broader declarative replay families remain only partially covered: no historical ontology/mapping replay, derived indices, clinical history validation or replay UI is implemented.
+The [bounded evidence-selection profile](evidence-selection.md) executes source-as-known and retrospective selection over explicit source-support chains, with per-patient absolute cutoffs and conservative blockers. The [joint extension](joint-evidence-selection.md) now applies this same selection to normalized temporal and semantic fact bundles before checked Rust matching. The 8 broader declarative replay families remain only partially covered: no historical ontology/mapping replay, derived indices, clinical history validation or replay UI is implemented.
 
 ### T6. General revision selection remains incomplete **[partial]**
 *Source: [2.4 §2](../addenda/specification-2.4.md)*
 
-The original runner consumes one already-selected snapshot. The new [bounded selection layer](evidence-selection.md) prepares such snapshots from normalized assertion bundles and explicit source-support revisions. General observation/source mappings and the complete versioning policy in 2.3 remain open.
+The original runner consumes one already-selected snapshot. The new [bounded selection layer](evidence-selection.md) prepares such snapshots from normalized assertion bundles and explicit source-support revisions. Joint temporal/semantic bundles now support atomic corrections, but general observation/source mappings and the complete versioning policy in 2.3 remain open.
 
 ---
 

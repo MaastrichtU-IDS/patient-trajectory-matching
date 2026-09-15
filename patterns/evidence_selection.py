@@ -30,6 +30,11 @@ def validate(archive, request):
     for value, contract, label in ((archive, schema, 'ARCHIVE'),
                                     (request, schema['$defs']['request'], 'SELECTION_REQUEST')):
         ei.require(not list(Draft202012Validator(contract).iter_errors(value)), 'INVALID_' + label + '_SCHEMA')
+    return _validate_archive(archive, request)
+
+
+def _validate_archive(archive, request):
+    """Shared history/temporal validation after an entry point's schema check."""
     archive, request = copied(archive), copied(request)
     def identifiers(value):
         if isinstance(value, dict):
@@ -59,7 +64,7 @@ def validate(archive, request):
         ei.require(c['scope'] == 'global' or (c['scope'].startswith('patient:')
                    and c['scope'][8:] in cutoffs), 'INVALID_CLOCK_SCOPE')
     for a in assertions.values():
-        ei.require(any(a['bundle'][k] for k in ROW_KINDS), 'EMPTY_ASSERTION_BUNDLE')
+        ei.require(any(a['bundle'].values()), 'EMPTY_ASSERTION_BUNDLE')
         for kind in ROW_KINDS:
             bt.unique(a['bundle'][kind], 'id')
             for row in a['bundle'][kind]:
@@ -112,19 +117,24 @@ def validate(archive, request):
 
 def select(archive, request):
     """Return a detached selection report; blocked selections never yield a source."""
-    archive, request, assertions, entries, cutoffs = validate(archive, request)
+    return _select_validated(*validate(archive, request))
+
+
+def _select_validated(archive, request, assertions, entries, cutoffs, *,
+                      profile=PROFILE, row_kinds=ROW_KINDS, extra_artifacts=()):
+    """Shared revision algorithm; entry points validate their entire input first."""
     artifacts = ('patterns/evidence_selection.py', 'schemas/evidence-selection.schema.json',
                  'patterns/bounded_intervals.py', 'schemas/bounded-interval.schema.json',
                  'patterns/exact_intervals.py', 'patterns/pro_solid.py', 'patterns/temporal_stn.py',
                  'ontology/vendor/sulo-0.2.14.ttl', 'ontology/pro-solid-profile.ttl',
                  'ontology/exact-interval-profile.ttl', 'ontology/bounded-interval-profile.ttl',
-                 'patterns/requirements.lock.txt')
-    context = {'profile': PROFILE, 'archive_sha256': ei.digest(ei.canonical(archive)),
+                 'patterns/requirements.lock.txt') + extra_artifacts
+    context = {'profile': profile, 'archive_sha256': ei.digest(ei.canonical(archive)),
                'request': request, 'mapping_policy_id': archive['mapping_policy_id'],
                'mapping_policy_evidence': 'caller_declaration_not_verified_against_original_sources',
                'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in artifacts}}
     context_id = ei.digest(ei.canonical(context))
-    report = {'profile': PROFILE, 'context_id': context_id, 'context': context,
+    report = {'profile': profile, 'context_id': context_id, 'context': context,
               'archive': archive, 'decisions': [], 'blockers': [], 'active_support_ids': [],
               'selected_assertion_ids': [], 'row_supports': {}, 'source': None,
               'selection_complete': True, 'coverage_basis': 'caller_declared_archive_history_only',
@@ -175,7 +185,7 @@ def select(archive, request):
     variants = defaultdict(dict)
     for aid, support_ids in sorted(supports.items()):
         a = assertions[aid]
-        for kind in ROW_KINDS:
+        for kind in row_kinds:
             for row in a['bundle'][kind]:
                 key = kind + ':' + row['id']
                 # Identical complete normalized rows coalesce; no approximate/value-based merge.
@@ -183,7 +193,7 @@ def select(archive, request):
                 variant = variants[key].setdefault(encoded, {'row': row, 'support': []})
                 variant['support'].append({'assertion_id': aid, 'support_ids': support_ids,
                                            'patient_id': a['patient_id'], 'episode_id': a['episode_id']})
-    selected = {k: [] for k in ROW_KINDS}
+    selected = {k: [] for k in row_kinds}
     for key, choices in sorted(variants.items()):
         if len(choices) != 1:
             blockers.append({'reason': 'CONFLICTING_ROW', 'row': key, 'variants': list(choices.values())})
@@ -200,13 +210,16 @@ def select(archive, request):
                 if any(bt.scope(v) != bt.scope(support) for v in refs):
                     blockers.append({'reason': 'CONSTRAINT_ASSERTION_SCOPE', 'constraint_id': c['id'],
                                      'assertion_id': support['assertion_id']})
+    for kind in set(row_kinds) - set(ROW_KINDS):
+        report['selected_' + kind] = selected[kind]
     if blockers:
         report['status'] = 'BLOCKED_EVIDENCE'
     elif not any(selected.values()):
         report['status'] = 'EMPTY_SELECTED_EVIDENCE'
     else:
         source = {'profile': bt.PROFILE_ID, 'dataset_id': archive['dataset_id'],
-                  'snapshot_id': 'selected_' + context_id, 'clocks': archive['clocks'], **selected}
+                  'snapshot_id': 'selected_' + context_id, 'clocks': archive['clocks'],
+                  **{k: selected[k] for k in ROW_KINDS}}
         try:
             bt.compile_source(source)
         except bt.InconsistentSource as error:

@@ -16,3 +16,4 @@ verification/bounded-rdf-run/
 verification/evidence-selection-run/
 verification/temporal-interface-run/
 verification/semantic-support-run/
+verification/joint-evidence-run/

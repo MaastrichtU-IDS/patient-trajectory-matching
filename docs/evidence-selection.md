@@ -90,3 +90,6 @@ The normalized row bundles feed the existing PRO/SOLID graph builder. This profi
 The 29-test suite covers correction timing, repeated events, independent duplicate support, withdrawals without resurrection, row conflicts, eligible forks, revision cycles, malformed scope/precision/policies, unknown availability, incomplete history, detached results, temporal inconsistency and CLI outcomes. Sixty seeded linear histories are compared with an independent chronological-chain reference. Selected temporal answers are checked against the finite-world reference, including shared uncertainty whose marginal ranges overlap while its gap is certain. These scenarios are nested within the 29 top-level tests.
 
 Next work is source-specific mapping and history-coverage evidence, finer-grained unresolved results, and explicit integration with the ontology support interface. The complete replay requirements and Q7 remain broader than this bounded contract.
+
+
+The separate [joint evidence-selection profile](joint-evidence-selection.md) extends this shared revision algorithm to semantic fact bundles and the checked Rust matcher. It uses the same patient cutoffs and current-rule policy; this original archive profile remains temporal-only.
