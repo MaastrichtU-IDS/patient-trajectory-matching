@@ -202,6 +202,8 @@ Until they do, [status.md](status.md) and the register disagree about what is im
 
 [Formal definition v2](temporal-kg/) §13 lists eleven decisions that block operationalization, each with a proposed baseline and the evidence required to close it. They overlap substantially with the gaps above, from the other direction: the register asks *what must be decided*, this page records *what is not built*.
 
+The [response to the revision](temporal-kg/revision-response.md) proposes choices and acceptance evidence for every question, including a SULO interface mapping. These recommendations are pending review and do not close the gaps here. [Issue #6](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/issues/6) requests the standalone OWL files and evidence for the report's 18 checks.
+
 | v2 | Blocked capability | Related issues here |
 |---|---|---|
 | Q1 | Execution boundary — all metric queries | [O1](#o1-no-owl-reasoning-gap) — only a limited closure is executed; whether an external evaluator is permitted decides how far that can go |
@@ -230,8 +232,9 @@ The [documentation guide](README.md) gives the current path:
 1. Reproduce the PRO/SOLID adapter and reference oracle
 2. Run the exact-interval adapter and its conformance suite
 3. Run the interval cohort matcher and its differential suite
-4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; run the RDF ingestion suite and extend propagation with the same correctness gates
-5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation
+4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; run the RDF ingestion suite
+5. Review the [v2 response and SULO mapping](temporal-kg/revision-response.md), obtain the accompanying validation artifacts, and specify evidence selection into immutable snapshots
+6. Extend and benchmark the admitted fragment on representative clinical data, preserving differential checks against the reference implementation
 
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.
 
