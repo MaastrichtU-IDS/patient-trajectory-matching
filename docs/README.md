@@ -34,6 +34,7 @@ Start here for the overall design and current state.
 | [Checked Rust semantic support](semantic-support.md) | Restricted class entailment and consistency gate before bounded matching | Executable; 22 Rust/reference tests, full SULO/import reasoning remains open |
 | [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
+| [Measurement point claims](measurement-claims.md) | Scalar/point claims and bounded chartevents import | Executable; 35 tests; mixed temporal queries remain open |
 | [MIMIC pending claim import](mimic-claim-import.md) | Source records to bounded claim descriptions and empty acceptance policies | Executable; 25 tests and aggregate public-demo verification |
 | [Patient-local claim projection](local-claim-projection.md) | Local-clock claims, acceptance and checked matching | Executable; 32 tests, recorded and occurrence variants |
 | [Structured claims and controlled projection](claim-projection.md) | Information-object claims and explicit acceptance into bounded reasoning | Executable prototype; 45 tests, pinned-SULO claim-isolation model check |

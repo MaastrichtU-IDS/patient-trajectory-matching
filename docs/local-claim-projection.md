@@ -1,6 +1,6 @@
 # Patient-local claim projection
 
-**Status:** executable local-clock extension to [structured claims and controlled projection](claim-projection.md). It connects the claim acceptance layer to the existing [patient-local representation](patient-local-clocks.md), preserving its raw labels, bounded uncertainty and clock isolation. The separate [MIMIC claim importer](mimic-claim-import.md) supplies source-derived recorded claims. Measurement timestamps remain unsupported.
+**Status:** executable local-clock extension to [structured claims and controlled projection](claim-projection.md). It connects the claim acceptance layer to the existing [patient-local representation](patient-local-clocks.md), preserving its raw labels, bounded uncertainty and clock isolation. The separate [MIMIC claim importer](mimic-claim-import.md) supplies source-derived recorded claims. Measurement points use a [separate record-selection profile](measurement-claims.md); they remain unsupported by this interval projection.
 
 ## Separate profiles
 

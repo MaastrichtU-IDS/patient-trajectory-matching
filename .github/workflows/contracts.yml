@@ -156,6 +156,10 @@ jobs:
         run: |
           python -m patterns.mimic_claim_import
           python -m patterns.test_mimic_claim_import
+      - name: Measurement point claims and source admission
+        run: |
+          python -m patterns.mimic_measurement_import
+          python -m patterns.test_measurement_claims
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -168,6 +172,7 @@ jobs:
             verification/claim-projection-run/
             verification/local-claim-projection-run/
             verification/mimic-claim-import-run/
+            verification/mimic-measurement-run/
           retention-days: 14
 
   oracle-compatibility:

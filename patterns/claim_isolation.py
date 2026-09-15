@@ -17,8 +17,9 @@ PIN = '433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e'
 S = ei.S
 
 
-def check(graph, *, local=False):
-    cr.decode(graph, fields=cr.LOCAL_FIELDS if local else cr.FIELDS)  # Closed description vocabulary and exactly one value per datum.
+def check(graph, *, local=False, measurement=False):
+    ei.require(not measurement or local, 'MEASUREMENT_REQUIRES_LOCAL_CLAIM_CLOSURE')
+    cr.decode(graph, fields=cr.MEASUREMENT_FIELDS if measurement else (cr.LOCAL_FIELDS if local else cr.FIELDS))  # Closed description vocabulary and exactly one value per datum.
     path = ei.ROOT / 'ontology/vendor/sulo-0.2.14.ttl'
     ei.require(hashlib.sha256(path.read_bytes()).hexdigest() == PIN, 'UNREVIEWED_SULO_PIN')
     base = Graph().parse(path)
@@ -39,6 +40,16 @@ def check(graph, *, local=False):
         ontology += extension
         expected |= extra_classes
         extension_hashes['ontology/local-claim-description-profile.ttl'] = hashlib.sha256(extension_path.read_bytes()).hexdigest()
+    if measurement:
+        extension_path = ei.ROOT / 'ontology/measurement-claim-description-profile.ttl'
+        extension = Graph().parse(extension_path)
+        extra_classes = {cr.CP['Field_' + k] for k in cr.MEASUREMENT_FIELDS - cr.LOCAL_FIELDS}
+        expected_extension = {(c, RDF.type, OWL.Class) for c in extra_classes} | {
+            (c, RDFS.subClassOf, S.InformationObject) for c in extra_classes}
+        ei.require(set(extension) == expected_extension, 'UNREVIEWED_MEASUREMENT_CLAIM_CLASS_MODULE')
+        ontology += extension
+        expected |= extra_classes
+        extension_hashes['ontology/measurement-claim-description-profile.ttl'] = hashlib.sha256(extension_path.read_bytes()).hexdigest()
     ei.require(not list(ontology.triples((None, OWL.imports, None))), 'UNREVIEWED_IMPORT')
     domain = frozenset(graph.subjects())
     ei.require(bool(domain), 'EMPTY_MODEL_DOMAIN')

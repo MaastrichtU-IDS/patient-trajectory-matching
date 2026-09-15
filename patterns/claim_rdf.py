@@ -18,6 +18,7 @@ FIELDS = frozenset('profile dataset_id snapshot_id clocks claims clock_id origin
     'record_id event_kind status start_var end_var left_var right_var kind local_id '
     'subject object class_iri property_iri event_id'.split())
 LOCAL_FIELDS = FIELDS | frozenset(('origin_source_key', 'local_lower', 'local_upper'))
+MEASUREMENT_FIELDS = LOCAL_FIELDS | frozenset(('time_var', 'value_lexical', 'unit_lexical', 'item_id'))
 TYPES = ('Document', 'ObjectDescription', 'ArrayDescription', 'StringDatum', 'IntegerDatum',
          'ItemBinding', 'IndexDatum')
 
