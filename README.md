@@ -1,5 +1,7 @@
 # Patient Trajectory Matching Contract Pack
 
+[![contracts](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/actions/workflows/contracts.yml/badge.svg)](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/actions/workflows/contracts.yml)
+
 Version 2.4, 15 September 2026. Companion to product specification v2.3, extended by the v2.4 addendum in this pack.
 
 This pack fixes the initial cohort query contract and provides executable examples. It is not the production matcher, a complete OWL reasoner, a full ETL implementation or a clinical terminology release. All patient examples and DrugA/DrugB alternatives are constructed. No MIMIC patient rows are redistributed here.
@@ -74,3 +76,13 @@ For uncertain exposure time, definite relaxed acceptance uses the worst cost ove
 ## Implementation handoff
 
 Begin with the runnable PRO/SOLID slice, then implement clinical source mapping and reconciliation, fuller ontology/time reasoning and an optimized matcher. Compare against these cases and add independently authored clinical cases. Review the pinned SULO version and actual terminology mappings before integrating the Rust reasoning stack. The v2.4 addendum distinguishes implemented behavior from remaining product work. Do not infer production readiness from passing fixture reports.
+
+## Continuous integration
+
+`.github/workflows/contracts.yml` runs on every push and pull request. It verifies the release manifest hashes, runs the reference oracle, executes the PRO/SOLID pipeline from both the synthetic source rows and the committed RDF graph, checks that the regenerated graph is isomorphic to `examples/pro-solid/graph.ttl`, and runs the 42-test acceptance suite on Python 3.12. A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
+
+Report files under `verification/` record the runner's Python patch version, so they are expected to differ from the committed release after a local run. CI reports that drift as a notice rather than a failure.
+
+## License
+
+Pack contents are MIT licensed; see `LICENSE`. The vendored SULO ontology at `ontology/vendor/sulo-0.2.14.ttl` is CC0, as recorded in `ontology/sulo-pin.json`, and is redistributed under its own terms. All patient examples and DrugA/DrugB alternatives are constructed. No MIMIC patient rows are redistributed here, and the MIMIC-IV dataset carries its own access requirements independent of this license.
