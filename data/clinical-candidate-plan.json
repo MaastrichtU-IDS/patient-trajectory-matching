@@ -55,9 +55,9 @@
   },
   "availability_history_verified": false,
   "scope": "retrospective ICU source records; no age-based eligibility implemented",
-  "source_selection_status": "not_executed",
+  "source_selection_status": "conditional_record_windows_executed_clinical_review_pending",
   "record_acceptance_status": "not_executed",
-  "extraction_status": "required_before_mixed_query",
+  "extraction_status": "indexed_windows_implemented_blocked_anchors_retained",
   "required_reviews": [
     "item identity and separate measurement strata",
     "segment anchor meaning and revision/duplicate policy",
@@ -66,5 +66,12 @@
     "same-patient calendar compatibility",
     "source coverage and complete blocked-anchor accounting"
   ],
-  "relationship_to_existing_study": "Separate technical pilot; does not replace D01 antibiotic/renal study in full-mimic-study-plan-2.1.json"
+  "relationship_to_existing_study": "Separate technical pilot; does not replace D01 antibiotic/renal study in full-mimic-study-plan-2.1.json",
+  "technical_window_selection": {
+    "implementation": "patterns/indexed_source_windows.py",
+    "report": "verification/indexed-source-windows-demo-report.json",
+    "status": "conditional_demo_windows_verified_with_blocked_anchors_retained",
+    "clinical_review_supplied": false,
+    "real_source_mixed_query_executed": false
+  }
 }

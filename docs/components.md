@@ -362,3 +362,7 @@ No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access re
 ## Clinical source preflight
 
 [`patterns/clinical_source_preflight.py`](../patterns/clinical_source_preflight.py) streams candidate measurement coverage, reuses the current admission policies, retains complete aggregate row accounting, and screens source-file and per-stay count limits. It produces no claims, acceptance decisions, clock alignment or cohort answer. The [pinned public-demo report and proposed review plan](clinical-source-preflight.md) establish the need for indexed window selection before a real-source mixed query.
+
+## Indexed source windows
+
+[`patterns/indexed_source_windows.py`](../patterns/indexed_source_windows.py) streams original source rows into a patient/stay/item/time index, checks every anchor window against a direct datetime reference, retains blocked/empty anchors, and exports an individually requested count-bounded anchor as pending claims. It preserves original hashes and row numbers. [The contract and aggregate demo report](indexed-source-windows.md) distinguish window completeness, count bounds, batch validation and explicit acceptance.

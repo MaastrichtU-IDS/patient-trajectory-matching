@@ -497,3 +497,14 @@ python -m patterns.verify_clinical_source_preflight --input-dir /path/to/demo/ic
 ```
 
 Expected synthetic scan: 5 inputevent and 9 chart rows accounted for, three two-sided stays within the conservative count bounds, no claim acceptance or mixed query. The 20 tests cover streaming CSV/gzip completeness, source changes, limits, unchanged admission, aggregate-only output, pin verification and atomic failure behavior. Total: 576 checks (553 suite tests, 16 oracle cases, seven properties). The public-demo [aggregate report](../verification/clinical-source-preflight-demo-report.json) records all 20,404 inputevent and 668,862 chart rows. It demonstrates coverage and capacity barriers, not a completed clinical query. See [the interpretation and next gate](clinical-source-preflight.md).
+
+## Indexed source windows and pending batches
+
+```sh
+python -m patterns.indexed_source_windows
+python -m patterns.test_indexed_source_windows
+# Original demo ICU files supplied locally:
+python -m patterns.verify_indexed_source_windows --input-dir /path/to/demo/icu
+```
+
+Expected synthetic selection: three anchors, all windows count-bounded, original source identities retained. Twenty-four tests include real Rust and raw-row SQL agreement after explicit synthetic batch acceptance. The complete suite totals 600 checks: 577 suite tests, 16 oracle cases and seven properties. [The committed aggregate report](../verification/indexed-source-windows-demo-report.json) records 2,832 agreeing indexed/direct windows over three separate measurement strata; blocked anchors remain explicit, with no real-source mixed query or claim acceptance. See [the contract](indexed-source-windows.md).
