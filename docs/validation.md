@@ -435,3 +435,12 @@ python -m patterns.test_claim_projection
 ```
 
 These use the existing optional Rust dependency lock and run in the Rust CI job. The 45 new tests bring the total to **402 checks**: 379 suite tests, 16 oracle cases and seven properties. The default synthetic run returns `READY`, P1 certain, and `VERIFIED_EMPTY_PROCESS_MODEL` for the separate claim graph. The [contract](claim-projection.md) explains the pinned-SULO model check, accepted-view limitations, decisions, support dependencies, bounds and RDF input route. No clinical approval or original source-history verification is implied.
+
+## Patient-local claim projection
+
+```sh
+python -m patterns.local_claim_projection
+python -m patterns.test_local_claim_projection
+```
+
+The 32 new tests bring the total to **434 checks**: 411 suite tests, 16 oracle cases and seven properties. Both synthetic local and recorded examples run in the Rust CI job. The [contract](local-claim-projection.md) includes the recorded example command, source/normalized evidence distinction and local-time interpretation. The original 45 claim tests continue to validate the offset profile and base isolation closure.

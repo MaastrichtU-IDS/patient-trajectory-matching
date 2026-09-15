@@ -2,7 +2,7 @@
 
 **Status: proposed general pattern with a bounded executable prototype.** The [current record-query profile](../mimic-record-query.md) remains an explicitly interpreted application projection. This document makes its portability limit visible and specifies the next acceptance gates.
 
-The [claim-projection prototype](../claim-projection.md) now implements structured information-object claims, explicit acceptance/replacement/withdrawal, and a checked empty-Process model for its description graph plus pinned SULO. The accepted view still uses restricted semantic support; clinical mapping and general contextual semantics remain open.
+The [claim-projection prototype](../claim-projection.md) now implements structured information-object claims, explicit acceptance/replacement/withdrawal, and a checked empty-Process model for its description graph plus pinned SULO. The [patient-local extension](../local-claim-projection.md) now adds local-clock and recorded-segment claim variants. The accepted view still uses restricted semantic support; clinical mapping and general contextual semantics remain open.
 
 ## The distinction we need
 

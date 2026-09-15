@@ -146,6 +146,12 @@ jobs:
         run: python -m patterns.claim_projection
       - name: Claim isolation, acceptance and withdrawal checks
         run: python -m patterns.test_claim_projection
+      - name: Local-clock claim projections
+        run: |
+          python -m patterns.local_claim_projection
+          python -m patterns.local_claim_projection --store examples/local-claim-projection/record-store.json --policy examples/local-claim-projection/record-policy.json --semantic-policy examples/local-claim-projection/record-semantic-policy.json --query examples/local-claim-projection/record-query.json --output verification/local-claim-projection-run/record-result.json
+      - name: Local claim clocks, dependencies and profile checks
+        run: python -m patterns.test_local_claim_projection
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -156,6 +162,7 @@ jobs:
             verification/joint-evidence-run/
             verification/mimic-record-query-run/
             verification/claim-projection-run/
+            verification/local-claim-projection-run/
           retention-days: 14
 
   oracle-compatibility:

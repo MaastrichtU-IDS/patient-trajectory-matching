@@ -1,0 +1,464 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "dataset_id",
+    "snapshot_id",
+    "clocks",
+    "claims"
+  ],
+  "properties": {
+    "profile": {
+      "const": "patient-local-record-claim-store-1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "maxLength": 128
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "maxLength": 128
+    },
+    "clocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "clock_id",
+          "origin",
+          "scope",
+          "policy",
+          "origin_source_key"
+        ],
+        "properties": {
+          "clock_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "origin": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "string",
+            "pattern": "^patient:[A-Za-z0-9_-]+$"
+          },
+          "policy": {
+            "const": "patient-local-calendar-microseconds-v1"
+          },
+          "origin_source_key": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "patient_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "episode_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "bundle": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "variables": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "patient_id",
+                    "episode_id",
+                    "clock_id",
+                    "source_key",
+                    "local_lower",
+                    "local_upper"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "patient_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "episode_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "clock_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "source_key": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "local_lower": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "local_upper": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              "events": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "record_id",
+                    "patient_id",
+                    "episode_id",
+                    "event_kind",
+                    "status",
+                    "start_var",
+                    "end_var",
+                    "source_key"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "record_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "patient_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "episode_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "event_kind": {
+                      "const": "recorded_input_segment"
+                    },
+                    "status": {
+                      "const": "recorded"
+                    },
+                    "start_var": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "end_var": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "source_key": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              "constraints": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "left_var",
+                    "right_var",
+                    "upper_us",
+                    "source_key"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "left_var": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "right_var": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    },
+                    "upper_us": {
+                      "type": "integer",
+                      "minimum": -9223372036854775808,
+                      "maximum": 9223372036854775807
+                    },
+                    "source_key": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              "semantic_facts": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "$ref": "#/$defs/semantic_fact"
+                }
+              }
+            },
+            "required": [
+              "variables",
+              "events",
+              "constraints",
+              "semantic_facts"
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "maxLength": 128
+          },
+          "source_record_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "maxLength": 128
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "id",
+          "patient_id",
+          "episode_id",
+          "bundle",
+          "source_id",
+          "source_record_id",
+          "source_sha256"
+        ]
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "semantic_fact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "patient_id",
+            "episode_id",
+            "kind",
+            "local_id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "patient_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "episode_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "kind": {
+              "const": "individual"
+            },
+            "local_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "patient_id",
+            "episode_id",
+            "kind",
+            "subject",
+            "class_iri"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "patient_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "episode_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "kind": {
+              "const": "class"
+            },
+            "subject": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "event_id"
+                  ],
+                  "properties": {
+                    "event_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "local_id"
+                  ],
+                  "properties": {
+                    "local_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              ]
+            },
+            "class_iri": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "patient_id",
+            "episode_id",
+            "kind",
+            "subject",
+            "property_iri",
+            "object"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "patient_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "episode_id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "kind": {
+              "const": "property"
+            },
+            "subject": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "event_id"
+                  ],
+                  "properties": {
+                    "event_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "local_id"
+                  ],
+                  "properties": {
+                    "local_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              ]
+            },
+            "property_iri": {
+              "enum": [
+                "https://w3id.org/sulo/hasParticipant",
+                "https://w3id.org/sulo/isFeatureOf"
+              ]
+            },
+            "object": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "event_id"
+                  ],
+                  "properties": {
+                    "event_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "local_id"
+                  ],
+                  "properties": {
+                    "local_id": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

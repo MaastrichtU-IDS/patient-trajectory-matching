@@ -1,0 +1,24 @@
+{
+  "profile": "claim-acceptance-policy-1.0",
+  "id": "synthetic_review_1",
+  "store_sha256": "ee22af5480dc225959b9f15b62e2f94ccce47fc172e7dd1e92eeefa3d709e244",
+  "semantic_policy_sha256": "87220903d960d44472da255b7ebc6ec62fb504273f96f0439bcd9b25246e8755",
+  "decisions": [
+    {
+      "id": "accept_collection_original",
+      "claim_id": "collection_original",
+      "claim_sha256": "7c587c13cdc891c568d9dfeba6ddfa739c2dc33972fb6fed2f4ba8aab57e5f69",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed acceptance for this synthetic analysis; no clinical review claimed."
+    },
+    {
+      "id": "accept_admin_classified",
+      "claim_id": "admin_classified",
+      "claim_sha256": "734446e13f04dc9fe6bcb418d78103eb283a371fe50a48c47e6f665d9923c8fd",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed acceptance for this synthetic analysis; no clinical review claimed."
+    }
+  ]
+}

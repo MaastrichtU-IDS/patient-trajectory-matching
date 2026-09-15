@@ -1,0 +1,8 @@
+@prefix cp: <https://example.org/trajectory/claim/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+cp:Field_local_lower a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_local_upper a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_origin_source_key a owl:Class ; rdfs:subClassOf sulo:InformationObject .
