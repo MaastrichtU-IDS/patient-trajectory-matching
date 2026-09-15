@@ -1,0 +1,23 @@
+{
+  "dataset_id": "mimic-iv-demo-2.2",
+  "source_url": "https://physionet.org/content/mimic-iv-demo/2.2/",
+  "checksum_url": "https://physionet.org/files/mimic-iv-demo/2.2/SHA256SUMS.txt",
+  "files": {
+    "inputevents": {
+      "file_sha256": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+      "rows": 20404
+    },
+    "icustays": {
+      "file_sha256": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+      "rows": 140
+    },
+    "d_items": {
+      "file_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+      "rows": 4014
+    },
+    "chartevents": {
+      "file_sha256": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560",
+      "rows": 668862
+    }
+  }
+}

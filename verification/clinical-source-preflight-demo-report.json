@@ -1,0 +1,317 @@
+{
+  "profile": "clinical-source-preflight-verification-1.0",
+  "source_url": "https://physionet.org/content/mimic-iv-demo/2.2/",
+  "published_checksum_url": "https://physionet.org/files/mimic-iv-demo/2.2/SHA256SUMS.txt",
+  "source_pin_sha256": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
+  "request_sha256": "deec58d7f2c6fe3b61a5458824555286b9e28afb96132e4a55c61b10f8391ee8",
+  "verifier_sha256": "713dee8badb973f8741b11e17962622a262ec51143937f4af5ddb60dc4212c99",
+  "published_file_hashes_verified": true,
+  "scope": "Public-demo item coverage and capacity only; no mixed query or clinical cohort evaluation.",
+  "result": {
+    "profile": "clinical-source-preflight-1.0",
+    "status": "COMPLETED_SOURCE_PREFLIGHT",
+    "context": {
+      "profile": "clinical-source-preflight-1.0",
+      "request": {
+        "profile": "clinical-source-preflight-1.0",
+        "id": "demo_source_preflight",
+        "dataset_id": "mimic-iv-demo-2.2",
+        "treatment_itemids": [
+          "221906"
+        ],
+        "measurement_itemids": [
+          "220052",
+          "220181",
+          "225312"
+        ]
+      },
+      "source_files": [
+        {
+          "table": "inputevents",
+          "file_sha256": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+          "csv_sha256": "34ff7b19dbdfdf4608c4de3ad589a4b1624f6e767a09cd5489fe6d2448e4edfd",
+          "columns": [
+            "subject_id",
+            "hadm_id",
+            "stay_id",
+            "caregiver_id",
+            "starttime",
+            "endtime",
+            "storetime",
+            "itemid",
+            "amount",
+            "amountuom",
+            "rate",
+            "rateuom",
+            "orderid",
+            "linkorderid",
+            "ordercategoryname",
+            "secondaryordercategoryname",
+            "ordercomponenttypedescription",
+            "ordercategorydescription",
+            "patientweight",
+            "totalamount",
+            "totalamountuom",
+            "isopenbag",
+            "continueinnextdept",
+            "statusdescription",
+            "originalamount",
+            "originalrate"
+          ],
+          "rows": 20404
+        },
+        {
+          "table": "icustays",
+          "file_sha256": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+          "csv_sha256": "9a79a759372a6075560a0dcf53d10122e691a8a4dce7141101f6660ab8476f42",
+          "columns": [
+            "subject_id",
+            "hadm_id",
+            "stay_id",
+            "first_careunit",
+            "last_careunit",
+            "intime",
+            "outtime",
+            "los"
+          ],
+          "rows": 140
+        },
+        {
+          "table": "d_items",
+          "file_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+          "csv_sha256": "3a9ff93b12727ec17000896c144c03573bccae0f8f71d5d5c2ba773ebf7ffa5d",
+          "columns": [
+            "itemid",
+            "label",
+            "abbreviation",
+            "linksto",
+            "category",
+            "unitname",
+            "param_type",
+            "lownormalvalue",
+            "highnormalvalue"
+          ],
+          "rows": 4014
+        },
+        {
+          "table": "chartevents",
+          "file_sha256": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560",
+          "csv_sha256": "e1b858b4d8bf721900e78dd702448430a5d3bb9652209f00baed35ac6c04eebd",
+          "raw_bytes": 5549389,
+          "expanded_bytes": 64701023,
+          "columns": [
+            "subject_id",
+            "hadm_id",
+            "stay_id",
+            "caregiver_id",
+            "charttime",
+            "storetime",
+            "itemid",
+            "value",
+            "valuenum",
+            "valueuom",
+            "warning"
+          ],
+          "rows": 668862
+        }
+      ],
+      "interval_admission_context_id": "e69c10905683c01258605cbe3441ff68571c22852049d2bad5fdf2fbc6580e80",
+      "measurement_admission_scope": "requested_item_codes_only_other_rows_counted_as_outside_scope",
+      "limits": {
+        "raw_bytes": 134217728,
+        "expanded_bytes": 536870912,
+        "line_bytes": 1048576,
+        "chart_rows": 2000000,
+        "selected_chart_rows": 100000,
+        "stays": 256
+      },
+      "downstream_count_limits": {
+        "interval_claims": 32,
+        "interval_events": 30,
+        "measurement_claims": 32,
+        "variables": 64,
+        "baseline_tests": 128,
+        "followup_tests": 256
+      },
+      "artifacts": {
+        "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+        "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+        "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+        "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+        "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+        "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+        "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+        "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
+        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+        "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+        "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
+        "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+        "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+        "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+        "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+        "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+        "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+        "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+        "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+        "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+        "schemas/clinical-source-preflight.schema.json": "7c89064fd182afb529abf83609fecd9c4d31b1d5c4c1644e83f4eab7bc858496",
+        "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+        "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+        "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+        "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+        "schemas/mimic-claim-import.schema.json": "503485df46f59cbbbc1cc53383864a8e952d7eec62defe2a542973b75236d460",
+        "schemas/mimic-measurement-import.schema.json": "bff31307d9a3350645ced5b5f07a6bd2d5be87140f6e1d143125d21fe28517c0",
+        "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+        "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+        "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
+      }
+    },
+    "context_id": "59a33c210252cd95037d35abfb35a25f71535bfad09eabf1677b14b27c39e6d1",
+    "full_source_scan_complete": true,
+    "row_accounting_complete": true,
+    "input_rows": {
+      "inputevents": 20404,
+      "chartevents": 668862
+    },
+    "row_outcomes": {
+      "inputevents": {
+        "OUTSIDE_ITEM_SCOPE": 19457,
+        "STAGED_SEGMENT": 944,
+        "UNSUPPORTED_ROW": 3
+      },
+      "chartevents": {
+        "ADMITTED_MEASUREMENT": 14349,
+        "OUTSIDE_ITEM_SCOPE": 654472,
+        "UNSUPPORTED_ROW": 41
+      }
+    },
+    "items": [
+      {
+        "itemid": "220052",
+        "label": "Arterial Blood Pressure mean",
+        "linksto": "chartevents",
+        "dictionary_unit": "mmHg",
+        "rows": 5560,
+        "admission_outcomes": {
+          "ADMITTED_MEASUREMENT": 5543,
+          "UNSUPPORTED_ROW": 17
+        },
+        "reason_counts": {
+          "SOURCE_WARNING_FLAGGED": 17
+        },
+        "unit_buckets": {
+          "mmHg": 5560
+        },
+        "warning_buckets": {
+          "0": 5543,
+          "1": 17
+        },
+        "admitted_stays": 65,
+        "max_admitted_records_per_stay": 447
+      },
+      {
+        "itemid": "220181",
+        "label": "Non Invasive Blood Pressure mean",
+        "linksto": "chartevents",
+        "dictionary_unit": "mmHg",
+        "rows": 8342,
+        "admission_outcomes": {
+          "ADMITTED_MEASUREMENT": 8318,
+          "UNSUPPORTED_ROW": 24
+        },
+        "reason_counts": {
+          "SOURCE_WARNING_FLAGGED": 24
+        },
+        "unit_buckets": {
+          "mmHg": 8342
+        },
+        "warning_buckets": {
+          "0": 8318,
+          "1": 24
+        },
+        "admitted_stays": 138,
+        "max_admitted_records_per_stay": 346
+      },
+      {
+        "itemid": "221906",
+        "label": "Norepinephrine",
+        "linksto": "inputevents",
+        "dictionary_unit": "mg",
+        "rows": 947,
+        "admission_outcomes": {
+          "STAGED_SEGMENT": 944,
+          "UNSUPPORTED_ROW": 3
+        },
+        "reason_counts": {
+          "ONE_MINUTE_BOLUS_AMBIGUITY": 3
+        },
+        "unit_buckets": {},
+        "warning_buckets": {},
+        "admitted_stays": 33,
+        "max_admitted_records_per_stay": 174
+      },
+      {
+        "itemid": "225312",
+        "label": "ART BP Mean",
+        "linksto": "chartevents",
+        "dictionary_unit": "mmHg",
+        "rows": 488,
+        "admission_outcomes": {
+          "ADMITTED_MEASUREMENT": 488
+        },
+        "reason_counts": {},
+        "unit_buckets": {
+          "mmHg": 488
+        },
+        "warning_buckets": {
+          "0": 488
+        },
+        "admitted_stays": 10,
+        "max_admitted_records_per_stay": 125
+      }
+    ],
+    "roster": {
+      "patients": 100,
+      "stays": 140,
+      "stays_with_admitted_treatment": 33,
+      "stays_with_admitted_measurement": 139,
+      "stays_without_either_admitted_type": 1
+    },
+    "capacity_screen": {
+      "direct_chartevents_file_within_import_limits": false,
+      "direct_import_blockers": [
+        "CHARTEVENTS_IMPORT_ROW_LIMIT"
+      ],
+      "stay_count_limit_reasons": {
+        "BASELINE_UPPER_BOUND": 33,
+        "FOLLOWUP_UPPER_BOUND": 33,
+        "INTERVAL_CLAIM_LIMIT": 9,
+        "INTERVAL_EVENT_LIMIT": 11,
+        "MEASUREMENT_CLAIM_LIMIT": 99,
+        "MIXED_VARIABLE_LIMIT": 69
+      },
+      "exceed_conservative_count_bounds": 33,
+      "stays_with_both_admitted_record_types": 33,
+      "within_conservative_count_bounds": 0,
+      "screen_is_sufficient_count_condition_only": true,
+      "query_readiness_established": false
+    },
+    "patient_rows_or_identifiers_included": false,
+    "claims_created": 0,
+    "accepted_claims": 0,
+    "clinical_mapping_verified": false,
+    "clock_alignment_declared": false,
+    "mixed_query_executed": false,
+    "cohort_membership": null,
+    "full_mimic_analyzed": false
+  }
+}

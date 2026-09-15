@@ -486,3 +486,14 @@ python -m patterns.verify_source_mixed_query
 ```
 
 Expected: preparation accepts no claims; the explicitly constructed review yields `COMPLETED_VERIFIED_SOURCE_QUERY`, synthetic patients 1, 2 and 3 eligible, all five stays retained, and agreement on all baseline/follow-up bindings. Both source ledgers reconcile all 5 inputevent and 9 measurement rows. The 28 tests cover review/source staleness, selection/withdrawal, alignment, failure suppression, independent SQL arithmetic and source projection corruption. The total is now 556 checks: 533 suite tests, 16 oracle cases and seven properties. Detailed local run output is ignored; the committed [synthetic report](../verification/source-mixed-query-report.json) is reproducible. See [scope and limitations](source-mixed-query.md).
+
+## Clinical source coverage preflight
+
+```sh
+python -m patterns.clinical_source_preflight
+python -m patterns.test_clinical_source_preflight
+# Original public-demo ICU files must be supplied locally:
+python -m patterns.verify_clinical_source_preflight --input-dir /path/to/demo/icu
+```
+
+Expected synthetic scan: 5 inputevent and 9 chart rows accounted for, three two-sided stays within the conservative count bounds, no claim acceptance or mixed query. The 20 tests cover streaming CSV/gzip completeness, source changes, limits, unchanged admission, aggregate-only output, pin verification and atomic failure behavior. Total: 576 checks (553 suite tests, 16 oracle cases, seven properties). The public-demo [aggregate report](../verification/clinical-source-preflight-demo-report.json) records all 20,404 inputevent and 668,862 chart rows. It demonstrates coverage and capacity barriers, not a completed clinical query. See [the interpretation and next gate](clinical-source-preflight.md).
