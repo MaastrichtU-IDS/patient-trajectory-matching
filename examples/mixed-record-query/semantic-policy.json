@@ -1,0 +1,18 @@
+{
+  "profile": "joint-semantic-policy-1.0",
+  "id": "synthetic_item_group",
+  "classes": [
+    "https://example.org/trajectory/mixed-example/RecordedItemA",
+    "https://example.org/trajectory/mixed-example/SelectedTreatmentRecord"
+  ],
+  "rules": [
+    {
+      "id": "item_group",
+      "if": {
+        "class": "https://example.org/trajectory/mixed-example/RecordedItemA"
+      },
+      "then": "https://example.org/trajectory/mixed-example/SelectedTreatmentRecord"
+    }
+  ],
+  "disjoint": []
+}

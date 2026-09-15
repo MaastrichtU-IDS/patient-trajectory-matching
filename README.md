@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 494 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 528 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -137,6 +137,7 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | [Interval cohort matching](docs/interval-cohort-matching.md) | Slot queries, indexed joins, differential reference |
 | [Bounded temporal uncertainty](docs/bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty, certificates |
 | [Bounded RDF ingestion](docs/bounded-rdf-ingestion.md) | Closed graph validation, explicit identifiers, preserved source evidence |
+| [Mixed record queries](docs/mixed-record-query.md) | Baseline–treatment eligibility, explicit clock alignment and point follow-up |
 | [Measurement point claims](docs/measurement-claims.md) | Scalar/point source claims, explicit record selection and chartevents admission |
 | [MIMIC pending claim import](docs/mimic-claim-import.md) | Source provenance, complete row ledger and unaccepted recorded claims |
 | [Patient-local claim projection](docs/local-claim-projection.md) | Local and recorded claim profiles, clock isolation and preserved date-label evidence |

@@ -463,3 +463,13 @@ python -m patterns.verify_measurement_claims
 ```
 
 The 35 measurement tests bring the current total to **494 checks**: 471 suite tests, 16 oracle cases and seven properties. They cover exact decimal preservation, point bounds, explicit selection/correction/withdrawal, profile rejection, the 141-axiom isolation closure, bounded chartevents admission, source evidence and complete ledger outcomes. The [measurement contract](measurement-claims.md) describes the synthetic-only evaluation and the remaining mixed point/interval query work. The original claim reports and public-demo inputevents claim report were reproduced to bind the updated shared encoding/checker hashes.
+
+## Mixed interval and point record queries
+
+```sh
+python -m patterns.mixed_record_query
+python -m patterns.test_mixed_record_query
+python -m patterns.verify_mixed_record_query
+```
+
+The 34 mixed-query tests bring the current total to **528 checks**: 505 suite tests, 16 oracle cases and seven properties. They include real Rust treatment support, independent exhaustive uncertain timelines, explicit clock alignment, exact scalar predicates, half-open interval membership, fixed-witness certainty, and eligibility that survives missing or lower follow-up values. The [contract](mixed-record-query.md) defines the selected-record scope and remaining clinical/coverage limits.

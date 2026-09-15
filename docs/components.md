@@ -11,6 +11,7 @@ Each component's purpose, interface, dependencies and scope limits. Status label
 | [Interval cohort matcher](#interval-cohort-matcher) | `patterns/interval_cohort.py` | Executable |
 | [Bounded uncertainty matcher](#bounded-uncertainty-matcher) | `patterns/bounded_cohort.py` | Executable |
 | [Bounded RDF adapter](#bounded-rdf-adapter) | `patterns/bounded_rdf.py` | Executable |
+| [Mixed record queries](mixed-record-query.md) | `patterns/mixed_record_query.py` | Explicitly aligned interval/point record queries with fixed-witness certainty |
 | [Measurement point claims](measurement-claims.md) | `patterns/measurement_claims.py`, `patterns/mimic_measurement_import.py` | Recorded scalar/point descriptions and explicit record selection |
 | [MIMIC pending claim import](mimic-claim-import.md) | `patterns/mimic_claim_import.py` | Source-to-description provenance and complete import accounting |
 | [Patient-local claim projection](local-claim-projection.md) | `patterns/local_claim_projection.py` | Executable local-clock claim selection and reasoning |
