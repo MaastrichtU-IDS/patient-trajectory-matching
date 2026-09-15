@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Four runnable profiles with 156 passing checks |
+| ✅ **Is** | Four temporal profiles with 177 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -54,13 +54,16 @@ python -m patterns.test_interval_cohort  # 18 contract and differential tests
 
 python -m patterns.bounded_cohort         # possible/certain interval bindings
 python -m patterns.test_bounded_intervals # 22 finite-world and certificate tests
+
+python -m patterns.bounded_rdf            # bounded RDF export/ingestion
+python -m patterns.test_bounded_rdf       # 21 RDF validation and evidence tests
 ```
 
 Installation needs network access. Everything after it runs offline — no Java, no clinical dataset, no AI provider credentials, no subscription.
 
 Full instructions and expected output for every component: **[docs/validation.md](docs/validation.md)**
 
-## Four executable profiles
+## Four temporal profiles
 
 The repository contains four independent executable contracts. They share the pinned SULO core and the PRO/SOLID representation discipline, but none of them changes the semantics of another.
 
@@ -88,7 +91,7 @@ flowchart LR
 
 The design rests on one decision: **the RDF graph is the semantic record; the projection is an execution representation.** Where they disagree, the graph wins. Every projected row carries an evidence identifier that leads back to the exact process, role, bearer, result and source record it came from — so a match is a claim with a traversable path, not a bare assertion.
 
-The bounded-time source adapter currently validates JSON and generates its PRO/SOLID graph alongside temporal networks. External bounded RDF ingestion is a separate pending step; see the [bounded contract](docs/bounded-temporal-uncertainty.md).
+Bounded-time matching accepts synthetic JSON or a supplied PRO/SOLID graph through the [bounded RDF input profile](docs/bounded-rdf-ingestion.md). The RDF route validates every input triple and preserves original resources, literal spellings, and source-hash declarations through temporal compilation.
 
 Three things follow, and they are what this project is really about:
 
@@ -121,6 +124,7 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | [Exact-interval profile](docs/exact-interval-profile.md) | Interval adapter, clocks, endpoint comparisons, evidence |
 | [Interval cohort matching](docs/interval-cohort-matching.md) | Slot queries, indexed joins, differential reference |
 | [Bounded temporal uncertainty](docs/bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty, certificates |
+| [Bounded RDF ingestion](docs/bounded-rdf-ingestion.md) | Closed graph validation, explicit identifiers, preserved source evidence |
 
 **Temporal design guidance**
 
@@ -141,6 +145,7 @@ These develop the next temporal profiles. The precedence names and axioms remain
 | Exact-interval adapter | `patterns/exact_intervals.py` | Executable — intervals, clocks, 4 operators |
 | Interval cohort matcher | `patterns/interval_cohort.py` | Executable — indexed and reference engines |
 | Bounded uncertainty matcher | `patterns/bounded_cohort.py` | Executable — discrete-time solver and finite-world checks |
+| Bounded RDF adapter | `patterns/bounded_rdf.py` | Executable — closed graph validation and evidence-preserving compilation |
 | Ontology profiles | `ontology/` | Executable — SULO 0.2.14, pinned and digest-checked |
 | Contract schemas | `schemas/` | Mixed — interval-cohort and bounded schemas executable; 14 REST paths have no service |
 | Fixtures | `examples/` | Mixed — executable inputs and specified cases |

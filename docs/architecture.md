@@ -18,7 +18,7 @@ These are not two views of equal standing. `patient_id`, `value`, `unit` and `ti
 
 `evidence.json` is the join between them. Every projected row carries an `assertion_id` (`pro-solid:` followed by the SHA-256 of its binding), and the evidence file maps that identifier back to the exact process, role, bearer, result datum, measured quality, unit resource and source record it came from. A match is therefore never a bare assertion; it is a claim with a traversable path back into the graph.
 
-The bounded-time adapter currently validates structured JSON and constructs a PRO/SOLID graph alongside its temporal networks. It does not accept an external bounded RDF graph for ingestion yet. Its separate [contract](bounded-temporal-uncertainty.md) specifies this source boundary and its evidence identifiers.
+The bounded-time matcher has JSON and RDF input routes. The [bounded RDF reader](bounded-rdf-ingestion.md) validates a supplied graph, extracts normalized records, and attaches original graph resources and source declarations to the shared temporal compiler's evidence.
 
 The evidence identifier is a deterministic identifier for an extracted binding. It is not a new assertion of clinical truth and not an OWL proof.
 
@@ -180,7 +180,7 @@ Implemented in [`patterns/bounded_cohort.py`](../patterns/bounded_cohort.py), wi
 
 Each endpoint refers to a shared temporal variable with finite inclusive microsecond bounds. Source difference constraints preserve correlations, including offsets from shared anchors. The source network must be feasible before any query executes. Possibility checks the conjunction of all query atoms; certainty tests entailment from the original source network. A certain patient result requires the same named binding to work in every feasible timeline.
 
-Results distinguish CERTAIN, POSSIBLE, IMPOSSIBLE, and INCOMPARABLE bindings and retain feasible witnesses, counterexamples, entailment paths, or negative-cycle certificates. No exact timestamp is asserted for an uncertain endpoint. JSON is the current ingestion contract; RDF is its generated PRO/SOLID evidence projection. Arbitrary bounded RDF ingestion and optimized uncertainty indexes remain pending.
+Results distinguish CERTAIN, POSSIBLE, IMPOSSIBLE, and INCOMPARABLE bindings and retain feasible witnesses, counterexamples, entailment paths, or negative-cycle certificates. No exact timestamp is asserted for an uncertain endpoint. The JSON route generates PRO/SOLID evidence. The separate `bounded-rdf-1.0` input profile validates supplied named-instance graphs and preserves their evidence. RDF outside its closed structure and optimized uncertainty indexes remain outside scope.
 
 ### Still specified
 
@@ -193,7 +193,7 @@ Results distinguish CERTAIN, POSSIBLE, IMPOSSIBLE, and INCOMPARABLE bindings and
 
 The two modes cannot be silently interchanged. A correction creates a successor assertion linked to its predecessor; it does not move or delete the event.
 
-The bounded profile implements a discrete conjunctive subset of [sulo-owl-time-review.md](sulo-owl-time-review.md) §11. Dense-time semantics, general temporal disjunction, clock reconciliation, and externally supplied bounded RDF compilation remain unimplemented.
+The bounded profile implements a discrete conjunctive subset of [sulo-owl-time-review.md](sulo-owl-time-review.md) §11. Dense-time semantics, general temporal disjunction, clock reconciliation, broader RDF mappings, and full semantic reasoning remain unimplemented.
 
 ## 6. Matching and cost
 
@@ -257,6 +257,7 @@ The interval-cohort and bounded-interval schemas are live contracts, validated a
 | Ingestion shapes | `ontology/pro-solid-shapes.ttl` | 10 SHACL node shapes |
 | Interval profile | `ontology/exact-interval-profile.ttl` | `ei:` interval, boundary, clock and duration classes |
 | Bounded profile | `ontology/bounded-interval-profile.ttl` | Variables, bounds, constraint bindings; classes and individuals only |
+| Bounded RDF input | `ontology/bounded-rdf-profile.ttl` | Explicit profile, variable, and constraint identifier classes |
 | Interval shapes | `ontology/exact-interval-shapes.ttl` | SHACL shapes for the interval profile |
 | Matcher taxonomy | `ontology/toy-taxonomy.json` | The oracle's only reasoning input |
 | Archived drafts | `ontology/legacy-2.3/` | **Non-normative.** Must not be loaded with the current profile. |

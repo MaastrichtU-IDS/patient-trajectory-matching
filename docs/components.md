@@ -10,6 +10,7 @@ Each component's purpose, interface, dependencies and scope limits. Status label
 | [Exact-interval adapter](#exact-interval-adapter) | `patterns/exact_intervals.py` | Executable |
 | [Interval cohort matcher](#interval-cohort-matcher) | `patterns/interval_cohort.py` | Executable |
 | [Bounded uncertainty matcher](#bounded-uncertainty-matcher) | `patterns/bounded_cohort.py` | Executable |
+| [Bounded RDF adapter](#bounded-rdf-adapter) | `patterns/bounded_rdf.py` | Executable |
 | [Ontology profile](#ontology-profile) | `ontology/` | Executable |
 | [Contract schemas](#contract-schemas) | `schemas/` | Structurally validated |
 | [Fixtures](#fixtures) | `examples/` | Executable inputs and specified cases |
@@ -202,7 +203,23 @@ python -m patterns.test_bounded_intervals  # 22 tests
 
 **Outputs:** `graph.ttl` and `result.json` in `verification/bounded-interval-run/`. Results retain source, role, variable, and constraint evidence; feasible timelines, counterexamples, entailment paths, and negative cycles explain decisions. Source inconsistency exits 2 with `INCONSISTENT_SOURCE`; other input violations produce `INVALID_INPUT`.
 
-**Scope:** bounded integer microseconds and conjunctive difference constraints; shared anchors and the four existing temporal operators. JSON is authoritative input in this profile; arbitrary bounded RDF ingestion, dense time, general OWL reasoning, and optimized uncertainty search are pending. See the [full contract](bounded-temporal-uncertainty.md).
+**Scope:** bounded integer microseconds and conjunctive difference constraints; shared anchors and the four existing temporal operators. The original input route accepts JSON; the bounded RDF adapter below accepts supplied graphs under a closed contract. Dense time, general OWL reasoning, and optimized uncertainty search are pending. See the [full contract](bounded-temporal-uncertainty.md).
+
+---
+
+## Bounded RDF adapter
+
+**Path:** `patterns/bounded_rdf.py` · **Status:** Executable · **Input profile:** `bounded-rdf-1.0`
+
+```sh
+python -m patterns.bounded_rdf
+python -m patterns.bounded_rdf --graph verification/bounded-rdf-run/graph.ttl
+python -m patterns.test_bounded_rdf  # 21 tests
+```
+
+Reads arbitrary named instance IRIs with explicit identifiers, validates PRO roles, bounds, units, clock scope, provenance, and complete triple coverage, then uses the shared bounded temporal compiler. Outputs the supplied graph and match results with original resources, literal spellings, and source-hash declarations. The synthetic JSON export and RDF reload routes produce identical complete results.
+
+**Scope:** the supported class vocabulary and closed structure in the [RDF contract](bounded-rdf-ingestion.md). No blank nodes, expanded closures, arbitrary ontology axioms, or general OWL identity reasoning. Hash declarations are retained without claiming verification against unavailable source rows. Invalid inputs exit 2; inconsistent networks retain RDF-backed negative-cycle evidence.
 
 ---
 
@@ -219,6 +236,7 @@ python -m patterns.test_bounded_intervals  # 22 tests
 | `exact-interval-profile.ttl` | `ei:` interval, boundary, clock and duration classes |
 | `exact-interval-shapes.ttl` | SHACL shapes for the interval profile |
 | `bounded-interval-profile.ttl` | Shared variables, bounds, and constraint binding classes; no new properties |
+| `bounded-rdf-profile.ttl` | Profile, variable, and constraint identifier classes for external RDF ingestion |
 | `toy-taxonomy.json` | The oracle's subclass hierarchy |
 | `toy.ofn` | OWL functional-syntax rendering of the toy hierarchy |
 | `legacy-2.3/` | **Non-normative** archived drafts |

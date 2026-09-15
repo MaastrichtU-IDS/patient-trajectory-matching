@@ -1,0 +1,9 @@
+@prefix br: <https://example.org/trajectory/bounded-rdf/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+br:Profile a owl:Ontology ; rdfs:comment "Closed named-instance RDF ingestion profile bounded-rdf-1.0. Load with bounded-interval, exact-interval and PRO/SOLID classes. Procedural validation and temporal compilation are defined in patterns/bounded_rdf.py. No new properties." .
+br:ProfileIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+br:VariableIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+br:ConstraintIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
