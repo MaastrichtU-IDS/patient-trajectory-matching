@@ -173,6 +173,29 @@ events are outside scope. `search_complete: true` describes exhaustive named-bin
 search within this declared profile, not complete clinical records or full temporal
 OWL certain-answer semantics. Resource failure does not return a complete result.
 
+## Relationship to formal definition v2
+
+The [formal definition v2](temporal-kg/Temporal_Knowledge_Graph_Formal_Definition_v2.pdf)
+§8.1–8.2 separates source eligibility and ontological support from temporal
+possibility/certainty. This profile implements a discrete specialization of its
+temporal checks and preserves the fixed-witness quantifier order. It is not a
+conformance implementation of the full formal definition.
+
+| Formal-definition capability | This executable profile |
+|---|---|
+| Rational coordinates and exact strict inequalities | Finite integer-microsecond domains; strict comparisons use the declared grid |
+| OWL 2 DL support and identity normalization | Four named class selectors using pinned subclass paths; no complete OWL consistency or identity normalization |
+| Eligible named endpoints and shared variables | Explicit source-backed endpoint descriptors and shared variable references |
+| SAT(source and query) / UNSAT(source and negated query) | Joint feasibility plus source-bound entailment and counterexamples |
+| Fixed witness before patient projection | Implemented; changing-witness counterexample in the suite |
+| Evidence selection, revisions, as-of queries | One supplied snapshot; no revision/cutoff selection service |
+| Primitive temporal core and richer bridges | Existing SULO descriptors and class-only extension; no adoption of the PDF's separate endpoint properties or temporal-to-OWL feedback |
+
+Q1, Q3, Q6, Q7, Q8, and Q11 therefore remain broader operational decisions. The
+PDF's reported OWL checks concern its own standalone core; they do not certify
+this adapter. Our source, solver, and evidence tests establish only the narrower
+contract documented here.
+
 ## Solver, evidence, and verification
 
 The [temporal network](../patterns/temporal_stn.py) uses exact-integer Floyd–Warshall

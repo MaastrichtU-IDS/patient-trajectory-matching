@@ -25,7 +25,7 @@ This review inspected:
 
 The latest contract is important: application extensions declare **no new object or datatype properties**, and instance literals use only `sulo:hasValue`. Domain-specific patient shortcuts are prohibited. The archived `ontology/legacy-2.3/` files are not the current contract. This review preserves these decisions. JSON fields and internal engine operators are computational structures, not additions to SULO's RDF vocabulary.
 
-This repository edition carries the review into the project documentation. Proposed classes and interpreters below describe future profiles; they are not installed by this document. The source product specification and formal definition listed above were reviewed separately and are not included in this repository snapshot.
+This repository edition carries the review into the project documentation. Proposed classes and interpreters below describe future profiles; they are not installed by this document. The source product specification remains outside this repository snapshot. The formal definitions, reviewed separately for the original report, are now available under [temporal-kg/](temporal-kg/); the bounded profile documents its narrower relationship to v2.
 
 Primary repository evidence: [pinned SULO](https://github.com/AIDAVA-DEV/sulo/blob/1a4abc1699471187e94fbc59591101b2b635d6ea/sulo.ttl), [regression workflow](https://github.com/AIDAVA-DEV/sulo/blob/1a4abc1699471187e94fbc59591101b2b635d6ea/.github/workflows/regression.yml).
 

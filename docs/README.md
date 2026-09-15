@@ -24,6 +24,7 @@ Start here for the overall design and current state.
 | [Exact-interval profile](exact-interval-profile.md) | Source/RDF adapter, explicit clocks, endpoint comparisons, and evidence | Executable `exact-interval-1.0`; separate from the point-anchor oracle |
 | [Interval cohort matching](interval-cohort-matching.md) | Versioned slot queries, indexed joins, exhaustive reference, and evidence | Executable `interval-cohort-1.0`; exact recorded intervals |
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | Shared-variable constraints, possible/certain bindings, and certificates | Executable `bounded-interval-1.0`; discrete microsecond source profile |
+| [Temporal KG formal definition](temporal-kg/) | Formal semantics of the graph, matching and entailment; v2 fixes representation to OWL 2 DL and adds a register of eleven open decisions | Formal specification; full OWL/rational-time query engine remains unimplemented |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |
 | [Temporal precedence](decisions/temporal-precedence.md) | Strict precedence, direct succession, and temporal contact | Proposed decision; no SULO core change adopted |
 | [Replay addendum v2.3](../addenda/specification-2.3.md) | Observation/correction semantics and Graphiti comparison | Specified |
@@ -44,4 +45,4 @@ The detailed acceptance gates are in section 15 of the review. The Rust/Python s
 
 The v2.4 application extension adds classes and individuals, with no new object or datatype properties. Proposed changes to SULO itself are a separate upstream release decision. The precedence document records that proposal without activating its names or axioms in the application profile.
 
-The review also refers to the separately prepared product specification v2.3 and formal temporal knowledge graph definition. Those source documents are not included in this repository snapshot. The executable files and addenda here establish only their explicitly documented scope.
+The formal temporal knowledge graph definitions are now included under [temporal-kg/](temporal-kg/). The separately prepared product specification v2.3 remains outside this snapshot. The executable profiles establish only their documented subsets; in particular, the bounded discrete profile does not implement the full OWL/rational-time formal definition.

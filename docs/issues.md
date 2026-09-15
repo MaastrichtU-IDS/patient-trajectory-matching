@@ -4,6 +4,8 @@ Known gaps and open questions. Every entry cites the specification section that 
 
 Issues are grouped by the area they block. Tags mark the kind of work: **[gap]** specified but unimplemented · **[open]** an unresolved design question · **[risk]** something that could be misread or misused.
 
+The [formal definition v2](temporal-kg/) carries its own decision register of eleven questions blocking operationalization. That register and this page are two views of the same open problems; [the mapping between them](#relationship-to-the-v2-decision-register) is at the end.
+
 ---
 
 ## Ontology and reasoning
@@ -80,6 +82,8 @@ The full request interface specified in 2.1 §6 is not exposed. `during`, `start
 The discrete bounded profile now implements shared variables, joint feasibility, fixed-witness certain/possible answers, and proof certificates. It accepts validated synthetic JSON and generates PRO/SOLID RDF. Arbitrary bounded RDF ingestion, dense-time semantics, general disjunction, clock reconciliation, and optimized uncertain candidate search remain gaps.
 
 INCOMPARABLE still means missing clock comparability; it is never silently upgraded to a possible temporal realization.
+
+**The semantics are now specified.** [Formal definition v2](temporal-kg/) §8 gives the separated baseline — `Supported(mu)` from source eligibility and OWL entailment, then `Certain(mu)` as `UNSAT(Gamma and not C[mu])` and `Possible(mu)` as `SAT(Gamma and C[mu])` — plus the fixed-witness policy `exists mu forall theta`, evaluated before projecting the patient identifier. §8.1 gives the worked reason for that policy: for two candidate times that can be `(12,36)` or `(36,12)`, a 24-hour query has a qualifying candidate in every assignment, yet neither fixed candidate is certain. The bounded profile now implements the discrete temporal checks. Full OWL support, rational strict inequalities, RDF ingestion, and the bridge/interface requirements remain open under v2 Q8.
 
 ### T3. No time normalizer **[gap]**
 *Source: `v21-additions-report.json`*
@@ -194,6 +198,31 @@ Until they do, [status.md](status.md) and the register disagree about what is im
 
 ---
 
+## Relationship to the v2 decision register
+
+[Formal definition v2](temporal-kg/) §13 lists eleven decisions that block operationalization, each with a proposed baseline and the evidence required to close it. They overlap substantially with the gaps above, from the other direction: the register asks *what must be decided*, this page records *what is not built*.
+
+| v2 | Blocked capability | Related issues here |
+|---|---|---|
+| Q1 | Execution boundary — all metric queries | [O1](#o1-no-owl-reasoning-gap) — only a limited closure is executed; whether an external evaluator is permitted decides how far that can go |
+| Q2 | Identity, ingestion and temporal joins | [O4](#o4-hasvalue-rdf-term-counting-is-not-owl-datatype-equality-open) — RDF-term counting is not datatype equality; canonicalization policy is undefined |
+| Q3 | Clocks and numeric comparisons | [T4](#t4-calendar-and-age-normalization-incomplete-open) — calendar, age and relative offsets; also the strict clock rule the interval matcher already enforces |
+| Q4 | Process extents, ongoing or disconnected histories | [T1](#t1-the-four-profiles-are-not-unified-open) — point versus interval profiles; ongoing extents are unasserted in both |
+| Q5 | State templates and time-varying domain queries | [C1](#c1-quality-is-modeled-at-patient-level-risk), [T5](#t5-bitemporal-replay-unimplemented-gap) — patient-level quality and the unbuilt replay layer |
+| Q6 | Imports and biomedical mappings | [O2](#o2-toy-taxonomy-is-the-only-matcher-reasoning-input-gap), [O3](#o3-sulo-pin-is-unreviewed-for-production-open) — toy taxonomy, unreviewed pin |
+| Q7 | Evidence selection and as-of answers | [T5](#t5-bitemporal-replay-unimplemented-gap), [T6](#t6-revision-selection-not-implemented-gap), [S2](#s2-source-completeness-is-an-input-not-a-check-risk) — replay, revision selection, unverified completeness |
+| Q8 | Logic/solver interface and complete evaluation | [T2b](#t2b-broader-uncertainty-and-rdf-ingestion-partial) — a discrete temporal solver is implemented; the full OWL/rational-time interface remains open |
+| Q9 | Clinical query and application validity | [C2](#c2-not-a-clinical-phenotype-risk), [C3](#c3-no-clinical-validation-gap) — no phenotype validation, no clinical review |
+| Q10 | Relaxation catalogue and robust ranking | [T1](#t1-the-four-profiles-are-not-unified-open) — the point-anchor cost model has no interval counterpart |
+| Q11 | Scale and production acceptance | [A1](#a1-no-service-implements-the-api-risk), [E2](#e2-fixture-reports-are-not-evidence-of-readiness-risk) — no service, no benchmark |
+
+Two observations from lining them up.
+
+**Q8 has progressed.** v2 §8 specifies `Certain` and `Possible` with a fixed-witness solver contract. The bounded profile implements a discrete specialization and verifies it against finite worlds. The full interface still requires the reasoner/import choices, exact rational semantics, and answer-preservation obligations in Q8; these fixture checks do not close that decision.
+
+**Nothing in the register corresponds to [R3](#repository-hygiene).** The requirement register's failure to track the interval profiles is a bookkeeping problem local to this repository, not a semantic decision. It is also the cheapest item on either list to close.
+
+
 ## Implementation sequence
 
 The [documentation guide](README.md) gives the current path:
@@ -201,7 +230,7 @@ The [documentation guide](README.md) gives the current path:
 1. Reproduce the PRO/SOLID adapter and reference oracle
 2. Run the exact-interval adapter and its conformance suite
 3. Run the interval cohort matcher and its differential suite
-4. Run the bounded uncertainty profile and its finite-world/certificate checks; extend RDF ingestion and propagation with the same correctness gates
+4. Run the bounded uncertainty profile and its finite-world/certificate checks, following the fixed-witness criterion in [formal definition v2](temporal-kg/) §8; extend RDF ingestion and propagation with the same correctness gates
 5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation
 
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.
