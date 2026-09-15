@@ -20,7 +20,8 @@ QUERY_PROFILE = 'bounded-interval-query-1.0'
 BT = Namespace('https://example.org/trajectory/bounded/')
 D = Namespace('https://example.org/trajectory/bounded-data/')
 SCHEMA = ei.ROOT / 'schemas/bounded-interval.schema.json'
-KINDS = {'infusion': BT.Infusion, 'specimen_collection': BT.SpecimenCollection}
+KINDS = {'infusion': BT.Infusion, 'specimen_collection': BT.SpecimenCollection,
+         'recorded_input_segment': BT.RecordedInputSegment}
 
 
 class InconsistentSource(ei.ContractError):

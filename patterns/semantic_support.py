@@ -152,8 +152,12 @@ def build_model(snapshot, module):
 
 
 def validate_query(query, classes):
+    return _validate_query(query, classes)
+
+
+def _validate_query(query, classes, *, profile=QUERY_PROFILE):
     fields(query, 'profile id slots constraints')
-    ei.require(query['profile'] == QUERY_PROFILE, 'UNSUPPORTED_SEMANTIC_QUERY_PROFILE')
+    ei.require(query['profile'] == profile, 'UNSUPPORTED_SEMANTIC_QUERY_PROFILE')
     rows(query['slots'], 8, 'slots')
     normalized = deepcopy(query)
     normalized['profile'] = bt.QUERY_PROFILE
@@ -254,28 +258,36 @@ def check(model, classes, *, timeout_seconds=20):
 
 def execute(snapshot, query, module, *, timeout_seconds=20):
     ei.require(snapshot.source['profile'] == bt.PROFILE_ID, 'UNSUPPORTED_SNAPSHOT_PROFILE')
+    return _execute_checked(snapshot, query, module, timeout_seconds=timeout_seconds)
+
+
+def _execute_checked(snapshot, query, module, *, timeout_seconds=20, profile=PROFILE,
+                     query_profile=QUERY_PROFILE, interpretation=None, extra_files=()):
+    interpretation = interpretation or {}
     query, module = deepcopy(query), deepcopy(module)
     model = build_model(snapshot, module)
-    validate_query(query, model['classes'])
+    _validate_query(query, model['classes'], profile=query_profile)
     selectors = sorted({s['class_iri'] for s in query['slots']})
     support = check(model, selectors, timeout_seconds=timeout_seconds)
-    context = {'profile': PROFILE, 'source_context_id': snapshot.context_id, 'query': deepcopy(query),
+    context = {'profile': profile, 'source_context_id': snapshot.context_id, 'query': deepcopy(query),
                'module': deepcopy(module), 'model_sha256': ei.digest(ei.canonical(model)),
                'ontology_sha256': support['ontology_sha256'],
                'backend': support['backend_result'], 'timeout_seconds': timeout_seconds,
-               'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in FILES}}
+               'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in FILES + extra_files}}
+    context.update(interpretation)
     context_id = ei.digest(ei.canonical(context))
-    result = {'profile': PROFILE, 'status': support['status'], 'context': context, 'context_id': context_id,
+    result = {'profile': profile, 'status': support['status'], 'context': context, 'context_id': context_id,
               'semantic_support': support, 'matching': None, 'full_owl_mapping_verified': False,
               'semantic_support_complete': support['status'] == 'READY',
               'scope': 'selected_snapshot_and_explicit_semantic_module'}
+    result.update(interpretation)
     if support['status'] != 'READY':
         return result
     types = {eid: {cls for cls in selectors if witness['process'] in support['memberships'][cls]}
              for eid, witness in snapshot.evidence.items()}
     matching = cohort._execute_supported(snapshot, query, types)
-    matching['profile'] = QUERY_PROFILE
-    matching['context'] = {**matching['context'], 'profile': QUERY_PROFILE, 'semantic_context_id': context_id}
+    matching['profile'] = query_profile
+    matching['context'] = {**matching['context'], 'profile': query_profile, 'semantic_context_id': context_id, **interpretation}
     matching['context_id'] = ei.digest(ei.canonical(matching['context']))
     for trajectory in matching['trajectories']:
         for binding in trajectory['bindings']:
@@ -284,6 +296,7 @@ def execute(snapshot, query, module, *, timeout_seconds=20):
                 slot.update({key: witness[key] for key in ('process', 'patient_role', 'patient_bearer')})
                 slot['semantic_support'] = {'status': 'ENTAILED', 'context_id': context_id,
                                             'individual': witness['process'], 'class': slot['selected_class_iri']}
+    matching.update(interpretation)
     matching['semantic_scope'] = result['scope']
     result['matching'] = matching
     return result

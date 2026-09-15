@@ -92,3 +92,5 @@ All five blockers are explicit in every successful result:
 | `SOURCE_REVISION_HISTORY_UNAVAILABLE` | Establish revision/withdrawal coverage before enabling source-as-known replay |
 
 The generic [patient-local coordinate bridge](patient-local-clocks.md) now passes synthetic differential and RDF checks. Staged-row integration still requires reviewed clinical mappings and justified bounds; the scalar conversion does not resolve those blockers. A later retrospective demonstration may be possible without reconstructing source-as-known history, but it needs its own honest contract. These staging rows cannot currently enter [joint evidence selection](joint-evidence-selection.md), whose clock and availability fields require explicit offset datetimes. No SULO properties, reasoning rules, matcher semantics, or original 18 formal checks change here.
+
+The separate [retrospective record-query pipeline](mimic-record-query.md) now completes an end-to-end demonstration over admitted source labels and item codes. Its explicit record-evidence semantics do not establish the clinical truth or history guarantees required by the blockers above.
