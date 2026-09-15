@@ -119,4 +119,4 @@ The separate suite checks the nine independently specified example results, sour
 
 CI runs this suite alongside the unchanged 42-test PRO/SOLID suite and reference oracle's 16 cases/seven property checks. The v2.4 release manifest and pinned ontology are preserved.
 
-The next matcher work is to define interval slots and joins in a versioned query contract, retain role/evidence bindings through candidate search, and compare an exhaustive reference matcher with indexed execution. Bounded uncertainty requires a separate joint-feasibility and certain/possible-answer contract. Passing this exact fixture suite does not establish either capability, full OWL reasoning, or production readiness.
+The separate [interval cohort matcher](interval-cohort-matching.md) now defines versioned interval slots and joins, retains role/evidence bindings through candidate search, and checks indexed execution against an exhaustive reference matcher. Bounded uncertainty requires a separate joint-feasibility and certain/possible-answer contract. Passing this exact fixture suite does not establish either capability, full OWL reasoning, or production readiness.
