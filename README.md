@@ -1,4 +1,4 @@
-# Patient Trajectory Matching Contract Pack
+# Patient Trajectory Matching 
 
 [![contracts](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/actions/workflows/contracts.yml/badge.svg)](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/actions/workflows/contracts.yml)
 
