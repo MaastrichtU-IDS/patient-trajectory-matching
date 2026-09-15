@@ -11,6 +11,7 @@ Each component's purpose, interface, dependencies and scope limits. Status label
 | [Interval cohort matcher](#interval-cohort-matcher) | `patterns/interval_cohort.py` | Executable |
 | [Bounded uncertainty matcher](#bounded-uncertainty-matcher) | `patterns/bounded_cohort.py` | Executable |
 | [Bounded RDF adapter](#bounded-rdf-adapter) | `patterns/bounded_rdf.py` | Executable |
+| [MIMIC recorded-source query](mimic-record-query.md) | `patterns/mimic_record_query.py` | Executable retrospective record-evidence pipeline |
 | [Patient-local clocks](patient-local-clocks.md) | `patterns/patient_local.py` | Executable local bounds, RDF ingestion and queries |
 | [MIMIC inputevents staging](mimic-inputevents-staging.md) | `patterns/mimic_inputevents.py` | Executable staging; no matcher export |
 | [Ontology profile](#ontology-profile) | `ontology/` | Executable |

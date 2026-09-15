@@ -21,3 +21,5 @@ bt:Snapshot a owl:Class ; rdfs:subClassOf sulo:InformationObject .
 bt:DatasetIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
 bt:SnapshotIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
 bt:Microsecond a sulo:Unit .
+
+bt:RecordedInputSegment a owl:Class ; rdfs:subClassOf bt:IntervalProcess ; rdfs:comment "A process as described by one admitted input-component source row. This class does not imply a clinically verified infusion or administration." .

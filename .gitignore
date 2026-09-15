@@ -22,3 +22,4 @@ verification/joint-evidence-run/
 verification/mimic-inputevents-run/
 data/local-mimic/
 verification/patient-local-run/
+verification/mimic-record-query-run/

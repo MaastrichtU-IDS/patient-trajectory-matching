@@ -16,14 +16,18 @@ from . import exact_intervals as ei
 
 PROFILE_ID = 'patient-local-interval-1.0'
 RDF_PROFILE = 'patient-local-rdf-1.0'
+RECORD_PROFILE = 'patient-local-record-interval-1.0'
+RECORD_RDF_PROFILE = 'patient-local-record-rdf-1.0'
+RECORD_QUERY_PROFILE = 'patient-local-record-query-1.0'
 QUERY_PROFILE = 'patient-local-query-1.0'
 POLICY = 'patient-local-calendar-microseconds-v1'
 TIME_DOMAIN = 'bounded-patient-local-calendar-microseconds'
 PL = Namespace('https://example.org/trajectory/patient-local/')
 SCHEMA = ei.ROOT / 'schemas/patient-local.schema.json'
+RECORD_SCHEMA = ei.ROOT / 'schemas/patient-local-record.schema.json'
 ONTOLOGY = ei.ROOT / 'ontology/patient-local-profile.ttl'
 FILES = ('patterns/patient_local.py', 'schemas/patient-local.schema.json',
-         'ontology/patient-local-profile.ttl')
+         'ontology/patient-local-profile.ttl', 'schemas/patient-local-record.schema.json')
 
 
 def parse_local(value, *, origin=False):
@@ -48,7 +52,7 @@ def coordinate(value, origin):
 
 
 def normalize(source):
-    schema = json.loads(SCHEMA.read_text())
+    schema = json.loads((RECORD_SCHEMA if isinstance(source, dict) and source.get('profile') == RECORD_PROFILE else SCHEMA).read_text())
     bt._validate_contract(source, schema)
     source = json.loads(ei.canonical(source))
     clocks = bt.unique(source['clocks'], 'clock_id')
@@ -94,16 +98,21 @@ def _build_graph(source):
 
 
 def prepare(source):
-    return bt._prepare_compiled(compile_source(source), profile_id=PROFILE_ID,
+    return bt._prepare_compiled(compile_source(source), profile_id=source['profile'],
         graph_builder=_build_graph, extra_files=FILES, time_domain=TIME_DOMAIN)
 
 
 def export_source(source):
-    return br._export_snapshot(prepare(source), RDF_PROFILE)
+    snapshot = prepare(source)
+    return br._export_snapshot(snapshot, RECORD_RDF_PROFILE if source['profile'] == RECORD_PROFILE else RDF_PROFILE)
 
 
 def prepare_graph(graph):
-    return br._prepare_graph(graph, profile_id=RDF_PROFILE, source_profile=PROFILE_ID,
+    declared = {str(value) for node in graph.subjects(RDF.type, br.BR.ProfileIdentifier)
+                for value in graph.objects(node, ei.S.hasValue)}
+    recorded = declared == {RECORD_RDF_PROFILE}
+    return br._prepare_graph(graph, profile_id=RECORD_RDF_PROFILE if recorded else RDF_PROFILE,
+        source_profile=RECORD_PROFILE if recorded else PROFILE_ID,
         origin_datatype=XSD.dateTime, compiler=_compile_rdf_source,
         read_clock=lambda r, n: {'origin_source_key': r.string(n, PL.OriginSourceKey)},
         read_variable=lambda r, n: {'local_lower': r.string(n, PL.LocalLowerLexical),
@@ -112,15 +121,18 @@ def prepare_graph(graph):
 
 
 def validate_query(query):
-    return bt._validate_contract(query, json.loads(SCHEMA.read_text())['$defs']['query'], query=True)
+    schema = RECORD_SCHEMA if isinstance(query, dict) and query.get('profile') == RECORD_QUERY_PROFILE else SCHEMA
+    return bt._validate_contract(query, json.loads(schema.read_text())['$defs']['query'], query=True)
 
 
 def execute(snapshot, query):
-    ei.require(snapshot.source['profile'] == PROFILE_ID, 'UNSUPPORTED_SNAPSHOT_PROFILE')
+    ei.require(snapshot.source['profile'] in (PROFILE_ID, RECORD_PROFILE), 'UNSUPPORTED_SNAPSHOT_PROFILE')
+    expected_query = RECORD_QUERY_PROFILE if snapshot.source['profile'] == RECORD_PROFILE else QUERY_PROFILE
+    ei.require(isinstance(query, dict) and query.get('profile') == expected_query, 'UNSUPPORTED_LOCAL_QUERY_PROFILE')
     validate_query(query)
     types = {kind: bt.selected_classes({'event_kind': kind}) for kind in bt.KINDS}
     result = cohort._execute_supported(snapshot, query,
-        {event['id']: types[event['event_kind']] for event in snapshot.events.values()}, profile_id=QUERY_PROFILE)
+        {event['id']: types[event['event_kind']] for event in snapshot.events.values()}, profile_id=query['profile'])
     # Bind the interpretation in the query context, not just a display annotation.
     result['context'].update(time_domain=TIME_DOMAIN, gap_semantics='local_calendar_coordinate_difference',
                              physical_elapsed_time_verified=False)
@@ -128,6 +140,23 @@ def execute(snapshot, query):
     result.update(time_domain=TIME_DOMAIN, physical_elapsed_time_verified=False,
                   clinical_mapping_verified=False, source_history_verified=False)
     return result
+
+
+SEMANTIC_PROFILE = 'patient-local-semantic-support-1.0'
+SEMANTIC_QUERY_PROFILE = 'patient-local-semantic-query-1.0'
+
+
+def execute_semantic(snapshot, query, module, *, timeout_seconds=20):
+    """Checked Rust support for explicit local-clock snapshots; no history replay."""
+    from . import semantic_support as semantic
+    ei.require(snapshot.source['profile'] in (PROFILE_ID, RECORD_PROFILE), 'UNSUPPORTED_SNAPSHOT_PROFILE')
+    return semantic._execute_checked(snapshot, query, module, timeout_seconds=timeout_seconds,
+        profile=SEMANTIC_PROFILE, query_profile=SEMANTIC_QUERY_PROFILE, extra_files=FILES,
+        interpretation={'time_domain': TIME_DOMAIN, 'gap_semantics': 'local_calendar_coordinate_difference',
+                        'physical_elapsed_time_verified': False, 'clinical_mapping_verified': False,
+                        'source_history_verified': False,
+                        'time_semantics': ('recorded_source_intervals' if snapshot.source['profile'] == RECORD_PROFILE
+                                           else 'declared_bounded_local_intervals')})
 
 
 def main():
@@ -152,7 +181,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / 'graph.ttl').write_text(ei.turtle_text(snapshot.graph))
     (args.output / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
-    print(json.dumps({'profile': QUERY_PROFILE, 'certain_patient_ids': result['certain_patient_ids'],
+    print(json.dumps({'profile': result['profile'], 'certain_patient_ids': result['certain_patient_ids'],
                       'possible_patient_ids': result['possible_patient_ids'], 'output': str(args.output)}))
 
 

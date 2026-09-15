@@ -138,6 +138,10 @@ jobs:
           python -m patterns.joint_evidence --request examples/joint-evidence/retrospective-request.json --output verification/joint-evidence-run/retrospective
       - name: Joint revision, availability and reasoning checks
         run: python -m patterns.test_joint_evidence
+      - name: End-to-end recorded-source query
+        run: python -m patterns.mimic_record_query
+      - name: Source-to-RDF-to-Rust-to-temporal query checks
+        run: python -m patterns.test_mimic_record_query
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,6 +150,7 @@ jobs:
           path: |
             verification/semantic-support-run/
             verification/joint-evidence-run/
+            verification/mimic-record-query-run/
           retention-days: 14
 
   oracle-compatibility:
