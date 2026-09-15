@@ -1,0 +1,13 @@
+{
+  "profile": "clinical-source-preflight-1.0",
+  "id": "demo_source_preflight",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "treatment_itemids": [
+    "221906"
+  ],
+  "measurement_itemids": [
+    "220052",
+    "220181",
+    "225312"
+  ]
+}

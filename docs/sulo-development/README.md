@@ -53,7 +53,7 @@ Freeze tasks, expected answers and evaluation criteria before comparing implemen
 
 Use the proposed **low recorded MAP before a norepinephrine segment, followed by blood-pressure observations** example. It tests measurement results, units, observation timestamps, interval anchors, source descriptions and later outcome aggregation in one workflow.
 
-The first implementation should select baseline/treatment eligibility before computing outcomes, preserve absent follow-up as unknown, and describe changes as observed associations. It should use synthetic fixtures before any public-demo measurement run. The current pipeline has no chartevents adapter or mixed point/interval contract; this document does not make that example executable or clinically approved.
+The first implementation should select baseline/treatment eligibility before computing outcomes, preserve absent follow-up as unknown, and describe changes as observed associations. It should use synthetic fixtures before any public-demo measurement run. The subsequent [source mixed-query pipeline](../source-mixed-query.md) implements the technical path with synthetic fixtures, and the [clinical source preflight](../clinical-source-preflight.md) now measures public-demo candidate coverage and capacity barriers. Clinical review and real-source mixed-query evaluation remain pending.
 
 Suggested delivery sequence:
 

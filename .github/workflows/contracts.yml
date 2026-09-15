@@ -92,6 +92,11 @@ jobs:
       - name: Patient-local normalization, isolation and reasoning checks
         run: python -m patterns.test_patient_local
 
+      - name: Clinical source coverage preflight
+        run: |
+          python -m patterns.clinical_source_preflight
+          python -m patterns.test_clinical_source_preflight
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.
