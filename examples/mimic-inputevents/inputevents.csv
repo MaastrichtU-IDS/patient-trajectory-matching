@@ -1,0 +1,7 @@
+subject_id,hadm_id,stay_id,caregiver_id,starttime,endtime,storetime,itemid,amount,amountuom,rate,rateuom,orderid,linkorderid,ordercategoryname,secondaryordercategoryname,ordercomponenttypedescription,ordercategorydescription,patientweight,totalamount,totalamountuom,isopenbag,continueinnextdept,statusdescription,originalamount,originalrate
+1,10,100,,2150-01-01 10:00:00,2150-01-01 11:00:00,2150-01-02 12:00:00,1000,10,mL,10,mL/hour,200,200,,,Main order parameter,Continuous IV,,,,,,FinishedRunning,,
+1,10,100,,2150-01-01 11:00:00,2150-01-01 12:00:00,2150-01-02 12:00:00,1000,10,mL,10,mL/hour,201,200,,,Main order parameter,Continuous IV,,,,,,ChangeDose/Rate,,
+1,10,100,,2150-01-01 10:00:00,2150-01-01 10:01:00,2150-01-02 12:00:00,1000,10,mL,10,mL/hour,200,200,,,Main order parameter,Bolus,,,,,,FinishedRunning,,
+1,10,100,,2150-01-01 10:00:00,2150-01-01 11:00:00,2150-01-02 12:00:00,1000,10,mL,10,mL/hour,200,200,,,Main order parameter,Continuous IV,,,,,,Rewritten,,
+2,10,100,,2150-01-01 10:00:00,2150-01-01 11:00:00,2150-01-02 12:00:00,1000,10,mL,10,mL/hour,200,200,,,Main order parameter,Continuous IV,,,,,,FinishedRunning,,
+1,10,100,,2150-01-01 10:00:00,2150-01-01 11:00:00,2150-01-02 12:00:00,1000,10,mL,10,mL/hour,200,200,,,Main order parameter,Continuous IV,,,,,,FinishedRunning,,

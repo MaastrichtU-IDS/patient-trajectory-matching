@@ -80,6 +80,12 @@ jobs:
       - name: SULO interface conformance and declared differences
         run: python -m patterns.test_temporal_interface
 
+      - name: Synthetic MIMIC inputevents staging
+        run: python -m patterns.mimic_inputevents
+
+      - name: MIMIC source admission and reconciliation checks
+        run: python -m patterns.test_mimic_inputevents
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.

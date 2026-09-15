@@ -346,6 +346,17 @@ python -m patterns.test_joint_evidence
 
 These use the same optional Rust dependency lock and add 28 tests, bringing the repository total to **278 checks**: 255 suite tests, 16 oracle cases and seven properties. The 24 generated revision histories are nested scenarios, not additional top-level checks. [Joint selection](joint-evidence-selection.md) runs in the Rust CI job with three replay examples; the result audit is uploaded alongside the semantic reasoning evidence. The standalone 18 OWL checks remain separate.
 
+## MIMIC inputevents source staging
+
+```sh
+python -m patterns.mimic_inputevents
+python -m patterns.test_mimic_inputevents
+```
+
+This adds 28 tests: **306 checks in total**, comprising 283 suite tests, 16 oracle cases and seven properties. Synthetic cases exercise CSV/schema failures, identity joins, duplicate reconciliation, component/segment separation, unsupported records, shifted patient clocks, precision and availability boundaries, and provenance. CI also verifies that the committed aggregate demo report binds the current adapter and pinned source hashes. It does not download patient data.
+
+The optional public-demo reproduction command is documented in [MIMIC staging](mimic-inputevents-staging.md). That local run reconciles 20,404 input records; those records are not additional top-level tests. Staging success exits 0 while explicitly returning no matcher answer. The original 18 formal OWL checks remain a separate evidence set.
+
 ## Interpreting results
 
 | Outcome | Meaning |
