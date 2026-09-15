@@ -473,3 +473,16 @@ python -m patterns.verify_mixed_record_query
 ```
 
 The 34 mixed-query tests bring the current total to **528 checks**: 505 suite tests, 16 oracle cases and seven properties. They include real Rust treatment support, independent exhaustive uncertain timelines, explicit clock alignment, exact scalar predicates, half-open interval membership, fixed-witness certainty, and eligibility that survives missing or lower follow-up values. The [contract](mixed-record-query.md) defines the selected-record scope and remaining clinical/coverage limits.
+
+## Source mixed query and independent SQL comparison
+
+Requires the same pinned semantic dependencies as the mixed query.
+
+```sh
+python -m patterns.source_mixed_query
+python -m patterns.source_mixed_query --review examples/source-mixed-query/synthetic-review.json
+python -m patterns.test_source_mixed_query
+python -m patterns.verify_source_mixed_query
+```
+
+Expected: preparation accepts no claims; the explicitly constructed review yields `COMPLETED_VERIFIED_SOURCE_QUERY`, synthetic patients 1, 2 and 3 eligible, all five stays retained, and agreement on all baseline/follow-up bindings. Both source ledgers reconcile all 5 inputevent and 9 measurement rows. The 28 tests cover review/source staleness, selection/withdrawal, alignment, failure suppression, independent SQL arithmetic and source projection corruption. The total is now 556 checks: 533 suite tests, 16 oracle cases and seven properties. Detailed local run output is ignored; the committed [synthetic report](../verification/source-mixed-query-report.json) is reproducible. See [scope and limitations](source-mixed-query.md).

@@ -43,3 +43,5 @@ A proposed catalogue index should point to actual fixture files, commands and re
 SULO documentation should explain the relationship between a small property vocabulary and the richer structures built with it. Provide complete graph examples and query recipes, including the boundaries of generic participation inference. Measure graph size, query length and authoring errors as well as property count.
 
 The existing StartTime/EndTime disjointness deserves an explanatory example: two descriptions can denote the same coordinate without being the same information object. This is an observation about the pinned modelling choice, not a recommendation to identify disjoint classes or to change their axioms without evaluation.
+
+The [source mixed-query pipeline](../source-mixed-query.md) now exercises this separation from fabricated source CSVs through explicit record review to exact mixed matching and independent SQL comparison. It adds no SULO predicates or clinical item mappings.

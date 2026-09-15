@@ -105,3 +105,5 @@ python -m patterns.verify_mimic_claim_import --input-dir /path/to/local/mimic-de
 | Accepted claims / blocked stays | 0 / 0 |
 
 The maximum store contains 28 claims. All 31 description models passed the 137-axiom isolation check. This is a public-demo source-description result, with no patient rows in the committed report, no full-MIMIC evaluation and no clinical cohort result. CI exercises synthetic files and validates the aggregate report's provenance without downloading patient data.
+
+The [source mixed-query pipeline](source-mixed-query.md) now connects both importers through explicit hash-bound review and checks exact baseline/follow-up bindings against raw-row SQL, with complete source ledgers and ICU-stay accounting.
