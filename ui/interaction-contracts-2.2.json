@@ -1,0 +1,54 @@
+{
+  "specification_version": "2.2",
+  "status": "specified_not_implemented",
+  "api_note": "Extension contract only; unchanged schemas/openapi.json covers the original executable profile.",
+  "request_identity": [
+    "session_id",
+    "revision_id",
+    "canonical_request_hash",
+    "dataset_snapshot_ref",
+    "capability_profile"
+  ],
+  "response_identity": [
+    "request_identity",
+    "job_id",
+    "attempt_id",
+    "result_manifest_ref"
+  ],
+  "publish_rule": "Only bind a result to the active matching request identity. Obsolete responses remain accessible in their revision history but cannot overwrite the active view.",
+  "states": {
+    "draft": "Last confirmed results remain labelled out of date.",
+    "invalid": "Field-linked errors; no overwrite of last valid query.",
+    "queued_or_running": "Show stage and verified progress, never final zero.",
+    "partial": "Show verified and unprocessed scopes separately.",
+    "complete_with_unresolved": "Computation finished; evidence uncertainty remains independent.",
+    "complete_empty": "No accepted patients in the completely searched scope.",
+    "failed_or_cancelled": "Show reason and last confirmed result.",
+    "access_revoked": "Remove protected content; do not disclose patient existence."
+  },
+  "count_provenance": [
+    "unit_of_analysis",
+    "scope",
+    "method",
+    "verified_or_estimated",
+    "timestamp",
+    "denominator",
+    "result_manifest_ref"
+  ],
+  "membership_delta": "Compute by stable patient or episode identifiers only across comparable snapshots, population and semantics; otherwise label non-comparable.",
+  "near_match_suggestion_fields": [
+    "affected_constraint_refs",
+    "allowed_policy_ref",
+    "proposed_edit",
+    "estimated_or_verified_effect",
+    "search_scope",
+    "search_complete",
+    "optimality_guarantee"
+  ],
+  "near_match_application": "Create a new draft revision, then revalidate all hard constraints and execute across target scope. Never edit patient records or invent evidence.",
+  "latency_targets_not_measurements": {
+    "local_validation_ms": 150,
+    "preview_debounce_ms": 400
+  },
+  "privacy": "Authorized server autosave; in-memory unsent draft on disconnect; no persistent browser patient cache, public telemetry, session replay or automatic patient payloads to AI providers."
+}

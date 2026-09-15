@@ -1,0 +1,38 @@
+[
+  {
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "status": "performed",
+    "event_id": "B1",
+    "record_id": "record-B1",
+    "event_kind": "measurement",
+    "source_code": "ex:Creatinine",
+    "datetime": "2024-01-07T01:00:00+01:00",
+    "value": "10.0",
+    "unit": "mg/L"
+  },
+  {
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "status": "performed",
+    "event_id": "E1",
+    "record_id": "record-E1",
+    "event_kind": "administration",
+    "source_code": "ex:DrugA",
+    "datetime": "2024-01-01T00:00:00Z",
+    "value": null,
+    "unit": null
+  },
+  {
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "status": "performed",
+    "event_id": "F1",
+    "record_id": "record-F1",
+    "event_kind": "measurement",
+    "source_code": "ex:Creatinine",
+    "datetime": "2024-01-08T00:00:00Z",
+    "value": "1.30",
+    "unit": "mg/dL"
+  }
+]

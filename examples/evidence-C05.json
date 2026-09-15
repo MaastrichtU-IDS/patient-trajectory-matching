@@ -1,0 +1,228 @@
+{
+  "evidence_id": "C05",
+  "match": {
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "exact_status": "FAIL",
+    "accepted_as": "RELAXED",
+    "knowledge_status": "UNDETERMINED",
+    "computation_status": "COMPLETE",
+    "total_cost": "2",
+    "relaxed_constraint_ids": [
+      "exposure",
+      "exposure_window"
+    ],
+    "bindings": [
+      {
+        "slot_id": "baseline",
+        "event_id": "B1",
+        "semantic_relation": "entailed",
+        "semantic_cost": "0",
+        "proof_or_policy_ref": "toy-semantic-v1:identity"
+      },
+      {
+        "slot_id": "exposure",
+        "event_id": "E1",
+        "semantic_relation": "reviewed_alternative",
+        "semantic_cost": "1",
+        "proof_or_policy_ref": "toy_policy_v1"
+      },
+      {
+        "slot_id": "followup",
+        "event_id": "F1",
+        "semantic_relation": "entailed",
+        "semantic_cost": "0",
+        "proof_or_policy_ref": "toy-semantic-v1:identity"
+      }
+    ],
+    "checks": [
+      {
+        "constraint_id": "lab_order",
+        "status": "PASS",
+        "event_ids": [
+          "B1",
+          "F1"
+        ],
+        "detail": "Baseline is strictly earlier by 86400 seconds",
+        "cost": "0",
+        "evidence_ref": null
+      },
+      {
+        "constraint_id": "lab_window",
+        "status": "PASS",
+        "event_ids": [
+          "B1",
+          "F1"
+        ],
+        "detail": "86400 seconds <= 172800 seconds",
+        "cost": "0",
+        "evidence_ref": null
+      },
+      {
+        "constraint_id": "delta",
+        "status": "PASS",
+        "event_ids": [
+          "B1",
+          "F1"
+        ],
+        "detail": "1.3 - 1.0 = 0.3 mg/dL; inclusive threshold passes",
+        "cost": "0",
+        "evidence_ref": null
+      },
+      {
+        "constraint_id": "exposure_order",
+        "status": "PASS",
+        "event_ids": [
+          "E1",
+          "F1"
+        ],
+        "detail": "Exposure strictly precedes follow-up",
+        "cost": "0",
+        "evidence_ref": null
+      },
+      {
+        "constraint_id": "exposure_window",
+        "status": "PASS",
+        "event_ids": [
+          "E1",
+          "F1"
+        ],
+        "detail": "777600 seconds exceeds exact 604800 limit; allowed extension 172800 seconds has cost 1",
+        "cost": "1",
+        "evidence_ref": null
+      }
+    ],
+    "reason_codes": [],
+    "alignment_optimality": "GLOBAL",
+    "evidence_ref": "evidence-C05.json"
+  },
+  "events": [
+    {
+      "dataset_id": "toy",
+      "snapshot_id": "toy-snapshot-v1",
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "event_id": "B1",
+      "record_id": "record-B1",
+      "clinical_event_id": "occurrence-B1",
+      "event_kind": "measurement",
+      "concept": "ex:Creatinine",
+      "source_code": "ex:Creatinine",
+      "source_system": "constructed_fixture",
+      "mapping_ref": null,
+      "status": "performed",
+      "experiencer": "patient",
+      "time": {
+        "kind": "point",
+        "clock_id": "P1-relative",
+        "start_min_us": -86400000000,
+        "start_max_us": -86400000000,
+        "end_min_us": -86400000000,
+        "end_max_us": -86400000000,
+        "precision": "second",
+        "timestamp_role": "occurrence"
+      },
+      "value": "1.0",
+      "unit": "mg/dL",
+      "original_value": "1.0",
+      "original_unit": "mg/dL",
+      "comparator": "eq",
+      "provenance": {
+        "source_file": "constructed://case",
+        "source_key": "B1",
+        "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+        "adapter_rule": "toy_v1",
+        "assertion_ids": [
+          "assertion-B1"
+        ]
+      },
+      "record_version": 1,
+      "supersedes": null
+    },
+    {
+      "dataset_id": "toy",
+      "snapshot_id": "toy-snapshot-v1",
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "event_id": "E1",
+      "record_id": "record-E1",
+      "clinical_event_id": "occurrence-E1",
+      "event_kind": "administration",
+      "concept": "ex:DrugB",
+      "source_code": "ex:DrugB",
+      "source_system": "constructed_fixture",
+      "mapping_ref": null,
+      "status": "performed",
+      "experiencer": "patient",
+      "time": {
+        "kind": "point",
+        "clock_id": "P1-relative",
+        "start_min_us": -777600000000,
+        "start_max_us": -777600000000,
+        "end_min_us": -777600000000,
+        "end_max_us": -777600000000,
+        "precision": "second",
+        "timestamp_role": "occurrence"
+      },
+      "value": null,
+      "unit": null,
+      "original_value": null,
+      "original_unit": null,
+      "comparator": "eq",
+      "provenance": {
+        "source_file": "constructed://case",
+        "source_key": "E1",
+        "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+        "adapter_rule": "toy_v1",
+        "assertion_ids": [
+          "assertion-E1"
+        ]
+      },
+      "record_version": 1,
+      "supersedes": null
+    },
+    {
+      "dataset_id": "toy",
+      "snapshot_id": "toy-snapshot-v1",
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "event_id": "F1",
+      "record_id": "record-F1",
+      "clinical_event_id": "occurrence-F1",
+      "event_kind": "measurement",
+      "concept": "ex:Creatinine",
+      "source_code": "ex:Creatinine",
+      "source_system": "constructed_fixture",
+      "mapping_ref": null,
+      "status": "performed",
+      "experiencer": "patient",
+      "time": {
+        "kind": "point",
+        "clock_id": "P1-relative",
+        "start_min_us": 0,
+        "start_max_us": 0,
+        "end_min_us": 0,
+        "end_max_us": 0,
+        "precision": "second",
+        "timestamp_role": "occurrence"
+      },
+      "value": "1.3",
+      "unit": "mg/dL",
+      "original_value": "1.3",
+      "original_unit": "mg/dL",
+      "comparator": "eq",
+      "provenance": {
+        "source_file": "constructed://case",
+        "source_key": "F1",
+        "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+        "adapter_rule": "toy_v1",
+        "assertion_ids": [
+          "assertion-F1"
+        ]
+      },
+      "record_version": 1,
+      "supersedes": null
+    }
+  ],
+  "manifest_ref": "manifest-C05.json"
+}

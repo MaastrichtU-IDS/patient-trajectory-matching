@@ -1,0 +1,1433 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/trajectory/contracts/2.0/schema.json",
+  "$defs": {
+    "Time": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "point",
+            "interval"
+          ]
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_min_us": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "start_max_us": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_min_us": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_max_us": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "precision": {
+          "type": "string",
+          "enum": [
+            "microsecond",
+            "second",
+            "minute",
+            "day",
+            "unknown"
+          ]
+        },
+        "timestamp_role": {
+          "type": "string",
+          "enum": [
+            "occurrence",
+            "measurement_associated",
+            "order",
+            "recording",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "clock_id",
+        "start_min_us",
+        "start_max_us",
+        "end_min_us",
+        "end_max_us",
+        "precision",
+        "timestamp_role"
+      ],
+      "additionalProperties": false
+    },
+    "Provenance": {
+      "type": "object",
+      "properties": {
+        "source_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_record_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "adapter_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assertion_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "source_file",
+        "source_key",
+        "source_record_sha256",
+        "adapter_rule",
+        "assertion_ids"
+      ],
+      "additionalProperties": false
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "patient_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "episode_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clinical_event_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_kind": {
+          "type": "string",
+          "enum": [
+            "measurement",
+            "administration",
+            "prescription",
+            "diagnosis",
+            "procedure",
+            "other"
+          ]
+        },
+        "concept": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "performed",
+            "planned",
+            "not_given",
+            "negated",
+            "unknown"
+          ]
+        },
+        "experiencer": {
+          "type": "string",
+          "enum": [
+            "patient",
+            "family",
+            "other",
+            "unknown"
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/Time"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "comparator": {
+          "type": "string",
+          "enum": [
+            "eq",
+            "lt",
+            "le",
+            "gt",
+            "ge",
+            "unknown"
+          ]
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "record_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "dataset_id",
+        "snapshot_id",
+        "patient_id",
+        "episode_id",
+        "event_id",
+        "record_id",
+        "clinical_event_id",
+        "event_kind",
+        "concept",
+        "source_code",
+        "source_system",
+        "mapping_ref",
+        "status",
+        "experiencer",
+        "time",
+        "value",
+        "unit",
+        "original_value",
+        "original_unit",
+        "comparator",
+        "provenance",
+        "record_version",
+        "supersedes"
+      ],
+      "additionalProperties": false
+    },
+    "Slot": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "measurement",
+            "administration",
+            "prescription",
+            "diagnosis",
+            "procedure",
+            "other"
+          ]
+        },
+        "concept": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "concept"
+      ],
+      "additionalProperties": false
+    },
+    "Constraint": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "op": {
+              "const": "before"
+            },
+            "from": {
+              "type": "string",
+              "minLength": 1
+            },
+            "to": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "op",
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "op": {
+              "const": "max_gap"
+            },
+            "from": {
+              "type": "string",
+              "minLength": 1
+            },
+            "to": {
+              "type": "string",
+              "minLength": 1
+            },
+            "seconds": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "id",
+            "op",
+            "from",
+            "to",
+            "seconds"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "op": {
+              "const": "value_delta_min"
+            },
+            "from": {
+              "type": "string",
+              "minLength": 1
+            },
+            "to": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "op",
+            "from",
+            "to",
+            "value",
+            "unit"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Relaxation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "minLength": 1
+            },
+            "op": {
+              "const": "concept_alternative"
+            },
+            "concept": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cost": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+              "not": {
+                "pattern": "^0(\\.0+)?$"
+              }
+            },
+            "review": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "target",
+            "op",
+            "concept",
+            "cost",
+            "review"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "minLength": 1
+            },
+            "op": {
+              "const": "extend_max_gap"
+            },
+            "extra_seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maximum_cost": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+              "not": {
+                "pattern": "^0(\\.0+)?$"
+              }
+            }
+          },
+          "required": [
+            "target",
+            "op",
+            "extra_seconds",
+            "maximum_cost"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Pattern": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "2.0"
+        },
+        "pattern_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "episode": {
+              "const": "admission"
+            },
+            "minimum_age": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "episode",
+            "minimum_age"
+          ],
+          "additionalProperties": false
+        },
+        "events": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 6,
+          "additionalProperties": {
+            "$ref": "#/$defs/Slot"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Constraint"
+          },
+          "minItems": 1,
+          "maxItems": 30
+        },
+        "selection": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "const": "minimum_value"
+              },
+              "window_constraint": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ties": {
+                "const": [
+                  "time",
+                  "event_id"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "window_constraint",
+              "ties"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "relaxations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Relaxation"
+          },
+          "maxItems": 2
+        },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "max_relaxed_constraints": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "max_total_cost": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          },
+          "required": [
+            "max_relaxed_constraints",
+            "max_total_cost"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "pattern_id",
+        "scope",
+        "events",
+        "constraints",
+        "selection",
+        "relaxations",
+        "budget"
+      ],
+      "additionalProperties": false
+    },
+    "DatasetSnapshot": {
+      "type": "object",
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "constructed",
+            "synthea_csv",
+            "mimic_iv_demo"
+          ]
+        },
+        "source_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "STAGING",
+            "VALIDATED",
+            "PUBLISHED",
+            "FAILED"
+          ]
+        },
+        "quality_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "dataset_id",
+        "source_type",
+        "source_version",
+        "manifest_sha256",
+        "status",
+        "quality_ref"
+      ],
+      "additionalProperties": false
+    },
+    "SemanticBundle": {
+      "type": "object",
+      "properties": {
+        "bundle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ontology_manifest_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_release": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_registry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "certified_operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "computation_status": {
+          "type": "string",
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE",
+            "UNSUPPORTED"
+          ]
+        },
+        "dropped_axiom_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "diagnostics_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compiler_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "bundle_id",
+        "ontology_manifest_ref",
+        "mapping_release",
+        "unit_registry",
+        "profile",
+        "certified_operations",
+        "computation_status",
+        "dropped_axiom_count",
+        "diagnostics_ref",
+        "compiler_digest"
+      ],
+      "additionalProperties": false
+    },
+    "CohortRequest": {
+      "type": "object",
+      "properties": {
+        "dataset_snapshot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_bundle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pattern": {
+          "$ref": "#/$defs/Pattern"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "exact",
+            "relaxed",
+            "exact_with_near_misses"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "candidate_policy": {
+          "const": "lossless"
+        },
+        "allow_partial": {
+          "type": "boolean"
+        },
+        "evidence_level": {
+          "const": "full"
+        }
+      },
+      "required": [
+        "dataset_snapshot",
+        "semantic_bundle",
+        "pattern",
+        "mode",
+        "purpose",
+        "result_limit",
+        "candidate_policy",
+        "allow_partial",
+        "evidence_level"
+      ],
+      "additionalProperties": false
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "PARTIAL",
+            "FAILED",
+            "CANCELLED"
+          ]
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "retrieval",
+            "verification",
+            "evidence",
+            "publication",
+            "finished"
+          ]
+        },
+        "request_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "completed_partitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_partitions": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "result_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "status",
+        "stage",
+        "request_digest",
+        "attempt",
+        "completed_partitions",
+        "total_partitions",
+        "result_ref",
+        "error_ref"
+      ],
+      "additionalProperties": false
+    },
+    "Check": {
+      "type": "object",
+      "properties": {
+        "constraint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INDETERMINATE"
+          ]
+        },
+        "event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "cost": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        },
+        "evidence_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "constraint_id",
+        "status",
+        "event_ids",
+        "detail",
+        "cost",
+        "evidence_ref"
+      ],
+      "additionalProperties": false
+    },
+    "Binding": {
+      "type": "object",
+      "properties": {
+        "slot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_relation": {
+          "type": "string",
+          "enum": [
+            "entailed",
+            "reviewed_alternative"
+          ]
+        },
+        "semantic_cost": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+        },
+        "proof_or_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "slot_id",
+        "event_id",
+        "semantic_relation",
+        "semantic_cost",
+        "proof_or_policy_ref"
+      ],
+      "additionalProperties": false
+    },
+    "Match": {
+      "type": "object",
+      "properties": {
+        "patient_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exact_status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INDETERMINATE"
+          ]
+        },
+        "accepted_as": {
+          "type": "string",
+          "enum": [
+            "EXACT",
+            "RELAXED",
+            "NONE",
+            "UNRESOLVED"
+          ]
+        },
+        "knowledge_status": {
+          "type": "string",
+          "enum": [
+            "ENTAILED",
+            "REFUTED",
+            "UNDETERMINED",
+            "CONFLICT"
+          ]
+        },
+        "computation_status": {
+          "type": "string",
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE",
+            "UNSUPPORTED"
+          ]
+        },
+        "total_cost": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relaxed_constraint_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Binding"
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Check"
+          }
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "alignment_optimality": {
+          "type": "string",
+          "enum": [
+            "GLOBAL",
+            "CANDIDATE_ONLY",
+            "UNPROVEN"
+          ]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "patient_id",
+        "episode_id",
+        "exact_status",
+        "accepted_as",
+        "knowledge_status",
+        "computation_status",
+        "total_cost",
+        "relaxed_constraint_ids",
+        "bindings",
+        "checks",
+        "reason_codes",
+        "alignment_optimality",
+        "evidence_ref"
+      ],
+      "additionalProperties": false
+    },
+    "ResultPage": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "search_complete": {
+          "type": "boolean"
+        },
+        "exact_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "returned_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Match"
+          }
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "manifest_ref",
+        "search_complete",
+        "exact_count",
+        "returned_count",
+        "unresolved_count",
+        "results",
+        "next_cursor"
+      ],
+      "additionalProperties": false
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "diagnostic_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "field_path",
+        "retryable",
+        "diagnostic_ref"
+      ],
+      "additionalProperties": false
+    },
+    "ValidationReport": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pattern_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Error"
+          }
+        }
+      },
+      "required": [
+        "valid",
+        "profile",
+        "pattern_digest",
+        "errors"
+      ],
+      "additionalProperties": false
+    },
+    "Evidence": {
+      "type": "object",
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "match": {
+          "$ref": "#/$defs/Match"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          }
+        },
+        "manifest_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "evidence_id",
+        "match",
+        "events",
+        "manifest_ref"
+      ],
+      "additionalProperties": false
+    },
+    "Capabilities": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "2.0"
+        },
+        "query_profiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "maximum_slots": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_relaxed_constraints": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_policies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "ontology_operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "output_formats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "query_profiles",
+        "maximum_slots",
+        "maximum_relaxed_constraints",
+        "candidate_policies",
+        "ontology_operations",
+        "output_formats"
+      ],
+      "additionalProperties": false
+    },
+    "IngestRequest": {
+      "type": "object",
+      "properties": {
+        "source_manifest_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_release": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_registry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "source_manifest_ref",
+        "adapter_id",
+        "adapter_version",
+        "mapping_release",
+        "unit_registry",
+        "purpose"
+      ],
+      "additionalProperties": false
+    },
+    "ExportRequest": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "csv",
+            "jsonl",
+            "parquet"
+          ]
+        },
+        "field_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "job_id",
+        "format",
+        "field_ids",
+        "purpose",
+        "policy_id"
+      ],
+      "additionalProperties": false
+    },
+    "PatternResource": {
+      "type": "object",
+      "properties": {
+        "pattern_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ast": {
+          "$ref": "#/$defs/Pattern"
+        },
+        "digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "pattern_id",
+        "version",
+        "ast",
+        "digest"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

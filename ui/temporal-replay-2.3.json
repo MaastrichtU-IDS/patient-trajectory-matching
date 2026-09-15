@@ -1,0 +1,49 @@
+{
+  "specification_version": "2.3",
+  "status": "specified_not_implemented",
+  "release": "R1",
+  "api_note": "Capability-negotiated extension; not accepted by the unchanged executable v2.0 schema.",
+  "modes": [
+    "SOURCE_AS_KNOWN",
+    "RETROSPECTIVE_RECONSTRUCTION"
+  ],
+  "request_fields": [
+    "clinical_index_rule",
+    "source_availability_rule",
+    "replay_mode",
+    "product_snapshot_ref",
+    "semantic_bundle_ref",
+    "normalization_policy_ref",
+    "correction_policy_ref",
+    "query_hash"
+  ],
+  "result_fields": [
+    "request_identity",
+    "result_manifest_ref",
+    "replay_coverage",
+    "coverage_reasons",
+    "affected_record_refs",
+    "membership_status",
+    "evidence_version_refs"
+  ],
+  "coverage_values": [
+    "COMPLETE",
+    "PARTIAL",
+    "UNAVAILABLE"
+  ],
+  "coverage_rule": "Historical evidence coverage is independent of computation_status. Unknown availability cannot silently pass a pre-index filter.",
+  "archive_selection": "Use only evidence present in the selected published snapshot. Source-as-known mode applies source availability and correction links available by the cutoff, including earlier assertion versions preserved in the archive.",
+  "scope_rule": "Cohort cutoffs use a per-patient index or anchor rule, not a common absolute date across shifted clocks.",
+  "compare_rule": "Compare stable identifiers with pinned query, semantics and population where possible; recompute dependencies, separate eligibility from top-k ranking and disclose multiple or undetermined change reasons.",
+  "difference_reasons": [
+    "NEW_CLINICAL_EVENT",
+    "LATE_SOURCE_RECORD",
+    "CORRECTED_ASSERTION",
+    "QUERY_CHANGED",
+    "SEMANTICS_CHANGED",
+    "NORMALIZATION_CHANGED",
+    "UNDETERMINED"
+  ],
+  "accessibility": "Labelled keyboard and numeric controls; history has a textual alternative.",
+  "privacy": "Historical evidence uses the same authorization as current records."
+}

@@ -1,0 +1,9 @@
+# Local virtualenv (see README for setup)
+.venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store

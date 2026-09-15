@@ -1,0 +1,53 @@
+{
+  "study_id": "D01-full-mimic-exploration-2.1",
+  "status": "specified_not_executed",
+  "access": "team_has_full_MIMIC_IV_access; extraction in authorized environment",
+  "reference_release": "3.1",
+  "pin_actual_release": true,
+  "primary_question": "Do iterative pre-index refinements produce coherent comparison cohorts and how do observed subsequent treatment and renal trajectories differ?",
+  "qa_max_patients": 500,
+  "study_max_eligible_patients": 10000,
+  "sample": "deterministic patient hash, or all if fewer; no post-index outcome selection",
+  "initial_episode": "first eligible admission per patient",
+  "index": "24 elapsed hours after first observed mapped antibiotic administration in admission",
+  "eligibility": [
+    "adult under reviewed source age policy",
+    "still admitted at index",
+    "at least one eligible creatinine within 48 pre-index hours"
+  ],
+  "followup_measurement_required_for_eligibility": false,
+  "history_window_days": 7,
+  "followup_max_days": 7,
+  "followup_stops": [
+    "discharge",
+    "recorded death",
+    "applicable data boundary"
+  ],
+  "outcomes": {
+    "renal": "max observed creatinine in first 48 post-index hours minus minimum eligible baseline in 48 pre-index hours; retain missing",
+    "treatment": "documented subsequent administrations or supported changes; no inferred cessation from gaps",
+    "discharge": "status and time from index",
+    "dialysis": "deferred until mapping validated"
+  },
+  "split": "patient-level development/evaluation before tuning; QA patients stay development",
+  "exclude_index_patient_other_episodes": true,
+  "primary_evaluation": [
+    "retrieval relevance",
+    "membership changes",
+    "cohort yield",
+    "feature balance",
+    "missingness",
+    "reviewer agreement"
+  ],
+  "deliverables": [
+    "versioned extraction",
+    "eligibility flow",
+    "normalization quality",
+    "mapping catalogue",
+    "saved refinement revisions",
+    "aggregate exploration report"
+  ],
+  "clinical_findings": null,
+  "causal_effect_claim": false,
+  "public_pack_contains_restricted_rows": false
+}

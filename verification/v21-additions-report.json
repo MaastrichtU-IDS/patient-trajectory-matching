@@ -1,0 +1,14 @@
+{
+  "specification_version": "2.1",
+  "status": "structural_checks_only",
+  "json_files_parse": true,
+  "requirements_unique": true,
+  "requirement_count": 69,
+  "normalization_expected_cases": 16,
+  "normalizer_implemented": false,
+  "refinement_service_implemented": false,
+  "full_mimic_analyzed": false,
+  "v20_oracle_scope_unchanged": true,
+  "worked_duration_and_DST_arithmetic_checked": true,
+  "v20_executable_files_byte_identical_to_v20_release": true
+}
