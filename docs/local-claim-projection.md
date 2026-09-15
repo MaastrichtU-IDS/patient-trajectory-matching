@@ -63,7 +63,7 @@ The recorded source profile does not itself imply Infusion or a confirmed clinic
 
 The **32 new tests** cover both variants, cross-profile rejection, raw/normalized evidence, RDF ingestion, the extended isolation model, clock rebasing/date shifts, incomparable clocks, patient isolation, correlated constraints, corrections, withdrawal, surviving support and backend failure. The original 45 claim tests remain unchanged and continue to pass.
 
-The existing limits on claims, rows, decisions, events and candidate combinations still apply. This is the local-clock bridge for the claim layer. The MIMIC importer provides source-derived pending claims through a separate entry point. Selecting a reviewed clinical policy and adding mixed point/interval measurement queries remain future capabilities. No source approval, source-history completeness or clinical truth is fabricated by this extension.
+The existing limits on claims, rows, decisions, events and candidate combinations still apply. This is the local-clock bridge for the claim layer. The MIMIC importer provides source-derived pending claims through a separate entry point. The separate [mixed record-query profile](mixed-record-query.md) now combines explicitly aligned interval/point records. Reviewed clinical policies remain future work. No source approval, source-history completeness or clinical truth is fabricated by this extension.
 
 ## Source adapter
 

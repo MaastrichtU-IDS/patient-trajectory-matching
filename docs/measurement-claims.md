@@ -113,8 +113,8 @@ The reader bounds `chartevents` at 100,000 rows and 64 MiB per raw/expanded file
 
 Detailed results contain supplied source rows and remain local. CLI writes are atomic; invalid input preserves the previous output. Successful pending import returns 0; an incomplete import writes its ledger and returns 2. The committed measurement report is synthetic only. This bounded reader is not a full-release loader.
 
-## Next contract to implement
+## Mixed query integration
 
-Combine explicitly selected treatment intervals and measurement points under a new mixed temporal profile. It needs endpoint-specific gaps, point membership in windows, unit-compatible scalar predicates, a reviewed item-to-clinical-concept policy, and a source completeness contract. It must preserve fixed-witness certainty and patient/episode isolation. Select baseline/treatment eligibility before examining follow-up outcomes, so absence of a follow-up remains unknown instead of excluding the patient or proving treatment failure.
+The separate [mixed record-query profile](mixed-record-query.md) now combines selected treatment intervals and measurement points with explicit clock alignment, endpoint windows and literal item/unit scalar predicates. It retains baseline–treatment eligibility when follow-up is missing or lower, and preserves fixed-witness certainty. The measurement selector itself remains a description-selection operation; it does not generate an occurrence graph or perform semantic inference.
 
-The present 35-test suite verifies the measurement building block; it does not claim that this next mixed query is already executable.
+The measurement building block retains its 35-test suite. Broader clinical mappings, qualified values, source coverage and full mixed OWL reasoning remain outside these profiles.

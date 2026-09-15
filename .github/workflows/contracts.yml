@@ -160,6 +160,10 @@ jobs:
         run: |
           python -m patterns.mimic_measurement_import
           python -m patterns.test_measurement_claims
+      - name: Mixed interval and point record queries
+        run: |
+          python -m patterns.mixed_record_query
+          python -m patterns.test_mixed_record_query
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -173,6 +177,7 @@ jobs:
             verification/local-claim-projection-run/
             verification/mimic-claim-import-run/
             verification/mimic-measurement-run/
+            verification/mixed-record-query-run/
           retention-days: 14
 
   oracle-compatibility:

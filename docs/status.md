@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 494 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 528 passing checks, and 10 of 104 tracked requirements marked executable.**
 
 The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
@@ -82,7 +82,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Patient-local claim projection tests | 32 passed |
 | MIMIC pending claim import tests | 25 passed |
 | Measurement claims and chartevents import tests | 35 passed |
-| **Total** | **494 checks passing** |
+| Mixed record query tests | 34 passed |
+| **Total** | **528 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -91,7 +92,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 471 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 505 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
