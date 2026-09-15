@@ -7,6 +7,8 @@ Each component's purpose, interface, dependencies and scope limits. Status label
 | [Reference oracle](#reference-oracle) | `reference_oracle.py` | Executable |
 | [PRO/SOLID adapter](#prosolid-adapter) | `patterns/pro_solid.py` | Executable |
 | [Acceptance suite](#acceptance-suite) | `patterns/test_pro_solid.py` | Executable |
+| [Exact-interval adapter](#exact-interval-adapter) | `patterns/exact_intervals.py` | Executable |
+| [Interval cohort matcher](#interval-cohort-matcher) | `patterns/interval_cohort.py` | Executable |
 | [Ontology profile](#ontology-profile) | `ontology/` | Executable |
 | [Contract schemas](#contract-schemas) | `schemas/` | Structurally validated |
 | [Fixtures](#fixtures) | `examples/` | Executable inputs and specified cases |
@@ -115,6 +117,77 @@ The 16 oracle cases and 7 property checks run separately via `reference_oracle.p
 
 ---
 
+## Exact-interval adapter
+
+**Path:** `patterns/exact_intervals.py` · **Status:** Executable · **Profile:** `exact-interval-1.0` · **Dependencies:** `rdflib`, `pyshacl`
+
+Source rows to interval RDF to pairwise temporal evaluation. A separate profile alongside the v2.4 point-anchor contract, sharing the pinned SULO core and adding no new object or datatype properties.
+
+```sh
+python -m patterns.exact_intervals [--graph examples/exact-interval/graph.ttl]
+python -m patterns.test_exact_intervals    # 51 tests
+```
+
+**Outputs** to `verification/exact-interval-run/`:
+
+| File | Contents |
+|---|---|
+| `graph.ttl` | Canonical named PRO/SOLID instances, literal spelling preserved |
+| `intervals.json` | Normalized exact intervals and evidence identifiers |
+| `evidence.json` | Source, role, endpoint, duration, clock, snapshot, implementation bindings |
+| `comparisons.json` | Requested comparisons, statuses, arithmetic rules, evidence references |
+
+**Representation.** A process has exactly one `atTime` occurrence interval, typed `ei:ExactOccurrenceInterval`, with distinct typed start and end parts and **no scalar `hasValue` on the interval itself**. Boundaries are `ei:ExactStartTime` / `ei:ExactEndTime`, each with one `xsd:dateTimeStamp` and a direct Second unit. An optional `ei:ElapsedDuration` carries one decimal value and one supported unit. A `ei:ClockBinding` refers to an `ei:TemporalReferenceSystem`.
+
+**Operators.** `before`, `meets`, `overlaps` (directional) and `gap` with inclusive integer bounds. See [architecture.md §5](architecture.md#5-temporal-architecture) for exact definitions.
+
+**Error model.** Invalid profile input exits with **code 2** and an `INVALID_INPUT` diagnostic. An unsuccessful invocation does not replace existing output files, so consumers must check the exit code before reading output.
+
+**Scope limits.** Constructed data demonstrating process timing and patient participation. Not a clinical infusion, medication, specimen, MIMIC or FHIR mapping. Does not change the point-anchor oracle and does not provide generalized cohort interval matching.
+
+---
+
+## Interval cohort matcher
+
+**Path:** `patterns/interval_cohort.py` · **Status:** Executable · **Profile:** `interval-cohort-1.0` · **Dependencies:** exact-interval projection
+
+Conjunctive slot queries over recorded intervals, across patient episodes in one graph and snapshot. Adds no RDF classes or properties and leaves the v2.4 API and oracle independent.
+
+```sh
+python -m patterns.interval_cohort
+python -m patterns.interval_cohort --engine reference --output verification/interval-cohort-run/reference.json
+python -m patterns.test_interval_cohort    # 18 tests
+```
+
+Also accepts `--source`, `--graph`, `--manifest`, `--query` and `--output`.
+
+**Two engines, one semantics**
+
+| Engine | File | Role |
+|---|---|---|
+| Indexed | `interval_cohort.py` | Production path, with index pruning |
+| Reference | `interval_cohort_reference.py` | Exhaustive, independently written |
+
+The suite checks them **differentially**. The two must agree on the semantic result while reporting different execution counters. This is the repository's strongest correctness property: the optimization is held to an independent specification of the same answer, rather than to its own output.
+
+**Query contract.** [`schemas/interval-cohort.schema.json`](../schemas/interval-cohort.schema.json) plus semantic checks in `validate_query`. Versioned required and distinct slots, exact conjunctive constraints, patient-episode joins.
+
+**Outcomes**
+
+| Verdict | Meaning |
+|---|---|
+| `MATCH` | Some binding satisfies every constraint |
+| `INCOMPARABLE` | No match, but a binding has no false constraint and an incomparable edge |
+| `NO_RECORDED_MATCH` | Otherwise |
+
+A `MATCH` episode can still carry unresolved bindings, which stay visible in the result.
+
+**Worked example.** Three constructed patients: P1 matches (bindings A→D and C→D), P2 has no recorded match (its infusion follows its collection), P3 is incomparable (its candidate events use different clock resources).
+
+**Scope limits.** Exact recorded intervals only. A temporal edge requires the same clock resource and descriptor; equal coordinate values do not establish a mapping. No comparison crosses episodes. Patients with no projected events are outside the result scope — there is no external cohort roster. Profile or schema failure exits 2 and does not clear an older output file. Uncertainty, clinical source mapping and patient-to-patient similarity remain future work.
+
+---
+
 ## Ontology profile
 
 **Path:** `ontology/` · **Status:** Executable
@@ -125,6 +198,8 @@ The 16 oracle cases and 7 property checks run separately via `reference_oracle.p
 | `sulo-pin.json` | Version, SHA-256, source URL, declared reasoning profile |
 | `pro-solid-profile.ttl` | 25 application classes plus disjointness axioms |
 | `pro-solid-shapes.ttl` | 10 SHACL node shapes |
+| `exact-interval-profile.ttl` | `ei:` interval, boundary, clock and duration classes |
+| `exact-interval-shapes.ttl` | SHACL shapes for the interval profile |
 | `toy-taxonomy.json` | The oracle's subclass hierarchy |
 | `toy.ofn` | OWL functional-syntax rendering of the toy hierarchy |
 | `legacy-2.3/` | **Non-normative** archived drafts |
@@ -145,6 +220,7 @@ The archived drafts in `legacy-2.3/` must not be loaded with the current profile
 |---|---|
 | `contracts.schema.json` | JSON Schema draft 2020-12, 22 definitions |
 | `openapi.json` | OpenAPI 3.1, 14 paths, version 2.0.0 |
+| `interval-cohort.schema.json` | Interval cohort query contract — **executable and enforced** |
 
 Paths cover capabilities, dataset snapshots, semantic bundles, ingestion jobs, pattern validation and storage, cohort match jobs, job lifecycle, results, evidence and exports.
 
@@ -164,6 +240,8 @@ Paths cover capabilities, dataset snapshots, semantic bundles, ingestion jobs, p
 | `pro-solid/manifest.json` | Executable | Scope, age, snapshot, completeness, clock origin |
 | `pro-solid/graph.ttl` | Executable | Committed copy of the generated graph |
 | `pro-solid/measurement-bindings.rq` | Executable | SPARQL projection retaining patient and result role bindings |
+| `exact-interval/` | Executable | Source rows, manifest, comparison requests, committed graph |
+| `interval-cohort/` | Executable | Source rows, manifest and query for the three-patient example |
 | `cohort-request.json`, `result-page-C05.json`, `evidence-C05.json`, `manifest-C05.json` | Structural | Worked request, result, evidence and manifest examples |
 | `qbe-profile-2.1.json`, `refinement-session-2.1.json` | Specified | Query-by-example profile and refinement session |
 | `time-normalization-cases-2.1.json` | Specified | 16 normalization expectations, no normalizer implemented |
@@ -181,6 +259,7 @@ The 16 matcher cases and the 16 normalization expectations are **different sets*
 |---|---|
 | `reference-report.json` | `reference_oracle.py` |
 | `v24-pro-solid-report.json` | `patterns/test_pro_solid.py` |
+| `exact-interval-report.json` | `patterns/test_exact_intervals.py` |
 | `pro-solid-run/` | `patterns/pro_solid.py` |
 | `structural-report.json` | Authoring-time structural validation |
 | `v21-` / `v22-` / `v23-additions-report.json` | Per-version structural checks |

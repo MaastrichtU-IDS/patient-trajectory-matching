@@ -58,15 +58,26 @@ Independently authored clinical cases, candidate recall, clinical validity and s
 
 ## Temporal semantics
 
-### T1. Point anchors only **[gap]**
-*Source: [2.4 §5](../addenda/specification-2.4.md)*
+### T1. The three profiles are not unified **[open]**
+*Source: [2.4 §5](../addenda/specification-2.4.md), [exact-interval-profile.md](exact-interval-profile.md)*
 
-The matcher uses point anchors. Proper process intervals, uncertain endpoints, event time versus assertion validity, and snapshot/cutoff selection are specified in [2.1 §6](../addenda/specification-2.1.md) but unimplemented. An occurrence anchor does not establish that a clinical process had zero duration.
+Intervals are now implemented, but in a **separate** profile. The point-anchor oracle still uses point anchors and priced relaxation; `exact-interval-1.0` and `interval-cohort-1.0` use exact intervals with no cost model. A trajectory query cannot currently mix them, and the relaxation semantics of the v2.4 matcher have no counterpart in the interval matcher.
 
-### T2. Allen interval catalogue unimplemented **[gap]**
-*Source: [2.1 §6](../addenda/specification-2.1.md)*
+Whether these converge into one matcher, or stay deliberately separate with a documented bridge, is unresolved.
 
-Seven relations are defined with endpoint semantics; six more are their inverses. Only `before` and endpoint gaps are in H0 scope. The complete catalogue belongs to R1.
+### T2. Allen catalogue partially implemented **[gap]**
+*Source: [2.1 §6](../addenda/specification-2.1.md), [exact-interval-profile.md](exact-interval-profile.md)*
+
+The exact-interval evaluator exposes four request operators — `before`, `meets`, directional `overlaps` and bounded `gap` — and internally reports the single basic Allen relation for comparable inputs, including containment, equality and inverses.
+
+The full request interface specified in 2.1 §6 is not exposed. `during`, `starts`, `finishes` and the inverse relations cannot be requested directly.
+
+### T2b. Bounded uncertainty unimplemented **[gap]**
+*Source: [sulo-owl-time-review.md](sulo-owl-time-review.md) §11, [interval-cohort-matching.md](interval-cohort-matching.md)*
+
+**This is the largest remaining temporal gap.** All three profiles handle exact recorded times only. Shared variables, joint feasibility and explicit certain/possible results are designed and unbuilt.
+
+The consequence is visible in the cohort matcher: an unresolved binding means *missing comparability*, explicitly not a proven possible realization of an uncertain temporal system. The vocabulary for the latter does not exist yet.
 
 ### T3. No time normalizer **[gap]**
 *Source: `v21-additions-report.json`*
@@ -168,6 +179,12 @@ The comparison is a planned protocol. No Graphiti results exist in this reposito
 
 `verification/v24-pro-solid-report.json` records the runner's Python version, so it changes whenever the interpreter patch version differs. CI reports this as a notice rather than a failure. The release manifest hashes inputs only, so this drift does not affect integrity checking — but it does mean a local run can leave the working tree dirty.
 
+### R3. Interval profiles are not in the requirement register **[open]**
+
+`requirements.csv` tracks 104 requirements and marks 10 executable, all PS-\* in the point-anchor profile. The `exact-interval-1.0` and `interval-cohort-1.0` profiles are executable and CI-verified but have no requirement IDs, no acceptance gate and no traceability row.
+
+Until they do, [status.md](status.md) and the register disagree about what is implemented, and the register is the one that undercounts.
+
 ### R2. Legacy ontology drafts are loadable **[risk]**
 *Source: [2.4 §8](../addenda/specification-2.4.md)*
 
@@ -177,11 +194,14 @@ The comparison is a planned protocol. No Graphiti results exist in this reposito
 
 ## Implementation sequence
 
-From [2.4 §8](../addenda/specification-2.4.md), for a 3–5 person team:
+The [documentation guide](README.md) gives the current path:
 
-1. Ontology and domain mapping, with review
-2. Source adapters with reconciliation
-3. Matcher integration
-4. Evidence-driven UI
+1. Reproduce the PRO/SOLID adapter and reference oracle
+2. Run the exact-interval adapter and its conformance suite
+3. Run the interval cohort matcher and its differential suite
+4. **Add bounded uncertainty** — shared variables, joint feasibility, explicit certain/possible results
+5. Extend and benchmark the indexes on representative clinical data, preserving differential checks against the reference implementation
 
-With three people, combine matcher integration and UI. Any AI-assisted coding must pass these contracts and retain the declared supported profile. No AI provider credentials are needed for this release.
+The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.
+
+Any AI-assisted coding must pass these contracts and retain the declared supported profile. No AI provider credentials are needed.

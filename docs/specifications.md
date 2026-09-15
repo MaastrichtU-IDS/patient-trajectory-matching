@@ -13,6 +13,15 @@ The pack is a companion to a product specification maintained separately. The ad
 
 Each addendum states its own implementation status in its opening lines, and each was explicit that prior executable contracts remained unchanged.
 
+Two further executable contracts are specified as standalone documents rather than numbered addenda, and two design documents develop the next temporal steps:
+
+| Document | Covers | Status |
+|---|---|---|
+| [exact-interval-profile.md](exact-interval-profile.md) | Interval adapter, clocks, endpoint comparisons, evidence | **Executable** `exact-interval-1.0` |
+| [interval-cohort-matching.md](interval-cohort-matching.md) | Slot queries, indexed joins, differential reference | **Executable** `interval-cohort-1.0` |
+| [sulo-owl-time-review.md](sulo-owl-time-review.md) | Temporal representation, uncertainty, reasoning, indexes | Design guidance |
+| [decisions/temporal-precedence.md](decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact | Proposed; not adopted |
+
 ---
 
 ## 2.4 — Executable PRO and SOLID contracts
@@ -44,6 +53,59 @@ The current modeling contract. It leaves the temporal knowledge graph definition
 Implemented by `patterns/pro_solid.py`, `ontology/pro-solid-profile.ttl` and `ontology/pro-solid-shapes.ttl`. Verified by 42 acceptance tests under gate AC19-PRO-SOLID. Adds requirements PS-001 to PS-010.
 
 The earlier proposal, assertion and shape drafts are archived in `ontology/legacy-2.3/` and are **non-normative**.
+
+---
+
+## Exact-interval profile 1.0
+
+**Executable · separate from the point-anchor contract**
+
+An interval adapter and pairwise temporal evaluator using the same pinned SULO core, introducing classes and individuals with no new object or datatype properties.
+
+Processes carry an occurrence interval with distinct typed start and end descriptors and no scalar value on the interval itself. Clocks are explicit: a temporal edge requires the same clock resource and descriptor.
+
+Four request operators: `before` (`eA < sB`), `meets` (`eA == sB`), directional `overlaps` (`sA < sB < eA < eB`) and `gap` with inclusive integer bounds. Overlapping intervals have a negative signed gap and do not satisfy a nonnegative-gap request. A computed gap is a signed difference, not a Duration assertion.
+
+`SATISFIED` and `NOT_SATISFIED` describe one exact constraint on one recorded pair. Neither establishes cohort membership or clinical absence.
+
+Verified by 51 conformance tests including an RDF round trip. Report: `verification/exact-interval-report.json`.
+
+---
+
+## Interval cohort matching 1.0
+
+**Executable · builds on the exact-interval projection**
+
+Conjunctive queries over required, distinct interval slots within patient episodes. Adds no RDF classes or properties; leaves the v2.4 API and oracle independent.
+
+Two engines implement the same semantics — an indexed join and an exhaustive reference — and are checked differentially. Episode verdicts are `MATCH`, `INCOMPARABLE` or `NO_RECORDED_MATCH`; a matching episode can still carry visible unresolved bindings.
+
+`search_complete: true` means every matching and unresolved binding was enumerated over the validated snapshot. It does not assert complete clinical records, absence in reality, or certain-answer semantics.
+
+Verified by 18 contract and differential tests.
+
+---
+
+## SULO and OWL-Time review
+
+**Design guidance · 17 sections**
+
+The most detailed temporal analysis in the repository. Covers what OWL-Time contributes, what temporal individuals denote, a class-only temporal profile, scalar values and frames, keeping occurrence/validity/evidence history distinct, core changes worth considering, how to allocate reasoning responsibilities, an efficient temporal execution kernel, uncertainty and certain answers, compiling representation into indexes, and an OWL-Time bridge that does not change canonical SULO.
+
+§11 (uncertainty, certain answers and relaxation) and §15 (recommended implementation sequence) are the sections that define the next build step. §16 states the verification boundary.
+
+Bounded uncertainty and general interval matching remain future work.
+
+---
+
+## Temporal precedence decision
+
+**Proposed · not adopted**
+
+Distinguishes strict whole-interval precedence, direct succession within a sequence, and zero-gap temporal contact — and the scope needed to interpret adjacency under incomplete knowledge.
+
+`precedes`, `directlyPrecedes` and `immediatelyPrecedes` are **not** materialized by the interval evaluator, and are not additions to the pinned ontology or the current application vocabulary. Adoption is a separate upstream SULO release decision.
+
 
 ---
 
@@ -141,10 +203,14 @@ The 16 normalization expectations are a **different set** from the 16 executable
 
 **To understand the model:** 2.4 → 2.3 (temporal semantics) → 2.1 §6 (time detail)
 
+**To understand the temporal work:** [exact-interval-profile.md](exact-interval-profile.md) → [interval-cohort-matching.md](interval-cohort-matching.md) → [sulo-owl-time-review.md](sulo-owl-time-review.md)
+
 **To understand the product:** 2.1 §2 (use cases) → 2.2 (workspace) → 2.3 (replay)
 
-**To implement:** [architecture.md](architecture.md) → 2.4 → [components.md](components.md) → [validation.md](validation.md)
+**To implement:** [architecture.md](architecture.md) → the contract for your profile → [components.md](components.md) → [validation.md](validation.md)
 
 ## Traceability
 
-104 requirements in [`requirements.csv`](../requirements.csv), each with spec sections, release target, acceptance gates, status and interpretation. Gates run AC01 to AC18, plus AC19-PRO-SOLID for the executable profile. See [status.md](status.md).
+104 requirements in [`requirements.csv`](../requirements.csv), each with spec sections, release target, acceptance gates, status and interpretation. Gates run AC01 to AC18, plus AC19-PRO-SOLID for the point-anchor profile. See [status.md](status.md).
+
+The register does not yet cover the interval profiles — see [issues.md R3](issues.md#repository-hygiene).

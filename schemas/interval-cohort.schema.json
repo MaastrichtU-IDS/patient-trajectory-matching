@@ -1,0 +1,126 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "id",
+    "slots",
+    "constraints"
+  ],
+  "properties": {
+    "profile": {
+      "const": "interval-cohort-1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "class_iri"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "class_iri": {
+            "enum": [
+              "https://example.org/trajectory/interval/Infusion",
+              "https://example.org/trajectory/interval/SpecimenCollection",
+              "https://example.org/trajectory/interval/IntervalProcess",
+              "https://w3id.org/sulo/Process"
+            ]
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "left",
+          "right",
+          "operator"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "left": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "right": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "operator": {
+            "enum": [
+              "before",
+              "meets",
+              "overlaps",
+              "gap"
+            ]
+          },
+          "min_gap_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "max_gap_us": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "operator": {
+                  "const": "gap"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "min_gap_us",
+                "max_gap_us"
+              ]
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "min_gap_us"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "max_gap_us"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Exact interval cohort query 1.0"
+}

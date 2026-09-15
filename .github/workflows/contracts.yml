@@ -44,6 +44,18 @@ jobs:
       - name: Acceptance suite (42 profile tests)
         run: python -m patterns.test_pro_solid
 
+      - name: Exact interval pipeline
+        run: python -m patterns.exact_intervals
+
+      - name: Exact interval conformance and RDF round trip
+        run: python -m patterns.test_exact_intervals
+
+      - name: Exact interval cohort example
+        run: python -m patterns.interval_cohort
+
+      - name: Cohort contract and differential search checks
+        run: python -m patterns.test_interval_cohort
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.

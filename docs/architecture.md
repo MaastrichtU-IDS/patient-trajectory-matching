@@ -22,7 +22,7 @@ The evidence identifier is a deterministic identifier for an extracted binding. 
 
 ## 2. Pipeline
 
-**Executable.** Implemented in [`patterns/pro_solid.py`](../patterns/pro_solid.py).
+**Executable.** Implemented in [`patterns/pro_solid.py`](../patterns/pro_solid.py). This is the point-anchor profile; the interval profiles in [§5](#5-temporal-architecture) have their own adapters and reuse the same construct/validate/project discipline.
 
 ```mermaid
 flowchart TD
@@ -77,6 +77,8 @@ The failure vocabulary keeps four things distinct that are routinely conflated:
 
 The sharpest expression is `source_search_complete: false`, which yields `INDETERMINATE` / `UNRESOLVED` rather than `FAIL`. "We did not look everywhere" is architecturally distinct from "it is not there."
 
+The interval cohort profile adds a fourth outcome in the same spirit. Two events recorded on different clocks are `INCOMPARABLE` — the query could not be decided, because nothing establishes a mapping between the clocks. That is neither a match nor an absence, and it is reported as its own verdict rather than folded into either.
+
 See [issues.md](issues.md) for the gaps this model exposes but does not yet close.
 
 ## 4. PRO and SOLID encoding
@@ -115,7 +117,9 @@ Ontology annotations and SHACL configuration are separate from instance data and
 
 ## 5. Temporal architecture
 
-### Executable today
+Three executable profiles handle time differently, on purpose. None changes the semantics of another.
+
+### Point-anchor profile (v2.4)
 
 Point anchors only, normalized to **integer microseconds** against a declared clock origin, using exact decimal arithmetic.
 
@@ -123,11 +127,54 @@ The adapter refuses to guess. It rejects timezone-free datetimes, the unknown `-
 
 Source datetime text is retained in evidence, including its serialized fractional digit count. The Event DTO's `precision` field describes the implemented serialization category, not uncertainty about clinical occurrence time.
 
-An occurrence anchor does **not** establish that a clinical process had zero duration. Point anchors are this profile's simplification, not the product's temporal model.
+An occurrence anchor does **not** establish that a clinical process had zero duration. Point anchors are this profile's simplification, not the product's temporal model — which is why the interval profiles exist alongside it rather than inside it.
 
-### Specified, not built
+### Exact-interval profile 1.0
 
-[Addendum 2.1 §6](../addenda/specification-2.1.md) specifies the full temporal semantics: Allen interval relations, jointly feasible uncertain endpoints, metric gaps with explicit endpoints, calendar-aware age handling, and a normalization envelope retaining raw value, semantic kind, source unit, calendar, offset, precision, bounds and policy version.
+Implemented in [`patterns/exact_intervals.py`](../patterns/exact_intervals.py), with its own class module and shapes (`ontology/exact-interval-profile.ttl`, `exact-interval-shapes.ttl`) in the `ei:` namespace. Contract: [exact-interval-profile.md](exact-interval-profile.md).
+
+Processes carry an `ei:ExactOccurrenceInterval` with **distinct typed start and end descriptors** and no scalar `hasValue` on the interval itself. Each boundary has one `xsd:dateTimeStamp` and a direct Second unit. A clock binding links the interval to a temporal reference system.
+
+For proper intervals `A = [sA,eA)` and `B = [sB,eB)` under one compatible clock:
+
+| Operator | Satisfied exactly when |
+|---|---|
+| `before` | `eA < sB` |
+| `meets` | `eA == sB` |
+| `overlaps` | `sA < sB < eA < eB` — directional Allen overlap |
+| `gap` | `min_gap_us <= sB - eA <= max_gap_us`, bounds inclusive, `0 <= min <= max` |
+
+Overlapping intervals have a negative signed endpoint gap and therefore do not satisfy a nonnegative-gap request. A computed gap is a signed difference, **not** a SULO Duration assertion. For comparable inputs the evaluator also reports the single basic Allen relation, including containment, equality and inverses, though the request interface exposes only the four operators above.
+
+`SATISFIED` and `NOT_SATISFIED` describe one exact temporal constraint on a selected recorded pair. Neither establishes cohort membership or clinical absence.
+
+The precedence names `precedes`, `directlyPrecedes` and `immediatelyPrecedes` are **not** materialized into SULO by this evaluator. See [decisions/temporal-precedence.md](decisions/temporal-precedence.md) — a proposal, not an adopted change.
+
+### Interval cohort profile 1.0
+
+Implemented in [`patterns/interval_cohort.py`](../patterns/interval_cohort.py), over the validated exact-interval projection. Contract: [interval-cohort-matching.md](interval-cohort-matching.md).
+
+Conjunctive queries bind required, distinct interval slots within a patient episode. Two engines run the same semantics — an indexed join and an exhaustive reference — and the test suite checks them differentially. That is the strongest correctness property in the repository: an optimization is held to an independently written specification of the same answer.
+
+Comparability is strict. **A temporal edge requires exactly the same clock resource and descriptor.** Equal coordinate values or equivalent-looking origins do not establish a clock mapping. No comparison crosses patient episodes.
+
+Binding outcomes compose into an episode verdict:
+
+| Episode verdict | When |
+|---|---|
+| `MATCH` | Some binding satisfies every constraint |
+| `INCOMPARABLE` | No match, and some binding has no false constraint but an incomparable edge |
+| `NO_RECORDED_MATCH` | Otherwise |
+
+A `MATCH` episode can still carry unresolved bindings, and they stay visible. An unresolved binding describes **missing comparability**, not a proven possible realization of an uncertain temporal system.
+
+`search_complete: true` means all matching and unresolved bindings were enumerated over the represented, validated snapshot — no truncation, no approximate retrieval, no early stop. It does not assert complete clinical records, absence in reality, or full certain-answer semantics.
+
+One precondition worth noting: the total endpoint span within each patient/episode/clock group must fit a signed 64-bit positive difference, checked before either search and including unselected events. This is deliberately stricter than admitting arbitrary individually valid int64 coordinates, so that index pruning cannot hide an overflow that pair evaluation would expose.
+
+### Still specified
+
+[Addendum 2.1 §6](../addenda/specification-2.1.md) specifies the full temporal semantics: the complete Allen catalogue, jointly feasible uncertain endpoints, metric gaps with explicit endpoints, calendar-aware age handling, and a normalization envelope retaining raw value, semantic kind, source unit, calendar, offset, precision, bounds and policy version.
 
 [Addendum 2.3](../addenda/specification-2.3.md) specifies the bitemporal layer, separating occurrence time from assertion applicability. Temporal replay distinguishes:
 
@@ -135,6 +182,8 @@ An occurrence anchor does **not** establish that a clinical process had zero dur
 - **retrospective reconstruction** — may use later corrections, under a mandatory distinct mode label
 
 The two modes cannot be silently interchanged. A correction creates a successor assertion linked to its predecessor; it does not move or delete the event.
+
+**Bounded uncertainty is the main unimplemented step.** All three profiles handle exact recorded times. Shared variables, joint feasibility and explicit certain/possible results are designed in [sulo-owl-time-review.md](sulo-owl-time-review.md) §11 and unbuilt.
 
 ## 6. Matching and cost
 
@@ -168,6 +217,8 @@ patterns/pro_solid.py (replaceable edge, rdflib + pyshacl)
 
 The oracle is the stable core; the adapter is the replaceable edge. This is why the oracle runs unchanged on Python 3.10 through 3.13 while the pipeline needs the pinned RDF stack, and why a future clinical source adapter can be written without touching matcher semantics.
 
+The interval profiles follow the same rule from the other direction: `interval_cohort.py` builds on the validated exact-interval projection, and `interval_cohort_reference.py` implements the same query semantics independently so the indexed engine can be checked against it. Neither touches the point-anchor oracle.
+
 ## 8. Contract surfaces and their versions
 
 Three contract surfaces exist at **different versions**, which is easy to misread:
@@ -177,10 +228,13 @@ Three contract surfaces exist at **different versions**, which is easy to misrea
 | `schemas/openapi.json` | 2.0.0 | 14 REST paths over the Event model |
 | `schemas/contracts.schema.json` | 2.0 | 22 JSON Schema definitions |
 | Graph contract | 2.4 | PRO/SOLID role and bearer model |
+| `schemas/interval-cohort.schema.json` | 1.0 | Interval cohort query contract — **executable** |
 
 The OpenAPI document describes the pre-PRO/SOLID event model and **contains no role or bearer vocabulary at all**. The projection stage is what bridges the 2.4 graph to the 2.0 DTOs.
 
 A reader who opens `openapi.json` first will not find the architecture described on this page. That relationship is deliberate — the DTO is a projection — but it is not self-evident from the file. None of the 14 REST paths have an implementation behind them.
+
+`schemas/interval-cohort.schema.json` is the exception: it is a live contract, validated and enforced by `validate_query` on every cohort run.
 
 ## 9. Ontology layering
 
@@ -190,6 +244,8 @@ A reader who opens `openapi.json` first will not find the architecture described
 | Pin record | `ontology/sulo-pin.json` | Version, digest, source URL, reasoning profile |
 | Application profile | `ontology/pro-solid-profile.ttl` | 25 application classes, disjointness axioms |
 | Ingestion shapes | `ontology/pro-solid-shapes.ttl` | 10 SHACL node shapes |
+| Interval profile | `ontology/exact-interval-profile.ttl` | `ei:` interval, boundary, clock and duration classes |
+| Interval shapes | `ontology/exact-interval-shapes.ttl` | SHACL shapes for the interval profile |
 | Matcher taxonomy | `ontology/toy-taxonomy.json` | The oracle's only reasoning input |
 | Archived drafts | `ontology/legacy-2.3/` | **Non-normative.** Must not be loaded with the current profile. |
 

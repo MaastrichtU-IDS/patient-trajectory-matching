@@ -127,3 +127,7 @@ The canonical graph drives these explanations; the compact Event DTO supports in
 For the 3–5-person team, the next implementation assignments are: ontology/domain mapping and review; source adapters with reconciliation; matcher integration; and evidence-driven UI. With three hackers, combine matcher integration and UI. Any AI-assisted coding must pass these contracts and retain the declared supported profile. This release needs no AI provider credentials.
 
 The canonical new ontology files are `ontology/pro-solid-profile.ttl` and `ontology/pro-solid-shapes.ttl`. Earlier proposal, assertion and shape drafts are archived in `ontology/legacy-2.3/` for historical traceability and are **non-normative**. They must not be loaded with the current profile. Full SULO/temporal reasoning, specimen mapping, raw clinical ETL, bitemporal reconstruction and generalized matching remain implementation work; passing this fixture suite does not establish those capabilities.
+
+## Design follow-up
+
+The [SULO and OWL-Time review](../docs/sulo-owl-time-review.md) develops the next temporal profiles and their implementation gates. The [proposed precedence decision](../docs/decisions/temporal-precedence.md) distinguishes strict whole-interval precedence, direct succession within a sequence, and zero-gap temporal contact. Both are design guidance. This addendum continues to specify the implemented point-anchor profile, with the existing ontology pin and class-only application extension.

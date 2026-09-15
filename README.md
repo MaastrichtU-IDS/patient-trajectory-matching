@@ -6,7 +6,7 @@
 
 Finding patients whose clinical history follows a specified trajectory — an exposure followed by a measured change — over a **temporal knowledge graph** that keeps time, provenance and uncertainty explicit.
 
-The hard part is not the search. It is saying precisely what a match means when records are incomplete, timestamps are ambiguous, clinical concepts are hierarchical, and "we found nothing" might mean the patient is healthy, the data is missing, or the query was wrong. This repository is a set of **executable contracts** that pin those distinctions down.
+The hard part is not the search. It is saying precisely what a match means when records are incomplete, timestamps are ambiguous, clinical concepts are hierarchical, and "we found nothing" might mean the patient is healthy, the data is missing, or the clocks were never comparable. This repository is a set of **executable contracts** that pin those distinctions down.
 
 ```
 Given: an administration of DrugA, followed within 48 hours by a creatinine
@@ -22,39 +22,50 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | A runnable reference implementation of a bounded slice, with 16 oracle cases, 42 acceptance tests and 7 property checks passing |
+| ✅ **Is** | Three runnable profiles with 127 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
 | ❌ **Is not** | A clinical ETL implementation or terminology release |
 | ❌ **Is not** | A validated clinical phenotype |
 
-**10 of 104 requirements are executable.** The other 94 are specified designs. Passing fixtures do not establish production readiness — the acceptance report records `production_readiness_claim: false` deliberately.
-
-All patient examples and the DrugA/DrugB alternatives are constructed. No MIMIC patient rows are redistributed here.
+Passing fixtures do not establish production readiness — the acceptance report records `production_readiness_claim: false` deliberately. All patient examples and the DrugA/DrugB alternatives are constructed. No MIMIC patient rows are redistributed here.
 
 ## Quick start
 
-Python 3.12 for the full pipeline; the dependency-free oracle runs on 3.10 or newer.
+Python 3.12 for the pipelines; the dependency-free oracle runs on 3.10 or newer.
 
 ```sh
 python3.12 -m venv .venv
 . .venv/bin/activate                 # Windows: .venv\Scripts\Activate.ps1
 python -m pip install -r patterns/requirements.lock.txt
-
-python reference_oracle.py           # 16 cases, 7 property checks
-python -m patterns.pro_solid         # full pipeline on the synthetic fixture
-python -m patterns.test_pro_solid    # 42 acceptance tests
 ```
 
-```json
-{"cases_passed": 16, "properties_passed": 7, "report": "verification/reference-report.json"}
-{"events": 3, "accepted_as": "EXACT", "total_cost": "0", "output": ".../verification/pro-solid-run"}
+```sh
+python reference_oracle.py           # 16 cases, 7 property checks
+python -m patterns.pro_solid         # point-anchor pipeline
+python -m patterns.test_pro_solid    # 42 acceptance tests
+
+python -m patterns.exact_intervals       # interval pipeline, 9 comparisons
+python -m patterns.test_exact_intervals  # 51 conformance tests
+
+python -m patterns.interval_cohort       # cohort query over intervals
+python -m patterns.test_interval_cohort  # 18 contract and differential tests
 ```
 
 Installation needs network access. Everything after it runs offline — no Java, no clinical dataset, no AI provider credentials, no subscription.
 
 Full instructions and expected output for every component: **[docs/validation.md](docs/validation.md)**
+
+## Three executable profiles
+
+The repository contains three independent executable contracts. They share the pinned SULO core and the PRO/SOLID representation discipline, but none of them changes the semantics of another.
+
+| Profile | Entry point | What it decides |
+|---|---|---|
+| **Point anchor** (v2.4) | `patterns/pro_solid.py` | Three-slot exemplar matching with priced relaxation, over point-in-time events |
+| **Exact interval** `1.0` | `patterns/exact_intervals.py` | Pairwise temporal operators over recorded start/end intervals |
+| **Interval cohort** `1.0` | `patterns/interval_cohort.py` | Conjunctive slot queries across patient episodes, with indexed and exhaustive engines |
 
 ## How it works
 
@@ -71,40 +82,58 @@ flowchart LR
     G --> I["result"]
 ```
 
-The design rests on one decision: **the RDF graph is the semantic record; the Event DTO is an execution representation.** Where they disagree, the graph wins. Every projected row carries an `assertion_id` that leads back to the exact process, role, bearer, result and source record it came from — so a match is a claim with a traversable path, not a bare assertion.
+The design rests on one decision: **the RDF graph is the semantic record; the projection is an execution representation.** Where they disagree, the graph wins. Every projected row carries an evidence identifier that leads back to the exact process, role, bearer, result and source record it came from — so a match is a claim with a traversable path, not a bare assertion.
 
-Three things follow from that, and they are what this project is really about:
+Three things follow, and they are what this project is really about:
 
 **Participation goes through roles.** `Process → hasParticipant → PatientRole → isFeatureOf → Person`. A trajectory joins on the same *person*, never the same role individual. Generic participation alone is explicitly insufficient — it does not establish which role the bearer held.
 
-**Literals go through typed information objects.** `sulo:hasValue` is the only literal-bearing predicate in instance data, and the application extension declares no new object or datatype properties at all. Domain distinction lives entirely in classes.
+**Literals go through typed information objects.** `sulo:hasValue` is the only literal-bearing predicate in instance data, and the application extensions declare no new object or datatype properties at all. Domain distinction lives entirely in classes.
 
-**Three kinds of "no" stay distinct.** An ontology inconsistency, a profile violation and an unmatched trajectory are different failures with different meanings. A `ContractError` stops projection and is *never* reported as "patient does not match." And `source_search_complete: false` yields `UNRESOLVED`, not `FAIL` — "we did not look everywhere" is not "it is not there."
+**Kinds of "no" stay distinct.** An ontology inconsistency, a profile violation, an unmatched trajectory and an incomparable clock are different failures with different meanings. A `ContractError` stops projection and is *never* reported as "patient does not match." `source_search_complete: false` yields `UNRESOLVED`, not `FAIL`. And two events on different clocks are `INCOMPARABLE` — not absent.
 
 Full detail: **[docs/architecture.md](docs/architecture.md)**
 
 ## Documentation
 
+Start at the **[documentation guide](docs/README.md)**, or go directly to:
+
 | Page | Contents |
 |---|---|
-| [Architecture](docs/architecture.md) | Design, pipeline, constraint model, encoding, temporal semantics |
+| [Architecture](docs/architecture.md) | Design, pipelines, constraint model, encoding, temporal semantics |
 | [Components](docs/components.md) | What each part does, how to use it, what it depends on |
-| [Specifications](docs/specifications.md) | The four addenda, what each covers, reading order |
+| [Specifications](docs/specifications.md) | The addenda and design documents, what each covers, reading order |
 | [Status](docs/status.md) | Executable versus specified, by family and component |
 | [Outstanding issues](docs/issues.md) | Known gaps and open questions, each citing its source |
 | [Running and validating](docs/validation.md) | Every command, expected output, troubleshooting |
 
-The current modeling contract is **[addendum 2.4](addenda/specification-2.4.md)**.
+**Profile contracts**
+
+| Document | Subject |
+|---|---|
+| [PRO/SOLID addendum v2.4](addenda/specification-2.4.md) | The current point-anchor modeling contract |
+| [Exact-interval profile](docs/exact-interval-profile.md) | Interval adapter, clocks, endpoint comparisons, evidence |
+| [Interval cohort matching](docs/interval-cohort-matching.md) | Slot queries, indexed joins, differential reference |
+
+**Temporal design guidance**
+
+| Document | Subject |
+|---|---|
+| [SULO and OWL-Time review](docs/sulo-owl-time-review.md) | Representation, temporal identity, uncertainty, reasoning responsibilities, indexes |
+| [Temporal precedence](docs/decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact — a proposal, not adopted |
+
+These develop the next temporal profiles. The precedence names and axioms remain proposals for a future SULO release; they are not additions to the pinned ontology or the current application vocabulary.
 
 ## Components
 
 | Component | Path | Status |
 |---|---|---|
 | Reference oracle | `reference_oracle.py` | Executable — 16 cases, no dependencies |
-| PRO/SOLID adapter | `patterns/pro_solid.py` | Executable — 5-stage pipeline |
-| Acceptance suite | `patterns/test_pro_solid.py` | Executable — 42 tests |
-| Ontology profile | `ontology/` | Executable — SULO 0.2.14, pinned and digest-checked |
-| Contract schemas | `schemas/` | Structurally validated — 14 REST paths, no service |
+| PRO/SOLID adapter | `patterns/pro_solid.py` | Executable — 5-stage point-anchor pipeline |
+| Exact-interval adapter | `patterns/exact_intervals.py` | Executable — intervals, clocks, 4 operators |
+| Interval cohort matcher | `patterns/interval_cohort.py` | Executable — indexed and reference engines |
+| Ontology profiles | `ontology/` | Executable — SULO 0.2.14, pinned and digest-checked |
+| Contract schemas | `schemas/` | Mixed — interval-cohort schema executable; 14 REST paths have no service |
 | Fixtures | `examples/` | Mixed — executable inputs and specified cases |
 | UI assets | `ui/` | Specified — wireframes and contracts, no interface |
 | Evaluation plan | `evaluation/` | Specified — protocol, no measurements |
@@ -126,18 +155,20 @@ Decimal values and costs, integer microseconds, a declared clock.
 
 A prescription or not-given event cannot satisfy administration. For uncertain exposure times, definite acceptance takes the worst cost over feasible point times — the conservatism runs in the safe direction.
 
+The interval profiles are exact rather than priced: a temporal edge requires the same clock resource and descriptor, and equal coordinate values do not establish a clock mapping.
+
 The oracle searches recorded evidence. A missing baseline within a complete record scope is a record-query failure, not proof of clinical absence. It never claims this creatinine branch is a complete AKI phenotype, nor that exposure caused the lab change.
 
 ## Repository layout
 
 ```
 addenda/        four versioned design specifications (2.4 is current)
-patterns/       the executable PRO/SOLID pipeline and its acceptance suite
-ontology/       SULO pin, application profile, SHACL shapes, toy taxonomy
+patterns/       three executable profiles and their test suites
+ontology/       SULO pin, application profiles, SHACL shapes, toy taxonomy
 schemas/        JSON Schema and OpenAPI contracts
-examples/       fixtures, exemplar pattern AST, worked graph, SPARQL
+examples/       fixtures, exemplar pattern AST, worked graphs, SPARQL
 verification/   generated reports and the hashed release manifest
-docs/           this documentation
+docs/           documentation and temporal design guidance
 ui/             wireframes, tokens, storyboard, interaction contracts
 data/           dataset roles, demo inventory, MIMIC study plan
 evaluation/     Graphiti comparison protocol
@@ -147,14 +178,14 @@ evaluation/     Graphiti comparison protocol
 
 The contracts are the specification. Any change — human or AI-assisted — must keep them passing and must preserve the declared supported profile.
 
-1. Read [docs/architecture.md](docs/architecture.md), then [addendum 2.4](addenda/specification-2.4.md)
+1. Read [docs/architecture.md](docs/architecture.md), then the contract for the profile you are changing
 2. Run the suites in [docs/validation.md](docs/validation.md) before and after your change
-3. If you widen the supported profile, add acceptance tests that pin the new boundary and say so explicitly
+3. If you widen a supported profile, add tests that pin the new boundary and say so explicitly
 4. Keep implemented behaviour distinct from specified behaviour in every document you touch
 
-CI runs the full suite on every pull request, including a check that the regenerated graph stays isomorphic to the committed copy.
+CI runs all three profiles on every pull request, including a check that the regenerated point-anchor graph stays isomorphic to the committed copy.
 
-The next implementation assignments, from [addendum 2.4 §8](addenda/specification-2.4.md): ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. Open gaps are catalogued in [docs/issues.md](docs/issues.md).
+Open gaps are catalogued in [docs/issues.md](docs/issues.md); the recommended implementation sequence is in the [documentation guide](docs/README.md).
 
 ## Citation and provenance
 

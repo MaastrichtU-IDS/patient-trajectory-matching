@@ -19,22 +19,18 @@ The standalone oracle needs **no dependencies at all** and runs on Python 3.10 o
 ## Quick check
 
 ```sh
-python reference_oracle.py
-python -m patterns.pro_solid
-python -m patterns.test_pro_solid
+python reference_oracle.py           # 16 cases, 7 properties
+python -m patterns.pro_solid         # point-anchor pipeline
+python -m patterns.test_pro_solid    # 42 tests
+
+python -m patterns.exact_intervals       # interval pipeline
+python -m patterns.test_exact_intervals  # 51 tests
+
+python -m patterns.interval_cohort       # cohort query
+python -m patterns.test_interval_cohort  # 18 tests
 ```
 
-Expected:
-
-```
-{"cases_passed": 16, "properties_passed": 7, "report": "verification/reference-report.json"}
-{"events": 3, "accepted_as": "EXACT", "total_cost": "0", "output": ".../verification/pro-solid-run"}
-Ran 42 tests in 0.7s
-
-OK
-```
-
-All three exit 0. Any nonzero exit is a real failure.
+All seven exit 0. **127 checks in total.** Any nonzero exit is a real failure — and for the interval profiles, exit code 2 specifically means invalid profile input.
 
 ---
 
@@ -158,7 +154,85 @@ Useful checks when changing the profile:
 
 ---
 
-## Component 4 — Ontology and shapes
+## Component 3 — Exact-interval pipeline
+
+```sh
+python -m patterns.exact_intervals
+```
+
+**Verifies:** interval construction, PRO/SOLID validation, clock handling and nine explicit temporal comparisons.
+
+**Expected output**
+
+```json
+{"profile": "exact-interval-1.0", "intervals": 4, "comparisons": 9,
+ "statuses": {"contact": "SATISFIED", "contact_is_not_before": "NOT_SATISFIED",
+              "before": "SATISFIED", "overlap": "SATISFIED",
+              "reverse_overlap": "NOT_SATISFIED", "ten_minute_gap": "SATISFIED",
+              "zero_gap": "SATISFIED", "gap_too_large": "NOT_SATISFIED",
+              "overlap_has_no_nonnegative_gap": "NOT_SATISFIED"}, ...}
+```
+
+**Writes** to `verification/exact-interval-run/`: `graph.ttl`, `intervals.json`, `evidence.json`, `comparisons.json`. This directory is gitignored; the stable example graph is committed at `examples/exact-interval/graph.ttl`.
+
+The nine results are not arbitrary. They pin the distinctions that matter: `A meets B` is satisfied while `A before B` is not; `A overlaps C` is satisfied while `C overlaps A` is not, because the relation is directional; and `A → C nonnegative gap` fails because overlapping intervals have a negative signed gap.
+
+### From committed RDF
+
+```sh
+python -m patterns.exact_intervals --graph examples/exact-interval/graph.ttl
+```
+
+Must produce identical interval records and evidence to the row-based run. The suite checks this.
+
+### Conformance suite
+
+```sh
+python -m patterns.test_exact_intervals   # 51 tests, writes verification/exact-interval-report.json
+```
+
+> Invalid profile input exits with **code 2** and an `INVALID_INPUT` diagnostic, and does **not** overwrite existing output files. Check the exit code before reading output.
+
+---
+
+## Component 4 — Interval cohort matching
+
+```sh
+python -m patterns.interval_cohort
+```
+
+**Expected output**
+
+```json
+{"profile": "interval-cohort-1.0", "matched_patient_ids": ["P1"], "trajectories": 3,
+ "output": ".../verification/interval-cohort-run/result.json"}
+```
+
+The three-patient example is designed so each outcome appears once:
+
+| Patient | Verdict | Why |
+|---|---|---|
+| P1 | `MATCH` | Bindings A → D and C → D satisfy every constraint |
+| P2 | `NO_RECORDED_MATCH` | Its infusion occurs after its collection |
+| P3 | `INCOMPARABLE` | Its candidate events use different clock resources |
+
+P3 is the important one. Different clocks mean the query **could not be decided**, which is neither a match nor an absence.
+
+### Differential check
+
+```sh
+python -m patterns.interval_cohort --engine reference --output verification/interval-cohort-run/reference.json
+python -m patterns.test_interval_cohort   # 18 tests
+```
+
+The indexed and reference engines must agree on the semantic result while reporting different execution counters. If they diverge, the index is wrong — the reference engine is the specification. This is the strongest correctness check in the repository; run it after any change to the matcher or its indexes.
+
+Other flags: `--source`, `--graph`, `--manifest`, `--query`, `--output`.
+
+
+---
+
+## Component 5 — Ontology and shapes
 
 The pipeline loads and enforces these on every run, so a successful `pro_solid` run already validates them. To check syntax independently:
 
@@ -176,7 +250,7 @@ Do **not** load `ontology/legacy-2.3/` with the current profile; those drafts ar
 
 ---
 
-## Component 5 — SPARQL projection
+## Component 6 — SPARQL projection
 
 `examples/pro-solid/measurement-bindings.rq` demonstrates a directly executable projection that retains patient and result role bindings:
 
@@ -193,7 +267,7 @@ Covered by `test_sparql_example_keeps_subject_and_result_context`.
 
 ---
 
-## Component 6 — Schemas
+## Component 7 — Schemas
 
 Structurally validated at authoring time; results are in `verification/structural-report.json`. To re-check:
 
@@ -221,6 +295,10 @@ No service implements these paths.
 | `accepted_as: NONE` | No accepted trajectory in the recorded evidence |
 | `accepted_as: UNRESOLVED` | Insufficient information to decide |
 | `ContractError` | Profile violation — **not** a statement about the patient |
+| `SATISFIED` / `NOT_SATISFIED` | One exact temporal constraint on a selected recorded pair |
+| `MATCH` / `NO_RECORDED_MATCH` | Cohort verdict for a patient episode |
+| `INCOMPARABLE` | Clocks do not establish a mapping — undecided, not absent |
+| exit code 2 | Invalid profile input; existing output files are left untouched |
 
 The distinction in the last two rows matters. A `ContractError` means the data fell outside the supported profile and projection stopped. `UNRESOLVED` means the search could not reach a decision — for example when `source_search_complete` is false. Neither is evidence of clinical absence. See [architecture.md §3](architecture.md#3-the-three-level-constraint-model).
 
@@ -230,12 +308,14 @@ The distinction in the last two rows matters. A `ContractError` means the data f
 
 1. Verify the nine release manifest digests
 2. Reference oracle — 16 cases, 7 properties
-3. Pipeline from synthetic source rows
+3. Point-anchor pipeline from synthetic source rows
 4. Graph isomorphism against the committed copy
-5. Pipeline from the committed graph
+5. Point-anchor pipeline from the committed graph
 6. Acceptance suite — 42 tests
-7. Report generated-file drift as a notice
-8. Upload `verification/` as a build artifact
+7. Exact-interval pipeline and conformance suite — 51 tests
+8. Interval cohort example and differential suite — 18 tests
+9. Report generated-file drift as a notice
+10. Upload `verification/` as a build artifact
 
 A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 
@@ -248,5 +328,7 @@ A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 | `SOLID_LITERAL_PROPERTY` | A literal on a predicate other than `sulo:hasValue` |
 | `ROLE_CARDINALITY:PatientRole` | Not exactly one patient role on a process |
 | `MEASUREMENT_SUBJECT_MISMATCH` | The measured quality's bearer is not the process's patient |
+| Exit code 2 from an interval command | Invalid profile input; read the `INVALID_INPUT` diagnostic |
+| Indexed and reference engines disagree | The index is wrong; the reference engine is the specification |
 | `pip install` fails on 3.13+ | The lock file targets 3.12; use `python3.12` |
 | Dirty tree after a run | Expected: report files record the interpreter version |
