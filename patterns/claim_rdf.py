@@ -17,6 +17,7 @@ FIELDS = frozenset('profile dataset_id snapshot_id clocks claims clock_id origin
     'source_record_id source_sha256 lower_us upper_us source_key source_location source_hash '
     'record_id event_kind status start_var end_var left_var right_var kind local_id '
     'subject object class_iri property_iri event_id'.split())
+LOCAL_FIELDS = FIELDS | frozenset(('origin_source_key', 'local_lower', 'local_upper'))
 TYPES = ('Document', 'ObjectDescription', 'ArrayDescription', 'StringDatum', 'IntegerDatum',
          'ItemBinding', 'IndexDatum')
 
@@ -29,7 +30,7 @@ def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
-def encode(document):
+def encode(document, *, fields=FIELDS):
     ei.require(len(canonical(document).encode()) <= MAX_BYTES, 'CLAIM_DOCUMENT_LIMIT')
     graph = Graph(); graph.bind('cp', CP); graph.bind('sulo', S)
     root = URIRef(DATA + digest(document))
@@ -42,7 +43,7 @@ def encode(document):
         if type(value) is dict:
             graph.add((node, RDF.type, CP.ObjectDescription))
             for key, item in sorted(value.items()):
-                ei.require(key in FIELDS, 'UNSUPPORTED_CLAIM_FIELD:' + key)
+                ei.require(key in fields, 'UNSUPPORTED_CLAIM_FIELD:' + key)
                 binding = URIRef(str(node) + '/field/' + key)
                 target = URIRef(str(binding) + '/value')
                 graph.add((node, S.hasDirectPart, binding))
@@ -73,7 +74,7 @@ def encode(document):
     return graph
 
 
-def decode(graph):
+def decode(graph, *, fields=FIELDS):
     ei.require(isinstance(graph, Graph) and len(graph) <= MAX_TRIPLES, 'CLAIM_GRAPH_LIMIT')
     ei.require(all(isinstance(s, URIRef) and isinstance(p, URIRef) and
                    isinstance(o, (URIRef, Literal)) for s, p, o in graph), 'CLAIM_GRAPH_NAMED_NODES')
@@ -106,7 +107,7 @@ def decode(graph):
             for binding in graph.objects(node, S.hasDirectPart):
                 field_type = one(binding, RDF.type)
                 key = str(field_type).removeprefix(str(CP) + 'Field_')
-                ei.require(key in FIELDS and key not in value, 'CLAIM_FIELD_TYPE_OR_DUPLICATE')
+                ei.require(key in fields and key not in value, 'CLAIM_FIELD_TYPE_OR_DUPLICATE')
                 value[key] = visit(one(binding, S.refersTo), depth + 1)
             return value
         if typ == CP.ArrayDescription:
@@ -125,5 +126,5 @@ def decode(graph):
 
     result = visit(roots[0], 0)
     # Fix both the content-addressed identities and the complete allowed graph.
-    ei.require(set(encode(result)) == set(graph), 'CLAIM_GRAPH_EXTRA_OR_CHANGED_TRIPLES')
+    ei.require(set(encode(result, fields=fields)) == set(graph), 'CLAIM_GRAPH_EXTRA_OR_CHANGED_TRIPLES')
     return result

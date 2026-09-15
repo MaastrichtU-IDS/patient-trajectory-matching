@@ -1,0 +1,19 @@
+{
+  "profile": "joint-semantic-policy-1.0",
+  "id": "synthetic-recorded-groups",
+  "classes": [
+    "https://example.org/trajectory/recorded-claim/ItemA",
+    "https://example.org/trajectory/recorded-claim/GroupA",
+    "https://example.org/trajectory/recorded-claim/ItemB"
+  ],
+  "rules": [
+    {
+      "id": "group_a",
+      "if": {
+        "class": "https://example.org/trajectory/recorded-claim/ItemA"
+      },
+      "then": "https://example.org/trajectory/recorded-claim/GroupA"
+    }
+  ],
+  "disjoint": []
+}

@@ -17,8 +17,8 @@ PIN = '433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e'
 S = ei.S
 
 
-def check(graph):
-    cr.decode(graph)  # Closed description vocabulary and exactly one value per datum.
+def check(graph, *, local=False):
+    cr.decode(graph, fields=cr.LOCAL_FIELDS if local else cr.FIELDS)  # Closed description vocabulary and exactly one value per datum.
     path = ei.ROOT / 'ontology/vendor/sulo-0.2.14.ttl'
     ei.require(hashlib.sha256(path.read_bytes()).hexdigest() == PIN, 'UNREVIEWED_SULO_PIN')
     base = Graph().parse(path)
@@ -28,6 +28,17 @@ def check(graph):
         (c, RDFS.subClassOf, S.InformationObject) for c in expected}
     ei.require(set(profile) == expected_profile, 'UNREVIEWED_CLAIM_CLASS_MODULE')
     ontology = base + profile
+    extension_hashes = {}
+    if local:
+        extension_path = ei.ROOT / 'ontology/local-claim-description-profile.ttl'
+        extension = Graph().parse(extension_path)
+        extra_classes = {cr.CP['Field_' + k] for k in cr.LOCAL_FIELDS - cr.FIELDS}
+        expected_extension = {(c, RDF.type, OWL.Class) for c in extra_classes} | {
+            (c, RDFS.subClassOf, S.InformationObject) for c in extra_classes}
+        ei.require(set(extension) == expected_extension, 'UNREVIEWED_LOCAL_CLAIM_CLASS_MODULE')
+        ontology += extension
+        expected |= extra_classes
+        extension_hashes['ontology/local-claim-description-profile.ttl'] = hashlib.sha256(extension_path.read_bytes()).hexdigest()
     ei.require(not list(ontology.triples((None, OWL.imports, None))), 'UNREVIEWED_IMPORT')
     domain = frozenset(graph.subjects())
     ei.require(bool(domain), 'EMPTY_MODEL_DOMAIN')
@@ -190,8 +201,9 @@ def check(graph):
     return {'status': 'VERIFIED_EMPTY_PROCESS_MODEL', 'sulo_sha256': PIN,
             'profile_sha256': hashlib.sha256((ei.ROOT / 'ontology/claim-description-profile.ttl').read_bytes()).hexdigest(),
             'checker_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'extension_sha256': extension_hashes,
             'domain_size': len(domain), 'assertion_triples_checked': len(graph),
             'logical_axioms_checked': sum(counts.values()), 'axiom_counts': dict(sorted(counts.items())),
             'process_extension_size': 0, 'temporal_extension_size': 0,
-            'scope': 'claim descriptions plus the pinned SULO and claim class module only; not the accepted assertion view',
+            'scope': 'claim descriptions plus pinned SULO and the declared claim class modules only; not the accepted assertion view',
             'general_owl_reasoner': False}

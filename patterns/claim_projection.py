@@ -2,6 +2,8 @@
 import argparse
 from collections import defaultdict
 from copy import deepcopy
+from dataclasses import dataclass, field
+from typing import Callable
 import hashlib
 import json
 from pathlib import Path
@@ -29,6 +31,12 @@ FILES = ('patterns/claim_projection.py', 'patterns/claim_rdf.py', 'patterns/clai
 
 
 def validate_store(store):
+    return _validate_store(store, SCHEMA,
+        lambda c: ei.normalize(c['origin'], c['origin']),
+        lambda v: ei.require(v['lower_us'] <= v['upper_us'], 'REVERSED_CLAIM_BOUNDS'))
+
+
+def _validate_store(store, schema_path, check_clock, check_variable):
     # Finite JSON tree, before recursive schema/graph work. No arbitrary Python inputs.
     def bounded(value, depth=0):
         ei.require(depth <= 16, 'CLAIM_JSON_DEPTH')
@@ -44,12 +52,12 @@ def validate_store(store):
             else: ei.checked_us(value)
     bounded(store)
     ei.require(len(cr.canonical(store).encode()) <= cr.MAX_BYTES, 'CLAIM_DOCUMENT_LIMIT')
-    schema = json.loads(SCHEMA.read_text())
+    schema = json.loads(schema_path.read_text())
     ei.require(not list(Draft202012Validator(schema).iter_errors(store)), 'INVALID_CLAIM_STORE_SCHEMA')
     claims = bt.unique(store['claims'], 'id')
     clocks = bt.unique(store['clocks'], 'clock_id')
     for c in clocks.values():
-        ei.normalize(c['origin'], c['origin'])
+        check_clock(c)
         ei.require(c['scope'] == 'global' or (c['scope'].startswith('patient:') and
             c['scope'][8:] in {a['patient_id'] for a in claims.values()}), 'INVALID_CLAIM_CLOCK_SCOPE')
     total = 0
@@ -62,7 +70,7 @@ def validate_store(store):
                 if kind != 'constraints':
                     ei.require(bt.scope(row) == bt.scope(claim), 'CLAIM_SCOPE_MISMATCH')
                 if kind == 'variables':
-                    ei.require(row['lower_us'] <= row['upper_us'], 'REVERSED_CLAIM_BOUNDS')
+                    check_variable(row)
                     ei.require(row['clock_id'] in clocks, 'UNKNOWN_CLAIM_CLOCK')
                     ei.require(clocks[row['clock_id']]['scope'] in ('global', 'patient:' + claim['patient_id']),
                                'CLAIM_CLOCK_SCOPE_MISMATCH')
@@ -111,6 +119,10 @@ def validate_policy(store, policy, semantic_policy):
 
 def select(store, policy, semantic_policy):
     validate_store(store)
+    return _select_validated(store, policy, semantic_policy)
+
+
+def _select_validated(store, policy, semantic_policy):
     claims, decisions, children = validate_policy(store, policy, semantic_policy)
     accepted = {d['claim_id']: d['id'] for d in decisions.values()
                 if d['id'] not in children and d['action'] == 'accept'}
@@ -148,40 +160,62 @@ def select(store, policy, semantic_policy):
             'row_supports': supports, 'selected': selected, 'blockers': blockers}
 
 
+@dataclass(frozen=True)
+class ProjectionRoute:
+    """Internal, code-defined contracts; never populated from user configuration."""
+    profile: str
+    source_profile: str
+    validate_store: Callable
+    prepare: Callable
+    execute_semantic: Callable
+    query_profile: str
+    description_fields: frozenset = cr.FIELDS
+    local_isolation: bool = False
+    interpretation: dict = field(default_factory=dict)
+    files: tuple = ()
+
+
 def execute(store, policy, semantic_policy, query, *, timeout_seconds=20):
+    route = ProjectionRoute(PROFILE, bt.PROFILE_ID, validate_store, bt.prepare, ss.execute, ss.QUERY_PROFILE)
+    return _execute(store, policy, semantic_policy, query, route=route, timeout_seconds=timeout_seconds)
+
+
+def _execute(store, policy, semantic_policy, query, *, route, timeout_seconds=20):
     ei.require(type(timeout_seconds) in (int, float) and 0 < timeout_seconds <= 60, 'INVALID_BACKEND_TIMEOUT')
     # Bound JSON nesting before copying; JSON and RDF recover the same contract.
-    if isinstance(store, Graph): store = cr.decode(store)
-    validate_store(store)
+    if isinstance(store, Graph): store = cr.decode(store, fields=route.description_fields)
+    route.validate_store(store)
     store, policy, semantic_policy, query = deepcopy((store, policy, semantic_policy, query))
-    selection = select(store, policy, semantic_policy)
+    selection = _select_validated(store, policy, semantic_policy)
     classes = set(semantic_policy['classes']) | {str(ei.EX.PatientRole), str(ei.EX.Person)}
     for kind in bt.KINDS: classes.update(bt.selected_classes({'event_kind': kind}))
-    ss.validate_query(query, classes)
-    claim_graph = cr.encode(store)
-    isolation = claim_isolation.check(claim_graph)
-    context = {'profile': PROFILE, 'store_sha256': cr.digest(store), 'policy': policy,
+    ss._validate_query(query, classes, profile=route.query_profile)
+    claim_graph = cr.encode(store, fields=route.description_fields)
+    isolation = claim_isolation.check(claim_graph, local=route.local_isolation)
+    context = {'profile': route.profile, 'store_sha256': cr.digest(store), 'policy': policy,
         'semantic_policy': semantic_policy, 'query': query, 'timeout_seconds': timeout_seconds,
         'interpretation': 'caller_accepted_assertions_for_analysis',
         'history_mode': 'explicit_policy_revision_order_not_source_time',
-        'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in FILES}}
+        'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in FILES + route.files}}
+    context.update(route.interpretation)
     context_id = cr.digest(context)
-    result = {'profile': PROFILE, 'context_id': context_id, 'context': context,
+    result = {'profile': route.profile, 'context_id': context_id, 'context': context,
         'selection': selection, 'claim_graph_turtle': claim_graph.serialize(format='turtle'),
         'claim_isolation': isolation, 'accepted_graph_turtle': None, 'source': None,
         'semantic_module': None, 'semantic_run': None, 'axiom_supports': [], 'matching': None,
         'clinical_mapping_verified': False, 'clinical_knowledge_status': 'UNKNOWN',
         'source_history_verified': False, 'accepted_view_full_owl_verified': False,
         'source_provenance_basis': 'caller_supplied_hashes_not_original_source_verification'}
+    result.update(route.interpretation)
     if selection['blockers']:
         result['status'] = 'BLOCKED_ACCEPTED_CONFLICT'; return result
     if not any(selection['selected'].values()):
         result['status'] = 'EMPTY_ACCEPTED_VIEW'; return result
-    source = {'profile': bt.PROFILE_ID, 'dataset_id': store['dataset_id'],
+    source = {'profile': route.source_profile, 'dataset_id': store['dataset_id'],
               'snapshot_id': 'accepted_' + context_id, 'clocks': deepcopy(store['clocks']),
               **{k: selection['selected'][k] for k in ('events', 'variables', 'constraints')}}
     try:
-        snapshot = bt.prepare(source)
+        snapshot = route.prepare(source)
         ei.require(len(snapshot.events) <= 30, 'CLAIM_ACCEPTED_EVENT_LIMIT')
         evidence = {'selected_semantic_facts': selection['selected']['semantic_facts'],
                     'row_supports': selection['row_supports']}
@@ -193,7 +227,7 @@ def execute(store, policy, semantic_policy, query, *, timeout_seconds=20):
         result.update(status='INCONSISTENT_ACCEPTED_TIME', validation=error.details); return result
     except ei.ContractError as error:
         result.update(status='INVALID_ACCEPTED_VIEW', validation={'reason': str(error)}); return result
-    run = ss.execute(snapshot, query, module, timeout_seconds=timeout_seconds)
+    run = route.execute_semantic(snapshot, query, module, timeout_seconds=timeout_seconds)
     result.update(status=run['status'], semantic_run=run)
     if run['status'] != 'READY': return result
     accepted = Graph()
@@ -208,20 +242,24 @@ def execute(store, policy, semantic_policy, query, *, timeout_seconds=20):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    example = ei.ROOT / 'examples/claim-projection'
+    _main(execute, 'claim-projection', __doc__)
+
+
+def _main(executor, example_name, description):
+    parser = argparse.ArgumentParser(description=description)
+    example = ei.ROOT / 'examples' / example_name
     parser.add_argument('--store', type=Path, default=example / 'store.json')
     parser.add_argument('--graph', type=Path, help='Read a closed claim-description Turtle graph instead of --store')
     for name in ('policy', 'semantic-policy', 'query'):
         parser.add_argument('--' + name, type=Path, default=example / (name + '.json'))
-    parser.add_argument('--output', type=Path, default=ei.ROOT / 'verification/claim-projection-run/result.json')
+    parser.add_argument('--output', type=Path, default=ei.ROOT / 'verification' / (example_name + '-run') / 'result.json')
     args = parser.parse_args()
     try:
         inputs = [args.graph or args.store, args.policy, args.semantic_policy, args.query]
         ei.require(args.output.resolve() not in {p.resolve() for p in inputs}, 'OUTPUT_OVERWRITES_INPUT')
         for p in inputs: ei.require(p.stat().st_size <= (4 * 1024 * 1024 if p == args.graph else cr.MAX_BYTES), 'INPUT_FILE_LIMIT')
         store = Graph().parse(args.graph, format='turtle') if args.graph else json.loads(args.store.read_text())
-        result = execute(store, *(json.loads(p.read_text()) for p in inputs[1:]))
+        result = executor(store, *(json.loads(p.read_text()) for p in inputs[1:]))
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(mode='w', dir=args.output.parent, delete=False) as out:
             tmp = Path(out.name)
@@ -232,7 +270,7 @@ def main():
                 tmp.unlink(missing_ok=True)
     except (ei.ContractError, OSError, ValueError, SyntaxError) as error:
         parser.exit(2, json.dumps({'status': 'INVALID_INPUT', 'reason': str(error)}) + '\n')
-    print(json.dumps({'status': result['status'], 'accepted_claim_ids': result['selection']['accepted_claim_ids'],
+    print(json.dumps({'profile': result['profile'], 'status': result['status'], 'accepted_claim_ids': result['selection']['accepted_claim_ids'],
                       'claim_isolation': result['claim_isolation']['status'], 'output': str(args.output)}))
     if result['status'] not in ('READY', 'EMPTY_ACCEPTED_VIEW'): raise SystemExit(2)
 
