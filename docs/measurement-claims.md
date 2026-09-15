@@ -118,3 +118,5 @@ Detailed results contain supplied source rows and remain local. CLI writes are a
 The separate [mixed record-query profile](mixed-record-query.md) now combines selected treatment intervals and measurement points with explicit clock alignment, endpoint windows and literal item/unit scalar predicates. It retains baseline–treatment eligibility when follow-up is missing or lower, and preserves fixed-witness certainty. The measurement selector itself remains a description-selection operation; it does not generate an occurrence graph or perform semantic inference.
 
 The measurement building block retains its 35-test suite. Broader clinical mappings, qualified values, source coverage and full mixed OWL reasoning remain outside these profiles.
+
+The [source mixed-query pipeline](source-mixed-query.md) connects this importer and the interval importer to that matcher, with explicit review and independent SQL comparison over exact source labels. Its evaluation remains synthetic.

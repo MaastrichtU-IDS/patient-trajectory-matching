@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "id",
+        "interval_import",
+        "measurement_import",
+        "query"
+      ],
+      "properties": {
+        "profile": {
+          "const": "source-mixed-query-1.0"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 128
+        },
+        "interval_import": {
+          "type": "object"
+        },
+        "measurement_import": {
+          "type": "object"
+        },
+        "query": {
+          "type": "object"
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "preparation_context_id",
+        "episodes"
+      ],
+      "properties": {
+        "profile": {
+          "const": "source-mixed-review-1.0"
+        },
+        "preparation_context_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "episodes": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "patient_id",
+              "episode_id",
+              "interval_policy",
+              "measurement_policy",
+              "alignment"
+            ],
+            "properties": {
+              "patient_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "episode_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "interval_policy": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "measurement_policy": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "alignment": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

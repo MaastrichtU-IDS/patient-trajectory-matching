@@ -164,6 +164,11 @@ jobs:
         run: |
           python -m patterns.mixed_record_query
           python -m patterns.test_mixed_record_query
+      - name: Source imports, explicit review and SQL comparison
+        run: |
+          python -m patterns.source_mixed_query
+          python -m patterns.source_mixed_query --review examples/source-mixed-query/synthetic-review.json
+          python -m patterns.test_source_mixed_query
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -178,6 +183,7 @@ jobs:
             verification/mimic-claim-import-run/
             verification/mimic-measurement-run/
             verification/mixed-record-query-run/
+            verification/source-mixed-query-run/
           retention-days: 14
 
   oracle-compatibility:

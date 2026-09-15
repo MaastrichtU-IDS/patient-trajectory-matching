@@ -354,3 +354,7 @@ A planned six-hour synthetic comparison protocol against Zep/Graphiti. This is a
 | `full-mimic-study-plan-2.1.json` | Full MIMIC-IV study plan |
 
 No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access requirements. The full study has not been run.
+
+## Source mixed-query pipeline
+
+[`patterns/source_mixed_query.py`](../patterns/source_mixed_query.py) connects both pending-claim importers to mixed record matching. It prepares an undecided review template, validates explicit hash-bound selection/alignment, retains every requested stay, and gates complete cohort output on independent raw-row SQLite comparison. [`source_mixed_reference.py`](../patterns/source_mixed_reference.py) shares admission and selection but implements its own temporal/scalar joins. See [the contract and two-step CLI](source-mixed-query.md).
