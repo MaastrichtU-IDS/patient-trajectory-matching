@@ -10,17 +10,17 @@ The [formal definition v2](temporal-kg/) carries its own decision register of el
 
 ## Ontology and reasoning
 
-### O1. No OWL reasoning **[gap]**
+### O1. Full OWL reasoning remains open **[gap]**
 *Source: [2.4 §3](../addenda/specification-2.4.md), `structural-report.json`*
 
-The adapter executes only named subclass closure, the `hasFeature` inverse and the PRO participation chain. Arbitrary OWL expressions, existential witness generation and complete consistency checking are out of scope. `full_owl_reasoning_tested: false`.
+The point-anchor adapter executes only named subclass closure, the `hasFeature` inverse and the PRO participation chain. Arbitrary OWL expressions, existential witness generation and complete consistency checking are out of scope. `full_owl_reasoning_tested: false`.
 
-Disjointness is checked only across the named upper categories this profile needs, not for arbitrary class expressions.
+The optional [Rust semantic-support profile](semantic-support.md) now checks named class entailment and consistency for a restricted, explicitly generated Horn module, with an independent finite evaluator on every run. Full SULO/import-closure reasoning and identity normalization remain unimplemented. The original point-anchor disjointness checks still cover only its named upper categories.
 
-### O2. Toy taxonomy is the only matcher reasoning input **[gap]**
+### O2. Broader terminology integration remains open **[gap]**
 *Source: [2.4 §4](../addenda/specification-2.4.md)*
 
-Semantic entailment in the matcher runs against `ontology/toy-taxonomy.json`, not the RDF graph or a terminology service. Real SNOMED/RxNorm/LOINC mappings must be reviewed before the Rust reasoning stack is integrated. The seam is clean, but nothing occupies it.
+Semantic entailment in the point-anchor matcher runs against `ontology/toy-taxonomy.json`, not the RDF graph or a terminology service. The bounded semantic extension now runs Rust over an explicit, constructed class/rule module. Real SNOMED/RxNorm/LOINC mappings and broader OWL fragments still need review and operation-specific conformance evidence.
 
 ### O3. SULO pin is unreviewed for production **[open]**
 *Source: [2.4 §8](../addenda/specification-2.4.md), README*
@@ -206,12 +206,12 @@ The [response to the revision](temporal-kg/revision-response.md) proposes choice
 
 | v2 | Blocked capability | Related issues here |
 |---|---|---|
-| Q1 | Execution boundary — all metric queries | [O1](#o1-no-owl-reasoning-gap) — only a limited closure is executed; whether an external evaluator is permitted decides how far that can go |
+| Q1 | Execution boundary — all metric queries | [O1](#o1-full-owl-reasoning-remains-open-gap) — only a limited closure is executed; whether an external evaluator is permitted decides how far that can go |
 | Q2 | Identity, ingestion and temporal joins | [O4](#o4-hasvalue-rdf-term-counting-is-not-owl-datatype-equality-open) — RDF-term counting is not datatype equality; canonicalization policy is undefined |
 | Q3 | Clocks and numeric comparisons | [T4](#t4-calendar-and-age-normalization-incomplete-open) — calendar, age and relative offsets; also the strict clock rule the interval matcher already enforces |
 | Q4 | Process extents, ongoing or disconnected histories | [T1](#t1-the-four-profiles-are-not-unified-open) — point versus interval profiles; ongoing extents are unasserted in both |
 | Q5 | State templates and time-varying domain queries | [C1](#c1-quality-is-modeled-at-patient-level-risk), [T5](#t5-full-bitemporal-replay-remains-incomplete-partial) — patient-level quality and broader replay gaps |
-| Q6 | Imports and biomedical mappings | [O2](#o2-toy-taxonomy-is-the-only-matcher-reasoning-input-gap), [O3](#o3-sulo-pin-is-unreviewed-for-production-open) — toy taxonomy, unreviewed pin |
+| Q6 | Imports and biomedical mappings | [O2](#o2-broader-terminology-integration-remains-open-gap), [O3](#o3-sulo-pin-is-unreviewed-for-production-open) — toy taxonomy, unreviewed pin |
 | Q7 | Evidence selection and as-of answers | [T5](#t5-full-bitemporal-replay-remains-incomplete-partial), [T6](#t6-general-revision-selection-remains-incomplete-partial), [S2](#s2-source-completeness-is-an-input-not-a-check-risk) — bounded selection implemented; broader replay and verified completeness remain open |
 | Q8 | Logic/solver interface and complete evaluation | [T2b](#t2b-broader-uncertainty-and-rdf-ingestion-partial) — a discrete temporal solver is implemented; the full OWL/rational-time interface remains open |
 | Q9 | Clinical query and application validity | [C2](#c2-not-a-clinical-phenotype-risk), [C3](#c3-no-clinical-validation-gap) — no phenotype validation, no clinical review |

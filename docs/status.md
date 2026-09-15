@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection and mapping conformance, 228 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 250 passing checks, and 10 of 104 tracked requirements marked executable.**
 
 The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
@@ -73,7 +73,8 @@ Every number below is produced by a command in [validation.md](validation.md) an
 | Bounded RDF ingestion tests | 21 passed |
 | Evidence selection tests | 29 passed |
 | Temporal interface conformance tests | 22 passed |
-| **Total** | **228 checks passing** |
+| Checked Rust semantic support tests (optional dependency, separate CI job) | 22 passed |
+| **Total** | **250 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -82,7 +83,7 @@ Every number below is produced by a command in [validation.md](validation.md) an
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 205 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 227 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -114,6 +115,7 @@ The total is 205 suite tests plus 16 oracle cases and seven oracle properties; n
 | Refinement service | Specified | `refinement_service_implemented: false` |
 | Evidence selection | Executable bounded subset | [29 tests](evidence-selection.md); explicit source chains and availability cutoffs |
 | SULO temporal interface | Executable restricted conformance harness | [8 paired fixtures, 33 query comparisons and 22 tests](temporal-kg/sulo-interface.md); full OWL mapping remains open |
+| Rust semantic support | Executable restricted integration | [22 differential/gate tests](semantic-support.md); complete checked class support and consistency for the admitted module |
 | Full temporal replay | Partially implemented | The bounded selector does not implement all 8 declarative families, historical semantics, derived indices or a replay UI |
 | Graphiti comparison | Specified | Protocol only, no measurements |
 | UI | Specified | Wireframes and contracts, no running interface |

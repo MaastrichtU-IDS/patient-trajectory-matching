@@ -101,6 +101,32 @@ jobs:
           path: verification/
           retention-days: 14
 
+  semantic-support:
+    name: Checked Rust semantic support (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            patterns/requirements.lock.txt
+            patterns/requirements-semantic.lock.txt
+      - name: Install pinned Rust integration
+        run: python -m pip install -r patterns/requirements-semantic.lock.txt
+      - name: Inferred process-class temporal query
+        run: python -m patterns.semantic_support
+      - name: Rust, finite-model and failure-gate checks
+        run: python -m patterns.test_semantic_support
+      - name: Upload semantic reasoning evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-support-output
+          path: verification/semantic-support-run/
+          retention-days: 14
+
   oracle-compatibility:
     name: Oracle on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
