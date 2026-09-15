@@ -6,6 +6,15 @@ Version 2.4, 15 September 2026. Companion to product specification v2.3, extende
 
 This pack fixes the initial cohort query contract and provides executable examples. It is not the production matcher, a complete OWL reasoner, a full ETL implementation or a clinical terminology release. All patient examples and DrugA/DrugB alternatives are constructed. No MIMIC patient rows are redistributed here.
 
+## Temporal design documentation
+
+The [documentation guide](docs/README.md) connects the executable contract to the next temporal implementation steps:
+
+- [SULO and OWL-Time review](docs/sulo-owl-time-review.md): representation, temporal identity, PRO/SOLID, uncertainty, reasoning responsibilities, and efficient indexes.
+- [Proposed temporal precedence decision](docs/decisions/temporal-precedence.md): transitive precedence, direct succession, temporal contact, and the scope needed to interpret adjacency.
+
+These documents provide design recommendations. The [v2.4 addendum](addenda/specification-2.4.md) remains the current executable contract. The precedence names and axioms are proposals for a future SULO release; they are not additions to the pinned ontology or the current application vocabulary.
+
 ## Start here: PRO and SOLID
 
 Read `addenda/specification-2.4.md` for the current modeling contract and a worked graph. `patterns/pro_solid.py` implements synthetic source rows → PRO/SOLID RDF → validation → matcher projection → exact/relaxed exemplar matching. Patient participation uses the PRO role/bearer path. Literal values, timestamps and source metadata use typed information objects with `sulo:hasValue`.
