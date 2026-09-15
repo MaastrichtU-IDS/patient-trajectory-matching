@@ -1,0 +1,12 @@
+@prefix f: <https://example.org/temporal-kg/v2#> .
+f:patient a f:Patient .
+f:A a f:Process ; f:hasParticipant f:roleA ; f:exactExtent f:intervalA .
+f:roleA a f:PatientRole ; f:isFeatureOf f:patient .
+f:intervalA a f:TimeInterval ; f:hasBeginning f:As ; f:hasEnd f:Ae .
+f:B a f:Process ; f:hasParticipant f:roleB ; f:exactExtent f:intervalB .
+f:roleB a f:PatientRole ; f:isFeatureOf f:patient .
+f:intervalB a f:TimeInterval ; f:hasBeginning f:Bs ; f:hasEnd f:Be .
+f:As a f:TimePoint .
+f:Ae a f:TimePoint .
+f:Bs a f:TimePoint .
+f:Be a f:TimePoint .

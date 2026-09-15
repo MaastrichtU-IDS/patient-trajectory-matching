@@ -1,0 +1,115 @@
+{
+  "profile": "temporal-interface-1.0",
+  "clocks": [
+    {
+      "clock_id": "clock",
+      "origin": "2026-01-01T00:00:00Z",
+      "scope": "global",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "variables": [
+    {
+      "id": "As",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clock",
+      "lower_us": 0,
+      "upper_us": 2
+    },
+    {
+      "id": "Ae",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clock",
+      "lower_us": 1,
+      "upper_us": 3
+    },
+    {
+      "id": "Bs",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clock",
+      "lower_us": 3,
+      "upper_us": 5
+    },
+    {
+      "id": "Be",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clock",
+      "lower_us": 4,
+      "upper_us": 6
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c0f",
+      "left_var": "Ae",
+      "right_var": "As",
+      "upper_us": 1
+    },
+    {
+      "id": "c0r",
+      "left_var": "As",
+      "right_var": "Ae",
+      "upper_us": -1
+    },
+    {
+      "id": "c1f",
+      "left_var": "Bs",
+      "right_var": "Ae",
+      "upper_us": 2
+    },
+    {
+      "id": "c1r",
+      "left_var": "Ae",
+      "right_var": "Bs",
+      "upper_us": -2
+    },
+    {
+      "id": "c2f",
+      "left_var": "Be",
+      "right_var": "Bs",
+      "upper_us": 1
+    },
+    {
+      "id": "c2r",
+      "left_var": "Bs",
+      "right_var": "Be",
+      "upper_us": -1
+    }
+  ],
+  "points": [
+    {
+      "point": "https://example.org/temporal-kg/v2#As",
+      "variable_id": "As"
+    },
+    {
+      "point": "https://example.org/temporal-kg/v2#Ae",
+      "variable_id": "Ae"
+    },
+    {
+      "point": "https://example.org/temporal-kg/v2#Bs",
+      "variable_id": "Bs"
+    },
+    {
+      "point": "https://example.org/temporal-kg/v2#Be",
+      "variable_id": "Be"
+    }
+  ],
+  "processes": [
+    {
+      "id": "A",
+      "process": "https://example.org/temporal-kg/v2#A",
+      "patient_id": "P1",
+      "episode_id": "E1"
+    },
+    {
+      "id": "B",
+      "process": "https://example.org/temporal-kg/v2#B",
+      "patient_id": "P1",
+      "episode_id": "E1"
+    }
+  ]
+}

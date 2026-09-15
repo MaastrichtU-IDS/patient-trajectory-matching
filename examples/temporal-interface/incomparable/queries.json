@@ -1,0 +1,92 @@
+[
+  {
+    "profile": "bounded-interval-query-1.0",
+    "id": "before",
+    "slots": [
+      {
+        "id": "a",
+        "class_iri": "https://w3id.org/sulo/Process"
+      },
+      {
+        "id": "b",
+        "class_iri": "https://w3id.org/sulo/Process"
+      }
+    ],
+    "constraints": [
+      {
+        "id": "q",
+        "left": "a",
+        "right": "b",
+        "operator": "before"
+      }
+    ]
+  },
+  {
+    "profile": "bounded-interval-query-1.0",
+    "id": "meets",
+    "slots": [
+      {
+        "id": "a",
+        "class_iri": "https://w3id.org/sulo/Process"
+      },
+      {
+        "id": "b",
+        "class_iri": "https://w3id.org/sulo/Process"
+      }
+    ],
+    "constraints": [
+      {
+        "id": "q",
+        "left": "a",
+        "right": "b",
+        "operator": "meets"
+      }
+    ]
+  },
+  {
+    "profile": "bounded-interval-query-1.0",
+    "id": "overlaps",
+    "slots": [
+      {
+        "id": "a",
+        "class_iri": "https://w3id.org/sulo/Process"
+      },
+      {
+        "id": "b",
+        "class_iri": "https://w3id.org/sulo/Process"
+      }
+    ],
+    "constraints": [
+      {
+        "id": "q",
+        "left": "a",
+        "right": "b",
+        "operator": "overlaps"
+      }
+    ]
+  },
+  {
+    "profile": "bounded-interval-query-1.0",
+    "id": "gap",
+    "slots": [
+      {
+        "id": "a",
+        "class_iri": "https://w3id.org/sulo/Process"
+      },
+      {
+        "id": "b",
+        "class_iri": "https://w3id.org/sulo/Process"
+      }
+    ],
+    "constraints": [
+      {
+        "id": "q",
+        "left": "a",
+        "right": "b",
+        "operator": "gap",
+        "min_gap_us": 0,
+        "max_gap_us": 4
+      }
+    ]
+  }
+]

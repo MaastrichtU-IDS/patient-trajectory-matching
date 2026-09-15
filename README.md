@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Four temporal profiles and evidence selection with 206 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection and mapping conformance with 228 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -60,6 +60,9 @@ python -m patterns.test_bounded_rdf       # 21 RDF validation and evidence tests
 
 python -m patterns.evidence_selection      # source-as-known selection and matching
 python -m patterns.test_evidence_selection # 29 lifecycle and integration tests
+
+python -m patterns.temporal_interface      # 8 paired fixtures, 33 query comparisons
+python -m patterns.test_temporal_interface # 22 conformance and boundary tests
 ```
 
 Installation needs network access. Everything after it runs offline — no Java, no clinical dataset, no AI provider credentials, no subscription.
@@ -136,6 +139,7 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | Document | Subject |
 |---|---|
 | [Temporal KG formal definition](docs/temporal-kg/) | The mathematical definition — graph, interpretation, matching, entailment. v2 fixes representation to OWL 2 DL and registers eleven open decisions |
+| [SULO temporal interface](docs/temporal-kg/sulo-interface.md) | Paired conformance fixtures, mapping contract and classification of the original 18 checks |
 | [v2 OWL validation evidence](docs/temporal-kg/validation/README.md) | Original ontologies, checker, logs and reproduction of the formal definition’s 18 checks; separate optional Java tooling |
 | [SULO and OWL-Time review](docs/sulo-owl-time-review.md) | Representation, temporal identity, uncertainty, reasoning responsibilities, indexes |
 | [Temporal precedence](docs/decisions/temporal-precedence.md) | Strict precedence, direct succession, temporal contact — a proposal, not adopted |

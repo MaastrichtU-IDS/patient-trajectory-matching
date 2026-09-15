@@ -74,6 +74,12 @@ jobs:
       - name: Evidence lifecycle and matcher integration
         run: python -m patterns.test_evidence_selection
 
+      - name: Paired temporal interface examples
+        run: python -m patterns.temporal_interface
+
+      - name: SULO interface conformance and declared differences
+        run: python -m patterns.test_temporal_interface
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.
