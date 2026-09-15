@@ -17,3 +17,7 @@ verification/evidence-selection-run/
 verification/temporal-interface-run/
 verification/semantic-support-run/
 verification/joint-evidence-run/
+
+# Detailed source staging and locally supplied MIMIC files.
+verification/mimic-inputevents-run/
+data/local-mimic/

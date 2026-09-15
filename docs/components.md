@@ -11,6 +11,7 @@ Each component's purpose, interface, dependencies and scope limits. Status label
 | [Interval cohort matcher](#interval-cohort-matcher) | `patterns/interval_cohort.py` | Executable |
 | [Bounded uncertainty matcher](#bounded-uncertainty-matcher) | `patterns/bounded_cohort.py` | Executable |
 | [Bounded RDF adapter](#bounded-rdf-adapter) | `patterns/bounded_rdf.py` | Executable |
+| [MIMIC inputevents staging](mimic-inputevents-staging.md) | `patterns/mimic_inputevents.py` | Executable staging; no matcher export |
 | [Ontology profile](#ontology-profile) | `ontology/` | Executable |
 | [Contract schemas](#contract-schemas) | `schemas/` | Structurally validated |
 | [Fixtures](#fixtures) | `examples/` | Executable inputs and specified cases |
@@ -336,12 +337,13 @@ A planned six-hour synthetic comparison protocol against Zep/Graphiti. This is a
 
 ## Dataset plans
 
-**Path:** `data/` · **Status:** Specified, except the demo inventory
+**Path:** `data/` · **Status:** Specified, except demo inventory and inputevents staging evidence
 
 | File | Contents |
 |---|---|
 | `source-plan.json` | Dataset roles |
 | `mimic-demo-inspection.json` | Inspected demo inventory with hashes of decompressed CSVs |
+| `mimic-inputevents-demo-pin.json` | Published compressed hashes and observed row counts for staging reproduction |
 | `full-mimic-study-plan-2.1.json` | Full MIMIC-IV study plan |
 
 No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access requirements. The full study has not been run.

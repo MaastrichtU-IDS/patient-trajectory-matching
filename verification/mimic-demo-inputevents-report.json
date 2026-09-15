@@ -1,0 +1,119 @@
+{
+  "source_url": "https://physionet.org/content/mimic-iv-demo/2.2/",
+  "published_checksum_url": "https://physionet.org/files/mimic-iv-demo/2.2/SHA256SUMS.txt",
+  "published_file_hashes_verified": true,
+  "source_pin_sha256": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
+  "verifier_sha256": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
+  "scope": "Public demo inputevents staging only; no patient-level data in this report.",
+  "full_mimic_analyzed": false,
+  "summary": {
+    "profile": "mimic-inputevents-staging-1.0",
+    "context_id": "e69c10905683c01258605cbe3441ff68571c22852049d2bad5fdf2fbc6580e80",
+    "context": {
+      "dataset_id": "mimic-iv-demo-2.2",
+      "schema_version": "MIMIC-IV-demo-2.2",
+      "profile": "mimic-inputevents-staging-1.0",
+      "files": [
+        {
+          "table": "inputevents",
+          "file_sha256": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+          "csv_sha256": "34ff7b19dbdfdf4608c4de3ad589a4b1624f6e767a09cd5489fe6d2448e4edfd",
+          "columns": [
+            "subject_id",
+            "hadm_id",
+            "stay_id",
+            "caregiver_id",
+            "starttime",
+            "endtime",
+            "storetime",
+            "itemid",
+            "amount",
+            "amountuom",
+            "rate",
+            "rateuom",
+            "orderid",
+            "linkorderid",
+            "ordercategoryname",
+            "secondaryordercategoryname",
+            "ordercomponenttypedescription",
+            "ordercategorydescription",
+            "patientweight",
+            "totalamount",
+            "totalamountuom",
+            "isopenbag",
+            "continueinnextdept",
+            "statusdescription",
+            "originalamount",
+            "originalrate"
+          ],
+          "rows": 20404
+        },
+        {
+          "table": "icustays",
+          "file_sha256": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+          "csv_sha256": "9a79a759372a6075560a0dcf53d10122e691a8a4dce7141101f6660ab8476f42",
+          "columns": [
+            "subject_id",
+            "hadm_id",
+            "stay_id",
+            "first_careunit",
+            "last_careunit",
+            "intime",
+            "outtime",
+            "los"
+          ],
+          "rows": 140
+        },
+        {
+          "table": "d_items",
+          "file_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+          "csv_sha256": "3a9ff93b12727ec17000896c144c03573bccae0f8f71d5d5c2ba773ebf7ffa5d",
+          "columns": [
+            "itemid",
+            "label",
+            "abbreviation",
+            "linksto",
+            "category",
+            "unitname",
+            "param_type",
+            "lownormalvalue",
+            "highnormalvalue"
+          ],
+          "rows": 4014
+        }
+      ],
+      "implementation_sha256": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f"
+    },
+    "status": "STAGED_NOT_MATCHER_READY",
+    "matcher_ready": false,
+    "matcher_blockers": [
+      "PATIENT_LOCAL_CLOCK_BRIDGE_REQUIRED",
+      "CLINICAL_MAPPING_REVIEW_REQUIRED",
+      "OCCURRENCE_PRECISION_POLICY_REQUIRED",
+      "SOURCE_AVAILABILITY_UNVERIFIED",
+      "SOURCE_REVISION_HISTORY_UNAVAILABLE"
+    ],
+    "input_rows": 20404,
+    "outcome_counts": {
+      "STAGED_SEGMENT": 10980,
+      "UNSUPPORTED_ROW": 9424,
+      "INVALID_ROW": 0,
+      "DUPLICATE_ROW": 0
+    },
+    "reason_counts": {
+      "MISSING_QUANTITY_OR_UNIT:rate": 9366,
+      "NON_POSITIVE_QUANTITY:amount": 31,
+      "NON_POSITIVE_QUANTITY:rate": 2,
+      "ONE_MINUTE_BOLUS_AMBIGUITY": 8550,
+      "UNSUPPORTED_ORDER_CATEGORY": 8497,
+      "UNSUPPORTED_STATUS": 12
+    },
+    "reconciliation_complete": true,
+    "staged_segments": 10980,
+    "clinical_mapping_verified": false,
+    "availability_verified": false,
+    "history_coverage": "unavailable",
+    "clinical_knowledge_status": "UNKNOWN",
+    "matching": null
+  }
+}

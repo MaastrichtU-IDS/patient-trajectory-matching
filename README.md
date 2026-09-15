@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 278 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 306 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -137,6 +137,7 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | [Interval cohort matching](docs/interval-cohort-matching.md) | Slot queries, indexed joins, differential reference |
 | [Bounded temporal uncertainty](docs/bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty, certificates |
 | [Bounded RDF ingestion](docs/bounded-rdf-ingestion.md) | Closed graph validation, explicit identifiers, preserved source evidence |
+| [MIMIC inputevents staging](docs/mimic-inputevents-staging.md) | Source admission, row reconciliation, and explicit handoff blockers |
 
 **Temporal design guidance**
 
@@ -165,6 +166,7 @@ These develop the next temporal profiles. The precedence names and axioms remain
 | Fixtures | `examples/` | Mixed — executable inputs and specified cases |
 | UI assets | `ui/` | Specified — wireframes and contracts, no interface |
 | Evaluation plan | `evaluation/` | Specified — protocol, no measurements |
+| MIMIC source staging | `patterns/mimic_inputevents.py` | Executable — 2.2 inputevents reconciliation; clinical/matcher handoff blocked |
 | Dataset plans | `data/` | Specified — no MIMIC rows redistributed |
 
 Per-component interfaces and scope limits: **[docs/components.md](docs/components.md)**
