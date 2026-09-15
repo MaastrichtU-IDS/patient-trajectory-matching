@@ -1,0 +1,203 @@
+{
+  "profile": "temporal-interface-1.0",
+  "status": "verified_bounded_query_interface_only",
+  "full_owl_mapping_verified": false,
+  "common_selectors": [
+    "https://w3id.org/sulo/Process"
+  ],
+  "original_inventory_sha256": "8b338983fb4313ea1838ee6eba62ff6087782a06fd39124d48320195f98df866",
+  "checks": [
+    {
+      "original_check_id": "C01",
+      "original_label": "OWL 2 DL profile: formal-definition-v2/temporal-core.ofn",
+      "original_expected": true,
+      "responsibility": "OWL",
+      "sulo_mapping_status": "standalone_only",
+      "tests": [],
+      "rationale": "The original core profile check was reproduced; the complete SULO alignment/import closure is not certified by this interface."
+    },
+    {
+      "original_check_id": "C02",
+      "original_label": "OWL 2 DL profile: formal-definition-v2/example.ofn",
+      "original_expected": true,
+      "responsibility": "OWL",
+      "sulo_mapping_status": "standalone_only",
+      "tests": [],
+      "rationale": "The original example profile check was reproduced; these paired RDF fixtures do not constitute full-closure OWL profile checking."
+    },
+    {
+      "original_check_id": "C03",
+      "original_label": "example consistent",
+      "original_expected": true,
+      "responsibility": "OWL",
+      "sulo_mapping_status": "not_implemented",
+      "tests": [],
+      "rationale": "General SULO ontology consistency remains an engine integration obligation. Structural acceptance and temporal feasibility are separate checks."
+    },
+    {
+      "original_check_id": "C04",
+      "original_label": "all named classes satisfiable",
+      "original_expected": true,
+      "responsibility": "OWL",
+      "sulo_mapping_status": "not_implemented",
+      "tests": [],
+      "rationale": "Named-class satisfiability over the selected SULO/import closure is not computed by the bounded adapter."
+    },
+    {
+      "original_check_id": "C05",
+      "original_label": "antibiotic administration inferred",
+      "original_expected": true,
+      "responsibility": "OWL",
+      "sulo_mapping_status": "not_implemented",
+      "tests": [
+        "test_selector_and_rational_domain_limits_are_explicit"
+      ],
+      "rationale": "The common query selector is Process only. AntibioticAdministration inference through an administered-drug role is not implemented here."
+    },
+    {
+      "original_check_id": "C06",
+      "original_label": "PRO chain infers bearer participation",
+      "original_expected": true,
+      "responsibility": "OWL and ingestion",
+      "sulo_mapping_status": "partial",
+      "tests": [
+        "test_bearer_participation_cannot_replace_the_role"
+      ],
+      "rationale": "Explicit PatientRole/bearer paths are preserved. The existing PRO/SOLID profile has a limited participation-chain closure; this paired reader does not implement general OWL entailment."
+    },
+    {
+      "original_check_id": "C07",
+      "original_label": "interval occurrence inferred as ExtendedProcess",
+      "original_expected": true,
+      "responsibility": "OWL",
+      "sulo_mapping_status": "not_implemented",
+      "tests": [
+        "test_point_occurrences_are_outside_this_interval_interface"
+      ],
+      "rationale": "The bounded profile validates a proper interval occurrence but does not infer the formal ExtendedProcess class or equate it to a SULO class."
+    },
+    {
+      "original_check_id": "C08",
+      "original_label": "point and interval on same individual inconsistent",
+      "original_expected": false,
+      "responsibility": "OWL and ingestion",
+      "sulo_mapping_status": "restricted_interface_check",
+      "tests": [
+        "test_temporal_type_conflicts_are_rejected_by_the_profile"
+      ],
+      "rationale": "Both readers reject conflicting explicit point/interval types. This procedural rejection is not a full OWL inconsistency proof."
+    },
+    {
+      "original_check_id": "C09",
+      "original_label": "identical beginning and end inconsistent",
+      "original_expected": false,
+      "responsibility": "OWL and temporal evaluator",
+      "sulo_mapping_status": "intentional_difference",
+      "tests": [
+        "test_identical_formal_endpoint_and_shared_sulo_variable_differ",
+        "test_zero_duration_with_distinct_points_is_temporally_inconsistent"
+      ],
+      "rationale": "Formal beginning/end cannot be the same point individual. Distinct SULO descriptions can refer to one coordinate variable; positive duration is then rejected by the temporal layer."
+    },
+    {
+      "original_check_id": "C10",
+      "original_label": "interval with unnamed endpoints consistent",
+      "original_expected": true,
+      "responsibility": "ingestion",
+      "sulo_mapping_status": "intentional_difference",
+      "tests": [
+        "test_missing_named_endpoint_is_not_an_anonymous_witness"
+      ],
+      "rationale": "Unnamed existential endpoints can satisfy OWL. Both metric interfaces require eligible explicit named endpoints/references."
+    },
+    {
+      "original_check_id": "C11",
+      "original_label": "process with unknown extent consistent",
+      "original_expected": true,
+      "responsibility": "ingestion",
+      "sulo_mapping_status": "intentional_difference",
+      "tests": [
+        "test_unknown_complete_extent_is_unsupported"
+      ],
+      "rationale": "OWL permits a process with no known complete extent. This bounded interface rejects it as an unsupported metric witness."
+    },
+    {
+      "original_check_id": "C12",
+      "original_label": "point occurrence consistent",
+      "original_expected": true,
+      "responsibility": "ingestion",
+      "sulo_mapping_status": "outside_fragment",
+      "tests": [
+        "test_point_occurrences_are_outside_this_interval_interface"
+      ],
+      "rationale": "The formal core supports point occurrences. This interface covers bounded intervals only; the separate point-anchor profile is not unified here."
+    },
+    {
+      "original_check_id": "C13",
+      "original_label": "point and interval exact extents on one process inconsistent",
+      "original_expected": false,
+      "responsibility": "OWL and ingestion",
+      "sulo_mapping_status": "intentional_difference",
+      "tests": [
+        "test_multiple_extents_do_not_make_at_time_functional"
+      ],
+      "rationale": "Formal exactExtent is functional. SULO atTime is not declared functional; exactly one selected occurrence description is a profile rule, not a global property axiom."
+    },
+    {
+      "original_check_id": "C14",
+      "original_label": "two-way pointBefore inconsistent",
+      "original_expected": false,
+      "responsibility": "OWL and temporal evaluator",
+      "sulo_mapping_status": "outside_fragment",
+      "tests": [
+        "test_qualitative_owl_facts_are_not_silently_compiled"
+      ],
+      "rationale": "The formal core checks pointBefore asymmetry. This interface accepts external difference constraints, not arbitrary qualitative OWL order facts."
+    },
+    {
+      "original_check_id": "C15",
+      "original_label": "functional endpoint infers equality",
+      "original_expected": true,
+      "responsibility": "OWL and ingestion",
+      "sulo_mapping_status": "not_implemented",
+      "tests": [
+        "test_duplicate_endpoints_do_not_trigger_identity_merging"
+      ],
+      "rationale": "Inferred endpoint equality and identity normalization remain open. Ambiguous named endpoint fields are rejected; hasDirectPart is not made functional."
+    },
+    {
+      "original_check_id": "C16",
+      "original_label": "different functional endpoint fillers inconsistent",
+      "original_expected": false,
+      "responsibility": "OWL and ingestion",
+      "sulo_mapping_status": "intentional_difference",
+      "tests": [
+        "test_duplicate_endpoints_do_not_trigger_identity_merging"
+      ],
+      "rationale": "Distinct formal functional fillers cause inconsistency. Multiple SULO descriptions are rejected by this closed profile without asserting the corresponding global OWL inconsistency."
+    },
+    {
+      "original_check_id": "C17",
+      "original_label": "pointBefore closure not entailed by core",
+      "original_expected": false,
+      "responsibility": "temporal evaluator",
+      "sulo_mapping_status": "partial",
+      "tests": [
+        "test_paired_corpus",
+        "test_qualitative_owl_facts_are_not_silently_compiled"
+      ],
+      "rationale": "Numeric precedence consequences are evaluated for paired fixtures, including a three-process chain. No pointBefore/precedes transitive axiom or inferred RDF edge is added."
+    },
+    {
+      "original_check_id": "C18",
+      "original_label": "reversed interval endpoint order awaits external validation",
+      "original_expected": true,
+      "responsibility": "temporal evaluator",
+      "sulo_mapping_status": "restricted_interface_check",
+      "tests": [
+        "test_reversed_extent_requires_temporal_validation"
+      ],
+      "rationale": "The formal ontology permits reversed qualitative endpoint order. Both numeric routes reject a realized or constrained non-proper interval before returning answers; this does not validate a general qualitative-fact compiler."
+    }
+  ]
+}

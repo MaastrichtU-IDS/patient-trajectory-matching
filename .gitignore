@@ -14,3 +14,4 @@ verification/interval-cohort-run/
 verification/bounded-interval-run/
 verification/bounded-rdf-run/
 verification/evidence-selection-run/
+verification/temporal-interface-run/
