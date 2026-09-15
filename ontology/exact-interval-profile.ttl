@@ -1,0 +1,31 @@
+@prefix ei: <https://example.org/trajectory/interval/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ei:Profile a owl:Ontology ;
+  rdfs:comment "Exact occurrence intervals, profile exact-interval-1.0. Load with the pinned SULO core and PRO/SOLID class module. Arithmetic and explicit-data requirements belong to the adapter. No new properties or network imports." .
+
+ei:IntervalProcess a owl:Class ; rdfs:subClassOf sulo:Process .
+ei:Infusion a owl:Class ; rdfs:subClassOf ei:IntervalProcess .
+ei:SpecimenCollection a owl:Class ; rdfs:subClassOf ei:IntervalProcess .
+ei:ExactStartTime a owl:Class ; rdfs:subClassOf sulo:StartTime .
+ei:ExactEndTime a owl:Class ; rdfs:subClassOf sulo:EndTime .
+ei:ElapsedDuration a owl:Class ; rdfs:subClassOf sulo:Duration .
+ei:ExactOccurrenceInterval a owl:Class ; rdfs:subClassOf sulo:TimeInterval,
+  [ a owl:Restriction ; owl:onProperty sulo:hasDirectPart ;
+    owl:onClass sulo:StartTime ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ],
+  [ a owl:Restriction ; owl:onProperty sulo:hasDirectPart ;
+    owl:onClass sulo:EndTime ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ] .
+
+ei:ClockBinding a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ei:TemporalReferenceSystem a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ei:ClockIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ei:ClockOrigin a owl:Class ; rdfs:subClassOf sulo:TimeInstant .
+ei:ClockPolicy a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ei:ClockScope a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+
+ei:Second a sulo:Unit .
+ei:Minute a sulo:Unit .
+ei:Hour a sulo:Unit .

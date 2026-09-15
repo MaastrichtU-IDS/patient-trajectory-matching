@@ -13,7 +13,18 @@ The [documentation guide](docs/README.md) connects the executable contract to th
 - [SULO and OWL-Time review](docs/sulo-owl-time-review.md): representation, temporal identity, PRO/SOLID, uncertainty, reasoning responsibilities, and efficient indexes.
 - [Proposed temporal precedence decision](docs/decisions/temporal-precedence.md): transitive precedence, direct succession, temporal contact, and the scope needed to interpret adjacency.
 
-These documents provide design recommendations. The [v2.4 addendum](addenda/specification-2.4.md) remains the current executable contract. The precedence names and axioms are proposals for a future SULO release; they are not additions to the pinned ontology or the current application vocabulary.
+These documents provide design recommendations. The [v2.4 addendum](addenda/specification-2.4.md) defines the executable point-anchor contract. The [exact-interval profile](docs/exact-interval-profile.md) now implements a separate interval adapter and temporal evaluator. The precedence names and axioms remain proposals for a future SULO release; they are not additions to the pinned ontology or the current application vocabulary.
+
+## Exact occurrence intervals
+
+After installing the pinned dependencies below, run:
+
+```sh
+python -m patterns.exact_intervals
+python -m patterns.test_exact_intervals
+```
+
+This separate profile constructs four synthetic process intervals, validates their PRO/SOLID representation and clocks, and evaluates nine explicit comparisons covering strict `before`, `meets`, directional `overlaps`, and bounded nonnegative gaps. Results retain source, role, endpoint, clock, and snapshot evidence. See the [profile contract and worked results](docs/exact-interval-profile.md). It does not change the v2.4 point-anchor oracle or add generalized cohort interval matching.
 
 ## Start here: PRO and SOLID
 
@@ -88,7 +99,7 @@ Begin with the runnable PRO/SOLID slice, then implement clinical source mapping 
 
 ## Continuous integration
 
-`.github/workflows/contracts.yml` runs on every push and pull request. It verifies the release manifest hashes, runs the reference oracle, executes the PRO/SOLID pipeline from both the synthetic source rows and the committed RDF graph, checks that the regenerated graph is isomorphic to `examples/pro-solid/graph.ttl`, and runs the 42-test acceptance suite on Python 3.12. A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
+`.github/workflows/contracts.yml` runs on every push to main and every pull request. It verifies the release manifest hashes, runs the reference oracle, executes the PRO/SOLID pipeline from both the synthetic source rows and the committed RDF graph, checks that the regenerated graph is isomorphic to `examples/pro-solid/graph.ttl`, and runs the 42-test acceptance suite on Python 3.12. It also runs the exact-interval pipeline and its separate conformance suite. A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 
 Report files under `verification/` record the runner's Python patch version, so they are expected to differ from the committed release after a local run. CI reports that drift as a notice rather than a failure.
 

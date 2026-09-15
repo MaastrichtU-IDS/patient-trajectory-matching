@@ -1,0 +1,11 @@
+[
+  {"id": "contact", "left_event": "A", "right_event": "B", "operator": "meets"},
+  {"id": "contact_is_not_before", "left_event": "A", "right_event": "B", "operator": "before"},
+  {"id": "before", "left_event": "A", "right_event": "D", "operator": "before"},
+  {"id": "overlap", "left_event": "A", "right_event": "C", "operator": "overlaps"},
+  {"id": "reverse_overlap", "left_event": "C", "right_event": "A", "operator": "overlaps"},
+  {"id": "ten_minute_gap", "left_event": "B", "right_event": "D", "operator": "gap", "min_gap_us": 600000000, "max_gap_us": 600000000},
+  {"id": "zero_gap", "left_event": "A", "right_event": "B", "operator": "gap", "min_gap_us": 0, "max_gap_us": 0},
+  {"id": "gap_too_large", "left_event": "A", "right_event": "D", "operator": "gap", "min_gap_us": 0, "max_gap_us": 600000000},
+  {"id": "overlap_has_no_nonnegative_gap", "left_event": "A", "right_event": "C", "operator": "gap", "min_gap_us": 0, "max_gap_us": 3600000000}
+]

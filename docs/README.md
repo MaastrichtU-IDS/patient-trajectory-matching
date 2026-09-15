@@ -6,7 +6,8 @@ The repository contains an executable contract pack and specifications for a bro
 |---|---|---|
 | [Repository README](../README.md) | Setup, scope, and runnable examples | Current entry point |
 | [PRO/SOLID addendum v2.4](../addenda/specification-2.4.md) | Canonical graph, validation, projection, and exemplar matching | Current executable contract within its declared profile |
-| [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; interval and uncertainty extensions remain future work |
+| [Exact-interval profile](exact-interval-profile.md) | Source/RDF adapter, explicit clocks, endpoint comparisons, and evidence | Executable `exact-interval-1.0`; separate from the point-anchor oracle |
+| [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; bounded uncertainty and general interval matching remain future work |
 | [Temporal precedence](decisions/temporal-precedence.md) | Strict precedence, direct succession, and temporal contact | Proposed decision; no SULO core change adopted |
 | [Replay addendum v2.3](../addenda/specification-2.3.md) | Observation/correction semantics and Graphiti comparison | Specified |
 | [Workspace addendum v2.2](../addenda/specification-2.2.md) | Patient workspace and interaction design | Specified |
@@ -15,8 +16,8 @@ The repository contains an executable contract pack and specifications for a bro
 ## Recommended implementation path
 
 1. Reproduce the existing PRO/SOLID adapter and reference oracle using the repository README.
-2. Define an exact occurrence-interval profile with explicit start/end descriptors and clock scope, preserving the PRO role witnesses and SOLID values.
-3. Implement and verify its projection into indexed execution records, followed by exact endpoint evaluation.
+2. Run the exact-interval adapter and its conformance suite, which preserve explicit start/end descriptors, clock scope, PRO role witnesses, and SOLID values.
+3. Build cohort interval joins and indexes on the validated execution records, with differential checks against an independent reference matcher. The current evaluator compares explicitly selected event pairs.
 4. Add bounded uncertainty with shared variables, joint feasibility, and explicit certain/possible results.
 5. Introduce optimized matching only with differential checks against an independent reference implementation for the supported profile.
 
