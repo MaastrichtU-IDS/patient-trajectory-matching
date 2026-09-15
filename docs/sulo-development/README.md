@@ -1,6 +1,6 @@
 # SULO development proposal from patient trajectory matching
 
-**Status: proposed work programme, 15 September 2026.** This package records lessons and candidate requirements. It does not change SULO, the executable profiles, clinical policies, or the conformance status of the original 18 formal checks. Requirements below are proposed acceptance conditions, not an adopted SULO standard.
+**Status: proposed work programme, 15 September 2026.** This package records lessons and candidate requirements. The subsequent [claim-projection prototype](../claim-projection.md) supplies bounded implementation evidence for D2; the baseline findings and broader adoption gates below retain their original scope. It does not change SULO, the executable profiles, clinical policies, or the conformance status of the original 18 formal checks. Requirements below are proposed acceptance conditions, not an adopted SULO standard.
 
 **Evidence baseline:** patient-trajectory-matching commit [`85943a9`](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/commit/85943a9d82e763354201798490d947146c1a43d5), with [pinned SULO 0.2.14](../../ontology/sulo-pin.json) and checked rustDL 0.4.28 support. Later releases must be evaluated separately.
 
