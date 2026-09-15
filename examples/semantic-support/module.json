@@ -1,0 +1,155 @@
+{
+  "profile": "semantic-support-1.0",
+  "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
+  "classes": [
+    "https://example.org/trajectory/semantic/DrugAdministration",
+    "https://example.org/trajectory/semantic/AntibioticAdministration",
+    "https://example.org/trajectory/semantic/AdministeredDrugRole",
+    "https://example.org/trajectory/semantic/Antibiotic",
+    "https://example.org/trajectory/semantic/NonAntibiotic"
+  ],
+  "individuals": [
+    "https://example.org/trajectory/semantic/P1a-drug-role",
+    "https://example.org/trajectory/semantic/P1a-drug",
+    "https://example.org/trajectory/semantic/P2a-drug-role",
+    "https://example.org/trajectory/semantic/P2a-drug",
+    "https://example.org/trajectory/semantic/P3a-drug-role",
+    "https://example.org/trajectory/semantic/P3a-drug",
+    "https://example.org/trajectory/semantic/P4a-drug-role",
+    "https://example.org/trajectory/semantic/P4a-drug"
+  ],
+  "class_assertions": [
+    {
+      "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
+      "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P1a-drug",
+      "class": "https://example.org/trajectory/semantic/Antibiotic"
+    },
+    {
+      "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
+      "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P2a-drug",
+      "class": "https://example.org/trajectory/semantic/Antibiotic"
+    },
+    {
+      "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
+      "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P3a-drug",
+      "class": "https://example.org/trajectory/semantic/NonAntibiotic"
+    },
+    {
+      "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
+      "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+    },
+    {
+      "individual": "https://example.org/trajectory/semantic/P4a-drug",
+      "class": "https://example.org/trajectory/semantic/Antibiotic"
+    }
+  ],
+  "property_assertions": [
+    {
+      "subject": "https://example.org/trajectory/bounded-data/events/P1a",
+      "property": "https://w3id.org/sulo/hasParticipant",
+      "object": "https://example.org/trajectory/semantic/P1a-drug-role"
+    },
+    {
+      "subject": "https://example.org/trajectory/semantic/P1a-drug-role",
+      "property": "https://w3id.org/sulo/isFeatureOf",
+      "object": "https://example.org/trajectory/semantic/P1a-drug"
+    },
+    {
+      "subject": "https://example.org/trajectory/bounded-data/events/P2a",
+      "property": "https://w3id.org/sulo/hasParticipant",
+      "object": "https://example.org/trajectory/semantic/P2a-drug-role"
+    },
+    {
+      "subject": "https://example.org/trajectory/semantic/P2a-drug-role",
+      "property": "https://w3id.org/sulo/isFeatureOf",
+      "object": "https://example.org/trajectory/semantic/P2a-drug"
+    },
+    {
+      "subject": "https://example.org/trajectory/bounded-data/events/P3a",
+      "property": "https://w3id.org/sulo/hasParticipant",
+      "object": "https://example.org/trajectory/semantic/P3a-drug-role"
+    },
+    {
+      "subject": "https://example.org/trajectory/semantic/P3a-drug-role",
+      "property": "https://w3id.org/sulo/isFeatureOf",
+      "object": "https://example.org/trajectory/semantic/P3a-drug"
+    },
+    {
+      "subject": "https://example.org/trajectory/bounded-data/events/P4a",
+      "property": "https://w3id.org/sulo/hasParticipant",
+      "object": "https://example.org/trajectory/semantic/P4a-drug-role"
+    },
+    {
+      "subject": "https://example.org/trajectory/semantic/P4a-drug-role",
+      "property": "https://w3id.org/sulo/isFeatureOf",
+      "object": "https://example.org/trajectory/semantic/P4a-drug"
+    }
+  ],
+  "rules": [
+    {
+      "id": "antibiotic_administration",
+      "if": {
+        "all": [
+          {
+            "class": "https://example.org/trajectory/semantic/DrugAdministration"
+          },
+          {
+            "some": {
+              "property": "https://w3id.org/sulo/hasParticipant",
+              "filler": {
+                "all": [
+                  {
+                    "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+                  },
+                  {
+                    "some": {
+                      "property": "https://w3id.org/sulo/isFeatureOf",
+                      "filler": {
+                        "class": "https://example.org/trajectory/semantic/Antibiotic"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+    }
+  ],
+  "disjoint": [
+    {
+      "id": "drug_classes",
+      "classes": [
+        "https://example.org/trajectory/semantic/Antibiotic",
+        "https://example.org/trajectory/semantic/NonAntibiotic"
+      ]
+    }
+  ]
+}

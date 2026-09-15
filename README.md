@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection and mapping conformance with 228 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 250 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -81,6 +81,8 @@ The repository contains four independent executable contracts. They share the pi
 | **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
+
+The optional [Rust semantic-support profile](docs/semantic-support.md) adds inferred process-class selectors through a restricted rule module, checked against an independent finite evaluator before temporal matching. Its 22 tests run in a separate CI job; install `patterns/requirements-semantic.lock.txt` to run them.
 
 ## How it works
 

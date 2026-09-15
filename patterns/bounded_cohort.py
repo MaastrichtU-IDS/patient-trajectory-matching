@@ -66,13 +66,23 @@ def classify(source_network, edges, incomparable):
 
 def execute(snapshot, query):
     bt.validate(query, query=True)
+    types = {kind: bt.selected_classes({'event_kind': kind}) for kind in bt.KINDS}
+    return _execute_supported(snapshot, query, {e['id']: types[e['event_kind']]
+                                               for e in snapshot.events.values()})
+
+
+def _execute_supported(snapshot, query, supported_classes):
+    """Internal join over validated, complete class support supplied by an entry point.
+
+    Public callers use execute or semantic_support.execute; this function does
+    not validate semantic evidence and is not a serialized support-table API.
+    """
     groups = defaultdict(list)
     for event in snapshot.events.values():
         groups[bt.scope(event)].append(event)
-    types = {kind: bt.selected_classes({'event_kind': kind}) for kind in bt.KINDS}
     trajectories = []
     for scope, events in sorted(groups.items()):
-        candidates = {s['id']: sorted((e for e in events if s['class_iri'] in types[e['event_kind']]), key=lambda e: e['id'])
+        candidates = {s['id']: sorted((e for e in events if s['class_iri'] in supported_classes[e['id']]), key=lambda e: e['id'])
                       for s in query['slots']}
         names = sorted(candidates)
         bindings = []

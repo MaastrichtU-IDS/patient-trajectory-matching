@@ -42,7 +42,7 @@ python -m patterns.temporal_interface      # paired formal/SULO fixtures
 python -m patterns.test_temporal_interface # 22 tests
 ```
 
-All commands above exit 0. **228 checks in total:** 205 suite tests, 16 oracle cases, and seven properties. Any nonzero exit requires inspecting the reported status. For the interval profiles, exit code 2 means invalid profile input or inconsistent source constraints; the selector also uses it for blocked evidence, with its audit report preserved.
+All commands above exit 0. **228 base checks:** 205 suite tests, 16 oracle cases, and seven properties. Any nonzero exit requires inspecting the reported status. For the interval profiles, exit code 2 means invalid profile input or inconsistent source constraints; the selector also uses it for blocked evidence, with its audit report preserved.
 
 The default [evidence-selection example](evidence-selection.md) yields `READY`, with P1 certain in the nested matcher result. Repeating it with `--request examples/evidence-selection/retrospective-request.json` yields `READY` with no certain patients and `later_evidence_used: true`. Use a different `--output` directory to preserve both reports. The 29-test selection suite includes 60 seeded source histories and selected-answer comparisons with the finite-world reference.
 
@@ -326,6 +326,16 @@ print('openapi.json:', o['openapi'], '-', len(o['paths']), 'paths')
 No service implements these paths.
 
 ---
+
+## Optional checked Rust semantic support
+
+```sh
+python -m pip install -r patterns/requirements-semantic.lock.txt
+python -m patterns.semantic_support
+python -m patterns.test_semantic_support
+```
+
+This adds 22 tests using rustDL 0.4.28 and the independent finite evaluator: **250 checks overall**, comprising 227 suite tests, 16 oracle cases and seven properties. The semantic example and tests run in their own CI job. See [semantic-support.md](semantic-support.md) for the admitted fragment, source pairing, failure statuses and evidence. A backend problem returns no cohort answer. The original 18 standalone Java/OWL checks remain a separate evidence set and count.
 
 ## Interpreting results
 

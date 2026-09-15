@@ -283,3 +283,8 @@ Documented in the addendum and repeated here so they are not mistaken for oversi
 - [status.md](status.md) — what is executable versus specified
 - [issues.md](issues.md) — outstanding gaps and open questions
 - [validation.md](validation.md) — how to run and check each component
+
+
+## Checked semantic support for bounded matching
+
+The optional [semantic-support profile](semantic-support.md) now occupies part of the reasoning interface: it combines a selected snapshot's named process/PRO projection with an explicit restricted rule module, obtains class instances and consistency from pinned rustDL, and checks both against an independent finite evaluator before joining temporal candidates. It supports inferred process classes while preserving the original role/bearer witnesses and fixed-witness certainty. The generated module does not import the full SULO ontology. Arbitrary OWL, identity normalization and source-specific semantic evidence selection remain outside this integration. The point-anchor oracle continues to use its original toy taxonomy.
