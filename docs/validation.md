@@ -357,6 +357,16 @@ This adds 28 tests: **306 checks in total**, comprising 283 suite tests, 16 orac
 
 The optional public-demo reproduction command is documented in [MIMIC staging](mimic-inputevents-staging.md). That local run reconciles 20,404 input records; those records are not additional top-level tests. Staging success exits 0 while explicitly returning no matcher answer. The original 18 formal OWL checks remain a separate evidence set.
 
+## Patient-local clocks
+
+```sh
+python -m patterns.patient_local
+python -m patterns.patient_local --graph verification/patient-local-run/graph.ttl
+python -m patterns.test_patient_local
+```
+
+This adds 27 tests, bringing the total to **333 checks**: 310 suite tests, 16 oracle cases and seven properties. The 24 generated domain scenarios, each checked with four operators, are nested checks. Tests cover exact local coordinate conversion, patient isolation, origin rebasing, date-shift invariance, raw/RDF coordinate agreement, finite-world and proof checks, shared uncertainty, profile separation and CLI round trips. They run in the base CI job. No patient data or new optional dependency is required; see the [contract](patient-local-clocks.md).
+
 ## Interpreting results
 
 | Outcome | Meaning |

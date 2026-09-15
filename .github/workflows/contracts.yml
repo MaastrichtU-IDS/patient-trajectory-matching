@@ -86,6 +86,12 @@ jobs:
       - name: MIMIC source admission and reconciliation checks
         run: python -m patterns.test_mimic_inputevents
 
+      - name: Patient-local clock and RDF example
+        run: python -m patterns.patient_local
+
+      - name: Patient-local normalization, isolation and reasoning checks
+        run: python -m patterns.test_patient_local
+
       - name: Report generated-file drift
         # Informational only. Report files record the runner's Python patch
         # version, so they are expected to differ from the committed release.

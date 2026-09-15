@@ -25,6 +25,10 @@ PROFILE = ei.ROOT / 'ontology/bounded-rdf-profile.ttl'
 def export_source(source):
     """Export valid bounded JSON with explicit identifiers needed for RDF loading."""
     snapshot = bt.prepare(source)
+    return _export_snapshot(snapshot, PROFILE_ID)
+
+
+def _export_snapshot(snapshot, profile_id):
     graph = snapshot.graph
 
     def identifier(parent, cls, value):
@@ -33,7 +37,7 @@ def export_source(source):
         graph.add((node, RDF.type, cls))
         graph.add((node, ei.S.hasValue, Literal(value, datatype=XSD.string, normalize=False)))
 
-    identifier(bt.D.snapshot, BR.ProfileIdentifier, PROFILE_ID)
+    identifier(bt.D.snapshot, BR.ProfileIdentifier, profile_id)
     for vid in snapshot.variables:
         identifier(bt.D['variables/' + vid], BR.VariableIdentifier, vid)
     for row in snapshot.source['constraints']:
@@ -42,10 +46,12 @@ def export_source(source):
 
 
 class Reader:
-    def __init__(self, graph):
+    def __init__(self, graph, extra_ontologies=()):
         self.graph, self.consumed, self.claimed = graph, set(), set()
         self.ontology = (ei.base.ontology() + Graph().parse(ei.PROFILE)
                          + Graph().parse(ei.ROOT / 'ontology/bounded-interval-profile.ttl') + Graph().parse(PROFILE))
+        for path in extra_ontologies:
+            self.ontology += Graph().parse(path)
         self.ancestors = {}
         for s, p, o in graph:
             ei.require(isinstance(s, URIRef) and isinstance(p, URIRef) and isinstance(o, (URIRef, Literal)), 'NAMED_RDF_REQUIRED')
@@ -117,12 +123,19 @@ class Reader:
 
 
 def prepare_graph(input_graph):
+    return _prepare_graph(input_graph)
+
+
+def _prepare_graph(input_graph, *, profile_id=PROFILE_ID, source_profile=bt.PROFILE_ID,
+                   origin_datatype=XSD.dateTimeStamp, compiler=bt.compile_source,
+                   read_clock=None, read_variable=None, extra_ontologies=(), extra_files=(),
+                   time_domain='bounded-integer-microseconds'):
     graph = Graph()
     for triple in input_graph: graph.add(triple)
-    r = Reader(graph)
+    r = Reader(graph, extra_ontologies)
     snapshot_node = r.claim(ei.one(r.nodes(bt.BT.Snapshot), 'SNAPSHOT_CARDINALITY'), bt.BT.Snapshot)
-    ei.require(r.string(snapshot_node, BR.ProfileIdentifier) == PROFILE_ID, 'UNSUPPORTED_RDF_PROFILE')
-    source = {'profile': bt.PROFILE_ID, 'dataset_id': r.string(snapshot_node, bt.BT.DatasetIdentifier),
+    ei.require(r.string(snapshot_node, BR.ProfileIdentifier) == profile_id, 'UNSUPPORTED_RDF_PROFILE')
+    source = {'profile': source_profile, 'dataset_id': r.string(snapshot_node, bt.BT.DatasetIdentifier),
               'snapshot_id': r.string(snapshot_node, bt.BT.SnapshotIdentifier),
               'clocks': [], 'variables': [], 'events': [], 'constraints': []}
     clock_ids, variable_ids, variable_evidence, constraint_evidence = {}, {}, {}, {}
@@ -131,8 +144,9 @@ def prepare_graph(input_graph):
         clock_id = r.string(node, ei.EI.ClockIdentifier)
         ei.require(clock_id not in clock_ids.values(), 'DUPLICATE_CLOCK_IDENTIFIER')
         clock_ids[node] = clock_id
-        source['clocks'].append({'clock_id': clock_id, 'origin': r.value(node, ei.EI.ClockOrigin, datatype=XSD.dateTimeStamp, unit=ei.EI.Second)[0],
-                                 'scope': r.string(node, ei.EI.ClockScope), 'policy': r.string(node, ei.EI.ClockPolicy)})
+        source['clocks'].append({'clock_id': clock_id, 'origin': r.value(node, ei.EI.ClockOrigin, datatype=origin_datatype, unit=ei.EI.Second)[0],
+                                 'scope': r.string(node, ei.EI.ClockScope), 'policy': r.string(node, ei.EI.ClockPolicy),
+                                 **(read_clock(r, node) if read_clock else {})})
     for node in r.nodes(bt.BT.TemporalVariable):
         r.claim(node, bt.BT.TemporalVariable)
         vid = r.string(node, BR.VariableIdentifier)
@@ -146,7 +160,8 @@ def prepare_graph(input_graph):
         provenance = r.provenance(node)
         source['variables'].append({'id': vid, 'lower_us': lower[0], 'upper_us': upper[0],
                                     'patient_id': r.string(node, ei.EX.PatientIdentifier), 'episode_id': r.string(node, ei.EX.EpisodeIdentifier),
-                                    'clock_id': clock_ids[clock], 'source_key': provenance['source_key']})
+                                    'clock_id': clock_ids[clock], 'source_key': provenance['source_key'],
+                                    **(read_variable(r, node) if read_variable else {})})
         variable_evidence[vid] = {'variable': str(node), 'lower': lower[1], 'upper': upper[1],
                                   'clock_binding': str(binding), 'clock': str(clock), 'provenance': provenance}
     for node in r.nodes(bt.BT.DifferenceConstraint):
@@ -220,10 +235,10 @@ def prepare_graph(input_graph):
             else: item['rdf'] = evidence[item['event_id']]
 
     try:
-        source, events, variables, networks, edge_evidence = bt.compile_source(source)
+        source, events, variables, networks, edge_evidence = compiler(source)
     except bt.InconsistentSource as error:
         attach_rdf(error.details['edge_evidence'])
-        error.details['rdf_context'] = {'profile': PROFILE_ID, 'graph_sha256': ei.digest(ei.turtle_text(graph)),
+        error.details['rdf_context'] = {'profile': profile_id, 'graph_sha256': ei.digest(ei.turtle_text(graph)),
                                         'dataset_id': source['dataset_id'], 'snapshot_id': source['snapshot_id']}
         error.args = ('INCONSISTENT_SOURCE: ' + ei.canonical(error.details),)
         raise
@@ -232,14 +247,14 @@ def prepare_graph(input_graph):
              'patterns/temporal_stn.py', 'schemas/bounded-interval.schema.json', 'ontology/bounded-interval-profile.ttl',
              'ontology/exact-interval-profile.ttl', 'ontology/pro-solid-profile.ttl', 'ontology/vendor/sulo-0.2.14.ttl',
              'patterns/exact_intervals.py', 'patterns/pro_solid.py', 'patterns/requirements.lock.txt')
-    context = {'profile': PROFILE_ID, 'dataset_id': source['dataset_id'], 'snapshot_id': source['snapshot_id'],
+    context = {'profile': profile_id, 'dataset_id': source['dataset_id'], 'snapshot_id': source['snapshot_id'],
                'graph_sha256': ei.digest(ei.turtle_text(graph)), 'projection_sha256': ei.digest(ei.canonical(source)),
-               'time_domain': 'bounded-integer-microseconds', 'source_hash_policy': 'preserve_declared_hashes',
-               'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in files}}
+               'time_domain': time_domain, 'source_hash_policy': 'preserve_declared_hashes',
+               'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in files + extra_files}}
     context_id = ei.digest(ei.canonical(context))
     for item in evidence.values():
         item['context_id'] = context_id
-        item['evidence_id'] = PROFILE_ID + ':' + ei.digest(ei.canonical(item))
+        item['evidence_id'] = profile_id + ':' + ei.digest(ei.canonical(item))
     return bt.Snapshot(source, graph, events, variables, networks, edge_evidence, evidence, context, context_id)
 
 

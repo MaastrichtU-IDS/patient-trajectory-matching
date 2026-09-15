@@ -85,10 +85,10 @@ All five blockers are explicit in every successful result:
 
 | Blocker | Required follow-up |
 |---|---|
-| `PATIENT_LOCAL_CLOCK_BRIDGE_REQUIRED` | Add a versioned local-coordinate profile, explicit origin/anchor policy, and RDF round trip; preserve patient isolation and joint time constraints |
+| `PATIENT_LOCAL_CLOCK_BRIDGE_REQUIRED` | Use the [patient-local profile](patient-local-clocks.md) after declaring an origin and justified source bounds; staged-row integration remains pending |
 | `CLINICAL_MAPPING_REVIEW_REQUIRED` | Review item/category/component/status mappings and units before asserting a SULO process class or performed administration |
 | `OCCURRENCE_PRECISION_POLICY_REQUIRED` | Establish justified endpoint bounds, including bolus, rounding and documentation uncertainty; do not turn lexical timestamps into exact clinical events |
 | `SOURCE_AVAILABILITY_UNVERIFIED` | Supply trustworthy availability semantics or define a separately named retrospective-only contract |
 | `SOURCE_REVISION_HISTORY_UNAVAILABLE` | Establish revision/withdrawal coverage before enabling source-as-known replay |
 
-The next bounded implementation should be the patient-local coordinate bridge with synthetic differential and RDF checks. It must not merely append `Z` to satisfy the current offset-datetime profile. A later retrospective demonstration may be possible without reconstructing source-as-known history, but it needs its own honest contract. These staging rows cannot currently enter [joint evidence selection](joint-evidence-selection.md), whose clock and availability fields require explicit offset datetimes. No SULO properties, reasoning rules, matcher semantics, or original 18 formal checks change here.
+The generic [patient-local coordinate bridge](patient-local-clocks.md) now passes synthetic differential and RDF checks. Staged-row integration still requires reviewed clinical mappings and justified bounds; the scalar conversion does not resolve those blockers. A later retrospective demonstration may be possible without reconstructing source-as-known history, but it needs its own honest contract. These staging rows cannot currently enter [joint evidence selection](joint-evidence-selection.md), whose clock and availability fields require explicit offset datetimes. No SULO properties, reasoning rules, matcher semantics, or original 18 formal checks change here.

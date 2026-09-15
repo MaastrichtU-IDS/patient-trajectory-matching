@@ -253,6 +253,7 @@ def check(model, classes, *, timeout_seconds=20):
 
 
 def execute(snapshot, query, module, *, timeout_seconds=20):
+    ei.require(snapshot.source['profile'] == bt.PROFILE_ID, 'UNSUPPORTED_SNAPSHOT_PROFILE')
     query, module = deepcopy(query), deepcopy(module)
     model = build_model(snapshot, module)
     validate_query(query, model['classes'])

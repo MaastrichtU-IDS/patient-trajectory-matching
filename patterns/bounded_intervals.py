@@ -35,6 +35,10 @@ def validate(value, *, query=False):
     schema = json.loads(SCHEMA.read_text())
     if query:
         schema = schema['$defs']['query']
+    return _validate_contract(value, schema, query=query)
+
+
+def _validate_contract(value, schema, *, query=False):
     errors = list(Draft202012Validator(schema).iter_errors(value))
     ei.require(not errors, 'INVALID_QUERY_SCHEMA' if query else 'INVALID_SOURCE_SCHEMA')
     # JSON Schema considers 1.0 an integer; the execution contract requires JSON ints.
@@ -88,6 +92,13 @@ class Snapshot:
 def compile_source(source):
     """Validate and compile normalized records without inventing graph evidence."""
     validate(source)
+    for clock in source['clocks']:
+        ei.normalize(clock['origin'], clock['origin'])
+    return _compile_validated(source)
+
+
+def _compile_validated(source):
+    """Shared integer network kernel; entry points validate their clock contracts."""
     # Own the source snapshot rather than retaining mutable caller dictionaries.
     source = json.loads(ei.canonical(source))
     variables = unique(source['variables'], 'id')
@@ -96,7 +107,6 @@ def compile_source(source):
     constraints = unique(source['constraints'], 'id')
     clocks = unique(source['clocks'], 'clock_id')
     for clock in clocks.values():
-        ei.normalize(clock['origin'], clock['origin'])
         ei.require(clock['scope'] == 'global' or re.fullmatch(r'patient:[A-Za-z0-9_-]+', clock['scope']), 'UNSUPPORTED_CLOCK_SCOPE')
     groups, edges, edge_evidence = defaultdict(list), defaultdict(list), {}
     for vid, v in sorted(variables.items()):
@@ -132,24 +142,29 @@ def compile_source(source):
 
 
 def prepare(source):
-    source, events, variables, networks, edge_evidence = compile_source(source)
-    graph, evidence = build_graph(source)
+    return _prepare_compiled(compile_source(source))
+
+
+def _prepare_compiled(compiled, *, profile_id=PROFILE_ID, graph_builder=None, extra_files=(),
+                      time_domain='bounded-integer-microseconds'):
+    source, events, variables, networks, edge_evidence = compiled
+    graph, evidence = (graph_builder or build_graph)(source)
     files = ('patterns/bounded_intervals.py', 'patterns/temporal_stn.py', 'schemas/bounded-interval.schema.json',
              'ontology/bounded-interval-profile.ttl', 'ontology/exact-interval-profile.ttl',
              'ontology/pro-solid-profile.ttl', 'ontology/vendor/sulo-0.2.14.ttl',
              'patterns/exact_intervals.py', 'patterns/pro_solid.py', 'patterns/requirements.lock.txt')
-    context = {'profile': PROFILE_ID, 'dataset_id': source['dataset_id'], 'snapshot_id': source['snapshot_id'],
+    context = {'profile': profile_id, 'dataset_id': source['dataset_id'], 'snapshot_id': source['snapshot_id'],
                'source_sha256': ei.digest(ei.canonical(source)), 'graph_sha256': ei.digest(ei.turtle_text(graph)),
-               'time_domain': 'bounded-integer-microseconds',
-               'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in files}}
+               'time_domain': time_domain,
+               'artifacts': {p: hashlib.sha256((ei.ROOT / p).read_bytes()).hexdigest() for p in files + extra_files}}
     context_id = ei.digest(ei.canonical(context))
     for item in evidence.values():
         item['context_id'] = context_id
-        item['evidence_id'] = PROFILE_ID + ':' + ei.digest(ei.canonical(item))
+        item['evidence_id'] = profile_id + ':' + ei.digest(ei.canonical(item))
     return Snapshot(source, graph, events, variables, networks, edge_evidence, evidence, context, context_id)
 
 
-def build_graph(source):
+def build_graph(source, *, origin_datatype=XSD.dateTimeStamp):
     """Internal writer for a validated source; emit no sampled point timestamps."""
     g, evidence = Graph(), {}
     for prefix, ns in [('sulo', ei.S), ('bt', BT), ('ei', ei.EI), ('ex', ei.EX), ('data', D)]:
@@ -181,7 +196,7 @@ def build_graph(source):
         clock = node('clocks/' + c['clock_id'], ei.EI.TemporalReferenceSystem)
         for field, cls in [('clock_id', ei.EI.ClockIdentifier), ('scope', ei.EI.ClockScope), ('policy', ei.EI.ClockPolicy)]:
             scalar(clock, field, cls, c[field])
-        scalar(clock, 'origin', ei.EI.ClockOrigin, c['origin'], XSD.dateTimeStamp, ei.EI.Second)
+        scalar(clock, 'origin', ei.EI.ClockOrigin, c['origin'], origin_datatype, ei.EI.Second)
     for v in source['variables']:
         variable = node('variables/' + v['id'], BT.TemporalVariable)
         g.add((snapshot, ei.S.hasDirectPart, variable))
