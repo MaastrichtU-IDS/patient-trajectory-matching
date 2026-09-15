@@ -444,3 +444,12 @@ python -m patterns.test_local_claim_projection
 ```
 
 The 32 new tests bring the total to **434 checks**: 411 suite tests, 16 oracle cases and seven properties. Both synthetic local and recorded examples run in the Rust CI job. The [contract](local-claim-projection.md) includes the recorded example command, source/normalized evidence distinction and local-time interpretation. The original 45 claim tests continue to validate the offset profile and base isolation closure.
+
+## MIMIC pending claim import
+
+```sh
+python -m patterns.mimic_claim_import
+python -m patterns.test_mimic_claim_import
+```
+
+The 25 import tests bring the current total to **459 checks**: 436 suite tests, 16 oracle cases and seven properties. They cover the file-to-description boundary, full row accounting, provenance and limits, plus explicit synthetic acceptance and withdrawal through the checked Rust route. CI runs the synthetic import and checks the committed public-demo aggregate hashes; patient data are not downloaded. See the [import contract](mimic-claim-import.md) for local public-demo reproduction and interpretation limits.

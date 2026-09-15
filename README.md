@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 434 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 459 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -137,6 +137,7 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | [Interval cohort matching](docs/interval-cohort-matching.md) | Slot queries, indexed joins, differential reference |
 | [Bounded temporal uncertainty](docs/bounded-temporal-uncertainty.md) | Shared variables, joint feasibility, fixed-witness certainty, certificates |
 | [Bounded RDF ingestion](docs/bounded-rdf-ingestion.md) | Closed graph validation, explicit identifiers, preserved source evidence |
+| [MIMIC pending claim import](docs/mimic-claim-import.md) | Source provenance, complete row ledger and unaccepted recorded claims |
 | [Patient-local claim projection](docs/local-claim-projection.md) | Local and recorded claim profiles, clock isolation and preserved date-label evidence |
 | [Structured claims and controlled projection](docs/claim-projection.md) | Claim-only RDF, explicit acceptance, checked isolation and dependent retraction |
 | [End-to-end recorded-source query](docs/mimic-record-query.md) | MIMIC CSV to RDF, checked semantic/temporal matching and complete reconciliation |

@@ -152,6 +152,10 @@ jobs:
           python -m patterns.local_claim_projection --store examples/local-claim-projection/record-store.json --policy examples/local-claim-projection/record-policy.json --semantic-policy examples/local-claim-projection/record-semantic-policy.json --query examples/local-claim-projection/record-query.json --output verification/local-claim-projection-run/record-result.json
       - name: Local claim clocks, dependencies and profile checks
         run: python -m patterns.test_local_claim_projection
+      - name: Import source records as pending claims
+        run: |
+          python -m patterns.mimic_claim_import
+          python -m patterns.test_mimic_claim_import
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -163,6 +167,7 @@ jobs:
             verification/mimic-record-query-run/
             verification/claim-projection-run/
             verification/local-claim-projection-run/
+            verification/mimic-claim-import-run/
           retention-days: 14
 
   oracle-compatibility:
