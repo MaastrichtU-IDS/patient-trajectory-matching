@@ -1,0 +1,53 @@
+{
+  "profile": "joint-semantic-policy-1.0",
+  "id": "constructed-antibiotic-rule-v1",
+  "classes": [
+    "https://example.org/trajectory/semantic/DrugAdministration",
+    "https://example.org/trajectory/semantic/AntibioticAdministration",
+    "https://example.org/trajectory/semantic/AdministeredDrugRole",
+    "https://example.org/trajectory/semantic/Antibiotic",
+    "https://example.org/trajectory/semantic/NonAntibiotic"
+  ],
+  "rules": [
+    {
+      "id": "antibiotic_administration",
+      "if": {
+        "all": [
+          {
+            "class": "https://example.org/trajectory/semantic/DrugAdministration"
+          },
+          {
+            "some": {
+              "property": "https://w3id.org/sulo/hasParticipant",
+              "filler": {
+                "all": [
+                  {
+                    "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+                  },
+                  {
+                    "some": {
+                      "property": "https://w3id.org/sulo/isFeatureOf",
+                      "filler": {
+                        "class": "https://example.org/trajectory/semantic/Antibiotic"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+    }
+  ],
+  "disjoint": [
+    {
+      "id": "drug_classes",
+      "classes": [
+        "https://example.org/trajectory/semantic/Antibiotic",
+        "https://example.org/trajectory/semantic/NonAntibiotic"
+      ]
+    }
+  ]
+}

@@ -17,6 +17,8 @@ The point-anchor adapter executes only named subclass closure, the `hasFeature` 
 
 The optional [Rust semantic-support profile](semantic-support.md) now checks named class entailment and consistency for a restricted, explicitly generated Horn module, with an independent finite evaluator on every run. Full SULO/import-closure reasoning and identity normalization remain unimplemented. The original point-anchor disjointness checks still cover only its named upper categories.
 
+The separate [claim-description model checker](claim-projection.md) now verifies one constructive model of the complete pinned SULO closure plus its closed information-object encoding. This establishes claim isolation for that encoding; it does not establish full-SULO consistency of the accepted clinical assertion view.
+
 ### O2. Broader terminology integration remains open **[gap]**
 *Source: [2.4 §4](../addenda/specification-2.4.md)*
 

@@ -426,3 +426,12 @@ A second job runs the dependency-free oracle on Python 3.10, 3.11 and 3.13.
 | Indexed and reference engines disagree | The index is wrong; the reference engine is the specification |
 | `pip install` fails on 3.13+ | The lock file targets 3.12; use `python3.12` |
 | Dirty tree after a run | Expected: report files record the interpreter version |
+
+## Structured claims and controlled projection
+
+```sh
+python -m patterns.claim_projection
+python -m patterns.test_claim_projection
+```
+
+These use the existing optional Rust dependency lock and run in the Rust CI job. The 45 new tests bring the total to **402 checks**: 379 suite tests, 16 oracle cases and seven properties. The default synthetic run returns `READY`, P1 certain, and `VERIFIED_EMPTY_PROCESS_MODEL` for the separate claim graph. The [contract](claim-projection.md) explains the pinned-SULO model check, accepted-view limitations, decisions, support dependencies, bounds and RDF input route. No clinical approval or original source-history verification is implied.

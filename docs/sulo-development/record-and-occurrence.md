@@ -1,6 +1,8 @@
 # D2. Records, claims and occurrence
 
-**Status: proposed representation decision; not implemented.** The [current record-query profile](../mimic-record-query.md) remains an explicitly interpreted application projection. This document makes its portability limit visible and specifies the next acceptance gates.
+**Status: proposed general pattern with a bounded executable prototype.** The [current record-query profile](../mimic-record-query.md) remains an explicitly interpreted application projection. This document makes its portability limit visible and specifies the next acceptance gates.
+
+The [claim-projection prototype](../claim-projection.md) now implements structured information-object claims, explicit acceptance/replacement/withdrawal, and a checked empty-Process model for its description graph plus pinned SULO. The accepted view still uses restricted semantic support; clinical mapping and general contextual semantics remain open.
 
 ## The distinction we need
 
@@ -27,7 +29,7 @@ Maintain structured **claim descriptions as information objects**, using applica
 
 Produce an accepted assertion view through a separate, versioned projection policy. Retain links from every projected assertion or support bundle to the selected source claims and the policy. “Accepted” means accepted for that declared analysis; it must not be displayed as “clinically verified” unless separate evidence supports that claim.
 
-This proposal requires a precise encoding, including how relation positions and claim targets are bound using existing SULO properties. The binding shapes, dependency closure, and round-trip behaviour remain to be implemented. It is not a claim that generic `refersTo` alone encodes a proposition. Do not introduce a parallel ad hoc property vocabulary to avoid specifying these structures.
+This proposal requires a precise encoding, including how relation positions and claim targets are bound using existing SULO properties. The prototype now specifies binding shapes, selected-dependency checks and a closed RDF round trip for the existing bounded temporal/semantic bundles. General proposition encoding and clinical source mappings remain open. It is not a claim that generic `refersTo` alone encodes a proposition. Do not introduce a parallel ad hoc property vocabulary to avoid specifying these structures.
 
 Use the existing [evidence-selection](../evidence-selection.md) and [joint-selection](../joint-evidence-selection.md) work as starting points for revision and support management. Those profiles do not currently establish trustworthy MIMIC availability times or integrate historical local-clock replay.
 

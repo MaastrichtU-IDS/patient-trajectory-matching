@@ -1,0 +1,282 @@
+{
+  "profile": "claim-store-1.0",
+  "dataset_id": "synthetic_claims",
+  "snapshot_id": "claims_1",
+  "clocks": [
+    {
+      "clock_id": "clinical",
+      "origin": "2026-01-01T00:00:00Z",
+      "scope": "global",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "claims": [
+    {
+      "id": "admin",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "bundle": {
+        "variables": [
+          {
+            "id": "As",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "lower_us": 0,
+            "upper_us": 0,
+            "source_key": "As"
+          },
+          {
+            "id": "Ae",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "lower_us": 1,
+            "upper_us": 1,
+            "source_key": "Ae"
+          }
+        ],
+        "events": [
+          {
+            "id": "A",
+            "record_id": "record_A",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "status": "performed",
+            "start_var": "As",
+            "end_var": "Ae",
+            "source_key": "A"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "role_declaration",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "individual",
+            "local_id": "drug_role"
+          },
+          {
+            "id": "drug_declaration",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "individual",
+            "local_id": "drug"
+          },
+          {
+            "id": "administration_type",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "event_id": "A"
+            },
+            "class_iri": "https://example.org/trajectory/semantic/DrugAdministration"
+          },
+          {
+            "id": "role_type",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "local_id": "drug_role"
+            },
+            "class_iri": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+          },
+          {
+            "id": "drug_participation",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "property",
+            "subject": {
+              "event_id": "A"
+            },
+            "property_iri": "https://w3id.org/sulo/hasParticipant",
+            "object": {
+              "local_id": "drug_role"
+            }
+          },
+          {
+            "id": "drug_bearer",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "property",
+            "subject": {
+              "local_id": "drug_role"
+            },
+            "property_iri": "https://w3id.org/sulo/isFeatureOf",
+            "object": {
+              "local_id": "drug"
+            }
+          }
+        ]
+      },
+      "source_id": "synthetic_hospital",
+      "source_record_id": "admin_row",
+      "source_sha256": "ac08cf9d91f03a11d7669215a590fc28315958a8afbe075652b638d088bdad46"
+    },
+    {
+      "id": "collection_original",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "bundle": {
+        "variables": [
+          {
+            "id": "Bs",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "lower_us": 3,
+            "upper_us": 3,
+            "source_key": "Bs"
+          },
+          {
+            "id": "Be",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "lower_us": 4,
+            "upper_us": 4,
+            "source_key": "Be"
+          }
+        ],
+        "events": [
+          {
+            "id": "B",
+            "record_id": "record_B",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "status": "performed",
+            "start_var": "Bs",
+            "end_var": "Be",
+            "source_key": "B"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      },
+      "source_id": "synthetic_hospital",
+      "source_record_id": "collection_row",
+      "source_sha256": "a549b6ef346579778b367d180c1666b99a40e2a0673c71e5a93372b732dee89c"
+    },
+    {
+      "id": "admin_classified",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "bundle": {
+        "variables": [
+          {
+            "id": "As",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "lower_us": 0,
+            "upper_us": 0,
+            "source_key": "As"
+          },
+          {
+            "id": "Ae",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "lower_us": 1,
+            "upper_us": 1,
+            "source_key": "Ae"
+          }
+        ],
+        "events": [
+          {
+            "id": "A",
+            "record_id": "record_A",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "status": "performed",
+            "start_var": "As",
+            "end_var": "Ae",
+            "source_key": "A"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "role_declaration",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "individual",
+            "local_id": "drug_role"
+          },
+          {
+            "id": "drug_declaration",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "individual",
+            "local_id": "drug"
+          },
+          {
+            "id": "administration_type",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "event_id": "A"
+            },
+            "class_iri": "https://example.org/trajectory/semantic/DrugAdministration"
+          },
+          {
+            "id": "role_type",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "local_id": "drug_role"
+            },
+            "class_iri": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+          },
+          {
+            "id": "drug_participation",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "property",
+            "subject": {
+              "event_id": "A"
+            },
+            "property_iri": "https://w3id.org/sulo/hasParticipant",
+            "object": {
+              "local_id": "drug_role"
+            }
+          },
+          {
+            "id": "drug_bearer",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "property",
+            "subject": {
+              "local_id": "drug_role"
+            },
+            "property_iri": "https://w3id.org/sulo/isFeatureOf",
+            "object": {
+              "local_id": "drug"
+            }
+          },
+          {
+            "id": "drug_class",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "local_id": "drug"
+            },
+            "class_iri": "https://example.org/trajectory/semantic/Antibiotic"
+          }
+        ]
+      },
+      "source_id": "synthetic_hospital",
+      "source_record_id": "admin_row",
+      "source_sha256": "bf7aa21488b2788facb5541e9e856ee0cb01312e79ad8782024d77814dd8ebf3"
+    }
+  ]
+}
