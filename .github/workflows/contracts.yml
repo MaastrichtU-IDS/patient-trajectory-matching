@@ -178,6 +178,10 @@ jobs:
         run: |
           python -m patterns.indexed_source_windows
           python -m patterns.test_indexed_source_windows
+      - name: Partition coverage, review and complete execution
+        run: |
+          python -m patterns.partitioned_window_query --prepare-review
+          python -m patterns.test_partitioned_window_query
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -194,6 +198,7 @@ jobs:
             verification/mixed-record-query-run/
             verification/source-mixed-query-run/
             verification/indexed-source-windows-run/
+            verification/partitioned-window-query-run/
           retention-days: 14
 
   oracle-compatibility:

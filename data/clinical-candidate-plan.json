@@ -57,7 +57,7 @@
   "scope": "retrospective ICU source records; no age-based eligibility implemented",
   "source_selection_status": "conditional_record_windows_executed_clinical_review_pending",
   "record_acceptance_status": "not_executed",
-  "extraction_status": "indexed_windows_implemented_blocked_anchors_retained",
+  "extraction_status": "indexed_windows_and_complete_partition_plans_implemented",
   "required_reviews": [
     "item identity and separate measurement strata",
     "segment anchor meaning and revision/duplicate policy",
@@ -72,6 +72,14 @@
     "report": "verification/indexed-source-windows-demo-report.json",
     "status": "conditional_demo_windows_verified_with_blocked_anchors_retained",
     "clinical_review_supplied": false,
+    "real_source_mixed_query_executed": false
+  },
+  "technical_partition_execution": {
+    "implementation": "patterns/partitioned_window_query.py",
+    "report": "verification/partitioned-window-demo-report.json",
+    "status": "all_demo_partition_plans_verified_synthetic_execution_verified",
+    "clinical_review_supplied": false,
+    "real_source_claims_accepted": 0,
     "real_source_mixed_query_executed": false
   }
 }

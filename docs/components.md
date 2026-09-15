@@ -366,3 +366,7 @@ No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access re
 ## Indexed source windows
 
 [`patterns/indexed_source_windows.py`](../patterns/indexed_source_windows.py) streams original source rows into a patient/stay/item/time index, checks every anchor window against a direct datetime reference, retains blocked/empty anchors, and exports an individually requested count-bounded anchor as pending claims. It preserves original hashes and row numbers. [The contract and aggregate demo report](indexed-source-windows.md) distinguish window completeness, count bounds, batch validation and explicit acceptance.
+
+## Partitioned window execution
+
+[`patterns/partitioned_window_query.py`](../patterns/partitioned_window_query.py) covers each complete exact-record window with batches of at most 16 points, checks record and pair coverage, validates consistent explicit review, runs the existing mixed matcher, and reconciles merged bindings with an unpartitioned raw-row SQL reference. It retains every batch, anchor and stay and withholds complete cohort membership on any blocked anchor. [The contract](partitioned-window-query.md) limits this decomposition to independent exact source records and reports public-demo partition plans separately from synthetic execution.

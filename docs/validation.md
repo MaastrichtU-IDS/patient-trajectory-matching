@@ -508,3 +508,14 @@ python -m patterns.verify_indexed_source_windows --input-dir /path/to/demo/icu
 ```
 
 Expected synthetic selection: three anchors, all windows count-bounded, original source identities retained. Twenty-four tests include real Rust and raw-row SQL agreement after explicit synthetic batch acceptance. The complete suite totals 600 checks: 577 suite tests, 16 oracle cases and seven properties. [The committed aggregate report](../verification/indexed-source-windows-demo-report.json) records 2,832 agreeing indexed/direct windows over three separate measurement strata; blocked anchors remain explicit, with no real-source mixed query or claim acceptance. See [the contract](indexed-source-windows.md).
+
+## Partitioned window execution
+
+```sh
+python -m patterns.partitioned_window_query --prepare-review
+python -m patterns.test_partitioned_window_query
+# Original pinned demo files, aggregate plan verification only:
+python -m patterns.verify_partitioned_windows --input-dir /path/to/demo/icu
+```
+
+Preparation emits pending policies and no accepted records. The 27 tests check all window sizes 0–128, missing cross-block pairs, exact Rust/SQL execution of a 38-point window, duplicate and missing-follow-up merging, review consistency, stale hashes, withdrawals, blocked batches, complete stay accounting, CLI atomicity and report provenance. The complete suite totals **627 checks: 604 suite tests, 16 oracle cases and seven properties**. The [aggregate report](../verification/partitioned-window-demo-report.json) verifies 2,870 planned batches for all 2,832 demo anchors across three separate strata, with no real-source acceptance or mixed query. See [review instructions and scope](partitioned-window-query.md).

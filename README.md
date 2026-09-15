@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 600 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 627 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -81,6 +81,8 @@ The repository contains four independent executable contracts. They share the pi
 | **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
+
+The [partitioned window executor](docs/partitioned-window-query.md) now covers oversized exact-record windows with overlapping batches, explicit review and complete batch/anchor/stay accounting. All 2,832 public-demo anchors have verified partition plans; real-source review and execution remain pending.
 
 The [indexed source-window selector](docs/indexed-source-windows.md) now prepares complete per-anchor time windows with original row provenance. All 2,832 public-demo windows agree with a direct reference; oversized anchors remain blocked and claim exports remain pending.
 

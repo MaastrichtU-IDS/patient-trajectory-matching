@@ -74,7 +74,7 @@ The [aggregate report](../verification/indexed-source-windows-demo-report.json) 
 
 All **2,832 indexed windows agree with the direct timestamp reference**. The arterial stratum has two windows above the measurement-claim limit and three above the conservative follow-up bound; those reason counts overlap. The non-invasive stratum has nine above the conservative follow-up bound. All three requests retain the same treatment-anchor roster; these results do not select or rank measurement methods by downstream outcomes.
 
-The third stratum completes window selection within count bounds, but its empty windows and sparse record coverage do not establish clinical suitability. No demo claim batches have been accepted and no real-source mixed query has run. The remaining work is explicit batch review and a complete execution ledger, together with a verified treatment of oversized anchors (for example exact candidate accounting or complete partitioning that preserves every binding). Simply truncating windows or excluding blocked anchors is not an acceptable completion strategy.
+The third stratum completes window selection within count bounds, but its empty windows and sparse record coverage do not establish clinical suitability. No demo claim batches have been accepted and no real-source mixed query has run. The subsequent [partitioned window profile](partitioned-window-query.md) supplies complete pair-covering plans for the oversized windows, explicit review validation and a complete execution ledger. It preserves the whole-window exporter and its guards. Real-source review and mixed execution remain pending; the legacy results above continue to describe the whole-window route.
 
 ## Run and validate
 
