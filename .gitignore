@@ -10,3 +10,4 @@ __pycache__/
 
 # Reproducible exact-interval CLI outputs (the stable example graph is committed).
 verification/exact-interval-run/
+verification/interval-cohort-run/

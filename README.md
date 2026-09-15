@@ -26,6 +26,15 @@ python -m patterns.test_exact_intervals
 
 This separate profile constructs four synthetic process intervals, validates their PRO/SOLID representation and clocks, and evaluates nine explicit comparisons covering strict `before`, `meets`, directional `overlaps`, and bounded nonnegative gaps. Results retain source, role, endpoint, clock, and snapshot evidence. See the [profile contract and worked results](docs/exact-interval-profile.md). It does not change the v2.4 point-anchor oracle or add generalized cohort interval matching.
 
+## Exact interval cohort queries
+
+```sh
+python -m patterns.interval_cohort
+python -m patterns.test_interval_cohort
+```
+
+The separate `interval-cohort-1.0` query contract binds required, distinct interval slots within patient episodes. Its indexed joins preserve all matching and unresolved bindings and are checked against an exhaustive reference matcher. The constructed three-patient example returns P1 as a match, P2 with no recorded match, and P3 as incomparable because its clocks differ. See the [query contract, evidence, and scope](docs/interval-cohort-matching.md). This adds exact conjunctive interval queries; uncertainty, clinical source mapping, and patient-to-patient similarity remain future work.
+
 ## Start here: PRO and SOLID
 
 Read `addenda/specification-2.4.md` for the current modeling contract and a worked graph. `patterns/pro_solid.py` implements synthetic source rows → PRO/SOLID RDF → validation → matcher projection → exact/relaxed exemplar matching. Patient participation uses the PRO role/bearer path. Literal values, timestamps and source metadata use typed information objects with `sulo:hasValue`.
