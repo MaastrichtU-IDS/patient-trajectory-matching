@@ -170,3 +170,8 @@ Open `http://127.0.0.1:8765/pressure` for the authored source and mapping review
 ## Configure supplied records
 
 Run `python demo/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json`. The page takes its source label, item, defaults and maximum windows from the supplied configuration/request. The [configuration runbook](../docs/configured-pressure-service.md) explains explicit review inputs, restart behavior and HTTP/UI verification.
+
+
+## Verify a configured workload
+
+Use `python demo/benchmark_configured_pressure.py --config examples/configured-pressure-service/config.json --workload examples/configured-pressure-service/workload.json --repetitions 3 --output verification/configured-pressure-workload-run/local-report.json`. The [runbook](../docs/configured-pressure-workload.md) explains fresh-reference comparisons, cache behavior and measurement limits.

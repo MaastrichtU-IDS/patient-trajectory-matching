@@ -44,3 +44,10 @@ jobs:
           name: configured-pressure-http-evidence
           path: verification/configured-pressure-run/report.json
           retention-days: 14
+      - name: Upload configured pressure workload verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: configured-pressure-workload-evidence
+          path: verification/configured-pressure-workload-run/report.json
+          retention-days: 14
