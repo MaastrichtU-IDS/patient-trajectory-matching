@@ -42,9 +42,11 @@ class UseCaseConformanceTests(unittest.TestCase):
     def test_gen01_post_release_changes_interpretation_not_observation(self):
         before = run_gen01("before-request.json")
         after = run_gen01("after-request.json")
+        self.assertEqual(after["status"], "READY")
         self.assertEqual(observation_payload(before), observation_payload(after))
         self.assertNotIn("clingen_r2_pathogenic", selected_fact_ids(before))
         self.assertIn("clingen_r2_pathogenic", selected_fact_ids(after))
+        self.assertFalse(after["selection"]["later_evidence_used"])
 
     def test_gen01_conflicting_classification_claims_fail_closed(self):
         archive = gen01_fixture("archive.json")
@@ -55,7 +57,9 @@ class UseCaseConformanceTests(unittest.TestCase):
 
         same_id_conflict = deepcopy(r2)
         same_id_conflict["id"] = "clingen_release_r2_conflicting"
-        same_id_conflict["bundle"]["semantic_facts"][-1]["class_iri"] = (
+        same_id_pathogenicity = next(fact for fact in same_id_conflict["bundle"]["semantic_facts"]
+                                      if fact["id"] == "clingen_r2_pathogenic")
+        same_id_pathogenicity["class_iri"] = (
             "https://example.org/trajectory/genomics/BenignVariantInterpretation"
         )
         archive["assertions"].append(same_id_conflict)
@@ -75,7 +79,9 @@ class UseCaseConformanceTests(unittest.TestCase):
         archive = gen01_fixture("archive.json")
         incompatible = deepcopy(r2)
         incompatible["id"] = "clingen_release_r2_benign"
-        incompatible["bundle"]["semantic_facts"][-1].update(
+        incompatible_pathogenicity = next(fact for fact in incompatible["bundle"]["semantic_facts"]
+                                           if fact["id"] == "clingen_r2_pathogenic")
+        incompatible_pathogenicity.update(
             id="clingen_r2_benign",
             class_iri="https://example.org/trajectory/genomics/BenignVariantInterpretation",
         )
