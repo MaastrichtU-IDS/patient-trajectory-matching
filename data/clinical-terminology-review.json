@@ -1,0 +1,80 @@
+{
+  "profile": "clinical-terminology-review-worksheet-1.0",
+  "status": "PENDING_DOMAIN_REVIEW",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "source_dictionary_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+  "clinical_mapping_verified": false,
+  "executable_mapping_pack": false,
+  "pool_measurement_items": false,
+  "entries": [
+    {
+      "source_table": "inputevents",
+      "itemid": "221906",
+      "dictionary_label": "Norepinephrine",
+      "record_meaning_to_review": "recorded input segment",
+      "target_system": null,
+      "target_version": null,
+      "target_code": null,
+      "target_concept_iri": null,
+      "target_record_class_iri": null,
+      "mapping_relation": null,
+      "evidence": [],
+      "reviewer": null,
+      "decision": null
+    },
+    {
+      "source_table": "chartevents",
+      "itemid": "220052",
+      "dictionary_label": "Arterial Blood Pressure mean",
+      "record_meaning_to_review": "recorded measurement with item-specific method and literal unit",
+      "target_system": null,
+      "target_version": null,
+      "target_code": null,
+      "target_concept_iri": null,
+      "target_record_class_iri": null,
+      "mapping_relation": null,
+      "evidence": [],
+      "reviewer": null,
+      "decision": null
+    },
+    {
+      "source_table": "chartevents",
+      "itemid": "225312",
+      "dictionary_label": "ART BP Mean",
+      "record_meaning_to_review": "recorded measurement with item-specific method and literal unit",
+      "target_system": null,
+      "target_version": null,
+      "target_code": null,
+      "target_concept_iri": null,
+      "target_record_class_iri": null,
+      "mapping_relation": null,
+      "evidence": [],
+      "reviewer": null,
+      "decision": null
+    },
+    {
+      "source_table": "chartevents",
+      "itemid": "220181",
+      "dictionary_label": "Non Invasive Blood Pressure mean",
+      "record_meaning_to_review": "recorded measurement with item-specific method and literal unit",
+      "target_system": null,
+      "target_version": null,
+      "target_code": null,
+      "target_concept_iri": null,
+      "target_record_class_iri": null,
+      "mapping_relation": null,
+      "evidence": [],
+      "reviewer": null,
+      "decision": null
+    }
+  ],
+  "review_questions": [
+    "What exact source-record meaning is supported by the pinned dictionary and source fields?",
+    "Which terminology, release, concept definition and use license justify each proposed target?",
+    "Does every admitted source record support a one-way implication to the proposed record-query class, or are additional qualifiers required?",
+    "Which method, route, formulation, unit or status distinctions must remain explicit?",
+    "Can the two arterial labels be grouped for this query? Keep all three pressure items separate until reviewed.",
+    "Does the proposal classify recorded content without asserting actual administration, course initiation, dose equivalence or a physiological occurrence?",
+    "What evidence and identified reviewer support acceptance, and what changes require a new review?"
+  ]
+}

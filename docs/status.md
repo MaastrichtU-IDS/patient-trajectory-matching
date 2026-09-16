@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 687 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 705 passing checks, and 10 of 104 tracked requirements marked executable.**
 
 The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
@@ -91,7 +91,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Source-fidelity audit and reviewed execution tests | 15 passed |
 | Separate pressure-stratum provenance and comparison tests | 3 passed |
 | Pressure-cohort overlap and provenance tests | 14 passed |
-| **Total** | **687 checks passing** |
+| Reviewed record mapping tests | 18 passed |
+| **Total** | **705 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -100,7 +101,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 664 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 682 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -188,3 +189,8 @@ The local pressure service now has a [bounded completed-result cache](pressure-q
 ## Prepared pressure-query execution
 
 [Checked batch preparation](prepared-pressure-queries.md) is now reusable across changed pressure controls. Temporal classification, numeric filtering and every anchor SQL comparison remain fresh. Eleven additional demo tests bring that suite to 51; the 687 contract checks remain separate. Full-result and inspection equality are checked against the original executor, including uncertain-time fixtures and public arterial data. The previous complete-result cache remains the fastest path for identical requests.
+
+
+## Reviewed terminology mapping infrastructure
+
+The [mapping compiler and mixed-query adapter](reviewed-record-mappings.md) add 18 tests, bringing the contract total to 705 checks (682 suite tests plus 23 oracle checks). Explicitly accepted synthetic mappings execute with checked Rust semantics and preserved PRO witnesses. The [clinical worksheet](../data/clinical-terminology-review.json) has no accepted targets. Source-catalogue validation, domain review and pressure-service integration remain open; the 51-test demo suite is unchanged.

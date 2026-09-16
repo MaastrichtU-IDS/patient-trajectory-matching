@@ -1,0 +1,18 @@
+{
+  "profile": "mapping-source-catalogue-1.0",
+  "dataset_id": "synthetic_mixed_records",
+  "release": "authored-1",
+  "source_kind": "authored_fixture",
+  "entries": [
+    {
+      "code": "item-a",
+      "label": "Authored input A",
+      "source_class_iri": "https://example.org/trajectory/mixed-example/RecordedItemA"
+    },
+    {
+      "code": "item-b",
+      "label": "Authored input B",
+      "source_class_iri": "https://example.org/trajectory/mixed-example/RecordedItemB"
+    }
+  ]
+}

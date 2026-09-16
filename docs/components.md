@@ -388,3 +388,8 @@ The [prepared pressure executor](prepared-pressure-queries.md) retains checked b
 The [completed pressure-query cache](pressure-query-cache.md) reuses exact completed results after source, review and implementation checks; new controls use prepared views with fresh temporal evaluation and the SQL oracle.
 
 The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewed-window sessions, bounded query controls and complete SQL-reconciled execution through local asynchronous HTTP jobs. The UI exposes actual source decisions and treatment PRO witnesses; it retains the previous result on failure and admits no wider source window without another review.
+
+
+## Reviewed record-mapping compiler
+
+[`patterns/reviewed_record_mappings.py`](../patterns/reviewed_record_mappings.py) validates four closed input documents and compiles only explicitly accepted source-record subclass implications. It binds review and implementation evidence, blocks pending/withdrawn proposals, and passes a caller-supplied, exactly bound source policy through the existing mixed matcher. [The runbook](reviewed-record-mappings.md) includes a reproducible synthetic example and the pending clinical handoff.

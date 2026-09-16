@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 687 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 705 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -102,6 +102,8 @@ The repository contains four independent executable contracts. They share the pi
 | **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
+
+[Reviewed record mappings](docs/reviewed-record-mappings.md) now compile explicitly accepted mapping proposals into checked one-way semantic rules. A synthetic mixed-query example executes; the [clinical mapping worksheet](data/clinical-terminology-review.json) remains pending domain review.
 
 The [live pressure-query inspector](docs/live-pressure-inspector.md) now connects the local UI to the reviewed mixed-record engine, with bounded query controls, complete cohort counts, background progress and source/role evidence for each treatment anchor. [Changed query controls](docs/prepared-pressure-queries.md) now reuse checked batch preparation while recomputing temporal eligibility and SQL reconciliation. [Repeated identical queries](docs/pressure-query-cache.md) can reuse complete results after source/review checks, with explicit execution labels and timings.
 
