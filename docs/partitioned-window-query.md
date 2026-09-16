@@ -100,7 +100,7 @@ The [aggregate partition report](../verification/partitioned-window-demo-report.
 
 All 2,832 anchors have verified complete record and pair coverage in 2,870 planned batches. This resolves the planning barrier for the 12 windows blocked by the legacy conservative count screen. The original whole-window reports are unchanged. Items remain separate strata, with no pooling or method selection based on query outcomes.
 
-No real-source claims were accepted and no real-source mixed query ran. The [candidate plan](../data/clinical-candidate-plan.json) still has no clinical review. The next step is a practical review package that exposes each unique claim once, propagates reviewed selections consistently to every affected batch, and checks the complete package before a controlled real-source run. Clinical item/window approval and patient calendar compatibility remain explicit inputs.
+No real-source claims were accepted and no real-source mixed query ran. The [candidate plan](../data/clinical-candidate-plan.json) still has no clinical review. The subsequent [unique-claim review package](unique-claim-review.md) now exposes each claim once, propagates explicit histories consistently and validates the complete expansion before execution. The remaining step is supplying the real-source review decisions. Clinical item/window approval and patient calendar compatibility remain explicit inputs.
 
 ## Validation and operational limits
 

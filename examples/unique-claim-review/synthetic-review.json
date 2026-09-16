@@ -1,0 +1,132 @@
+{
+  "profile": "unique-claim-review-1.0",
+  "package_context_id": "d2e1e7304289ea4888a5abaeea72fee42543587473e1a5e0e4543490ce24d451",
+  "reviewer": "Synthetic fixture reviewer",
+  "claims": [
+    {
+      "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_1",
+      "claim_sha256": "2ba4f306674ac9081cda896c31bcda0b16bd9b14a2a7344bbc7b717d035f83bc",
+      "decisions": [
+        {
+          "id": "decision_0",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_2",
+      "claim_sha256": "5e0f267e9bd0e8f11163ab2ec43914d694f41d00417fd17f34d2656e64c5abd3",
+      "decisions": [
+        {
+          "id": "decision_1",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_3",
+      "claim_sha256": "74e7e3a61dc20427be35df30509cef4d427b987cd20e78d897fef84a93997f59",
+      "decisions": [
+        {
+          "id": "decision_2",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_4",
+      "claim_sha256": "46444b7c1273d5ae70669712d518838adb1a2bd1fd888c3bfaf0202179705d35",
+      "decisions": [
+        {
+          "id": "decision_3",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_5",
+      "claim_sha256": "b25476dcd096d885aadc562347957e2ef55009ee2cd2ed334959e0749545edbe",
+      "decisions": [
+        {
+          "id": "decision_4",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_6",
+      "claim_sha256": "e77a9a68e4424138f8ddd4286e4bc4396f7650f7c490d2f0a85c649016934f8f",
+      "decisions": [
+        {
+          "id": "decision_5",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_1",
+      "claim_sha256": "cfe8a77e3de0c6767bf56f4b9c963987f3355bad73ae37e58599b780fd7ba05e",
+      "decisions": [
+        {
+          "id": "decision_6",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_2",
+      "claim_sha256": "086a6238a03ae47edad8ce704946fc718cd3952458cb5cc631c27f3b2626af1c",
+      "decisions": [
+        {
+          "id": "decision_7",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    },
+    {
+      "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_3",
+      "claim_sha256": "c5949be380fdf7676a1eac9ff724786d8f612cf82bfa04a9c1328481910b091e",
+      "decisions": [
+        {
+          "id": "decision_8",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Review of this constructed source record"
+        }
+      ]
+    }
+  ],
+  "calendars": [
+    {
+      "patient_id": "1",
+      "decision": "same_patient_calendar",
+      "reason": "Constructed source calendars agree for this patient"
+    },
+    {
+      "patient_id": "2",
+      "decision": "same_patient_calendar",
+      "reason": "Constructed source calendars agree for this patient"
+    },
+    {
+      "patient_id": "3",
+      "decision": "same_patient_calendar",
+      "reason": "Constructed source calendars agree for this patient"
+    }
+  ]
+}

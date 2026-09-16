@@ -81,5 +81,13 @@
     "clinical_review_supplied": false,
     "real_source_claims_accepted": 0,
     "real_source_mixed_query_executed": false
+  },
+  "technical_unique_claim_review": {
+    "implementation": "patterns/unique_claim_review.py",
+    "report": "verification/unique-claim-review-demo-report.json",
+    "status": "all_demo_packages_and_pending_batch_policies_verified",
+    "clinical_review_supplied": false,
+    "real_source_claims_accepted": 0,
+    "real_source_mixed_query_executed": false
   }
 }
