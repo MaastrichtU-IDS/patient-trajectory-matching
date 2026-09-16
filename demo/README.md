@@ -1,0 +1,102 @@
+# Patient Trajectory Matching: presentation demo
+
+This directory contains a working local interface backed by the project's **unchanged Python reference matcher**, with optional live PRO/SOLID and Rust pipelines. It uses synthetic fixtures only.
+
+The live demo imports the parent repository directly. `demo-data.json` identifies the source commit for the recorded replay. It contains only synthetic examples.
+
+## Start the complete working demo
+
+From the repository root, run:
+
+```sh
+python3.12 demo/start_demo.py
+```
+
+On Windows, use `py -3.12 demo/start_demo.py`. The launcher creates `.venv`, installs the pinned graph and Rust packages, checks both pipelines, and starts the server with that same interpreter. Python 3.12 must already be installed. The first setup needs Internet access. The pipelines then run locally without an AI service, Java or clinical credentials.
+
+Open **http://127.0.0.1:8765**. Keep the terminal open. Stop with Ctrl+C. To choose another port, use `python3.12 demo/start_demo.py --port 8766`. For setup without starting the server, add `--setup-only`.
+
+If installation or a pipeline fails, the launcher stops and prints the actual cause. Do not substitute a different rustDL version: the semantic profile is checked against 0.4.28. Compatible native packages depend on your platform. The replay is available if your platform cannot run the Rust package.
+
+### Fix an existing installation
+
+Stop the old server with Ctrl+C. From the `demo/` folder:
+
+```sh
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r ../patterns/requirements-semantic.lock.txt
+.venv/bin/python serve.py
+```
+
+On Windows, use `py -3.12` for the first command and `.venv\Scripts\python.exe` for the other two. Explicitly naming the environment's Python ensures that installation and execution use the same interpreter. If `.venv` already uses another Python version, create a differently named Python 3.12 environment and use its executable in both commands.
+
+The revised interface shows the actual pipeline error, Python executable, package versions and an installation command under **Setup and diagnostic details**. A Rust gate failure retains its native backend report. The server also exposes these environment details at `/api/environment`. Failed runs never replace the displayed result with a success or silently substitute the replay.
+
+### Core matcher without extra packages
+
+`python3 demo/serve.py` from the repository root still runs the core matcher on Python 3.10 or newer with no extra packages. Graph rebuilding and live Rust reasoning require the full setup above. Those views otherwise display explicitly labeled recorded outputs.
+
+The server binds to your computer's loopback interface and serves only fixed demo endpoints. It does not accept patient uploads or arbitrary queries.
+
+## Offline presentation backup
+
+Open `demo/Patient_Trajectory_Demo.html` directly in a browser. This is an **interactive replay of 480 recorded Python evaluations**, spanning all available query-control combinations. It does not execute Python or Rust in the browser. Its execution-mode label says so. All values, evidence and timelines are bundled, with no CDN, external font or network dependency.
+
+Budget controls intentionally vary only the relaxation budget and the maximum number of changed constraints. The underlying three-slot exemplar stays fixed. Every case uses the global displayed budget, including C11, whose original test fixture uses its own budget override. These are 16 independent synthetic contract cases, not 16 independent clinical patients or a prevalence estimate.
+
+## Three-minute demonstration
+
+| Time | Action | Message |
+|---|---|---|
+| 0:00–0:25 | Keep budget 0. Open C01, then C02. | DrugA and its entailed subclass both match exactly at zero cost. |
+| 0:25–0:55 | Change budget to 1, then 2. Open C05. | The broadened query admits a concept alternative and a temporal extension, each costing 1. |
+| 0:55–1:20 | Open C07, then C09. | Relaxation never changes the hard numeric threshold. An unresolved unit remains unresolved. |
+| 1:20–1:40 | Uncheck source completeness, then restore it. | All 16 results become unresolved when the search is incomplete. |
+| 1:40–2:15 | Open PRO & SOLID. Expand a binding and rebuild the graph if enabled. | Process, patient role, bearer and source are preserved. 10 mg/L normalizes to 1 mg/dL. |
+| 2:15–3:00 | Open Ontology & time. Run Rust reasoning if enabled. | The separate bounded profile returns P1 certain, P2 possible only, P3 no recorded match and P4 incomparable. |
+
+Use **Export this query & result** to retain a case, the active controls and the result. Use the other views' download buttons for RDF and the complete semantic/temporal report.
+
+## Expected totals
+
+With source completeness checked and at most two changed constraints:
+
+| Budget | Exact | Relaxed | Unresolved | No recorded match |
+|---|---:|---:|---:|---:|
+| 0 | 5 | 0 | 2 | 9 |
+| 1 | 5 | 3 | 1 | 7 |
+| 2 | 5 | 5 | 1 | 5 |
+
+Unchecking completeness yields 16 unresolved cases under every budget. “No recorded match” is a conclusion within the specified record scope, not proof of clinical absence. Certain answers in the bounded profile require one fixed named binding across all feasible source timelines. A possible answer is not a probability.
+
+## Scope
+
+The point-anchor matcher supports a fixed DrugA/creatinine exemplar with named taxonomy entailment and explicit costed relaxation. The separate Rust demonstration uses a restricted OWL rule module, independently checked before temporal evaluation. It does not import or verify the complete SULO ontology. The PRO/SOLID view is a separate worked graph example, not an RDF claim for every displayed case.
+
+This demo does not implement arbitrary cohort authoring, all-pairs retrieval, live EHR ingestion, treatment-effect estimation, or a validated AKI phenotype. The slide about MIMIC reports aggregate source-window planning evidence, not accepted real-source claims or clinical matches.
+
+## Verification
+
+The original packaged snapshot passed 604 suite tests plus 16 oracle cases and seven property checks. The demo's live HTTP responses matched every one of the 480 recorded control/case combinations. The live graph pipeline returned EXACT at cost 0, and the Rust pipeline returned READY with P1 certain. JavaScript rendering logic was checked without a browser. Visual browser interaction could not be inspected in the authoring environment because its browser policy blocks local pages; rehearse once in your browser before presenting.
+
+To rerun the repository tests after installing the optional dependencies:
+
+```sh
+python reference_oracle.py
+python -m unittest discover -s patterns -p 'test_*.py' -t .
+```
+
+The source repository is MIT licensed ([LICENSE](../LICENSE)). The vendored SULO ontology retains its own CC0 terms. No MIMIC patient rows are redistributed in this package.
+
+## Rebuild the recorded demonstration
+
+With the full dependencies installed, run from the repository root:
+
+```sh
+python -m patterns.pro_solid --output demo/evidence/pro-solid
+python -m patterns.semantic_support --output demo/evidence/semantic
+python demo/build_demo.py
+python -m unittest discover -s demo -p 'test_*.py'
+```
+
+The builder records the source commit and hashes. It computes every replay result using `reference_oracle.py`, embeds the data in the standalone HTML, and requires a successful semantic gate. Generated examples are committed so the core server and replay work immediately after cloning. The evidence reports identify the native build used to generate them; they are recorded results, not a claim about the visitor's runtime. The complete product UI remains specified in `ui/`; this demonstration exposes only the existing bounded examples.

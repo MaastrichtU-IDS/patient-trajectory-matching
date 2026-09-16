@@ -69,6 +69,21 @@ Installation needs network access. Everything after it runs offline — no Java,
 
 Full instructions and expected output for every component: **[docs/validation.md](docs/validation.md)**
 
+## Interactive demonstration
+
+The synthetic [presentation demo](demo/README.md) exposes exact and costed matches,
+PRO/SOLID evidence, and the checked Rust/temporal example. From the repository root:
+
+```sh
+python3.12 demo/start_demo.py
+```
+
+The launcher installs the pinned dependencies in `demo/.venv`, checks both pipelines,
+and starts the local interface at `http://127.0.0.1:8765`. The standalone
+[HTML replay](demo/Patient_Trajectory_Demo.html) also works offline after downloading.
+Live execution and recorded replay are explicitly labeled. This is a bounded
+demonstration; the broader product workspace in `ui/` remains a specification.
+
 ## Four temporal profiles
 
 The repository contains four independent executable contracts. They share the pinned SULO core and the PRO/SOLID representation discipline, but none of them changes the semantics of another.
