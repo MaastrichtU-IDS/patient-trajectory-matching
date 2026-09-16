@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 761 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 781 passing checks, and 10 of 104 tracked requirements marked executable.**
 
 The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
@@ -95,7 +95,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Source record catalogue tests | 18 passed |
 | Reviewed measurement selector tests | 18 passed |
 | Measurement source catalogue and audit tests | 20 passed |
-| **Total** | **761 checks passing** |
+| Prepared measurement session tests | 20 passed |
+| **Total** | **781 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -104,7 +105,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 738 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 758 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -216,3 +217,7 @@ The [source catalogue adapter](source-record-catalogue.md) adds 18 tests: 723 co
 ## Measurement source correspondence
 
 [Measurement source audits](measurement-source-catalogue.md) now reproduce catalogue entries, every supplied measurement claim and pre-filter patient clock origins from pinned CSV bytes before reviewed selector execution. Twenty new tests bring the total to 761 checks (738 suite tests and 23 oracle checks). The synthetic report compares six claims directly with CSV fields and reproduces three patient memberships against literal queries and raw-CSV SQL. Subset fidelity does not imply source coverage or clinical acceptance. Prepared-session reuse and clinical review remain pending.
+
+## Prepared measurement query reuse
+
+[Prepared measurement sessions](prepared-measurement-session.md) reuse a successful source audit, checked mapping plan, selected record views and compiled temporal network while checking source and implementation digests before/after every query. Twenty new tests bring the total to 781 checks (758 suite tests and 23 oracle checks). Twelve synthetic query variants reproduce fresh results and raw-CSV SQL with zero repeated preparation operations. Applying later review decisions requires session replacement; live pressure-batch integration and clinical acceptance remain pending.

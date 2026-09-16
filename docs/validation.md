@@ -622,3 +622,12 @@ python -m patterns.verify_measurement_source_catalogue
 ```
 
 Twenty tests check pinned files, dictionary provenance, exact claim reproduction, clock origins before item filtering, unsupported/duplicate rows, subset semantics, source-policy separation, CLI failure behavior and committed raw-CSV/Rust/literal/SQL evidence. The current contract total is 761 checks: 738 suite tests, 16 oracle cases and seven properties. See [the profile](measurement-source-catalogue.md).
+
+## Prepared measurement session equivalence and invalidation
+
+```bash
+python -m unittest patterns.test_prepared_measurement_session
+python -m patterns.verify_prepared_measurement_session
+```
+
+Twenty tests cover cold admission, eliminated repeated work, defensive copies, source/implementation changes, review/backend gates, budgets, fixed selector scope, uncertainty, alignment, partial failure and closure. The report compares 12 prepared results with fresh source queries and raw-CSV SQL. The current contract total is 781 checks: 758 suite tests plus 23 oracle checks. See [the session profile](prepared-measurement-session.md).

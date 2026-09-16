@@ -200,6 +200,8 @@ jobs:
         run: python -m patterns.test_reviewed_measurement_mappings
       - name: Measurement source catalogue, claim audit and raw-CSV SQL evidence
         run: python -m patterns.test_measurement_source_catalogue
+      - name: Prepared measurement sessions, invalidation and query equivalence
+        run: python -m patterns.test_prepared_measurement_session
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -223,6 +225,7 @@ jobs:
             verification/source-record-catalogue-demo-report.json
             verification/reviewed-measurement-mappings-report.json
             verification/measurement-source-catalogue-report.json
+            verification/prepared-measurement-session-report.json
           retention-days: 14
 
   oracle-compatibility:

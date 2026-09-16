@@ -1,0 +1,295 @@
+{
+  "profile": "prepared-measurement-session-verification-1.0",
+  "status": "VERIFIED",
+  "synthetic_only": true,
+  "clinical_mapping_verified": false,
+  "public_demo_mapping_executed": false,
+  "artifacts": {
+    "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+    "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+    "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+    "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+    "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+    "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+    "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+    "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+    "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+    "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+    "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+    "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+    "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+    "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+    "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+    "patterns/measurement_source_catalogue.py": "748b391bb404a305a52184af66b99311aa7fa215f77f8b6a09f398ff57737812",
+    "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
+    "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+    "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+    "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+    "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+    "patterns/prepared_measurement_session.py": "2d5abb295021df23cb027955c27b6fd2584b27c6385163824744ccf45d73a727",
+    "patterns/prepared_mixed_query.py": "9b5e9f558b1648600065b783d05b41c3c7104217876e3a16306296734975ad83",
+    "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+    "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+    "patterns/reviewed_measurement_mappings.py": "5cff4610eb6f90e95ca32b8a1fda67b45976da981542d2477b11715a50c3f21c",
+    "patterns/reviewed_record_mappings.py": "5996f9e982abccff590df0a79faad95d94d8330ea5d6f30e61642b50885c327e",
+    "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+    "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+    "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+    "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
+    "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
+    "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+    "patterns/verify_prepared_measurement_session.py": "ea1b3a05ab2da592f3ebdeb2261cc94bba3715886db9b2bfce42bd6cbf8e1879",
+    "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+    "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+    "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+    "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+    "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+    "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+    "schemas/measurement-source-catalogue.schema.json": "0f96f9a941f45544eb4b35bfd3ae49f85a59a9e5c5b7cc42df7dae846dbbd6d6",
+    "schemas/mimic-claim-import.schema.json": "503485df46f59cbbbc1cc53383864a8e952d7eec62defe2a542973b75236d460",
+    "schemas/mimic-measurement-import.schema.json": "bff31307d9a3350645ced5b5f07a6bd2d5be87140f6e1d143125d21fe28517c0",
+    "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+    "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+    "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+    "schemas/reviewed-measurement-selector.schema.json": "1f1ec00c163049c2a1c80c2a9c6a712239fc531a7fa9db501542014414fe3290",
+    "schemas/reviewed-record-mappings.schema.json": "c37bd5d85aefacd21c78316598b7f570513ef5475b95abe32a4d94f29500ef63",
+    "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e"
+  },
+  "fixture_sha256": {
+    "examples/prepared-measurement-session/catalogue.json": "028c5673c896d4f3378a06b0cd52f48e8856ddd637b13b9f167345fe6a968ade",
+    "examples/prepared-measurement-session/chartevents.csv": "d3fe94f8813237dd8f0188fba80ad4155d3ddea8a20c547a3dda4e76521aec50",
+    "examples/prepared-measurement-session/d_items.csv": "b264d7ad4c6d4c2dd9c700fbf20d0fc988033b712b45a68e0f230d7a2ead4d47",
+    "examples/prepared-measurement-session/icustays.csv": "add9e84050e9b5da0d5a2ca9bddc30084dc770e3ba647853bfdf0970fc8e5c6a",
+    "examples/prepared-measurement-session/inputevents.csv": "1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884",
+    "examples/prepared-measurement-session/mappings.json": "b2eb2257dbe6c2e72171bd1355b5cc6307ff1ec15b710847b45b000848cc9f1f",
+    "examples/prepared-measurement-session/request.json": "bda80ff0c74278f85598654ff5dae6be9cf0082ee9b3740c06b8e243c229a326",
+    "examples/prepared-measurement-session/review.json": "fcf6eb52cad03be355224749c599ae6e4d816781a142e92c7edcd3851a42ef4d",
+    "examples/prepared-measurement-session/selector.json": "0bab7926c65fbe1db028d45a13c29b7e7a24e7783a992a2f8ab697155fa244d0",
+    "examples/prepared-measurement-session/source-request.json": "a80490a5d0f17de6c3d4117b04d6a8e2993a1eb01f472e94665ee4d0bca25dd5",
+    "examples/prepared-measurement-session/source-review.json": "06b35604c52aa7fc8bdaa502f53bbed261d3c253becee656c2faf0cb8474051b",
+    "examples/prepared-measurement-session/terminology.json": "ccc68090f2435ebe877fd86ecefc1d9ee9a0a0748af509e488184a872c0faff0"
+  },
+  "warm_queries": 12,
+  "warm_operation_counts": {
+    "source_audits": 0,
+    "mapping_plans": 0,
+    "fresh_mixed_queries": 0,
+    "network_compilations": 0
+  },
+  "source_byte_digests_checked_per_query": true,
+  "all_source_query_results_equal": true,
+  "all_raw_csv_sql_bindings_equal": true,
+  "synthetic_memberships_by_query": [
+    [
+      "1",
+      "2",
+      "3"
+    ],
+    [
+      "1"
+    ],
+    [],
+    [
+      "1",
+      "2",
+      "3"
+    ]
+  ],
+  "queries": [
+    {
+      "profile": "mixed-record-trajectory-1.0",
+      "id": "synthetic_pressure_followup",
+      "treatment_class_iri": "https://example.org/trajectory/mimic-record-item/1000",
+      "baseline": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "operator": "lt",
+        "value_lexical": "65",
+        "min_before_start_us": 1,
+        "max_before_start_us": 1800000000
+      },
+      "followup": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "anchor": "start",
+        "min_after_anchor_us": 0,
+        "max_after_anchor_us": 7200000000,
+        "within_interval": false
+      }
+    },
+    {
+      "profile": "mixed-record-trajectory-1.0",
+      "id": "synthetic_pressure_followup",
+      "treatment_class_iri": "https://example.org/trajectory/mimic-record-item/1000",
+      "baseline": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "operator": "lt",
+        "value_lexical": "59",
+        "min_before_start_us": 1,
+        "max_before_start_us": 1800000000
+      },
+      "followup": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "anchor": "start",
+        "min_after_anchor_us": 0,
+        "max_after_anchor_us": 7200000000,
+        "within_interval": false
+      }
+    },
+    {
+      "profile": "mixed-record-trajectory-1.0",
+      "id": "synthetic_pressure_followup",
+      "treatment_class_iri": "https://example.org/trajectory/mimic-record-item/1000",
+      "baseline": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "operator": "lt",
+        "value_lexical": "65",
+        "min_before_start_us": 1,
+        "max_before_start_us": 300000000
+      },
+      "followup": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "anchor": "start",
+        "min_after_anchor_us": 0,
+        "max_after_anchor_us": 7200000000,
+        "within_interval": false
+      }
+    },
+    {
+      "profile": "mixed-record-trajectory-1.0",
+      "id": "synthetic_pressure_followup",
+      "treatment_class_iri": "https://example.org/trajectory/mimic-record-item/1000",
+      "baseline": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "operator": "lt",
+        "value_lexical": "65",
+        "min_before_start_us": 1,
+        "max_before_start_us": 1800000000
+      },
+      "followup": {
+        "item_ids": [
+          "2000",
+          "2001"
+        ],
+        "unit_lexical": "mmHg",
+        "anchor": "start",
+        "min_after_anchor_us": 0,
+        "max_after_anchor_us": 3600000000,
+        "within_interval": true
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "synthetic_episode_index": 0,
+      "query_index": 0,
+      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
+      "prepared_result_context_id": "aa08f0d8e9d470b1ae808ae88be5145a4e10f3e4f309de997df3701859adbb67",
+      "source_query_context_id": "b288e1dbeac53031a1abf7c436ae242a51f3db1d90ef386d6e056f4914ed5d10"
+    },
+    {
+      "synthetic_episode_index": 0,
+      "query_index": 1,
+      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
+      "prepared_result_context_id": "cd68b298ff27c1ebe791c30b32d4a0cd5c35bb8d5de261f57b3bacf45faf9919",
+      "source_query_context_id": "dc618561d6e45080f868b531db3a9b538a7fd6d2c16caaee1d96f4c4005aa0ef"
+    },
+    {
+      "synthetic_episode_index": 0,
+      "query_index": 2,
+      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
+      "prepared_result_context_id": "7a70f0e69cd3c9be9a5cbe11262b54bd547465a6e3bf2b0abdf555eb3d7069b9",
+      "source_query_context_id": "cdf7d602a22ec52ef8eae680d6bc314ed53cd054047bf95d922a209dedee0e56"
+    },
+    {
+      "synthetic_episode_index": 0,
+      "query_index": 3,
+      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
+      "prepared_result_context_id": "4cd111c6fafa4a0249c56487ee7fb7820b83f1c5fc18e6c8052af03bc63fe057",
+      "source_query_context_id": "e4362adc51960cec487d6d69efb44169525344851cacbd579e4f031c2c40b846"
+    },
+    {
+      "synthetic_episode_index": 2,
+      "query_index": 0,
+      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
+      "prepared_result_context_id": "525c7e2fc597312dc981d3637ac9536b90e2561a16e704743a0278c61b212821",
+      "source_query_context_id": "ce51c339cfbe8d0401a53c83dece209c4ba9a09fbd7c8a1b9836bad54690a273"
+    },
+    {
+      "synthetic_episode_index": 2,
+      "query_index": 1,
+      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
+      "prepared_result_context_id": "0cfedf5d2c4777ae3e33ab71639951059872e62d7bf0da6f9b379ff836c53b32",
+      "source_query_context_id": "ac4ab10526fe17df16834eab777ebdf4c30ee1b71d1aab9957aea9ebe0d56e83"
+    },
+    {
+      "synthetic_episode_index": 2,
+      "query_index": 2,
+      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
+      "prepared_result_context_id": "f8b1dd4c3c716e1809f045d0c8e3c57bf071d27fa6e83f7a8e388ed80d87d453",
+      "source_query_context_id": "c92f1c9a00f5c54b10a309708dba3c0c543331a2af9562d7b9c34887f2ce413f"
+    },
+    {
+      "synthetic_episode_index": 2,
+      "query_index": 3,
+      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
+      "prepared_result_context_id": "e2a596e86bfd02d1bd3d40eb3fe445ab664dddfa5f23dce3b70e7f97fc4efdac",
+      "source_query_context_id": "07ed1e5afb9b64c8db5e35e69d02e732ccfefe55d2e00abfdd41fe5476b8b651"
+    },
+    {
+      "synthetic_episode_index": 3,
+      "query_index": 0,
+      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
+      "prepared_result_context_id": "81be69b67a7909b9634921b83820b19dfa0577f8a27d3f4d8ed02225f2b84db8",
+      "source_query_context_id": "f1fb6d733ec37659b38cba4c2dbe7af340a2b8bdd355aaf409040689fcfe8979"
+    },
+    {
+      "synthetic_episode_index": 3,
+      "query_index": 1,
+      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
+      "prepared_result_context_id": "c32d60b7ece278f166948bb611f3847f0466b62fde40e3c2bd15728593659c8d",
+      "source_query_context_id": "cde3af06010ffb3b72d75e9a39594114f4115db428b74ed12fa678968d1d32b5"
+    },
+    {
+      "synthetic_episode_index": 3,
+      "query_index": 2,
+      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
+      "prepared_result_context_id": "3717826c3708f10207ae3eab5bfde2200f221d483dc5f6081bf91f4e2261e7a6",
+      "source_query_context_id": "0fad844cafabdcaa73a7bea15c9b59d306726448a23657f425be2cfde09fad5e"
+    },
+    {
+      "synthetic_episode_index": 3,
+      "query_index": 3,
+      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
+      "prepared_result_context_id": "ab772d60f74ae2fb3cd1ed67bee19fd60cfd7c8a205386585dfe27ca595a9118",
+      "source_query_context_id": "7eef04dd1b1c9ffa8cd28598866610538d44a94a8487900e95b594958f963726"
+    }
+  ],
+  "scope": "Immutable supplied stores; source admission and policy selection shared with SQL control; no latency claim"
+}
