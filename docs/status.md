@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 673 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 687 passing checks, and 10 of 104 tracked requirements marked executable.**
 
 The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
@@ -90,7 +90,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Unique-claim review tests | 28 passed |
 | Source-fidelity audit and reviewed execution tests | 15 passed |
 | Separate pressure-stratum provenance and comparison tests | 3 passed |
-| **Total** | **673 checks passing** |
+| Pressure-cohort overlap and provenance tests | 14 passed |
+| **Total** | **687 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -99,7 +100,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 650 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 664 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -138,6 +139,7 @@ The total is 650 suite tests plus 16 oracle cases and seven oracle properties; n
 | Full temporal replay | Partially implemented | The bounded selector does not implement all 8 declarative families, historical semantics, derived indices or a replay UI |
 | Graphiti comparison | Specified | Protocol only, no measurements |
 | UI | Specified | Wireframes and contracts, no running interface |
+| Pressure-cohort overlap | Executable aggregate comparison | [14 tests](pressure-cohort-overlap.md); three source queries reproduced; 23 patients, 29 stays and 196 segments in the union of separate memberships |
 | Three reviewed pressure strata | Executable technical demonstration | [Separate execution reports](reviewed-pressure-strata.md); all 2,832 anchor/stratum SQL comparisons agree; 140 stays retained per stratum; clinical interpretation unverified |
 | Reviewed arterial source query | Executable technical demonstration | [15 tests](reviewed-arterial-demo.md); 2,022 source claims audited, explicit automated review, complete arterial execution; clinical interpretation unverified |
 | Unique-claim review | Executable explicit review integration | [28 tests](unique-claim-review.md); unique source evidence, lifecycle propagation and complete pending demo compilation; subsequent reviews of all three strata available |

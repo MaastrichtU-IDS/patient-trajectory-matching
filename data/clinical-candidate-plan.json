@@ -111,7 +111,7 @@
     "review_kind": "explicit_automated_source_fidelity",
     "clinical_review_supplied": false,
     "pooled_patient_count": null,
-    "patient_overlap_evaluated": false,
+    "patient_overlap_evaluated": true,
     "strata": {
       "arterial": {
         "report": "verification/reviewed-arterial-demo-report.json",
@@ -160,6 +160,16 @@
           }
         }
       }
+    },
+    "membership_overlap": {
+      "report": "verification/reviewed-pressure-overlap-report.json",
+      "interpretation": "union of memberships of separately executed queries; no pooled measurement query",
+      "matched_in_any_separate_stratum": {
+        "patients": 23,
+        "stays": 29,
+        "segments": 196
+      },
+      "clinical_mapping_verified": false
     }
   }
 }
