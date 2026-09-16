@@ -640,3 +640,13 @@ python demo/benchmark_mapped_pressure.py --output verification/mapped-pressure-r
 ```
 
 Sixteen tests cover reviewed mapping gates, live/fresh query and inspection equality, cache invalidation on review/source/implementation changes, SQL disagreement, query envelopes, malformed input, budgets, eviction and defensive copies. Demo CI uploads the aggregate result of the real HTTP test. The demo suite totals 67 tests; the contract total remains 781. [The runbook](mapped-pressure-service.md) distinguishes local timing observations from a performance guarantee.
+
+
+## Configured mapped pressure service
+
+```sh
+python -m unittest discover -s demo -p 'test_configured_pressure.py'
+node demo/test_configured_pressure_ui.cjs
+```
+
+Thirteen additional integration tests bring the demo suite to 80; the contract suite remains 781 checks. Configured HTTP evidence is written to `verification/configured-pressure-run/report.json` and uploaded by CI. Tests cover alternate source/item operation, exact fresh-result and inspection equality, request boundaries, immutable reviews and failure during cached or active work. The [runbook](configured-pressure-service.md) documents the supported pressure shape and review requirements.

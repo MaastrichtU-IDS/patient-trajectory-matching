@@ -284,3 +284,6 @@ Pack contents are MIT licensed; see [LICENSE](LICENSE). The vendored SULO ontolo
 [Prepared measurement sessions](docs/prepared-measurement-session.md) now reuse verified source and semantic preparation across changed numeric/temporal queries. Twelve synthetic prepared queries reproduce fresh results and raw-CSV SQL with no repeated audit, mapping planning, fresh mixed-query execution or network compilation.
 
 The [live mapped pressure route](docs/mapped-pressure-service.md) now integrates reviewed measurement selection and prepared batches with the existing local HTTP interface. Run `python demo/serve_mapped_pressure.py` for the authored example. The changed-query benchmark preserves fresh results and anchor SQL checks; public clinical mappings remain pending.
+
+
+The [configured mapped route](docs/configured-pressure-service.md) now accepts a local source/request/review configuration. Run `python demo/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json` for the alternate item-2001 fixture with 15/60-minute windows. Configuration and review changes require a restart; no clinical mapping is accepted automatically.

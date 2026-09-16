@@ -165,3 +165,8 @@ python demo/serve_mapped_pressure.py --port 8765
 ```
 
 Open `http://127.0.0.1:8765/pressure` for the authored source and mapping review. Changed controls reuse verified measurement preparation while every anchor still passes SQL reconciliation. Mapping-review changes invalidate both caches, including complete-result hits. [The runbook](../docs/mapped-pressure-service.md) describes source scope, inspector evidence, local measurements and clinical-review limits.
+
+
+## Configure supplied records
+
+Run `python demo/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json`. The page takes its source label, item, defaults and maximum windows from the supplied configuration/request. The [configuration runbook](../docs/configured-pressure-service.md) explains explicit review inputs, restart behavior and HTTP/UI verification.

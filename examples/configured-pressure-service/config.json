@@ -1,0 +1,9 @@
+{
+  "profile": "mapped-pressure-service-config-1.0",
+  "id": "authored-configured-pressure",
+  "label": "Authored supplied records \u00b7 item 2001",
+  "source_dir": "../prepared-measurement-session",
+  "pressure_request": "request.json",
+  "source_review": "source-review.json",
+  "mapping_dir": "mapping"
+}

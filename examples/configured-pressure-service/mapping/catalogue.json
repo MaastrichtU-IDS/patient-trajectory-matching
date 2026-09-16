@@ -1,0 +1,18 @@
+{
+  "profile": "mapping-source-catalogue-1.0",
+  "dataset_id": "dataset_452ffbc6448223ab2e17907653645e987e59f2f032c546ce138305c4df9a371c",
+  "release": "authored-prepared-measurements-1",
+  "source_kind": "supplied_catalogue",
+  "entries": [
+    {
+      "code": "2000",
+      "label": "Synthetic pressure",
+      "source_class_iri": "https://example.org/trajectory/measurement-record-item/2000"
+    },
+    {
+      "code": "2001",
+      "label": "Second synthetic pressure item",
+      "source_class_iri": "https://example.org/trajectory/measurement-record-item/2001"
+    }
+  ]
+}

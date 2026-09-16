@@ -415,3 +415,8 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ### Mapped pressure service
 
 [`patterns/mapped_pressure_session.py`](../patterns/mapped_pressure_session.py) binds a reviewed single-item selector to the original pressure batch envelope and delegates batch work to source-audited prepared measurement sessions. [`demo/mapped_pressure.py`](../demo/mapped_pressure.py) adds mapping-file lifecycle checks to the existing job/result-cache interface; [`demo/serve_mapped_pressure.py`](../demo/serve_mapped_pressure.py) exposes the authored example through the existing localhost routes. [The profile](mapped-pressure-service.md) records HTTP equivalence and explicit public-data limitations.
+
+
+### Startup pressure configuration
+
+[`patterns/pressure_service_config.py`](../patterns/pressure_service_config.py) validates and freezes the source paths, bounded pressure request and review inputs. The mapped launcher adds the configuration context to session provenance and uses [`demo/configured_pressure.js`](../demo/configured_pressure.js) for request-derived page labels/defaults/limits. [The runbook](configured-pressure-service.md) specifies startup and restart semantics.
