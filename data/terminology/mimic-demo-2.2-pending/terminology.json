@@ -1,0 +1,14 @@
+{
+  "profile": "record-query-terminology-1.0",
+  "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+  "version": "08-Sep-2026",
+  "record_class_namespace": "https://example.org/trajectory/record-query/rxnorm/",
+  "terms": [
+    {
+      "code": "7512",
+      "label": "norepinephrine",
+      "concept_iri": "http://purl.bioontology.org/ontology/RXNORM/7512",
+      "record_class_iri": "https://example.org/trajectory/record-query/rxnorm/7512"
+    }
+  ]
+}

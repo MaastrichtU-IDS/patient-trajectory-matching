@@ -103,6 +103,8 @@ The repository contains four independent executable contracts. They share the pi
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
 
+[Clinical terminology candidates](docs/clinical-terminology-candidates.md) now identify concrete RxNorm and LOINC targets with source evidence and unresolved method distinctions. The norepinephrine mapping pack is complete but blocked by its empty review journal.
+
 [Source-verified mapping catalogues](docs/source-record-catalogue.md) now reproduce item classes and supplied claims from pinned CSVs before mapped execution. The public-demo catalogue is available for terminology review; clinical targets remain pending.
 
 [Reviewed record mappings](docs/reviewed-record-mappings.md) now compile explicitly accepted mapping proposals into checked one-way semantic rules. A synthetic mixed-query example executes; the [clinical mapping worksheet](data/clinical-terminology-review.json) remains pending domain review.
