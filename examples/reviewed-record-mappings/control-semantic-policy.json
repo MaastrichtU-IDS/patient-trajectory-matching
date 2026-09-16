@@ -1,0 +1,11 @@
+{
+  "profile": "joint-semantic-policy-1.0",
+  "id": "authored_no_mapping_rules",
+  "classes": [
+    "https://example.org/trajectory/mixed-example/RecordedItemA",
+    "https://example.org/trajectory/mixed-example/RecordedItemB",
+    "https://example.org/trajectory/record-query/input-family"
+  ],
+  "rules": [],
+  "disjoint": []
+}

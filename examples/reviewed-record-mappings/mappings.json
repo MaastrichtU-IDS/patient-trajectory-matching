@@ -1,0 +1,22 @@
+{
+  "profile": "record-mapping-proposals-1.0",
+  "id": "authored-input-group",
+  "catalogue_sha256": "ec6506d299ec017aa0de75f398bba7709ab32c02edb98c5711bf0daadd80b17b",
+  "terminology_sha256": "123b4cbccc787f1c2120aae4a821ab235d0595ed209ff827510c23893237c8a5",
+  "entries": [
+    {
+      "id": "map-a",
+      "source_code": "item-a",
+      "target_code": "input-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Authored fixture grouping; no clinical terminology mapping asserted."
+    },
+    {
+      "id": "map-b",
+      "source_code": "item-b",
+      "target_code": "input-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Authored fixture grouping; no clinical terminology mapping asserted."
+    }
+  ]
+}

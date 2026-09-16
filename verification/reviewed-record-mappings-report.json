@@ -1,0 +1,229 @@
+{
+  "profile": "reviewed-record-mapping-verification-1.0",
+  "status": "VERIFIED",
+  "synthetic_only": true,
+  "public_demo_mapping_executed": false,
+  "clinical_mapping_verified": false,
+  "verifier_sha256": "b170678b5a6dafff99f4f1fa693cb8eab4015093912b58511fa276f564e13fcd",
+  "fixture_sha256": {
+    "examples/reviewed-record-mappings/alignment.json": "6013853d6fe822a79a0a468b2e6b9bd93d63ca99d641a2686066a1d5df722aef",
+    "examples/reviewed-record-mappings/catalogue.json": "7ed60ec8eef508d72f49524104b42ffe3d855420163d4b7f6f41b2d1c51ceb8c",
+    "examples/reviewed-record-mappings/control-interval-policy.json": "57e718703442cd933ab9faa65bc62cce3c22920a335523540c7ed82fa2bb0c66",
+    "examples/reviewed-record-mappings/control-semantic-policy.json": "29897b50033a0abfebebec1f3ccaee515fe5f5221051b7e6f0b1818c0abe8ee1",
+    "examples/reviewed-record-mappings/interval-policy.json": "1aa1336bd155986b3bac855b298e107205ceffe0a0f02397239bd2852467db02",
+    "examples/reviewed-record-mappings/interval-store.json": "c421d2d268103b35cf28060a0dec2225158168f15988a975d2e4809ec01725d7",
+    "examples/reviewed-record-mappings/mappings.json": "9ac0864f2e5a4efbc6acc47bbfa09f5190888126a20a402ea3eff49d9095f4a9",
+    "examples/reviewed-record-mappings/measurement-policy.json": "c5dd8a3ba28b02aabe2b0b6d3335c8f39299e6fbc8c18c2b184d6a57ee8e645c",
+    "examples/reviewed-record-mappings/measurement-store.json": "054d3a4a86f82022ce7bc08d7487b34bb258085ae6587d82aef934ba1f358275",
+    "examples/reviewed-record-mappings/query.json": "ef29787e4bd6c64b2d16b268e7a9383e8de3aff4001cb4cd2f31477bf427873d",
+    "examples/reviewed-record-mappings/review.json": "b1bb80070b1fd43ded3c937c6ded00a5dfa60f602e1d4ddc51a96d0ddd6e3aec",
+    "examples/reviewed-record-mappings/terminology.json": "a0effc81a319778d7aa58d3be5647a36fbe1adacdce43b2a0b74f5a6fb0f145b"
+  },
+  "mapping_context": {
+    "profile": "reviewed-record-mappings-1.0",
+    "input_sha256": {
+      "catalogue": "ec6506d299ec017aa0de75f398bba7709ab32c02edb98c5711bf0daadd80b17b",
+      "terminology": "123b4cbccc787f1c2120aae4a821ab235d0595ed209ff827510c23893237c8a5",
+      "mappings": "52c0df83877e8cb4a8ff9249aa268cc836dc4a999d5327c5e9c07af060272c10",
+      "review": "231f6c7306872d5cbf02e194c54e5ae5b4a4f09218b79b372a43e2c952a302b0"
+    },
+    "artifacts": {
+      "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+      "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+      "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+      "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+      "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+      "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+      "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+      "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+      "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+      "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+      "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+      "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+      "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+      "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+      "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+      "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+      "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+      "patterns/reviewed_record_mappings.py": "5996f9e982abccff590df0a79faad95d94d8330ea5d6f30e61642b50885c327e",
+      "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+      "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+      "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+      "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+      "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+      "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+      "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+      "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+      "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+      "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+      "schemas/reviewed-record-mappings.schema.json": "c37bd5d85aefacd21c78316598b7f570513ef5475b95abe32a4d94f29500ef63"
+    },
+    "scope": "one_way_record_class_implications_over_supplied_catalogue",
+    "clinical_mapping_verified": false,
+    "reviewer_identity_verified": false,
+    "catalogue_source_fidelity_verified": false,
+    "historical_replay_verified": false
+  },
+  "mapping_context_id": "859f98b4fbfe02f789c59a3c340bc2cd7aa59395fc0cd68284673a18e8ca584d",
+  "rule_evidence": [
+    {
+      "rule_id": "mapping_map-a",
+      "mapping_id": "map-a",
+      "mapping_sha256": "4a979a1d18d47a8e3e5017d64f03090f1b5bba408425959086340817cb9e8202",
+      "source": {
+        "code": "item-a",
+        "label": "Authored input A",
+        "source_class_iri": "https://example.org/trajectory/mixed-example/RecordedItemA"
+      },
+      "target": {
+        "code": "input-family",
+        "label": "Authored input family",
+        "concept_iri": "https://example.org/authored-terminology/input-family",
+        "record_class_iri": "https://example.org/trajectory/record-query/input-family"
+      },
+      "decision_id": "accept-map-a"
+    },
+    {
+      "rule_id": "mapping_map-b",
+      "mapping_id": "map-b",
+      "mapping_sha256": "e226b9b9aa224063c91869eed49086d990956311f8b237b74261de5a85949ba4",
+      "source": {
+        "code": "item-b",
+        "label": "Authored input B",
+        "source_class_iri": "https://example.org/trajectory/mixed-example/RecordedItemB"
+      },
+      "target": {
+        "code": "input-family",
+        "label": "Authored input family",
+        "concept_iri": "https://example.org/authored-terminology/input-family",
+        "record_class_iri": "https://example.org/trajectory/record-query/input-family"
+      },
+      "decision_id": "accept-map-b"
+    }
+  ],
+  "query_context": {
+    "profile": "mixed-record-trajectory-1.0",
+    "query": {
+      "profile": "mixed-record-trajectory-1.0",
+      "id": "reviewed_record_group_query",
+      "treatment_class_iri": "https://example.org/trajectory/record-query/input-family",
+      "baseline": {
+        "item_ids": [
+          "synthetic_pressure"
+        ],
+        "unit_lexical": "mmHg",
+        "operator": "lt",
+        "value_lexical": "65",
+        "min_before_start_us": 1,
+        "max_before_start_us": 1800000000
+      },
+      "followup": {
+        "item_ids": [
+          "synthetic_pressure"
+        ],
+        "unit_lexical": "mmHg",
+        "anchor": "start",
+        "min_after_anchor_us": 0,
+        "max_after_anchor_us": 7200000000,
+        "within_interval": false
+      }
+    },
+    "alignment": {
+      "profile": "patient-local-clock-alignment-1.0",
+      "id": "synthetic_same_calendar",
+      "interval_store_sha256": "0c3810c583cada436365306fc3cb59c5fbf9bf1567b02c883c6161cd5a11cedd",
+      "measurement_store_sha256": "ce64f3fb9bb6574153374ee557f571f9843e97e317f56943dddf920d2d09b03d",
+      "bindings": [
+        {
+          "patient_id": "P1",
+          "interval_clock_id": "clock_P1",
+          "measurement_clock_id": "clock_P1",
+          "basis": "same_dataset_patient_calendar",
+          "reason": "Both synthetic fixtures use the same constructed patient calendar."
+        },
+        {
+          "patient_id": "P2",
+          "interval_clock_id": "clock_P2",
+          "measurement_clock_id": "clock_P2",
+          "basis": "same_dataset_patient_calendar",
+          "reason": "Both synthetic fixtures use the same constructed patient calendar."
+        },
+        {
+          "patient_id": "P3",
+          "interval_clock_id": "clock_P3",
+          "measurement_clock_id": "clock_P3",
+          "basis": "same_dataset_patient_calendar",
+          "reason": "Both synthetic fixtures use the same constructed patient calendar."
+        }
+      ]
+    },
+    "interval_context_id": "590e4dcf1921a524f3676f84d410a0169d70b52eb1c6de19f269c28c216bdf7b",
+    "measurement_context_id": "3c2f2b84db85dfee17b65160066d01eb2eaad5b301245e836837da056cd67cb8",
+    "coordinate_origin": "0001-01-01T00:00:00",
+    "time_domain": "bounded-patient-local-calendar-microseconds",
+    "clock_alignment_basis": "explicit_caller_declaration_not_independent_source_verification",
+    "certainty_semantics": "exists_named_binding_forall_feasible_selected_source_timelines",
+    "eligibility": "baseline_and_treatment_only_followup_never_required",
+    "limits": {
+      "variables_per_episode": 64,
+      "baseline_tests": 128,
+      "followup_tests": 256
+    },
+    "artifacts": {
+      "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+      "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+      "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+      "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+      "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+      "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+      "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+      "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+      "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+      "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+      "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+      "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+      "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+      "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+      "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+      "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+      "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+      "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+      "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+      "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+      "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+      "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+      "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+      "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+      "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+      "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+      "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
+    }
+  },
+  "query_context_id": "69ccf9532fe5afcb7458ab7baae9f62d0f049b9c2821ff798441e00c65f2ab62",
+  "certain_synthetic_patient_ids": [
+    "P1",
+    "P2",
+    "P3"
+  ],
+  "control_certain_synthetic_patient_ids": [],
+  "record_selector_derived_not_asserted": true,
+  "pro_witnesses_preserved": true,
+  "rust_semantic_status": "READY",
+  "followup_statuses": [
+    "RECORDED_FOLLOWUP",
+    "NO_SELECTED_FOLLOWUP_IN_WINDOW",
+    "RECORDED_FOLLOWUP",
+    "NOT_EVALUATED_INELIGIBLE"
+  ],
+  "scope": "Authored record-class implications; no clinical vocabulary equivalence, occurrence inference or identity verification"
+}

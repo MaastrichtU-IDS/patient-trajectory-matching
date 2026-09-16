@@ -581,3 +581,14 @@ The [pressure cache contract](pressure-query-cache.md) adds 11 Python tests to t
 ## Prepared pressure queries
 
 The [prepared executor](prepared-pressure-queries.md) adds 11 demo tests (51 demo tests total). Differential checks compare full results and source/proof contexts; existing finite-world fixtures independently test uncertain temporal semantics. Further tests cover changed key inputs, fresh SQL evaluation, corrupted prepared outputs, invalidation, cache bounds and copied certificates. Current synthetic/public arterial benchmark reports bind implementation hashes and compare every anchor inspection. The live and prior result-cache reports are reproduced against the new session hook; source reviews are unchanged.
+
+
+## Reviewed record mappings
+
+```bash
+python -m unittest patterns.test_reviewed_record_mappings
+python -m patterns.verify_reviewed_record_mappings
+python -m patterns.reviewed_record_mappings --output /tmp/reviewed-record-policy.json
+```
+
+Eighteen tests cover mapping decisions and hashes, record/concept boundaries, source-policy separation, real Rust mixed-query execution, no-rule control, pending clinical worksheet and committed report reproduction. The contract total is 705 checks: 682 suite tests, 16 oracle cases and seven properties. The separate demo suite remains 51 tests. See [the profile](reviewed-record-mappings.md) for compiler exit semantics and its clinical integration limits.

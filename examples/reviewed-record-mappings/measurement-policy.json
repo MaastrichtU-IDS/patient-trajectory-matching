@@ -1,0 +1,56 @@
+{
+  "profile": "claim-acceptance-policy-1.0",
+  "id": "synthetic_selection",
+  "store_sha256": "ce64f3fb9bb6574153374ee557f571f9843e97e317f56943dddf920d2d09b03d",
+  "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+  "decisions": [
+    {
+      "id": "accept_claim_baseline_P1",
+      "claim_id": "claim_baseline_P1",
+      "claim_sha256": "f8f39555b20964aecaa2e3d14848647f8f263ed913a78b86398d47adea17ec03",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_followup1_P1",
+      "claim_id": "claim_followup1_P1",
+      "claim_sha256": "6d988cb7055a1df3f8a169061b9a38db03bcf24dc79fe5f877ccd06b5b4615b4",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_followup2_P1",
+      "claim_id": "claim_followup2_P1",
+      "claim_sha256": "aabc2e031fb002656b8d04abd1f9075e6c8b1747a0b909a0a0e66e64c11e4998",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_baseline_P2",
+      "claim_id": "claim_baseline_P2",
+      "claim_sha256": "d2a483febce164534efc4f8c46f56977df06f46730e495a5f1ade2e30852c865",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_baseline_P3",
+      "claim_id": "claim_baseline_P3",
+      "claim_sha256": "78164058c55bb7f39e60a675fbcdf741d071fc3e03d4a32b7907024eb6d09264",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_followup1_P3",
+      "claim_id": "claim_followup1_P3",
+      "claim_sha256": "a0f5ecbf09427a15c46c7f4840066ca3b82e1bf4cdc991d47d0061e82afd7c71",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    }
+  ]
+}

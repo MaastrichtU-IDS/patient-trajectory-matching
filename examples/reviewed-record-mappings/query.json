@@ -1,0 +1,25 @@
+{
+  "profile": "mixed-record-trajectory-1.0",
+  "id": "reviewed_record_group_query",
+  "treatment_class_iri": "https://example.org/trajectory/record-query/input-family",
+  "baseline": {
+    "item_ids": [
+      "synthetic_pressure"
+    ],
+    "unit_lexical": "mmHg",
+    "operator": "lt",
+    "value_lexical": "65",
+    "min_before_start_us": 1,
+    "max_before_start_us": 1800000000
+  },
+  "followup": {
+    "item_ids": [
+      "synthetic_pressure"
+    ],
+    "unit_lexical": "mmHg",
+    "anchor": "start",
+    "min_after_anchor_us": 0,
+    "max_after_anchor_us": 7200000000,
+    "within_interval": false
+  }
+}

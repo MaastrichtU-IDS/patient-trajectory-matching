@@ -1,0 +1,24 @@
+{
+  "profile": "record-mapping-review-1.0",
+  "mappings_sha256": "52c0df83877e8cb4a8ff9249aa268cc836dc4a999d5327c5e9c07af060272c10",
+  "decisions": [
+    {
+      "id": "accept-map-a",
+      "mapping_id": "map-a",
+      "mapping_sha256": "4a979a1d18d47a8e3e5017d64f03090f1b5bba408425959086340817cb9e8202",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture test policy",
+      "reason": "Explicit synthetic acceptance of the authored grouping; no clinical review."
+    },
+    {
+      "id": "accept-map-b",
+      "mapping_id": "map-b",
+      "mapping_sha256": "e226b9b9aa224063c91869eed49086d990956311f8b237b74261de5a85949ba4",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture test policy",
+      "reason": "Explicit synthetic acceptance of the authored grouping; no clinical review."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "profile": "record-query-terminology-1.0",
+  "system": "https://example.org/authored-terminology",
+  "version": "authored-1",
+  "record_class_namespace": "https://example.org/trajectory/record-query/",
+  "terms": [
+    {
+      "code": "input-family",
+      "label": "Authored input family",
+      "concept_iri": "https://example.org/authored-terminology/input-family",
+      "record_class_iri": "https://example.org/trajectory/record-query/input-family"
+    }
+  ]
+}
