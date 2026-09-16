@@ -1,0 +1,15 @@
+{
+  "profile": "interval-cohort-1.0",
+  "id": "coh-01-broad-admitted-processes",
+  "slots": [
+    {
+      "id": "first_process",
+      "class_iri": "https://w3id.org/sulo/Process"
+    },
+    {
+      "id": "second_process",
+      "class_iri": "https://w3id.org/sulo/Process"
+    }
+  ],
+  "constraints": []
+}

@@ -5,6 +5,7 @@ import unittest
 
 from . import joint_evidence
 from . import exact_intervals as ei
+from . import interval_cohort
 
 
 def gen01_fixture(name):
@@ -31,7 +32,61 @@ def observation_payload(result):
     )
 
 
+def coh01_fixture(name):
+    return json.loads((ei.ROOT / "examples/interval-cohort" / name).read_text())
+
+
+def run_coh01(query_name, *, engine="indexed"):
+    source = coh01_fixture("source-rows.json")
+    manifest = coh01_fixture("manifest.json")
+    snapshot = interval_cohort.prepare(interval_cohort.build_graph(source), manifest)
+    return interval_cohort.execute(snapshot, coh01_fixture(query_name), engine=engine)
+
+
+def cohort_semantics(result):
+    return {key: value for key, value in result.items() if key != "execution"}
+
+
+def expected_removed_patient_ids():
+    return ["P2", "P3"]
+
+
 class UseCaseConformanceTests(unittest.TestCase):
+    def test_coh01_refinement_reports_reproducible_membership_delta(self):
+        """COH-01 is a constructed process cohort; HPO matching remains a proposed profile extension."""
+        broad = run_coh01("coh-01-broad-query.json")
+        refined = run_coh01("coh-01-refined-query.json")
+        self.assertTrue(set(refined["matched_patient_ids"]) <= set(broad["matched_patient_ids"]))
+        self.assertEqual(
+            sorted(set(broad["matched_patient_ids"]) - set(refined["matched_patient_ids"])),
+            expected_removed_patient_ids(),
+        )
+        self.assertEqual(broad["matched_patient_ids"], ["P1", "P2", "P3"])
+        self.assertEqual(refined["matched_patient_ids"], ["P1"])
+        self.assertEqual(broad["evidence"]["context_id"], refined["evidence"]["context_id"])
+        self.assertEqual(
+            [trajectory["patient_id"] for trajectory in broad["trajectories"]],
+            [trajectory["patient_id"] for trajectory in refined["trajectories"]],
+        )
+
+        for query_name, result in (("coh-01-broad-query.json", broad),
+                                   ("coh-01-refined-query.json", refined)):
+            with self.subTest(query=query_name, engine="reference"):
+                reference = run_coh01(query_name, engine="reference")
+                self.assertEqual(cohort_semantics(result), cohort_semantics(reference))
+            self.assertEqual(result["context"]["query"], coh01_fixture(query_name))
+            self.assertTrue(result["context_id"])
+            for trajectory in result["trajectories"]:
+                for match in trajectory["matches"] + trajectory["unresolved_bindings"]:
+                    for slot in match["slots"].values():
+                        for key in ("process", "patient_role", "patient_bearer", "evidence_id"):
+                            self.assertIn(key, slot)
+                        evidence = result["evidence"]["bindings"][slot["evidence_id"]]
+                        self.assertIn("source_record", evidence)
+                        self.assertIn("context_id", evidence)
+                        self.assertTrue(evidence["source_record"])
+                        self.assertEqual(evidence["context_id"], result["evidence"]["context_id"])
+
     def test_gen01_pre_release_excludes_later_pathogenicity(self):
         result = run_gen01("before-request.json")
         self.assertEqual(result["status"], "READY")
