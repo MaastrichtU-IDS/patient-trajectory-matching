@@ -1,0 +1,137 @@
+{
+  "patient_id": "P1",
+  "episode_id": "A1",
+  "age": 50,
+  "source_search_complete": true,
+  "case_id": "PRO-SOLID-01",
+  "description": "Projected PRO/SOLID synthetic trajectory",
+  "events": [
+    {
+      "dataset_id": "toy",
+      "snapshot_id": "toy-pro-solid-v1",
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "event_id": "B1",
+      "record_id": "record-B1",
+      "clinical_event_id": "https://example.org/trajectory/data/event-B1",
+      "event_kind": "measurement",
+      "concept": "ex:Creatinine",
+      "source_code": "ex:Creatinine",
+      "source_system": "constructed_fixture",
+      "mapping_ref": "pro-solid-2.4",
+      "status": "performed",
+      "experiencer": "patient",
+      "time": {
+        "kind": "point",
+        "clock_id": "P1-relative",
+        "start_min_us": -86400000000,
+        "start_max_us": -86400000000,
+        "end_min_us": -86400000000,
+        "end_max_us": -86400000000,
+        "precision": "second",
+        "timestamp_role": "occurrence"
+      },
+      "value": "1.00",
+      "unit": "mg/dL",
+      "original_value": "10.0",
+      "original_unit": "mg/L",
+      "comparator": "eq",
+      "provenance": {
+        "source_file": "constructed://pro-solid/source-rows.json",
+        "source_key": "B1",
+        "source_record_sha256": "07d5c5b716b85c15448a9367e1919bc6e7e9b6673ce9c1d88d3079797b77a688",
+        "adapter_rule": "pro-solid-2.4",
+        "assertion_ids": [
+          "pro-solid:962532d460cfa36601af6cdc8d4aba8c2f27ad04f50d2d0e56bb9a97ede22f52"
+        ]
+      },
+      "record_version": 1,
+      "supersedes": null
+    },
+    {
+      "dataset_id": "toy",
+      "snapshot_id": "toy-pro-solid-v1",
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "event_id": "E1",
+      "record_id": "record-E1",
+      "clinical_event_id": "https://example.org/trajectory/data/event-E1",
+      "event_kind": "administration",
+      "concept": "ex:DrugA",
+      "source_code": "ex:DrugA",
+      "source_system": "constructed_fixture",
+      "mapping_ref": "pro-solid-2.4",
+      "status": "performed",
+      "experiencer": "patient",
+      "time": {
+        "kind": "point",
+        "clock_id": "P1-relative",
+        "start_min_us": -604800000000,
+        "start_max_us": -604800000000,
+        "end_min_us": -604800000000,
+        "end_max_us": -604800000000,
+        "precision": "second",
+        "timestamp_role": "occurrence"
+      },
+      "value": null,
+      "unit": null,
+      "original_value": null,
+      "original_unit": null,
+      "comparator": "eq",
+      "provenance": {
+        "source_file": "constructed://pro-solid/source-rows.json",
+        "source_key": "E1",
+        "source_record_sha256": "8de2cab77452a6ec2bb3fdd179d77eaa5a3de9a6e65782654599169b9812093f",
+        "adapter_rule": "pro-solid-2.4",
+        "assertion_ids": [
+          "pro-solid:043fb189dc4b94a2d2d4eef1007e215cc01c42dd37daf82c0353562f7a4a2e3a"
+        ]
+      },
+      "record_version": 1,
+      "supersedes": null
+    },
+    {
+      "dataset_id": "toy",
+      "snapshot_id": "toy-pro-solid-v1",
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "event_id": "F1",
+      "record_id": "record-F1",
+      "clinical_event_id": "https://example.org/trajectory/data/event-F1",
+      "event_kind": "measurement",
+      "concept": "ex:Creatinine",
+      "source_code": "ex:Creatinine",
+      "source_system": "constructed_fixture",
+      "mapping_ref": "pro-solid-2.4",
+      "status": "performed",
+      "experiencer": "patient",
+      "time": {
+        "kind": "point",
+        "clock_id": "P1-relative",
+        "start_min_us": 0,
+        "start_max_us": 0,
+        "end_min_us": 0,
+        "end_max_us": 0,
+        "precision": "second",
+        "timestamp_role": "occurrence"
+      },
+      "value": "1.30",
+      "unit": "mg/dL",
+      "original_value": "1.30",
+      "original_unit": "mg/dL",
+      "comparator": "eq",
+      "provenance": {
+        "source_file": "constructed://pro-solid/source-rows.json",
+        "source_key": "F1",
+        "source_record_sha256": "b3a444314967983e68d273f3c5ef435be93d4487b71780aef62e89b7794634a8",
+        "adapter_rule": "pro-solid-2.4",
+        "assertion_ids": [
+          "pro-solid:ea73043682dd71502d7d7dabb21eaf5b5c4609c5b243f0f2fc3084105bcd1be0"
+        ]
+      },
+      "record_version": 1,
+      "supersedes": null
+    }
+  ],
+  "budget_override": null
+}

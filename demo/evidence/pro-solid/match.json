@@ -1,0 +1,18 @@
+{
+  "exact_status": "PASS",
+  "accepted_as": "EXACT",
+  "total_cost": "0",
+  "relaxed_constraint_ids": [],
+  "baseline_event_id": "B1",
+  "binding": {
+    "baseline": "B1",
+    "exposure": "E1",
+    "followup": "F1"
+  },
+  "reason_codes": [],
+  "components": {
+    "exposure": "0",
+    "exposure_window": "0"
+  },
+  "clinical_knowledge_status": "UNDETERMINED"
+}

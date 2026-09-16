@@ -1,0 +1,2387 @@
+{
+  "profile": "semantic-support-1.0",
+  "status": "READY",
+  "context": {
+    "profile": "semantic-support-1.0",
+    "source_context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+    "query": {
+      "profile": "semantic-bounded-query-1.0",
+      "id": "antibiotic_before_collection",
+      "slots": [
+        {
+          "id": "a",
+          "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+        },
+        {
+          "id": "b",
+          "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+        }
+      ],
+      "constraints": [
+        {
+          "id": "order",
+          "left": "a",
+          "right": "b",
+          "operator": "before"
+        }
+      ]
+    },
+    "module": {
+      "profile": "semantic-support-1.0",
+      "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
+      "classes": [
+        "https://example.org/trajectory/semantic/DrugAdministration",
+        "https://example.org/trajectory/semantic/AntibioticAdministration",
+        "https://example.org/trajectory/semantic/AdministeredDrugRole",
+        "https://example.org/trajectory/semantic/Antibiotic",
+        "https://example.org/trajectory/semantic/NonAntibiotic"
+      ],
+      "individuals": [
+        "https://example.org/trajectory/semantic/P1a-drug-role",
+        "https://example.org/trajectory/semantic/P1a-drug",
+        "https://example.org/trajectory/semantic/P2a-drug-role",
+        "https://example.org/trajectory/semantic/P2a-drug",
+        "https://example.org/trajectory/semantic/P3a-drug-role",
+        "https://example.org/trajectory/semantic/P3a-drug",
+        "https://example.org/trajectory/semantic/P4a-drug-role",
+        "https://example.org/trajectory/semantic/P4a-drug"
+      ],
+      "class_assertions": [
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P1a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P2a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P3a-drug",
+          "class": "https://example.org/trajectory/semantic/NonAntibiotic"
+        },
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P4a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        }
+      ],
+      "property_assertions": [
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P1a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P1a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P1a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P1a-drug"
+        },
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P2a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P2a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P2a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P2a-drug"
+        },
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P3a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P3a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P3a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P3a-drug"
+        },
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P4a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P4a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P4a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P4a-drug"
+        }
+      ],
+      "rules": [
+        {
+          "id": "antibiotic_administration",
+          "if": {
+            "all": [
+              {
+                "class": "https://example.org/trajectory/semantic/DrugAdministration"
+              },
+              {
+                "some": {
+                  "property": "https://w3id.org/sulo/hasParticipant",
+                  "filler": {
+                    "all": [
+                      {
+                        "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+                      },
+                      {
+                        "some": {
+                          "property": "https://w3id.org/sulo/isFeatureOf",
+                          "filler": {
+                            "class": "https://example.org/trajectory/semantic/Antibiotic"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+        }
+      ],
+      "disjoint": [
+        {
+          "id": "drug_classes",
+          "classes": [
+            "https://example.org/trajectory/semantic/Antibiotic",
+            "https://example.org/trajectory/semantic/NonAntibiotic"
+          ]
+        }
+      ]
+    },
+    "model_sha256": "ef59e80ba171be1de57813d596bbf1286ba026d4d88c11d8531fa9fd2e419f7b",
+    "ontology_sha256": "ab124ecc0eb8bee6290f9fdd9edda0775cacbc0b34d9f6e578f4976b875ba628",
+    "backend": {
+      "status": "OK",
+      "consistent": true,
+      "memberships": {
+        "https://example.org/trajectory/bounded/SpecimenCollection": [
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ]
+      },
+      "dropped": {},
+      "warnings": [],
+      "backend": {
+        "name": "rustdl",
+        "version": "0.4.28",
+        "python": "3.12.14",
+        "native_sha256": "5ebad382865b202bb3ef38429e4f27f354171ed6d9a4b20858894c75e7b596ab",
+        "wrapper_sha256": "1cce7a94c73a4f28ecb6b800a19ed8d85cd1069fe8d6a2c047c11e6b5614596b",
+        "instance_api_reports_truncation": false
+      }
+    },
+    "timeout_seconds": 20,
+    "artifacts": {
+      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+      "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+      "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f"
+    }
+  },
+  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+  "semantic_support": {
+    "reference": {
+      "consistent": true,
+      "clashes": [],
+      "memberships": {
+        "https://example.org/trajectory/bounded/Infusion": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/bounded/IntervalProcess": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4a",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/bounded/SpecimenCollection": [
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/semantic/AdministeredDrugRole": [
+          "https://example.org/trajectory/semantic/P1a-drug-role",
+          "https://example.org/trajectory/semantic/P2a-drug-role",
+          "https://example.org/trajectory/semantic/P3a-drug-role",
+          "https://example.org/trajectory/semantic/P4a-drug-role"
+        ],
+        "https://example.org/trajectory/semantic/Antibiotic": [
+          "https://example.org/trajectory/semantic/P1a-drug",
+          "https://example.org/trajectory/semantic/P2a-drug",
+          "https://example.org/trajectory/semantic/P4a-drug"
+        ],
+        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/semantic/DrugAdministration": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/semantic/NonAntibiotic": [
+          "https://example.org/trajectory/semantic/P3a-drug"
+        ],
+        "https://example.org/trajectory/toy/PatientRole": [
+          "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P3a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P3b/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P4b/patient-role"
+        ],
+        "https://example.org/trajectory/toy/Person": [
+          "https://example.org/trajectory/bounded-data/persons/P1",
+          "https://example.org/trajectory/bounded-data/persons/P2",
+          "https://example.org/trajectory/bounded-data/persons/P3",
+          "https://example.org/trajectory/bounded-data/persons/P4"
+        ],
+        "https://w3id.org/sulo/Process": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4a",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ]
+      },
+      "derivations": [
+        {
+          "kind": "rule",
+          "rule_id": "antibiotic_administration",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1a",
+              "https://example.org/trajectory/semantic/DrugAdministration"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1a",
+                "https://w3id.org/sulo/hasParticipant",
+                "https://example.org/trajectory/semantic/P1a-drug-role"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P1a-drug-role",
+              "https://example.org/trajectory/semantic/AdministeredDrugRole"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/semantic/P1a-drug-role",
+                "https://w3id.org/sulo/isFeatureOf",
+                "https://example.org/trajectory/semantic/P1a-drug"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P1a-drug",
+              "https://example.org/trajectory/semantic/Antibiotic"
+            ]
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "antibiotic_administration",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2a",
+              "https://example.org/trajectory/semantic/DrugAdministration"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2a",
+                "https://w3id.org/sulo/hasParticipant",
+                "https://example.org/trajectory/semantic/P2a-drug-role"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P2a-drug-role",
+              "https://example.org/trajectory/semantic/AdministeredDrugRole"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/semantic/P2a-drug-role",
+                "https://w3id.org/sulo/isFeatureOf",
+                "https://example.org/trajectory/semantic/P2a-drug"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P2a-drug",
+              "https://example.org/trajectory/semantic/Antibiotic"
+            ]
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "antibiotic_administration",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4a",
+              "https://example.org/trajectory/semantic/DrugAdministration"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4a",
+                "https://w3id.org/sulo/hasParticipant",
+                "https://example.org/trajectory/semantic/P4a-drug-role"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P4a-drug-role",
+              "https://example.org/trajectory/semantic/AdministeredDrugRole"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/semantic/P4a-drug-role",
+                "https://w3id.org/sulo/isFeatureOf",
+                "https://example.org/trajectory/semantic/P4a-drug"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P4a-drug",
+              "https://example.org/trajectory/semantic/Antibiotic"
+            ]
+          ]
+        }
+      ],
+      "assertions": [
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P1",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P2",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P3",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P4",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P1a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P2a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P3a-drug",
+          "class": "https://example.org/trajectory/semantic/NonAntibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P4a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        }
+      ]
+    },
+    "backend_result": {
+      "status": "OK",
+      "consistent": true,
+      "memberships": {
+        "https://example.org/trajectory/bounded/SpecimenCollection": [
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ]
+      },
+      "dropped": {},
+      "warnings": [],
+      "backend": {
+        "name": "rustdl",
+        "version": "0.4.28",
+        "python": "3.12.14",
+        "native_sha256": "5ebad382865b202bb3ef38429e4f27f354171ed6d9a4b20858894c75e7b596ab",
+        "wrapper_sha256": "1cce7a94c73a4f28ecb6b800a19ed8d85cd1069fe8d6a2c047c11e6b5614596b",
+        "instance_api_reports_truncation": false
+      }
+    },
+    "ontology_ofn": "Ontology(\nDeclaration(Class(<https://example.org/trajectory/bounded/Infusion>))\nDeclaration(Class(<https://example.org/trajectory/bounded/IntervalProcess>))\nDeclaration(Class(<https://example.org/trajectory/bounded/SpecimenCollection>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AdministeredDrugRole>))\nDeclaration(Class(<https://example.org/trajectory/semantic/Antibiotic>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AntibioticAdministration>))\nDeclaration(Class(<https://example.org/trajectory/semantic/DrugAdministration>))\nDeclaration(Class(<https://example.org/trajectory/semantic/NonAntibiotic>))\nDeclaration(Class(<https://example.org/trajectory/toy/PatientRole>))\nDeclaration(Class(<https://example.org/trajectory/toy/Person>))\nDeclaration(Class(<https://w3id.org/sulo/Process>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P1>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P2>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P3>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P4>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug-role>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/hasParticipant>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/isFeatureOf>))\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P1a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P2a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P3a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P4a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P1a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P2a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P4a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/semantic/NonAntibiotic> <https://example.org/trajectory/semantic/P3a-drug>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P1>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P2>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P3>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P4>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P4b>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1b> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2b> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3b> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4b> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1a/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1b/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2a/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2b/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3a/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3b/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4a/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4b/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P1a-drug-role> <https://example.org/trajectory/semantic/P1a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/semantic/P1a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P2a-drug-role> <https://example.org/trajectory/semantic/P2a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/semantic/P2a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P3a-drug-role> <https://example.org/trajectory/semantic/P3a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/semantic/P3a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P4a-drug-role> <https://example.org/trajectory/semantic/P4a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/semantic/P4a-drug-role>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/semantic/DrugAdministration> ObjectSomeValuesFrom(<https://w3id.org/sulo/hasParticipant> ObjectIntersectionOf(<https://example.org/trajectory/semantic/AdministeredDrugRole> ObjectSomeValuesFrom(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/Antibiotic>)))) <https://example.org/trajectory/semantic/AntibioticAdministration>)\nDisjointClasses(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/NonAntibiotic>)\n)\n",
+    "ontology_sha256": "ab124ecc0eb8bee6290f9fdd9edda0775cacbc0b34d9f6e578f4976b875ba628",
+    "memberships": {
+      "https://example.org/trajectory/bounded/SpecimenCollection": [
+        "https://example.org/trajectory/bounded-data/events/P1b",
+        "https://example.org/trajectory/bounded-data/events/P2b",
+        "https://example.org/trajectory/bounded-data/events/P3b",
+        "https://example.org/trajectory/bounded-data/events/P4b"
+      ],
+      "https://example.org/trajectory/semantic/AntibioticAdministration": [
+        "https://example.org/trajectory/bounded-data/events/P1a",
+        "https://example.org/trajectory/bounded-data/events/P2a",
+        "https://example.org/trajectory/bounded-data/events/P4a"
+      ]
+    },
+    "status": "READY"
+  },
+  "matching": {
+    "profile": "semantic-bounded-query-1.0",
+    "context_id": "3ce77d5975b615e1cf7d23ef8ff0414f6f29d8f8f579f56f967f4a673007d750",
+    "context": {
+      "profile": "semantic-bounded-query-1.0",
+      "source_context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+      "query": {
+        "profile": "semantic-bounded-query-1.0",
+        "id": "antibiotic_before_collection",
+        "slots": [
+          {
+            "id": "a",
+            "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+          },
+          {
+            "id": "b",
+            "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "order",
+            "left": "a",
+            "right": "b",
+            "operator": "before"
+          }
+        ]
+      },
+      "artifacts": {
+        "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+        "patterns/bounded_reference.py": "43254f0fd2f92cc3c39c9bffe315e99a99c622204314c2f80d21415b0b365014"
+      },
+      "semantic_context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2"
+    },
+    "search_complete": true,
+    "scope": "represented_patient_episodes",
+    "certainty_semantics": "exists_named_binding_forall_feasible_source_timelines",
+    "certain_patient_ids": [
+      "P1"
+    ],
+    "possible_patient_ids": [
+      "P1",
+      "P2"
+    ],
+    "trajectories": [
+      {
+        "patient_id": "P1",
+        "episode_id": "E1",
+        "status": "CERTAIN_MATCH",
+        "source_edges": [
+          {
+            "id": "bound:P1ae:lower",
+            "left": "$zero",
+            "right": "P1ae",
+            "upper": -1
+          },
+          {
+            "id": "bound:P1ae:upper",
+            "left": "P1ae",
+            "right": "$zero",
+            "upper": 3
+          },
+          {
+            "id": "bound:P1as:lower",
+            "left": "$zero",
+            "right": "P1as",
+            "upper": 0
+          },
+          {
+            "id": "bound:P1as:upper",
+            "left": "P1as",
+            "right": "$zero",
+            "upper": 2
+          },
+          {
+            "id": "bound:P1be:lower",
+            "left": "$zero",
+            "right": "P1be",
+            "upper": -4
+          },
+          {
+            "id": "bound:P1be:upper",
+            "left": "P1be",
+            "right": "$zero",
+            "upper": 6
+          },
+          {
+            "id": "bound:P1bs:lower",
+            "left": "$zero",
+            "right": "P1bs",
+            "upper": -3
+          },
+          {
+            "id": "bound:P1bs:upper",
+            "left": "P1bs",
+            "right": "$zero",
+            "upper": 5
+          },
+          {
+            "id": "proper:P1a",
+            "left": "P1as",
+            "right": "P1ae",
+            "upper": -1
+          },
+          {
+            "id": "proper:P1b",
+            "left": "P1bs",
+            "right": "P1be",
+            "upper": -1
+          },
+          {
+            "id": "source:ae-lower",
+            "left": "P1as",
+            "right": "P1ae",
+            "upper": -1
+          },
+          {
+            "id": "source:ae-upper",
+            "left": "P1ae",
+            "right": "P1as",
+            "upper": 1
+          },
+          {
+            "id": "source:be-lower",
+            "left": "P1as",
+            "right": "P1be",
+            "upper": -4
+          },
+          {
+            "id": "source:be-upper",
+            "left": "P1be",
+            "right": "P1as",
+            "upper": 4
+          },
+          {
+            "id": "source:bs-lower",
+            "left": "P1as",
+            "right": "P1bs",
+            "upper": -3
+          },
+          {
+            "id": "source:bs-upper",
+            "left": "P1bs",
+            "right": "P1as",
+            "upper": 3
+          }
+        ],
+        "bindings": [
+          {
+            "query_edges": [
+              {
+                "id": "query:order:0",
+                "left": "P1ae",
+                "right": "P1bs",
+                "upper": -1
+              }
+            ],
+            "incomparable_constraints": [],
+            "possible": true,
+            "possible_witness": {
+              "P1ae": 1,
+              "P1as": 0,
+              "P1be": 4,
+              "P1bs": 3
+            },
+            "status": "CERTAIN",
+            "certain": true,
+            "entailment_proofs": [
+              {
+                "query_edge_id": "query:order:0",
+                "entailed_upper_us": -2,
+                "source_path": [
+                  "source:bs-lower",
+                  "source:ae-upper"
+                ]
+              }
+            ],
+            "slots": {
+              "a": {
+                "event_id": "P1a",
+                "evidence_id": "bounded-interval-1.0:42ee3d3914962500f3701b8ef1b0f5df7e132d8001e773a9fb7a7ace7469808b",
+                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration",
+                "process": "https://example.org/trajectory/bounded-data/events/P1a",
+                "patient_role": "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
+                "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
+                "semantic_support": {
+                  "status": "ENTAILED",
+                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+                  "class": "https://example.org/trajectory/semantic/AntibioticAdministration"
+                }
+              },
+              "b": {
+                "event_id": "P1b",
+                "evidence_id": "bounded-interval-1.0:f402fcf2c862ea0d462a8aa00ddab8a96a14184002dc2a9b480fe42cbb2a13a5",
+                "selected_class_iri": "https://example.org/trajectory/bounded/SpecimenCollection",
+                "process": "https://example.org/trajectory/bounded-data/events/P1b",
+                "patient_role": "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
+                "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
+                "semantic_support": {
+                  "status": "ENTAILED",
+                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+                  "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "patient_id": "P2",
+        "episode_id": "E1",
+        "status": "POSSIBLE_MATCH",
+        "source_edges": [
+          {
+            "id": "bound:P2ae:lower",
+            "left": "$zero",
+            "right": "P2ae",
+            "upper": -1
+          },
+          {
+            "id": "bound:P2ae:upper",
+            "left": "P2ae",
+            "right": "$zero",
+            "upper": 1
+          },
+          {
+            "id": "bound:P2as:lower",
+            "left": "$zero",
+            "right": "P2as",
+            "upper": 0
+          },
+          {
+            "id": "bound:P2as:upper",
+            "left": "P2as",
+            "right": "$zero",
+            "upper": 0
+          },
+          {
+            "id": "bound:P2be:lower",
+            "left": "$zero",
+            "right": "P2be",
+            "upper": -4
+          },
+          {
+            "id": "bound:P2be:upper",
+            "left": "P2be",
+            "right": "$zero",
+            "upper": 4
+          },
+          {
+            "id": "bound:P2bs:lower",
+            "left": "$zero",
+            "right": "P2bs",
+            "upper": -1
+          },
+          {
+            "id": "bound:P2bs:upper",
+            "left": "P2bs",
+            "right": "$zero",
+            "upper": 3
+          },
+          {
+            "id": "proper:P2a",
+            "left": "P2as",
+            "right": "P2ae",
+            "upper": -1
+          },
+          {
+            "id": "proper:P2b",
+            "left": "P2bs",
+            "right": "P2be",
+            "upper": -1
+          }
+        ],
+        "bindings": [
+          {
+            "query_edges": [
+              {
+                "id": "query:order:0",
+                "left": "P2ae",
+                "right": "P2bs",
+                "upper": -1
+              }
+            ],
+            "incomparable_constraints": [],
+            "possible": true,
+            "possible_witness": {
+              "P2ae": 1,
+              "P2as": 0,
+              "P2be": 4,
+              "P2bs": 3
+            },
+            "status": "POSSIBLE",
+            "certain": false,
+            "counterexample": {
+              "P2ae": 1,
+              "P2as": 0,
+              "P2be": 4,
+              "P2bs": 1
+            },
+            "violated_query_edge_id": "query:order:0",
+            "counterexample_edge": {
+              "id": "counterexample:query:order:0",
+              "left": "P2bs",
+              "right": "P2ae",
+              "upper": 0
+            },
+            "slots": {
+              "a": {
+                "event_id": "P2a",
+                "evidence_id": "bounded-interval-1.0:6f3b8c36bb31efaf7c3b415dab8b44f045844f5cde7c96ccdc8394f55e4e146b",
+                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration",
+                "process": "https://example.org/trajectory/bounded-data/events/P2a",
+                "patient_role": "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
+                "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
+                "semantic_support": {
+                  "status": "ENTAILED",
+                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+                  "class": "https://example.org/trajectory/semantic/AntibioticAdministration"
+                }
+              },
+              "b": {
+                "event_id": "P2b",
+                "evidence_id": "bounded-interval-1.0:b1621d4edaef87cb0cc884b2c51c97c2f2f7335bd016eef24c212b588b861c9b",
+                "selected_class_iri": "https://example.org/trajectory/bounded/SpecimenCollection",
+                "process": "https://example.org/trajectory/bounded-data/events/P2b",
+                "patient_role": "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
+                "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
+                "semantic_support": {
+                  "status": "ENTAILED",
+                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+                  "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "patient_id": "P3",
+        "episode_id": "E1",
+        "status": "NO_RECORDED_MATCH",
+        "source_edges": [
+          {
+            "id": "bound:P3ae:lower",
+            "left": "$zero",
+            "right": "P3ae",
+            "upper": -4
+          },
+          {
+            "id": "bound:P3ae:upper",
+            "left": "P3ae",
+            "right": "$zero",
+            "upper": 4
+          },
+          {
+            "id": "bound:P3as:lower",
+            "left": "$zero",
+            "right": "P3as",
+            "upper": -3
+          },
+          {
+            "id": "bound:P3as:upper",
+            "left": "P3as",
+            "right": "$zero",
+            "upper": 3
+          },
+          {
+            "id": "bound:P3be:lower",
+            "left": "$zero",
+            "right": "P3be",
+            "upper": -1
+          },
+          {
+            "id": "bound:P3be:upper",
+            "left": "P3be",
+            "right": "$zero",
+            "upper": 1
+          },
+          {
+            "id": "bound:P3bs:lower",
+            "left": "$zero",
+            "right": "P3bs",
+            "upper": 0
+          },
+          {
+            "id": "bound:P3bs:upper",
+            "left": "P3bs",
+            "right": "$zero",
+            "upper": 0
+          },
+          {
+            "id": "proper:P3a",
+            "left": "P3as",
+            "right": "P3ae",
+            "upper": -1
+          },
+          {
+            "id": "proper:P3b",
+            "left": "P3bs",
+            "right": "P3be",
+            "upper": -1
+          }
+        ],
+        "bindings": []
+      },
+      {
+        "patient_id": "P4",
+        "episode_id": "E1",
+        "status": "INCOMPARABLE",
+        "source_edges": [
+          {
+            "id": "bound:P4ae:lower",
+            "left": "$zero",
+            "right": "P4ae",
+            "upper": -1
+          },
+          {
+            "id": "bound:P4ae:upper",
+            "left": "P4ae",
+            "right": "$zero",
+            "upper": 1
+          },
+          {
+            "id": "bound:P4as:lower",
+            "left": "$zero",
+            "right": "P4as",
+            "upper": 0
+          },
+          {
+            "id": "bound:P4as:upper",
+            "left": "P4as",
+            "right": "$zero",
+            "upper": 0
+          },
+          {
+            "id": "bound:P4be:lower",
+            "left": "$zero",
+            "right": "P4be",
+            "upper": -4
+          },
+          {
+            "id": "bound:P4be:upper",
+            "left": "P4be",
+            "right": "$zero",
+            "upper": 4
+          },
+          {
+            "id": "bound:P4bs:lower",
+            "left": "$zero",
+            "right": "P4bs",
+            "upper": -3
+          },
+          {
+            "id": "bound:P4bs:upper",
+            "left": "P4bs",
+            "right": "$zero",
+            "upper": 3
+          },
+          {
+            "id": "proper:P4a",
+            "left": "P4as",
+            "right": "P4ae",
+            "upper": -1
+          },
+          {
+            "id": "proper:P4b",
+            "left": "P4bs",
+            "right": "P4be",
+            "upper": -1
+          }
+        ],
+        "bindings": [
+          {
+            "query_edges": [],
+            "incomparable_constraints": [
+              "order"
+            ],
+            "status": "INCOMPARABLE",
+            "possible": null,
+            "certain": null,
+            "reason_codes": [
+              "CLOCK_MISMATCH"
+            ],
+            "comparable_part_witness": {
+              "P4ae": 1,
+              "P4as": 0,
+              "P4be": 4,
+              "P4bs": 3
+            },
+            "slots": {
+              "a": {
+                "event_id": "P4a",
+                "evidence_id": "bounded-interval-1.0:13c6e14155ac93229e249930b2db416b7c6137a60bcd422e346ab2b5911453b9",
+                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration",
+                "process": "https://example.org/trajectory/bounded-data/events/P4a",
+                "patient_role": "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
+                "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
+                "semantic_support": {
+                  "status": "ENTAILED",
+                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+                  "class": "https://example.org/trajectory/semantic/AntibioticAdministration"
+                }
+              },
+              "b": {
+                "event_id": "P4b",
+                "evidence_id": "bounded-interval-1.0:799b4a7a4d8888bcb9e4157f72653a72f2a7e506558572d0edd8dbab9033675a",
+                "selected_class_iri": "https://example.org/trajectory/bounded/SpecimenCollection",
+                "process": "https://example.org/trajectory/bounded-data/events/P4b",
+                "patient_role": "https://example.org/trajectory/bounded-data/events/P4b/patient-role",
+                "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
+                "semantic_support": {
+                  "status": "ENTAILED",
+                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+                  "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "evidence": {
+      "source_context": {
+        "profile": "bounded-interval-1.0",
+        "dataset_id": "constructed-bounded-interval",
+        "snapshot_id": "synthetic-bounded-01",
+        "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
+        "graph_sha256": "99833236b8bd48a0d8449a22344316178f547eafa363876394fac30d26aa846a",
+        "time_domain": "bounded-integer-microseconds",
+        "artifacts": {
+          "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+          "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+          "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+          "ontology/bounded-interval-profile.ttl": "b05c784671c0e1599cc015f678dd9213fc9036727afe820b3161bb591f9e62f6",
+          "ontology/exact-interval-profile.ttl": "ac6189ff68ea3bfe3dbc24aac272dc72e494d45991a0665c14eee943368fee5b",
+          "ontology/pro-solid-profile.ttl": "72a5ac88b904ac54483ae11be9d7108b4c2b6fc6f0309c9c0df0ee45a53b483d",
+          "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+          "patterns/exact_intervals.py": "4451dbda47f6e771f6d1ad9210f59195a497e84af5a9fbd03f2c9a14856cf6a7",
+          "patterns/pro_solid.py": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+          "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895"
+        }
+      },
+      "source": {
+        "clocks": [
+          {
+            "clock_id": "common",
+            "origin": "2026-09-02T00:00:00Z",
+            "policy": "offset-datetime-microseconds-v1",
+            "scope": "global"
+          },
+          {
+            "clock_id": "other",
+            "origin": "2026-09-02T00:00:00Z",
+            "policy": "offset-datetime-microseconds-v1",
+            "scope": "global"
+          }
+        ],
+        "constraints": [
+          {
+            "id": "ae-upper",
+            "left_var": "P1ae",
+            "right_var": "P1as",
+            "source_key": "synthetic:shared-anchor:ae",
+            "upper_us": 1
+          },
+          {
+            "id": "ae-lower",
+            "left_var": "P1as",
+            "right_var": "P1ae",
+            "source_key": "synthetic:shared-anchor:ae",
+            "upper_us": -1
+          },
+          {
+            "id": "bs-upper",
+            "left_var": "P1bs",
+            "right_var": "P1as",
+            "source_key": "synthetic:shared-anchor:bs",
+            "upper_us": 3
+          },
+          {
+            "id": "bs-lower",
+            "left_var": "P1as",
+            "right_var": "P1bs",
+            "source_key": "synthetic:shared-anchor:bs",
+            "upper_us": -3
+          },
+          {
+            "id": "be-upper",
+            "left_var": "P1be",
+            "right_var": "P1as",
+            "source_key": "synthetic:shared-anchor:be",
+            "upper_us": 4
+          },
+          {
+            "id": "be-lower",
+            "left_var": "P1as",
+            "right_var": "P1be",
+            "source_key": "synthetic:shared-anchor:be",
+            "upper_us": -4
+          }
+        ],
+        "dataset_id": "constructed-bounded-interval",
+        "events": [
+          {
+            "end_var": "P1ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P1a",
+            "patient_id": "P1",
+            "record_id": "R-P1a",
+            "source_key": "synthetic:P1a",
+            "start_var": "P1as",
+            "status": "performed"
+          },
+          {
+            "end_var": "P1be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P1b",
+            "patient_id": "P1",
+            "record_id": "R-P1b",
+            "source_key": "synthetic:P1b",
+            "start_var": "P1bs",
+            "status": "performed"
+          },
+          {
+            "end_var": "P2ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P2a",
+            "patient_id": "P2",
+            "record_id": "R-P2a",
+            "source_key": "synthetic:P2a",
+            "start_var": "P2as",
+            "status": "performed"
+          },
+          {
+            "end_var": "P2be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P2b",
+            "patient_id": "P2",
+            "record_id": "R-P2b",
+            "source_key": "synthetic:P2b",
+            "start_var": "P2bs",
+            "status": "performed"
+          },
+          {
+            "end_var": "P3ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P3a",
+            "patient_id": "P3",
+            "record_id": "R-P3a",
+            "source_key": "synthetic:P3a",
+            "start_var": "P3as",
+            "status": "performed"
+          },
+          {
+            "end_var": "P3be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P3b",
+            "patient_id": "P3",
+            "record_id": "R-P3b",
+            "source_key": "synthetic:P3b",
+            "start_var": "P3bs",
+            "status": "performed"
+          },
+          {
+            "end_var": "P4ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P4a",
+            "patient_id": "P4",
+            "record_id": "R-P4a",
+            "source_key": "synthetic:P4a",
+            "start_var": "P4as",
+            "status": "performed"
+          },
+          {
+            "end_var": "P4be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P4b",
+            "patient_id": "P4",
+            "record_id": "R-P4b",
+            "source_key": "synthetic:P4b",
+            "start_var": "P4bs",
+            "status": "performed"
+          }
+        ],
+        "profile": "bounded-interval-1.0",
+        "snapshot_id": "synthetic-bounded-01",
+        "variables": [
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1as",
+            "lower_us": 0,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1as",
+            "upper_us": 2
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1ae",
+            "lower_us": 1,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1ae",
+            "upper_us": 3
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1bs",
+            "lower_us": 3,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1bs",
+            "upper_us": 5
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1be",
+            "lower_us": 4,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1be",
+            "upper_us": 6
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2as",
+            "lower_us": 0,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2as",
+            "upper_us": 0
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2ae",
+            "lower_us": 1,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2ae",
+            "upper_us": 1
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2bs",
+            "lower_us": 1,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2bs",
+            "upper_us": 3
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2be",
+            "lower_us": 4,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2be",
+            "upper_us": 4
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3as",
+            "lower_us": 3,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3as",
+            "upper_us": 3
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3ae",
+            "lower_us": 4,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3ae",
+            "upper_us": 4
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3bs",
+            "lower_us": 0,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3bs",
+            "upper_us": 0
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3be",
+            "lower_us": 1,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3be",
+            "upper_us": 1
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P4as",
+            "lower_us": 0,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4as",
+            "upper_us": 0
+          },
+          {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P4ae",
+            "lower_us": 1,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4ae",
+            "upper_us": 1
+          },
+          {
+            "clock_id": "other",
+            "episode_id": "E1",
+            "id": "P4bs",
+            "lower_us": 3,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4bs",
+            "upper_us": 3
+          },
+          {
+            "clock_id": "other",
+            "episode_id": "E1",
+            "id": "P4be",
+            "lower_us": 4,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4be",
+            "upper_us": 4
+          }
+        ]
+      },
+      "bindings": {
+        "P1a": {
+          "process": "https://example.org/trajectory/bounded-data/events/P1a",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
+          "interval": "https://example.org/trajectory/bounded-data/events/P1a/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P1a/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P1a/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P1a",
+          "source": {
+            "end_var": "P1ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P1a",
+            "patient_id": "P1",
+            "record_id": "R-P1a",
+            "source_key": "synthetic:P1a",
+            "start_var": "P1as",
+            "status": "performed"
+          },
+          "source_hash": "1dae355219f0c59dddb05af38cd3402e88acaf825d04d09eecf073979e2d5d80",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P1as",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P1ae",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:42ee3d3914962500f3701b8ef1b0f5df7e132d8001e773a9fb7a7ace7469808b"
+        },
+        "P1b": {
+          "process": "https://example.org/trajectory/bounded-data/events/P1b",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
+          "interval": "https://example.org/trajectory/bounded-data/events/P1b/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P1b/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P1b/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P1b",
+          "source": {
+            "end_var": "P1be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P1b",
+            "patient_id": "P1",
+            "record_id": "R-P1b",
+            "source_key": "synthetic:P1b",
+            "start_var": "P1bs",
+            "status": "performed"
+          },
+          "source_hash": "40aef8ad7386ea4a8e2c2ba5208b4e44d8136bdf3054b1637a1119b2b22c3571",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P1bs",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P1be",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:f402fcf2c862ea0d462a8aa00ddab8a96a14184002dc2a9b480fe42cbb2a13a5"
+        },
+        "P2a": {
+          "process": "https://example.org/trajectory/bounded-data/events/P2a",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
+          "interval": "https://example.org/trajectory/bounded-data/events/P2a/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P2a/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P2a/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P2a",
+          "source": {
+            "end_var": "P2ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P2a",
+            "patient_id": "P2",
+            "record_id": "R-P2a",
+            "source_key": "synthetic:P2a",
+            "start_var": "P2as",
+            "status": "performed"
+          },
+          "source_hash": "d5b138c473b6410219c5fe3423780b892f424a734cd405e0339b8afe2d8f1698",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P2as",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P2ae",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:6f3b8c36bb31efaf7c3b415dab8b44f045844f5cde7c96ccdc8394f55e4e146b"
+        },
+        "P2b": {
+          "process": "https://example.org/trajectory/bounded-data/events/P2b",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
+          "interval": "https://example.org/trajectory/bounded-data/events/P2b/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P2b/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P2b/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P2b",
+          "source": {
+            "end_var": "P2be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P2b",
+            "patient_id": "P2",
+            "record_id": "R-P2b",
+            "source_key": "synthetic:P2b",
+            "start_var": "P2bs",
+            "status": "performed"
+          },
+          "source_hash": "3900b50b1535263cbb64e04b36aa11e90b71c559885fb2bc3e0b443a90fe5690",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P2bs",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P2be",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:b1621d4edaef87cb0cc884b2c51c97c2f2f7335bd016eef24c212b588b861c9b"
+        },
+        "P3a": {
+          "process": "https://example.org/trajectory/bounded-data/events/P3a",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P3a/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P3",
+          "interval": "https://example.org/trajectory/bounded-data/events/P3a/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P3a/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P3a/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P3a",
+          "source": {
+            "end_var": "P3ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P3a",
+            "patient_id": "P3",
+            "record_id": "R-P3a",
+            "source_key": "synthetic:P3a",
+            "start_var": "P3as",
+            "status": "performed"
+          },
+          "source_hash": "c53be3e0af105573661d7ec81c4becf9e8a6e351f4ceb56b1712928efe38bd29",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P3as",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P3ae",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:fa912305e1cc8c17d728a9115bd5caff8dd43b1eb8851dc794380fd1ddac2ef3"
+        },
+        "P3b": {
+          "process": "https://example.org/trajectory/bounded-data/events/P3b",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P3b/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P3",
+          "interval": "https://example.org/trajectory/bounded-data/events/P3b/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P3b/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P3b/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P3b",
+          "source": {
+            "end_var": "P3be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P3b",
+            "patient_id": "P3",
+            "record_id": "R-P3b",
+            "source_key": "synthetic:P3b",
+            "start_var": "P3bs",
+            "status": "performed"
+          },
+          "source_hash": "9ce433d199e795c2449c57d43e45858dd86eb38f448616bf96b91b9f95c0f514",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P3bs",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P3be",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:09ed3691b4b7bec36464bab3e87ed5201e4ddd6cdf794fcc7f5d502573579194"
+        },
+        "P4a": {
+          "process": "https://example.org/trajectory/bounded-data/events/P4a",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
+          "interval": "https://example.org/trajectory/bounded-data/events/P4a/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P4a/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P4a/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P4a",
+          "source": {
+            "end_var": "P4ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P4a",
+            "patient_id": "P4",
+            "record_id": "R-P4a",
+            "source_key": "synthetic:P4a",
+            "start_var": "P4as",
+            "status": "performed"
+          },
+          "source_hash": "ff6f456ab1821686caf31d9c8d0432c95a68a5f04444dbef79af3bbf9faf7b2f",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P4as",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P4ae",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:13c6e14155ac93229e249930b2db416b7c6137a60bcd422e346ab2b5911453b9"
+        },
+        "P4b": {
+          "process": "https://example.org/trajectory/bounded-data/events/P4b",
+          "patient_role": "https://example.org/trajectory/bounded-data/events/P4b/patient-role",
+          "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
+          "interval": "https://example.org/trajectory/bounded-data/events/P4b/interval",
+          "start_descriptor": "https://example.org/trajectory/bounded-data/events/P4b/start",
+          "end_descriptor": "https://example.org/trajectory/bounded-data/events/P4b/end",
+          "source_record": "https://example.org/trajectory/bounded-data/records/R-P4b",
+          "source": {
+            "end_var": "P4be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P4b",
+            "patient_id": "P4",
+            "record_id": "R-P4b",
+            "source_key": "synthetic:P4b",
+            "start_var": "P4bs",
+            "status": "performed"
+          },
+          "source_hash": "06610f8583f3dac9903fa9aa5af43318dde2d43a8a517dafc9acc7945c0395f2",
+          "start_variable": "https://example.org/trajectory/bounded-data/variables/P4bs",
+          "end_variable": "https://example.org/trajectory/bounded-data/variables/P4be",
+          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+          "evidence_id": "bounded-interval-1.0:799b4a7a4d8888bcb9e4157f72653a72f2a7e506558572d0edd8dbab9033675a"
+        }
+      },
+      "edges": {
+        "bound:P1ae:lower": {
+          "kind": "variable_bound",
+          "variable": "P1ae",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1ae",
+            "lower_us": 1,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1ae",
+            "upper_us": 3
+          }
+        },
+        "bound:P1ae:upper": {
+          "kind": "variable_bound",
+          "variable": "P1ae",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1ae",
+            "lower_us": 1,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1ae",
+            "upper_us": 3
+          }
+        },
+        "bound:P1as:lower": {
+          "kind": "variable_bound",
+          "variable": "P1as",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1as",
+            "lower_us": 0,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1as",
+            "upper_us": 2
+          }
+        },
+        "bound:P1as:upper": {
+          "kind": "variable_bound",
+          "variable": "P1as",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1as",
+            "lower_us": 0,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1as",
+            "upper_us": 2
+          }
+        },
+        "bound:P1be:lower": {
+          "kind": "variable_bound",
+          "variable": "P1be",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1be",
+            "lower_us": 4,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1be",
+            "upper_us": 6
+          }
+        },
+        "bound:P1be:upper": {
+          "kind": "variable_bound",
+          "variable": "P1be",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1be",
+            "lower_us": 4,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1be",
+            "upper_us": 6
+          }
+        },
+        "bound:P1bs:lower": {
+          "kind": "variable_bound",
+          "variable": "P1bs",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1bs",
+            "lower_us": 3,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1bs",
+            "upper_us": 5
+          }
+        },
+        "bound:P1bs:upper": {
+          "kind": "variable_bound",
+          "variable": "P1bs",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P1bs",
+            "lower_us": 3,
+            "patient_id": "P1",
+            "source_key": "synthetic:P1bs",
+            "upper_us": 5
+          }
+        },
+        "bound:P2ae:lower": {
+          "kind": "variable_bound",
+          "variable": "P2ae",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2ae",
+            "lower_us": 1,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2ae",
+            "upper_us": 1
+          }
+        },
+        "bound:P2ae:upper": {
+          "kind": "variable_bound",
+          "variable": "P2ae",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2ae",
+            "lower_us": 1,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2ae",
+            "upper_us": 1
+          }
+        },
+        "bound:P2as:lower": {
+          "kind": "variable_bound",
+          "variable": "P2as",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2as",
+            "lower_us": 0,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2as",
+            "upper_us": 0
+          }
+        },
+        "bound:P2as:upper": {
+          "kind": "variable_bound",
+          "variable": "P2as",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2as",
+            "lower_us": 0,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2as",
+            "upper_us": 0
+          }
+        },
+        "bound:P2be:lower": {
+          "kind": "variable_bound",
+          "variable": "P2be",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2be",
+            "lower_us": 4,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2be",
+            "upper_us": 4
+          }
+        },
+        "bound:P2be:upper": {
+          "kind": "variable_bound",
+          "variable": "P2be",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2be",
+            "lower_us": 4,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2be",
+            "upper_us": 4
+          }
+        },
+        "bound:P2bs:lower": {
+          "kind": "variable_bound",
+          "variable": "P2bs",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2bs",
+            "lower_us": 1,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2bs",
+            "upper_us": 3
+          }
+        },
+        "bound:P2bs:upper": {
+          "kind": "variable_bound",
+          "variable": "P2bs",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P2bs",
+            "lower_us": 1,
+            "patient_id": "P2",
+            "source_key": "synthetic:P2bs",
+            "upper_us": 3
+          }
+        },
+        "bound:P3ae:lower": {
+          "kind": "variable_bound",
+          "variable": "P3ae",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3ae",
+            "lower_us": 4,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3ae",
+            "upper_us": 4
+          }
+        },
+        "bound:P3ae:upper": {
+          "kind": "variable_bound",
+          "variable": "P3ae",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3ae",
+            "lower_us": 4,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3ae",
+            "upper_us": 4
+          }
+        },
+        "bound:P3as:lower": {
+          "kind": "variable_bound",
+          "variable": "P3as",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3as",
+            "lower_us": 3,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3as",
+            "upper_us": 3
+          }
+        },
+        "bound:P3as:upper": {
+          "kind": "variable_bound",
+          "variable": "P3as",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3as",
+            "lower_us": 3,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3as",
+            "upper_us": 3
+          }
+        },
+        "bound:P3be:lower": {
+          "kind": "variable_bound",
+          "variable": "P3be",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3be",
+            "lower_us": 1,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3be",
+            "upper_us": 1
+          }
+        },
+        "bound:P3be:upper": {
+          "kind": "variable_bound",
+          "variable": "P3be",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3be",
+            "lower_us": 1,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3be",
+            "upper_us": 1
+          }
+        },
+        "bound:P3bs:lower": {
+          "kind": "variable_bound",
+          "variable": "P3bs",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3bs",
+            "lower_us": 0,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3bs",
+            "upper_us": 0
+          }
+        },
+        "bound:P3bs:upper": {
+          "kind": "variable_bound",
+          "variable": "P3bs",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P3bs",
+            "lower_us": 0,
+            "patient_id": "P3",
+            "source_key": "synthetic:P3bs",
+            "upper_us": 0
+          }
+        },
+        "bound:P4ae:lower": {
+          "kind": "variable_bound",
+          "variable": "P4ae",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P4ae",
+            "lower_us": 1,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4ae",
+            "upper_us": 1
+          }
+        },
+        "bound:P4ae:upper": {
+          "kind": "variable_bound",
+          "variable": "P4ae",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P4ae",
+            "lower_us": 1,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4ae",
+            "upper_us": 1
+          }
+        },
+        "bound:P4as:lower": {
+          "kind": "variable_bound",
+          "variable": "P4as",
+          "side": "lower",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P4as",
+            "lower_us": 0,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4as",
+            "upper_us": 0
+          }
+        },
+        "bound:P4as:upper": {
+          "kind": "variable_bound",
+          "variable": "P4as",
+          "side": "upper",
+          "source": {
+            "clock_id": "common",
+            "episode_id": "E1",
+            "id": "P4as",
+            "lower_us": 0,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4as",
+            "upper_us": 0
+          }
+        },
+        "bound:P4be:lower": {
+          "kind": "variable_bound",
+          "variable": "P4be",
+          "side": "lower",
+          "source": {
+            "clock_id": "other",
+            "episode_id": "E1",
+            "id": "P4be",
+            "lower_us": 4,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4be",
+            "upper_us": 4
+          }
+        },
+        "bound:P4be:upper": {
+          "kind": "variable_bound",
+          "variable": "P4be",
+          "side": "upper",
+          "source": {
+            "clock_id": "other",
+            "episode_id": "E1",
+            "id": "P4be",
+            "lower_us": 4,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4be",
+            "upper_us": 4
+          }
+        },
+        "bound:P4bs:lower": {
+          "kind": "variable_bound",
+          "variable": "P4bs",
+          "side": "lower",
+          "source": {
+            "clock_id": "other",
+            "episode_id": "E1",
+            "id": "P4bs",
+            "lower_us": 3,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4bs",
+            "upper_us": 3
+          }
+        },
+        "bound:P4bs:upper": {
+          "kind": "variable_bound",
+          "variable": "P4bs",
+          "side": "upper",
+          "source": {
+            "clock_id": "other",
+            "episode_id": "E1",
+            "id": "P4bs",
+            "lower_us": 3,
+            "patient_id": "P4",
+            "source_key": "synthetic:P4bs",
+            "upper_us": 3
+          }
+        },
+        "source:ae-lower": {
+          "kind": "source_constraint",
+          "source": {
+            "id": "ae-lower",
+            "left_var": "P1as",
+            "right_var": "P1ae",
+            "source_key": "synthetic:shared-anchor:ae",
+            "upper_us": -1
+          }
+        },
+        "source:ae-upper": {
+          "kind": "source_constraint",
+          "source": {
+            "id": "ae-upper",
+            "left_var": "P1ae",
+            "right_var": "P1as",
+            "source_key": "synthetic:shared-anchor:ae",
+            "upper_us": 1
+          }
+        },
+        "source:be-lower": {
+          "kind": "source_constraint",
+          "source": {
+            "id": "be-lower",
+            "left_var": "P1as",
+            "right_var": "P1be",
+            "source_key": "synthetic:shared-anchor:be",
+            "upper_us": -4
+          }
+        },
+        "source:be-upper": {
+          "kind": "source_constraint",
+          "source": {
+            "id": "be-upper",
+            "left_var": "P1be",
+            "right_var": "P1as",
+            "source_key": "synthetic:shared-anchor:be",
+            "upper_us": 4
+          }
+        },
+        "source:bs-lower": {
+          "kind": "source_constraint",
+          "source": {
+            "id": "bs-lower",
+            "left_var": "P1as",
+            "right_var": "P1bs",
+            "source_key": "synthetic:shared-anchor:bs",
+            "upper_us": -3
+          }
+        },
+        "source:bs-upper": {
+          "kind": "source_constraint",
+          "source": {
+            "id": "bs-upper",
+            "left_var": "P1bs",
+            "right_var": "P1as",
+            "source_key": "synthetic:shared-anchor:bs",
+            "upper_us": 3
+          }
+        },
+        "proper:P1a": {
+          "kind": "proper_interval",
+          "event_id": "P1a",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P1ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P1a",
+            "patient_id": "P1",
+            "record_id": "R-P1a",
+            "source_key": "synthetic:P1a",
+            "start_var": "P1as",
+            "status": "performed"
+          }
+        },
+        "proper:P1b": {
+          "kind": "proper_interval",
+          "event_id": "P1b",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P1be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P1b",
+            "patient_id": "P1",
+            "record_id": "R-P1b",
+            "source_key": "synthetic:P1b",
+            "start_var": "P1bs",
+            "status": "performed"
+          }
+        },
+        "proper:P2a": {
+          "kind": "proper_interval",
+          "event_id": "P2a",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P2ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P2a",
+            "patient_id": "P2",
+            "record_id": "R-P2a",
+            "source_key": "synthetic:P2a",
+            "start_var": "P2as",
+            "status": "performed"
+          }
+        },
+        "proper:P2b": {
+          "kind": "proper_interval",
+          "event_id": "P2b",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P2be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P2b",
+            "patient_id": "P2",
+            "record_id": "R-P2b",
+            "source_key": "synthetic:P2b",
+            "start_var": "P2bs",
+            "status": "performed"
+          }
+        },
+        "proper:P3a": {
+          "kind": "proper_interval",
+          "event_id": "P3a",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P3ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P3a",
+            "patient_id": "P3",
+            "record_id": "R-P3a",
+            "source_key": "synthetic:P3a",
+            "start_var": "P3as",
+            "status": "performed"
+          }
+        },
+        "proper:P3b": {
+          "kind": "proper_interval",
+          "event_id": "P3b",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P3be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P3b",
+            "patient_id": "P3",
+            "record_id": "R-P3b",
+            "source_key": "synthetic:P3b",
+            "start_var": "P3bs",
+            "status": "performed"
+          }
+        },
+        "proper:P4a": {
+          "kind": "proper_interval",
+          "event_id": "P4a",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P4ae",
+            "episode_id": "E1",
+            "event_kind": "infusion",
+            "id": "P4a",
+            "patient_id": "P4",
+            "record_id": "R-P4a",
+            "source_key": "synthetic:P4a",
+            "start_var": "P4as",
+            "status": "performed"
+          }
+        },
+        "proper:P4b": {
+          "kind": "proper_interval",
+          "event_id": "P4b",
+          "rule": "start + 1 <= end",
+          "source": {
+            "end_var": "P4be",
+            "episode_id": "E1",
+            "event_kind": "specimen_collection",
+            "id": "P4b",
+            "patient_id": "P4",
+            "record_id": "R-P4b",
+            "source_key": "synthetic:P4b",
+            "start_var": "P4bs",
+            "status": "performed"
+          }
+        }
+      }
+    },
+    "semantic_scope": "selected_snapshot_and_explicit_semantic_module"
+  },
+  "full_owl_mapping_verified": false,
+  "semantic_support_complete": true,
+  "scope": "selected_snapshot_and_explicit_semantic_module"
+}
