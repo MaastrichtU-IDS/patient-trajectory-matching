@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Start with a patient",
+    "short": "Patient",
+    "time": "0:00–0:25",
+    "budget": null,
+    "patient": "P00",
+    "next": "Find the exact cohort",
+    "cue": "Read the three highlighted records, then find patients who satisfy this pattern.",
+    "narrative": "Start with one patient's history. Drug A was administered seven days before this follow-up. Creatinine rose from 1.0 to 1.3 within twenty-four hours. We turn that history into an explicit pattern: the right exposure, the right order, and a measured change within a defined window. Can we find patients who satisfy it?"
+  },
+  {
+    "title": "Match meaning and time",
+    "short": "Exact cohort",
+    "time": "0:25–0:55",
+    "budget": "0",
+    "patient": "P02",
+    "next": "Allow a cost of 1",
+    "cue": "Three patients match exactly. Inspect P02: a subtype qualifies with zero relaxation cost.",
+    "narrative": "Three of the ten candidates match exactly. Notice P02: the record says Drug A Child. The declared taxonomy establishes that it is a kind of Drug A, so this remains an exact match at zero cost. The matcher also checks the same patient, the admission, the laboratory window, and the order of exposure and follow-up."
+  },
+  {
+    "title": "Broaden with a reason",
+    "short": "Refine",
+    "time": "0:55–1:30",
+    "budget": "1",
+    "patient": "P04",
+    "next": "Test the boundaries",
+    "cue": "Two patients enter. Choose P04 for the concept alternative or P05 for the time extension.",
+    "narrative": "Now we allow one unit of relaxation cost. Two patients enter. Which shall we inspect: the alternative drug, or the longer time gap? P04 uses the explicitly permitted Drug B alternative, costing one. P05 has a nine-day gap, two days beyond the original limit, also costing one. These satisfy a deliberately broadened query; they remain visibly separate from exact matches."
+  },
+  {
+    "title": "Keep the boundaries visible",
+    "short": "Boundaries",
+    "time": "1:30–2:05",
+    "budget": "2",
+    "patient": "P07",
+    "next": "Inspect evidence & save",
+    "cue": "Budget 2 admits P06. P07 still fails the numeric threshold; P10 remains unresolved.",
+    "narrative": "A budget of two admits P06, which needs both changes. But P07 still does not qualify: its rise is only 0.29, and we have not permitted that threshold to change. P10 is different again. Its source search is incomplete, so membership is unresolved. We preserve that distinction instead of treating missing evidence as a negative result."
+  },
+  {
+    "title": "Explain it. Reproduce it.",
+    "short": "Evidence & save",
+    "time": "2:05–2:35",
+    "budget": "2",
+    "patient": "P03",
+    "next": "Export cohort & query",
+    "cue": "Inspect P03's original value and role binding, then export this query, snapshot and results.",
+    "narrative": "For any included patient, we can inspect the actual records behind the match. Here, eight milligrams per litre becomes 0.8 milligrams per decilitre. The graph preserves the process, its patient role, the person bearing that role, and the source. Finally, we save the query, the selected cohort, and the evidence needed to reproduce this result."
+  }
+]

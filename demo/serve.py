@@ -9,8 +9,10 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT.parent
 sys.path.insert(0, str(SOURCE))
 from reference_oracle import evaluate
+from cohort import export_cohort, run_cohort
 
 DATA = json.loads((ROOT / 'demo-data.json').read_text())
+COHORT = json.loads((ROOT / 'cohort-data.json').read_text())
 
 def environment():
     packages = {}
@@ -69,7 +71,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
         if url.path in ('/', '/index.html'):
+            return self.send((ROOT / 'Guided_Cohort_Demo.html').read_bytes(), mime='text/html')
+        if url.path in ('/lab', '/Patient_Trajectory_Demo.html'):
             return self.send((ROOT / 'Patient_Trajectory_Demo.html').read_bytes(), mime='text/html')
+        if url.path in ('/api/cohort', '/api/cohort/export'):
+            args = parse_qs(url.query, keep_blank_values=True)
+            if set(args) - {'budget'} or len(args.get('budget', ['0'])) != 1:
+                return self.send({'error': 'Use one cohort budget: 0, 1 or 2.'}, 400)
+            try:
+                result = run_cohort(COHORT, args.get('budget', ['0'])[0])
+            except ValueError as error:
+                return self.send({'error': str(error)}, 400)
+            return self.send(export_cohort(COHORT, result) if url.path.endswith('/export') else result)
         if url.path == '/api/environment':
             return self.send(environment())
         if url.path == '/api/match':
