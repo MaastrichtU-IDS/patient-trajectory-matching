@@ -631,3 +631,12 @@ python -m patterns.verify_prepared_measurement_session
 ```
 
 Twenty tests cover cold admission, eliminated repeated work, defensive copies, source/implementation changes, review/backend gates, budgets, fixed selector scope, uncertainty, alignment, partial failure and closure. The report compares 12 prepared results with fresh source queries and raw-CSV SQL. The current contract total is 781 checks: 758 suite tests plus 23 oracle checks. See [the session profile](prepared-measurement-session.md).
+
+## Live mapped pressure jobs and cache lifecycle
+
+```bash
+python -m unittest discover -s demo -p 'test_mapped_pressure.py'
+python demo/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
+```
+
+Sixteen tests cover reviewed mapping gates, live/fresh query and inspection equality, cache invalidation on review/source/implementation changes, SQL disagreement, query envelopes, malformed input, budgets, eviction and defensive copies. Demo CI uploads the aggregate result of the real HTTP test. The demo suite totals 67 tests; the contract total remains 781. [The runbook](mapped-pressure-service.md) distinguishes local timing observations from a performance guarantee.

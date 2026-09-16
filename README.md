@@ -282,3 +282,5 @@ Pack contents are MIT licensed; see [LICENSE](LICENSE). The vendored SULO ontolo
 [Measurement source verification](docs/measurement-source-catalogue.md) now reproduces catalogue labels, supplied scalar claims and patient clock origins from pinned CSV files before reviewed measurement selection. Synthetic raw-CSV/Rust/SQL evidence is included; source acceptance and clinical mapping review remain separate.
 
 [Prepared measurement sessions](docs/prepared-measurement-session.md) now reuse verified source and semantic preparation across changed numeric/temporal queries. Twelve synthetic prepared queries reproduce fresh results and raw-CSV SQL with no repeated audit, mapping planning, fresh mixed-query execution or network compilation.
+
+The [live mapped pressure route](docs/mapped-pressure-service.md) now integrates reviewed measurement selection and prepared batches with the existing local HTTP interface. Run `python demo/serve_mapped_pressure.py` for the authored example. The changed-query benchmark preserves fresh results and anchor SQL checks; public clinical mappings remain pending.
