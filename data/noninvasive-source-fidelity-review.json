@@ -1,0 +1,14 @@
+{
+  "profile": "source-fidelity-review-declaration-1.0",
+  "package_context_id": "9376dcda91dd90b1f67e47319045412e43b8d12288dd9df6a17fa0f2b99c5573",
+  "audit_context_id": "73b425e09569e718c9aa7ce3e73d0fe5a0d44cc292f2f28ef7f70675b4b69a30",
+  "unique_claims": 1784,
+  "calendar_reviews": 25,
+  "reviewer": "Codex assistant: automated source-fidelity review for the user-directed technical demonstration; not a human clinical review",
+  "record_decision": "accept_all_fidelity_verified_claims",
+  "record_reason": "Accept the exact recorded claim for this technical query: independent full-file CSV audit verifies its identity, content, source evidence, patient/stay and clock-origin witness. This is rule-based source-fidelity acceptance, not verification of clinical occurrence, treatment initiation or phenotype.",
+  "calendar_decision": "same_patient_calendar",
+  "calendar_reason": "Declare a common recorded calendar only within the same patient and pinned MIMIC-IV demo 2.2 release. Its documentation describes consistent date shifting (https://physionet.org/content/mimic-iv-demo/2.2/); both origin witnesses were checked against original rows. This conditional record-time alignment does not verify physical elapsed time or permit cross-patient time comparison.",
+  "clinical_mapping_verified": false,
+  "reviewer_identity_verified": false
+}

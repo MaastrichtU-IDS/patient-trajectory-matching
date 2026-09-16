@@ -541,3 +541,11 @@ python -m patterns.reviewed_source_query --input-dir /path/to/demo/icu --request
 ```
 
 Fifteen tests check independent source parsing/mapping, tampering and stale contexts, explicit declaration coverage, synthetic Rust/SQL execution, aggregate failure semantics, CLI protection and real-demo report provenance. The full suite totals **670 checks: 647 suite tests, 16 oracle cases and seven properties**. CI verifies synthetic execution and the committed report's hashes without downloading real source records. [The demonstration](reviewed-arterial-demo.md) explains the explicit automated source-fidelity review and the separate, unverified clinical interpretation.
+
+## Three separately reviewed pressure strata
+
+```sh
+python -m patterns.test_reviewed_pressure_strata
+```
+
+Three additional tests verify all three execution reports against current implementation hashes, pinned source manifests, exact separate declarations and requests, common query criteria and completed accounting. Total: **673 checks: 650 suite tests, 16 oracle cases and seven properties**. The [comparison and reproduction commands](reviewed-pressure-strata.md) cover each separate real-source execution; CI checks committed provenance and synthetic execution without downloading the source files.

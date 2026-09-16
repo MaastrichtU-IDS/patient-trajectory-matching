@@ -188,7 +188,9 @@ jobs:
           python -m patterns.unique_claim_review --review examples/unique-claim-review/synthetic-review.json --execute
           python -m patterns.test_unique_claim_review
       - name: Independent source fidelity and declared reviewed execution
-        run: python -m patterns.test_reviewed_source_query
+        run: |
+          python -m patterns.test_reviewed_source_query
+          python -m patterns.test_reviewed_pressure_strata
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
