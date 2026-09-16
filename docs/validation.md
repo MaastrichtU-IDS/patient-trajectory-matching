@@ -519,3 +519,15 @@ python -m patterns.verify_partitioned_windows --input-dir /path/to/demo/icu
 ```
 
 Preparation emits pending policies and no accepted records. The 27 tests check all window sizes 0–128, missing cross-block pairs, exact Rust/SQL execution of a 38-point window, duplicate and missing-follow-up merging, review consistency, stale hashes, withdrawals, blocked batches, complete stay accounting, CLI atomicity and report provenance. The complete suite totals **627 checks: 604 suite tests, 16 oracle cases and seven properties**. The [aggregate report](../verification/partitioned-window-demo-report.json) verifies 2,870 planned batches for all 2,832 demo anchors across three separate strata, with no real-source acceptance or mixed query. See [review instructions and scope](partitioned-window-query.md).
+
+## Unique source-claim review
+
+```sh
+python -m patterns.unique_claim_review
+python -m patterns.unique_claim_review --review examples/unique-claim-review/synthetic-review.json --execute
+python -m patterns.test_unique_claim_review
+# Original pinned demo files; aggregate package and pending-policy verification only:
+python -m patterns.verify_unique_claim_review --input-dir /path/to/demo/icu
+```
+
+The 28 tests cover source evidence, unique claim membership across batches and anchors, revision propagation, deterministic compilation, stale inputs, pending/incomparable decisions, resource and lifecycle gates, and actual Rust/SQL execution. The full suite totals **655 checks: 632 suite tests, 16 oracle cases and seven properties**. The [synthetic report](../verification/unique-claim-review-synthetic-report.json) verifies nine explicitly selected fabricated claims. The [demo report](../verification/unique-claim-review-demo-report.json) validates all 2,870 expanded pending batch policies without real-source acceptance or query execution. See [the review workflow](unique-claim-review.md).

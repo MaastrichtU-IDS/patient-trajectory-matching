@@ -1,0 +1,84 @@
+{
+  "profile": "unique-claim-review-synthetic-verification-1.0",
+  "scope": "Fabricated source records and explicit synthetic review only",
+  "review_file_sha256": "57562532ed156aa68081c170d0129947bbaefe24329a56ab6c8ee688f126c220",
+  "package_context_id": "d2e1e7304289ea4888a5abaeea72fee42543587473e1a5e0e4543490ce24d451",
+  "package_summary": {
+    "unique_claims": 9,
+    "unique_claims_by_kind": {
+      "interval": 3,
+      "measurement": 6
+    },
+    "batch_claim_occurrences": 9,
+    "repeated_occurrences_saved": 0,
+    "calendar_reviews": 3,
+    "batches": 3,
+    "anchors": 3,
+    "stays": 5,
+    "accepted_claims": 0,
+    "mixed_query_executed": false,
+    "clinical_mapping_verified": false,
+    "cohort_membership": null
+  },
+  "compiled_review_sha256": "2a7235d5f53338f67eca74873e20881874a05e5aec8243125886426e0edf1781",
+  "compilation_summary": {
+    "review_complete": true,
+    "unique_claim_outcomes": {
+      "accept": 9
+    },
+    "calendar_outcomes": {
+      "same_patient_calendar": 3
+    },
+    "unique_accepted_claims": 9,
+    "batches_validated": 3,
+    "mixed_query_executed": false,
+    "clinical_mapping_verified": false,
+    "reviewer_identity_verified": false
+  },
+  "execution_status": "COMPLETED_PARTITIONED_QUERY",
+  "bindings": [
+    [
+      "1",
+      "100",
+      "input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_1",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_1",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_2",
+      "10",
+      "mmHg"
+    ],
+    [
+      "1",
+      "100",
+      "input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_1",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_1",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_3",
+      "14",
+      "mmHg"
+    ],
+    [
+      "2",
+      "200",
+      "input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_2",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_4",
+      null,
+      null,
+      null
+    ],
+    [
+      "3",
+      "300",
+      "input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_3",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_5",
+      "chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_6",
+      "-7",
+      "mmHg"
+    ]
+  ],
+  "certain_patient_ids": [
+    "1",
+    "2",
+    "3"
+  ],
+  "clinical_mapping_verified": false,
+  "real_source_mixed_query_executed": false
+}

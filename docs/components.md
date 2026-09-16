@@ -370,3 +370,7 @@ No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access re
 ## Partitioned window execution
 
 [`patterns/partitioned_window_query.py`](../patterns/partitioned_window_query.py) covers each complete exact-record window with batches of at most 16 points, checks record and pair coverage, validates consistent explicit review, runs the existing mixed matcher, and reconciles merged bindings with an unpartitioned raw-row SQL reference. It retains every batch, anchor and stay and withholds complete cohort membership on any blocked anchor. [The contract](partitioned-window-query.md) limits this decomposition to independent exact source records and reports public-demo partition plans separately from synthetic execution.
+
+## Unique source-claim review
+
+[`patterns/unique_claim_review.py`](../patterns/unique_claim_review.py) builds a package of unique claims with source evidence and affected batches/anchors, compiles explicit histories and patient calendar decisions into the existing partition policies, and validates the complete expansion before execution. It records reviewer attribution without authenticating identity and requires all claim/calendar reviews to be resolved for its execution command. [The contract](unique-claim-review.md) includes a runnable synthetic review and aggregate validation of all three pending demo packages.

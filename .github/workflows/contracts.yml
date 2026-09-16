@@ -182,6 +182,11 @@ jobs:
         run: |
           python -m patterns.partitioned_window_query --prepare-review
           python -m patterns.test_partitioned_window_query
+      - name: Unique claim review and deterministic batch propagation
+        run: |
+          python -m patterns.unique_claim_review
+          python -m patterns.unique_claim_review --review examples/unique-claim-review/synthetic-review.json --execute
+          python -m patterns.test_unique_claim_review
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -199,6 +204,7 @@ jobs:
             verification/source-mixed-query-run/
             verification/indexed-source-windows-run/
             verification/partitioned-window-query-run/
+            verification/unique-claim-review-run/
           retention-days: 14
 
   oracle-compatibility:
