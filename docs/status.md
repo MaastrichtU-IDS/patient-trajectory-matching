@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 723 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 741 passing checks, and 10 of 104 tracked requirements marked executable.**
 
 The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
 
@@ -93,7 +93,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Pressure-cohort overlap and provenance tests | 14 passed |
 | Reviewed record mapping tests | 18 passed |
 | Source record catalogue tests | 18 passed |
-| **Total** | **723 checks passing** |
+| Reviewed measurement selector tests | 18 passed |
+| **Total** | **741 checks passing** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -102,7 +103,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 700 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 718 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -205,3 +206,8 @@ The [source catalogue adapter](source-record-catalogue.md) adds 18 tests: 723 co
 ## Clinical terminology proposals
 
 [The candidate dossier](clinical-terminology-candidates.md) supplies concrete RxNorm/LOINC targets and source evidence. The norepinephrine pack contains all four compiler inputs but returns `BLOCKED_MAPPING_REVIEW`. Pressure proposals remain non-executable, with source strata preserved and invasive/CNAP method commitments explicitly conditional. No runtime code, clinical acceptance or check counts change.
+
+
+## Reviewed measurement selectors
+
+[Measurement item-class selection](reviewed-measurement-mappings.md) now executes through checked catalogue rules and separate literal-item/unit mixed queries. Eighteen new tests bring the contract total to 741 checks (718 suite tests and 23 oracle checks); the demo suite remains 51. Synthetic Rust/literal/SQL verification preserves PRO, optional follow-up and temporal certainty. Clinical pressure mappings, row-qualified mappings and prepared-session integration remain pending.

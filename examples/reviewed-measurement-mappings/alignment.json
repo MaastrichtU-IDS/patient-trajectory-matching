@@ -1,0 +1,29 @@
+{
+  "profile": "patient-local-clock-alignment-1.0",
+  "id": "synthetic_same_calendar",
+  "interval_store_sha256": "7df59840d1e4827c055dbe4a5ab6883fba24c66a1187537e1a45b2509b30c530",
+  "measurement_store_sha256": "8f3dbceb36f26a65582cb8980cb2844af535881ee4706b48d252d09699d2b6e1",
+  "bindings": [
+    {
+      "patient_id": "P1",
+      "interval_clock_id": "clock_P1",
+      "measurement_clock_id": "clock_P1",
+      "basis": "same_dataset_patient_calendar",
+      "reason": "Both synthetic fixtures use the same constructed patient calendar."
+    },
+    {
+      "patient_id": "P2",
+      "interval_clock_id": "clock_P2",
+      "measurement_clock_id": "clock_P2",
+      "basis": "same_dataset_patient_calendar",
+      "reason": "Both synthetic fixtures use the same constructed patient calendar."
+    },
+    {
+      "patient_id": "P3",
+      "interval_clock_id": "clock_P3",
+      "measurement_clock_id": "clock_P3",
+      "basis": "same_dataset_patient_calendar",
+      "reason": "Both synthetic fixtures use the same constructed patient calendar."
+    }
+  ]
+}

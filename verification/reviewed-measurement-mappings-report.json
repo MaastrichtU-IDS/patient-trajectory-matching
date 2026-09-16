@@ -1,0 +1,187 @@
+{
+  "profile": "reviewed-measurement-mapping-verification-1.0",
+  "status": "VERIFIED",
+  "synthetic_only": true,
+  "clinical_mapping_verified": false,
+  "public_demo_mapping_executed": false,
+  "verifier_sha256": "411cce5aabb53150180597097212b2607faca23ad23c6e6ecd177f6271fc0082",
+  "reference_artifacts": {
+    "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
+    "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff"
+  },
+  "fixture_sha256": {
+    "examples/reviewed-measurement-mappings/alignment.json": "f09302b8ba09a8a1d5bbba543e1b6c52855922274ca9af11b7419f646b4ba9cf",
+    "examples/reviewed-measurement-mappings/catalogue.json": "1e2454c7880849929da9a5d974783cbc6c5bb338e005e50e745e344b0ff19475",
+    "examples/reviewed-measurement-mappings/interval-policy.json": "ecc7192219112a238409f9841bccb9d8c6b97b5dd6d3cf79f8d262e375700e13",
+    "examples/reviewed-measurement-mappings/interval-store.json": "3195de847efbd5d2dbcf66de1bb66e66ffdba82d20d8bddc7270650a097e432b",
+    "examples/reviewed-measurement-mappings/mappings.json": "223305fddb43d95aaf1fb57e80addb46f2161edf8509259ce0a31c16d74eb08f",
+    "examples/reviewed-measurement-mappings/measurement-policy.json": "fa3e9c6e0358a9a33fc03e9241383dd541176000000d3ff671789611d8e80b48",
+    "examples/reviewed-measurement-mappings/measurement-store.json": "1f724e63989be097216002d47ca627be1292358aba86d0433fc51d62bdb3453f",
+    "examples/reviewed-measurement-mappings/query.json": "a6e27aecb28ba06b983aa2fc2d56f3874ba0fb2651aeb98a53234a8208f3eebd",
+    "examples/reviewed-measurement-mappings/review.json": "02834e86904f08e10405189784770d5c13a007c43bb142609bbcae099ac693d9",
+    "examples/reviewed-measurement-mappings/selector.json": "c7d7fb9294bacddb1e7ec5de1c4cd706c2f4cebae35b81cd1f8fbb4e2c2f3acc",
+    "examples/reviewed-measurement-mappings/semantic-policy.json": "b149de01563f886ca217011728d1fdf9c009c4a59cf1dba63a835b7c723e97d1",
+    "examples/reviewed-measurement-mappings/terminology.json": "cd868f289a7aae5f9cc047deb4c92005e114090703c3646935db5760bab75b57"
+  },
+  "context": {
+    "profile": "reviewed-measurement-mappings-1.0",
+    "input_sha256": {
+      "catalogue": "600bb6bdf4b0efa57fcfe18ca64b4f80640dfa9edf03078f29ce18668a4a1f41",
+      "terminology": "004fd716ab2824f64a3fd0351a408f4f45d4294150c41e6baefcdefc88934db5",
+      "mappings": "93fd113eea40fa27f9cef803e36c7dc29b3e4a6113e087570fa747a5beb3caa3",
+      "review": "a6edc4ab88da2e2b1d7a957368599b60fcc5dcae52d36c5df1174d57e218bda0",
+      "selector": "c52d1389731478a7687143444c602f10888a9b41ca04eaa66e05c7de7b719cef",
+      "interval-store": "7df59840d1e4827c055dbe4a5ab6883fba24c66a1187537e1a45b2509b30c530",
+      "interval-policy": "14415feab6a9133128a3fab2f0dc0b264152b5b3dc737e63fa20bae4b0a8cb26",
+      "semantic-policy": "4fac9d4119bb517f63046075538d5c90d59338aeab731918e7bf73188ea02937",
+      "measurement-store": "8f3dbceb36f26a65582cb8980cb2844af535881ee4706b48d252d09699d2b6e1",
+      "measurement-policy": "8bd276b7128292544ec8345aac3860467c224a86167b573d529c68cdb81d7701",
+      "alignment": "9668ac5029936e076e471aa4620f60bc1a6639ee717b3210e499ec2686c59f58",
+      "query": "a28c0f60127bbba6a1f25379b80cc7e66f18e7f7f62296363aa21e8eb2313506"
+    },
+    "artifacts": {
+      "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+      "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+      "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+      "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+      "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+      "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+      "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+      "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+      "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+      "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+      "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+      "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+      "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+      "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+      "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+      "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+      "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+      "patterns/reviewed_measurement_mappings.py": "5cff4610eb6f90e95ca32b8a1fda67b45976da981542d2477b11715a50c3f21c",
+      "patterns/reviewed_record_mappings.py": "5996f9e982abccff590df0a79faad95d94d8330ea5d6f30e61642b50885c327e",
+      "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+      "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+      "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+      "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+      "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+      "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+      "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+      "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+      "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+      "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+      "schemas/reviewed-measurement-selector.schema.json": "1f1ec00c163049c2a1c80c2a9c6a712239fc531a7fa9db501542014414fe3290",
+      "schemas/reviewed-record-mappings.schema.json": "c37bd5d85aefacd21c78316598b7f570513ef5475b95abe32a4d94f29500ef63"
+    },
+    "timeout_seconds": 20,
+    "scope": "reviewed_item_class_selection_then_separate_same_item_same_literal_unit_queries",
+    "measurement_class_reasoning_scope": "synthetic_catalogue_witnesses_not_patient_measurement_graph",
+    "clinical_mapping_verified": false,
+    "catalogue_source_fidelity_verified": false,
+    "cross_item_value_comparison_performed": false,
+    "unit_conversion_performed": false
+  },
+  "context_id": "356943fcd6d5d1b70c1b41cb07a5a32700ac79cbc8a32e52194d38d893d6c01d",
+  "mapping_context_id": "c8dea331330e90b1e17e4f1874e6d68e3709916c647a118fdfa76152a5366259",
+  "selector_semantic_status": "READY",
+  "selector_ontology_sha256": "14266bcaae6f9448c87a0bef61eff30eb8b7b6cb19ffefc1ac6d9b17527528b0",
+  "item_outcomes": [
+    {
+      "item_id": "pressure_a",
+      "status": "SUPPORTED_RECORD_SELECTOR",
+      "catalogue_probe_iri": "https://example.org/trajectory/measurement-catalogue-probe/pressure_a",
+      "mapping_evidence": {
+        "rule_id": "mapping_map-pressure_a",
+        "mapping_id": "map-pressure_a",
+        "mapping_sha256": "dc587051fa7a119c8b0884558a48fdf3c431631cc83e2278b448a1d4c0ce75f4",
+        "source": {
+          "code": "pressure_a",
+          "label": "Authored pressure_a",
+          "source_class_iri": "https://example.org/trajectory/measurement-record-item/pressure_a"
+        },
+        "target": {
+          "code": "pressure-family",
+          "label": "Authored pressure-family",
+          "concept_iri": "https://example.org/authored-measurement-terminology/pressure-family",
+          "record_class_iri": "https://example.org/trajectory/measurement-record-query/pressure-family"
+        },
+        "decision_id": "accept-map-pressure_a"
+      }
+    },
+    {
+      "item_id": "pressure_b",
+      "status": "SUPPORTED_RECORD_SELECTOR",
+      "catalogue_probe_iri": "https://example.org/trajectory/measurement-catalogue-probe/pressure_b",
+      "mapping_evidence": {
+        "rule_id": "mapping_map-pressure_b",
+        "mapping_id": "map-pressure_b",
+        "mapping_sha256": "109ec2c82c90ca4a82664a0569786311f37439703bcd756bfcec459f1d1ee918",
+        "source": {
+          "code": "pressure_b",
+          "label": "Authored pressure_b",
+          "source_class_iri": "https://example.org/trajectory/measurement-record-item/pressure_b"
+        },
+        "target": {
+          "code": "pressure-family",
+          "label": "Authored pressure-family",
+          "concept_iri": "https://example.org/authored-measurement-terminology/pressure-family",
+          "record_class_iri": "https://example.org/trajectory/measurement-record-query/pressure-family"
+        },
+        "decision_id": "accept-map-pressure_b"
+      }
+    },
+    {
+      "item_id": "pressure_c",
+      "status": "NOT_ENTAILED_BY_MAPPING",
+      "catalogue_probe_iri": "https://example.org/trajectory/measurement-catalogue-probe/pressure_c",
+      "mapping_evidence": {
+        "rule_id": "mapping_map-pressure_c",
+        "mapping_id": "map-pressure_c",
+        "mapping_sha256": "66eb04a05b62142bdd7150de90aa98c659f63be87f2827a2384006db40a86c16",
+        "source": {
+          "code": "pressure_c",
+          "label": "Authored pressure_c",
+          "source_class_iri": "https://example.org/trajectory/measurement-record-item/pressure_c"
+        },
+        "target": {
+          "code": "other-family",
+          "label": "Authored other-family",
+          "concept_iri": "https://example.org/authored-measurement-terminology/other-family",
+          "record_class_iri": "https://example.org/trajectory/measurement-record-query/other-family"
+        },
+        "decision_id": "accept-map-pressure_c"
+      }
+    }
+  ],
+  "strata": [
+    {
+      "item_id": "pressure_a",
+      "certain_synthetic_patient_ids": [
+        "P1"
+      ],
+      "sql_binding_rows": 1,
+      "query_context_id": "370374e014c7427edb2ffc18955ede6161286d60222d8e42cefd4cb82c720dba"
+    },
+    {
+      "item_id": "pressure_b",
+      "certain_synthetic_patient_ids": [
+        "P2"
+      ],
+      "sql_binding_rows": 1,
+      "query_context_id": "d12299c394199c1bf8e7c88032503e79b6b973687bea25d024ed6c99e828382b"
+    }
+  ],
+  "certain_synthetic_patient_ids": [
+    "P1",
+    "P2"
+  ],
+  "all_literal_and_sql_bindings_equal": true,
+  "cross_item_followup_excluded": true,
+  "optional_followup_preserved": true,
+  "pro_witnesses_preserved": true,
+  "reasoning_scope": "catalogue rule witnesses followed by unchanged literal-item mixed queries"
+}

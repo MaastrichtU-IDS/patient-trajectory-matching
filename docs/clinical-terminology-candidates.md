@@ -48,7 +48,7 @@ The [measurement candidate document](../data/clinical-measurement-mapping-candid
 | Noninvasive item | Confirm noninvasive mean pressure; retain unspecified device/algorithm and resolve the unit-policy question. |
 | Release and query scope | Pin terminology evidence, retain item-specific strata, and decide whether any future cross-item query is scientifically justified. |
 
-Record the norepinephrine decision in `review.json` using the existing mapping-row hash. Keep source-claim acceptance separate and bind it explicitly to any subsequently compiled policy. Pressure decisions first inform the measurement-mapping design; they cannot be executed by the current interval-only compiler adapter.
+Record the norepinephrine decision in `review.json` using the existing mapping-row hash. Keep source-claim acceptance separate and bind it explicitly to any subsequently compiled policy. [The measurement-selector extension](reviewed-measurement-mappings.md) now supports whole-item record-class implications in synthetic examples. These pressure proposals still require pinned terminology, source-catalogue evidence and explicit review before they can be turned into executable packs. Per-row method qualifications remain unsupported.
 
 After review, the next implementation steps are qualified measurement selectors, context-bound reuse of source audits in prepared sessions, and complete Rust/temporal/SQL comparison before exposing terminology choices in the UI. The existing clinical worksheet remains pending and unmodified.
 
