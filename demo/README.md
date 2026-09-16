@@ -36,6 +36,12 @@ The verifier requires the same oracle hash and checks the query, dataset and re-
 
 For an offline backup, open **`demo/Guided_Cohort_Demo.html`** directly. It contains the complete guided experience and recorded results for all three budgets. It is labeled **Offline · recorded replay** and does not execute Python in the browser. A failed live request preserves the last displayed query and reports the failure; it does not switch silently to this backup.
 
+## Reviewed pressure queries
+
+The guided page links to a separate [live pressure-query inspector](../docs/live-pressure-inspector.md). It uses the mixed interval/measurement engine, supports narrower windows and a changed pressure threshold, and shows complete patient/stay/segment counts plus source, review and PRO witness evidence. Configure `python demo/serve.py --mimic-dir /path/to/demo/icu` with the pinned dependencies and original public-demo files, or explicitly choose `--pressure-synthetic` for authored examples. Open [the local pressure page](http://127.0.0.1:8765/pressure).
+
+Real-source queries run as background jobs and can take several minutes. This page has no offline replay. Failed requests retain the previous completed result, and no partial cohort counts are shown. The short guided journey above remains a separate synthetic demonstration.
+
 ## Optional technical examples and full pipeline setup
 
 The original contract-case, graph and Rust views remain at **http://127.0.0.1:8765/lab**, reached through **Technical examples**. They are useful for questions after the guided journey. The 16 contract cases there are independent fixtures, not the ten guided patients.

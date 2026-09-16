@@ -559,3 +559,13 @@ python -m patterns.verify_pressure_overlap --input-dir /path/to/demo/icu
 ```
 
 Fourteen tests check actual synthetic item strata, all 4,096 membership combinations over four members, patient/stay/segment scope, completeness and comparability failures, deterministic aggregation, CLI atomicity and committed provenance. Total: **687 checks: 664 suite tests, 16 oracle cases and seven properties**; the 4,096 combinations are nested within one test. The [reproduced overlap report and interpretation](pressure-cohort-overlap.md) distinguish separate-query membership from a pooled measurement query. CI does not download source records.
+
+## Local pressure-query UI and API
+
+```sh
+python -m unittest discover -s demo -p 'test_*.py'
+node demo/test_guided_ui.cjs
+node demo/test_pressure_ui.cjs
+```
+
+The demo suite now has 29 Python tests (15 pressure additions), separate from the 687 contract checks. Pressure tests cover altered-window execution and SQL equivalence, source/review changes, exact evidence, complete-result gates, local HTTP controls and the committed public-demo aggregate. DOM-state checks include failed and stale requests. The [runbook](live-pressure-inspector.md) documents source setup, live arterial verification and the remaining browser rehearsal.

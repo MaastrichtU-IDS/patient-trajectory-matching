@@ -138,7 +138,7 @@ The total is 664 suite tests plus 16 oracle cases and seven oracle properties; n
 | Joint temporal/semantic selection | Executable restricted integration | [28 tests](joint-evidence-selection.md); shared support chains, cutoffs and scoped semantic facts |
 | Full temporal replay | Partially implemented | The bounded selector does not implement all 8 declarative families, historical semantics, derived indices or a replay UI |
 | Graphiti comparison | Specified | Protocol only, no measurements |
-| UI | Specified | Wireframes and contracts, no running interface |
+| UI | Local demonstrations executable | Guided synthetic cohort selection and [reviewed pressure inspection](live-pressure-inspector.md); production workspace and measured usability remain open |
 | Pressure-cohort overlap | Executable aggregate comparison | [14 tests](pressure-cohort-overlap.md); three source queries reproduced; 23 patients, 29 stays and 196 segments in the union of separate memberships |
 | Three reviewed pressure strata | Executable technical demonstration | [Separate execution reports](reviewed-pressure-strata.md); all 2,832 anchor/stratum SQL comparisons agree; 140 stays retained per stratum; clinical interpretation unverified |
 | Reviewed arterial source query | Executable technical demonstration | [15 tests](reviewed-arterial-demo.md); 2,022 source claims audited, explicit automated review, complete arterial execution; clinical interpretation unverified |

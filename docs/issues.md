@@ -150,15 +150,15 @@ Not-given, planned, refused and prescription records are rejected. They need a d
 
 The OpenAPI document describes the pre-PRO/SOLID event model and contains no role or bearer vocabulary. The projection bridges them, but a reader who opens `openapi.json` first will not find the current architecture there. Whether the API surface should expose the graph model directly is unresolved.
 
-### A3. No UI **[gap]**
+### A3. Production workspace remains unimplemented **[gap]**
 *Source: [2.2](../addenda/specification-2.2.md), 14 UI requirements*
 
-Wireframes, tokens, storyboard and interaction contracts exist. No running interface, and no measured usability results.
+Wireframes, tokens, storyboard and interaction contracts exist. Local guided cohort selection and the [reviewed pressure inspector](live-pressure-inspector.md) now execute. The broader production workspace and measured usability remain open.
 
-### A4. Evidence panels unimplemented **[gap]**
+### A4. General evidence workspace remains incomplete **[partial]**
 *Source: [2.4 §7](../addenda/specification-2.4.md)*
 
-The release provides the graph and projection evidence. The result inspector that would show "person as patient in measurement", the original value beside the normalized one, and the semantic relaxation explanation, does not exist.
+The guided demo exposes constructed PRO/SOLID evidence and semantic/time costs; the [pressure inspector](live-pressure-inspector.md) exposes actual recorded-source claims, acceptance decisions and treatment role witnesses. The general product evidence workspace remains unimplemented.
 
 ### A5. Similarity and refinement unimplemented **[gap]**
 *Source: REFINE-001 to REFINE-003, `v21-additions-report.json`*
