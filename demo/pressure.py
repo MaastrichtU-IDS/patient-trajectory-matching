@@ -7,6 +7,8 @@ import threading
 import time
 import uuid
 
+from pressure_cache import ResultCache, implementation_stamp
+
 ROOT=Path(__file__).resolve().parent
 SOURCE=ROOT.parent
 STRATA={'arterial':'Arterial Blood Pressure mean · 220052','noninvasive':'Non Invasive Blood Pressure mean · 220181','art':'ART BP Mean · 225312'}
@@ -17,6 +19,7 @@ class PressureService:
         self.folder=SOURCE/'examples/source-mixed-query' if synthetic else folder
         self.synthetic=synthetic; self.lock=threading.RLock(); self.pool=ThreadPoolExecutor(max_workers=1)
         self.jobs={}; self.active=None; self.session=None; self.session_name=None
+        self.result_cache=ResultCache(); self.implementation=implementation_stamp()
 
     def metadata(self):
         return {'configured':self.folder is not None,'source_mode':'synthetic' if self.synthetic else 'public-demo' if self.folder else 'unconfigured',
@@ -48,6 +51,7 @@ class PressureService:
             expected=json.loads((SOURCE/'data/clinical-source-demo-pin.json').read_text())['files']
             if fingerprint(self.folder)!={table:entry['file_sha256'] for table,entry in expected.items()}:
                 raise ValueError('PUBLIC_DEMO_SOURCE_PIN_MISMATCH')
+        self.result_cache.clear()
         self.session=None; self.session_name=None
         session=Session(self.folder,request,declaration,progress)
         if not self.synthetic: validate_summary(session.selection['summary'],'demo-'+name)
@@ -68,27 +72,61 @@ class PressureService:
             self.active=jid; self.pool.submit(self._run,jid,deepcopy(request))
             return self.get(jid)
 
+    def _check_implementation(self):
+        if implementation_stamp()!=self.implementation:
+            raise ValueError('IMPLEMENTATION_CHANGED_RESTART_SERVER')
+
     def _run(self,jid,request):
         start=time.monotonic()
         def progress(**value):
             with self.lock:self.jobs[jid]['progress']=value
         try:
+            self._check_implementation()
             session=self._prepare(request['stratum'],progress)
             prepared=time.monotonic()
-            result=session.execute(request['controls'],progress)
+            # Exact controls are retained: e.g. 65 and 65.0 have distinct query contexts.
+            key=json.dumps([session.id,session.query(request['controls']),request['controls'],self.implementation],sort_keys=True)
+            cached=self.result_cache.get(key)
+            lookup_done=time.monotonic()
+            if cached is None:
+                result=session.execute(request['controls'],progress)
+            else:
+                progress(stage='Rechecking source and review for a saved completed query')
+                result=cached['result']
+            executed=time.monotonic()
+            # Validate again even on cache hits, before exposing any membership.
+            session.check_current()
             self._check_inputs(request['stratum'],session)
+            self._check_implementation()
+            validated=time.monotonic()
+            retained=cached is not None
+            if cached is None:
+                retained=self.result_cache.put(key,result,jid)
+            finished=time.monotonic()
             with self.lock:
                 job=self.jobs[jid]; job['status']=result['status']
-                job['timing']={'prepare_seconds':round(prepared-start,3),'execute_seconds':result['elapsed_seconds']}
+                job['timing']={
+                    'prepare_seconds':round(prepared-start,6),
+                    'execute_seconds':round(executed-lookup_done,6) if cached is None else 0,
+                    'final_validation_seconds':round(validated-executed,6),
+                    'cache_seconds':round(lookup_done-prepared+finished-validated,6),
+                    'total_seconds':round(finished-start,6),
+                    'original_execution_seconds':result['elapsed_seconds']}
+                job['execution']={'mode':'cached_complete_result' if cached else 'fresh_query',
+                    'origin_job_id':cached['origin_job_id'] if cached else jid,
+                    'source_and_review_rechecked':True,'retained_for_reuse':retained}
                 if result['status']=='COMPLETED':
                     job['_result']=result; job['_session']=session
                     job['summary']={k:v for k,v in result.items() if k!='details'}
                     job['summary']['source_mode']=self.metadata()['source_mode']
                     job['summary']['stratum']=request['stratum']
-                else: job['error']='One or more anchors could not be verified. No cohort count is available.'
+                else:
+                    self.result_cache.clear()
+                    job['error']='One or more anchors could not be verified. No cohort count is available.'
         except Exception as error:
             with self.lock:
                 self.jobs[jid].update(status='FAILED',error=f'{type(error).__name__}: {error}')
+                self.result_cache.clear()
                 self.session=None; self.session_name=None
         finally:
             with self.lock:self.active=None
@@ -103,6 +141,6 @@ class PressureService:
             if jid not in self.jobs: raise KeyError('Unknown or expired pressure job')
             job=self.jobs[jid]
             if job['status']!='COMPLETED': raise ValueError('Evidence is available only for a completed query.')
-            return job['_session'].inspect(job['_result'],token)
+            return deepcopy(job['_session'].inspect(job['_result'],token))
 
     def close(self):self.pool.shutdown(wait=True)

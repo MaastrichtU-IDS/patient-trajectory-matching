@@ -103,7 +103,7 @@ The repository contains four independent executable contracts. They share the pi
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
 
-The [live pressure-query inspector](docs/live-pressure-inspector.md) now connects the local UI to the reviewed mixed-record engine, with bounded query controls, complete cohort counts, background progress and source/role evidence for each treatment anchor.
+The [live pressure-query inspector](docs/live-pressure-inspector.md) now connects the local UI to the reviewed mixed-record engine, with bounded query controls, complete cohort counts, background progress and source/role evidence for each treatment anchor. [Repeated identical queries](docs/pressure-query-cache.md) can reuse complete results after source/review checks, with explicit execution labels and timings.
 
 The [cohort-overlap analysis](docs/pressure-cohort-overlap.md) reproduces all three pressure queries and identifies 23 distinct patients across 29 stays and 196 treatment segments. It distinguishes patient overlap from shared treatment anchors and keeps measurement strata separate.
 

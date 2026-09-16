@@ -178,3 +178,8 @@ The original exclusions in [addendum 2.4 §8](../addenda/specification-2.4.md) e
 - temporal certainty beyond the bounded discrete profile, including dense-time and general OWL certain answers
 
 See [issues.md](issues.md) for the gaps behind these.
+
+
+## Repeated reviewed pressure queries
+
+The local pressure service now has a [bounded completed-result cache](pressure-query-cache.md). Identical controls can reuse the full cohort and evidence after source, review and implementation rechecks. Changed controls still run the existing graph matcher and independent SQL oracle. Eleven cache tests bring the demo suite to 40 Python tests, alongside the unchanged 687 contract checks. Reproducible synthetic/public-demo measurements compare every result and anchor inspection; these are local samples, not a production latency claim. Reuse of graph projections and semantic support across different queries remains open.
