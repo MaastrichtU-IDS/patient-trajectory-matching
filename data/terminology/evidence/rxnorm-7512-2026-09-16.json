@@ -1,0 +1,43 @@
+{
+  "profile": "terminology-lookup-evidence-1.0",
+  "observed_on": "2026-09-16",
+  "publisher": "US National Library of Medicine",
+  "retrieval": "Public RxNorm REST API; parsed responses recorded after successful HTTPS requests",
+  "atomic_release_snapshot_verified": false,
+  "responses": [
+    {
+      "url": "https://rxnav.nlm.nih.gov/REST/version.json",
+      "response": {
+        "version": "08-Sep-2026",
+        "apiVersion": "3.1.355"
+      },
+      "parsed_response_sha256": "a015756295861119c04d41078209b3d96842524a1ba987843c3b551ac569d576"
+    },
+    {
+      "url": "https://rxnav.nlm.nih.gov/REST/rxcui/7512/properties.json",
+      "response": {
+        "properties": {
+          "rxcui": "7512",
+          "name": "norepinephrine",
+          "synonym": "",
+          "tty": "IN",
+          "language": "ENG",
+          "suppress": "N",
+          "umlscui": ""
+        }
+      },
+      "parsed_response_sha256": "c67579ff007babe7d14cf08a7daa97716118dfc02ed13f45eed8886ae7e73e19"
+    },
+    {
+      "url": "https://rxnav.nlm.nih.gov/REST/rxcui.json?name=norepinephrine&search=0",
+      "response": {
+        "idGroup": {
+          "rxnormId": [
+            "7512"
+          ]
+        }
+      },
+      "parsed_response_sha256": "0920604f76f18df28a35e24e122a7cc65be3b734c03053a49f5063ce95e52661"
+    }
+  ]
+}

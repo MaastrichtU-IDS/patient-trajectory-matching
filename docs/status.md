@@ -200,3 +200,8 @@ The [mapping compiler and mixed-query adapter](reviewed-record-mappings.md) add 
 ## Source-verified mapping catalogues
 
 The [source catalogue adapter](source-record-catalogue.md) adds 18 tests: 723 contract checks total (700 suite tests and 23 oracle checks). Public demo item 221906 has a pinned source catalogue with 944 staged segments and three unsupported rows; no terminology target is accepted. The synthetic source-to-mapping query matches the literal-source SQL control and preserves PRO witnesses. Clinical target review, measurement mapping and integration into prepared pressure sessions remain open.
+
+
+## Clinical terminology proposals
+
+[The candidate dossier](clinical-terminology-candidates.md) supplies concrete RxNorm/LOINC targets and source evidence. The norepinephrine pack contains all four compiler inputs but returns `BLOCKED_MAPPING_REVIEW`. Pressure proposals remain non-executable, with source strata preserved and invasive/CNAP method commitments explicitly conditional. No runtime code, clinical acceptance or check counts change.

@@ -34,7 +34,7 @@ The [aggregate report](../verification/source-record-catalogue-demo-report.json)
 | Source claims accepted by this operation | 0 |
 | Clinical terminology targets accepted | 0 |
 
-The extracted [catalogue](../data/terminology/mimic-demo-2.2-pending/catalogue.json) is the source document for the terminology review handoff. Its companion README identifies the missing documents. The report contains dictionary metadata and aggregate counts, with no patient/stay identifiers, clinical row contents or bindings. This run does not execute mapped queries on public-demo records or replace existing source-fidelity reviews.
+The extracted [catalogue](../data/terminology/mimic-demo-2.2-pending/catalogue.json) is the source document for the terminology review handoff. Its companion README now links the complete proposed norepinephrine pack and empty review journal. The report contains dictionary metadata and aggregate counts, with no patient/stay identifiers, clinical row contents or bindings. This run does not execute mapped queries on public-demo records or replace existing source-fidelity reviews.
 
 ```bash
 python -m patterns.source_record_catalogue \

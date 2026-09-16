@@ -1,0 +1,15 @@
+{
+  "profile": "record-mapping-proposals-1.0",
+  "id": "mimic-demo-norepinephrine-candidate",
+  "catalogue_sha256": "47394bb6d21eff933967fab29bc3fee278fca00ed26e3bcb3bc70482a4626feb",
+  "terminology_sha256": "5f5218dbfd665efbc085b070fd9a69a359e6e6304ad8a1961af681af74df5493",
+  "entries": [
+    {
+      "id": "candidate-221906-7512",
+      "source_code": "221906",
+      "target_code": "7512",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Candidate only: accepted recorded input content labelled norepinephrine may support an ingredient-level record selector associated with RxNorm 7512 (IN). No substance/process equivalence, salt, dose, route or course initiation inference. See docs/clinical-terminology-candidates.md and the dated API evidence before review."
+    }
+  ]
+}

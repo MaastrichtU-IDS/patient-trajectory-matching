@@ -34,6 +34,7 @@ Start here for the overall design and current state.
 | [Checked Rust semantic support](semantic-support.md) | Restricted class entailment and consistency gate before bounded matching | Executable; 22 Rust/reference tests, full SULO/import reasoning remains open |
 | [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
+| [Clinical terminology candidates](clinical-terminology-candidates.md) | Concrete RxNorm/LOINC targets, source evidence and review decisions | Proposed; complete norepinephrine pack remains blocked pending review |
 | [Source-verified record catalogues](source-record-catalogue.md) | Pinned CSV/dictionary reproduction before mapped execution | Executable; 18 tests; public catalogue and synthetic SQL comparison |
 | [Reviewed record mappings](reviewed-record-mappings.md) | Versioned mapping review, bounded compiler and mixed-query evidence | Executable synthetic integration; 18 tests; clinical worksheet pending |
 | [Prepared pressure queries](prepared-pressure-queries.md) | Reuse checked views across changed controls; fresh temporal/SQL evaluation | Local executable demo with differential verification |

@@ -1,0 +1,106 @@
+{
+  "profile": "clinical-measurement-mapping-candidates-1.0",
+  "status": "PROPOSED_FOR_REVIEW",
+  "executable_mapping_pack": false,
+  "clinical_mapping_verified": false,
+  "pool_measurement_items": false,
+  "evidence_path": "data/terminology/evidence/clinical-dictionary-items.json",
+  "terms": [
+    {
+      "system": "http://loinc.org",
+      "code": "8478-0",
+      "display": "Mean blood pressure",
+      "method_on_term_page": null,
+      "status_on_term_page": "Active",
+      "term_last_updated_version": "2.73",
+      "release_snapshot_version": null,
+      "source_url": "https://loinc.org/8478-0",
+      "observed_on": "2026-09-16"
+    },
+    {
+      "system": "http://loinc.org",
+      "code": "76536-2",
+      "display": "Mean blood pressure by Noninvasive",
+      "method_on_term_page": "Noninvasive",
+      "status_on_term_page": "Active",
+      "term_last_updated_version": "2.54",
+      "release_snapshot_version": null,
+      "source_url": "https://loinc.org/76536-2",
+      "observed_on": "2026-09-16"
+    },
+    {
+      "system": "http://loinc.org",
+      "code": "76214-6",
+      "display": "Invasive Mean blood pressure",
+      "method_on_term_page": "Invasive",
+      "status_on_term_page": "Active",
+      "term_last_updated_version": "2.56",
+      "release_snapshot_version": null,
+      "source_url": "https://loinc.org/76214-6",
+      "observed_on": "2026-09-16"
+    },
+    {
+      "system": "http://loinc.org",
+      "code": "75996-9",
+      "display": "Mean blood pressure by Continuous non-invasive monitoring",
+      "method_on_term_page": "CNAP",
+      "status_on_term_page": "Active",
+      "term_last_updated_version": "2.54",
+      "release_snapshot_version": null,
+      "source_url": "https://loinc.org/75996-9",
+      "observed_on": "2026-09-16"
+    }
+  ],
+  "entries": [
+    {
+      "itemid": "220052",
+      "dictionary_label": "Arterial Blood Pressure mean",
+      "proposed_target_code": "8478-0",
+      "proposed_target_system": "http://loinc.org",
+      "target_release_version": null,
+      "decision": null,
+      "reviewer": null,
+      "status": "PENDING_DOMAIN_REVIEW",
+      "mapping_direction": "source_record_to_application_record_selector_only",
+      "conditional_alternative": {
+        "code": "76214-6",
+        "requires": "Independent confirmation that the admitted item records invasive pressure measurement; arterial label alone is insufficient"
+      },
+      "prohibited_default": "75996-9 without evidence of continuous noninvasive monitoring",
+      "retain_source_item_stratum": true
+    },
+    {
+      "itemid": "225312",
+      "dictionary_label": "ART BP Mean",
+      "proposed_target_code": "8478-0",
+      "proposed_target_system": "http://loinc.org",
+      "target_release_version": null,
+      "decision": null,
+      "reviewer": null,
+      "status": "PENDING_DOMAIN_REVIEW",
+      "mapping_direction": "source_record_to_application_record_selector_only",
+      "conditional_alternative": {
+        "code": "76214-6",
+        "requires": "Independent confirmation that the admitted item records invasive pressure measurement; arterial label alone is insufficient"
+      },
+      "prohibited_default": "75996-9 without evidence of continuous noninvasive monitoring",
+      "retain_source_item_stratum": true
+    },
+    {
+      "itemid": "220181",
+      "dictionary_label": "Non Invasive Blood Pressure mean",
+      "proposed_target_code": "76536-2",
+      "proposed_target_system": "http://loinc.org",
+      "target_release_version": null,
+      "decision": null,
+      "reviewer": null,
+      "status": "PENDING_DOMAIN_REVIEW",
+      "mapping_direction": "source_record_to_application_record_selector_only",
+      "conditional_alternative": null,
+      "prohibited_default": "75996-9 without evidence of continuous noninvasive monitoring",
+      "retain_source_item_stratum": true
+    }
+  ],
+  "license_url": "https://loinc.org/license",
+  "license_notice_path": "data/terminology/LOINC_short_license.txt"
+}

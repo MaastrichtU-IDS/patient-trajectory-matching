@@ -56,7 +56,7 @@ The report binds all fixture files, compiler/schema/core artifacts, verifier and
 
 ## Clinical handoff
 
-The [pending worksheet](../data/clinical-terminology-review.json) identifies input item 221906 and three separate pressure items from the existing candidate plan, bound to the pinned demo 2.2 dictionary hash. Target vocabulary, release, codes, evidence and decisions are deliberately unfilled. Dictionary labels alone do not establish clinical equivalence. No real SNOMED, RxNorm or LOINC mapping has been accepted or executed.
+The [pending worksheet](../data/clinical-terminology-review.json) identifies input item 221906 and three separate pressure items from the existing candidate plan, bound to the pinned demo 2.2 dictionary hash. The original worksheet remains unfilled. [The separate candidate dossier](clinical-terminology-candidates.md) now supplies concrete targets and a complete pending norepinephrine pack; the measurement proposals remain non-executable. Dictionary labels alone do not establish clinical equivalence. No real SNOMED, RxNorm or LOINC mapping has been accepted or executed.
 
 A domain reviewer should supply exact target definitions and evidence, assess all worksheet questions, and record the supported one-way implication or explain why extra context is needed. Put the resulting four-document pack under `data/terminology/<reviewed-release>/` using the filenames above. Keep pending worksheets outside executable packs. The source catalogue should contain only the selected input codes admitted by this adapter; the three pressure rows require a subsequent measurement-mapping extension before they can be executed. Preserve their separate strata meanwhile.
 

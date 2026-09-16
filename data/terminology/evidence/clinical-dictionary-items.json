@@ -1,0 +1,73 @@
+{
+  "profile": "clinical-dictionary-evidence-1.0",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "file_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+  "csv_sha256": "3a9ff93b12727ec17000896c144c03573bccae0f8f71d5d5c2ba773ebf7ffa5d",
+  "rows": [
+    {
+      "itemid": "221906",
+      "record_number": 3147,
+      "row": {
+        "itemid": "221906",
+        "label": "Norepinephrine",
+        "abbreviation": "Norepinephrine",
+        "linksto": "inputevents",
+        "category": "Medications",
+        "unitname": "mg",
+        "param_type": "Solution",
+        "lownormalvalue": "",
+        "highnormalvalue": ""
+      },
+      "row_sha256": "bc412d489748d1e7273df9d42970f8d1a7684d91b427322e03a87c24b260c579"
+    },
+    {
+      "itemid": "220052",
+      "record_number": 2567,
+      "row": {
+        "itemid": "220052",
+        "label": "Arterial Blood Pressure mean",
+        "abbreviation": "ABPm",
+        "linksto": "chartevents",
+        "category": "Routine Vital Signs",
+        "unitname": "mmHg",
+        "param_type": "Numeric",
+        "lownormalvalue": "",
+        "highnormalvalue": ""
+      },
+      "row_sha256": "d3cf8f7d4b761b16c1254554d170b06dd1ea681fa18bbefe84a8385c62e0bd85"
+    },
+    {
+      "itemid": "225312",
+      "record_number": 2589,
+      "row": {
+        "itemid": "225312",
+        "label": "ART BP Mean",
+        "abbreviation": "ART BP Mean",
+        "linksto": "chartevents",
+        "category": "Routine Vital Signs",
+        "unitname": "mmHg",
+        "param_type": "Numeric",
+        "lownormalvalue": "",
+        "highnormalvalue": ""
+      },
+      "row_sha256": "d7a1587fb91d0ceb6f69618d390c12f16cd56fe8547c12332f92366576ac4c0c"
+    },
+    {
+      "itemid": "220181",
+      "record_number": 2576,
+      "row": {
+        "itemid": "220181",
+        "label": "Non Invasive Blood Pressure mean",
+        "abbreviation": "NBPm",
+        "linksto": "chartevents",
+        "category": "Routine Vital Signs",
+        "unitname": "mmHg",
+        "param_type": "Numeric",
+        "lownormalvalue": "",
+        "highnormalvalue": ""
+      },
+      "row_sha256": "d963040b97d0d0e1e7ce31f6b4d600993f07a77342b8139b3b4358c31704ce0b"
+    }
+  ],
+  "scope": "Dictionary metadata only; no patient data or clinical method verification"
+}
