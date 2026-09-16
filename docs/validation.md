@@ -531,3 +531,13 @@ python -m patterns.verify_unique_claim_review --input-dir /path/to/demo/icu
 ```
 
 The 28 tests cover source evidence, unique claim membership across batches and anchors, revision propagation, deterministic compilation, stale inputs, pending/incomparable decisions, resource and lifecycle gates, and actual Rust/SQL execution. The full suite totals **655 checks: 632 suite tests, 16 oracle cases and seven properties**. The [synthetic report](../verification/unique-claim-review-synthetic-report.json) verifies nine explicitly selected fabricated claims. The [demo report](../verification/unique-claim-review-demo-report.json) validates all 2,870 expanded pending batch policies without real-source acceptance or query execution. See [the review workflow](unique-claim-review.md).
+
+## Source-fidelity audit and reviewed arterial query
+
+```sh
+python -m patterns.test_reviewed_source_query
+# Supply the original pinned demo files; writes aggregate evidence only:
+python -m patterns.reviewed_source_query --input-dir /path/to/demo/icu --request examples/indexed-source-windows/demo-arterial-request.json --declaration data/arterial-source-fidelity-review.json --output verification/reviewed-source-query-run/arterial-report.json
+```
+
+Fifteen tests check independent source parsing/mapping, tampering and stale contexts, explicit declaration coverage, synthetic Rust/SQL execution, aggregate failure semantics, CLI protection and real-demo report provenance. The full suite totals **670 checks: 647 suite tests, 16 oracle cases and seven properties**. CI verifies synthetic execution and the committed report's hashes without downloading real source records. [The demonstration](reviewed-arterial-demo.md) explains the explicit automated source-fidelity review and the separate, unverified clinical interpretation.

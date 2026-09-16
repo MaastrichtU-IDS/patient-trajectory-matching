@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 655 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 670 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -82,9 +82,11 @@ The repository contains four independent executable contracts. They share the pi
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
 
-The [unique-claim review package](docs/unique-claim-review.md) now exposes each source claim once per request and propagates reviewed histories consistently to all batches. Demo packages and pending policies are verified; real-source decisions remain pending.
+The [reviewed arterial-pressure demonstration](docs/reviewed-arterial-demo.md) now runs the complete real-source stratum after an explicit automated source-fidelity review. It preserves every anchor and stay and checks merged bindings against unpartitioned SQL; clinical interpretation remains unverified.
 
-The [partitioned window executor](docs/partitioned-window-query.md) now covers oversized exact-record windows with overlapping batches, explicit review and complete batch/anchor/stay accounting. All 2,832 public-demo anchors have verified partition plans; real-source review and execution remain pending.
+The [unique-claim review package](docs/unique-claim-review.md) now exposes each source claim once per request and propagates reviewed histories consistently to all batches. Demo packages and pending policies are verified; the subsequent arterial demonstration supplies an explicit source-fidelity declaration.
+
+The [partitioned window executor](docs/partitioned-window-query.md) now covers oversized exact-record windows with overlapping batches, explicit review and complete batch/anchor/stay accounting. All 2,832 public-demo anchors have verified partition plans; the arterial stratum now also has a reviewed execution report.
 
 The [indexed source-window selector](docs/indexed-source-windows.md) now prepares complete per-anchor time windows with original row provenance. All 2,832 public-demo windows agree with a direct reference; oversized anchors remain blocked and claim exports remain pending.
 

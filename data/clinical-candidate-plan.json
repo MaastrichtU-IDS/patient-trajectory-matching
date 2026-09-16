@@ -50,13 +50,14 @@
   },
   "clock": {
     "proposed_basis": "same_release_same_patient_calendar",
-    "alignment_declared": false,
-    "physical_elapsed_time_verified": false
+    "alignment_declared": true,
+    "physical_elapsed_time_verified": false,
+    "alignment_scope": "arterial request only: 17 patient-local calendar declarations; other strata pending"
   },
   "availability_history_verified": false,
   "scope": "retrospective ICU source records; no age-based eligibility implemented",
   "source_selection_status": "conditional_record_windows_executed_clinical_review_pending",
-  "record_acceptance_status": "not_executed",
+  "record_acceptance_status": "arterial_stratum_automated_source_fidelity_review_completed",
   "extraction_status": "indexed_windows_and_complete_partition_plans_implemented",
   "required_reviews": [
     "item identity and separate measurement strata",
@@ -89,5 +90,18 @@
     "clinical_review_supplied": false,
     "real_source_claims_accepted": 0,
     "real_source_mixed_query_executed": false
+  },
+  "technical_arterial_execution": {
+    "implementation": "patterns/reviewed_source_query.py",
+    "declaration": "data/arterial-source-fidelity-review.json",
+    "report": "verification/reviewed-arterial-demo-report.json",
+    "status": "COMPLETED_PARTITIONED_QUERY",
+    "review_kind": "explicit_automated_source_fidelity",
+    "clinical_review_supplied": false,
+    "real_source_claims_accepted": 2022,
+    "real_source_mixed_query_executed": true,
+    "matched_patients": 13,
+    "anchors_verified_against_unpartitioned_sql": 944,
+    "stays_accounted_for": 140
   }
 }

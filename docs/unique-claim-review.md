@@ -108,7 +108,7 @@ Every package includes 944 treatment claims, plus respectively 1,078, 840 and 98
 python -m patterns.verify_unique_claim_review --input-dir /path/to/demo/icu
 ```
 
-The [clinical candidate plan](../data/clinical-candidate-plan.json) still has no clinical review. The next step is to complete the source-record and calendar reviews for a chosen stratum and then run its exact selected-record query. Clinical interpretation of the item mapping and illustrative windows requires separate review; acceptance here does not perform it.
+The [clinical candidate plan](../data/clinical-candidate-plan.json) still has no clinical review. The subsequent [arterial demonstration](reviewed-arterial-demo.md) now supplies an explicit automated source-fidelity declaration and executes that stratum. Reviews and execution for the other strata remain pending. Clinical interpretation of the item mapping and illustrative windows requires separate review; acceptance here does not perform it.
 
 ## Limits and checks
 
