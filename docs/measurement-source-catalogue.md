@@ -30,7 +30,7 @@ The execution result contains `source_audit` and `query_result`; its status mirr
 
 This is a bounded **subset-fidelity check**. It does not certify complete source coverage, an importer-generated snapshot identifier, clinical correctness, publisher identity, source acceptance, interval fidelity, clock alignment or physical elapsed time. The caller's valid snapshot identifier is retained and bound in the store digest. Dictionary unit metadata is evidence, not a unit conversion rule or an override of recorded units. A unit metadata change changes the source audit context even if catalogue labels and the mapping context remain identical; clinical reviewers must consider that evidence separately.
 
-The existing source readers bound each raw and expanded file to 64 MiB and each table to 100,000 rows. Catalogue accounting can exceed a single store's 32-claim limit; the audit reconstructs only the supplied bounded store's claims. It neither partitions oversized inputs nor certifies a full MIMIC export. There is no new performance claim: source files are reread for each call. Source snapshot reuse at the prepared-session boundary is a subsequent increment.
+The existing source readers bound each raw and expanded file to 64 MiB and each table to 100,000 rows. Catalogue accounting can exceed a single store's 32-claim limit; the audit reconstructs only the supplied bounded store's claims. It neither partitions oversized inputs nor certifies a full MIMIC export. There is no new performance claim: source files are reread for each call. [Prepared measurement sessions](prepared-measurement-session.md) now reuse this audit and checked query views, while retaining source-byte digest checks for every query.
 
 ## Run and verify
 

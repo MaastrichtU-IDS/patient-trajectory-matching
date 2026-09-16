@@ -407,3 +407,7 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ### Measurement source catalogue and claim audit
 
 [`patterns/measurement_source_catalogue.py`](../patterns/measurement_source_catalogue.py) reproduces dictionary labels, supplied scalar claims and patient clock origins from three pinned CSV files before calling the reviewed measurement selector. The outer context binds source-audit and query evidence without changing acceptance policies. [The runbook](measurement-source-catalogue.md) defines subset fidelity, exact lexical preservation and the limits of synthetic CSV/SQL checks.
+
+### Prepared measurement sessions
+
+[`patterns/prepared_measurement_session.py`](../patterns/prepared_measurement_session.py) admits a successful source-audited measurement query and retains private record views, a checked selector plan and a shared temporal network. Changed numeric/temporal controls use the existing prepared evaluator. Before/after digest checks invalidate changed sources or implementations; review changes require a new session. [The runbook](prepared-measurement-session.md) documents snapshot lifetime, budgets and batch-integration limits.

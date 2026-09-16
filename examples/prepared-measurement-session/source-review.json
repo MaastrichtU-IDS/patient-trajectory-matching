@@ -1,0 +1,197 @@
+{
+  "profile": "source-mixed-review-1.0",
+  "preparation_context_id": "25601442c1ae65d93540ff32da6f80d5e6f06b4fb7d3fd33a86d1a9eccb640ad",
+  "episodes": [
+    {
+      "patient_id": "1",
+      "episode_id": "100",
+      "interval_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_8f6a9a105e1a70bc378ef6ce939da32250a5dea16ad255edc093946d54260f83",
+        "store_sha256": "8f6a9a105e1a70bc378ef6ce939da32250a5dea16ad255edc093946d54260f83",
+        "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_1",
+            "claim_sha256": "cfe8a77e3de0c6767bf56f4b9c963987f3355bad73ae37e58599b780fd7ba05e",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          }
+        ]
+      },
+      "measurement_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_fd9d3e7bd64e20231b7c91e10f8a33ae14f7a655eb29d1a73a67545c2d11c81b",
+        "store_sha256": "fd9d3e7bd64e20231b7c91e10f8a33ae14f7a655eb29d1a73a67545c2d11c81b",
+        "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_chart_b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e_1",
+            "claim_sha256": "1a77acf7c3c59c4731aaa14c63ae47e22dc2ba65903baf2f3438f7e2842a234b",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          },
+          {
+            "id": "synthetic_1",
+            "claim_id": "claim_chart_b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e_2",
+            "claim_sha256": "bebf65022e2d1aa135dd23b5b61ece3c35ad635ac4ef6b3c52abd8568e1089fe",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          },
+          {
+            "id": "synthetic_2",
+            "claim_id": "claim_chart_b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e_3",
+            "claim_sha256": "dd70ada72610bd1255d91530de5b45b283d0ee198d72754b4da8e75e16079fd0",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          }
+        ]
+      },
+      "alignment": {
+        "profile": "patient-local-clock-alignment-1.0",
+        "id": "alignment_100",
+        "interval_store_sha256": "8f6a9a105e1a70bc378ef6ce939da32250a5dea16ad255edc093946d54260f83",
+        "measurement_store_sha256": "fd9d3e7bd64e20231b7c91e10f8a33ae14f7a655eb29d1a73a67545c2d11c81b",
+        "bindings": [
+          {
+            "patient_id": "1",
+            "interval_clock_id": "patient_1",
+            "measurement_clock_id": "patient_1",
+            "basis": "same_dataset_patient_calendar",
+            "reason": "The authored fixture uses the same constructed calendar in both tables."
+          }
+        ]
+      }
+    },
+    {
+      "patient_id": "1",
+      "episode_id": "101",
+      "interval_policy": null,
+      "measurement_policy": null,
+      "alignment": null
+    },
+    {
+      "patient_id": "2",
+      "episode_id": "200",
+      "interval_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_b4be9cf03830364d680ba4aab8ae7b0b29faf109f7de1f6e1e920aa0a739ad16",
+        "store_sha256": "b4be9cf03830364d680ba4aab8ae7b0b29faf109f7de1f6e1e920aa0a739ad16",
+        "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_2",
+            "claim_sha256": "086a6238a03ae47edad8ce704946fc718cd3952458cb5cc631c27f3b2626af1c",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          }
+        ]
+      },
+      "measurement_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_9a8806a0a15fab2328d048ce22e362f361a57cd6be88c34f508e79e46df92a89",
+        "store_sha256": "9a8806a0a15fab2328d048ce22e362f361a57cd6be88c34f508e79e46df92a89",
+        "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_chart_b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e_4",
+            "claim_sha256": "ab1741a03dea2eb30a6849c0ecc1f48649cd5bab03859c41082b259def80859a",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          }
+        ]
+      },
+      "alignment": {
+        "profile": "patient-local-clock-alignment-1.0",
+        "id": "alignment_200",
+        "interval_store_sha256": "b4be9cf03830364d680ba4aab8ae7b0b29faf109f7de1f6e1e920aa0a739ad16",
+        "measurement_store_sha256": "9a8806a0a15fab2328d048ce22e362f361a57cd6be88c34f508e79e46df92a89",
+        "bindings": [
+          {
+            "patient_id": "2",
+            "interval_clock_id": "patient_2",
+            "measurement_clock_id": "patient_2",
+            "basis": "same_dataset_patient_calendar",
+            "reason": "The authored fixture uses the same constructed calendar in both tables."
+          }
+        ]
+      }
+    },
+    {
+      "patient_id": "3",
+      "episode_id": "300",
+      "interval_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_08bf31a192db82820382c1f14709aa2887c82dc006d0018b57b7611551345c53",
+        "store_sha256": "08bf31a192db82820382c1f14709aa2887c82dc006d0018b57b7611551345c53",
+        "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_3",
+            "claim_sha256": "c5949be380fdf7676a1eac9ff724786d8f612cf82bfa04a9c1328481910b091e",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          }
+        ]
+      },
+      "measurement_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_04b3b9028bd4925543bb399fb898d485fa9c0183a73bdb76fb4e91eed1c78af7",
+        "store_sha256": "04b3b9028bd4925543bb399fb898d485fa9c0183a73bdb76fb4e91eed1c78af7",
+        "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_chart_b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e_5",
+            "claim_sha256": "9f666666ae21ccabc6e4afce6dcee8f6b4ff8b24cc47e9c833464ca46e9daef2",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          },
+          {
+            "id": "synthetic_1",
+            "claim_id": "claim_chart_b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e_6",
+            "claim_sha256": "2f45703696b73697b9c584bd8618faa519e5bd1c203e6dfc043e70040cd1b446",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit authored synthetic source selection; no clinical approval."
+          }
+        ]
+      },
+      "alignment": {
+        "profile": "patient-local-clock-alignment-1.0",
+        "id": "alignment_300",
+        "interval_store_sha256": "08bf31a192db82820382c1f14709aa2887c82dc006d0018b57b7611551345c53",
+        "measurement_store_sha256": "04b3b9028bd4925543bb399fb898d485fa9c0183a73bdb76fb4e91eed1c78af7",
+        "bindings": [
+          {
+            "patient_id": "3",
+            "interval_clock_id": "patient_3",
+            "measurement_clock_id": "patient_3",
+            "basis": "same_dataset_patient_calendar",
+            "reason": "The authored fixture uses the same constructed calendar in both tables."
+          }
+        ]
+      }
+    },
+    {
+      "patient_id": "4",
+      "episode_id": "400",
+      "interval_policy": null,
+      "measurement_policy": null,
+      "alignment": null
+    }
+  ]
+}
