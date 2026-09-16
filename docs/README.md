@@ -35,6 +35,7 @@ Start here for the overall design and current state.
 | [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
 | [Reviewed measurement selectors](reviewed-measurement-mappings.md) | Checked item-class selection and separate same-item/unit queries | Executable synthetic integration; 18 tests; clinical review pending |
+| [Measurement source catalogue and audit](measurement-source-catalogue.md) | Pinned dictionary, claim and clock correspondence before measurement selection | Executable synthetic integration; 20 tests; clinical review pending |
 | [Clinical terminology candidates](clinical-terminology-candidates.md) | Concrete RxNorm/LOINC targets, source evidence and review decisions | Proposed; complete norepinephrine pack remains blocked pending review |
 | [Source-verified record catalogues](source-record-catalogue.md) | Pinned CSV/dictionary reproduction before mapped execution | Executable; 18 tests; public catalogue and synthetic SQL comparison |
 | [Reviewed record mappings](reviewed-record-mappings.md) | Versioned mapping review, bounded compiler and mixed-query evidence | Executable synthetic integration; 18 tests; clinical worksheet pending |

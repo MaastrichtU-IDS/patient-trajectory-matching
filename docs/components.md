@@ -403,3 +403,7 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ## Reviewed measurement selectors
 
 [`patterns/reviewed_measurement_mappings.py`](../patterns/reviewed_measurement_mappings.py) checks reviewed catalogue implications with Rust/reference witnesses, then runs each supported source item as a separate mixed-query stratum with identical baseline/follow-up unit spelling. It preserves source policies and suppresses combined membership on incomplete execution. [The profile](reviewed-measurement-mappings.md) explains the distinction between catalogue-rule reasoning and patient measurement graphs.
+
+### Measurement source catalogue and claim audit
+
+[`patterns/measurement_source_catalogue.py`](../patterns/measurement_source_catalogue.py) reproduces dictionary labels, supplied scalar claims and patient clock origins from three pinned CSV files before calling the reviewed measurement selector. The outer context binds source-audit and query evidence without changing acceptance policies. [The runbook](measurement-source-catalogue.md) defines subset fidelity, exact lexical preservation and the limits of synthetic CSV/SQL checks.

@@ -1,0 +1,15 @@
+{
+  "profile": "record-mapping-proposals-1.0",
+  "id": "authored-source-measurement-mapping",
+  "catalogue_sha256": "89833c1635f9c80c3cd984b8235fa100764748ab1e652199570e01c56a7c9275",
+  "terminology_sha256": "fb434104d1e5ebf9142cf113faac07745cdd7169796102b56f4e10ac0aff4768",
+  "entries": [
+    {
+      "id": "map-2000",
+      "source_code": "2000",
+      "target_code": "pressure-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Authored synthetic source pressure category only"
+    }
+  ]
+}

@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 741 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 761 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -278,3 +278,5 @@ Companion to product specification v2.3, extended by the v2.4 addendum in this p
 ## License
 
 Pack contents are MIT licensed; see [LICENSE](LICENSE). The vendored SULO ontology is CC0 and is redistributed under its own terms. MIMIC-IV carries its own access requirements, independent of this license.
+
+[Measurement source verification](docs/measurement-source-catalogue.md) now reproduces catalogue labels, supplied scalar claims and patient clock origins from pinned CSV files before reviewed measurement selection. Synthetic raw-CSV/Rust/SQL evidence is included; source acceptance and clinical mapping review remain separate.
