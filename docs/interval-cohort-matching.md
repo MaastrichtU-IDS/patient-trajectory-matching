@@ -34,6 +34,40 @@ must check successful completion before reading output. Failure does not clear a
 older output file. Other parser/runtime errors also fail the run rather than return
 a negative match.
 
+## COH-01: constructed cohort refinement
+
+COH-01 demonstrates research cohort construction over the represented synthetic
+process records. It is not HPO or rare-disease matching, and it is not diagnosis or
+treatment advice. The broad query selects two distinct `sulo:Process` slots with no
+temporal constraint; the refined query selects an infusion before a specimen
+collection:
+
+```sh
+python -m patterns.interval_cohort \
+  --query examples/interval-cohort/coh-01-broad-query.json \
+  --output /tmp/coh-01-broad.json
+python -m patterns.interval_cohort \
+  --query examples/interval-cohort/coh-01-refined-query.json \
+  --output /tmp/coh-01-refined.json
+python -m patterns.interval_cohort \
+  --query examples/interval-cohort/coh-01-refined-query.json \
+  --engine reference --output /tmp/coh-01-refined-reference.json
+python -m patterns.test_use_case_conformance
+```
+
+The broad query returns `matched_patient_ids: ["P1", "P2", "P3"]`. The refined
+query returns `["P1"]`, so the reproducible membership delta is removal of `P2`
+and `P3`. For the refined query, P2 is `NO_RECORDED_MATCH` and P3 is
+`INCOMPARABLE` because its candidate events use different clocks. The indexed and
+reference engines agree on every semantic result for both queries; only their
+`execution` counters may differ.
+
+Every returned match or unresolved binding retains each slot's `process`,
+`patient_role`, `patient_bearer`, and `evidence_id`. The corresponding entry in
+`evidence.bindings` retains its `source_record` and `context_id`. Thus membership
+can be reviewed against the constructed source record and snapshot context rather
+than inferred from an untracked cohort list.
+
 ## Query semantics
 
 The [JSON Schema](../schemas/interval-cohort.schema.json) and semantic checks in

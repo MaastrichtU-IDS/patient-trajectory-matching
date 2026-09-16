@@ -69,6 +69,7 @@ python -m patterns.evidence_selection     # availability and revision selection
 python -m patterns.test_evidence_selection # 29 tests
 python -m patterns.temporal_interface      # paired formal/SULO fixtures
 python -m patterns.test_temporal_interface # 22 tests
+python -m patterns.test_use_case_conformance # 4 GEN-01/COH-01 replay tests
 ```
 
 All commands above exit 0. **228 base checks:** 205 suite tests, 16 oracle cases, and seven properties. Any nonzero exit requires inspecting the reported status. For the interval profiles, exit code 2 means invalid profile input or inconsistent source constraints; the selector also uses it for blocked evidence, with its audit report preserved.
@@ -569,7 +570,7 @@ python -m patterns.test_reviewed_source_query
 python -m patterns.reviewed_source_query --input-dir /path/to/demo/icu --request examples/indexed-source-windows/demo-arterial-request.json --declaration data/arterial-source-fidelity-review.json --output verification/reviewed-source-query-run/arterial-report.json
 ```
 
-Fifteen tests check independent source parsing/mapping, tampering and stale contexts, explicit declaration coverage, synthetic Rust/SQL execution, aggregate failure semantics, CLI protection and real-demo report provenance. The full suite totals **670 checks: 647 suite tests, 16 oracle cases and seven properties**. CI verifies synthetic execution and the committed report's hashes without downloading real source records. [The demonstration](reviewed-arterial-demo.md) explains the explicit automated source-fidelity review and the separate, unverified clinical interpretation.
+Fifteen tests check independent source parsing/mapping, tampering and stale contexts, explicit declaration coverage, synthetic Rust/SQL execution, aggregate failure semantics, CLI protection and real-demo report provenance. Through this profile, the suites total **670 checks: 647 suite tests, 16 oracle cases and seven properties**. CI verifies synthetic execution and the committed report's hashes without downloading real source records. [The demonstration](reviewed-arterial-demo.md) explains the explicit automated source-fidelity review and the separate, unverified clinical interpretation.
 
 ## Three separately reviewed pressure strata
 
@@ -588,7 +589,6 @@ python -m patterns.verify_pressure_overlap --input-dir /path/to/demo/icu
 ```
 
 Fourteen tests check actual synthetic item strata, all 4,096 membership combinations over four members, patient/stay/segment scope, completeness and comparability failures, deterministic aggregation, CLI atomicity and committed provenance. Total: **687 checks: 664 suite tests, 16 oracle cases and seven properties**; the 4,096 combinations are nested within one test. The [reproduced overlap report and interpretation](pressure-cohort-overlap.md) distinguish separate-query membership from a pooled measurement query. CI does not download source records.
-
 ## Local pressure-query UI and API
 
 ```sh
@@ -688,3 +688,16 @@ python -m unittest discover -s demo -p 'test_configured_pressure_workload.py'
 ```
 
 Twelve additional tests bring the demo suite to 92; the contract suite remains 781 checks. The [workload runbook](configured-pressure-workload.md) documents the CLI, aggregate committed evidence and failure behavior. Demo CI uploads a fresh one-repetition HTTP workload report; elapsed times are observations, not pass/fail thresholds.
+
+## Reproducible use-case conformance
+
+```sh
+python -m patterns.test_use_case_conformance
+```
+
+The four GEN-01 and COH-01 tests replay the synthetic genomic release cutoffs,
+fail-closed conflicting classifications, immutable patient observation, cohort
+membership delta, indexed/reference agreement, and retained binding evidence. The
+full suite totals **813 checks: 790 suite tests, 16 oracle cases and seven
+properties**. These fixtures are synthetic; they do not establish a production
+ClinGen workflow, HPO matching, diagnosis, or treatment advice.
