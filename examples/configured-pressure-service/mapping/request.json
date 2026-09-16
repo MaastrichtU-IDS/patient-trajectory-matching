@@ -1,0 +1,14 @@
+{
+  "profile": "measurement-source-catalogue-1.0",
+  "dataset_id": "synthetic-source-mixed-1.0",
+  "release": "authored-prepared-measurements-1",
+  "itemids": [
+    "2000",
+    "2001"
+  ],
+  "source_sha256": {
+    "chartevents": "b58518825c3ad9fce62b29902e79897e1b92142ec20ee2113a0c97506a5d325e",
+    "icustays": "add9e84050e9b5da0d5a2ca9bddc30084dc770e3ba647853bfdf0970fc8e5c6a",
+    "d_items": "2c7dbfccbc52665a7512a55fb37012c9cc6043ea77592909b1484f7cebd03099"
+  }
+}

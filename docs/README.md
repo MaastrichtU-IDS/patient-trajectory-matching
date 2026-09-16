@@ -38,6 +38,7 @@ Start here for the overall design and current state.
 | [Measurement source catalogue and audit](measurement-source-catalogue.md) | Pinned dictionary, claim and clock correspondence before measurement selection | Executable synthetic integration; 20 tests; clinical review pending |
 | [Prepared measurement sessions](prepared-measurement-session.md) | Reuse checked source/mapping views across changed queries | Executable synthetic integration; 20 tests; live batch integration pending |
 | [Live mapped pressure service](mapped-pressure-service.md) | Reviewed mapping and prepared batches through the local HTTP interface | Authored live integration; 16 demo tests; public clinical mappings pending |
+| [Configured mapped pressure service](configured-pressure-service.md) | Startup source/request/review configuration and request-derived page settings | 13 integration tests and configured UI check; authored alternate-item evidence |
 | [Clinical terminology candidates](clinical-terminology-candidates.md) | Concrete RxNorm/LOINC targets, source evidence and review decisions | Proposed; complete norepinephrine pack remains blocked pending review |
 | [Source-verified record catalogues](source-record-catalogue.md) | Pinned CSV/dictionary reproduction before mapped execution | Executable; 18 tests; public catalogue and synthetic SQL comparison |
 | [Reviewed record mappings](reviewed-record-mappings.md) | Versioned mapping review, bounded compiler and mixed-query evidence | Executable synthetic integration; 18 tests; clinical worksheet pending |

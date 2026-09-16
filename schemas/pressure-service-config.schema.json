@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile", "id", "label", "source_dir", "pressure_request", "source_review", "mapping_dir"],
+  "properties": {
+    "profile": {"const": "mapped-pressure-service-config-1.0"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
+    "label": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S"},
+    "source_dir": {"$ref": "#/$defs/path"},
+    "pressure_request": {"$ref": "#/$defs/path"},
+    "source_review": {"$ref": "#/$defs/path"},
+    "mapping_dir": {"$ref": "#/$defs/path"}
+  },
+  "$defs": {"path": {"type": "string", "minLength": 1, "maxLength": 4096, "pattern": "\\S"}}
+}

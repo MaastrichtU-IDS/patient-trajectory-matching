@@ -1,0 +1,22 @@
+{
+  "profile": "record-mapping-proposals-1.0",
+  "id": "authored-prepared-measurement-mappings",
+  "catalogue_sha256": "155330f843ef82b40ea5fb3d307dd61abb710181472dbee5ac6a41aa6a8259d2",
+  "terminology_sha256": "fb434104d1e5ebf9142cf113faac07745cdd7169796102b56f4e10ac0aff4768",
+  "entries": [
+    {
+      "id": "map-2000",
+      "source_code": "2000",
+      "target_code": "pressure-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Authored source item classification only"
+    },
+    {
+      "id": "map-2001",
+      "source_code": "2001",
+      "target_code": "pressure-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Authored source item classification only"
+    }
+  ]
+}

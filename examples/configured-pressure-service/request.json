@@ -1,0 +1,34 @@
+{
+  "profile": "indexed-source-windows-1.0",
+  "id": "configured_pressure_windows",
+  "dataset_id": "synthetic-source-mixed-1.0",
+  "calendar_basis": {
+    "kind": "declared_same_release_patient_calendar",
+    "reason": "Fabricated source fixture uses one constructed calendar per patient."
+  },
+  "query": {
+    "profile": "mixed-record-trajectory-1.0",
+    "id": "configured_pressure_followup",
+    "treatment_class_iri": "https://example.org/trajectory/mimic-record-item/1000",
+    "baseline": {
+      "item_ids": [
+        "2001"
+      ],
+      "unit_lexical": "mmHg",
+      "operator": "lt",
+      "value_lexical": "65",
+      "min_before_start_us": 1,
+      "max_before_start_us": 900000000
+    },
+    "followup": {
+      "item_ids": [
+        "2001"
+      ],
+      "unit_lexical": "mmHg",
+      "anchor": "start",
+      "min_after_anchor_us": 0,
+      "max_after_anchor_us": 3600000000,
+      "within_interval": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "profile": "record-query-terminology-1.0",
+  "system": "https://example.org/authored-measurement-terminology",
+  "version": "authored-1",
+  "record_class_namespace": "https://example.org/trajectory/measurement-record-query/",
+  "terms": [
+    {
+      "code": "pressure-family",
+      "label": "Authored pressure-family",
+      "concept_iri": "https://example.org/authored-measurement-terminology/pressure-family",
+      "record_class_iri": "https://example.org/trajectory/measurement-record-query/pressure-family"
+    }
+  ]
+}

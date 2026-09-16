@@ -1,0 +1,24 @@
+{
+  "profile": "record-mapping-review-1.0",
+  "mappings_sha256": "fb50c6adca799dfd5f1bbc5a8295847454f8a944c08969fd7af2406e5402e755",
+  "decisions": [
+    {
+      "id": "accept-map-2000",
+      "mapping_id": "map-2000",
+      "mapping_sha256": "f1643d400d44f09118a00e8f2df7147a0bbaff6c4310322c2040b0a83ebdad41",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture policy",
+      "reason": "Synthetic category only"
+    },
+    {
+      "id": "accept-map-2001",
+      "mapping_id": "map-2001",
+      "mapping_sha256": "1ae0e940b48ac762947d75a20899076170d31b21f11f4f6742a76c436b7d1acb",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture policy",
+      "reason": "Synthetic category only"
+    }
+  ]
+}

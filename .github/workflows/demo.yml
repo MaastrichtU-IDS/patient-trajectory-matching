@@ -29,10 +29,18 @@ jobs:
         run: |
           node demo/test_guided_ui.cjs
           node demo/test_pressure_ui.cjs
+          node demo/test_configured_pressure_ui.cjs
       - name: Upload mapped pressure HTTP verification
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mapped-pressure-http-evidence
           path: verification/mapped-pressure-run/report.json
+          retention-days: 14
+      - name: Upload configured pressure HTTP verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: configured-pressure-http-evidence
+          path: verification/configured-pressure-run/report.json
           retention-days: 14
