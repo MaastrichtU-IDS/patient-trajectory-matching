@@ -398,3 +398,8 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ## Source-verified mapping catalogue
 
 [`patterns/source_record_catalogue.py`](../patterns/source_record_catalogue.py) binds a mapping source catalogue to pinned CSV/dictionary bytes and reproduces supplied interval claims and clock origins before reviewed mapping execution. It retains separate source and mapping policies. [The runbook](source-record-catalogue.md) documents bounded subset semantics, public-demo catalogue evidence and synthetic Rust/SQL verification.
+
+
+## Reviewed measurement selectors
+
+[`patterns/reviewed_measurement_mappings.py`](../patterns/reviewed_measurement_mappings.py) checks reviewed catalogue implications with Rust/reference witnesses, then runs each supported source item as a separate mixed-query stratum with identical baseline/follow-up unit spelling. It preserves source policies and suppresses combined membership on incomplete execution. [The profile](reviewed-measurement-mappings.md) explains the distinction between catalogue-rule reasoning and patient measurement graphs.

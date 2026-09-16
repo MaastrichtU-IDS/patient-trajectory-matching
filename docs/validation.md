@@ -602,3 +602,14 @@ python -m patterns.verify_source_record_catalogue
 ```
 
 Eighteen tests cover pinned source correspondence, dictionary/class identity, claim/clock tampering, review separation, CLI atomicity, synthetic Rust/SQL equality and aggregate public-demo provenance. The contract total is 723 checks: 700 suite tests, 16 oracle cases and seven properties. The demo suite remains 51 tests. See [the runbook](source-record-catalogue.md) for public-source reproduction and the pending terminology handoff.
+
+
+## Reviewed measurement selectors
+
+```bash
+python -m unittest patterns.test_reviewed_measurement_mappings
+python -m patterns.verify_reviewed_measurement_mappings
+python -m patterns.reviewed_measurement_mappings --output /tmp/mapped-measurements.json
+```
+
+Eighteen tests cover review/context gates, checked catalogue support, separate item/unit strata, source policy and alignment boundaries, uncertainty, failure suppression, CLI behavior and exact literal/SQL reproduction. The contract total is 741 checks: 718 suite tests, 16 oracle cases and seven properties. See [the profile](reviewed-measurement-mappings.md) for its declared reasoning scope and pending clinical mappings.

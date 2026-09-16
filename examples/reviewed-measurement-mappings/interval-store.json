@@ -1,0 +1,198 @@
+{
+  "profile": "patient-local-record-claim-store-1.0",
+  "dataset_id": "synthetic_mixed_records",
+  "snapshot_id": "synthetic_intervals",
+  "clocks": [
+    {
+      "clock_id": "clock_P1",
+      "scope": "patient:P1",
+      "origin": "2150-01-01T10:00:00",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:P1:10:00:00"
+    },
+    {
+      "clock_id": "clock_P2",
+      "scope": "patient:P2",
+      "origin": "2150-01-01T10:00:00",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:P2:10:00:00"
+    },
+    {
+      "clock_id": "clock_P3",
+      "scope": "patient:P3",
+      "origin": "2150-01-01T10:00:00",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:P3:10:00:00"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim_treatment_P1",
+      "patient_id": "P1",
+      "episode_id": "P1_stay",
+      "source_id": "synthetic_intervals",
+      "source_record_id": "record_treatment_P1",
+      "source_sha256": "5cc7334ff48f792ccce2b3f7f7a9ab31bbea9fadbdd94105856a514bf99a3f8e",
+      "bundle": {
+        "variables": [
+          {
+            "id": "treatment_P1_start",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "clock_id": "clock_P1",
+            "local_lower": "2150-01-01 10:00:00",
+            "local_upper": "2150-01-01 10:00:00",
+            "source_key": "synthetic:treatment_P1_start"
+          },
+          {
+            "id": "treatment_P1_end",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "clock_id": "clock_P1",
+            "local_lower": "2150-01-01 10:45:00",
+            "local_upper": "2150-01-01 10:45:00",
+            "source_key": "synthetic:treatment_P1_end"
+          }
+        ],
+        "events": [
+          {
+            "id": "treatment_P1",
+            "record_id": "record_treatment_P1",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "event_kind": "recorded_input_segment",
+            "status": "recorded",
+            "start_var": "treatment_P1_start",
+            "end_var": "treatment_P1_end",
+            "source_key": "synthetic:treatment_P1"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "treatment_P1_item",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "kind": "class",
+            "subject": {
+              "event_id": "treatment_P1"
+            },
+            "class_iri": "https://example.org/trajectory/mixed-example/RecordedItemA"
+          }
+        ]
+      }
+    },
+    {
+      "id": "claim_treatment_P2",
+      "patient_id": "P2",
+      "episode_id": "P2_stay",
+      "source_id": "synthetic_intervals",
+      "source_record_id": "record_treatment_P2",
+      "source_sha256": "6d81bece762078aafedc00c30014b21c006a19f617fbf2f5034fc06cf62ee13b",
+      "bundle": {
+        "variables": [
+          {
+            "id": "treatment_P2_start",
+            "patient_id": "P2",
+            "episode_id": "P2_stay",
+            "clock_id": "clock_P2",
+            "local_lower": "2150-01-01 10:00:00",
+            "local_upper": "2150-01-01 10:00:00",
+            "source_key": "synthetic:treatment_P2_start"
+          },
+          {
+            "id": "treatment_P2_end",
+            "patient_id": "P2",
+            "episode_id": "P2_stay",
+            "clock_id": "clock_P2",
+            "local_lower": "2150-01-01 10:45:00",
+            "local_upper": "2150-01-01 10:45:00",
+            "source_key": "synthetic:treatment_P2_end"
+          }
+        ],
+        "events": [
+          {
+            "id": "treatment_P2",
+            "record_id": "record_treatment_P2",
+            "patient_id": "P2",
+            "episode_id": "P2_stay",
+            "event_kind": "recorded_input_segment",
+            "status": "recorded",
+            "start_var": "treatment_P2_start",
+            "end_var": "treatment_P2_end",
+            "source_key": "synthetic:treatment_P2"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "treatment_P2_item",
+            "patient_id": "P2",
+            "episode_id": "P2_stay",
+            "kind": "class",
+            "subject": {
+              "event_id": "treatment_P2"
+            },
+            "class_iri": "https://example.org/trajectory/mixed-example/RecordedItemA"
+          }
+        ]
+      }
+    },
+    {
+      "id": "claim_treatment_P3",
+      "patient_id": "P3",
+      "episode_id": "P3_stay",
+      "source_id": "synthetic_intervals",
+      "source_record_id": "record_treatment_P3",
+      "source_sha256": "16b0d976c59cc76f0346926711b93a595c901ea78260e6e780a046e78b93eaf9",
+      "bundle": {
+        "variables": [
+          {
+            "id": "treatment_P3_start",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "clock_id": "clock_P3",
+            "local_lower": "2150-01-01 10:00:00",
+            "local_upper": "2150-01-01 10:00:00",
+            "source_key": "synthetic:treatment_P3_start"
+          },
+          {
+            "id": "treatment_P3_end",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "clock_id": "clock_P3",
+            "local_lower": "2150-01-01 10:45:00",
+            "local_upper": "2150-01-01 10:45:00",
+            "source_key": "synthetic:treatment_P3_end"
+          }
+        ],
+        "events": [
+          {
+            "id": "treatment_P3",
+            "record_id": "record_treatment_P3",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "event_kind": "recorded_input_segment",
+            "status": "recorded",
+            "start_var": "treatment_P3_start",
+            "end_var": "treatment_P3_end",
+            "source_key": "synthetic:treatment_P3"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "treatment_P3_item",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "kind": "class",
+            "subject": {
+              "event_id": "treatment_P3"
+            },
+            "class_iri": "https://example.org/trajectory/mixed-example/RecordedItemA"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "profile": "mapping-source-catalogue-1.0",
+  "dataset_id": "synthetic_mixed_records",
+  "release": "authored-1",
+  "source_kind": "authored_fixture",
+  "entries": [
+    {
+      "code": "pressure_a",
+      "label": "Authored pressure_a",
+      "source_class_iri": "https://example.org/trajectory/measurement-record-item/pressure_a"
+    },
+    {
+      "code": "pressure_b",
+      "label": "Authored pressure_b",
+      "source_class_iri": "https://example.org/trajectory/measurement-record-item/pressure_b"
+    },
+    {
+      "code": "pressure_c",
+      "label": "Authored pressure_c",
+      "source_class_iri": "https://example.org/trajectory/measurement-record-item/pressure_c"
+    }
+  ]
+}

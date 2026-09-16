@@ -1,0 +1,258 @@
+{
+  "profile": "patient-local-measurement-claim-store-1.0",
+  "dataset_id": "synthetic_mixed_records",
+  "snapshot_id": "synthetic_measurements",
+  "clocks": [
+    {
+      "clock_id": "clock_P1",
+      "scope": "patient:P1",
+      "origin": "2150-01-01T09:00:00",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:P1:09:00:00"
+    },
+    {
+      "clock_id": "clock_P2",
+      "scope": "patient:P2",
+      "origin": "2150-01-01T09:00:00",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:P2:09:00:00"
+    },
+    {
+      "clock_id": "clock_P3",
+      "scope": "patient:P3",
+      "origin": "2150-01-01T09:00:00",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:P3:09:00:00"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim_baseline_P1",
+      "patient_id": "P1",
+      "episode_id": "P1_stay",
+      "source_id": "synthetic_measurements",
+      "source_record_id": "record_baseline_P1",
+      "source_sha256": "955da72b30c164c25b3bffded05112f35ae17e44cbb145889e5c6590ad3b3f05",
+      "bundle": {
+        "variables": [
+          {
+            "id": "baseline_P1_time",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "clock_id": "clock_P1",
+            "local_lower": "2150-01-01 09:40:00",
+            "local_upper": "2150-01-01 09:40:00",
+            "source_key": "synthetic:baseline_P1_time"
+          }
+        ],
+        "events": [
+          {
+            "id": "baseline_P1",
+            "record_id": "record_baseline_P1",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "event_kind": "recorded_measurement",
+            "status": "recorded",
+            "time_var": "baseline_P1_time",
+            "value_lexical": "58",
+            "unit_lexical": "mmHg",
+            "item_id": "pressure_a",
+            "source_key": "synthetic:baseline_P1"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    },
+    {
+      "id": "claim_followup1_P1",
+      "patient_id": "P1",
+      "episode_id": "P1_stay",
+      "source_id": "synthetic_measurements",
+      "source_record_id": "record_followup1_P1",
+      "source_sha256": "2479ab828e17947dc5470aa1fd0d19e45ffaaaabf44e6ae901dfb809b6e4d2ef",
+      "bundle": {
+        "variables": [
+          {
+            "id": "followup1_P1_time",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "clock_id": "clock_P1",
+            "local_lower": "2150-01-01 10:30:00",
+            "local_upper": "2150-01-01 10:30:00",
+            "source_key": "synthetic:followup1_P1_time"
+          }
+        ],
+        "events": [
+          {
+            "id": "followup1_P1",
+            "record_id": "record_followup1_P1",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "event_kind": "recorded_measurement",
+            "status": "recorded",
+            "time_var": "followup1_P1_time",
+            "value_lexical": "68",
+            "unit_lexical": "mmHg",
+            "item_id": "pressure_a",
+            "source_key": "synthetic:followup1_P1"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    },
+    {
+      "id": "claim_followup2_P1",
+      "patient_id": "P1",
+      "episode_id": "P1_stay",
+      "source_id": "synthetic_measurements",
+      "source_record_id": "record_followup2_P1",
+      "source_sha256": "a1b0be927989c3fc47de60320967b497394e6acef7d8055a07819ea1baa2ea7c",
+      "bundle": {
+        "variables": [
+          {
+            "id": "followup2_P1_time",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "clock_id": "clock_P1",
+            "local_lower": "2150-01-01 11:30:00",
+            "local_upper": "2150-01-01 11:30:00",
+            "source_key": "synthetic:followup2_P1_time"
+          }
+        ],
+        "events": [
+          {
+            "id": "followup2_P1",
+            "record_id": "record_followup2_P1",
+            "patient_id": "P1",
+            "episode_id": "P1_stay",
+            "event_kind": "recorded_measurement",
+            "status": "recorded",
+            "time_var": "followup2_P1_time",
+            "value_lexical": "72",
+            "unit_lexical": "mmHg",
+            "item_id": "pressure_b",
+            "source_key": "synthetic:followup2_P1"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    },
+    {
+      "id": "claim_baseline_P2",
+      "patient_id": "P2",
+      "episode_id": "P2_stay",
+      "source_id": "synthetic_measurements",
+      "source_record_id": "record_baseline_P2",
+      "source_sha256": "cfc40ccc0c9fb58bbb5b67a29abfd06fefc5dbd710b4a8481eb6acab45fe0e36",
+      "bundle": {
+        "variables": [
+          {
+            "id": "baseline_P2_time",
+            "patient_id": "P2",
+            "episode_id": "P2_stay",
+            "clock_id": "clock_P2",
+            "local_lower": "2150-01-01 09:45:00",
+            "local_upper": "2150-01-01 09:45:00",
+            "source_key": "synthetic:baseline_P2_time"
+          }
+        ],
+        "events": [
+          {
+            "id": "baseline_P2",
+            "record_id": "record_baseline_P2",
+            "patient_id": "P2",
+            "episode_id": "P2_stay",
+            "event_kind": "recorded_measurement",
+            "status": "recorded",
+            "time_var": "baseline_P2_time",
+            "value_lexical": "60",
+            "unit_lexical": "mmHg",
+            "item_id": "pressure_b",
+            "source_key": "synthetic:baseline_P2"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    },
+    {
+      "id": "claim_baseline_P3",
+      "patient_id": "P3",
+      "episode_id": "P3_stay",
+      "source_id": "synthetic_measurements",
+      "source_record_id": "record_baseline_P3",
+      "source_sha256": "d53260b99a1024d4217f0950868eae22a70444f371fe94e96dd2887b527eebe6",
+      "bundle": {
+        "variables": [
+          {
+            "id": "baseline_P3_time",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "clock_id": "clock_P3",
+            "local_lower": "2150-01-01 09:50:00",
+            "local_upper": "2150-01-01 09:50:00",
+            "source_key": "synthetic:baseline_P3_time"
+          }
+        ],
+        "events": [
+          {
+            "id": "baseline_P3",
+            "record_id": "record_baseline_P3",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "event_kind": "recorded_measurement",
+            "status": "recorded",
+            "time_var": "baseline_P3_time",
+            "value_lexical": "62",
+            "unit_lexical": "mmHg",
+            "item_id": "pressure_c",
+            "source_key": "synthetic:baseline_P3"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    },
+    {
+      "id": "claim_followup1_P3",
+      "patient_id": "P3",
+      "episode_id": "P3_stay",
+      "source_id": "synthetic_measurements",
+      "source_record_id": "record_followup1_P3",
+      "source_sha256": "717c7282da4f65b51c4499c2e87b271f8185c410774aa022e63bd96fcb882502",
+      "bundle": {
+        "variables": [
+          {
+            "id": "followup1_P3_time",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "clock_id": "clock_P3",
+            "local_lower": "2150-01-01 10:30:00",
+            "local_upper": "2150-01-01 10:30:00",
+            "source_key": "synthetic:followup1_P3_time"
+          }
+        ],
+        "events": [
+          {
+            "id": "followup1_P3",
+            "record_id": "record_followup1_P3",
+            "patient_id": "P3",
+            "episode_id": "P3_stay",
+            "event_kind": "recorded_measurement",
+            "status": "recorded",
+            "time_var": "followup1_P3_time",
+            "value_lexical": "55",
+            "unit_lexical": "mmHg",
+            "item_id": "pressure_c",
+            "source_key": "synthetic:followup1_P3"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    }
+  ]
+}

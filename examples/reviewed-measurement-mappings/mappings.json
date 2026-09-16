@@ -1,0 +1,29 @@
+{
+  "profile": "record-mapping-proposals-1.0",
+  "id": "authored-measurement-mappings",
+  "catalogue_sha256": "600bb6bdf4b0efa57fcfe18ca64b4f80640dfa9edf03078f29ce18668a4a1f41",
+  "terminology_sha256": "004fd716ab2824f64a3fd0351a408f4f45d4294150c41e6baefcdefc88934db5",
+  "entries": [
+    {
+      "id": "map-pressure_a",
+      "source_code": "pressure_a",
+      "target_code": "pressure-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Explicit authored synthetic record category; no clinical method inference"
+    },
+    {
+      "id": "map-pressure_b",
+      "source_code": "pressure_b",
+      "target_code": "pressure-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Explicit authored synthetic record category; no clinical method inference"
+    },
+    {
+      "id": "map-pressure_c",
+      "source_code": "pressure_c",
+      "target_code": "other-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Explicit authored synthetic record category; no clinical method inference"
+    }
+  ]
+}

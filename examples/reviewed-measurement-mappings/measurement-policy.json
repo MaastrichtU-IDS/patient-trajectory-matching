@@ -1,0 +1,56 @@
+{
+  "profile": "claim-acceptance-policy-1.0",
+  "id": "synthetic_selection",
+  "store_sha256": "8f3dbceb36f26a65582cb8980cb2844af535881ee4706b48d252d09699d2b6e1",
+  "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+  "decisions": [
+    {
+      "id": "accept_claim_baseline_P1",
+      "claim_id": "claim_baseline_P1",
+      "claim_sha256": "a46cf83075ffe4d309744d8b7bfe0ad76413a6adcab964baaa0a0b60d8367123",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Explicit authored synthetic measurement selection for separate mapped strata"
+    },
+    {
+      "id": "accept_claim_followup1_P1",
+      "claim_id": "claim_followup1_P1",
+      "claim_sha256": "4a4db9358ed2411aaa61d215fe374d47cb7451b53eae729ba1689abee20d166d",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Explicit authored synthetic measurement selection for separate mapped strata"
+    },
+    {
+      "id": "accept_claim_followup2_P1",
+      "claim_id": "claim_followup2_P1",
+      "claim_sha256": "0c02e0ef1203623f3049b9e5cbbc4ddbe5c87b4ebb2f2a169be4242a4491ef17",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Explicit authored synthetic measurement selection for separate mapped strata"
+    },
+    {
+      "id": "accept_claim_baseline_P2",
+      "claim_id": "claim_baseline_P2",
+      "claim_sha256": "3e0b79ce7156de5322560f0128a28570448b98297c78c04159e54d6ecabad255",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Explicit authored synthetic measurement selection for separate mapped strata"
+    },
+    {
+      "id": "accept_claim_baseline_P3",
+      "claim_id": "claim_baseline_P3",
+      "claim_sha256": "461fb664571e6a21a2ae2f82b5941031c77de389dc7bb46d1f42892927e78d2a",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Explicit authored synthetic measurement selection for separate mapped strata"
+    },
+    {
+      "id": "accept_claim_followup1_P3",
+      "claim_id": "claim_followup1_P3",
+      "claim_sha256": "4fb018806d0b179b3e5cb2d38223b61e6c80a8f1cc3596c0073636cd8e3e6041",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Explicit authored synthetic measurement selection for separate mapped strata"
+    }
+  ]
+}

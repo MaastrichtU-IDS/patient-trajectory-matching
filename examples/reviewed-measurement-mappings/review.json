@@ -1,0 +1,33 @@
+{
+  "profile": "record-mapping-review-1.0",
+  "mappings_sha256": "93fd113eea40fa27f9cef803e36c7dc29b3e4a6113e087570fa747a5beb3caa3",
+  "decisions": [
+    {
+      "id": "accept-map-pressure_a",
+      "mapping_id": "map-pressure_a",
+      "mapping_sha256": "dc587051fa7a119c8b0884558a48fdf3c431631cc83e2278b448a1d4c0ce75f4",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture policy",
+      "reason": "Synthetic record classification only"
+    },
+    {
+      "id": "accept-map-pressure_b",
+      "mapping_id": "map-pressure_b",
+      "mapping_sha256": "109ec2c82c90ca4a82664a0569786311f37439703bcd756bfcec459f1d1ee918",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture policy",
+      "reason": "Synthetic record classification only"
+    },
+    {
+      "id": "accept-map-pressure_c",
+      "mapping_id": "map-pressure_c",
+      "mapping_sha256": "66eb04a05b62142bdd7150de90aa98c659f63be87f2827a2384006db40a86c16",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture policy",
+      "reason": "Synthetic record classification only"
+    }
+  ]
+}
