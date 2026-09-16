@@ -1,0 +1,13 @@
+{
+  "profile": "source-record-catalogue-1.0",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "release": "MIMIC-IV-demo-2.2",
+  "itemids": [
+    "221906"
+  ],
+  "source_sha256": {
+    "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+    "icustays": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+    "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f"
+  }
+}

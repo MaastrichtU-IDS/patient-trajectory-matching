@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 705 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 723 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -102,6 +102,8 @@ The repository contains four independent executable contracts. They share the pi
 | **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
+
+[Source-verified mapping catalogues](docs/source-record-catalogue.md) now reproduce item classes and supplied claims from pinned CSVs before mapped execution. The public-demo catalogue is available for terminology review; clinical targets remain pending.
 
 [Reviewed record mappings](docs/reviewed-record-mappings.md) now compile explicitly accepted mapping proposals into checked one-way semantic rules. A synthetic mixed-query example executes; the [clinical mapping worksheet](data/clinical-terminology-review.json) remains pending domain review.
 

@@ -194,6 +194,8 @@ jobs:
           python -m patterns.test_pressure_overlap
       - name: Reviewed record mappings and synthetic Rust query evidence
         run: python -m patterns.test_reviewed_record_mappings
+      - name: Source catalogue fidelity and mapped Rust/SQL verification
+        run: python -m patterns.test_source_record_catalogue
       - name: Upload semantic reasoning evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -213,6 +215,8 @@ jobs:
             verification/partitioned-window-query-run/
             verification/unique-claim-review-run/
             verification/reviewed-record-mappings-report.json
+            verification/source-record-catalogue-synthetic-report.json
+            verification/source-record-catalogue-demo-report.json
           retention-days: 14
 
   oracle-compatibility:

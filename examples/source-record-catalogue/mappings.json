@@ -1,0 +1,15 @@
+{
+  "profile": "record-mapping-proposals-1.0",
+  "id": "source-synthetic-map",
+  "catalogue_sha256": "f56e82618eac87321bf87c1daac78478f11ed65c8002a0b438a602642807e2b0",
+  "terminology_sha256": "dbace02c2ccc1263aaf4f5edb48bff35a82f4f253cf088b3eb82b43b7b7465a6",
+  "entries": [
+    {
+      "id": "map-1000",
+      "source_code": "1000",
+      "target_code": "input-family",
+      "relation": "source_record_subclass_of_target_record",
+      "rationale": "Authored synthetic source mapping; no clinical meaning"
+    }
+  ]
+}

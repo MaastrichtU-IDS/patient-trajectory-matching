@@ -393,3 +393,8 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ## Reviewed record-mapping compiler
 
 [`patterns/reviewed_record_mappings.py`](../patterns/reviewed_record_mappings.py) validates four closed input documents and compiles only explicitly accepted source-record subclass implications. It binds review and implementation evidence, blocks pending/withdrawn proposals, and passes a caller-supplied, exactly bound source policy through the existing mixed matcher. [The runbook](reviewed-record-mappings.md) includes a reproducible synthetic example and the pending clinical handoff.
+
+
+## Source-verified mapping catalogue
+
+[`patterns/source_record_catalogue.py`](../patterns/source_record_catalogue.py) binds a mapping source catalogue to pinned CSV/dictionary bytes and reproduces supplied interval claims and clock origins before reviewed mapping execution. It retains separate source and mapping policies. [The runbook](source-record-catalogue.md) documents bounded subset semantics, public-demo catalogue evidence and synthetic Rust/SQL verification.

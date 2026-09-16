@@ -1,0 +1,13 @@
+{
+  "profile": "mapping-source-catalogue-1.0",
+  "dataset_id": "dataset_2262c1713bed88a6b803361f238f3abc40a4ae813f362b45853b9ca6bf9d41be",
+  "release": "MIMIC-IV-demo-2.2",
+  "source_kind": "supplied_catalogue",
+  "entries": [
+    {
+      "code": "221906",
+      "label": "Norepinephrine",
+      "source_class_iri": "https://example.org/trajectory/mimic-record-item/221906"
+    }
+  ]
+}

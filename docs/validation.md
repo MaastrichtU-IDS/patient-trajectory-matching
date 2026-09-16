@@ -592,3 +592,13 @@ python -m patterns.reviewed_record_mappings --output /tmp/reviewed-record-policy
 ```
 
 Eighteen tests cover mapping decisions and hashes, record/concept boundaries, source-policy separation, real Rust mixed-query execution, no-rule control, pending clinical worksheet and committed report reproduction. The contract total is 705 checks: 682 suite tests, 16 oracle cases and seven properties. The separate demo suite remains 51 tests. See [the profile](reviewed-record-mappings.md) for compiler exit semantics and its clinical integration limits.
+
+
+## Source-verified record catalogues
+
+```bash
+python -m unittest patterns.test_source_record_catalogue
+python -m patterns.verify_source_record_catalogue
+```
+
+Eighteen tests cover pinned source correspondence, dictionary/class identity, claim/clock tampering, review separation, CLI atomicity, synthetic Rust/SQL equality and aggregate public-demo provenance. The contract total is 723 checks: 700 suite tests, 16 oracle cases and seven properties. The demo suite remains 51 tests. See [the runbook](source-record-catalogue.md) for public-source reproduction and the pending terminology handoff.
