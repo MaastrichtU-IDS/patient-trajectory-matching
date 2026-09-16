@@ -221,3 +221,7 @@ The [source catalogue adapter](source-record-catalogue.md) adds 18 tests: 723 co
 ## Prepared measurement query reuse
 
 [Prepared measurement sessions](prepared-measurement-session.md) reuse a successful source audit, checked mapping plan, selected record views and compiled temporal network while checking source and implementation digests before/after every query. Twenty new tests bring the total to 781 checks (758 suite tests and 23 oracle checks). Twelve synthetic query variants reproduce fresh results and raw-CSV SQL with zero repeated preparation operations. Applying later review decisions requires session replacement; live pressure-batch integration and clinical acceptance remain pending.
+
+## Live mapped pressure integration
+
+[The opt-in mapped pressure service](mapped-pressure-service.md) now connects reviewed measurement selection and prepared sessions to the existing local pressure jobs and inspector. Mapping files are rechecked on every job, including complete-result hits; changes invalidate preparation and result caches. Sixteen new integration tests bring the demo suite to 67, alongside 781 contract checks. The synthetic HTTP benchmark preserves every result field except duration and all three anchor inspections against fresh mapped execution, with no repeated audit, mapping-plan or network compilation and three fresh SQL checks. Public clinical mappings and source-configurable mapped operation remain pending.

@@ -34,3 +34,4 @@ verification/indexed-source-windows-run/
 verification/partitioned-window-query-run/
 verification/unique-claim-review-run/
 verification/reviewed-source-query-run/
+verification/mapped-pressure-run/

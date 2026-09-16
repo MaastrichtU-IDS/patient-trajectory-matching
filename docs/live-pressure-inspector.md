@@ -87,3 +87,5 @@ node demo/test_pressure_ui.cjs
 Visual browser/layout inspection remains unverified in the authoring environment. Rehearse the page in the presentation browser: run the authored default query, inspect patient 2's missing follow-up, reduce the threshold to 59, inspect an excluded baseline, then select patient 4's stay without an admitted anchor. For real-source use, allow the source query to finish before presenting its result.
 
 Clinical interpretation, treatment-course initiation, source-as-known history, physical elapsed-time verification, causal effects and full mixed OWL reasoning remain outside this recorded-source demonstration.
+
+For the opt-in authored measurement-mapping route, use [the live mapped pressure service](mapped-pressure-service.md). It retains these local HTTP routes and adds checked mapping evidence and review-change invalidation.

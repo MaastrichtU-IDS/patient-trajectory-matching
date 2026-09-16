@@ -411,3 +411,7 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ### Prepared measurement sessions
 
 [`patterns/prepared_measurement_session.py`](../patterns/prepared_measurement_session.py) admits a successful source-audited measurement query and retains private record views, a checked selector plan and a shared temporal network. Changed numeric/temporal controls use the existing prepared evaluator. Before/after digest checks invalidate changed sources or implementations; review changes require a new session. [The runbook](prepared-measurement-session.md) documents snapshot lifetime, budgets and batch-integration limits.
+
+### Mapped pressure service
+
+[`patterns/mapped_pressure_session.py`](../patterns/mapped_pressure_session.py) binds a reviewed single-item selector to the original pressure batch envelope and delegates batch work to source-audited prepared measurement sessions. [`demo/mapped_pressure.py`](../demo/mapped_pressure.py) adds mapping-file lifecycle checks to the existing job/result-cache interface; [`demo/serve_mapped_pressure.py`](../demo/serve_mapped_pressure.py) exposes the authored example through the existing localhost routes. [The profile](mapped-pressure-service.md) records HTTP equivalence and explicit public-data limitations.
