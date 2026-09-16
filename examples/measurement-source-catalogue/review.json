@@ -1,0 +1,15 @@
+{
+  "profile": "record-mapping-review-1.0",
+  "mappings_sha256": "50089575b5822835ef2341e0fdc4939a427ff8273c7e911c981697faf4ccc8b9",
+  "decisions": [
+    {
+      "id": "accept-map-2000",
+      "mapping_id": "map-2000",
+      "mapping_sha256": "e6cfc210ba37d31c492c66c812930ef8cd635272578b3be3547de30b28773567",
+      "action": "accept",
+      "supersedes": null,
+      "reviewer": "Authored fixture policy",
+      "reason": "Synthetic source classification only"
+    }
+  ]
+}

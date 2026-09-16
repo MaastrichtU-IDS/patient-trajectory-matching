@@ -613,3 +613,12 @@ python -m patterns.reviewed_measurement_mappings --output /tmp/mapped-measuremen
 ```
 
 Eighteen tests cover review/context gates, checked catalogue support, separate item/unit strata, source policy and alignment boundaries, uncertainty, failure suppression, CLI behavior and exact literal/SQL reproduction. The contract total is 741 checks: 718 suite tests, 16 oracle cases and seven properties. See [the profile](reviewed-measurement-mappings.md) for its declared reasoning scope and pending clinical mappings.
+
+## Measurement source catalogue and claim audit
+
+```bash
+python -m unittest patterns.test_measurement_source_catalogue
+python -m patterns.verify_measurement_source_catalogue
+```
+
+Twenty tests check pinned files, dictionary provenance, exact claim reproduction, clock origins before item filtering, unsupported/duplicate rows, subset semantics, source-policy separation, CLI failure behavior and committed raw-CSV/Rust/literal/SQL evidence. The current contract total is 761 checks: 738 suite tests, 16 oracle cases and seven properties. See [the profile](measurement-source-catalogue.md).

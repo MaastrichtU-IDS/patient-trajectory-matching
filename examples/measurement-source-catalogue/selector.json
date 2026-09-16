@@ -1,0 +1,9 @@
+{
+  "profile": "reviewed-measurement-selector-1.0",
+  "mapping_context_id": "963c86b8bd88fa9bc9aaa830c71de7bc79c25e8146b8764a74a61eb99d29e874",
+  "class_iri": "https://example.org/trajectory/measurement-record-query/pressure-family",
+  "source_item_ids": [
+    "2000"
+  ],
+  "unit_lexical": "mmHg"
+}
