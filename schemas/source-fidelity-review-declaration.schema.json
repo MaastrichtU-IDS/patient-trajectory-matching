@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "package_context_id",
+    "audit_context_id",
+    "unique_claims",
+    "calendar_reviews",
+    "reviewer",
+    "record_decision",
+    "record_reason",
+    "calendar_decision",
+    "calendar_reason",
+    "clinical_mapping_verified",
+    "reviewer_identity_verified"
+  ],
+  "properties": {
+    "profile": {
+      "const": "source-fidelity-review-declaration-1.0"
+    },
+    "package_context_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "audit_context_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "unique_claims": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 69632
+    },
+    "calendar_reviews": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 256
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "record_decision": {
+      "const": "accept_all_fidelity_verified_claims"
+    },
+    "record_reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "calendar_decision": {
+      "const": "same_patient_calendar"
+    },
+    "calendar_reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "clinical_mapping_verified": {
+      "const": false
+    },
+    "reviewer_identity_verified": {
+      "const": false
+    }
+  }
+}

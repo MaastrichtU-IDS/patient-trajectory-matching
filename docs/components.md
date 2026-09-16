@@ -374,3 +374,7 @@ No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access re
 ## Unique source-claim review
 
 [`patterns/unique_claim_review.py`](../patterns/unique_claim_review.py) builds a package of unique claims with source evidence and affected batches/anchors, compiles explicit histories and patient calendar decisions into the existing partition policies, and validates the complete expansion before execution. It records reviewer attribution without authenticating identity and requires all claim/calendar reviews to be resolved for its execution command. [The contract](unique-claim-review.md) includes a runnable synthetic review and aggregate validation of all three pending demo packages.
+
+## Reviewed source-fidelity execution
+
+[`patterns/source_fidelity_audit.py`](../patterns/source_fidelity_audit.py) rereads original CSV files and independently checks claim content, source evidence, identity and clock-origin witnesses. It makes no decisions. [`patterns/reviewed_source_query.py`](../patterns/reviewed_source_query.py) requires a separate declaration bound to the exact package and audit, materializes explicit unique-claim decisions and patient-calendar declarations, then invokes the existing partition executor. [The arterial demonstration](reviewed-arterial-demo.md) publishes aggregate execution and reconciliation evidence, with automated record fidelity distinguished from clinical review.
