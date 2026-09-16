@@ -149,3 +149,7 @@ class UseCaseConformanceTests(unittest.TestCase):
         })
         result = joint_evidence.execute(archive, request, policy, query)
         self.assertEqual(result["status"], "INCONSISTENT_ONTOLOGY")
+
+
+if __name__ == "__main__":
+    unittest.main()
