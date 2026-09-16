@@ -34,6 +34,7 @@ Start here for the overall design and current state.
 | [Checked Rust semantic support](semantic-support.md) | Restricted class entailment and consistency gate before bounded matching | Executable; 22 Rust/reference tests, full SULO/import reasoning remains open |
 | [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
 | [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
+| [Pressure result reuse](pressure-query-cache.md) | Bounded complete-result cache, invalidation and reproducible query timings | Local executable demo; fresh graph/SQL execution for new controls |
 | [Live pressure inspector](live-pressure-inspector.md) | Bounded real-source query controls, background jobs and source/role inspection | Local executable demo; 15 new Python tests plus DOM-state checks |
 | [Pressure-cohort overlap](pressure-cohort-overlap.md) | Patient, stay and segment intersections with disjoint aggregate accounting | Executable; 14 tests and fresh reproduction of all three source queries |
 | [Three reviewed pressure strata](reviewed-pressure-strata.md) | Separate item coverage, complete SQL reconciliation and aggregate results | Executable; three additional provenance/comparability tests, all three strata completed |

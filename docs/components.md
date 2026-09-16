@@ -383,4 +383,6 @@ The [three-stratum comparison](reviewed-pressure-strata.md) now adds separately 
 
 [`patterns/verify_pressure_overlap.py`](../patterns/verify_pressure_overlap.py) freshly reproduces all three reviewed pressure queries, validates common source/query/population scope and compares membership at patient, stay and treatment-segment levels. The [overlap report](pressure-cohort-overlap.md) contains only aggregate counts and provenance hashes, with incomplete inputs preventing publication.
 
+The [completed pressure-query cache](pressure-query-cache.md) reuses exact completed results after source, review and implementation checks; new controls still execute the complete matcher and SQL oracle.
+
 The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewed-window sessions, bounded query controls and complete SQL-reconciled execution through local asynchronous HTTP jobs. The UI exposes actual source decisions and treatment PRO witnesses; it retains the previous result on failure and admits no wider source window without another review.

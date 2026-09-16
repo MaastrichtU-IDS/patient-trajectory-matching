@@ -241,3 +241,8 @@ The [documentation guide](README.md) gives the current path:
 The team-level assignments from [2.4 §8](../addenda/specification-2.4.md) still stand: ontology and domain mapping with review; source adapters with reconciliation; matcher integration; evidence-driven UI. With three people, combine matcher integration and UI.
 
 Any AI-assisted coding must pass these contracts and retain the declared supported profile. No AI provider credentials are needed.
+
+
+### Repeated-query performance follow-up
+
+The [complete-result cache](pressure-query-cache.md) now removes repeat execution for identical reviewed pressure controls, with bounded storage, strict invalidation and aggregate measurement reports. Different controls still rebuild mixed-query projections and semantic support. The next performance increment should separate immutable, context-bound preparation from query-dependent filtering and temporal classification, then compare every result and proof against the uncached graph/SQL path. It must preserve original claim acceptance and artifact/backend identity; no broader terminology mapping or new SULO entailment follows from caching.

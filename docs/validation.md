@@ -568,4 +568,11 @@ node demo/test_guided_ui.cjs
 node demo/test_pressure_ui.cjs
 ```
 
-The demo suite now has 29 Python tests (15 pressure additions), separate from the 687 contract checks. Pressure tests cover altered-window execution and SQL equivalence, source/review changes, exact evidence, complete-result gates, local HTTP controls and the committed public-demo aggregate. DOM-state checks include failed and stale requests. The [runbook](live-pressure-inspector.md) documents source setup, live arterial verification and the remaining browser rehearsal.
+The initial pressure UI/API added 15 Python tests; the current demo suite has 40 tests including the cache increment below, separate from the 687 contract checks. Pressure tests cover altered-window execution and SQL equivalence, source/review changes, exact evidence, complete-result gates, local HTTP controls and the committed public-demo aggregate. DOM-state checks include failed and stale requests. The [runbook](live-pressure-inspector.md) documents source setup, live arterial verification and the remaining browser rehearsal.
+
+
+## Completed pressure-query cache
+
+The [pressure cache contract](pressure-query-cache.md) adds 11 Python tests to the 29-test demo suite (40 total), separate from the 687 contract checks. It checks exact result/evidence reuse, fresh execution for changed controls, pre- and post-lookup source/review/implementation invalidation, failure suppression, bounded eviction, preparation switches and inspector response isolation. The pressure DOM test checks the reuse label and zero fresh-execution time.
+
+`demo/benchmark_pressure_cache.py` reproduces cold preparation, a second fresh graph/SQL query over the prepared source, and three cache hits. It compares all result fields except elapsed time and all anchor inspections exactly. The committed synthetic and public arterial reports contain aggregate evidence and timing samples. CI checks their current implementation hashes and public-source pin without downloading source records or asserting a speed threshold. No additional ontology or temporal-core contract is introduced.

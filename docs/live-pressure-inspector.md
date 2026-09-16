@@ -2,7 +2,7 @@
 
 The local demo now exposes the reviewed mixed interval/measurement engine through background HTTP jobs and an interactive pressure page. Select one measurement stratum, change the pressure threshold or narrow the recorded-time windows, inspect the resulting patient/stay/segment membership, and open the exact source and review evidence behind an anchor.
 
-The [existing guided journey](../demo/NARRATIVE.md) remains the short synthetic demonstration of exact matching and priced relaxation. The pressure page uses the separate reviewed-record profile. It performs complete source-query execution and can take several minutes; it has no offline replay or implicit fallback.
+The [existing guided journey](../demo/NARRATIVE.md) remains the short synthetic demonstration of exact matching and priced relaxation. The pressure page uses the separate reviewed-record profile. A new query performs complete source-query execution and can take several minutes. Repeating identical controls can reuse a completed result after fresh source/review checks; the page labels this reuse. It has no offline replay or implicit fallback.
 
 ## Start
 
@@ -59,7 +59,7 @@ Patient/stay identifiers and record evidence are returned only by the configured
 
 [`reviewed_pressure_session.py`](../patterns/reviewed_pressure_session.py) uses the existing reviewed stores, explicit alignment and mixed matcher for each bounded batch, merges complete bindings and checks each anchor against the independent unpartitioned SQL query using the actual current controls. Counts become available only when every anchor succeeds. A failed anchor suppresses all cohort metrics and inspection results for that run.
 
-[`demo/pressure.py`](../demo/pressure.py) supports one active job, one current preparation cache and the three most recent jobs. Completed jobs retain their session evidence while available; old jobs expire. Jobs and evidence are in memory and are lost when the server stops. There is no cancellation, restart/resume, multi-user access control or production deployment service in this increment.
+[`demo/pressure.py`](../demo/pressure.py) supports one active job, one current preparation cache, a [bounded completed-result cache](pressure-query-cache.md), and the three most recent jobs. Completed jobs retain their session evidence while available; old jobs expire. Jobs and evidence are in memory and are lost when the server stops. There is no cancellation, restart/resume, multi-user access control or production deployment service in this increment.
 
 The browser polls progress without showing partial cohort counts. A failed or incomplete query retains the previous completed view with an error; it never relabels the old results as the new query. Stale query/evidence responses cannot replace a newer selection. The server binds to loopback, checks the pressure routes' Host/Origin, accepts bounded JSON controls and never accepts source filesystem paths through HTTP.
 
@@ -70,13 +70,13 @@ The browser polls progress without showing partial cohort counts. A failed or in
 | `GET /api/pressure/jobs/{id}` | Progress, failure or complete cohort summary |
 | `GET /api/pressure/jobs/{id}/anchors/{token}` | Evidence bound to that completed query and anchor |
 
-These are local demonstration routes, separate from the broader product OpenAPI. Preparation and execution timings are displayed to support later performance work; they are not a benchmark or latency guarantee.
+These are local demonstration routes, separate from the broader product OpenAPI. Job timings distinguish preparation, fresh execution and checked cache reuse. See the [performance contract and reproducible measurements](pressure-query-cache.md).
 
 ## Verification and rehearsal
 
 The [live HTTP verification report](../verification/live-pressure-demo-report.json) records a fresh arterial query: 13 patients, 15 stays, 66 matching segments, 86 eligible pairs, 340 follow-up bindings and one pair lacking follow-up. All 944 anchors agree with SQL; all 140 stays remain represented. HTTP inspection succeeded for an eligible anchor, a non-matching anchor and a missing-follow-up case. The report binds the engine/session/query and source-review contexts and contains no source patient/stay/anchor identifiers.
 
-Fifteen additional Python tests cover differential default execution, altered controls, immutable reviews, source/review invalidation, SQL corruption detection, incomplete-run suppression, exact source/role inspection, bounded job retention, live HTTP behavior and provenance. The demo suite totals 29 tests, separate from the 687 contract checks. Node DOM-state tests exercise actual synthetic engine responses, selections, missing follow-up, non-matches, empty stays, progress, failures and stale responses. CI runs both the original guided and new pressure-page checks.
+Fifteen additional Python tests cover differential default execution, altered controls, immutable reviews, source/review invalidation, SQL corruption detection, incomplete-run suppression, exact source/role inspection, bounded job retention, live HTTP behavior and provenance. Those initial additions brought the demo suite to 29 tests, separate from the 687 contract checks; the [cache increment](pressure-query-cache.md) adds invalidation and equivalence tests. Node DOM-state tests exercise actual synthetic engine responses, selections, missing follow-up, non-matches, empty stays, progress, failures and stale responses. CI runs both the original guided and new pressure-page checks.
 
 ```sh
 python -m unittest discover -s demo -p 'test_*.py'
