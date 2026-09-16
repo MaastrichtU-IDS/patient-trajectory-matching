@@ -1,0 +1,15 @@
+{
+  "profile": "joint-semantic-policy-1.0",
+  "id": "synthetic-gen01-interpretation-policy-v1",
+  "classes": [
+    "https://example.org/trajectory/genomics/PatientVariantObservation",
+    "https://example.org/trajectory/genomics/UncertainVariantInterpretation",
+    "https://example.org/trajectory/genomics/PathogenicVariantInterpretation",
+    "https://example.org/trajectory/genomics/BenignVariantInterpretation",
+    "https://example.org/trajectory/genomics/SurveillanceAction"
+  ],
+  "rules": [],
+  "disjoint": [
+    {"id": "incompatible_variant_interpretations", "classes": ["https://example.org/trajectory/genomics/PathogenicVariantInterpretation", "https://example.org/trajectory/genomics/BenignVariantInterpretation"]}
+  ]
+}

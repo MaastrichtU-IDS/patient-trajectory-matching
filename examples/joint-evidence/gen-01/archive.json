@@ -1,0 +1,96 @@
+{
+  "profile": "joint-evidence-archive-1.0",
+  "dataset_id": "synthetic_gen01",
+  "archive_id": "gen01_release_replay",
+  "published_at": "2026-08-15T00:00:00Z",
+  "history_coverage": "complete",
+  "availability_axis": "absolute-offset-datetime",
+  "mapping_policy_id": "synthetic-genomic-evidence-v1",
+  "clocks": [
+    {
+      "clock_id": "clinical",
+      "origin": "2026-01-01T00:00:00Z",
+      "scope": "global",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "genomic_study_process",
+      "patient_id": "PGEN01",
+      "episode_id": "EGEN01",
+      "bundle": {
+        "variables": [
+          {"id": "genomic_study_start", "patient_id": "PGEN01", "episode_id": "EGEN01", "clock_id": "clinical", "lower_us": 0, "upper_us": 0, "source_key": "genomic_study_start"},
+          {"id": "genomic_study_end", "patient_id": "PGEN01", "episode_id": "EGEN01", "clock_id": "clinical", "lower_us": 1, "upper_us": 1, "source_key": "genomic_study_end"}
+        ],
+        "events": [
+          {"id": "genomic_study", "record_id": "genomic_study_record", "patient_id": "PGEN01", "episode_id": "EGEN01", "event_kind": "specimen_collection", "status": "performed", "start_var": "genomic_study_start", "end_var": "genomic_study_end", "source_key": "genomic_study"}
+        ],
+        "constraints": [],
+        "semantic_facts": []
+      }
+    },
+    {
+      "id": "patient_variant_observation",
+      "patient_id": "PGEN01",
+      "episode_id": "EGEN01",
+      "bundle": {
+        "variables": [], "events": [], "constraints": [],
+        "semantic_facts": [
+          {"id": "variant_observation", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "individual", "local_id": "patient_variant_observation"},
+          {"id": "variant_observation_identity", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "class", "subject": {"local_id": "patient_variant_observation"}, "class_iri": "https://example.org/trajectory/genomics/PatientVariantObservation"}
+        ]
+      }
+    },
+    {
+      "id": "clingen_release_r1",
+      "patient_id": "PGEN01",
+      "episode_id": "EGEN01",
+      "bundle": {
+        "variables": [], "events": [], "constraints": [],
+        "semantic_facts": [
+          {"id": "clingen_r1_release_identity", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "individual", "local_id": "clingen_release_r1"},
+          {"id": "clingen_r1_uncertain", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "class", "subject": {"local_id": "clingen_release_r1"}, "class_iri": "https://example.org/trajectory/genomics/UncertainVariantInterpretation"}
+        ]
+      }
+    },
+    {
+      "id": "clingen_release_r2",
+      "patient_id": "PGEN01",
+      "episode_id": "EGEN01",
+      "bundle": {
+        "variables": [], "events": [], "constraints": [],
+        "semantic_facts": [
+          {"id": "clingen_r2_release_identity", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "individual", "local_id": "clingen_release_r2"},
+          {"id": "clingen_r2_pathogenic", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "class", "subject": {"local_id": "clingen_release_r2"}, "class_iri": "https://example.org/trajectory/genomics/PathogenicVariantInterpretation"}
+        ]
+      }
+    },
+    {
+      "id": "surveillance_action",
+      "patient_id": "PGEN01",
+      "episode_id": "EGEN01",
+      "bundle": {
+        "variables": [
+          {"id": "surveillance_start", "patient_id": "PGEN01", "episode_id": "EGEN01", "clock_id": "clinical", "lower_us": 2, "upper_us": 2, "source_key": "surveillance_start"},
+          {"id": "surveillance_end", "patient_id": "PGEN01", "episode_id": "EGEN01", "clock_id": "clinical", "lower_us": 3, "upper_us": 3, "source_key": "surveillance_end"}
+        ],
+        "events": [
+          {"id": "surveillance", "record_id": "surveillance_record", "patient_id": "PGEN01", "episode_id": "EGEN01", "event_kind": "specimen_collection", "status": "performed", "start_var": "surveillance_start", "end_var": "surveillance_end", "source_key": "surveillance"}
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {"id": "surveillance_action_type", "patient_id": "PGEN01", "episode_id": "EGEN01", "kind": "class", "subject": {"event_id": "surveillance"}, "class_iri": "https://example.org/trajectory/genomics/SurveillanceAction"}
+        ]
+      }
+    }
+  ],
+  "entries": [
+    {"id": "genomic_study_support", "source_id": "clinical_genomics", "patient_id": "PGEN01", "episode_id": "EGEN01", "operation": "assert", "assertion_id": "genomic_study_process", "supersedes": null, "source_available_at": "2026-01-10T00:00:00Z", "source_recorded_at": "2026-01-10T00:00:00Z", "archived_at": "2026-08-15T00:00:00Z"},
+    {"id": "variant_observation_support", "source_id": "clinical_genomics", "patient_id": "PGEN01", "episode_id": "EGEN01", "operation": "assert", "assertion_id": "patient_variant_observation", "supersedes": null, "source_available_at": "2026-01-12T00:00:00Z", "source_recorded_at": "2026-01-12T00:00:00Z", "archived_at": "2026-08-15T00:00:00Z"},
+    {"id": "clingen_r1_release", "source_id": "clingen_r1", "patient_id": "PGEN01", "episode_id": "EGEN01", "operation": "assert", "assertion_id": "clingen_release_r1", "supersedes": null, "source_available_at": "2026-02-01T00:00:00Z", "source_recorded_at": "2026-02-01T00:00:00Z", "archived_at": "2026-08-15T00:00:00Z"},
+    {"id": "clingen_r2_release", "source_id": "clingen_r2", "patient_id": "PGEN01", "episode_id": "EGEN01", "operation": "assert", "assertion_id": "clingen_release_r2", "supersedes": null, "source_available_at": "2026-06-01T00:00:00Z", "source_recorded_at": "2026-05-15T00:00:00Z", "archived_at": "2026-08-15T00:00:00Z"},
+    {"id": "surveillance_action_recorded", "source_id": "clinical_surveillance", "patient_id": "PGEN01", "episode_id": "EGEN01", "operation": "assert", "assertion_id": "surveillance_action", "supersedes": null, "source_available_at": "2026-07-01T00:00:00Z", "source_recorded_at": "2026-07-01T00:00:00Z", "archived_at": "2026-08-15T00:00:00Z"}
+  ]
+}

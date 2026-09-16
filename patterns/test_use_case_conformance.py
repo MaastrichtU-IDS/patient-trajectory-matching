@@ -1,0 +1,90 @@
+"""Synthetic acceptance cases replayed by the joint evidence selector."""
+from copy import deepcopy
+import json
+import unittest
+
+from . import joint_evidence
+from . import exact_intervals as ei
+
+
+def gen01_fixture(name):
+    return json.loads((ei.ROOT / "examples/joint-evidence/gen-01" / name).read_text())
+
+
+def run_gen01(request_name):
+    return joint_evidence.execute(
+        gen01_fixture("archive.json"),
+        gen01_fixture(request_name),
+        gen01_fixture("policy.json"),
+        gen01_fixture("query.json"),
+    )
+
+
+def selected_fact_ids(result):
+    return {fact["id"] for fact in result["selection"]["selected_semantic_facts"]}
+
+
+def observation_payload(result):
+    return next(
+        fact for fact in result["selection"]["selected_semantic_facts"]
+        if fact["id"] == "variant_observation"
+    )
+
+
+class UseCaseConformanceTests(unittest.TestCase):
+    def test_gen01_pre_release_excludes_later_pathogenicity(self):
+        result = run_gen01("before-request.json")
+        self.assertEqual(result["status"], "READY")
+        self.assertIn("variant_observation", selected_fact_ids(result))
+        self.assertNotIn("clingen_r2_pathogenic", selected_fact_ids(result))
+        self.assertFalse(result["selection"]["later_evidence_used"])
+
+    def test_gen01_post_release_changes_interpretation_not_observation(self):
+        before = run_gen01("before-request.json")
+        after = run_gen01("after-request.json")
+        self.assertEqual(observation_payload(before), observation_payload(after))
+        self.assertNotIn("clingen_r2_pathogenic", selected_fact_ids(before))
+        self.assertIn("clingen_r2_pathogenic", selected_fact_ids(after))
+
+    def test_gen01_conflicting_classification_claims_fail_closed(self):
+        archive = gen01_fixture("archive.json")
+        request = gen01_fixture("after-request.json")
+        policy = gen01_fixture("policy.json")
+        query = gen01_fixture("query.json")
+        r2 = next(assertion for assertion in archive["assertions"] if assertion["id"] == "clingen_release_r2")
+
+        same_id_conflict = deepcopy(r2)
+        same_id_conflict["id"] = "clingen_release_r2_conflicting"
+        same_id_conflict["bundle"]["semantic_facts"][-1]["class_iri"] = (
+            "https://example.org/trajectory/genomics/BenignVariantInterpretation"
+        )
+        archive["assertions"].append(same_id_conflict)
+        archive["entries"].append({
+            **next(entry for entry in archive["entries"] if entry["id"] == "clingen_r2_release"),
+            "id": "clingen_r2_conflicting_release",
+            "assertion_id": same_id_conflict["id"],
+            "supersedes": None,
+        })
+        result = joint_evidence.execute(archive, request, policy, query)
+        self.assertEqual(result["status"], "BLOCKED_EVIDENCE")
+        self.assertTrue(any(
+            blocker.get("row") == "semantic_facts:clingen_r2_pathogenic"
+            for blocker in result["selection"]["blockers"]
+        ))
+
+        archive = gen01_fixture("archive.json")
+        incompatible = deepcopy(r2)
+        incompatible["id"] = "clingen_release_r2_benign"
+        incompatible["bundle"]["semantic_facts"][-1].update(
+            id="clingen_r2_benign",
+            class_iri="https://example.org/trajectory/genomics/BenignVariantInterpretation",
+        )
+        archive["assertions"].append(incompatible)
+        archive["entries"].append({
+            **next(entry for entry in archive["entries"] if entry["id"] == "clingen_r2_release"),
+            "id": "clingen_r2_benign_release",
+            "assertion_id": incompatible["id"],
+            "supersedes": None,
+        })
+        result = joint_evidence.execute(archive, request, policy, query)
+        self.assertEqual(result["status"], "INCONSISTENT_ONTOLOGY")

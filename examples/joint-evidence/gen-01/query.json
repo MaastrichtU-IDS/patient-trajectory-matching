@@ -1,0 +1,8 @@
+{
+  "profile": "semantic-bounded-query-1.0",
+  "id": "genomic_study_selection",
+  "slots": [
+    {"id": "study", "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"}
+  ],
+  "constraints": []
+}

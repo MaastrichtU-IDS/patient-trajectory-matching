@@ -1,0 +1,9 @@
+{
+  "profile": "evidence-selection-request-1.0",
+  "mode": "source_as_known",
+  "patient_cutoffs": {"PGEN01": "2026-03-01T00:00:00Z"},
+  "admissible_source_ids": ["clinical_genomics", "clingen_r1", "clingen_r2", "clinical_surveillance"],
+  "revision_policy": "explicit-source-chain-1.0",
+  "missing_availability_policy": "block",
+  "semantic_policy": "current-pinned-retrospective"
+}
