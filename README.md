@@ -71,17 +71,23 @@ Full instructions and expected output for every component: **[docs/validation.md
 
 ## Interactive demonstration
 
-The synthetic [presentation demo](demo/README.md) exposes exact and costed matches,
-PRO/SOLID evidence, and the checked Rust/temporal example. From the repository root:
+The [guided cohort demo](demo/README.md) is a 2–3 minute investigation: start with a
+patient, find exact matches, broaden the query, inspect the boundaries, and export
+the evidence. Ten distinct synthetic candidates form a cohort that grows **3 → 5 → 6**.
+The [timed presenter narrative](demo/NARRATIVE.md) includes the clicks and expected results.
+From the repository root, with Python 3.10+:
 
 ```sh
-python3.12 demo/start_demo.py
+python3 demo/serve.py
 ```
 
-The launcher installs the pinned dependencies in `demo/.venv`, checks both pipelines,
-and starts the local interface at `http://127.0.0.1:8765`. The standalone
-[HTML replay](demo/Patient_Trajectory_Demo.html) also works offline after downloading.
-Live execution and recorded replay are explicitly labeled. This is a bounded
+Open `http://127.0.0.1:8765`. The guided matcher needs no extra packages. Its inputs
+were validated and projected through PRO/SOLID; each live query executes the Python
+matcher. The standalone [guided replay](demo/Guided_Cohort_Demo.html) works offline
+after downloading, with an explicit replay label.
+
+The original technical examples remain at `/lab`. To install and check the optional
+graph and Rust pipelines, run `python3.12 demo/start_demo.py`. This is a bounded
 demonstration; the broader product workspace in `ui/` remains a specification.
 
 ## Four temporal profiles

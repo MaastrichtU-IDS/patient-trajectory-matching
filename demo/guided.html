@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Patient Trajectory Matching · Guided cohort demo</title>
+  <style>/*GUIDED_CSS*/</style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="#" id="home">TRAJECTORY <span>MATCHING</span></a>
+    <div class="top-actions">
+      <span class="tag">Synthetic data</span>
+      <span id="mode" class="mode">Ready to start</span>
+      <a id="lab-link" href="/lab">Technical examples ↗</a>
+      <button id="restart" class="quiet">Restart</button>
+    </div>
+  </header>
+  <main>
+    <div class="intro">
+      <div><div class="eyebrow">A guided, live investigation · 2–3 minutes</div>
+        <h1>From one patient to a cohort</h1>
+        <p>Find similar histories. See what changed. Follow the evidence.</p>
+      </div>
+      <div class="timer-wrap"><button id="timer" class="quiet" aria-label="Start presentation timer">▶ <span id="elapsed">0:00</span></button><span>Presenter timer</span></div>
+    </div>
+    <nav id="steps" class="steps" aria-label="Guided demonstration steps"></nav>
+    <section class="query" aria-label="Trajectory query">
+      <div class="query-copy"><div class="eyebrow">Pattern from reference patient P00</div>
+        <h2>Drug A before a creatinine rise</h2>
+        <div class="rules"><span>Exposure ≤ 7 elapsed days</span><span>Rise ≥ 0.30 mg/dL within 48 hours</span><span>Same patient &amp; admission · adult</span></div>
+        <p>Baseline = lowest recorded value in the preceding 48 hours. Strict ordering; recorded time anchors.</p>
+      </div>
+      <div class="budget-control"><label>Maximum relaxation cost</label>
+        <div id="budgets" class="segments" role="group" aria-label="Maximum relaxation cost">
+          <button data-budget="0" aria-pressed="true">0 <small>Exact</small></button>
+          <button data-budget="1" aria-pressed="false">1 <small>Broaden</small></button>
+          <button data-budget="2" aria-pressed="false">2 <small>Combine</small></button>
+        </div>
+        <p>Drug B: +1 · Up to 2 extra days: up to +1.<br>At most 2 changed constraints. Illustrative policy.</p>
+      </div>
+    </section>
+    <div id="error" class="error" role="alert" hidden></div>
+    <section id="summary" class="summary" aria-live="polite" aria-atomic="true"></section>
+    <div id="workspace" class="workspace" aria-busy="false">
+      <aside class="panel candidates"><div class="panel-title"><h2>Candidate histories</h2><span>10 distinct synthetic patients</span></div><div id="patients"></div></aside>
+      <article class="panel history"><div id="history"></div><div id="evidence"></div></article>
+      <aside class="panel explanation"><div id="explanation"></div></aside>
+    </div>
+    <section class="guide" aria-label="Presentation guidance">
+      <div class="guide-copy"><div id="cue-label" class="eyebrow"></div><h2 id="cue-title" tabindex="-1"></h2><p id="cue"></p></div>
+      <div class="guide-actions"><button id="back" class="quiet">← Back</button><button id="next" class="primary">Find the exact cohort →</button></div>
+      <details id="presenter"><summary>Presenter narrative <span id="narrative-time"></span></summary><p id="narrative"></p></details>
+    </section>
+    <div id="export-message" role="status" class="export-message"></div>
+  </main>
+  <footer><span>Fixed synthetic exemplar · Reference P00 is excluded from the candidate cohort · No clinical or causal claim</span><span id="snapshot"></span></footer>
+  <script>const GUIDED = /*GUIDED_DATA*/null;</script>
+  <script>/*GUIDED_JS*/</script>
+</body>
+</html>
