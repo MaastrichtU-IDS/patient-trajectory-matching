@@ -92,7 +92,7 @@
       "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
       "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
       "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
-      "patterns/reviewed_pressure_session.py": "aa3debd5bbb76c870cd8d71ab767661114619e1ea8ca72b9fa16009e91ea25c6",
+      "patterns/reviewed_pressure_session.py": "b333e97d59ded5475b01dcd6a9071d30e5c24073ff5ccfaabb056a74ff23af6d",
       "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
       "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
       "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
@@ -121,10 +121,10 @@
       "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9"
     }
   },
-  "session_context_id": "09fc4c7ce598405f12cc9af0e87d142d73a73a6ae52c3d24f628bea3a8e7bbfd",
+  "session_context_id": "dcf5a3a32a2d4356b58dab3ceeaa3c959b2f2a3c53e354e24c714db354e8c332",
   "query_context": {
     "profile": "reviewed-pressure-session-1.0",
-    "session_id": "09fc4c7ce598405f12cc9af0e87d142d73a73a6ae52c3d24f628bea3a8e7bbfd",
+    "session_id": "dcf5a3a32a2d4356b58dab3ceeaa3c959b2f2a3c53e354e24c714db354e8c332",
     "query": {
       "profile": "mixed-record-trajectory-1.0",
       "id": "synthetic_pressure_followup",
@@ -159,7 +159,7 @@
     "envelope": "same item/unit/patient/stay; temporal windows within reviewed parent windows",
     "source_scope": "selected recorded claims; clinical occurrence unverified"
   },
-  "query_context_id": "3f7380db59e8d5008df40a8ffbee96493c625e5ac99d5acbeb805fd7b48b5da8",
+  "query_context_id": "4316786df85c5f335770ce8c1316143203948c70111a64d1e5ecda820ab20c2e",
   "metrics": {
     "patients": 13,
     "stays": 15,

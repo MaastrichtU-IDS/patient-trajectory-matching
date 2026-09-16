@@ -182,4 +182,9 @@ See [issues.md](issues.md) for the gaps behind these.
 
 ## Repeated reviewed pressure queries
 
-The local pressure service now has a [bounded completed-result cache](pressure-query-cache.md). Identical controls can reuse the full cohort and evidence after source, review and implementation rechecks. Changed controls still run the existing graph matcher and independent SQL oracle. Eleven cache tests bring the demo suite to 40 Python tests, alongside the unchanged 687 contract checks. Reproducible synthetic/public-demo measurements compare every result and anchor inspection; these are local samples, not a production latency claim. Reuse of graph projections and semantic support across different queries remains open.
+The local pressure service now has a [bounded completed-result cache](pressure-query-cache.md). Identical controls can reuse the full cohort and evidence after source, review and implementation rechecks. Changed controls now use the prepared-query path described below, with fresh temporal evaluation and the independent SQL oracle. Eleven cache tests bring the demo suite to 40 Python tests, alongside the unchanged 687 contract checks. Reproducible synthetic/public-demo measurements compare every result and anchor inspection; these are local samples, not a production latency claim. Reuse of graph projections and semantic support across different queries is implemented in the next increment below.
+
+
+## Prepared pressure-query execution
+
+[Checked batch preparation](prepared-pressure-queries.md) is now reusable across changed pressure controls. Temporal classification, numeric filtering and every anchor SQL comparison remain fresh. Eleven additional demo tests bring that suite to 51; the 687 contract checks remain separate. Full-result and inspection equality are checked against the original executor, including uncertain-time fixtures and public arterial data. The previous complete-result cache remains the fastest path for identical requests.

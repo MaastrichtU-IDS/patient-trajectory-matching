@@ -245,4 +245,7 @@ Any AI-assisted coding must pass these contracts and retain the declared support
 
 ### Repeated-query performance follow-up
 
-The [complete-result cache](pressure-query-cache.md) now removes repeat execution for identical reviewed pressure controls, with bounded storage, strict invalidation and aggregate measurement reports. Different controls still rebuild mixed-query projections and semantic support. The next performance increment should separate immutable, context-bound preparation from query-dependent filtering and temporal classification, then compare every result and proof against the uncached graph/SQL path. It must preserve original claim acceptance and artifact/backend identity; no broader terminology mapping or new SULO entailment follows from caching.
+The [complete-result cache](pressure-query-cache.md) now removes repeat execution for identical reviewed pressure controls, with bounded storage, strict invalidation and aggregate measurement reports. The prepared-query increment below now separates immutable, context-bound preparation from query-dependent filtering and temporal classification, and compares results and proofs against the original graph/SQL path. It must preserve original claim acceptance and artifact/backend identity; no broader terminology mapping or new SULO entailment follows from caching.
+
+
+The first [prepared-query increment](prepared-pressure-queries.md) now executes: it retains checked batch views and source temporal networks across changed controls, with exact differential comparisons and fresh SQL reconciliation. Remaining performance work includes cold preparation, repeated work across pair-covering batches, measured memory use and workloads beyond the current cache budget.

@@ -2,7 +2,7 @@
 
 The local pressure service now reuses a completed result when the same controls are submitted again against the same current reviewed session. The result includes the entire cohort, optional follow-up bindings, source evidence and checked treatment witnesses. A new job identifies this as reuse and rechecks source and review validity before publishing it.
 
-This first performance increment avoids repeating an identical graph/SQL query. A previously unseen threshold or window still runs the full existing matcher and independent SQL checks. Reusing prepared graph projections and semantic support across different queries remains future work. A local diagnostic profile of three non-empty arterial batches found substantial repeated work in claim projection, ontology parsing, semantic-model construction and claim isolation. That small sample motivates the next investigation; it does not establish whole-query cost percentages.
+This first performance increment avoids repeating an identical graph/SQL query. A previously unseen threshold or window uses the [prepared-query path](prepared-pressure-queries.md) by default, with fresh filtering, temporal classification and independent SQL checks. The measurements below retain the original full-execution baseline by explicitly disabling batch-preparation reuse. A local diagnostic profile of three non-empty arterial batches found substantial repeated work in claim projection, ontology parsing, semantic-model construction and claim isolation. That small sample motivates the next investigation; it does not establish whole-query cost percentages.
 
 ## Cache identity and validity
 
@@ -35,8 +35,8 @@ The result's existing `elapsed_seconds` remains the original execution duration.
 
 | Source | Cold preparation and query | Fresh query over prepared source | Three checked cache hits |
 |---|---:|---:|---:|
-| Authored synthetic | 1.239 s | 1.183 s | 0.0046–0.0057 s |
-| Public arterial demo | 313.842 s | 301.442 s | 0.0273–0.0295 s |
+| Authored synthetic | 1.262 s | 1.259 s | 0.0041–0.0058 s |
+| Public arterial demo | 307.925 s | 312.398 s | 0.0282–0.0309 s |
 
 These are server-job durations from the committed reports, including source/review rechecks on hits. Both fresh arterial executions and all three reuses preserve 13 patients, 15 stays, 66 matching segments, 86 eligible pairs, 340 follow-up bindings and one pair without follow-up. All 944 anchor inspections match exactly; all 140 source stays remain represented. This measures avoiding an identical completed query, not faster reasoning over new controls.
 

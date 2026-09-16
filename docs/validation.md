@@ -576,3 +576,8 @@ The initial pressure UI/API added 15 Python tests; the current demo suite has 40
 The [pressure cache contract](pressure-query-cache.md) adds 11 Python tests to the 29-test demo suite (40 total), separate from the 687 contract checks. It checks exact result/evidence reuse, fresh execution for changed controls, pre- and post-lookup source/review/implementation invalidation, failure suppression, bounded eviction, preparation switches and inspector response isolation. The pressure DOM test checks the reuse label and zero fresh-execution time.
 
 `demo/benchmark_pressure_cache.py` reproduces cold preparation, a second fresh graph/SQL query over the prepared source, and three cache hits. It compares all result fields except elapsed time and all anchor inspections exactly. The committed synthetic and public arterial reports contain aggregate evidence and timing samples. CI checks their current implementation hashes and public-source pin without downloading source records or asserting a speed threshold. No additional ontology or temporal-core contract is introduced.
+
+
+## Prepared pressure queries
+
+The [prepared executor](prepared-pressure-queries.md) adds 11 demo tests (51 demo tests total). Differential checks compare full results and source/proof contexts; existing finite-world fixtures independently test uncertain temporal semantics. Further tests cover changed key inputs, fresh SQL evaluation, corrupted prepared outputs, invalidation, cache bounds and copied certificates. Current synthetic/public arterial benchmark reports bind implementation hashes and compare every anchor inspection. The live and prior result-cache reports are reproduced against the new session hook; source reviews are unchanged.
