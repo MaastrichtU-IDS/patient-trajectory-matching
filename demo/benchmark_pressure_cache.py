@@ -18,7 +18,7 @@ from patterns import reviewed_pressure_session as engine
 
 FILES = tuple(sorted(set(engine.FILES + (
     'demo/pressure.py', 'demo/pressure_cache.py', 'demo/serve.py',
-    'demo/pressure.js', 'demo/benchmark_pressure_cache.py', 'data/clinical-source-demo-pin.json'))))
+    'demo/pressure.js', 'demo/benchmark_pressure_cache.py', 'patterns/prepared_mixed_query.py', 'data/clinical-source-demo-pin.json'))))
 DEFAULT = {'threshold': '65', 'baseline_minutes': 30, 'followup_minutes': 120}
 
 
@@ -33,7 +33,7 @@ def comparable(result):
 
 
 def benchmark(folder=None, stratum='arterial'):
-    service = pressure.PressureService(folder, synthetic=folder is None)
+    service = pressure.PressureService(folder, synthetic=folder is None, prepared=False)
     serve.PRESSURE = service
     serve.Handler.log_message = lambda *args: None
     server = serve.ThreadingHTTPServer(('127.0.0.1', 0), serve.Handler)

@@ -15,11 +15,12 @@ STRATA={'arterial':'Arterial Blood Pressure mean · 220052','noninvasive':'Non I
 
 
 class PressureService:
-    def __init__(self, folder=None, synthetic=False):
+    def __init__(self, folder=None, synthetic=False, *, prepared=True):
         self.folder=SOURCE/'examples/source-mixed-query' if synthetic else folder
         self.synthetic=synthetic; self.lock=threading.RLock(); self.pool=ThreadPoolExecutor(max_workers=1)
         self.jobs={}; self.active=None; self.session=None; self.session_name=None
         self.result_cache=ResultCache(); self.implementation=implementation_stamp()
+        self.use_prepared=prepared; self.prepared_executor=None
 
     def metadata(self):
         return {'configured':self.folder is not None,'source_mode':'synthetic' if self.synthetic else 'public-demo' if self.folder else 'unconfigured',
@@ -52,9 +53,13 @@ class PressureService:
             if fingerprint(self.folder)!={table:entry['file_sha256'] for table,entry in expected.items()}:
                 raise ValueError('PUBLIC_DEMO_SOURCE_PIN_MISMATCH')
         self.result_cache.clear()
+        self.prepared_executor=None
         self.session=None; self.session_name=None
         session=Session(self.folder,request,declaration,progress)
         if not self.synthetic: validate_summary(session.selection['summary'],'demo-'+name)
+        if self.use_prepared:
+            from patterns.prepared_mixed_query import PreparedExecutor
+            self.prepared_executor=PreparedExecutor()
         self.session=session; self.session_name=name
         return session
 
@@ -88,8 +93,12 @@ class PressureService:
             key=json.dumps([session.id,session.query(request['controls']),request['controls'],self.implementation],sort_keys=True)
             cached=self.result_cache.get(key)
             lookup_done=time.monotonic()
+            batch_before=self.prepared_executor.snapshot() if self.prepared_executor else None
             if cached is None:
-                result=session.execute(request['controls'],progress)
+                if self.prepared_executor:
+                    result=session.execute(request['controls'],progress,batch_executor=self.prepared_executor.execute)
+                else:
+                    result=session.execute(request['controls'],progress)
             else:
                 progress(stage='Rechecking source and review for a saved completed query')
                 result=cached['result']
@@ -115,6 +124,14 @@ class PressureService:
                 job['execution']={'mode':'cached_complete_result' if cached else 'fresh_query',
                     'origin_job_id':cached['origin_job_id'] if cached else jid,
                     'source_and_review_rechecked':True,'retained_for_reuse':retained}
+                if self.prepared_executor:
+                    after=self.prepared_executor.snapshot()
+                    job['execution']['batch_preparation']={
+                        'reused_batches':after['hits']-batch_before['hits'],
+                        'fresh_batches':after['misses']-batch_before['misses'],
+                        'fresh_seconds':round(after['fresh_seconds']-batch_before['fresh_seconds'],6),
+                        'reevaluation_seconds':round(after['reevaluation_seconds']-batch_before['reevaluation_seconds'],6),
+                        'cache':after}
                 if result['status']=='COMPLETED':
                     job['_result']=result; job['_session']=session
                     job['summary']={k:v for k,v in result.items() if k!='details'}
@@ -122,11 +139,13 @@ class PressureService:
                     job['summary']['stratum']=request['stratum']
                 else:
                     self.result_cache.clear()
+                    if self.prepared_executor:self.prepared_executor.clear()
                     job['error']='One or more anchors could not be verified. No cohort count is available.'
         except Exception as error:
             with self.lock:
                 self.jobs[jid].update(status='FAILED',error=f'{type(error).__name__}: {error}')
                 self.result_cache.clear()
+                self.prepared_executor=None
                 self.session=None; self.session_name=None
         finally:
             with self.lock:self.active=None

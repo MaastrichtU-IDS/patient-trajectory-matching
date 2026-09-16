@@ -23,7 +23,7 @@ class PressureCacheTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.folder = Path(self.temp.name) / 'source'
         shutil.copytree(engine.p.ei.ROOT / 'examples/source-mixed-query', self.folder)
-        self.service = pressure.PressureService(synthetic=True)
+        self.service = pressure.PressureService(synthetic=True, prepared=False)
         self.service.folder = self.folder
         self.addCleanup(self.service.close)
 

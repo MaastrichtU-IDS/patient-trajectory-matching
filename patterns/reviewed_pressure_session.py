@@ -69,14 +69,15 @@ class Session:
         q['baseline']['value_lexical']=options['threshold']; p.mixed.validate_query(q)
         return q
 
-    def execute(self, options, progress=lambda **kw:None):
+    def execute(self, options, progress=lambda **kw:None, *, batch_executor=None):
         q=self.query(options); self.check_current(); start=time.monotonic()
+        execute_batch=p.mixed.execute if batch_executor is None else batch_executor
         by_anchor=defaultdict(list); failures={}; witnesses={}
         for i,(descriptor,b) in enumerate(zip(self.planned['batches'],self.built)):
             aid=descriptor['anchor_id']; rows=[]
             try:
                 if b['measurement_store'] is not None:
-                    result=p.mixed.execute(b['interval_store'],b['interval_policy'],b['semantic_policy'],
+                    result=execute_batch(b['interval_store'],b['interval_policy'],b['semantic_policy'],
                         b['measurement_store'],b['measurement_policy'],b['alignment'],q)
                     p.ei.require(result['status']=='COMPLETED_RECORD_QUERY' and result['search_complete_over_selected_records'],'INCOMPLETE_MIXED_QUERY')
                     rows=p.source_query.graph_bindings(result)

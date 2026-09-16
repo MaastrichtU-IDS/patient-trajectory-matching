@@ -1,17 +1,12 @@
 {
-  "profile": "pressure-result-cache-benchmark-1.0",
+  "profile": "prepared-pressure-benchmark-1.0",
   "status": "VERIFIED",
-  "source_mode": "synthetic",
-  "stratum": "synthetic",
-  "controls": {
-    "threshold": "65",
-    "baseline_minutes": 30,
-    "followup_minutes": 120
-  },
+  "source_mode": "public-demo",
+  "stratum": "arterial",
   "python_version": "3.12.14",
   "artifacts": {
     "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
-    "demo/benchmark_pressure_cache.py": "54688ea3c386493cf648fb5411279d66d625aae05309a4d2e1a3b2899ab0f44e",
+    "demo/benchmark_prepared_pressure.py": "36f20dd3738e3cae6e7ea0b356434e25acd18e8cc18d95db1bcef04594ab4886",
     "demo/pressure.js": "3030688aa8ede992426af8afe0b05d672dcb7614ed25c7fa5c11c23340b8c2b2",
     "demo/pressure.py": "1d019825ee53fbde401c09d5bc33aa2d59f4c2166e05d1df7fbc2b179a4b16d8",
     "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
@@ -71,122 +66,105 @@
     "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9"
   },
   "source_files": {
-    "inputevents": "1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884",
-    "icustays": "add9e84050e9b5da0d5a2ca9bddc30084dc770e3ba647853bfdf0970fc8e5c6a",
-    "d_items": "96bd5284a8c8de4736bf5e7361345fbbe10c8ef530dd3b13337b3a3e85ac625f",
-    "chartevents": "a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90"
+    "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+    "icustays": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+    "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+    "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
   },
-  "session_context_id": "828e5bc7fd54491dc33ccbdc76b7e25b60ae07454a5a6b78908a9df324a40be2",
-  "query_context_id": "6feccbd44097a0b71c5c8818fb1506c3ef897123fa67d35adcea8c727efa32f4",
-  "review_sha256": "7064bbd22665412b298b8059dec5f92a4d222700e90a45381c929f740b4c279d",
-  "metrics": {
-    "patients": 3,
-    "stays": 3,
-    "segments": 3,
-    "eligible_pairs": 3,
-    "followup_bindings": 3,
+  "session_context_id": "dcf5a3a32a2d4356b58dab3ceeaa3c959b2f2a3c53e354e24c714db354e8c332",
+  "original_query_context_id": "4316786df85c5f335770ce8c1316143203948c70111a64d1e5ecda820ab20c2e",
+  "changed_query_context_id": "72757d666e4576f7a6376df52eadba2911b303ae7519b1813d33b066c04c4e62",
+  "original_controls": {
+    "threshold": "65",
+    "baseline_minutes": 30,
+    "followup_minutes": 120
+  },
+  "changed_controls": {
+    "threshold": "60",
+    "baseline_minutes": 25,
+    "followup_minutes": 60
+  },
+  "original_metrics": {
+    "patients": 13,
+    "stays": 15,
+    "segments": 66,
+    "eligible_pairs": 86,
+    "followup_bindings": 340,
     "pairs_without_followup": 1
   },
-  "anchors_verified": 3,
-  "stays_retained": 5,
-  "runs": [
-    {
-      "label": "cold_preparation_and_query",
-      "mode": "fresh_query",
-      "timing": {
-        "prepare_seconds": 0.042309,
-        "execute_seconds": 1.217919,
-        "final_validation_seconds": 0.001301,
-        "cache_seconds": 0.000769,
-        "total_seconds": 1.262297,
-        "original_execution_seconds": 1.216
-      },
-      "full_result_equal": true,
-      "all_inspections_equal": true,
-      "http_inspector_cases": [
-        "eligible",
-        "missing_followup"
-      ]
-    },
-    {
-      "label": "warm_preparation_fresh_query",
-      "mode": "fresh_query",
-      "timing": {
-        "prepare_seconds": 0.001844,
-        "execute_seconds": 1.255437,
-        "final_validation_seconds": 0.001381,
-        "cache_seconds": 0.000732,
-        "total_seconds": 1.259394,
-        "original_execution_seconds": 1.254
-      },
-      "full_result_equal": true,
-      "all_inspections_equal": true,
-      "http_inspector_cases": [
-        "eligible",
-        "missing_followup"
-      ]
-    },
-    {
-      "label": "repeated_query_1",
-      "mode": "cached_complete_result",
-      "timing": {
-        "prepare_seconds": 0.002114,
-        "execute_seconds": 0,
-        "final_validation_seconds": 0.001303,
-        "cache_seconds": 0.000682,
-        "total_seconds": 0.004102,
-        "original_execution_seconds": 1.254
-      },
-      "full_result_equal": true,
-      "all_inspections_equal": true,
-      "http_inspector_cases": [
-        "eligible",
-        "missing_followup"
-      ]
-    },
-    {
-      "label": "repeated_query_2",
-      "mode": "cached_complete_result",
-      "timing": {
-        "prepare_seconds": 0.002177,
-        "execute_seconds": 0,
-        "final_validation_seconds": 0.001274,
-        "cache_seconds": 0.000706,
-        "total_seconds": 0.004161,
-        "original_execution_seconds": 1.254
-      },
-      "full_result_equal": true,
-      "all_inspections_equal": true,
-      "http_inspector_cases": [
-        "eligible",
-        "missing_followup"
-      ]
-    },
-    {
-      "label": "repeated_query_3",
-      "mode": "cached_complete_result",
-      "timing": {
-        "prepare_seconds": 0.002202,
-        "execute_seconds": 0,
-        "final_validation_seconds": 0.001879,
-        "cache_seconds": 0.001735,
-        "total_seconds": 0.00582,
-        "original_execution_seconds": 1.254
-      },
-      "full_result_equal": true,
-      "all_inspections_equal": true,
-      "http_inspector_cases": [
-        "eligible",
-        "missing_followup"
-      ]
+  "changed_metrics": {
+    "patients": 12,
+    "stays": 14,
+    "segments": 27,
+    "eligible_pairs": 36,
+    "followup_bindings": 106,
+    "pairs_without_followup": 1
+  },
+  "anchors_verified": 944,
+  "stays_retained": 140,
+  "cold_job_timing": {
+    "prepare_seconds": 12.682931,
+    "execute_seconds": 327.248137,
+    "final_validation_seconds": 0.006241,
+    "cache_seconds": 0.023494,
+    "total_seconds": 339.960803,
+    "original_execution_seconds": 327.241
+  },
+  "changed_job_timing": {
+    "prepare_seconds": 0.007027,
+    "execute_seconds": 2.277495,
+    "final_validation_seconds": 0.005643,
+    "cache_seconds": 0.022446,
+    "total_seconds": 2.312611,
+    "original_execution_seconds": 2.272
+  },
+  "full_changed_execution_seconds": 336.432848,
+  "cold_preparation": {
+    "reused_batches": 0,
+    "fresh_batches": 557,
+    "fresh_seconds": 325.752673,
+    "reevaluation_seconds": 0.0,
+    "cache": {
+      "hits": 0,
+      "misses": 557,
+      "admitted": 557,
+      "evicted": 0,
+      "fresh_seconds": 325.75267280721164,
+      "reevaluation_seconds": 0.0,
+      "entries": 557,
+      "serialized_bytes": 104819911,
+      "max_entries": 1024,
+      "max_serialized_bytes": 134217728,
+      "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
     }
-  ],
-  "cache_limits": {
-    "entries": 3,
-    "serialized_bytes": 33554432
+  },
+  "changed_preparation": {
+    "reused_batches": 557,
+    "fresh_batches": 0,
+    "fresh_seconds": 0.0,
+    "reevaluation_seconds": 0.949345,
+    "cache": {
+      "hits": 557,
+      "misses": 557,
+      "admitted": 557,
+      "evicted": 0,
+      "fresh_seconds": 325.75267280721164,
+      "reevaluation_seconds": 0.9493453660688829,
+      "entries": 557,
+      "serialized_bytes": 104819911,
+      "max_entries": 1024,
+      "max_serialized_bytes": 134217728,
+      "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+    }
+  },
+  "all_result_fields_except_duration_equal": true,
+  "anchor_inspections_equal": 944,
+  "http_inspector_cases": {
+    "no_eligible_pair": true,
+    "eligible": true,
+    "missing_followup": true
   },
   "patient_rows_or_identifiers_included": false,
   "clinical_mapping_verified": false,
-  "timing_scope": "Server job wall time before response assembly; one process, one local sample sequence; no latency guarantee",
-  "evidence_scope": "All result fields except elapsed_seconds and all anchor inspections compared exactly; cached hits do not rerun graph or SQL"
+  "timing_scope": "Single local sequence; server jobs exclude response assembly/polling/rendering; full reference is Session.execute wall time"
 }

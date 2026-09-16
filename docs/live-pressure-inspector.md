@@ -2,7 +2,7 @@
 
 The local demo now exposes the reviewed mixed interval/measurement engine through background HTTP jobs and an interactive pressure page. Select one measurement stratum, change the pressure threshold or narrow the recorded-time windows, inspect the resulting patient/stay/segment membership, and open the exact source and review evidence behind an anchor.
 
-The [existing guided journey](../demo/NARRATIVE.md) remains the short synthetic demonstration of exact matching and priced relaxation. The pressure page uses the separate reviewed-record profile. A new query performs complete source-query execution and can take several minutes. Repeating identical controls can reuse a completed result after fresh source/review checks; the page labels this reuse. It has no offline replay or implicit fallback.
+The [existing guided journey](../demo/NARRATIVE.md) remains the short synthetic demonstration of exact matching and priced relaxation. The pressure page uses the separate reviewed-record profile. The first query prepares and executes the reviewed source and can take several minutes. Changed controls can reuse checked batch views while recomputing temporal eligibility and SQL reconciliation. Repeating identical controls can reuse a completed result after fresh source/review checks; the page labels this reuse. It has no offline replay or implicit fallback.
 
 ## Start
 
@@ -57,7 +57,7 @@ Patient/stay identifiers and record evidence are returned only by the configured
 
 ## Execution and failure behavior
 
-[`reviewed_pressure_session.py`](../patterns/reviewed_pressure_session.py) uses the existing reviewed stores, explicit alignment and mixed matcher for each bounded batch, merges complete bindings and checks each anchor against the independent unpartitioned SQL query using the actual current controls. Counts become available only when every anchor succeeds. A failed anchor suppresses all cohort metrics and inspection results for that run.
+[`reviewed_pressure_session.py`](../patterns/reviewed_pressure_session.py) uses the existing reviewed stores and explicit alignment, with [reusable checked batch preparation](prepared-pressure-queries.md) for the mixed matcher, merges complete bindings and checks each anchor against the independent unpartitioned SQL query using the actual current controls. Counts become available only when every anchor succeeds. A failed anchor suppresses all cohort metrics and inspection results for that run.
 
 [`demo/pressure.py`](../demo/pressure.py) supports one active job, one current preparation cache, a [bounded completed-result cache](pressure-query-cache.md), and the three most recent jobs. Completed jobs retain their session evidence while available; old jobs expire. Jobs and evidence are in memory and are lost when the server stops. There is no cancellation, restart/resume, multi-user access control or production deployment service in this increment.
 
