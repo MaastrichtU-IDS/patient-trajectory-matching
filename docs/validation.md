@@ -695,9 +695,12 @@ Twelve additional tests bring the demo suite to 92; the contract suite remains 7
 python -m patterns.test_use_case_conformance
 ```
 
-The four GEN-01 and COH-01 tests replay the synthetic genomic release cutoffs,
-fail-closed conflicting classifications, immutable patient observation, cohort
-membership delta, indexed/reference agreement, and retained binding evidence. The
-full suite totals **813 checks: 790 suite tests, 16 oracle cases and seven
+The four GEN-01 and COH-01 tests replay synthetic genomic release cutoffs,
+fail-closed conflicting classifications, unchanged patient-observation payload across
+cutoffs,
+cohort membership delta, indexed/reference agreement, and retained binding evidence.
+GEN-01 does not link a classification to a stable variant identity or test a clinical
+action based on that classification; it is not yet a clinical-genomic integration
+test. The full suite totals **813 checks: 790 suite tests, 16 oracle cases and seven
 properties**. These fixtures are synthetic; they do not establish a production
 ClinGen workflow, HPO matching, diagnosis, or treatment advice.

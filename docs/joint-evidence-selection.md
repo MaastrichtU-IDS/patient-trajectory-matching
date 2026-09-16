@@ -26,13 +26,25 @@ The first outcome does not entail that the drug was not an antibiotic. It says t
 
 ## GEN-01: synthetic genomic release replay
 
-GEN-01 asks a narrow replay question: for the immutable patient variant observation
-in `PGEN01`/`EGEN01`, which release-specific interpretation assertions were known at
-the requested source cutoff? It is a **synthetic release replay**, not a production
-ClinGen integration or a clinical interpretation of a patient. The ClinGen-style
-source identifiers and release dates are fixture data; all
+GEN-01 asks a narrow replay question: in the synthetic `PGEN01`/`EGEN01` history,
+which genomic observation and release-specific classification assertions are
+available at the requested source cutoff? It is a **synthetic release replay**, not
+a production ClinGen integration or a clinical interpretation of a patient. The
+fixture places the observation and classification assertions in the same patient
+and episode, but does not encode a semantic link proving that either release
+interprets that exact observed variant. It also does not test a clinical action
+conditioned on the classification. The ClinGen-style source identifiers and release
+dates are fixture data; all
 `https://example.org/trajectory/genomics/...` terms are local application
 vocabulary.
+
+That boundary is imposed by the current admitted semantic fragment: it supports
+`sulo:hasParticipant` and `sulo:isFeatureOf`, neither of which is an appropriate
+variant-interpretation relation. A future clinical-genomic integration case needs
+a versioned application profile for a stable variant identity and an explicit
+interpretation-to-variant relation, plus query/action tests over that relation; it
+must not smuggle an application predicate into SULO or infer the link from shared
+patient/episode scope.
 
 Run the two source-as-known snapshots and the acceptance cases with the supplied
 JSON, writing disposable reports outside the repository:
@@ -62,7 +74,8 @@ the complete `variant_observation` fact payload is identical in both results: th
 release changes the selected external assertion, not the recorded patient
 observation. Deliberately conflicting classification claims fail closed as
 `BLOCKED_EVIDENCE` or `INCONSISTENT_ONTOLOGY`, rather than selecting an
-interpretation by list order.
+interpretation by list order. These checks validate source-as-known replay only;
+they do not validate variant matching, ClinGen ingestion, or treatment selection.
 
 The CLI accepts `--archive`, `--request`, `--policy`, `--query`, `--output` and `--timeout-seconds`. Each output directory receives a complete `result.json`; reusing a directory replaces its report. Ready and empty selections exit 0. Blocked, inconsistent or invalid selected evidence writes the audit and exits 2. Malformed input exits 2 with `INVALID_INPUT` before producing a new report.
 
