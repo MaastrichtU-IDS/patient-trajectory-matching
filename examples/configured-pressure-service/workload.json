@@ -1,0 +1,7 @@
+{
+  "profile": "configured-pressure-workload-1.0",
+  "queries": [
+    {"threshold": "65", "baseline_minutes": 15, "followup_minutes": 60},
+    {"threshold": "59", "baseline_minutes": 10, "followup_minutes": 30}
+  ]
+}

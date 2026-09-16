@@ -67,3 +67,6 @@ node demo/test_configured_pressure_ui.cjs
 Thirteen integration tests cover input structure/limits, alternate source and item, immutable configuration, prepared/fresh equivalence, startup and mid-job review changes, cache invalidation, pending/stale reviews, actual HTTP inspections, local-origin checks and request envelope enforcement. The JavaScript test runs the exact concatenated page script with actual service metadata and checks one initialization, labels, escaping, defaults, limits and submitted controls. It is a DOM-state test, not visual browser verification.
 
 The real HTTP test writes aggregate evidence to `verification/configured-pressure-run/report.json`; demo CI uploads it as `configured-pressure-http-evidence`. It records configuration and implementation provenance, aggregate metrics, five retained stays and three HTTP inspections equal to fresh execution, without patient rows or identifiers. The full demo suite is 80 tests; the existing contract suite remains 781 checks. No new performance claim is made for supplied clinical records.
+
+
+For repeatable supplied-dataset evaluation, use the [configured workload runner](configured-pressure-workload.md). It measures repeated queries and actual cache behavior, verifies fresh-result/HTTP-inspection equivalence, and exports aggregate evidence.

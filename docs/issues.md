@@ -249,3 +249,6 @@ The [complete-result cache](pressure-query-cache.md) now removes repeat executio
 
 
 The first [prepared-query increment](prepared-pressure-queries.md) now executes: it retains checked batch views and source temporal networks across changed controls, with exact differential comparisons and fresh SQL reconciliation. Remaining performance work includes cold preparation, repeated work across pair-covering batches, measured memory use and workloads beyond the current cache budget.
+
+
+The [configured workload runner](configured-pressure-workload.md) now provides repeated service/HTTP/fresh-reference observations and actual cache admission/reuse counts. Authored evidence covers six verified trials and 36 inspections. Representative clinical workloads, cold-preparation optimization and measured peak memory remain open.

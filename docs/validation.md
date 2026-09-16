@@ -650,3 +650,12 @@ node demo/test_configured_pressure_ui.cjs
 ```
 
 Thirteen additional integration tests bring the demo suite to 80; the contract suite remains 781 checks. Configured HTTP evidence is written to `verification/configured-pressure-run/report.json` and uploaded by CI. Tests cover alternate source/item operation, exact fresh-result and inspection equality, request boundaries, immutable reviews and failure during cached or active work. The [runbook](configured-pressure-service.md) documents the supported pressure shape and review requirements.
+
+
+## Configured pressure workloads
+
+```sh
+python -m unittest discover -s demo -p 'test_configured_pressure_workload.py'
+```
+
+Twelve additional tests bring the demo suite to 92; the contract suite remains 781 checks. The [workload runbook](configured-pressure-workload.md) documents the CLI, aggregate committed evidence and failure behavior. Demo CI uploads a fresh one-repetition HTTP workload report; elapsed times are observations, not pass/fail thresholds.

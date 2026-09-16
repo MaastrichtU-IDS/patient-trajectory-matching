@@ -420,3 +420,8 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ### Startup pressure configuration
 
 [`patterns/pressure_service_config.py`](../patterns/pressure_service_config.py) validates and freezes the source paths, bounded pressure request and review inputs. The mapped launcher adds the configuration context to session provenance and uses [`demo/configured_pressure.js`](../demo/configured_pressure.js) for request-derived page labels/defaults/limits. [The runbook](configured-pressure-service.md) specifies startup and restart semantics.
+
+
+### Configured workload runner
+
+[`demo/benchmark_configured_pressure.py`](../demo/benchmark_configured_pressure.py) executes bounded query matrices through the configured HTTP service, compares every complete result and anchor inspection with fresh mapped execution, and writes aggregate timing, operation-count and cache evidence. [The method](configured-pressure-workload.md) distinguishes prepared evaluation, retained-result reuse and recomputation.

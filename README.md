@@ -287,3 +287,6 @@ The [live mapped pressure route](docs/mapped-pressure-service.md) now integrates
 
 
 The [configured mapped route](docs/configured-pressure-service.md) now accepts a local source/request/review configuration. Run `python demo/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json` for the alternate item-2001 fixture with 15/60-minute windows. Configuration and review changes require a restart; no clinical mapping is accepted automatically.
+
+
+The [configured workload runner](docs/configured-pressure-workload.md) now measures repeated prepared/cached queries against fresh mapped execution and every HTTP anchor inspection. It reports actual cache behavior and aggregate provenance for supplied configurations; the committed authored workload verifies six trials and 36 inspections.
