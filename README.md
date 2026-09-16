@@ -22,7 +22,7 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 673 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 687 passing checks |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -102,6 +102,8 @@ The repository contains four independent executable contracts. They share the pi
 | **Bounded interval** `1.0` | `patterns/bounded_cohort.py` | Joint feasibility and fixed-witness certain/possible bindings over discrete uncertain times |
 
 The [evidence-selection layer](docs/evidence-selection.md) prepares bounded snapshots from explicit source support, corrections and availability cutoffs. It preserves the temporal semantics of the bounded matcher.
+
+The [cohort-overlap analysis](docs/pressure-cohort-overlap.md) reproduces all three pressure queries and identifies 23 distinct patients across 29 stays and 196 treatment segments. It distinguishes patient overlap from shared treatment anchors and keeps measurement strata separate.
 
 The [three-stratum pressure comparison](docs/reviewed-pressure-strata.md) now completes the arterial, non-invasive and alternate arterial-label queries separately. Every run preserves all 944 anchors and 140 stays and agrees with unpartitioned SQL after its explicit automated source-fidelity review. Clinical interpretation remains unverified.
 

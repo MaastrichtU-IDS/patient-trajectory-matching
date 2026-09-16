@@ -549,3 +549,13 @@ python -m patterns.test_reviewed_pressure_strata
 ```
 
 Three additional tests verify all three execution reports against current implementation hashes, pinned source manifests, exact separate declarations and requests, common query criteria and completed accounting. Total: **673 checks: 650 suite tests, 16 oracle cases and seven properties**. The [comparison and reproduction commands](reviewed-pressure-strata.md) cover each separate real-source execution; CI checks committed provenance and synthetic execution without downloading the source files.
+
+## Pressure-cohort overlap
+
+```sh
+python -m patterns.test_pressure_overlap
+# Original pinned demo files; reruns all three separately declared source queries:
+python -m patterns.verify_pressure_overlap --input-dir /path/to/demo/icu
+```
+
+Fourteen tests check actual synthetic item strata, all 4,096 membership combinations over four members, patient/stay/segment scope, completeness and comparability failures, deterministic aggregation, CLI atomicity and committed provenance. Total: **687 checks: 664 suite tests, 16 oracle cases and seven properties**; the 4,096 combinations are nested within one test. The [reproduced overlap report and interpretation](pressure-cohort-overlap.md) distinguish separate-query membership from a pooled measurement query. CI does not download source records.
