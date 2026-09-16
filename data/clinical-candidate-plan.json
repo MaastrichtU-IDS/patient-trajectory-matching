@@ -20,12 +20,12 @@
     {
       "itemid": "225312",
       "dictionary_label": "ART BP Mean",
-      "proposed_role": "separate alternate arterial-label stratum pending review"
+      "proposed_role": "separate alternate arterial-label stratum pending clinical review"
     },
     {
       "itemid": "220181",
       "dictionary_label": "Non Invasive Blood Pressure mean",
-      "proposed_role": "separate non-invasive sensitivity stratum pending review"
+      "proposed_role": "separate non-invasive sensitivity stratum pending clinical review"
     }
   ],
   "pool_measurement_items": false,
@@ -52,12 +52,12 @@
     "proposed_basis": "same_release_same_patient_calendar",
     "alignment_declared": true,
     "physical_elapsed_time_verified": false,
-    "alignment_scope": "arterial request only: 17 patient-local calendar declarations; other strata pending"
+    "alignment_scope": "separate patient-local declarations per request: arterial 17, noninvasive 25, alternate arterial 4; no pooled or cross-patient calendar"
   },
   "availability_history_verified": false,
   "scope": "retrospective ICU source records; no age-based eligibility implemented",
   "source_selection_status": "conditional_record_windows_executed_clinical_review_pending",
-  "record_acceptance_status": "arterial_stratum_automated_source_fidelity_review_completed",
+  "record_acceptance_status": "all_three_strata_automated_source_fidelity_review_completed",
   "extraction_status": "indexed_windows_and_complete_partition_plans_implemented",
   "required_reviews": [
     "item identity and separate measurement strata",
@@ -103,5 +103,63 @@
     "matched_patients": 13,
     "anchors_verified_against_unpartitioned_sql": 944,
     "stays_accounted_for": 140
+  },
+  "technical_pressure_strata_execution": {
+    "implementation": "patterns/reviewed_source_query.py",
+    "comparison": "docs/reviewed-pressure-strata.md",
+    "status": "all_three_separate_strata_completed",
+    "review_kind": "explicit_automated_source_fidelity",
+    "clinical_review_supplied": false,
+    "pooled_patient_count": null,
+    "patient_overlap_evaluated": false,
+    "strata": {
+      "arterial": {
+        "report": "verification/reviewed-arterial-demo-report.json",
+        "declaration": "data/arterial-source-fidelity-review.json",
+        "real_source_claims_accepted": 2022,
+        "metrics": {
+          "matched_patients": 13,
+          "eligible_treatment_baseline_pairs": 86,
+          "followup_bindings": 340,
+          "eligible_pairs_without_selected_followup": 1,
+          "delta_signs_per_binding": {
+            "negative": 25,
+            "positive": 297,
+            "zero": 18
+          }
+        }
+      },
+      "noninvasive": {
+        "report": "verification/reviewed-noninvasive-demo-report.json",
+        "declaration": "data/noninvasive-source-fidelity-review.json",
+        "real_source_claims_accepted": 1784,
+        "metrics": {
+          "matched_patients": 19,
+          "eligible_treatment_baseline_pairs": 151,
+          "followup_bindings": 603,
+          "eligible_pairs_without_selected_followup": 10,
+          "delta_signs_per_binding": {
+            "negative": 107,
+            "positive": 474,
+            "zero": 22
+          }
+        }
+      },
+      "art": {
+        "report": "verification/reviewed-art-demo-report.json",
+        "declaration": "data/art-source-fidelity-review.json",
+        "real_source_claims_accepted": 1042,
+        "metrics": {
+          "matched_patients": 2,
+          "eligible_treatment_baseline_pairs": 3,
+          "followup_bindings": 10,
+          "eligible_pairs_without_selected_followup": 0,
+          "delta_signs_per_binding": {
+            "negative": 2,
+            "positive": 8
+          }
+        }
+      }
+    }
   }
 }

@@ -378,3 +378,5 @@ No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access re
 ## Reviewed source-fidelity execution
 
 [`patterns/source_fidelity_audit.py`](../patterns/source_fidelity_audit.py) rereads original CSV files and independently checks claim content, source evidence, identity and clock-origin witnesses. It makes no decisions. [`patterns/reviewed_source_query.py`](../patterns/reviewed_source_query.py) requires a separate declaration bound to the exact package and audit, materializes explicit unique-claim decisions and patient-calendar declarations, then invokes the existing partition executor. [The arterial demonstration](reviewed-arterial-demo.md) publishes aggregate execution and reconciliation evidence, with automated record fidelity distinguished from clinical review.
+
+The [three-stratum comparison](reviewed-pressure-strata.md) now adds separately declared non-invasive and alternate arterial-label executions, complete SQL reconciliation and aggregate coverage counts. Three further tests verify their provenance, common query criteria and candidate-plan accounting.
