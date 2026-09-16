@@ -1,0 +1,14 @@
+{
+  "profile": "source-fidelity-review-declaration-1.0",
+  "package_context_id": "d2e1e7304289ea4888a5abaeea72fee42543587473e1a5e0e4543490ce24d451",
+  "audit_context_id": "9df04118808017e3c556c242f9b78f749276d2853c04cf8b9c888152dd51a596",
+  "unique_claims": 9,
+  "calendar_reviews": 3,
+  "reviewer": "Explicit acceptance of authored synthetic demonstration records",
+  "record_decision": "accept_all_fidelity_verified_claims",
+  "record_reason": "Accept the exact authored synthetic records after independent source-fidelity checks; these are fabricated examples, not clinical adjudications.",
+  "calendar_decision": "same_patient_calendar",
+  "calendar_reason": "The authored fixture defines a common recorded calendar within each synthetic patient.",
+  "clinical_mapping_verified": false,
+  "reviewer_identity_verified": false
+}

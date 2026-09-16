@@ -2788,7 +2788,7 @@
       }
     }
   ],
-  "generation_base_commit": "858d5fb685f54448125e2a446892643eac0ca715",
+  "generation_base_commit": "e1e12152a6ba004cac62c294c86703e3dd0cf427",
   "projection_sha256": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
   "availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted."
 }

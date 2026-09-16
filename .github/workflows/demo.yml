@@ -26,4 +26,6 @@ jobs:
       - name: Verify demo routes, live pipelines, replay and failure diagnostics
         run: python -m unittest discover -s demo -p 'test_*.py'
       - name: Verify guided JavaScript states and failure handling
-        run: node demo/test_guided_ui.cjs
+        run: |
+          node demo/test_guided_ui.cjs
+          node demo/test_pressure_ui.cjs

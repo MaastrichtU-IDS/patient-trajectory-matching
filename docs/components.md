@@ -382,3 +382,5 @@ No MIMIC patient rows are redistributed here. MIMIC-IV carries its own access re
 The [three-stratum comparison](reviewed-pressure-strata.md) now adds separately declared non-invasive and alternate arterial-label executions, complete SQL reconciliation and aggregate coverage counts. Three further tests verify their provenance, common query criteria and candidate-plan accounting.
 
 [`patterns/verify_pressure_overlap.py`](../patterns/verify_pressure_overlap.py) freshly reproduces all three reviewed pressure queries, validates common source/query/population scope and compares membership at patient, stay and treatment-segment levels. The [overlap report](pressure-cohort-overlap.md) contains only aggregate counts and provenance hashes, with incomplete inputs preventing publication.
+
+The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewed-window sessions, bounded query controls and complete SQL-reconciled execution through local asynchronous HTTP jobs. The UI exposes actual source decisions and treatment PRO witnesses; it retains the previous result on failure and admits no wider source window without another review.

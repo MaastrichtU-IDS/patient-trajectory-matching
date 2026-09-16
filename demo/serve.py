@@ -2,7 +2,7 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-import argparse, copy, json, platform, shlex, subprocess, sys, tempfile
+import argparse, copy, json, platform, re, shlex, subprocess, sys, tempfile
 from importlib.metadata import PackageNotFoundError, version
 
 ROOT = Path(__file__).resolve().parent
@@ -10,6 +10,8 @@ SOURCE = ROOT.parent
 sys.path.insert(0, str(SOURCE))
 from reference_oracle import evaluate
 from cohort import export_cohort, run_cohort
+from pressure import PressureService
+PRESSURE = PressureService()
 
 DATA = json.loads((ROOT / 'demo-data.json').read_text())
 COHORT = json.loads((ROOT / 'cohort-data.json').read_text())
@@ -68,8 +70,30 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def pressure_origin(self):
+        host=self.headers.get('Host','')
+        allowed={f'127.0.0.1:{self.server.server_port}',f'localhost:{self.server.server_port}'}
+        if host not in allowed or self.headers.get('Origin', 'http://'+host) != 'http://'+host:
+            self.send({'error':'Pressure data are available only to this local server origin.'},403)
+            return False
+        return True
+
     def do_GET(self):
         url = urlparse(self.path)
+        if url.path == '/pressure' or url.path.startswith('/api/pressure'):
+            if not self.pressure_origin(): return
+            if url.query: return self.send({'error':'Unexpected URL parameters'},400)
+            if url.path == '/pressure':
+                page=(ROOT/'pressure.html').read_text().replace('/*PRESSURE_CSS*/',(ROOT/'pressure.css').read_text()).replace('/*PRESSURE_JS*/',(ROOT/'pressure.js').read_text())
+                return self.send(page.encode(),mime='text/html')
+            if url.path == '/api/pressure/config': return self.send(PRESSURE.metadata())
+            match=re.fullmatch(r'/api/pressure/jobs/([0-9a-f]{32})(?:/anchors/([0-9a-f]{24}))?',url.path)
+            if match:
+                try:
+                    return self.send(PRESSURE.inspect(*match.groups()) if match[2] else PRESSURE.get(match[1]))
+                except KeyError: return self.send({'error':'Unknown or expired query/evidence'},404)
+                except ValueError as error: return self.send({'error':str(error)},409)
+            return self.send({'error':'Not found'},404)
         if url.path in ('/', '/index.html'):
             return self.send((ROOT / 'Guided_Cohort_Demo.html').read_bytes(), mime='text/html')
         if url.path in ('/lab', '/Patient_Trajectory_Demo.html'):
@@ -102,6 +126,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send({'error': 'Not found'}, 404)
 
     def do_POST(self):
+        if self.path == '/api/pressure/jobs':
+            if not self.pressure_origin(): return
+            if self.headers.get('Content-Type','').split(';')[0] != 'application/json' or self.headers.get('Transfer-Encoding'):
+                return self.send({'error':'Send a bounded JSON request'},400)
+            try:
+                size=int(self.headers.get('Content-Length','0'))
+                if not 0<size<=4096: raise ValueError('Request body must be 1–4096 bytes')
+                self.connection.settimeout(10)
+                request=json.loads(self.rfile.read(size))
+                return self.send(PRESSURE.start(request),202)
+            except (ValueError,TypeError,UnicodeError) as error: return self.send({'error':str(error)},400)
+            except RuntimeError as error: return self.send({'error':str(error)},409)
+            except ImportError: return self.send({'error':'Install the pinned graph/Rust dependencies and restart.','environment':environment()},503)
+            except (OSError,TimeoutError): return self.send({'error':'Request could not be read'},400)
         if self.path not in ('/api/semantic', '/api/graph'):
             return self.send({'error': 'Not found'}, 404)
         # No input payload or user-provided paths are accepted by these fixed demo routes.
@@ -114,6 +152,10 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8765)
+    sources=parser.add_mutually_exclusive_group()
+    sources.add_argument('--mimic-dir',type=Path,help='Original pinned public MIMIC-IV demo 2.2 ICU files, served locally')
+    sources.add_argument('--pressure-synthetic',action='store_true',help='Explicitly use authored pressure fixtures')
     args = parser.parse_args()
+    PRESSURE = PressureService(args.mimic_dir,args.pressure_synthetic)
     print(f'Patient Trajectory Matching demo: http://127.0.0.1:{args.port}', flush=True)
     ThreadingHTTPServer(('127.0.0.1', args.port), Handler).serve_forever()

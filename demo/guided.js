@@ -87,6 +87,7 @@ async function enterStep(target, overrideBudget = null) {
 function render() {
   const story = GUIDED.story[step];
   $('mode').textContent = isLive ? (result ? 'Live · Python matcher' : 'Local server · ready') : 'Offline · recorded replay';
+  $('pressure-link').hidden = !isLive;
   $('lab-link').href = isLive ? '/lab' : 'Patient_Trajectory_Demo.html';
   $('steps').innerHTML = GUIDED.story.map((s,i) => `<button class="step" data-step="${i}" ${i === step ? 'aria-current="step"' : ''}><b>${i+1}</b><span>${esc(s.short)}</span></button>`).join('');
   document.querySelectorAll('[data-step]').forEach(b => b.onclick = () => enterStep(Number(b.dataset.step)));
