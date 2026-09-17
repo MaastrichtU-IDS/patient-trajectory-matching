@@ -1,0 +1,25 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S2",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "A ends at 10; B starts at 12; no member lies between in the declared complete scope | Strict precedence; direct succession may hold despite the gap",
+  "narrative": "A positive gap between A's end and B's start satisfies strict precedence (e_A < s_B) regardless of gap size. Whether direct succession also holds depends on whether the declared scope S is complete and contains no process strictly between A and B; the gap itself is never disqualifying.",
+  "illustrative_processes": [
+    {"id": "A", "class": "sulo:Process", "interval": {"start": "2026-01-01T09:00:00Z", "end": "2026-01-01T10:00:00Z"}},
+    {"id": "B", "class": "sulo:Process", "interval": {"start": "2026-01-01T12:00:00Z", "end": "2026-01-01T13:00:00Z"}}
+  ],
+  "illustrative_scope": {
+    "note": "sequence/context representation is itself unresolved (see docs/decisions/temporal-precedence.md, Sequence scope and incomplete knowledge); this sketch is one illustrative shape, not a proposal.",
+    "members": ["A", "B"],
+    "declared_complete": true
+  },
+  "illustrative_expectation": {
+    "precedes": {"subject": "A", "object": "B", "holds": true, "basis": "e_A(10:00) < s_B(12:00)"},
+    "direct_succession_within_declared_scope": {"subject": "A", "object": "B", "holds": true, "basis": "scope declared complete with no intervening member"}
+  },
+  "unresolved_before_adoption": [
+    "canonical name for the direct-succession property",
+    "sequence/context representation for scope S, including what 'declared complete' means and who asserts it",
+    "whether direct succession is computed on demand from the direct-edge graph or cached, and how cache invalidation on new evidence is triggered"
+  ]
+}

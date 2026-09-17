@@ -1,0 +1,20 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S3",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "A ends at 10; B starts at 10 | Temporal contact; no strict-precedence edge for that pair",
+  "narrative": "Endpoint equality (e_A == s_B) is Allen's meets/temporal contact, not strict precedence. The decision document is explicit that this pair must not receive a precedes edge; broadening precedes to e_A <= s_B would be a different, unadopted definition. The existing executable before operator (patterns/exact_intervals.py) already returns NOT_SATISFIED for a contact pair under strict before, which this scenario would extend to the proposed precedes property once adopted.",
+  "illustrative_processes": [
+    {"id": "A", "class": "sulo:Process", "interval": {"start": "2026-01-01T09:00:00Z", "end": "2026-01-01T10:00:00Z"}},
+    {"id": "B", "class": "sulo:Process", "interval": {"start": "2026-01-01T10:00:00Z", "end": "2026-01-01T11:00:00Z"}}
+  ],
+  "illustrative_expectation": {
+    "meets": {"subject": "A", "object": "B", "holds": true, "basis": "e_A(10:00) == s_B(10:00)"},
+    "precedes": {"subject": "A", "object": "B", "holds": false, "basis": "strict inequality e_A < s_B is not satisfied by equality"}
+  },
+  "unresolved_before_adoption": [
+    "whether the eventual profile keeps precedes and meets as disjoint operators, or offers a separate combined 'precedes-or-meets' operator under an explicit new name",
+    "canonical name for the direct-succession property",
+    "sequence/context representation for scope S"
+  ]
+}

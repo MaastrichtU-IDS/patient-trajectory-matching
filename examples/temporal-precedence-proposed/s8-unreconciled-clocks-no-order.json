@@ -1,0 +1,22 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S8",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "Endpoint clocks cannot be reconciled | Do not derive timestamp order or contact",
+  "narrative": "Strict precedence and temporal contact are both defined over compatible clocks. If A's end and B's start are recorded against clocks that cannot be reconciled to a common reference (for example, an unresolved timezone on one side, or two patient-local clocks with no established offset), neither precedes nor meets may be derived from the raw timestamps; the correct outcome is an explicit failure to compare, not a default ordering.",
+  "illustrative_processes": [
+    {"id": "A", "class": "sulo:Process", "interval": {"start": "2026-01-01T09:00:00", "end": "2026-01-01T10:00:00", "clock": "patient-local, unresolved offset"}},
+    {"id": "B", "class": "sulo:Process", "interval": {"start": "2026-01-01T10:00:00Z", "end": "2026-01-01T11:00:00Z", "clock": "UTC"}}
+  ],
+  "illustrative_expectation": {
+    "precedes": {"subject": "A", "object": "B", "comparable": false},
+    "meets": {"subject": "A", "object": "B", "comparable": false},
+    "status": "INCOMPARABLE_CLOCKS",
+    "basis": "A's endpoint has no resolved offset against B's UTC anchor; existing PS-006 rejects unresolved timezones at ingestion, and this scenario extends the same discipline to precedence/contact comparisons"
+  },
+  "unresolved_before_adoption": [
+    "whether INCOMPARABLE_CLOCKS reuses the existing INCOMPARABLE status from interval-cohort-1.0/bounded-interval-1.0 or needs a distinct name scoped to precedence",
+    "canonical name for the direct-succession property",
+    "sequence/context representation for scope S"
+  ]
+}

@@ -101,6 +101,8 @@ These are proposed tests, not results from the current executable suite.
 | A direct-edge cycle is supplied | Report an invalid strict-order input through validation; transitivity alone does not reject it |
 | Endpoint clocks cannot be reconciled | Do not derive timestamp order or contact |
 
+Illustrative sketches for each row above, including sample process intervals and the unresolved questions specific to that row, are in [`examples/temporal-precedence-proposed/`](../../examples/temporal-precedence-proposed/README.md). They are not executable and not a preview of adopted behavior.
+
 ## Remaining decisions
 
 Before implementation, resolve the canonical name, sequence/context representation, and whether the intended use is strict succession or zero-gap contact. Then assess downstream OWL compatibility, add conformance cases, and version the SULO dependency explicitly. The current class-only application contract remains usable while these upstream questions are resolved.
