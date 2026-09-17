@@ -22,7 +22,8 @@ Find:  patients whose recorded evidence satisfies that trajectory — and say
 |  | |
 |---|---|
 | ✅ **Is** | A modeling contract for patient trajectories over a temporal knowledge graph |
-| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 781 passing checks |
+| ✅ **Is** | Temporal profiles, evidence selection, mapping conformance and checked Rust semantic support with 809 contract checks |
+| ✅ **Is** | A bounded research workspace connecting patient similarity, two refinements, cohort comparison and source evidence |
 | ✅ **Is** | A specification set for the full product, with implementation status marked throughout |
 | ❌ **Is not** | A production matcher |
 | ❌ **Is not** | A complete OWL reasoner |
@@ -70,6 +71,14 @@ Installation needs network access. Everything after it runs offline — no Java,
 Full instructions and expected output for every component: **[docs/validation.md](docs/validation.md)**
 
 ## Interactive demonstration
+
+The **[integrated research workspace](docs/research-workspace.md)** connects query-by-example, two immutable refinements, exact versus relaxed cohort comparison, source inspection and replayable export over the same authored patients:
+
+```sh
+python -m app.server --host 127.0.0.1 --port 8080
+```
+
+Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 
 The [guided cohort demo](demo/README.md) is a 2–3 minute investigation: start with a
 patient, find exact matches, broaden the query, inspect the boundaries, and export
@@ -172,6 +181,11 @@ Start at the **[documentation guide](docs/README.md)**, or go directly to:
 | [Components](docs/components.md) | What each part does, how to use it, what it depends on |
 | [Specifications](docs/specifications.md) | The addenda and design documents, what each covers, reading order |
 | [Status](docs/status.md) | Executable versus specified, by family and component |
+| [Completion register](docs/completion.md) | Evidence and remaining clauses for all 104 original requirements |
+| [Research workspace](docs/research-workspace.md) | Connected synthetic investigation, HTTP API and export replay |
+| [Patient similarity](docs/patient-similarity.md) | Pre-index evidence, exact ranking, coverage and immutable refinements |
+| [Deployment](docs/deployment.md) | Docker, Compose and single-replica Helm packaging |
+| [Workload memory](docs/pressure-workload-memory.md) | Sampled process-tree RSS, provenance and measurement limits |
 | [Outstanding issues](docs/issues.md) | Known gaps and open questions, each citing its source |
 | [Running and validating](docs/validation.md) | Every command, expected output, troubleshooting |
 
@@ -210,6 +224,9 @@ These develop the next temporal profiles. The precedence names and axioms remain
 | Component | Path | Status |
 |---|---|---|
 | Reference oracle | `reference_oracle.py` | Executable — 16 cases, no dependencies |
+| Research workspace | `app/` | Executable — bounded authored QBE/refinement/cohort/evidence journey |
+| Patient similarity | `patterns/patient_similarity.py` | Executable — pre-index exact ranking and immutable refinements |
+| Deployment package | `Dockerfile`, `deploy/helm/` | Research prototype packaging; target-cluster operation remains unverified |
 | PRO/SOLID adapter | `patterns/pro_solid.py` | Executable — 5-stage point-anchor pipeline |
 | Exact-interval adapter | `patterns/exact_intervals.py` | Executable — intervals, clocks, 4 operators |
 | Interval cohort matcher | `patterns/interval_cohort.py` | Executable — indexed and reference engines |

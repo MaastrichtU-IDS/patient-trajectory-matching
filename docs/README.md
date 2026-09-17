@@ -12,6 +12,11 @@ Start here for the overall design and current state.
 | [Components](components.md) | What each part does, how to use it, what it depends on |
 | [Specifications](specifications.md) | Every contract and design document, what each covers, reading order |
 | [Status](status.md) | Executable versus specified, by family and component |
+| [Completion register](completion.md) | All 104 legacy requirements, implementation evidence and remaining dependencies |
+| [Research workspace](research-workspace.md) | Integrated synthetic similarity, refinement, cohort comparison and evidence journey |
+| [Patient similarity](patient-similarity.md) | Pre-index selection, exact ranking, coverage, filters and replay |
+| [Deployment](deployment.md) | Docker, Compose, Helm and bounded operational scope |
+| [Workload memory](pressure-workload-memory.md) | Measured process-tree RSS with explicit sampling limitations |
 | [Outstanding issues](issues.md) | Known gaps and open questions, each citing its source |
 | [Running and validating](validation.md) | Every command, expected output, troubleshooting |
 

@@ -160,10 +160,10 @@ Wireframes, tokens, storyboard and interaction contracts exist. Local guided coh
 
 The guided demo exposes constructed PRO/SOLID evidence and semantic/time costs; the [pressure inspector](live-pressure-inspector.md) exposes actual recorded-source claims, acceptance decisions and treatment role witnesses. The general product evidence workspace remains unimplemented.
 
-### A5. Similarity and refinement unimplemented **[gap]**
+### A5. Broader similarity and refinement remain incomplete **[partial]**
 *Source: REFINE-001 to REFINE-003, `v21-additions-report.json`*
 
-`refinement_service_implemented: false`. Patient similarity, ANN, arbitrary selectors, `NOT_RECORDED`, optionality and deletion are all out of scope for the current matcher.
+The [bounded patient similarity engine](patient-similarity.md) and [research workspace](research-workspace.md) now implement pre-index ranking, missingness coverage, hard filters, immutable revisions, two refinements, source inspection and replay on authored patients. Historical reports describing refinement as unimplemented predate this increment. ANN, general selectors, arbitrary event promotion, optionality/deletion and the complete refinement specification remain open; see the row-specific [completion assessment](completion.md).
 
 ---
 
@@ -187,11 +187,9 @@ The comparison is a planned protocol. No Graphiti results exist in this reposito
 
 `verification/v24-pro-solid-report.json` records the runner's Python version, so it changes whenever the interpreter patch version differs. CI reports this as a notice rather than a failure. The release manifest hashes inputs only, so this drift does not affect integrity checking — but it does mean a local run can leave the working tree dirty.
 
-### R3. Interval profiles are not in the requirement register **[open]**
+### R3. Current traceability supplements the historical register **[addressed]**
 
-`requirements.csv` tracks 104 requirements and marks 10 executable, all PS-\* in the point-anchor profile. The `exact-interval-1.0` and `interval-cohort-1.0` profiles are executable and CI-verified but have no requirement IDs, no acceptance gate and no traceability row.
-
-Until they do, [status.md](status.md) and the register disagree about what is implemented, and the register is the one that undercounts.
+The [completion register](completion.md) now retains the exact 104 original requirements and records evidence, acceptance commands, remaining clauses and external dependencies. Sixteen additional profiles have separate traceability entries. Its checker verifies coverage and evidence digests; it does not execute the referenced acceptance commands or claim full-product completion.
 
 ### R2. Legacy ontology drafts are loadable **[risk]**
 *Source: [2.4 §8](../addenda/specification-2.4.md)*

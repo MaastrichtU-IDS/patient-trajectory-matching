@@ -1,0 +1,22 @@
+replicaCount: 1
+image:
+  repository: patient-trajectory-matching
+  tag: local
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+service:
+  port: 8080
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: trajectory.example.invalid
+  tls: []

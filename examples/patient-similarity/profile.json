@@ -1,0 +1,22 @@
+{
+  "profile_id": "authored-guided-h0-qbe-1.0",
+  "clinical_validity_claim": false,
+  "weights": {
+    "age_band": "1",
+    "baseline_creatinine": "1",
+    "clinical_concepts": "1"
+  },
+  "minimum_coverage": "0.5",
+  "history_us": 1209600000000,
+  "creatinine_window_us": 172800000000,
+  "creatinine_scale": "1",
+  "creatinine_unit": "mg/dL",
+  "concept_ancestors": {
+    "ex:DrugA": [],
+    "ex:DrugAChild": [
+      "ex:DrugA"
+    ],
+    "ex:DrugB": []
+  },
+  "mapping_review": "authored_synthetic_review"
+}

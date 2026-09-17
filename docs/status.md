@@ -2,9 +2,9 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: temporal profiles, evidence selection, mapping conformance and checked Rust semantic support, 781 passing checks, and 10 of 104 tracked requirements marked executable.**
+**Summary: 809 contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
 
-The requirement register predates the interval work. `requirements.csv` still tracks 104 requirements with 10 marked executable, all of them PS-\* in the point-anchor profile. The `exact-interval-1.0`, `interval-cohort-1.0`, and `bounded-interval-1.0` profiles are executable and CI-verified but **are not yet represented in the register** — see [issues.md R3](issues.md#repository-hygiene).
+The original `requirements.csv` remains byte-preserved as the historical authority. The [current completion register](completion.md) maps every original row to evidence and remaining clauses and separately tracks 16 additional profiles, including the interval work. The family table below reports the original CSV statuses; it is not the current implementation assessment.
 
 Do not infer production readiness from passing fixture reports. The verification reports certify this pack's internal consistency only.
 
@@ -96,7 +96,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Reviewed measurement selector tests | 18 passed |
 | Measurement source catalogue and audit tests | 20 passed |
 | Prepared measurement session tests | 20 passed |
-| **Total** | **781 checks passing** |
+| Pre-index similarity and immutable refinement tests | 28 passed |
+| **Total** | **809 contract checks** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -105,7 +106,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 758 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and the manifest checks are not added again.
+The total is 786 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 13, and the completion checker has 13. Four Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -228,3 +229,10 @@ The [source catalogue adapter](source-record-catalogue.md) adds 18 tests: 723 co
 
 
 [Configured workload verification](configured-pressure-workload.md) now executes supplied query matrices with separate service/HTTP/fresh-reference timings and actual cache behavior. The committed authored sequence verifies six trials and 36 HTTP inspections; 12 new tests bring the demo suite to 92. Representative clinical workload and peak-memory evaluation remain open.
+
+
+### Integrated synthetic research journey
+
+[The research workspace](research-workspace.md) now connects pre-index query-by-example, two immutable refinements, exact/relaxed comparison over the entire eligible pool, source inspection and verified export replay. The committed aggregate journey binds all five steps to implementation and source hashes. [Similarity](patient-similarity.md) adds 28 tests; HTTP integration and completion traceability add 13 tests each. The original source is supplemented with explicitly authored availability evidence; this is not historical clinical validation.
+
+[The memory profiler](pressure-workload-memory.md) adds 12 demo tests and measures the configured authored workload's sampled process-tree RSS. Its committed six-trial run observed 77.55 MiB; sequential RSS sampling is not an exact peak and does not establish representative clinical capacity. [The completion assessment](completion.md) records the full product's remaining clauses and external dependencies.
