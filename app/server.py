@@ -16,6 +16,7 @@ from app.temporal import TemporalWorkspace
 from app.interval_editor import IntervalEditor
 from app.journey import JourneyWorkspace
 from app.pattern_builder import compile_pattern, decompile_query
+from app.relaxation_catalogue import compile_catalogue
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -54,7 +55,8 @@ class Workspace:
                 'supported': ['pre-index-similarity', 'bounded-refinements',
                               'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
                               'bounded-temporal-demonstration', 'bounded-interval-query-editor',
-                              'guided-patient-temporal-journey', 'configurable-three-event-patterns'],
+                              'guided-patient-temporal-journey', 'configurable-three-event-patterns',
+                              'custom-relaxation-catalogues'],
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'authentication', 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'],
@@ -264,6 +266,10 @@ class Handler(BaseHTTPRequestHandler):
                     exact_keys(data, ('query',))
                     pattern = decompile_query(data['query'])
                     result = {'pattern': pattern, 'query': compile_pattern(pattern)}
+                elif self.path == '/api/journey/catalogue':
+                    exact_keys(data, ('pattern', 'catalogue', 'budget'))
+                    query = compile_pattern(data['pattern'])
+                    result = {'query': query, 'policy': compile_catalogue(query, data['catalogue'], data['budget'])}
                 else:
                     return self.send(404, {'error': 'Route not found'})
                 self.send(200, result)
