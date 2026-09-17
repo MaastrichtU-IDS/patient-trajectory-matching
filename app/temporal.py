@@ -23,8 +23,9 @@ def digest(value):
     return hashlib.sha256(ei.canonical(value).encode()).hexdigest()
 
 
-def check_limits(source, query, policy):
+def check_limits(source, query, policy, *, limits=None):
     """Reject a larger workload before source closure or binding enumeration."""
+    limits = LIMITS if limits is None else limits
     sizes = {name: len(source[name]) for name in ('events', 'variables', 'clocks')}
     sizes.update(patients=len({e['patient_id'] for e in source['events']}),
                  episodes=len({bt.scope(e) for e in source['events']}),
@@ -43,7 +44,7 @@ def check_limits(source, query, policy):
             product *= sum(slot['class_iri'] in bt.selected_classes(e) for e in events)
         candidates += product
     sizes['candidate_bindings_per_evaluation'] = candidates
-    if any(value > LIMITS[name] for name, value in sizes.items()):
+    if any(value > limits[name] for name, value in sizes.items()):
         raise ValueError('Temporal demonstration exceeds its execution limits')
     return sizes
 
