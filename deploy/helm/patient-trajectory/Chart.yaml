@@ -1,0 +1,6 @@
+apiVersion: v2
+name: patient-trajectory
+description: Authored research prototype for SULO patient trajectory matching
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

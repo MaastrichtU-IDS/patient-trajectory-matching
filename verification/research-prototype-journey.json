@@ -1,0 +1,49 @@
+{
+  "artifacts": {
+    "app/app.js": "ba5b23faf30ae86adfd28cf28c78ac0118e665dd87aeb46c4964690193ff4ea0",
+    "app/index.html": "a40dbd36d9ccf84ed4cabf59c1d691956a0f03cfc2ce7cbbcbf4d408fd7305d6",
+    "app/replay.py": "edbee41d7fc40d3387022e3552aede3396083b7e374e847e0006f2d40398c2bb",
+    "app/server.py": "3865675d50b9b4873aa806eacb3a8be373deebb8a3760042acd4bb4dc00a2522",
+    "app/style.css": "4a28d353c9089b7174e45f84438f583dd287a19dc21a73147da2eb468520b9f9",
+    "app/test_server.py": "0c6ee1fb6c86dcd7402c6e6715830829b89c5c3cb4551b029a19714480bf97cf",
+    "app/test_ui.cjs": "ace4e036ee6890c0ef790d6d414e178a41ff968aa58a6aecf648f95d7d7945da",
+    "demo/cohort-data.json": "6c61576e73b6c0cef4649892cad079d095eeb32319f120f6c3f7a1b937cb5ba4",
+    "demo/cohort.py": "1066b7c392b282e5c822236844035b8c874cfa60d547c842739d869ce0f2c1e2",
+    "examples/exemplar.pattern.json": "31945337af8240626772951d101d13aeb462b7ec3dc2df6106d036136c9c2428",
+    "examples/patient-similarity/dataset.json": "d05c7c2daf3947d37cf5ae6a83a3a8ed95ea7b4d214d7c4039eb498aaee512af",
+    "examples/patient-similarity/profile.json": "4e3e471043637d50a30a803aa7bf7e2e82a9a76a976d499495270781bcc592a1",
+    "ontology/toy-taxonomy.json": "8ffbe370d820bedab4e5bacac847fa4e4bfe86e6fccda89da0747252f8f577ee",
+    "patterns/patient_similarity.py": "6d635d22b76767543f3a048f40e733c7e317727a72dadd9ded95d4be2e0ab5c1",
+    "patterns/pro_solid.py": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+    "reference_oracle.py": "f1ecb80ee8accb307ccbdb19de77a06abe4d75123a3f586e61029d01a0858a20"
+  },
+  "clinical_validity_claim": false,
+  "counts": {
+    "base_candidates": 10,
+    "displayed": 1,
+    "exact": 3,
+    "hard_eligibility_unresolved": 1,
+    "hard_eligible_after_refinement": 9,
+    "relaxed_additions": 3,
+    "revisions": 3,
+    "source_rows_inspected": 3,
+    "trajectory_unresolved": 1
+  },
+  "dataset_sha256": "1d92bf93c28c62b650d55c1bbde3f584c3229b287cd257c6e301e785ff72d0a5",
+  "execution": "actual-loopback-http-and-independent-export-replay",
+  "implementation_sha256": "6d635d22b76767543f3a048f40e733c7e317727a72dadd9ded95d4be2e0ab5c1",
+  "passed": true,
+  "profile": "research-prototype-journey-verification-1.0",
+  "profile_sha256": "45e6ae5353eeac250a4fa85a4dfd6d57ae9364b2e479c684055bef4d38fea713",
+  "projection_sha256": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+  "replay_verified": true,
+  "scope": "authored-synthetic-research-prototype",
+  "source_dataset_sha256": "6c61576e73b6c0cef4649892cad079d095eeb32319f120f6c3f7a1b937cb5ba4",
+  "verified_journey": [
+    "bounded_query_by_example",
+    "first_refinement",
+    "second_refinement",
+    "exact_vs_relaxed_cohort_comparison",
+    "source_evidence_inspection"
+  ]
+}

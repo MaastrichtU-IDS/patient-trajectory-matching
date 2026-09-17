@@ -20,6 +20,35 @@ The standalone oracle needs **no dependencies at all** and runs on Python 3.10 o
 
 ## Quick check
 
+For the integrated research prototype, after installing the pinned semantic dependencies:
+
+```sh
+python -m pip install -r patterns/requirements-semantic.lock.txt
+python -m unittest discover -s patterns -t . -p 'test_*.py'
+python reference_oracle.py
+python -m unittest discover -s demo -p 'test_*.py'
+python -m unittest discover -s app -p 'test_*.py'
+python -m unittest discover -s tools -p 'test_*.py'
+node app/test_ui.cjs
+node demo/test_guided_ui.cjs
+node demo/test_pressure_ui.cjs
+node demo/test_configured_pressure_ui.cjs
+python tools/check_completion.py --output verification/research-prototype-run/completion.json
+```
+
+Current totals are 786 contract-suite tests plus 23 oracle checks, 104 demo tests,
+13 research HTTP tests and 13 completion-checker tests. Counts below describe their
+individual historical increments. The completion command validates traceability;
+it does not rerun referenced acceptance tests. The committed
+`verification/research-prototype-journey.json` binds the five-step authored journey
+and replay to the current implementation and source hashes. See
+[research workspace](research-workspace.md), [similarity](patient-similarity.md),
+[memory measurement](pressure-workload-memory.md) and [deployment](deployment.md)
+for their scope and additional commands. Node checks exercise DOM state; they do
+not establish a browser visual review or measured usability.
+
+The original profile quick checks remain available individually:
+
 ```sh
 python reference_oracle.py           # 16 cases, 7 properties
 python -m patterns.pro_solid         # point-anchor pipeline

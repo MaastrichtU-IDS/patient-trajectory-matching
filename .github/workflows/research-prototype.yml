@@ -1,0 +1,74 @@
+name: integrated research prototype
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research-workflow:
+    name: Research workflow and completion traceability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            patterns/requirements.lock.txt
+            patterns/requirements-semantic.lock.txt
+      - name: Install pinned graph and Rust dependencies
+        run: python -m pip install -r patterns/requirements-semantic.lock.txt
+      - name: Verify pre-index ranking and immutable refinements
+        run: python -m unittest patterns.test_patient_similarity
+      - name: Verify the integrated research journey through HTTP
+        run: python -m unittest discover -s app -p 'test_*.py'
+      - name: Verify interface state and failure handling
+        run: node app/test_ui.cjs
+      - name: Verify completion-register consistency
+        run: |
+          python -m unittest discover -s tools -p 'test_*.py'
+          python tools/check_completion.py --output verification/research-prototype-run/completion.json
+      - name: Upload prototype verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-prototype-evidence
+          path: verification/research-prototype-run/
+          retention-days: 14
+
+  package:
+    name: Container smoke and Helm validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v5.0.0
+        with:
+          version: v3.18.4
+      - name: Validate Helm chart and render default deployment
+        run: |
+          helm lint deploy/helm/patient-trajectory
+          helm template research-prototype deploy/helm/patient-trajectory > /tmp/research-prototype.yaml
+          helm template research-prototype deploy/helm/patient-trajectory --set ingress.enabled=true > /tmp/research-prototype-ingress.yaml
+          if helm template invalid deploy/helm/patient-trajectory --set replicaCount=2 > /tmp/invalid-replicas.yaml 2>&1; then
+            echo 'Expected the chart to reject multiple replicas for in-memory state'
+            exit 1
+          fi
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build research image
+        run: docker build --tag patient-trajectory-matching:test .
+      - name: Run read-only non-root container and smoke-check HTTP
+        run: |
+          docker run --detach --name ptm-research --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --publish 127.0.0.1:8080:8080 patient-trajectory-matching:test
+          python deploy/smoke.py --url http://127.0.0.1:8080
+      - name: Show container diagnostics and clean up
+        if: always()
+        run: |
+          docker logs ptm-research || true
+          docker rm --force ptm-research || true

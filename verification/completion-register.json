@@ -1,0 +1,3162 @@
+{
+  "profile": "completion-register-1.0",
+  "requirements_source": {
+    "path": "requirements.csv",
+    "sha256": "04f4f0a47583c23150c20a4781b478e1ac424b7fa375b20fb53f2e749eefdde8"
+  },
+  "interpretation": {
+    "supported": "Complete only within the requirement's originally declared profile, with executable acceptance references.",
+    "partial": "Runnable evidence covers part of the original requirement; remaining clauses are explicitly open.",
+    "blocked": "The requirement cannot currently be accepted because named external dependencies are unsatisfied.",
+    "specification-only": "A design exists; no implementation evidence establishes the requirement."
+  },
+  "project_complete": false,
+  "production_ready": false,
+  "clinical_validity_claim": false,
+  "checks": {
+    "pro_solid": {
+      "command": "python -m patterns.test_pro_solid",
+      "scope": "Bounded PRO/SOLID point-anchor adapter; no full OWL claim.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "exact": {
+      "command": "python -m patterns.test_exact_intervals",
+      "scope": "Declared exact interval operators.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "interval": {
+      "command": "python -m patterns.test_interval_cohort",
+      "scope": "Conjunctive interval matching against exhaustive reference.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "bounded": {
+      "command": "python -m patterns.test_bounded_intervals",
+      "scope": "Discrete jointly feasible fixed-witness possible/certain matching.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "semantic": {
+      "command": "python -m patterns.test_semantic_support",
+      "scope": "Checked named-class support in admitted finite fragment with real Rust.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "selection": {
+      "command": "python -m patterns.test_evidence_selection",
+      "scope": "Explicit supplied assertion archives and source revision chains.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "joint": {
+      "command": "python -m patterns.test_joint_evidence",
+      "scope": "Joint selection of supplied temporal and semantic evidence.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "inputevents": {
+      "command": "python -m patterns.test_mimic_inputevents",
+      "scope": "Bounded inputevents admission and complete row ledger.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "measurement": {
+      "command": "python -m patterns.test_measurement_claims",
+      "scope": "Measurement claim validation and bounded chartevents admission.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "source": {
+      "command": "python -m patterns.test_source_mixed_query",
+      "scope": "Reviewed synthetic CSV/RDF/Rust/source SQL agreement.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "mapping": {
+      "command": "python -m patterns.test_reviewed_measurement_mappings",
+      "scope": "Reviewed mapping, explicit unit/item strata and blocked reviews.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "local_clock": {
+      "command": "python -m patterns.test_patient_local",
+      "scope": "Patient-local coordinate isolation and explicit bridges.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "prepared": {
+      "command": "python -m patterns.test_prepared_measurement_session",
+      "scope": "Prepared/fresh agreement and invalidation/budget checks.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "interface": {
+      "command": "python -m patterns.test_temporal_interface",
+      "scope": "Restricted SULO/standalone temporal interface conformance.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "oracle": {
+      "command": "python reference_oracle.py",
+      "scope": "Constructed three-slot exact/relaxed matching and invariant properties.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "configured": {
+      "command": "python -m unittest discover -s demo -p \"test_configured_pressure.py\"",
+      "scope": "Configured-source startup pinning and HTTP behavior.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "workload": {
+      "command": "python -m unittest discover -s demo -p \"test_configured_pressure_workload.py\"",
+      "scope": "Authored workload agreement and cache lifecycle; no clinical-scale claim.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "memory": {
+      "command": "python -m unittest discover -s demo -p \"test_pressure_workload_profile.py\"",
+      "scope": "Process-isolated repeated workload sampling; sampled aggregate RSS is not an exact simultaneous process-tree peak.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "similarity": {
+      "command": "python -m unittest patterns.test_patient_similarity",
+      "scope": "Bounded authored pre-index QBE, coverage, branches, full membership and replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "research_http": {
+      "command": "python -m unittest discover -s app -p \"test_*.py\"",
+      "scope": "Real HTTP: QBE, two refinements, exact/relaxed trajectory, source evidence and replay; strict request/lifecycle checks.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "research_ui": {
+      "command": "node app/test_ui.cjs",
+      "scope": "Actual browser script under DOM harness with engine responses; no manual visual/accessibility claim.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "deployment_smoke": {
+      "command": "python deploy/smoke.py --url http://127.0.0.1:8080",
+      "scope": "Requires a separately running app; checks liveness/readiness/capabilities/page, not matcher correctness or Kubernetes operation.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    }
+  },
+  "dependencies": [
+    {
+      "id": "D-DATA",
+      "kind": "access",
+      "title": "Authorized extracted datasets",
+      "acceptance": "Extraction owner supplies licensed/authorized versioned MIMIC tables, source checksums, extraction code, population/coverage/exclusion manifest; private rows remain outside the repository.",
+      "existing_reference": "data/full-mimic-study-plan-2.1.json",
+      "intended_input_location": "data/local-mimic/",
+      "intended_evidence_location": "verification/local-clinical-study/"
+    },
+    {
+      "id": "D-CLINICAL",
+      "kind": "human_review",
+      "title": "Clinical terminology and source interpretation",
+      "acceptance": "Qualified reviewers record explicit source item, unit, method, context and target-release decisions; candidate IRIs and automated source fidelity alone are not acceptance.",
+      "existing_reference": "data/clinical-terminology-review.json",
+      "intended_input_location": "data/terminology/",
+      "intended_evidence_location": "verification/local-clinical-study/mapping-review.json"
+    },
+    {
+      "id": "D-STUDY",
+      "kind": "human_decision",
+      "title": "Clinical study protocol and validation",
+      "acceptance": "Approve index/landmark rules, baseline selection, outcomes, censoring and patient-level held-out split; execute independent validation before a clinical finding.",
+      "existing_reference": "data/full-mimic-study-plan-2.1.json",
+      "intended_input_location": "data/local-mimic/",
+      "intended_evidence_location": "verification/local-clinical-study/protocol-and-validation.json"
+    },
+    {
+      "id": "D-HISTORY",
+      "kind": "source_capability",
+      "title": "Availability and correction histories",
+      "acceptance": "Source owner supplies trustworthy availability semantics, explicit revision links and history coverage, or chooses a named retrospective-only interpretation.",
+      "existing_reference": "docs/evidence-selection.md",
+      "intended_input_location": "data/local-history/",
+      "intended_evidence_location": "verification/local-history/coverage.json"
+    },
+    {
+      "id": "D-USABILITY",
+      "kind": "human_evaluation",
+      "title": "Domain and accessibility evaluation",
+      "acceptance": "Target users/domain reviewers complete formative interpretation tasks; manually verify keyboard and screen-reader workflows and retain defect/retest evidence.",
+      "existing_reference": "addenda/specification-2.2.md",
+      "intended_input_location": "evaluation/local-usability/",
+      "intended_evidence_location": "evaluation/local-usability/report.json"
+    },
+    {
+      "id": "D-ADNI-FHIR",
+      "kind": "access_and_design",
+      "title": "ADNI and FHIR source integration",
+      "acceptance": "Choose authorized data, exact ADNI release/FHIR profiles and specimen/observation/context mappings before implementing and validating each adapter.",
+      "existing_reference": "docs/issues.md",
+      "intended_input_location": "data/local-adni-fhir/",
+      "intended_evidence_location": "verification/local-adni-fhir/adapter-validation.json"
+    },
+    {
+      "id": "D-SULO",
+      "kind": "maintainer_decision",
+      "title": "SULO temporal extension",
+      "acceptance": "Review named precedence distinctions and broader OWL interface obligations; executable profile tests do not constitute adoption into upstream SULO.",
+      "existing_reference": "docs/decisions/temporal-precedence.md",
+      "intended_input_location": "docs/sulo-development/",
+      "intended_evidence_location": "docs/sulo-development/temporal-adoption-decision.md"
+    },
+    {
+      "id": "D-DEPLOY",
+      "kind": "infrastructure",
+      "title": "Runtime and release infrastructure",
+      "acceptance": "Provide a container runtime, target conformant Kubernetes test cluster and release registry/signing credentials before claiming built/published images or deployed cluster evidence.",
+      "existing_reference": "docs/specifications.md",
+      "intended_input_location": "deploy/",
+      "intended_evidence_location": "verification/deployment-runtime-report.json"
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "FR-001",
+      "legacy": {
+        "requirement_id": "FR-001",
+        "requirement": "Ingest normalized point and interval events with provenance and temporal precision. | Must",
+        "spec_sections": "9-13",
+        "release": "H0/R1",
+        "acceptance_gates": "AC03,AC04",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Recorded point/interval and patient-local adapters execute in declared bounded profiles.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/exact_intervals.py",
+        "patterns/mimic_measurement_import.py"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "exact",
+        "measurement"
+      ],
+      "remaining": [
+        "General normalized ingestion, justified clinical precision, and additional source adapters remain open."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-002",
+      "legacy": {
+        "requirement_id": "FR-002",
+        "requirement": "Reject or quarantine invalid events and publish a machine-readable quality report. | Must",
+        "spec_sections": "9-13",
+        "release": "H0/R1",
+        "acceptance_gates": "AC03,AC04",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Inputevents and chartevents importers account for supported, invalid and unsupported supplied rows.",
+      "evidence": [
+        "patterns/mimic_inputevents.py",
+        "patterns/mimic_measurement_import.py",
+        "verification/mimic-demo-inputevents-report.json"
+      ],
+      "acceptance_checks": [
+        "inputevents",
+        "measurement"
+      ],
+      "remaining": [
+        "Extend reconciliation to every supported product source; current coverage is bounded tables, not all clinical ETL."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-003",
+      "legacy": {
+        "requirement_id": "FR-003",
+        "requirement": "Create immutable data snapshots and support dependency-aware incremental updates. | Must",
+        "spec_sections": "9-13",
+        "release": "H0/R1",
+        "acceptance_gates": "AC03,AC04",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Snapshot and dependency hashes invalidate affected prepared sessions and results.",
+      "evidence": [
+        "patterns/prepared_measurement_session.py",
+        "demo/mapped_pressure.py"
+      ],
+      "acceptance_checks": [
+        "prepared",
+        "configured"
+      ],
+      "remaining": [
+        "Persistent immutable snapshot storage and dependency-aware incremental update scheduling are absent."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-010",
+      "legacy": {
+        "requirement_id": "FR-010",
+        "requirement": "Build and activate versioned semantic bundles from ontologies and mappings. | Must",
+        "spec_sections": "7,8",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Restricted semantic modules and reviewed mapping support are checked and cached for admitted classes.",
+      "evidence": [
+        "patterns/semantic_support.py",
+        "patterns/reviewed_measurement_mappings.py"
+      ],
+      "acceptance_checks": [
+        "semantic",
+        "mapping"
+      ],
+      "remaining": [
+        "General versioned bundle activation, full equivalence/disjointness lookup service and bundle lifecycle are absent."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-011",
+      "legacy": {
+        "requirement_id": "FR-011",
+        "requirement": "Answer runtime subsumption, equivalence, disjointness, and explanation lookups without invoking a general reasoner. | Must",
+        "spec_sections": "7,8",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Restricted semantic modules and reviewed mapping support are checked and cached for admitted classes.",
+      "evidence": [
+        "patterns/semantic_support.py",
+        "patterns/reviewed_measurement_mappings.py"
+      ],
+      "acceptance_checks": [
+        "semantic",
+        "mapping"
+      ],
+      "remaining": [
+        "General versioned bundle activation, full equivalence/disjointness lookup service and bundle lifecycle are absent."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-012",
+      "legacy": {
+        "requirement_id": "FR-012",
+        "requirement": "Compute and version ontology-based semantic-neighbour lists and information content. | Must",
+        "spec_sections": "7,8",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement versioned semantic-neighbour lists and corpus information content with declared ontology closure and snapshot identity; toy alternative policies are not semantic-neighbour computation."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-013",
+      "legacy": {
+        "requirement_id": "FR-013",
+        "requirement": "Parse authoritative ontology builds through horned-owl, with deterministic catalog-based import resolution and immutable source checksums. | Must",
+        "spec_sections": "7,8",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Generated restricted OFN is parsed by the pinned Rust/horned-owl path and checked against a finite reference.",
+      "evidence": [
+        "patterns/rustdl_worker.py",
+        "docs/semantic-support.md"
+      ],
+      "acceptance_checks": [
+        "semantic"
+      ],
+      "remaining": [
+        "Authoritative import closure/catalog resolution, general OWL profile routing and operation-completeness diagnostics remain open."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-014",
+      "legacy": {
+        "requirement_id": "FR-014",
+        "requirement": "Use rustDL EL/Horn saturation where applicable and its configured hybrid reasoning path for residual expressive content; publish profile routing and diagnostics. | Must",
+        "spec_sections": "7,8",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Generated restricted OFN is parsed by the pinned Rust/horned-owl path and checked against a finite reference.",
+      "evidence": [
+        "patterns/rustdl_worker.py",
+        "docs/semantic-support.md"
+      ],
+      "acceptance_checks": [
+        "semantic"
+      ],
+      "remaining": [
+        "Authoritative import closure/catalog resolution, general OWL profile routing and operation-completeness diagnostics remain open."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-015",
+      "legacy": {
+        "requirement_id": "FR-015",
+        "requirement": "Represent semantic inference as ENTAILED, NOT_ENTAILED, or UNKNOWN_OR_INCOMPLETE and propagate the status through cohort eligibility, ranking, evidence, and exports. | Must",
+        "spec_sections": "7,8",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Logical support, computation gates and recorded-match outcomes remain separate.",
+      "evidence": [
+        "patterns/semantic_support.py",
+        "patterns/mixed_record_query.py",
+        "docs/architecture.md"
+      ],
+      "acceptance_checks": [
+        "semantic",
+        "source"
+      ],
+      "remaining": [
+        "Unify these states across the complete product ranking, APIs and governed exports; finite supported fragments do not prove full OWL completeness."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-020",
+      "legacy": {
+        "requirement_id": "FR-020",
+        "requirement": "Create, validate, normalize, estimate, version, and compare temporal event expressions. | Must",
+        "spec_sections": "14",
+        "release": "H0/R1",
+        "acceptance_gates": "AC02,AC08",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Validated bounded ASTs execute conjunctions, interval relations and priced toy relaxation.",
+      "evidence": [
+        "patterns/interval_cohort.py",
+        "patterns/bounded_cohort.py",
+        "reference_oracle.py"
+      ],
+      "acceptance_checks": [
+        "interval",
+        "bounded",
+        "oracle"
+      ],
+      "remaining": [
+        "General expression creation/estimation/version comparison, weighted compilation, negation, repetition, optionality and count operators are absent."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-021",
+      "legacy": {
+        "requirement_id": "FR-021",
+        "requirement": "Compile expressions to Boolean and weighted executable plans. | Must",
+        "spec_sections": "14",
+        "release": "H0/R1",
+        "acceptance_gates": "AC02,AC08",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Validated bounded ASTs execute conjunctions, interval relations and priced toy relaxation.",
+      "evidence": [
+        "patterns/interval_cohort.py",
+        "patterns/bounded_cohort.py",
+        "reference_oracle.py"
+      ],
+      "acceptance_checks": [
+        "interval",
+        "bounded",
+        "oracle"
+      ],
+      "remaining": [
+        "General expression creation/estimation/version comparison, weighted compilation, negation, repetition, optionality and count operators are absent."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-022",
+      "legacy": {
+        "requirement_id": "FR-022",
+        "requirement": "Support bounded negation, optionality, alternatives, repetitions, counts, and interval relations. | Must",
+        "spec_sections": "14",
+        "release": "H0/R1",
+        "acceptance_gates": "AC02,AC08",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Validated bounded ASTs execute conjunctions, interval relations and priced toy relaxation.",
+      "evidence": [
+        "patterns/interval_cohort.py",
+        "patterns/bounded_cohort.py",
+        "reference_oracle.py"
+      ],
+      "acceptance_checks": [
+        "interval",
+        "bounded",
+        "oracle"
+      ],
+      "remaining": [
+        "General expression creation/estimation/version comparison, weighted compilation, negation, repetition, optionality and count operators are absent."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-030",
+      "legacy": {
+        "requirement_id": "FR-030",
+        "requirement": "Return complete exact query-to-cohort matches under the selected semantic and temporal policy. | Must",
+        "spec_sections": "15-17",
+        "release": "H0/R1",
+        "acceptance_gates": "AC05",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Differential/exhaustive verification establishes exactness only for declared finite profiles and supplied scope.",
+      "evidence": [
+        "patterns/interval_cohort_reference.py",
+        "patterns/bounded_reference.py",
+        "patterns/source_mixed_reference.py"
+      ],
+      "acceptance_checks": [
+        "interval",
+        "bounded",
+        "source"
+      ],
+      "remaining": [
+        "No certification of arbitrary expressions, general OWL, all datasets or clinical truth; broaden only with independent operation-specific evidence."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-031",
+      "legacy": {
+        "requirement_id": "FR-031",
+        "requirement": "Return ranked semantic-temporal query-to-cohort matches with score decomposition. | Must",
+        "spec_sections": "15-17",
+        "release": "H0/R1",
+        "acceptance_gates": "AC05",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Bounded authored QBE ranks strictly pre-index features with explicit coverage, deterministic ordering and separately evaluated exact/relaxed trajectory costs.",
+      "evidence": [
+        "reference_oracle.py",
+        "verification/reference-report.json",
+        "patterns/patient_similarity.py",
+        "patterns/test_patient_similarity.py",
+        "app/server.py"
+      ],
+      "acceptance_checks": [
+        "oracle",
+        "similarity",
+        "research_http"
+      ],
+      "remaining": [
+        "General semantic-temporal ranking, categorized near misses and optimized alignment remain open beyond the constructed profile."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-032",
+      "legacy": {
+        "requirement_id": "FR-032",
+        "requirement": "Return categorized near misses without changing the exact cohort result. | Should",
+        "spec_sections": "15-17",
+        "release": "H0/R1",
+        "acceptance_gates": "AC05",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Bounded authored QBE ranks strictly pre-index features with explicit coverage, deterministic ordering and separately evaluated exact/relaxed trajectory costs.",
+      "evidence": [
+        "reference_oracle.py",
+        "verification/reference-report.json",
+        "patterns/patient_similarity.py",
+        "patterns/test_patient_similarity.py",
+        "app/server.py"
+      ],
+      "acceptance_checks": [
+        "oracle",
+        "similarity",
+        "research_http"
+      ],
+      "remaining": [
+        "General semantic-temporal ranking, categorized near misses and optimized alignment remain open beyond the constructed profile."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-040",
+      "legacy": {
+        "requirement_id": "FR-040",
+        "requirement": "Generate all-pairs top-k or threshold patient-neighbour graphs without exhaustive alignment by default. | Must",
+        "spec_sections": "18",
+        "release": "R2",
+        "acceptance_gates": "AC10",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement indexed all-pairs candidate generation, canonical alignment, top-k/threshold graph publication and governed recall benchmarks; bounded exhaustive QBE is not population-wide neighbour graph generation."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-041",
+      "legacy": {
+        "requirement_id": "FR-041",
+        "requirement": "Support exact trajectory-identity grouping using canonical hashes. | Must",
+        "spec_sections": "18",
+        "release": "R2",
+        "acceptance_gates": "AC10",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Define and implement canonical trajectory identity under explicit semantic/time normalization; current artifact hashes identify input bytes/contexts, not trajectory equivalence classes."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-042",
+      "legacy": {
+        "requirement_id": "FR-042",
+        "requirement": "Support incremental patient-neighbour updates and scheduled reconciliation builds. | Should",
+        "spec_sections": "18",
+        "release": "R2",
+        "acceptance_gates": "AC10",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement incremental neighbour dependency invalidation, graph updates and scheduled full reconciliation with consistency checks."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-043",
+      "legacy": {
+        "requirement_id": "FR-043",
+        "requirement": "Measure candidate recall against exhaustive results on governed benchmark subsets. | Must",
+        "spec_sections": "18",
+        "release": "R2",
+        "acceptance_gates": "AC10",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Build authorized exhaustive benchmark subsets and measure candidate recall independently of final alignment accuracy, including empty-reference denominators."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-050",
+      "legacy": {
+        "requirement_id": "FR-050",
+        "requirement": "Persist event, semantic, temporal, alignment, score, and execution evidence. | Must",
+        "spec_sections": "19",
+        "release": "H0/R1",
+        "acceptance_gates": "AC06",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Research export preserves the complete authored revision chain and exact/relaxed replay bundles; replay recomputes and verifies admitted identities.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/mapped_pressure_session.py",
+        "verification/configured-pressure-workload-report.json",
+        "app/replay.py",
+        "app/test_server.py"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "workload",
+        "research_http"
+      ],
+      "remaining": [
+        "Durable evidence storage, access-authorized exports and all product alignment/score provenance are not implemented."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-051",
+      "legacy": {
+        "requirement_id": "FR-051",
+        "requirement": "Export reproducibility manifests and authorized result formats. | Must",
+        "spec_sections": "19",
+        "release": "H0/R1",
+        "acceptance_gates": "AC06",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Research export preserves the complete authored revision chain and exact/relaxed replay bundles; replay recomputes and verifies admitted identities.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/mapped_pressure_session.py",
+        "verification/configured-pressure-workload-report.json",
+        "app/replay.py",
+        "app/test_server.py"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "workload",
+        "research_http"
+      ],
+      "remaining": [
+        "Durable evidence storage, access-authorized exports and all product alignment/score provenance are not implemented."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-060",
+      "legacy": {
+        "requirement_id": "FR-060",
+        "requirement": "Enforce purpose, access, minimum-cohort, field-level, retention, and export policies. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement authentication, authorization, purpose, minimum-cohort, field/retention controls and export policy enforcement; local-only demo constraints do not implement these controls."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-061",
+      "legacy": {
+        "requirement_id": "FR-061",
+        "requirement": "Audit all sensitive reads, writes, configuration changes, and exports. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement durable access-controlled sensitive-action audit with actor, purpose, resource and version context, including reads, writes, configuration and exports."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-070",
+      "legacy": {
+        "requirement_id": "FR-070",
+        "requirement": "Provide a configurable web workspace with dockable, resizable, saveable, and deep-linkable views. | Must",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "README.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Implement dockable/resizable persistent workspaces and deep links; a bounded local research page does not satisfy the full workspace requirement."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-071",
+      "legacy": {
+        "requirement_id": "FR-071",
+        "requirement": "Keep visual, guided-form, DSL, and JSON expression representations synchronized through one canonical AST. | Must",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "README.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Implement visual, form, DSL and JSON editors synchronized through one versioned canonical AST and round-trip tests."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-072",
+      "legacy": {
+        "requirement_id": "FR-072",
+        "requirement": "Provide ontology search, hierarchy browsing, inferred-breadth preview, mapping evidence, and semantic-policy selection. | Must",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "README.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Implement ontology search and hierarchy browsing, inferred-breadth preview and semantic-policy editing with mapping evidence; fixed reviewed selectors cover only a subset."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-073",
+      "legacy": {
+        "requirement_id": "FR-073",
+        "requirement": "Provide virtualized cohort results, bounded neighbour-graph exploration, pair comparison, and evidence inspection. | Must",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "README.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Implement virtualized cohort results, bounded neighbour graphs and general pair comparison; a small demo result table and inspector are insufficient."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-074",
+      "legacy": {
+        "requirement_id": "FR-074",
+        "requirement": "Provide governed workspace sharing, review annotations, manifest previews, and controlled asynchronous exports. | Should",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement authorized workspace sharing, annotations, manifest preview and asynchronous export lifecycle."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-075",
+      "legacy": {
+        "requirement_id": "FR-075",
+        "requirement": "Expose textual alternatives and full keyboard workflows for core expression, result, timeline, and graph tasks. | Must",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
+      "evidence": [
+        "demo/pressure.js",
+        "demo/test_pressure_ui.cjs",
+        "docs/live-pressure-inspector.md",
+        "app/app.js",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_ui"
+      ],
+      "remaining": [
+        "Full keyboard, screen-reader and manual accessibility acceptance across expression, graph and timeline workflows remains open."
+      ],
+      "dependencies": [
+        "D-USABILITY"
+      ]
+    },
+    {
+      "requirement_id": "FR-080",
+      "legacy": {
+        "requirement_id": "FR-080",
+        "requirement": "Publish immutable OCI images, a local Docker Compose profile, and a versioned Helm chart for each release. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Docker/Compose/Helm definitions provide a bounded single-replica non-root/read-only authored app deployment; local runtime tools were unavailable during authoring.",
+      "evidence": [
+        "README.md",
+        "Dockerfile",
+        "compose.yaml",
+        "deploy/helm/patient-trajectory/Chart.yaml",
+        "deploy/helm/patient-trajectory/templates/deployment.yaml",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Build and publish digest-addressed OCI release images, validate local Compose startup and a versioned Helm chart in an actual cluster; manifests alone are not runtime evidence."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-081",
+      "legacy": {
+        "requirement_id": "FR-081",
+        "requirement": "Externalize state, configuration, secrets, identity, storage, queue, audit, and telemetry through documented interfaces. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Provide persistent external service interfaces for state, secrets, identity, storage, queue, audit and telemetry; config-file input alone is insufficient."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-082",
+      "legacy": {
+        "requirement_id": "FR-082",
+        "requirement": "Support separate scaling and priority for interactive, batch, ingestion, and semantic-compilation workloads. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "README.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Partition and independently scale interactive, batch, ingestion and semantic-build workloads with tested resource limits and priorities."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-083",
+      "legacy": {
+        "requirement_id": "FR-083",
+        "requirement": "Support health probes, graceful drain, resumable jobs, rolling upgrades, and a tested rollback procedure. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Authored app exposes independent liveness/readiness and capabilities; deployment definitions configure corresponding probes.",
+      "evidence": [
+        "README.md",
+        "app/server.py",
+        "deploy/smoke.py",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Validate health/readiness, draining, resumable jobs, rolling upgrade and rollback with active work; restarting an in-memory single-user demo is not resumability."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-084",
+      "legacy": {
+        "requirement_id": "FR-084",
+        "requirement": "Publish SBOMs and image provenance; enforce non-root, read-only, least-capability container operation. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Docker/Compose/Helm definitions provide a bounded single-replica non-root/read-only authored app deployment; local runtime tools were unavailable during authoring.",
+      "evidence": [
+        "README.md",
+        "Dockerfile",
+        "compose.yaml",
+        "deploy/helm/patient-trajectory/Chart.yaml",
+        "deploy/helm/patient-trajectory/templates/deployment.yaml",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Generate actual release SBOM/provenance and verify non-root/read-only/least-capability operation against a built image."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "FR-085",
+      "legacy": {
+        "requirement_id": "FR-085",
+        "requirement": "Implement and deploy the supported ontology pipeline without Java, a JVM, or Java-only conversion and reasoning tools. | Must",
+        "spec_sections": "23",
+        "release": "R3",
+        "acceptance_gates": "AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Supported Python/Rust execution path uses no Java. Archived collaborator validation is separate.",
+      "evidence": [
+        "patterns/requirements-semantic.lock.txt",
+        "patterns/rustdl_worker.py",
+        "docs/temporal-kg/validation/README.md"
+      ],
+      "acceptance_checks": [
+        "semantic"
+      ],
+      "remaining": [
+        "Verify final released runtime images and every supported build path; archived Java validation files are not runtime dependencies."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-001",
+      "legacy": {
+        "requirement_id": "NFR-001",
+        "requirement": "Correctness | Certified exact mode must be sound and complete relative to the declared data, expression, certified reasoning operation, and semantic policy. Exploratory DL mode must preserve sound positive consequences and report incomplete negatives as UNKNOWN_OR_INCOMPLETE.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Differential/exhaustive verification establishes exactness only for declared finite profiles and supplied scope.",
+      "evidence": [
+        "patterns/interval_cohort_reference.py",
+        "patterns/bounded_reference.py",
+        "patterns/source_mixed_reference.py"
+      ],
+      "acceptance_checks": [
+        "interval",
+        "bounded",
+        "source"
+      ],
+      "remaining": [
+        "No certification of arbitrary expressions, general OWL, all datasets or clinical truth; broaden only with independent operation-specific evidence."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-002",
+      "legacy": {
+        "requirement_id": "NFR-002",
+        "requirement": "Determinism | Exact runs are deterministic; approximate runs record seeds and index settings and remain stable within documented tolerance.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Bounded authored QBE ranks strictly pre-index features with explicit coverage, deterministic ordering and separately evaluated exact/relaxed trajectory costs.",
+      "evidence": [
+        "patterns/bounded_cohort.py",
+        "patterns/prepared_measurement_session.py",
+        "patterns/patient_similarity.py",
+        "patterns/test_patient_similarity.py",
+        "app/server.py"
+      ],
+      "acceptance_checks": [
+        "bounded",
+        "prepared",
+        "similarity",
+        "research_http"
+      ],
+      "remaining": [
+        "No approximate-index determinism contract or measured tolerance; complete product determinism is not established."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-003",
+      "legacy": {
+        "requirement_id": "NFR-003",
+        "requirement": "Performance | Meet the reference workload targets below or publish a capacity-qualified alternative.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Configured workloads verify fresh/prepared/cache agreement and report process-isolated aggregate RSS samples; samples do not establish an exact peak.",
+      "evidence": [
+        "demo/benchmark_configured_pressure.py",
+        "verification/configured-pressure-workload-report.json",
+        "docs/pressure-workload-memory.md",
+        "verification/pressure-workload-memory-report.json"
+      ],
+      "acceptance_checks": [
+        "workload",
+        "memory"
+      ],
+      "remaining": [
+        "Representative capacity-qualified latency/peak-memory evidence and full observability dimensions remain open."
+      ],
+      "dependencies": [
+        "D-DATA"
+      ]
+    },
+    {
+      "requirement_id": "NFR-004",
+      "legacy": {
+        "requirement_id": "NFR-004",
+        "requirement": "Scalability | Partition ingestion, indexing, candidate generation, alignment, and graph publication independently.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "docs/specifications.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement independently partitioned ingestion, indexing, candidate search, alignment and graph publication with cross-partition correctness checks."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-005",
+      "legacy": {
+        "requirement_id": "NFR-005",
+        "requirement": "Availability | Interactive read services target 99.9% monthly availability excluding approved maintenance.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "docs/specifications.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Measure a deployed service against the stated 99.9% monthly availability target; local smoke tests cannot establish uptime."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-006",
+      "legacy": {
+        "requirement_id": "NFR-006",
+        "requirement": "Resilience | Batch jobs are idempotent, partitioned, resumable, and safe under worker retry.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "docs/specifications.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement persistent idempotent partitions/checkpoints and test worker crash/retry without duplicate or lost results."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-007",
+      "legacy": {
+        "requirement_id": "NFR-007",
+        "requirement": "Observability | Expose latency, candidate counts, pruning, recall estimates, score drift, cache use, failures, and resource utilization.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Configured workloads verify fresh/prepared/cache agreement and report process-isolated aggregate RSS samples; samples do not establish an exact peak.",
+      "evidence": [
+        "demo/benchmark_configured_pressure.py",
+        "verification/configured-pressure-workload-report.json",
+        "docs/pressure-workload-memory.md",
+        "verification/pressure-workload-memory-report.json"
+      ],
+      "acceptance_checks": [
+        "workload",
+        "memory"
+      ],
+      "remaining": [
+        "Representative capacity-qualified latency/peak-memory evidence and full observability dimensions remain open."
+      ],
+      "dependencies": [
+        "D-DATA"
+      ]
+    },
+    {
+      "requirement_id": "NFR-008",
+      "legacy": {
+        "requirement_id": "NFR-008",
+        "requirement": "Security | No raw identifiers or sensitive clinical payloads in application logs or metrics.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Public committed pressure reports contain aggregates; detailed source runs stay local.",
+      "evidence": [
+        "docs/configured-pressure-workload.md",
+        "demo/serve.py"
+      ],
+      "acceptance_checks": [
+        "configured"
+      ],
+      "remaining": [
+        "No security assessment of all product logging/metrics surfaces or multi-user deployment."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-009",
+      "legacy": {
+        "requirement_id": "NFR-009",
+        "requirement": "Interoperability | Adapters preserve source meaning and provenance; internal APIs use versioned schemas.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Versioned bounded schemas and source-fidelity audits preserve supported table semantics.",
+      "evidence": [
+        "schemas/contracts.schema.json",
+        "patterns/source_fidelity_audit.py",
+        "docs/source-mixed-query.md"
+      ],
+      "acceptance_checks": [
+        "source"
+      ],
+      "remaining": [
+        "General adapters, ADNI/FHIR conformance and end-to-end source interpretation validation remain open."
+      ],
+      "dependencies": [
+        "D-ADNI-FHIR",
+        "D-CLINICAL"
+      ]
+    },
+    {
+      "requirement_id": "NFR-010",
+      "legacy": {
+        "requirement_id": "NFR-010",
+        "requirement": "Accessibility | Any analyst interface supports keyboard navigation, clear focus order, non-colour-only meaning, and exportable evidence.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
+      "evidence": [
+        "demo/pressure.js",
+        "demo/test_pressure_ui.cjs",
+        "docs/live-pressure-inspector.md",
+        "app/app.js",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_ui"
+      ],
+      "remaining": [
+        "Full keyboard, screen-reader and manual accessibility acceptance across expression, graph and timeline workflows remains open."
+      ],
+      "dependencies": [
+        "D-USABILITY"
+      ]
+    },
+    {
+      "requirement_id": "NFR-011",
+      "legacy": {
+        "requirement_id": "NFR-011",
+        "requirement": "UI performance | The supported desktop experience remains responsive through server paging, virtualization, progressive loading, and bounded visualizations.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "docs/specifications.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement and measure paging, virtualization and progressive loading against declared desktop workloads."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-012",
+      "legacy": {
+        "requirement_id": "NFR-012",
+        "requirement": "Portability | The release runs with Docker Compose and on conformant Kubernetes clusters without provider-specific application code.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Docker/Compose/Helm definitions provide a bounded single-replica non-root/read-only authored app deployment; local runtime tools were unavailable during authoring.",
+      "evidence": [
+        "docs/specifications.md",
+        "Dockerfile",
+        "compose.yaml",
+        "deploy/helm/patient-trajectory/Chart.yaml",
+        "deploy/helm/patient-trajectory/templates/deployment.yaml",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Run the built release under Compose and a conformant Kubernetes cluster; template/lint checks alone do not prove runtime portability."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-013",
+      "legacy": {
+        "requirement_id": "NFR-013",
+        "requirement": "Operability | All services expose consistent health, metrics, logs, traces, build information, and configuration fingerprints.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Authored app exposes independent liveness/readiness and capabilities; deployment definitions configure corresponding probes.",
+      "evidence": [
+        "docs/specifications.md",
+        "app/server.py",
+        "deploy/smoke.py",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Integrate health/metrics/logs/traces/build identity/config fingerprints across all product services."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-014",
+      "legacy": {
+        "requirement_id": "NFR-014",
+        "requirement": "Upgrade safety | Supported upgrades preserve active jobs and workspaces or fail before activation with a compatibility explanation.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "docs/specifications.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Define version compatibility and verify upgrades preserve jobs/workspaces or fail before activation; in-memory sessions currently require restart."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-015",
+      "legacy": {
+        "requirement_id": "NFR-015",
+        "requirement": "Supply chain | Images and charts are reproducible, scanned, signed, accompanied by SBOMs, and pinned by digest in governed environments.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Docker/Compose/Helm definitions provide a bounded single-replica non-root/read-only authored app deployment; local runtime tools were unavailable during authoring.",
+      "evidence": [
+        "docs/specifications.md",
+        "Dockerfile",
+        "compose.yaml",
+        "deploy/helm/patient-trajectory/Chart.yaml",
+        "deploy/helm/patient-trajectory/templates/deployment.yaml",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Reproducibly build, scan, sign and publish actual image/chart releases with SBOM/provenance and governed digest pins."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "NFR-016",
+      "legacy": {
+        "requirement_id": "NFR-016",
+        "requirement": "Technology constraint | Production images and supported build paths use only the declared Rust/Python ontology stack and contain no Java or JVM dependency.",
+        "spec_sections": "21-25",
+        "release": "R1-R3",
+        "acceptance_gates": "AC05,AC09,AC11,AC12",
+        "status": "specified",
+        "interpretation": "Interpret under version 2.0 semantics; old combined unknown status and scores are superseded."
+      },
+      "status": "partial",
+      "scope": "Docker/Compose/Helm definitions provide a bounded single-replica non-root/read-only authored app deployment; local runtime tools were unavailable during authoring.",
+      "evidence": [
+        "docs/specifications.md",
+        "Dockerfile",
+        "compose.yaml",
+        "deploy/helm/patient-trajectory/Chart.yaml",
+        "deploy/helm/patient-trajectory/templates/deployment.yaml",
+        "docs/deployment.md"
+      ],
+      "acceptance_checks": [
+        "deployment_smoke"
+      ],
+      "remaining": [
+        "Inspect final production images and all supported dependency/build paths for the declared Rust/Python-only constraint; design files do not establish image contents."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TKG-001",
+      "legacy": {
+        "requirement_id": "TKG-001",
+        "requirement": "Define qualified temporal assertions and snapshot interpretation",
+        "spec_sections": "4",
+        "release": "H0/R1",
+        "acceptance_gates": "AC04",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Explicit immutable archives preserve observation/assertion identities and supplied source revision chains under named replay policies.",
+      "evidence": [
+        "patterns/evidence_selection.py",
+        "patterns/joint_evidence.py",
+        "docs/evidence-selection.md"
+      ],
+      "acceptance_checks": [
+        "selection",
+        "joint"
+      ],
+      "remaining": [
+        "Full archive service, historical ontology/mapping replay and clinical source availability/revision-history verification are absent."
+      ],
+      "dependencies": [
+        "D-HISTORY"
+      ]
+    },
+    {
+      "requirement_id": "TKG-002",
+      "legacy": {
+        "requirement_id": "TKG-002",
+        "requirement": "Separate logical truth, computation and record-query eligibility",
+        "spec_sections": "5",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Logical support, computation gates and recorded-match outcomes remain separate.",
+      "evidence": [
+        "patterns/semantic_support.py",
+        "patterns/mixed_record_query.py",
+        "docs/architecture.md"
+      ],
+      "acceptance_checks": [
+        "semantic",
+        "source"
+      ],
+      "remaining": [
+        "Unify these states across the complete product ranking, APIs and governed exports; finite supported fragments do not prove full OWL completeness."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TKG-003",
+      "legacy": {
+        "requirement_id": "TKG-003",
+        "requirement": "Preserve clocks and jointly feasible uncertain endpoints",
+        "spec_sections": "6",
+        "release": "H0/R1",
+        "acceptance_gates": "AC02,AC08",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Joint endpoint constraints and isolated patient clocks execute for finite integer-microsecond profiles.",
+      "evidence": [
+        "patterns/temporal_stn.py",
+        "patterns/patient_local.py",
+        "docs/bounded-temporal-uncertainty.md"
+      ],
+      "acceptance_checks": [
+        "bounded",
+        "local_clock"
+      ],
+      "remaining": [
+        "Dense-time/general OWL certain answers and arbitrary calendar/clock bridges are not supported."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "SULO-001",
+      "legacy": {
+        "requirement_id": "SULO-001",
+        "requirement": "Publish proposed extension with examples and profile diagnostics",
+        "spec_sections": "7",
+        "release": "H0/R1",
+        "acceptance_gates": "AC04,AC12",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Class-only PRO/SOLID and temporal profiles, examples and restricted interface diagnostics are published.",
+      "evidence": [
+        "ontology/pro-solid-profile.ttl",
+        "docs/temporal-kg/sulo-interface.md",
+        "docs/decisions/temporal-precedence.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "interface"
+      ],
+      "remaining": [
+        "General temporal-core/SULO equivalence and upstream adoption of proposed precedence vocabulary remain unresolved."
+      ],
+      "dependencies": [
+        "D-SULO"
+      ]
+    },
+    {
+      "requirement_id": "ETL-001",
+      "legacy": {
+        "requirement_id": "ETL-001",
+        "requirement": "Reconcile every source row with typed transformation outcomes",
+        "spec_sections": "10-12",
+        "release": "H0/R1",
+        "acceptance_gates": "AC03",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Inputevents and chartevents importers account for supported, invalid and unsupported supplied rows.",
+      "evidence": [
+        "patterns/mimic_inputevents.py",
+        "patterns/mimic_measurement_import.py",
+        "verification/mimic-demo-inputevents-report.json"
+      ],
+      "acceptance_checks": [
+        "inputevents",
+        "measurement"
+      ],
+      "remaining": [
+        "Extend reconciliation to every supported product source; current coverage is bounded tables, not all clinical ETL."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "ETL-002",
+      "legacy": {
+        "requirement_id": "ETL-002",
+        "requirement": "Do not promote Synthea prescriptions or MIMIC withheld doses to administration",
+        "spec_sections": "11,12",
+        "release": "H0/R1",
+        "acceptance_gates": "AC03",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Unsupported/not-given statuses cannot project as performed administrations in admitted profiles.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/mimic_inputevents.py"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "inputevents"
+      ],
+      "remaining": [
+        "No Synthea prescription adapter; retain this exclusion in future adapters and verify source status meaning clinically."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "MATCH-001",
+      "legacy": {
+        "requirement_id": "MATCH-001",
+        "requirement": "Explicit directional semantic alternative and capped temporal cost",
+        "spec_sections": "15,17",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC02",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Three-slot oracle separates exact and allowed relaxed matches with capped costs.",
+      "evidence": [
+        "reference_oracle.py",
+        "verification/reference-report.json"
+      ],
+      "acceptance_checks": [
+        "oracle"
+      ],
+      "remaining": [
+        "General semantic-temporal ranking, categorized near misses and optimized alignment remain open beyond the constructed profile."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "EVAL-001",
+      "legacy": {
+        "requirement_id": "EVAL-001",
+        "requirement": "Separate candidate recall, clinical validity and source fidelity",
+        "spec_sections": "24",
+        "release": "H0/R1",
+        "acceptance_gates": "AC05,AC10",
+        "status": "specified",
+        "interpretation": ""
+      },
+      "status": "partial",
+      "scope": "Reports distinguish source fidelity, exact computational agreement and unverified clinical meaning.",
+      "evidence": [
+        "docs/validation.md",
+        "docs/configured-pressure-workload.md",
+        "data/full-mimic-study-plan-2.1.json"
+      ],
+      "acceptance_checks": [
+        "source",
+        "workload"
+      ],
+      "remaining": [
+        "Governed candidate-recall and clinical-validity evaluation are not executed."
+      ],
+      "dependencies": [
+        "D-DATA",
+        "D-CLINICAL"
+      ]
+    },
+    {
+      "requirement_id": "UC-001",
+      "legacy": {
+        "requirement_id": "UC-001",
+        "requirement": "Lead with kidney, heart failure and longitudinal diabetes examples",
+        "spec_sections": "2",
+        "release": "H0/Clinical study",
+        "acceptance_gates": "AC07,AC15",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "blocked",
+      "scope": "Synthetic kidney exemplars and public-demo pressure work do not constitute the specified full-MIMIC clinical study.",
+      "evidence": [
+        "data/full-mimic-study-plan-2.1.json",
+        "data/clinical-terminology-review.json",
+        "docs/clinical-terminology-candidates.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Requires authorized study extract, approved clinical mappings/phenotype and patient-level development/held-out split before clinical evaluation."
+      ],
+      "dependencies": [
+        "D-DATA",
+        "D-CLINICAL",
+        "D-STUDY"
+      ]
+    },
+    {
+      "requirement_id": "REFINE-001",
+      "legacy": {
+        "requirement_id": "REFINE-001",
+        "requirement": "Start from bounded query by example and preserve explicit profile and feature coverage",
+        "spec_sections": "2,18,20",
+        "release": "H0/R1",
+        "acceptance_gates": "AC07,AC13",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "partial",
+      "scope": "Authored fixed-profile QBE implements strictly pre-index features, missing-feature coverage and exhaustive bounded candidate ranking.",
+      "evidence": [
+        "addenda/specification-2.1.md",
+        "patterns/patient_similarity.py",
+        "patterns/test_patient_similarity.py",
+        "examples/patient-similarity/profile.json"
+      ],
+      "acceptance_checks": [
+        "similarity"
+      ],
+      "remaining": [
+        "Clinical/domain validation of the feature profile and generalized patient/index/source adapters remain open; synthetic fixture is not the clinical-study protocol."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "REFINE-002",
+      "legacy": {
+        "requirement_id": "REFINE-002",
+        "requirement": "Version and branch refinements; distinguish ranking changes from eligibility and compare membership",
+        "spec_sections": "2,19-21",
+        "release": "H0/R1",
+        "acceptance_gates": "AC13",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "partial",
+      "scope": "Bounded immutable in-memory revisions branch, distinguish preferences from hard eligibility and compare full-population memberships; displayed top-k does not restrict trajectory execution.",
+      "evidence": [
+        "addenda/specification-2.1.md",
+        "patterns/patient_similarity.py",
+        "app/test_server.py",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "similarity",
+        "research_http"
+      ],
+      "remaining": [
+        "General trajectory-constraint editing, saved-subset scope, persistent project/revision storage and historical semantic replay remain outside this bounded service."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "REFINE-003",
+      "legacy": {
+        "requirement_id": "REFINE-003",
+        "requirement": "Run promoted trajectory queries against declared base population unless saved-subset scope is explicit",
+        "spec_sections": "2,20",
+        "release": "H0/R1",
+        "acceptance_gates": "AC13",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "partial",
+      "scope": "Bounded immutable in-memory revisions branch, distinguish preferences from hard eligibility and compare full-population memberships; displayed top-k does not restrict trajectory execution.",
+      "evidence": [
+        "addenda/specification-2.1.md",
+        "patterns/patient_similarity.py",
+        "app/test_server.py",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "similarity",
+        "research_http"
+      ],
+      "remaining": [
+        "General trajectory-constraint editing, saved-subset scope, persistent project/revision storage and historical semantic replay remain outside this bounded service."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TIME-001",
+      "legacy": {
+        "requirement_id": "TIME-001",
+        "requirement": "Normalize typed dates instants durations units and clocks with source provenance",
+        "spec_sections": "6,10,13",
+        "release": "H0/R1",
+        "acceptance_gates": "AC14",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "partial",
+      "scope": "Explicitly zoned anchors and patient-local source timestamps preserve original meaning; unsupported forms fail.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/patient_local.py",
+        "examples/time-normalization-cases-2.1.json"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "local_clock"
+      ],
+      "remaining": [
+        "Complete typed date/duration, DST/calendar arithmetic and time normalizer are absent; rejecting unsupported inputs is not implementation of their semantics."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TIME-002",
+      "legacy": {
+        "requirement_id": "TIME-002",
+        "requirement": "Preserve calendar age precision top coding and reference times",
+        "spec_sections": "6,12",
+        "release": "H0/R1",
+        "acceptance_gates": "AC14",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.1.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement calendar age derivation preserving top coding, source precision and reference/index times; supplied age bands are not age derivation."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TIME-003",
+      "legacy": {
+        "requirement_id": "TIME-003",
+        "requirement": "Resolve relative anchors and preserve uncertainty dependencies and observation scope",
+        "spec_sections": "6,10",
+        "release": "R1",
+        "acceptance_gates": "AC14",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.1.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement typed relative-anchor resolution, calendar/elapsed distinctions and correlated uncertainty with observation-scope provenance; explicit patient-local offsets cover only a subset."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TIME-004",
+      "legacy": {
+        "requirement_id": "TIME-004",
+        "requirement": "Handle timezones DST elapsed/calendar differences and unsupported precision without invented values",
+        "spec_sections": "6",
+        "release": "H0/R1",
+        "acceptance_gates": "AC14",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "partial",
+      "scope": "Explicitly zoned anchors and patient-local source timestamps preserve original meaning; unsupported forms fail.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/patient_local.py",
+        "examples/time-normalization-cases-2.1.json"
+      ],
+      "acceptance_checks": [
+        "pro_solid",
+        "local_clock"
+      ],
+      "remaining": [
+        "Complete typed date/duration, DST/calendar arithmetic and time normalizer are absent; rejecting unsupported inputs is not implementation of their semantics."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "CLIN-001",
+      "legacy": {
+        "requirement_id": "CLIN-001",
+        "requirement": "Use available full MIMIC-IV subset under a versioned clinical exploration protocol",
+        "spec_sections": "9,12,24",
+        "release": "Clinical study",
+        "acceptance_gates": "AC15",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "blocked",
+      "scope": "Synthetic kidney exemplars and public-demo pressure work do not constitute the specified full-MIMIC clinical study.",
+      "evidence": [
+        "data/full-mimic-study-plan-2.1.json",
+        "data/clinical-terminology-review.json",
+        "docs/clinical-terminology-candidates.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Requires authorized study extract, approved clinical mappings/phenotype and patient-level development/held-out split before clinical evaluation."
+      ],
+      "dependencies": [
+        "D-DATA",
+        "D-CLINICAL",
+        "D-STUDY"
+      ]
+    },
+    {
+      "requirement_id": "CLIN-002",
+      "legacy": {
+        "requirement_id": "CLIN-002",
+        "requirement": "Separate pre-index retrieval from follow-up outcomes and held-out evaluation",
+        "spec_sections": "2,12,18,24",
+        "release": "Clinical study",
+        "acceptance_gates": "AC10,AC15",
+        "status": "specified",
+        "interpretation": "Version 2.1 addition; not implementation-verified."
+      },
+      "status": "blocked",
+      "scope": "Synthetic kidney exemplars and public-demo pressure work do not constitute the specified full-MIMIC clinical study.",
+      "evidence": [
+        "data/full-mimic-study-plan-2.1.json",
+        "data/clinical-terminology-review.json",
+        "docs/clinical-terminology-candidates.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Requires authorized study extract, approved clinical mappings/phenotype and patient-level development/held-out split before clinical evaluation."
+      ],
+      "dependencies": [
+        "D-DATA",
+        "D-CLINICAL",
+        "D-STUDY"
+      ]
+    },
+    {
+      "requirement_id": "UI-001",
+      "legacy": {
+        "requirement_id": "UI-001",
+        "requirement": "Coordinate reference history, explicit criteria, results and evidence through one versioned query AST.",
+        "spec_sections": "20,14",
+        "release": "R1",
+        "acceptance_gates": "AC09,AC13",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Bind reference history, editable criteria, results and evidence to one canonical versioned query model throughout the coordinated workspace."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-002",
+      "legacy": {
+        "requirement_id": "UI-002",
+        "requirement": "Distinguish Must match, Prefer similar, Ignore and Hide from view; expose eligibility versus ranking effects.",
+        "spec_sections": "20,2,18",
+        "release": "H0/R1",
+        "acceptance_gates": "AC07,AC13",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Implement and test distinct Must match, Prefer similar, Ignore and Hide from view controls; view hiding must never change eligibility or ranking."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-003",
+      "legacy": {
+        "requirement_id": "UI-003",
+        "requirement": "Provide keyboard and numeric alternatives to event selection, relation dragging and index adjustment.",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.2.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Provide keyboard and numeric alternatives for event selection, temporal relation editing and index changes, then manually verify core workflows."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-004",
+      "legacy": {
+        "requirement_id": "UI-004",
+        "requirement": "Changing index rules recomputes every patient index and pre-index eligibility without future-information leakage.",
+        "spec_sections": "20,12,18",
+        "release": "H0/R1",
+        "acceptance_gates": "AC10,AC13,AC15",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Reference and candidate feature extraction uses each patient index under one fixed authored index rule, with occurrence and availability preceding the index.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "patterns/patient_similarity.py",
+        "patterns/test_patient_similarity.py"
+      ],
+      "acceptance_checks": [
+        "similarity"
+      ],
+      "remaining": [
+        "Changing the clinical index rule, recomputing derived indices from source history and validating the clinical study landmark remain unsupported."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-005",
+      "legacy": {
+        "requirement_id": "UI-005",
+        "requirement": "Display semantic alternatives as reviewed named policies with cost and event context.",
+        "spec_sections": "20,8,17",
+        "release": "H0/R1",
+        "acceptance_gates": "AC01,AC06",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Local demos display named toy alternatives/evidence and protect asynchronous result presentation.",
+      "evidence": [
+        "demo/pressure.js",
+        "demo/guided.js",
+        "docs/live-pressure-inspector.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Complete revision-bound research workspace, general alignment explanations and policy-editing workflows remain open."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-006",
+      "legacy": {
+        "requirement_id": "UI-006",
+        "requirement": "Expose typed elapsed, calendar, age, relative-anchor and uncertain clock meanings in editing and evidence.",
+        "spec_sections": "20,6",
+        "release": "H0/R1",
+        "acceptance_gates": "AC14",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.2.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Expose typed elapsed/calendar/age/relative/uncertain clock meanings in editing and evidence; all these time forms need working back-end normalization."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-007",
+      "legacy": {
+        "requirement_id": "UI-007",
+        "requirement": "Bind asynchronous results to revision and request identity; prevent obsolete response overwrite and distinguish partial or unresolved states.",
+        "spec_sections": "20,21",
+        "release": "R1",
+        "acceptance_gates": "AC09,AC13",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
+      "evidence": [
+        "demo/pressure.js",
+        "demo/guided.js",
+        "docs/live-pressure-inspector.md",
+        "app/app.js",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_ui"
+      ],
+      "remaining": [
+        "Complete revision-bound research workspace, general alignment explanations and policy-editing workflows remain open."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-008",
+      "legacy": {
+        "requirement_id": "UI-008",
+        "requirement": "Report comparable membership deltas and search scope; displayed top-k neighbours do not silently become the cohort universe.",
+        "spec_sections": "20,2,18",
+        "release": "H0/R1",
+        "acceptance_gates": "AC13",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Show comparable full-membership deltas and explicit base/saved-subset scope; top-k truncation must remain display-only."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-009",
+      "legacy": {
+        "requirement_id": "UI-009",
+        "requirement": "Explain selected alignments and costs; near-match suggestions revalidate hard constraints and qualify optimality claims.",
+        "spec_sections": "20,19",
+        "release": "R1",
+        "acceptance_gates": "AC06,AC16",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
+      "evidence": [
+        "demo/pressure.js",
+        "demo/guided.js",
+        "docs/live-pressure-inspector.md",
+        "app/app.js",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_ui"
+      ],
+      "remaining": [
+        "Complete revision-bound research workspace, general alignment explanations and policy-editing workflows remain open."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-010",
+      "legacy": {
+        "requirement_id": "UI-010",
+        "requirement": "Keep outcomes separate from similarity and show censoring, denominators and exploratory revision labels.",
+        "spec_sections": "20,12,24",
+        "release": "H0/R1",
+        "acceptance_gates": "AC15,AC16",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.2.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement separate follow-up outcome display with censoring, denominators and exploratory revision labels, backed by clinically reviewed outcome definitions."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-011",
+      "legacy": {
+        "requirement_id": "UI-011",
+        "requirement": "Preserve branch lineage and frozen replay manifests while keeping view preferences separate from semantic revisions.",
+        "spec_sections": "20,21",
+        "release": "R1",
+        "acceptance_gates": "AC13",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Connected single-process authored research UI provides reference selection, two refinements, full-population comparison, source inspection and replayable export.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "app/app.js",
+        "app/server.py",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "remaining": [
+        "Persist branching query lineage and frozen replay manifests, separate view preferences from semantic revisions and verify reproducible replay."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-012",
+      "legacy": {
+        "requirement_id": "UI-012",
+        "requirement": "Implement accessible reflow, focus, text alternatives, target sizing and status messages with manual verification.",
+        "spec_sections": "20,24",
+        "release": "R1",
+        "acceptance_gates": "AC09",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "partial",
+      "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "app/app.js",
+        "app/test_ui.cjs",
+        "docs/research-workspace.md"
+      ],
+      "acceptance_checks": [
+        "research_ui"
+      ],
+      "remaining": [
+        "Implement and manually verify responsive reflow, focus order, screen-reader/text alternatives, target sizes and status announcements."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "UI-013",
+      "legacy": {
+        "requirement_id": "UI-013",
+        "requirement": "Validate eight-state prototype and critical interpretation tasks against declared formative-study targets.",
+        "spec_sections": "20,24,25",
+        "release": "R1",
+        "acceptance_gates": "AC16",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "blocked",
+      "scope": "Eight-state interaction and formative targets are specified, not measured.",
+      "evidence": [
+        "addenda/specification-2.2.md",
+        "ui/storyboard-2.2.json"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Recruit 6\u20138 target researchers/informaticians and two domain reviewers, execute counterbalanced tasks and correct/retest critical interpretation defects."
+      ],
+      "dependencies": [
+        "D-USABILITY"
+      ]
+    },
+    {
+      "requirement_id": "UI-014",
+      "legacy": {
+        "requirement_id": "UI-014",
+        "requirement": "Keep autosave, annotations, exports and shared evidence authorized; avoid persistent patient browser cache and payload telemetry.",
+        "spec_sections": "20,23",
+        "release": "R1/R3",
+        "acceptance_gates": "AC09,AC11",
+        "status": "specified",
+        "interpretation": "Version 2.2 design requirement; no UI implementation or usability result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.2.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Implement authorization for autosave, annotations, shared evidence and exports; verify no patient browser persistence or payload telemetry across deployed services."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TRP-001",
+      "legacy": {
+        "requirement_id": "TRP-001",
+        "requirement": "Keep distinct observations separate from duplicate records, state changes and assertion corrections.",
+        "spec_sections": "4,22",
+        "release": "H0/R1",
+        "acceptance_gates": "AC03,AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "partial",
+      "scope": "Explicit immutable archives preserve observation/assertion identities and supplied source revision chains under named replay policies.",
+      "evidence": [
+        "patterns/evidence_selection.py",
+        "patterns/joint_evidence.py",
+        "docs/evidence-selection.md"
+      ],
+      "acceptance_checks": [
+        "selection",
+        "joint"
+      ],
+      "remaining": [
+        "Full archive service, historical ontology/mapping replay and clinical source availability/revision-history verification are absent."
+      ],
+      "dependencies": [
+        "D-HISTORY"
+      ]
+    },
+    {
+      "requirement_id": "TRP-002",
+      "legacy": {
+        "requirement_id": "TRP-002",
+        "requirement": "Preserve source-linked predecessor and successor assertions; new ingestion alone cannot authorize supersession.",
+        "spec_sections": "4,5,22",
+        "release": "R1",
+        "acceptance_gates": "AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "partial",
+      "scope": "Explicit immutable archives preserve observation/assertion identities and supplied source revision chains under named replay policies.",
+      "evidence": [
+        "patterns/evidence_selection.py",
+        "patterns/joint_evidence.py",
+        "docs/evidence-selection.md"
+      ],
+      "acceptance_checks": [
+        "selection",
+        "joint"
+      ],
+      "remaining": [
+        "Full archive service, historical ontology/mapping replay and clinical source availability/revision-history verification are absent."
+      ],
+      "dependencies": [
+        "D-HISTORY"
+      ]
+    },
+    {
+      "requirement_id": "TRP-003",
+      "legacy": {
+        "requirement_id": "TRP-003",
+        "requirement": "Keep clinical, source recording, source availability and product transaction metadata typed; unknowns remain explicit.",
+        "spec_sections": "4,6,20",
+        "release": "H0/R1",
+        "acceptance_gates": "AC14,AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "partial",
+      "scope": "Explicit immutable archives preserve observation/assertion identities and supplied source revision chains under named replay policies.",
+      "evidence": [
+        "patterns/evidence_selection.py",
+        "patterns/joint_evidence.py",
+        "docs/evidence-selection.md"
+      ],
+      "acceptance_checks": [
+        "selection",
+        "joint"
+      ],
+      "remaining": [
+        "Full archive service, historical ontology/mapping replay and clinical source availability/revision-history verification are absent."
+      ],
+      "dependencies": [
+        "D-HISTORY"
+      ]
+    },
+    {
+      "requirement_id": "TRP-004",
+      "legacy": {
+        "requirement_id": "TRP-004",
+        "requirement": "Reconstruct source-as-known and retrospective views through separately labelled, versioned policies.",
+        "spec_sections": "4,20,21",
+        "release": "R1",
+        "acceptance_gates": "AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "partial",
+      "scope": "Explicit immutable archives preserve observation/assertion identities and supplied source revision chains under named replay policies.",
+      "evidence": [
+        "patterns/evidence_selection.py",
+        "patterns/joint_evidence.py",
+        "docs/evidence-selection.md"
+      ],
+      "acceptance_checks": [
+        "selection",
+        "joint"
+      ],
+      "remaining": [
+        "Full archive service, historical ontology/mapping replay and clinical source availability/revision-history verification are absent."
+      ],
+      "dependencies": [
+        "D-HISTORY"
+      ]
+    },
+    {
+      "requirement_id": "TRP-005",
+      "legacy": {
+        "requirement_id": "TRP-005",
+        "requirement": "Report replay coverage independently of computation completeness and preserve unresolved membership.",
+        "spec_sections": "5,20",
+        "release": "R1",
+        "acceptance_gates": "AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "partial",
+      "scope": "Bounded selector separates selection completeness from declared replay coverage and blocks unsupported history.",
+      "evidence": [
+        "patterns/evidence_selection.py",
+        "docs/evidence-selection.md"
+      ],
+      "acceptance_checks": [
+        "selection"
+      ],
+      "remaining": [
+        "Unaffected-patient execution with per-patient unresolved membership and independently established source history coverage are absent."
+      ],
+      "dependencies": [
+        "D-HISTORY"
+      ]
+    },
+    {
+      "requirement_id": "TRP-006",
+      "legacy": {
+        "requirement_id": "TRP-006",
+        "requirement": "Bind replay controls, cache keys, asynchronous results and frozen manifests to full temporal and semantic identity.",
+        "spec_sections": "20,21",
+        "release": "R1",
+        "acceptance_gates": "AC13,AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "partial",
+      "scope": "Selection, semantic, prepared-query and configured-service contexts pin their own dependencies.",
+      "evidence": [
+        "patterns/joint_evidence.py",
+        "patterns/mapped_pressure_session.py",
+        "patterns/pressure_service_config.py"
+      ],
+      "acceptance_checks": [
+        "joint",
+        "configured"
+      ],
+      "remaining": [
+        "No unified full replay UI/cache/frozen-manifest contract over historical product snapshots."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TRP-007",
+      "legacy": {
+        "requirement_id": "TRP-007",
+        "requirement": "Explain source, query and policy differences across comparable replay runs and recompute derived indices.",
+        "spec_sections": "20",
+        "release": "R1",
+        "acceptance_gates": "AC13,AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.3.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Compare source/query/policy differences across compatible replay runs and recompute derived indices, preserving incompatibility and incomplete-history warnings."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TRP-008",
+      "legacy": {
+        "requirement_id": "TRP-008",
+        "requirement": "Provide accessible replay controls and verify interpretation of repeated measurements, correction and late availability.",
+        "spec_sections": "20,24",
+        "release": "R1",
+        "acceptance_gates": "AC09,AC16,AC17",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.3.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Build accessible replay controls and verify user interpretation of repeated observations, corrections and late availability with constructed and reviewed source cases."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TRP-009",
+      "legacy": {
+        "requirement_id": "TRP-009",
+        "requirement": "Keep optional contextual retrieval subordinate to canonical evidence, ontology and complete cohort contracts.",
+        "spec_sections": "22",
+        "release": "Optional",
+        "acceptance_gates": "AC18",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.3.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "If contextual retrieval is added, enforce canonical evidence/ontology/cohort authority and independently verify candidate recall; no contextual retrieval route is currently adopted."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TRP-010",
+      "legacy": {
+        "requirement_id": "TRP-010",
+        "requirement": "Pin and evaluate the optional Graphiti adapter on the bounded synthetic comparison before adoption.",
+        "spec_sections": "22,24,26",
+        "release": "Optional",
+        "acceptance_gates": "AC18",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.3.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "Optional, non-blocking for H0: pin Graphiti/backend/models/prompts, run the bounded synthetic comparison or document time-budget exhaustion before any adoption decision."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "TRP-011",
+      "legacy": {
+        "requirement_id": "TRP-011",
+        "requirement": "Retain source spans and interpretation provenance for narrative proposals without bypassing structured ETL or review.",
+        "spec_sections": "22,23",
+        "release": "Optional",
+        "acceptance_gates": "AC03,AC18",
+        "status": "specified",
+        "interpretation": "Version 2.3 requirement; no replay implementation or Graphiti benchmark result is claimed."
+      },
+      "status": "specification-only",
+      "scope": "Original requirement scope is retained.",
+      "evidence": [
+        "addenda/specification-2.3.md"
+      ],
+      "acceptance_checks": [],
+      "remaining": [
+        "If narrative proposal ingestion is added, retain exact source spans/model/interpretation provenance and require review before structured assertions; no LLM narrative ingestion exists."
+      ],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-001",
+      "legacy": {
+        "requirement_id": "PS-001",
+        "requirement": "Represent patient participation with a PRO role and bearer; preserve the role binding",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_pro_chain_is_derived_without_losing_role_binding;test_generic_participation_is_insufficient; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-002",
+      "legacy": {
+        "requirement_id": "PS-002",
+        "requirement": "Use hasValue only on typed information objects; no specialized instance properties",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_specialized_literal_property_rejected;test_literal_directly_on_person_rejected;test_extension_declares_no_specialized_properties; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-003",
+      "legacy": {
+        "requirement_id": "PS-003",
+        "requirement": "Bind the measurement result and measured subject within its process context",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_wrong_measurement_subject_rejected;test_sparql_example_keeps_subject_and_result_context; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-004",
+      "legacy": {
+        "requirement_id": "PS-004",
+        "requirement": "Require one recorded scalar value and one supported concentration unit",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_multiple_literal_values_rejected;test_missing_unit_rejected;test_wrong_unit_dimension_rejected; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-005",
+      "legacy": {
+        "requirement_id": "PS-005",
+        "requirement": "Convert mg/L to mg/dL without losing original values or decimal digits",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_exact_normalized_trajectory_and_existing_event_schema;test_unit_conversion_preserves_long_decimal; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-006",
+      "legacy": {
+        "requirement_id": "PS-006",
+        "requirement": "Normalize explicitly zoned anchor datetimes and reject unresolved timezone or unsupported precision",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_timezone_equivalence;test_unzoned_datetime_not_silently_utc;test_submicrosecond_time_rejected; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-007",
+      "legacy": {
+        "requirement_id": "PS-007",
+        "requirement": "Preserve record identity, source hashes, snapshot identity and graph projection evidence",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_identical_observation_values_remain_distinct_records;test_source_row_hash_and_snapshot_retained;test_graph_roundtrip_preserves_evidence_and_values; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-008",
+      "legacy": {
+        "requirement_id": "PS-008",
+        "requirement": "Integrate with existing matcher DTOs and retain entailment versus relaxation distinction",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_exact_normalized_trajectory_and_existing_event_schema;test_subclass_entailment_is_exact;test_reviewed_semantic_relaxation_has_cost; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-009",
+      "legacy": {
+        "requirement_id": "PS-009",
+        "requirement": "Reject invalid role context and unsupported statuses before graph projection",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_multiple_patient_roles_even_for_same_bearer;test_role_reuse_across_processes;test_not_given_is_not_ingested_as_occurrence; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    },
+    {
+      "requirement_id": "PS-010",
+      "legacy": {
+        "requirement_id": "PS-010",
+        "requirement": "Separate closed-world profile validation, limited derivation and query acceptance",
+        "spec_sections": "addenda/specification-2.4.md",
+        "release": "2.4",
+        "acceptance_gates": "AC19-PRO-SOLID",
+        "status": "implemented_and_fixture_verified_bounded_profile",
+        "interpretation": "test_named_sulo_disjointness_is_checked;test_same_patient_bearer_required_across_trajectory;test_incomplete_source_scope_remains_unresolved; see declared limitations in v2.4 addendum"
+      },
+      "status": "supported",
+      "scope": "Supported only in the original v2.4 bounded PRO/SOLID point-anchor profile.",
+      "evidence": [
+        "patterns/pro_solid.py",
+        "patterns/test_pro_solid.py",
+        "verification/v24-pro-solid-report.json",
+        "addenda/specification-2.4.md"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "remaining": [],
+      "dependencies": []
+    }
+  ],
+  "additional_profiles": [
+    {
+      "id": "point-anchor-v2.4",
+      "evidence": [
+        "patterns/pro_solid.py"
+      ],
+      "acceptance_checks": [
+        "pro_solid"
+      ],
+      "scope": "Constructed three-slot profile; the ten PS requirements refer to this profile.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "exact-interval-1.0",
+      "evidence": [
+        "patterns/exact_intervals.py"
+      ],
+      "acceptance_checks": [
+        "exact"
+      ],
+      "scope": "Exact recorded interval comparisons, shared clock required.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "interval-cohort-1.0",
+      "evidence": [
+        "patterns/interval_cohort.py"
+      ],
+      "acceptance_checks": [
+        "interval"
+      ],
+      "scope": "Bounded conjunctive exact-interval joins.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "bounded-interval-1.0",
+      "evidence": [
+        "patterns/bounded_cohort.py"
+      ],
+      "acceptance_checks": [
+        "bounded"
+      ],
+      "scope": "Fixed named witness across finite jointly feasible timelines.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "semantic-support-1.0",
+      "evidence": [
+        "patterns/semantic_support.py"
+      ],
+      "acceptance_checks": [
+        "semantic"
+      ],
+      "scope": "Checked finite named-class support; no general OWL claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "evidence-selection-1.0",
+      "evidence": [
+        "patterns/evidence_selection.py"
+      ],
+      "acceptance_checks": [
+        "selection"
+      ],
+      "scope": "Supplied explicit archive and revision chains; history coverage is declared.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "joint-selection",
+      "evidence": [
+        "patterns/joint_evidence.py"
+      ],
+      "acceptance_checks": [
+        "joint"
+      ],
+      "scope": "Temporal and semantic support selected together under supplied policy.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "mimic-source-records",
+      "evidence": [
+        "patterns/source_mixed_query.py"
+      ],
+      "acceptance_checks": [
+        "source"
+      ],
+      "scope": "Recorded-source queries and SQL agreement; no performed-clinical-event claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "reviewed-measurement-mapping",
+      "evidence": [
+        "patterns/reviewed_measurement_mappings.py"
+      ],
+      "acceptance_checks": [
+        "mapping"
+      ],
+      "scope": "Explicitly reviewed selectors and separate item/unit strata.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "prepared-measurement-session",
+      "evidence": [
+        "patterns/prepared_measurement_session.py"
+      ],
+      "acceptance_checks": [
+        "prepared"
+      ],
+      "scope": "Bounded checked reuse under pinned source/mapping inputs.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "configured-pressure-service",
+      "evidence": [
+        "demo/mapped_pressure.py"
+      ],
+      "acceptance_checks": [
+        "configured"
+      ],
+      "scope": "Single-user configured source/request/reviews; startup-frozen context.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "configured-pressure-workload",
+      "evidence": [
+        "demo/benchmark_configured_pressure.py"
+      ],
+      "acceptance_checks": [
+        "workload"
+      ],
+      "scope": "Fresh/prepared/cache agreement; authored small workload only.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "pressure-workload-memory",
+      "evidence": [
+        "docs/pressure-workload-memory.md",
+        "verification/pressure-workload-memory-report.json"
+      ],
+      "acceptance_checks": [
+        "memory"
+      ],
+      "scope": "Repeated authored workload with sampled aggregate RSS; no clinical-scale or exact process-tree peak claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "authored-patient-similarity",
+      "evidence": [
+        "patterns/patient_similarity.py",
+        "patterns/test_patient_similarity.py",
+        "docs/patient-similarity.md"
+      ],
+      "acceptance_checks": [
+        "similarity"
+      ],
+      "scope": "Bounded exhaustive pre-index QBE and in-memory branching; no all-pairs index or clinical validation.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "authored-research-workspace",
+      "evidence": [
+        "app/server.py",
+        "app/replay.py",
+        "app/test_server.py",
+        "app/test_ui.cjs"
+      ],
+      "acceptance_checks": [
+        "research_http",
+        "research_ui"
+      ],
+      "scope": "Single-process five-step H0 journey with canonical existing oracle, source evidence and replay; no general product workspace.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "authored-research-deployment",
+      "evidence": [
+        "Dockerfile",
+        "compose.yaml",
+        "deploy/helm/patient-trajectory/Chart.yaml",
+        "deploy/smoke.py"
+      ],
+      "acceptance_checks": [
+        "deployment_smoke"
+      ],
+      "scope": "Deployment definitions and direct Python smoke evidence; built image/Helm/cluster acceptance requires separately recorded execution.",
+      "closes_legacy_requirement_automatically": false
+    }
+  ],
+  "h0_acceptance": {
+    "scope": "Addendum 2.1 bounded synthetic integration; not the full 104-requirement product.",
+    "status": "bounded_synthetic_integration_verified",
+    "required_journey": [
+      "bounded_query_by_example",
+      "first_refinement",
+      "second_refinement",
+      "exact_vs_relaxed_cohort_comparison",
+      "source_evidence_inspection"
+    ],
+    "evidence": [
+      "addenda/specification-2.1.md",
+      "app/test_server.py",
+      "docs/research-workspace.md",
+      "verification/research-prototype-journey.json"
+    ],
+    "external_clinical_qa": "Conditional on an authorized extract being available; never fabricated or replaced by synthetic clinical validation.",
+    "verification_report": "verification/research-prototype-journey.json"
+  }
+}

@@ -320,7 +320,7 @@ The release manifest hashes **inputs**, not reports. CI verifies all nine.
 
 ## UI assets
 
-**Path:** `ui/` · **Status:** Specified. No running interface exists.
+**Path:** `ui/` · **Status:** Specified assets for the broader workspace. The bounded running research interface lives in `app/`.
 
 | File | Contents |
 |---|---|
@@ -425,3 +425,10 @@ The [live pressure inspector](live-pressure-inspector.md) adds immutable reviewe
 ### Configured workload runner
 
 [`demo/benchmark_configured_pressure.py`](../demo/benchmark_configured_pressure.py) executes bounded query matrices through the configured HTTP service, compares every complete result and anchor inspection with fresh mapped execution, and writes aggregate timing, operation-count and cache evidence. [The method](configured-pressure-workload.md) distinguishes prepared evaluation, retained-result reuse and recomputation.
+
+
+## Integrated research prototype
+
+[`app/`](../app/) connects [`patterns/patient_similarity.py`](../patterns/patient_similarity.py) to the existing guided cohort matcher over the same authored P00–P10 source. It supports bounded pre-index query-by-example, immutable refinements, complete eligible-pool exact/relaxed comparison, source inspection and replayable export. [The workspace runbook](research-workspace.md) describes the HTTP interface; [the engine contract](patient-similarity.md) specifies ranking, coverage and availability assumptions.
+
+[Docker/Compose and Helm packaging](deployment.md) runs the single-process authored application. The [completion register](completion.md) audits every original requirement and additional profile. [Workload memory sampling](pressure-workload-memory.md) measures the separate configured pressure workload without claiming an exact peak or clinical-scale capacity.

@@ -1,0 +1,21 @@
+services:
+  trajectory:
+    image: patient-trajectory-matching:local
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm}
+    ports:
+      - "127.0.0.1:${PTM_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 1.0
+    init: true
+    restart: "no"
