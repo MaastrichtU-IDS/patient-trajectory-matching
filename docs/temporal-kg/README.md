@@ -1,6 +1,6 @@
 # Temporal knowledge graph formal definitions
 
-- [Syntax and semantics review draft](specification/README.md): proposed functional syntax, formal interpretations, state coverage, robust relaxation and an explicit review register; awaiting Robert’s review
+- [Syntax and semantics review draft](specification/README.md): functional syntax, GFO-Time/OWL integration, state coverage and robust relaxation; R1–R12 answers incorporated, revised formalization under review
 
 - [Original formal definition](Temporal_Knowledge_Graph_Formal_Definition.pdf)
 - [Revised formal definition v2](Temporal_Knowledge_Graph_Formal_Definition_v2.pdf), working specification of 15 September 2026
