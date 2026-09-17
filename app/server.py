@@ -15,6 +15,7 @@ from patterns.patient_similarity import SimilarityEngine
 from app.temporal import TemporalWorkspace
 from app.interval_editor import IntervalEditor
 from app.journey import JourneyWorkspace
+from app.pattern_builder import compile_pattern, decompile_query
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -53,7 +54,7 @@ class Workspace:
                 'supported': ['pre-index-similarity', 'bounded-refinements',
                               'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
                               'bounded-temporal-demonstration', 'bounded-interval-query-editor',
-                              'guided-patient-temporal-journey'],
+                              'guided-patient-temporal-journey', 'configurable-three-event-patterns'],
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'authentication', 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'],
@@ -255,6 +256,14 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.workspace.interval_editor.run(data)
                 elif self.path == '/api/journey/run':
                     result = self.workspace.journey.run(data)
+                elif self.path == '/api/journey/compile':
+                    exact_keys(data, ('pattern',))
+                    query = compile_pattern(data['pattern'])
+                    result = {'pattern': decompile_query(query), 'query': query}
+                elif self.path == '/api/journey/decompile':
+                    exact_keys(data, ('query',))
+                    pattern = decompile_query(data['query'])
+                    result = {'pattern': pattern, 'query': compile_pattern(pattern)}
                 else:
                     return self.send(404, {'error': 'Route not found'})
                 self.send(200, result)

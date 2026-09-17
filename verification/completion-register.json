@@ -193,6 +193,12 @@
       "scope": "Readable constraint explanations grounded in witnesses and counterexamples; individual examples distinguished from whole-query certainty.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
+    },
+    "configurable_pattern": {
+      "command": "python -m unittest app.test_pattern_builder app.test_pattern_builder_http",
+      "scope": "Configurable two/three-event form compilation, canonical AST roundtrip, strict admission, full-cohort HTTP execution and replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
     }
   },
   "dependencies": [
@@ -3251,6 +3257,24 @@
         "interval_explanations"
       ],
       "scope": "One bounded authored reference-to-cohort journey with baseline ranking, original/relaxed interval matching, readable evidence and replay; no inferred clinical outcomes, unrestricted source integration or clinical acceptance.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "configurable-three-event-builder",
+      "evidence": [
+        "app/pattern_builder.py",
+        "app/journey.py",
+        "app/journey.js",
+        "app/test_pattern_builder.py",
+        "app/test_pattern_builder_http.py",
+        "docs/configurable-trajectory-builder.md",
+        "examples/patient-journey/three-event-source.json"
+      ],
+      "acceptance_checks": [
+        "configurable_pattern",
+        "patient_journey_ui"
+      ],
+      "scope": "Two/three named event slots and up to six conjunctive temporal constraints edited in the guided workflow; one canonical extended-query AST with exact metric conversion and replay over fixed authored records. Custom patterns use original-only evaluation; no unrestricted data or clinical validity claim.",
       "closes_legacy_requirement_automatically": false
     }
   ],

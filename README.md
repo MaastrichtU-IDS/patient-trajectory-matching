@@ -88,6 +88,9 @@ For the **[guided patient-to-cohort demo](docs/guided-patient-journey.md)**, ope
 the original and relaxed temporal question across the full eligible population,
 inspect readable evidence and unresolved clocks, and export the analysis for replay.
 The guide uses a shared four-history population; its clinical outcomes are unrecorded.
+The [configurable trajectory builder](docs/configurable-trajectory-builder.md) in the same
+workflow lets you select two or three event slots and edit their temporal constraints,
+inspect the canonical query, and replay the resulting cohort.
 
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 
