@@ -122,13 +122,61 @@ def main() -> None:
     mime, body = get(args.url, '/api/journey/export/' + report['report_id'])
     if mime != 'application/json' or json.loads(body) != report:
         raise SystemExit('Three-event builder export differs from execution')
+    original_custom_report = report
+    pattern['constraints'].extend([
+        {'id': 'duration', 'operator': 'duration', 'slot': 'infusion',
+         'minimum_minutes': '9', 'maximum_minutes': '9'},
+        {'id': 'shared', 'operator': 'minimum_overlap', 'left': 'infusion',
+         'right': 'collection', 'minimum_minutes': '3'}])
+    duration_change = {'target': 'duration', 'minimum_minutes': '9', 'maximum_minutes': '10'}
+    overlap_change = {'target': 'shared', 'minimum_minutes': '2'}
+    catalogue = {
+        'relaxable_targets': ['duration', 'shared'], 'max_changed_targets': 2,
+        'options': [
+            {'id': 'duration_only', 'cost': '0.5', 'changes': [duration_change]},
+            {'id': 'overlap_only', 'cost': '0.5', 'changes': [overlap_change]},
+            {'id': 'combined', 'cost': '1.25', 'changes': [duration_change, overlap_change]}]}
+    validated = journey_post('/api/journey/catalogue', {
+        'pattern': pattern, 'catalogue': catalogue, 'budget': '1.25'})
+    controls.update(pattern=pattern, catalogue=catalogue, budget='1')
+    affordable = journey_post('/api/journey/run', controls)
+    controls['budget'] = '1.25'
+    report = journey_post('/api/journey/run', controls)
+    if (report['query'] != validated['query'] or report['policy'] != validated['policy']
+            or report['source'] != preset_source or report['result'] != affordable['result']
+            or affordable['relaxation']['robust_patient_ids'] != []
+            or report['relaxation']['robust_patient_ids'] != ['T01']
+            or report['added_robust_patient_ids'] != ['T01']
+            or len(report['relaxation']['evaluations']) != 4):
+        raise SystemExit('Custom catalogue differs from the authored full-pool example')
+    for evaluated, combined_status in ((affordable, None), (report, 'CERTAIN')):
+        patient = next(p for p in evaluated['patients'] if p['patient_id'] == 'T01')
+        options = {o['option_id']: o for o in patient['option_results']}
+        if (patient['original_status'] != 'NO_RECORDED_MATCH'
+                or set(options) != {'duration_only', 'overlap_only', 'combined'}
+                or options['duration_only']['status'] != 'POSSIBLE'
+                or options['overlap_only']['status'] != 'NO_RECORDED_MATCH'
+                or options['combined']['status'] != combined_status
+                or options['combined']['excluded_by_budget'] != (combined_status is None)
+                or options['combined']['selected'] != (combined_status == 'CERTAIN')
+                or patient['selected_option'] != ('combined' if combined_status else None)):
+            raise SystemExit('Custom catalogue option outcomes differ from the declared options')
+    restored = journey_post('/api/journey/decompile', {'query': report['query']})
+    if journey_post('/api/journey/compile', {'pattern': restored['pattern']}) != restored:
+        raise SystemExit('Custom catalogue original query does not round trip')
+    for retained in (original_custom_report, affordable, report):
+        mime, body = get(args.url, '/api/journey/export/' + retained['report_id'])
+        if mime != 'application/json' or json.loads(body) != retained:
+            raise SystemExit('Retained journey export changed after catalogue execution')
     print(json.dumps({'status': 'passed', 'checks': [
         '/healthz', '/readyz', '/api/capabilities', '/', '/temporal',
         '/api/temporal/run', '/api/temporal/export/<report_id>', '/temporal/editor',
         '/api/editor', '/api/editor/run', '/api/editor/export/<report_id>',
         '/journey', '/api/journey', '/api/journey/run', '/api/journey/export/<report_id>',
         '/api/journey/compile', '/api/journey/decompile',
-        '/api/journey/run (three-event custom)', '/api/journey/export/<report_id> (three-event custom)'
+        '/api/journey/run (three-event custom)', '/api/journey/export/<report_id> (three-event custom)',
+        '/api/journey/catalogue', '/api/journey/run (custom option outcomes and budget)',
+        '/api/journey/export/<report_id> (retained custom catalogue reports)'
     ]}))
 
 

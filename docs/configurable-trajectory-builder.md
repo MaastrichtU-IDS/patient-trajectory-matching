@@ -19,7 +19,7 @@ Metric values are decimal minute strings, with at most six fractional digits. Ga
 
 Use the compiled query display to inspect the AST. Compile/decompile preserves supported patterns and produces canonical query JSON; unsupported classes, malformed ASTs, unexpected fields, dangling slot references and values outside the builder's bounds are rejected. This builder does not admit arbitrary source records or arbitrary query profiles.
 
-Custom patterns execute the original query only. Set budget to the string `"0"`; there is no custom relaxation catalogue. The two preset questions retain their separately declared relaxation options.
+Custom patterns can execute the original query alone or use an [explicit custom relaxation catalogue](custom-relaxation-catalogue.md) with up to three fixed-cost options. Metric constraints must be individually permitted before an option can strictly weaken their bounds; Allen relations remain protected. Options are evaluated independently against the original, with no implicit combination. Without a catalogue, set budget to the string `"0"` to retain original-only behavior. The two preset questions retain their separately declared relaxation options.
 
 ## Three-event example
 
@@ -52,6 +52,7 @@ Change the gap maximum from 30 to 1 minute and rerun. No eligible patient then h
 | --- | --- | --- |
 | `POST /api/journey/compile` | `{"pattern": <form pattern>}` | `{"pattern": <canonical form>, "query": <canonical AST>}` |
 | `POST /api/journey/decompile` | `{"query": <supported AST>}` | `{"pattern": <canonical form>, "query": <canonical AST>}` |
+| `POST /api/journey/catalogue` | `{"pattern": <form pattern>, "catalogue": <catalogue>, "budget": <decimal string>}` | `{"query": <canonical AST>, "policy": <validated policy>}` |
 | `POST /api/journey/run` | Complete journey request below | Completed analysis report |
 | `GET /api/journey/export/<report_id>` | No body | The completed report as a JSON attachment |
 
@@ -92,10 +93,10 @@ Replay recomputes the complete report; recomputing a digest does not make an edi
 ## Acceptance checks and boundaries
 
 ```sh
-python -m unittest app.test_pattern_builder_http app.test_journey_http
+python -m unittest app.test_pattern_builder_http app.test_relaxation_catalogue_http app.test_journey_http
 python deploy/smoke.py --url http://127.0.0.1:8080
 ```
 
-HTTP acceptance covers a three-event run, a changed cohort after editing a constraint, full-pool evaluation beyond the baseline preview, reference exclusion, unchanged source across custom and preset questions, metric/query round trips, export replay and rejected malformed forms/ASTs. Deployment smoke retains the existing routes and preset checks and adds custom compile/run/decompile/export checks.
+HTTP acceptance covers a three-event run, a changed cohort after editing a constraint, full-pool evaluation beyond the baseline preview, reference exclusion, unchanged source across custom and preset questions, metric/query round trips, explicit catalogue outcomes and budget exclusions, export replay and rejected malformed forms/ASTs/catalogues. Deployment smoke retains the existing routes and preset checks and adds custom compile/run/decompile/export and catalogue checks.
 
-This remains a bounded synthetic research prototype. It does not provide clinical similarity validation, observed treatment outcomes, real-data extraction, arbitrary event vocabularies, branching patterns or custom relaxation policies. The admitted events are authored records; collection is not an efficacy outcome.
+This remains a bounded synthetic research prototype. It does not provide clinical similarity validation, observed treatment outcomes, real-data extraction, arbitrary event vocabularies, branching patterns or clinical cost calibration. Custom relaxation is limited to explicit fixed-cost metric options; broader cost models remain future work. The admitted events are authored records; collection is not an efficacy outcome.

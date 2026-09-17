@@ -199,6 +199,12 @@
       "scope": "Configurable two/three-event form compilation, canonical AST roundtrip, strict admission, full-cohort HTTP execution and replay.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
+    },
+    "custom_relaxation_catalogue": {
+      "command": "python -m unittest app.test_relaxation_catalogue app.test_relaxation_catalogue_http",
+      "scope": "Explicit custom metric permissions, separately evaluated options, exact costs, original-first least-cost certainty, budget exclusions, HTTP evidence and replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
     }
   },
   "dependencies": [
@@ -3274,7 +3280,24 @@
         "configurable_pattern",
         "patient_journey_ui"
       ],
-      "scope": "Two/three named event slots and up to six conjunctive temporal constraints edited in the guided workflow; one canonical extended-query AST with exact metric conversion and replay over fixed authored records. Custom patterns use original-only evaluation; no unrestricted data or clinical validity claim.",
+      "scope": "Two/three named event slots and up to six conjunctive temporal constraints edited in the guided workflow; one canonical extended-query AST with exact metric conversion and replay over fixed authored records. Custom patterns support original-only evaluation or an explicitly authored bounded relaxation catalogue; no unrestricted data or clinical validity claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "custom-metric-relaxation-catalogue",
+      "evidence": [
+        "app/relaxation_catalogue.py",
+        "app/journey.py",
+        "app/journey.js",
+        "app/test_relaxation_catalogue.py",
+        "app/test_relaxation_catalogue_http.py",
+        "docs/custom-relaxation-catalogue.md"
+      ],
+      "acceptance_checks": [
+        "custom_relaxation_catalogue",
+        "patient_journey_ui"
+      ],
+      "scope": "Up to three explicitly authored metric options on bounded configurable trajectories; protected constraints, exact decimal costs, per-option classifications, least-cost fixed-binding certainty and replay. No implicit option composition or clinical cost calibration.",
       "closes_legacy_requirement_automatically": false
     }
   ],

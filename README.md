@@ -91,6 +91,9 @@ The guide uses a shared four-history population; its clinical outcomes are unrec
 The [configurable trajectory builder](docs/configurable-trajectory-builder.md) in the same
 workflow lets you select two or three event slots and edit their temporal constraints,
 inspect the canonical query, and replay the resulting cohort.
+[Custom relaxation catalogues](docs/custom-relaxation-catalogue.md) let you explicitly
+permit metric changes, compare up to three costed options, and retain the least-cost
+certain match with each option's evidence.
 
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 

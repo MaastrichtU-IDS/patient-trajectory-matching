@@ -6,15 +6,16 @@ import hashlib
 import json
 
 from app.interval_editor import LIMITS as EDITOR_LIMITS, OPTION_COST, keys, compile_query, compile_policy, classifications
-from app import pattern_builder
+from app import pattern_builder, relaxation_catalogue
 from app.temporal import ROOT, check_limits, digest
 from patterns import bounded_intervals as bt, robust_relaxation as relax
 
 BASELINE_PATH = 'examples/patient-journey/baseline.json'
 SOURCE_PATH = 'examples/patient-journey/three-event-source.json'
 LIMITS = {**EDITOR_LIMITS, 'events': 12, 'variables': 24, 'slots': 3,
-          'query_constraints': 6, 'candidate_bindings_per_evaluation': 32}
-ARTIFACTS = ('app/pattern_builder.py', 'app/journey.py', 'app/interval_editor.py', 'app/temporal.py',
+          'query_constraints': 6, 'candidate_bindings_per_evaluation': 32,
+          'catalogue_options': 3, 'evaluations': 4}
+ARTIFACTS = ('app/pattern_builder.py', 'app/relaxation_catalogue.py', 'app/journey.py', 'app/interval_editor.py', 'app/temporal.py',
              'app/interval_explanations.py', 'app/temporal_replay.py',
              'app/journey.html', 'app/journey.js', 'app/journey.css', BASELINE_PATH, SOURCE_PATH)
 DEFAULT_REQUEST = {'reference_patient_id': 'T03', 'top_k': 1, 'maximum_baseline': None,
@@ -29,7 +30,7 @@ QUESTIONS = [
     {'id': 'sequential', 'label': 'Collection starts zero to 48 minutes after infusion completion',
      'option': 'Widen the signed gap upper bound from 48 to 50 minutes; retain the zero lower bound.'},
     {'id': 'custom', 'label': 'Build a two- or three-event trajectory',
-     'option': 'Custom patterns evaluate the original constraints at budget zero.'}]
+     'option': 'Declare up to three metric relaxation options; every option preserves the original source and Allen relations.'}]
 
 
 def controls_for(request):
@@ -122,13 +123,15 @@ class JourneyWorkspace:
         return {'scope': 'authored-patient-to-cohort-journey', 'patients': deepcopy(self._baseline['patients']),
                 'default_request': deepcopy(DEFAULT_REQUEST), 'questions': deepcopy(QUESTIONS),
                 'builder': pattern_builder.metadata(),
+                'catalogue': relaxation_catalogue.metadata(),
                 'budgets': ['0', OPTION_COST], 'limits': deepcopy(LIMITS), 'ranking_method': RANKING_METHOD,
                 'baseline_provenance': self._baseline['provenance'],
                 'source_sha256': digest(self._source),
                 'source_note': 'All questions evaluate the same three-event authored patient histories; choosing a question never changes source times.'}
 
     def run(self, request):
-        keys(request, (*DEFAULT_REQUEST, *(('pattern',) if type(request) is dict and 'pattern' in request else ())))
+        keys(request, (*DEFAULT_REQUEST, *(name for name in ('pattern', 'catalogue')
+                                         if type(request) is dict and name in request)))
         if type(request['reference_patient_id']) is not str or request['reference_patient_id'] not in {
                 p['patient_id'] for p in self._baseline['patients']}:
             raise ValueError('Select an authored reference patient')
@@ -139,21 +142,20 @@ class JourneyWorkspace:
             raise ValueError('Maximum baseline must be null or an integer from 0 to 100')
         if type(request['question']) is not str or request['question'] not in ('overlap', 'sequential', 'custom'):
             raise ValueError('Select overlap, sequential or custom')
-        if type(request['budget']) is not str or request['budget'] not in ('0', OPTION_COST):
-            raise ValueError('Budget must be the string 0 or 1.25')
         pattern = None
         if request['question'] == 'custom':
-            if request['budget'] != '0':
+            if 'catalogue' not in request and request['budget'] != '0':
                 raise ValueError('Custom patterns currently require budget 0')
             query = pattern_builder.compile_pattern(request.get('pattern'))
             pattern = pattern_builder.decompile_query(query)
             controls = None
-            policy = {'profile': relax.PROFILE, 'kind': 'extended', 'relaxable_targets': [],
-                      'max_cost': '0', 'max_changed_targets': 1, 'options': []}
-            relax.variants(query, policy)
+            policy = relaxation_catalogue.compile_catalogue(
+                query, request.get('catalogue', relaxation_catalogue.EMPTY_CATALOGUE), request['budget'])
         else:
-            if 'pattern' in request:
-                raise ValueError('Pattern controls apply only to a custom question')
+            if 'pattern' in request or 'catalogue' in request:
+                raise ValueError('Pattern and catalogue controls apply only to a custom question')
+            if type(request['budget']) is not str or request['budget'] not in ('0', OPTION_COST):
+                raise ValueError('Budget must be the string 0 or 1.25')
             controls = controls_for(request)
             query = compile_query(controls)
             policy = compile_policy(controls, query)
@@ -175,6 +177,8 @@ class JourneyWorkspace:
                           'evaluations': [], 'robust_patient_ids': [], 'possible_patient_ids': [],
                           'best_robust_matches': [], 'excluded_by_budget': relax.variants(query, policy)[1]}
         options = {r['patient_id']: r for e in relaxation['evaluations'][1:] for r in classifications(e['result'])}
+        option_statuses = {e['option']['id']: {r['patient_id']: r['status'] for r in classifications(e['result'])}
+                           for e in relaxation['evaluations'][1:]}
         best = {r['patient_id']: r for r in relaxation['best_robust_matches']}
         ranks = {r['patient_id']: r for r in ranking['all_candidates']}
         patients = []
@@ -185,7 +189,14 @@ class JourneyWorkspace:
             records = [deepcopy(e) for e in source['events'] if e['patient_id'] == pid]
             patients.append({'patient_id': pid, 'episode_id': original['episode_id'],
                              'rank': ranks[pid]['rank'], 'baseline': deepcopy(ranks[pid]['baseline']),
-                             'original_status': original['status'], 'option_status': options.get(pid, {}).get('status'),
+                             'original_status': original['status'],
+                             'option_status': None if request['question'] == 'custom' else options.get(pid, {}).get('status'),
+                             'option_results': [
+                                 {'option_id': option['id'], 'cost': option['cost'],
+                                  'status': option_statuses.get(option['id'], {}).get(pid),
+                                  'excluded_by_budget': option['id'] in relaxation['excluded_by_budget'],
+                                  'selected': chosen is not None and chosen['option_id'] == option['id']}
+                                 for option in policy['options']],
                              'selected_option': chosen['option_id'] if chosen else None,
                              'selected_cost': chosen['cost'] if chosen else None,
                              'evidence': {'treatment': '; '.join('Infusion ' + e['status'] + ' (authored record).'
