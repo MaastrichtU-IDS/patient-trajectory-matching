@@ -160,13 +160,13 @@
     },
     "interval_editor_http": {
       "command": "python -m unittest app.test_interval_editor",
-      "scope": "Two-slot authored interval controls, exact metric compilation, HTTP certificates and export replay.",
+      "scope": "Two-slot authored interval controls, exact metric compilation, one explicit relaxation option, budget exclusion, HTTP certificates and export replay.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
     },
     "interval_editor_ui": {
       "command": "node app/test_editor_ui.cjs",
-      "scope": "Actual editor script with engine responses; stale result, control and failure checks; no visual audit.",
+      "scope": "Actual editor script with engine responses; original/relaxed comparison, budgets, stale result, control and failure checks; no visual audit.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
     },
@@ -3197,7 +3197,7 @@
         "interval_editor_http",
         "interval_editor_ui"
       ],
-      "scope": "All basic Allen relations and bounded metric conjunctions over two fixed event slots and authored sources; no arbitrary pattern editor or clinical acceptance.",
+      "scope": "All basic Allen relations and bounded metric conjunctions with one explicit metric relaxation option over two fixed event slots and authored sources; no arbitrary pattern editor or clinical acceptance.",
       "closes_legacy_requirement_automatically": false
     },
     {
@@ -3212,7 +3212,7 @@
         "extended_relaxation",
         "interval_editor_http"
       ],
-      "scope": "Explicit catalogues over extended gap/duration/minimum-overlap constraints through API/CLI; the HTTP editor remains unrelaxed.",
+      "scope": "Explicit catalogues over extended gap/duration/minimum-overlap constraints through API/CLI; the HTTP editor exposes one explicit option with original/relaxed comparison and replay.",
       "closes_legacy_requirement_automatically": false
     }
   ],

@@ -6,11 +6,12 @@ import hashlib
 import json
 import re
 
-from patterns import bounded_intervals as bt, extended_interval_query as extended
+from patterns import bounded_intervals as bt, extended_interval_query as extended, robust_relaxation as relax
 from app.temporal import ROOT, LIMITS as DEMO_LIMITS, check_limits, digest
 
-LIMITS = {**DEMO_LIMITS, 'query_constraints': 3, 'catalogue_options': 0,
-          'evaluations': 1, 'saved_results': 16}
+LIMITS = {**DEMO_LIMITS, 'query_constraints': 3, 'catalogue_options': 1,
+          'evaluations': 2, 'saved_results': 16}
+OPTION_COST = '1.25'
 SOURCES = {'sequential': 'examples/temporal-workspace/source.json',
            'overlap': 'examples/interval-editor/overlap-source.json'}
 ARTIFACTS = ('app/interval_editor.py', 'app/temporal.py', 'app/editor.html', 'app/editor.js')
@@ -32,7 +33,8 @@ def minutes(value, *, minimum=-1440):
 
 
 def compile_query(controls):
-    keys(controls, ('fixture', 'relation', 'gap', 'duration', 'minimum_overlap_minutes'))
+    fields = ('fixture', 'relation', 'gap', 'duration', 'minimum_overlap_minutes')
+    keys(controls, fields + (('relaxation',) if type(controls) is dict and 'relaxation' in controls else ()))
     if type(controls['fixture']) is not str or controls['fixture'] not in SOURCES:
         raise ValueError('Select an authored fixture')
     relation = controls['relation']
@@ -72,6 +74,51 @@ def compile_query(controls):
     return query
 
 
+def compile_policy(controls, query):
+    policy = {'profile': relax.PROFILE, 'kind': 'extended', 'relaxable_targets': [],
+              'max_cost': '0', 'max_changed_targets': 3, 'options': []}
+    option = controls.get('relaxation')
+    if option is None:
+        return policy
+    keys(option, ('max_cost', 'gap', 'duration', 'minimum_overlap_minutes'))
+    if type(option['max_cost']) is not str or option['max_cost'] not in ('0', OPTION_COST):
+        raise ValueError('Relaxation budget must be the string 0 or 1.25')
+    changes = []
+    for field, target in (('gap', 'relation'), ('duration', 'infusion-duration')):
+        value = option[field]
+        if value is None:
+            continue
+        if (field == 'gap' and controls['relation'] != 'gap') or controls[field] is None:
+            raise ValueError('Relaxation requires an enabled ' + field + ' constraint')
+        keys(value, ('minimum_minutes', 'maximum_minutes'))
+        low, high = (minutes(value[k], minimum=0 if field == 'duration' else -1440)
+                     for k in ('minimum_minutes', 'maximum_minutes'))
+        changes.append({'target': target, 'lower_us': low, 'upper_us': high})
+    if option['minimum_overlap_minutes'] is not None:
+        if controls['minimum_overlap_minutes'] is None:
+            raise ValueError('Relaxation requires an enabled minimum overlap constraint')
+        minimum = minutes(option['minimum_overlap_minutes'], minimum=0)
+        if minimum <= 0:
+            raise ValueError('Relaxed minimum overlap must be positive')
+        changes.append({'target': 'shared-time', 'minimum_us': minimum})
+    if not changes:
+        raise ValueError('Select at least one metric to relax')
+    policy.update(max_cost=option['max_cost'], relaxable_targets=[c['target'] for c in changes],
+                  options=[{'id': 'edited-option', 'cost': OPTION_COST, 'changes': changes}])
+    # Validate all changes even when budget excludes the option, before source preparation.
+    relax.variants(query, policy)
+    return policy
+
+
+def classifications(result):
+    rows = []
+    for trajectory in result['trajectories']:
+        statuses = {binding['status'] for binding in trajectory['bindings']}
+        status = next((name for name in ('CERTAIN', 'POSSIBLE', 'INCOMPARABLE') if name in statuses), 'NO_RECORDED_MATCH')
+        rows.append({'patient_id': trajectory['patient_id'], 'episode_id': trajectory['episode_id'], 'status': status})
+    return rows
+
+
 class IntervalEditor:
     def __init__(self):
         self._sources = {name: json.loads((ROOT / path).read_text()) for name, path in SOURCES.items()}
@@ -80,24 +127,32 @@ class IntervalEditor:
     def metadata(self):
         return {'fixtures': list(SOURCES), 'relations': [*extended.ALLEN, 'gap'],
                 'limits': deepcopy(LIMITS), 'minute_range': [-1440, 1440], 'fractional_digits': 6,
+                'relaxation_cost': OPTION_COST, 'relaxation_budgets': ['0', OPTION_COST],
                 'source_sha256': {name: digest(source) for name, source in self._sources.items()},
                 'default_controls': {'fixture': 'overlap', 'relation': 'contains', 'gap': None,
                                      'duration': None, 'minimum_overlap_minutes': None}}
 
     def run(self, controls):
         query = compile_query(controls)
+        policy = compile_policy(controls, query)
         source = deepcopy(self._sources[controls['fixture']])
-        workload = check_limits(source, query, {'options': []}, limits=LIMITS)
-        result = extended.execute(bt.prepare(source), query)
-        if result.get('search_complete') is not True:
+        workload = check_limits(source, query, policy, limits=LIMITS)
+        relaxation = relax.execute(source, query, policy)
+        if relaxation.get('search_complete') is not True or any(
+                e['result'].get('search_complete') is not True for e in relaxation['evaluations']):
             raise ValueError('Incomplete query; no result or export is available')
-        patients = []
-        for trajectory in result['trajectories']:
-            statuses = {binding['status'] for binding in trajectory['bindings']}
-            status = next((name for name in ('CERTAIN', 'POSSIBLE', 'INCOMPARABLE') if name in statuses), 'NO_RECORDED_MATCH')
-            patients.append({'patient_id': trajectory['patient_id'], 'episode_id': trajectory['episode_id'], 'status': status})
+        result = relaxation['evaluations'][0]['result']
+        patients = classifications(result)
+        option_rows = {r['patient_id']: r for e in relaxation['evaluations'][1:] for r in classifications(e['result'])}
+        best = {r['patient_id']: r for r in relaxation['best_robust_matches']}
+        for row in patients:
+            selected = best.get(row['patient_id'])
+            row.update(option_status=option_rows.get(row['patient_id'], {}).get('status'),
+                       selected_option=selected['option_id'] if selected else None,
+                       selected_cost=selected['cost'] if selected else None)
         report = {'format': 'interval-editor-export-1', 'scope': 'authored-two-slot-interval-editor',
                   'controls': deepcopy(controls), 'query': query, 'source': source,
+                  'policy': policy, 'relaxation': relaxation,
                   'limits': deepcopy(LIMITS), 'workload': workload, 'patients': patients, 'result': result,
                   'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ARTIFACTS}}
         report['report_id'] = digest(report)

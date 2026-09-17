@@ -95,8 +95,11 @@ generator, a scalable search guarantee or a clinical-equivalence claim.
 An explicit policy can be passed with that query and its admitted source to
 `patterns.robust_relaxation.execute(source, query, policy)`. Integration tests
 exercise an actual editor-produced duration/overlap conjunction. The HTTP editor
-still runs the original question; displaying or accepting relaxation catalogues
-in that interface is the next separate step.
+now also accepts one explicitly authored metric option at fixed demonstration cost
+1.25, with budget 0 or 1.25. It shows the original and option classifications,
+least-cost certain selection, and each evaluation's certificates. See
+[the editor guide](interval-query-editor.md) for the controls, API and replay.
+The full sixteen-option API catalogue is not exposed through the bounded form.
 
 The editor now also rejects nonpositive duration bounds as HTTP 400. The original
 engine schema requires positive duration bounds; the form previously advertised

@@ -101,6 +101,114 @@ class EditorTests(unittest.TestCase):
         controls.update(fixture='overlap', gap={'minimum_minutes':'-7','maximum_minutes':'-6'})
         self.assertEqual(self.request('/api/editor/run', controls)['patients'][0]['status'], 'CERTAIN')
 
+    def relaxed_controls(self):
+        return {**self.controls(), 'duration': {'minimum_minutes':'10','maximum_minutes':'10'},
+                'minimum_overlap_minutes': '3',
+                'relaxation': {'max_cost':'1.25', 'gap':None, 'duration':None, 'minimum_overlap_minutes':'2'}}
+
+    def test_http_relaxation_preserves_original_and_exports_each_certificate(self):
+        controls = self.relaxed_controls()
+        report = self.request('/api/editor/run', controls)
+        first = report['patients'][0]
+        self.assertEqual(first['status'], 'POSSIBLE')
+        self.assertEqual(first['option_status'], 'CERTAIN')
+        self.assertEqual((first['selected_option'], first['selected_cost']), ('edited-option','1.25'))
+        self.assertEqual(report['patients'][3]['option_status'], 'INCOMPARABLE')
+        self.assertEqual(report['source'], editor.IntervalEditor().run(self.controls())['source'])
+        self.assertEqual(report['workload']['evaluations'], 2)
+        self.assertEqual(report['relaxation']['robust_patient_ids'], ['T01'])
+        option = report['relaxation']['evaluations'][1]
+        self.assertEqual(option['option']['query']['constraints'][:2], report['query']['constraints'][:2])
+        witness = option['result']['trajectories'][0]['bindings'][0]['possible_witness']
+        a,b,c,d = (witness['T01-'+key] for key in ('a-start','a-end','b-start','b-end'))
+        self.assertTrue(a < c and d < b and b-a == 600000000 and min(b,d)-max(a,c) >= 120000000)
+        exported = self.request('/api/editor/export/' + report['report_id'])
+        self.assertEqual(exported, report)
+        self.assertTrue(verify(exported)['verified'])
+        for field in ('policy','relaxation','patients'):
+            altered = deepcopy(report)
+            if field == 'policy': altered[field]['max_cost'] = '0'
+            elif field == 'relaxation': altered[field]['evaluations'][1]['option']['cost'] = '0'
+            else: altered[field][0]['option_status'] = 'POSSIBLE'
+            altered['report_id'] = editor.digest({k:v for k,v in altered.items() if k != 'report_id'})
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'differs from replay'):
+                verify(altered)
+
+    def test_budget_exclusion_gap_widening_and_original_first(self):
+        controls = self.relaxed_controls()
+        controls['relaxation']['max_cost'] = '0'
+        report = self.request('/api/editor/run', controls)
+        self.assertEqual(report['relaxation']['excluded_by_budget'], ['edited-option'])
+        self.assertEqual(len(report['relaxation']['evaluations']), 1)
+        self.assertIsNone(report['patients'][0]['option_status'])
+        self.assertIsNone(report['patients'][0]['selected_option'])
+        self.assertTrue(verify(report)['verified'])
+        controls.update(fixture='sequential', relation='gap', gap={'minimum_minutes':'0','maximum_minutes':'48'},
+                        duration=None, minimum_overlap_minutes=None,
+                        relaxation={'max_cost':'1.25','gap':{'minimum_minutes':'0','maximum_minutes':'50'},
+                                    'duration':None,'minimum_overlap_minutes':None})
+        report = self.request('/api/editor/run', controls)
+        self.assertEqual(report['patients'][0]['selected_option'], 'original')
+        self.assertEqual(report['patients'][0]['selected_cost'], '0')
+        self.assertEqual(report['patients'][1]['status'], 'POSSIBLE')
+        self.assertEqual(report['patients'][1]['option_status'], 'CERTAIN')
+
+    def test_combined_option_is_one_evaluation_and_duration_stays_positive(self):
+        controls = self.relaxed_controls()
+        controls['duration'] = {'minimum_minutes':'9','maximum_minutes':'9'}
+        controls['relaxation']['duration'] = {'minimum_minutes':'9','maximum_minutes':'10'}
+        report = self.request('/api/editor/run', controls)
+        self.assertEqual(report['patients'][0]['status'], 'NO_RECORDED_MATCH')
+        self.assertEqual(report['patients'][0]['option_status'], 'CERTAIN')
+        self.assertEqual(len(report['policy']['options']), 1)
+        self.assertEqual(len(report['policy']['options'][0]['changes']), 2)
+        self.assertEqual(len(report['relaxation']['evaluations']), 2)
+        # Either change alone is insufficient for certainty.
+        for field in ('duration','minimum_overlap_minutes'):
+            partial = deepcopy(controls)
+            partial['relaxation'][field] = None
+            self.assertNotIn('T01', self.request('/api/editor/run', partial)['relaxation']['robust_patient_ids'])
+
+    def test_relaxation_validation_before_budget_and_solver(self):
+        base = self.relaxed_controls()
+        invalid = [None, True, 0, '0', '3', '4', 'NaN', '0.0000001']
+        requests = []
+        for value in invalid:
+            c = deepcopy(base); c['relaxation']['minimum_overlap_minutes'] = value; requests.append(c)
+        for value in ('2', 1.25, True):
+            c = deepcopy(base); c['relaxation']['max_cost'] = value; requests.append(c)
+        for low,high in (('0','10'),('10','10'),('11','12'),('11','9')):
+            c = deepcopy(base); c['relaxation']['duration'] = {'minimum_minutes':low,'maximum_minutes':high}; requests.append(c)
+        c = deepcopy(base); c['relaxation']['gap'] = {'minimum_minutes':'0','maximum_minutes':'50'}; requests.append(c)
+        c = deepcopy(base); c['minimum_overlap_minutes'] = None; requests.append(c)
+        c = deepcopy(base); c['relaxation']['relation'] = 'before'; requests.append(c)
+        c = deepcopy(base); c['relaxation'] = []; requests.append(c)
+        for candidate in requests:
+            for budget in ('0','1.25'):
+                request = deepcopy(candidate)
+                if type(request['relaxation']) is dict and request['relaxation']['max_cost'] == '1.25':
+                    request['relaxation']['max_cost'] = budget
+                with self.subTest(request=request), patch.object(editor.bt, 'prepare', side_effect=AssertionError('No source preparation')), self.assertRaises(HTTPError) as caught:
+                    self.request('/api/editor/run', request)
+                self.assertEqual(caught.exception.code, 400)
+
+    def test_incomplete_relaxed_evaluation_and_option_limit_never_save(self):
+        workspace = editor.IntervalEditor()
+        execute = editor.extended.execute
+        count = 0
+        def incomplete_option(*args):
+            nonlocal count
+            count += 1
+            return execute(*args) if count == 1 else {'search_complete':False}
+        with patch.object(editor.extended, 'execute', side_effect=incomplete_option):
+            with self.assertRaisesRegex(ValueError, 'Incomplete'):
+                workspace.run(self.relaxed_controls())
+        self.assertEqual(count, 2)
+        self.assertFalse(workspace._reports)
+        with patch.dict(editor.LIMITS, catalogue_options=0), patch.object(editor.bt, 'prepare', side_effect=AssertionError('No source preparation')):
+            with self.assertRaisesRegex(ValueError, 'execution limits'):
+                workspace.run(self.relaxed_controls())
+
     def test_invalid_control_shapes_and_numbers_fail_closed(self):
         invalid = []
         base = self.controls()

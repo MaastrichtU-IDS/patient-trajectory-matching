@@ -18,9 +18,14 @@ data or terminology decisions are introduced.
    time and enter **3 minutes**, then evaluate again. The same event pair must
    satisfy all three constraints. T01 is now possible only: its shared time can
    range from two to four minutes. T02 cannot share three minutes and is excluded.
-3. Inspect T01's bounds and query certificates. The displayed JSON is the actual
-   compiled query. Download the complete report to reproduce the execution.
-4. Switch to **Sequential intervals**, choose **gap**, disable the two optional
+3. Set **Relaxation** to **Author one combined option**. Choose **Lower minimum
+   shared time**, keep **2 minutes**, and admit cost **1.25**. T01 remains
+   possible only in the original column and becomes certain in the edited-option
+   column. Inspect both certificates, the compiled query, and explicit policy.
+4. Change the maximum cost to **0** and evaluate. The option is shown as excluded
+   by budget, with no relaxed classification or newly certain match. Download the
+   complete report to reproduce either execution.
+5. Turn relaxation off. Switch to **Sequential intervals**, choose **gap**, disable the two optional
    constraints, and enter **0–48 minutes**. T01 is certain, T02 possible only,
    T03 non-matching and T04 incomparable. This lower bound includes touching
    endpoints; the separate robust-widening demo instead requires a strictly
@@ -51,7 +56,8 @@ resolution; this does not change the solver's one-microsecond time grid.
 ## API and reproducibility
 
 `GET /api/editor` returns the admitted fixtures, relations, default controls,
-limits and source fingerprints. `POST /api/editor/run` accepts exactly:
+limits, the option cost, budgets and source fingerprints. `POST /api/editor/run`
+accepts these required fields and an optional `relaxation` field:
 
 ```json
 {
@@ -59,7 +65,13 @@ limits and source fingerprints. `POST /api/editor/run` accepts exactly:
   "relation": "contains",
   "gap": null,
   "duration": {"minimum_minutes": "10", "maximum_minutes": "10"},
-  "minimum_overlap_minutes": "3"
+  "minimum_overlap_minutes": "3",
+  "relaxation": {
+    "max_cost": "1.25",
+    "gap": null,
+    "duration": null,
+    "minimum_overlap_minutes": "2"
+  }
 }
 ```
 
@@ -67,11 +79,27 @@ For `gap`, supply `gap: {"minimum_minutes":"0","maximum_minutes":"48"}`.
 For other relations `gap` must be null. Disabled duration and overlap controls
 must also be null. Unknown fields, numeric JSON values, malformed decimals,
 reversed bounds and unsupported relations are rejected. Requests cannot provide
-source paths, event classes, arbitrary queries or relaxation catalogues.
+source paths, event classes, arbitrary queries or arbitrary relaxation catalogues.
+
+Omit `relaxation` or set it to null for the original query only. Otherwise all four
+nested fields above are required. `gap` and `duration` accept the same minute-range
+shape as their original controls. Each selected range must strictly widen its
+original; duration remains positive. A selected overlap minimum must strictly
+decrease and remain positive. A metric can only change if present in the original
+query. At least one change is required. All selected changes are one explicit
+option, `edited-option`, with fixed demonstration cost `1.25`. There is no implicit
+composition of alternatives, change to an Allen predicate, or clinical cost model.
+The budget must be the string `0` or `1.25`. All changes are validated even if the
+budget excludes the option.
 
 `GET /api/editor/export/<report_id>` downloads the executed controls, canonical
-query, source, complete solver report, patient classifications and artifact
-hashes. Replay uses the shared command:
+query, policy, source, original and option solver reports, patient classifications
+and artifact hashes. `result` and each patient's `status` always describe the
+original question; `relaxation` contains all admitted evaluations. `option_status`
+is null when no option was requested or it was excluded. `selected_option` and
+`selected_cost` identify the least-cost certain match, preferring the unchanged
+original at cost zero. Histories without any certain evaluation have no selected
+match. Replay uses the shared command:
 
 ```sh
 python -m app.temporal_replay temporal-analysis.json
@@ -86,8 +114,9 @@ Use the same checkout and fixture for reproduction.
 
 Before solver preparation, admission checks at most four patients/episodes,
 eight events, sixteen endpoint variables, five clocks, two slots, three
-constraints and four candidate products. One complete execution is performed;
-there is no automatic relaxation. These are bounded-work checks, not a latency
+constraints, one option and four candidate products per evaluation. At most two
+complete evaluations run, including the original; the source is prepared once.
+There is no automatic relaxation. These are bounded-work checks, not a latency
 or memory guarantee. Source fixtures are read once at startup and copied per run.
 The sixteen latest complete reports remain in memory; evicted exports return
 404. Existing request-size, same-origin and serialized-workspace guards apply.
@@ -104,12 +133,14 @@ node app/test_editor_ui.cjs
 Acceptance tests execute every Allen relation through HTTP, check metric
 translation and signed gaps, independently evaluate returned witnesses and
 counterexamples for the three-conjunct query, and verify exports, rejection,
-limits and retention. The actual UI script is exercised with engine-produced
+limits and retention. Relaxation tests cover combined changes, budget exclusion,
+original-first selection, invalid changes before source preparation, incomplete
+option execution and tampered report replay. The actual UI script is exercised with engine-produced
 responses. CI also runs the earlier workflows and container smoke route checks.
 Visual/accessibility review remains unverified; the cloud browser could not reach
 the local server when the preceding temporal demo was developed.
 
 This is a two-slot editor over authored snapshots. Arbitrary event selection,
-additional slots, disjunction, state coverage, source uploads, extended-query
-relaxation and clinical deployment remain open. The PR #48 draft semantics is
+additional slots, disjunction, state coverage, source uploads, multiple editable
+catalogue options and clinical deployment remain open. The PR #48 draft semantics is
 not adopted by this interface.
