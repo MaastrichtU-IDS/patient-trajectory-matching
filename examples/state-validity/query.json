@@ -1,0 +1,10 @@
+{
+  "profile": "state-validity-query-1.0",
+  "id": "sustained",
+  "patient_id": "P",
+  "episode_id": "E",
+  "clock_id": "c",
+  "state_iri": "urn:state:low",
+  "start_us": 0,
+  "end_us": 1800000000
+}

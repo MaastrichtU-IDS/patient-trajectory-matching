@@ -1,0 +1,16 @@
+@prefix cp: <https://example.org/trajectory/claim/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<https://example.org/trajectory/state-validity-description> a owl:Ontology ;
+  rdfs:comment "Load with the pinned SULO core and claim-description profile. State records are information objects; this module does not assert their content as clinical occurrences. Arithmetic and acceptance are external. No new properties or imports." .
+
+cp:Field_assertion_policy_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_end_us a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_polarity a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_records a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_start_us a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_state_iri a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_time_us a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_unit a owl:Class ; rdfs:subClassOf sulo:InformationObject .
