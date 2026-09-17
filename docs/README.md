@@ -58,6 +58,7 @@ Start here for the overall design and current state.
 | [Measurement point claims](measurement-claims.md) | Scalar/point claims and bounded chartevents import | Executable; 35 tests; separate mixed record-query integration |
 | [MIMIC pending claim import](mimic-claim-import.md) | Source records to bounded claim descriptions and empty acceptance policies | Executable; 25 tests and aggregate public-demo verification |
 | [Patient-local claim projection](local-claim-projection.md) | Local-clock claims, acceptance and checked matching | Executable; 32 tests, recorded and occurrence variants |
+| [State validity and coverage](state-validity-coverage.md) | Explicit state intervals, continuous support, refutation and unknown gaps | Executable exact reference profile with RDF descriptions; clinical admission and sample inference remain open |
 | [Structured claims and controlled projection](claim-projection.md) | Information-object claims and explicit acceptance into bounded reasoning | Executable prototype; 45 tests, pinned-SULO claim-isolation model check |
 | [SULO development proposal](sulo-development/) | Lessons, candidate pattern catalogue, record/occurrence distinction and temporal interoperability | Proposed work programme and evaluation gates; no ontology or executable-profile changes |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |

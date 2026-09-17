@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "const": "state-validity-source-1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "maxLength": 128
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "maxLength": 128
+    },
+    "assertion_policy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "clocks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "clock_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "maxLength": 128
+          },
+          "origin": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "unit": {
+            "const": "microsecond"
+          }
+        },
+        "required": [
+          "clock_id",
+          "origin",
+          "scope",
+          "unit"
+        ]
+      }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "patient_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "episode_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "clock_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "state_iri": {
+                "type": "string",
+                "pattern": "^(https?://|urn:)[^\\s]+$",
+                "maxLength": 512
+              },
+              "polarity": {
+                "enum": [
+                  "positive",
+                  "negative"
+                ]
+              },
+              "source_key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "state_interval"
+              },
+              "start_us": {
+                "type": "integer",
+                "minimum": -9223372036854775808,
+                "maximum": 9223372036854775807
+              },
+              "end_us": {
+                "type": "integer",
+                "minimum": -9223372036854775808,
+                "maximum": 9223372036854775807
+              }
+            },
+            "required": [
+              "id",
+              "patient_id",
+              "episode_id",
+              "clock_id",
+              "state_iri",
+              "polarity",
+              "source_key",
+              "kind",
+              "start_us",
+              "end_us"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "patient_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "episode_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "clock_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "maxLength": 128
+              },
+              "state_iri": {
+                "type": "string",
+                "pattern": "^(https?://|urn:)[^\\s]+$",
+                "maxLength": 512
+              },
+              "polarity": {
+                "enum": [
+                  "positive",
+                  "negative"
+                ]
+              },
+              "source_key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "point_observation"
+              },
+              "time_us": {
+                "type": "integer",
+                "minimum": -9223372036854775808,
+                "maximum": 9223372036854775807
+              }
+            },
+            "required": [
+              "id",
+              "patient_id",
+              "episode_id",
+              "clock_id",
+              "state_iri",
+              "polarity",
+              "source_key",
+              "kind",
+              "time_us"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "profile",
+    "dataset_id",
+    "snapshot_id",
+    "assertion_policy_id",
+    "clocks",
+    "records"
+  ],
+  "$defs": {
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "const": "state-validity-query-1.0"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 128
+        },
+        "patient_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 128
+        },
+        "episode_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 128
+        },
+        "clock_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "maxLength": 128
+        },
+        "state_iri": {
+          "type": "string",
+          "pattern": "^(https?://|urn:)[^\\s]+$",
+          "maxLength": 512
+        },
+        "start_us": {
+          "type": "integer",
+          "minimum": -9223372036854775808,
+          "maximum": 9223372036854775807
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": -9223372036854775808,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "profile",
+        "id",
+        "patient_id",
+        "episode_id",
+        "clock_id",
+        "state_iri",
+        "start_us",
+        "end_us"
+      ]
+    }
+  }
+}
