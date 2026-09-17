@@ -99,7 +99,8 @@ def execute(source, query, policy):
             if status=='CERTAIN':
                 robust.append({'patient_id':patient,'episode_id':episode,'option_id':option['id'],
                                'cost':option['cost'],'binding':binding,'evidence':evidence})
-    robust.sort(key=lambda r:(Decimal(r['cost']),r['option_id'],ei.canonical(r['binding']),r['episode_id']))
+    robust.sort(key=lambda r:(Decimal(r['cost']),r['option_id'] != 'original',
+                              r['option_id'],ei.canonical(r['binding']),r['episode_id']))
     best={}
     for row in robust: best.setdefault(row['patient_id'],row)
     result.update(status='COMPLETED',search_complete=True,robust_patient_ids=sorted(best),

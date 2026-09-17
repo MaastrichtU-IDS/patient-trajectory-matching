@@ -13,7 +13,8 @@ python -m patterns.state_validity \
   --graph /tmp/state-evidence.ttl
 ```
 
-The query asks whether `urn:state:low` holds throughout [0,30 minutes). Substitute
+The query asks whether admitted interval assertions support `urn:state:low`
+throughout [0,30 minutes). Substitute
 one of the other committed source files to reproduce these outcomes:
 
 | Source file | Explicit evidence | Result |
@@ -60,6 +61,18 @@ The result is `HOLDS` when positive support covers the entire window,
 otherwise. An explicit refutation suffices for `VIOLATED` even if other parts
 remain unknown. Point observations, including negative ones, are retained as
 records; they are not interval assertions and establish no interval coverage.
+
+In particular, a positive interval [0,30) and a negative point observation at 10
+still return `HOLDS`. The point is retained in the evidence but contributes
+neither interval refutation nor an interval conflict. Here `HOLDS` means
+**complete interval-assertion support**, not agreement with every observation
+or verified clinical truth. User interfaces must preserve that qualification.
+
+Before composing this result with clinical trajectory eligibility, reviewers
+must decide whether point observations remain uninterpreted sample descriptions
+or are admitted as point refutations/conflicts. Point refutation would not require
+assuming persistence between samples. That semantic extension is not implemented
+by this profile.
 
 “Coverage” here means coverage by explicit state knowledge. It does **not** prove
 that a monitor ran continuously, all records were imported, or no other clinical
