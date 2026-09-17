@@ -1,5 +1,9 @@
 # Temporal uncertainty in the research workspace
 
+For editable Allen, signed-gap, duration and overlap constraints, use the separate
+[interval-query editor](interval-query-editor.md). It evaluates explicit
+conjunctions without using this demonstration's widening catalogue.
+
 Run `python -m app.server --host 127.0.0.1 --port 8080` and open
 `http://127.0.0.1:8080/temporal`, or follow **Temporal uncertainty** from the
 patient-to-cohort page. Use the existing pinned Python 3.12 dependencies.
@@ -105,7 +109,8 @@ Visual browser review could not be completed in the authoring environment becaus
 the cloud browser blocked access to the local server. DOM-state and HTTP tests
 are not a visual or accessibility audit.
 
-This increment exposes a fixed bounded-gap question. General editing of Allen,
-duration and overlap predicates, unified extended-profile relaxation, clinical
+This demonstration exposes a fixed bounded-gap question. The linked editor now
+supports Allen, duration and overlap predicates over two fixed slots. General
+multi-slot editing, unified extended-profile relaxation, clinical
 selector integration, state-coverage UI, and the integrated OWL/GFO runtime remain
 future work. Source and mapping reviews remain independent admission gates.

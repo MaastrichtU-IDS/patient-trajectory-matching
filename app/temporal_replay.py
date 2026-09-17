@@ -7,6 +7,9 @@ from app.temporal import TemporalWorkspace, digest
 
 
 def verify(bundle):
+    if isinstance(bundle, dict) and bundle.get('format') == 'interval-editor-export-1':
+        from app.interval_editor import verify as verify_editor
+        return verify_editor(bundle)
     if not isinstance(bundle, dict) or bundle.get('format') != 'temporal-workspace-export-1':
         raise ValueError('Unsupported temporal export')
     if bundle.get('report_id') != digest({k: v for k, v in bundle.items() if k != 'report_id'}):
