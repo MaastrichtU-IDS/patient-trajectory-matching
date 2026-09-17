@@ -21,6 +21,7 @@ COPY examples/ ./examples/
 COPY demo/ ./demo/
 COPY ui/ ./ui/
 COPY data/terminology/ ./data/terminology/
+COPY data/clinical-source-demo-pin.json ./data/clinical-source-demo-pin.json
 COPY reference_oracle.py LICENSE ./
 
 USER 10001:10001

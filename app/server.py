@@ -1,4 +1,4 @@
-"""Serve the authored patient-to-cohort workspace; no uploads or authentication."""
+"""Serve the patient-to-cohort workspace and startup-configured recorded evidence."""
 import argparse
 import copy
 import hashlib
@@ -17,6 +17,7 @@ from app.interval_editor import IntervalEditor
 from app.journey import JourneyWorkspace
 from app.pattern_builder import compile_pattern, decompile_query
 from app.relaxation_catalogue import compile_catalogue
+from app.recorded_journey import RecordedJourneyWorkspace
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -36,7 +37,7 @@ def identifier(value):
 
 
 class Workspace:
-    def __init__(self):
+    def __init__(self, recorded_config=None):
         self.engine = SimilarityEngine()
         source_bytes = (ROOT.parent / 'demo/cohort-data.json').read_bytes()
         self.dataset = json.loads(source_bytes)
@@ -47,16 +48,20 @@ class Workspace:
         self.temporal = TemporalWorkspace()
         self.interval_editor = IntervalEditor()
         self.journey = JourneyWorkspace()
+        self.recorded = RecordedJourneyWorkspace(config=recorded_config)
         self.lock = threading.RLock()
         self.ready = True
 
     def capabilities(self):
-        return {'status': 'ready' if self.ready else 'not-ready', 'scope': 'authored-synthetic-research-prototype',
+        return {'status': 'ready' if self.ready else 'not-ready',
+                'scope': ('research-prototype-with-configured-recorded-sources' if self.recorded.config is not None
+                          else 'authored-synthetic-research-prototype'),
                 'supported': ['pre-index-similarity', 'bounded-refinements',
                               'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
                               'bounded-temporal-demonstration', 'bounded-interval-query-editor',
                               'guided-patient-temporal-journey', 'configurable-three-event-patterns',
-                              'custom-relaxation-catalogues'],
+                              'custom-relaxation-catalogues', 'guided-recorded-treatment-evidence',
+                              'reviewed-ontology-measurement-selection'],
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'authentication', 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'],
@@ -185,6 +190,14 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(200, self.workspace.interval_editor.metadata())
                 if path == '/api/journey':
                     return self.send(200, self.workspace.journey.metadata())
+                if path == '/api/journey/recorded/config':
+                    return self.send(200, self.workspace.recorded.metadata())
+                recorded_job = re.fullmatch(r'/api/journey/recorded/([A-Za-z0-9_-]+)/jobs/([A-Za-z0-9_-]+)(?:/anchors/([A-Za-z0-9_.:-]+))?', path)
+                if recorded_job:
+                    profile, job_id, token = recorded_job.groups()
+                    value = (self.workspace.recorded.inspect(profile, job_id, token) if token else
+                             self.workspace.recorded.get(profile, job_id))
+                    return self.send(200, value)
                 if path.startswith('/api/journey/export/'):
                     return self.send(200, self.workspace.journey.export(identifier(path.rsplit('/', 1)[1])), attachment='journey')
                 if path.startswith('/api/editor/export/'):
@@ -202,6 +215,7 @@ class Handler(BaseHTTPRequestHandler):
                       '/editor.js': ('editor.js', 'text/javascript; charset=utf-8'),
                       '/journey': ('journey.html', 'text/html; charset=utf-8'),
                       '/journey.js': ('journey.js', 'text/javascript; charset=utf-8'),
+                      '/recorded_journey.js': ('recorded_journey.js', 'text/javascript; charset=utf-8'),
                       '/journey.css': ('journey.css', 'text/css; charset=utf-8'),
                       '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
                       '/style.css': ('style.css', 'text/css; charset=utf-8')}
@@ -256,6 +270,8 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.workspace.temporal.run(data['budget'])
                 elif self.path == '/api/editor/run':
                     result = self.workspace.interval_editor.run(data)
+                elif self.path == '/api/journey/recorded/jobs':
+                    result = self.workspace.recorded.start(data)
                 elif self.path == '/api/journey/run':
                     result = self.workspace.journey.run(data)
                 elif self.path == '/api/journey/compile':
@@ -275,15 +291,32 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200, result)
         except (ValueError, TypeError, UnicodeError, RecursionError) as exc:
             self.send(400, {'error': str(exc)})
+        except RuntimeError as exc:
+            self.send(409, {'error': str(exc)})
         except KeyError:
             self.send(404, {'error': 'Revision or patient not found; start a new search if it expired'})
         except Exception:
             self.send(500, {'error': 'Evaluation failed; no completed result is available'})
 
 
-def make_server(host='127.0.0.1', port=8080):
-    workspace = Workspace()
-    server = ThreadingHTTPServer((host, port), Handler)
+class ResearchServer(ThreadingHTTPServer):
+    def server_close(self):
+        try:
+            super().server_close()
+        finally:
+            if hasattr(self, 'workspace'):
+                self.workspace.recorded.close()
+
+
+def make_server(host='127.0.0.1', port=8080, *, recorded_config=None):
+    if recorded_config is not None and host not in ('127.0.0.1', 'localhost'):
+        raise ValueError('Configured recorded sources require a loopback host')
+    workspace = Workspace(recorded_config=recorded_config)
+    try:
+        server = ResearchServer((host, port), Handler)
+    except Exception:
+        workspace.recorded.close()
+        raise
     server.workspace = workspace
     return server
 
@@ -292,9 +325,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', default=8080, type=int)
+    parser.add_argument('--recorded-config', type=Path, help='Startup-only reviewed source and mapping configuration for the recorded journey')
     args = parser.parse_args()
-    server = make_server(args.host, args.port)
-    print(f'Authored research workspace: http://{args.host}:{server.server_port}', flush=True)
+    server = make_server(args.host, args.port, recorded_config=args.recorded_config)
+    print(f'Research workspace: http://{args.host}:{server.server_port}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
