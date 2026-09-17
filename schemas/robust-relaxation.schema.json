@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "const": "robust-temporal-relaxation-1.0"
+    },
+    "kind": {
+      "enum": [
+        "bounded",
+        "mixed"
+      ]
+    },
+    "relaxable_targets": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "max_cost": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+      "maxLength": 40
+    },
+    "max_changed_targets": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16
+    },
+    "options": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cost": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+            "maxLength": 40
+          },
+          "changes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "lower_us": {
+                  "type": "integer",
+                  "minimum": -9223372036854775808,
+                  "maximum": 9223372036854775807
+                },
+                "upper_us": {
+                  "type": "integer",
+                  "minimum": -9223372036854775808,
+                  "maximum": 9223372036854775807
+                }
+              },
+              "required": [
+                "target",
+                "lower_us",
+                "upper_us"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "cost",
+          "changes"
+        ]
+      }
+    }
+  },
+  "required": [
+    "profile",
+    "kind",
+    "relaxable_targets",
+    "max_cost",
+    "max_changed_targets",
+    "options"
+  ]
+}

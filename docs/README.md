@@ -54,6 +54,7 @@ Start here for the overall design and current state.
 | [Indexed source windows](indexed-source-windows.md) | Complete indexed anchor windows, source identities and pending batches | Executable exact-record selector; 24 tests, three separate public-demo strata |
 | [Clinical source preflight](clinical-source-preflight.md) | Proposed item strata, pinned public-demo coverage and measured capacity barriers | Executable aggregate scan; 20 tests; clinical review and mixed evaluation pending |
 | [Source mixed-query pipeline](source-mixed-query.md) | Both CSV importers, explicit review, complete stay roster and independent SQL comparison | Executable exact-source profile; 28 tests, synthetic evaluation |
+| [Robust temporal relaxation](robust-temporal-relaxation.md) | Costed catalogue search with fixed modifications and fixed witnesses | Executable bounded and mixed-query wrapper; deployment policies remain open |
 | [Mixed record queries](mixed-record-query.md) | Interval treatments and point measurements, with separate eligibility/follow-up | Executable bounded record profile; 34 tests, synthetic evaluation |
 | [Measurement point claims](measurement-claims.md) | Scalar/point claims and bounded chartevents import | Executable; 35 tests; separate mixed record-query integration |
 | [MIMIC pending claim import](mimic-claim-import.md) | Source records to bounded claim descriptions and empty acceptance policies | Executable; 25 tests and aggregate public-demo verification |
