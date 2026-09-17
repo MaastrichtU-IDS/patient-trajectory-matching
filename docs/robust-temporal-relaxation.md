@@ -43,7 +43,11 @@ A different witness in each world does not establish robustness. Neither does a
 world-dependent choice of modification. The underlying solver classifies each
 whole binding against the original source, and only CERTAIN bindings qualify.
 The result retains every evaluation, its certificates and provenance, plus the
-least-cost robust binding per patient, using deterministic ties. POSSIBLE is
+least-cost robust binding per patient. Equal-cost ties prefer the unchanged
+`original` option, then sort by option identifier, canonical serialized binding
+and episode identifier. This avoids presenting an unnecessary modification when
+the original is already certain. All co-optimal evaluations remain in the report.
+POSSIBLE is
 reported separately. A blocked underlying execution blocks the aggregate answer;
 partial evaluations are diagnostic evidence only.
 
