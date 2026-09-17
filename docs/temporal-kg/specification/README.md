@@ -1,6 +1,6 @@
 # Syntax and semantics: reviewed decisions and revised formalization
 
-**Status: v0.2 draft. Robert Hoehndorf's R1–R12 answers are incorporated.**
+**Status: v0.3 draft. Robert Hoehndorf's R1–R12 answers are incorporated.**
 
 The [specification](syntax-and-semantics.md) defines the syntax and meaning of
 the temporal examples. The revised [GFO-Time integration contract](gfo-time-and-integration.md)
@@ -10,6 +10,9 @@ with temporal interpretations. Source-specific policies and conformance proofs
 remain explicit obligations in Section 14.
 
 ## Read first
+
+The new [Appendix A: Formal semantics in Lean](formal-semantics.md) is the
+formal account of the proposal, including OWL satisfaction and combined worlds.
 
 1. [Literature findings and GFO-Time model](gfo-time-and-integration.md#1-literature-findings).
 2. [One integrated interpretation](gfo-time-and-integration.md#4-one-integrated-interpretation).
@@ -47,36 +50,35 @@ Remove only the two `StateAssertion` declarations to obtain unknown coverage.
 The observations and their boundary contexts remain. The observation at minute
 30 lies outside the half-open coverage footprint.
 
-## Checked metatheory
+## Formal semantics and checked results
 
-[IntegratedSemantics.lean](formal/IntegratedSemantics.lean) contains the typed
-BT_C axiomatic interface, the shared OWL-object bridge and seven named theorems.
-The core results make the model-extension condition for solver equivalence
-explicit. Full OWL satisfaction is a parameter; this artifact has no claim to
-implement a full OWL translator, prove BT_C consistency or discharge the
-application adapter's extension obligation.
+[Appendix A](formal-semantics.md) connects the syntax to three Lean modules:
 
-```sh
-cd docs/temporal-kg/specification/formal
-lean IntegratedSemantics.lean
-```
+- [OWLDirectSemantics.lean](formal/OWLDirectSemantics.lean): recursive expression
+  interpretation, normalized axiom satisfaction, datatype extensions and
+  anonymous-individual models.
+- [IntegratedSemantics.lean](formal/IntegratedSemantics.lean): typed BT_C axioms,
+  shared-object bridge and conditional solver-projection results.
+- [ProposalSemantics.lean](formal/ProposalSemantics.lean): combined worlds,
+  source/chart constraints, fixed-witness answers, relaxation and coverage.
 
-The local `lean-toolchain` pins Lean v4.34.0. The command prints theorem axiom
-dependencies so proof placeholders or unrecorded global postulates are visible.
-The conditional results have explicit structure assumptions and no proof holes.
-
-Run the independent documentation/example checks from the repository root:
+Run the checks from the repository root:
 
 ```sh
+sh docs/temporal-kg/specification/formal/check.sh
 python3 docs/temporal-kg/specification/check_examples.py
 ```
 
-These checks cover links/anchors, example structure/scope/ownership, oriented
-contact boundaries, numerical and quantifier examples, and state-completion
-cases. GitHub Actions runs both this checker and the Lean file. Neither check
-is a claim of integrated clinical-engine conformance.
+The toolchain pins Lean v4.34.0. All 18 named theorems are checked and their axiom
+reports are printed. Dependencies are confined to Lean's standard `propext` and
+`Quot.sound` where needed; the files contain no proof placeholders or added global
+axioms. GitHub Actions runs all three modules and the documentation/example checker.
 
-Markdown remains the authoritative review source; the Lean file gives a checked
-companion to the explicitly identified metatheory. The original clinical example
-retains its strict 48-hour deadline; the companion uses the separately named
-minute-scale variant.
+The appendix flags the remaining obligations: correspondence of the OWL
+transcription/normalization to the standard, concrete datatype maps and decoders,
+BT_C model construction, source/query adapter correctness, and model extension
+for the numerical solver. Runtime query contracts retain their existing scope.
+
+Markdown defines the review contract and the Lean files give its checked formal
+companion. The original clinical example retains its strict 48-hour deadline;
+the companion uses the separately named minute-scale variant.

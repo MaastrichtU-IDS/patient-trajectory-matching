@@ -28,4 +28,4 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: Check integration metatheory
         working-directory: docs/temporal-kg/specification/formal
-        run: lean IntegratedSemantics.lean
+        run: sh check.sh

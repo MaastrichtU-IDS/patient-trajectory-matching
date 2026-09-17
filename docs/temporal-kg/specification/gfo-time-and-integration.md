@@ -1,9 +1,11 @@
 # GFO-Time foundation and the OWL integration contract
 
-**Version v0.2, 17 September 2026.** Implements Robert Hoehndorf's R1–R3
+**Version v0.3, 17 September 2026.** Implements Robert Hoehndorf's R1–R3
 review directions. Sections 2–6 specify the integration used by the main
 [syntax and semantics document](syntax-and-semantics.md). Sections 1 and 7
-record literature and verification scope.
+record literature and verification scope. The separate
+[formal-semantics appendix](formal-semantics.md) now gives explicit Lean
+interpretations and satisfaction conditions for the combined proposal.
 
 ## 1 Literature findings
 
@@ -178,8 +180,9 @@ temporal coordinates.
 The OWL data domain and its datatype interpretation retain their Direct
 Semantics. Numerical source descriptors are decoded through a declared datatype,
 unit and clock adapter to kappa/rho constraints. Object identity is kept separate
-from numerical-value equality. The current Lean file exposes the object bridge;
-full datatype-map formalization remains an implementation obligation.
+from numerical-value equality. The [formal appendix](formal-semantics.md)
+defines datatype interpretations and data-domain extensions explicitly; concrete
+standard value spaces and lexical/unit decoders remain implementation obligations.
 
 ### 4.3 Satisfaction and entailment
 
@@ -276,26 +279,24 @@ unknown; point observation records supply no interval persistence.
 
 ## 7 Verification scope and remaining obligations
 
-Run the checked artifact with the pinned toolchain:
+Run all formal modules with the pinned toolchain:
 
 ```sh
-cd docs/temporal-kg/specification/formal
-lean IntegratedSemantics.lean
+sh docs/temporal-kg/specification/formal/check.sh
 ```
 
-Lean v4.34.0 checks seven named theorems and one distinct-event example. The
-`#print axioms` commands report kernel dependencies; the checked theorems use no
-custom global axioms or proof placeholders. Their structure parameters are
-explicit hypotheses, including the BTC axioms and the intended OWL satisfaction
-predicate. This is a checked conditional metatheory, not a mechanized full OWL
-semantics or a proof that arbitrary input ontologies have compatible models.
+Lean v4.34.0 checks 18 named theorems across the OWL, bridge and combined-world
+modules. The [formal appendix](formal-semantics.md#a9-verification-and-outstanding-obligations)
+records proof dependencies and their scope. OWL satisfaction is now defined
+recursively in the proposal; the generic bridge lemmas retain their abstract
+interface for reuse. Concrete standard datatypes, a verified normalizer and the
+runtime adapter's model-extension proof remain explicit obligations.
 
-The BT_C field-to-axiom mapping is a reviewed transcription; machine-checking
-that transcription against a separately formalized published theory, building
-an infinite model, formalizing full OWL datatypes and proving the application
-adapter's extension property remain separate obligations. The C2-based boundary
-lemma explicitly assumes disjoint left/right OWL classes rather than claiming
-to reproduce the paper's derivation of C2.
+The BT_C field-to-axiom mapping is a reviewed transcription. Independent mapping
+review and a constructed compatible model for the admitted profile remain
+separate requirements. The C2-based boundary lemma explicitly assumes disjoint
+left/right OWL classes. OWL global restrictions continue to apply to the selected
+OWL closure; the joint theory is evaluated in the Lean metalanguage.
 
 The bridge module and companion example passed the OWL 2 DL profile check
 with ROBOT v1.9.5. A second fixture, [three-boundaries.ofn](formal/three-boundaries.ofn),
