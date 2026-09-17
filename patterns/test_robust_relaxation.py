@@ -49,7 +49,20 @@ class RobustTests(unittest.TestCase):
 
     def test_original_zero_cost_preferred(self):
         s,q,p=example(); q['constraints'][0]['max_gap_us']=49*60000000
+        # A lexically earlier, equally priced widening must not displace an
+        # already-certain original. Catalogue order must not affect the choice.
+        p['options'][0].update(id='aaa',cost='0')
+        p['options'].append({**deepcopy(p['options'][0]),'id':'zzz','cost':'0.00'})
         self.assertEqual(relax.execute(s,q,p)['best_robust_matches'][0]['option_id'],'original')
+        p['options'].reverse()
+        self.assertEqual(relax.execute(s,q,p)['best_robust_matches'][0]['option_id'],'original')
+
+    def test_zero_cost_relaxation_when_original_is_not_certain(self):
+        s,q,p=example()
+        p['options'][0].update(id='aaa',cost='0')
+        result=relax.execute(s,q,p)
+        self.assertEqual(result['best_robust_matches'][0]['option_id'],'aaa')
+        self.assertEqual(result['robust_patient_ids'],['P'])
 
     def test_no_world_dependent_binding(self):
         s,q,p=example()
