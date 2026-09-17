@@ -28,6 +28,7 @@ Start here for the overall design and current state.
 | [PRO/SOLID addendum v2.4](../addenda/specification-2.4.md) | Canonical graph, validation, projection, and exemplar matching | Current executable contract within its declared profile |
 | [Exact-interval profile](exact-interval-profile.md) | Source/RDF adapter, explicit clocks, endpoint comparisons, and evidence | Executable `exact-interval-1.0`; separate from the point-anchor oracle |
 | [Interval cohort matching](interval-cohort-matching.md) | Versioned slot queries, indexed joins, exhaustive reference, and evidence | Executable `interval-cohort-1.0`; exact recorded intervals |
+| [Extended interval queries](extended-interval-query.md) | All basic Allen relations, duration bounds and minimum overlap | Executable bounded-source query profile; fixed-witness possible/certain semantics |
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | Shared-variable constraints, possible/certain bindings, and certificates | Executable `bounded-interval-1.0`; discrete microsecond source profile |
 | [Bounded RDF ingestion](bounded-rdf-ingestion.md) | Closed RDF validation, explicit identities, and source evidence | Executable `bounded-rdf-1.0` input route to the bounded matcher |
 | [Evidence selection](evidence-selection.md) | Explicit support revisions, cutoff selection and bounded matcher integration | Executable bounded subset; broader replay remains open |
