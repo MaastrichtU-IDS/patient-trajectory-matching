@@ -1,0 +1,14 @@
+name: robust temporal relaxation
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r patterns/requirements-semantic.lock.txt
+      - run: python -m unittest patterns.test_robust_relaxation patterns.test_bounded_intervals patterns.test_mixed_record_query

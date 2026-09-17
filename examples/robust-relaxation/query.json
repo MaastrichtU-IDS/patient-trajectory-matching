@@ -1,0 +1,24 @@
+{
+  "profile": "bounded-interval-query-1.0",
+  "id": "gap",
+  "slots": [
+    {
+      "id": "a",
+      "class_iri": "https://example.org/trajectory/bounded/Infusion"
+    },
+    {
+      "id": "b",
+      "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "gap",
+      "left": "a",
+      "right": "b",
+      "operator": "gap",
+      "min_gap_us": 0,
+      "max_gap_us": 2880000000
+    }
+  ]
+}
