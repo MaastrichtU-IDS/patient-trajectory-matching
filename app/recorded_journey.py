@@ -1,7 +1,7 @@
 """Guided access to the existing reviewed recorded-pressure services.
 
 Profiles retain their own source population, bounded job history, review and query
-contexts. This adapter presents existing bindings; it performs no cohort matching.
+contexts. Descriptive pre-index ranking preserves the existing temporal job.
 """
 from copy import deepcopy
 import re
@@ -74,6 +74,13 @@ class RecordedJourneyWorkspace:
             'population_scope': 'Each profile uses its own configured records and roster; '
                                 'the T01–T04 pattern demonstration and its similarity ranking do not apply.',
             'history': 'Up to three jobs per profile are retained in this server process.',
+            'query_by_example': {
+                'feature_profile': 'recorded-preindex-pressure-distance-1.0',
+                'top_k_range': [1, 20],
+                'reference': 'Choose a treatment anchor with a finite pre-index pressure measurement.',
+                'interpretation': 'Unvalidated single-feature distance in mmHg, using charted time only; '
+                                  'availability at index is not established. Top-k highlights do not filter the temporal result.',
+            },
         }
 
     def start(self, request):
@@ -111,6 +118,38 @@ class RecordedJourneyWorkspace:
         return {**detail, 'profile': profile, 'observations': observations,
                 'interpretation': 'Each row is one recorded baseline/follow-up binding. '
                                   'Missing follow-up remains explicit; no causal effect is estimated.'}
+
+    def snapshot(self, profile, job_id):
+        """Capture retained completed evidence without reopening changed source files."""
+        self._identifier(job_id, JOB_ID, 'job')
+        service = self._service(profile)
+        with service.lock:
+            if job_id not in service.jobs:
+                raise KeyError('Unknown or expired recorded job')
+            job = service.jobs[job_id]
+            if job['status'] != 'COMPLETED':
+                raise ValueError('Comparison and export require a completed recorded query')
+            result, session = job['_result'], job['_session']
+            summary = deepcopy(job['summary'])
+            summary.pop('elapsed_seconds', None)
+            return {'profile': profile, 'job_id': job_id,
+                    'request': deepcopy(job['request']), 'source_mode': summary['source_mode'],
+                    'source_context': deepcopy(session.context), 'session_context_id': session.id,
+                    'query_context': deepcopy(result['context']), 'query_context_id': result['context_id'],
+                    'temporal_result': summary,
+                    'details': [session.inspect(result, anchor['token']) for anchor in result['anchors']]}
+
+    def references(self, profile, job_id):
+        from app.recorded_similarity import references
+        return references(self.snapshot(profile, job_id))
+
+    def compare(self, request):
+        from app.recorded_similarity import compare
+        if not isinstance(request, dict) or set(request) != {'profile', 'job_id', 'reference_token', 'top_k'}:
+            raise ValueError('Comparison fields must be profile, job_id, reference_token, top_k')
+        self._identifier(request['reference_token'], ANCHOR_ID, 'anchor')
+        return compare(self.snapshot(request['profile'], request['job_id']),
+                       request['reference_token'], request['top_k'])
 
     @staticmethod
     def _identifier(value, pattern, kind):

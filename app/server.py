@@ -18,6 +18,7 @@ from app.journey import JourneyWorkspace
 from app.pattern_builder import compile_pattern, decompile_query
 from app.relaxation_catalogue import compile_catalogue
 from app.recorded_journey import RecordedJourneyWorkspace
+from app.recorded_export import export_recorded
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -61,7 +62,8 @@ class Workspace:
                               'bounded-temporal-demonstration', 'bounded-interval-query-editor',
                               'guided-patient-temporal-journey', 'configurable-three-event-patterns',
                               'custom-relaxation-catalogues', 'guided-recorded-treatment-evidence',
-                              'reviewed-ontology-measurement-selection'],
+                              'reviewed-ontology-measurement-selection', 'recorded-query-by-example',
+                              'recorded-query-export-replay'],
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'authentication', 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'],
@@ -134,7 +136,10 @@ class Handler(BaseHTTPRequestHandler):
         return self.server.workspace
 
     def send(self, status, value, mime='application/json; charset=utf-8', attachment=False):
-        body = json.dumps(value, allow_nan=False).encode() if mime.startswith('application/json') else value
+        if attachment == 'recorded':
+            body = json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        else:
+            body = json.dumps(value, allow_nan=False).encode() if mime.startswith('application/json') else value
         self.send_response(status)
         self.send_header('Content-Type', mime)
         self.send_header('Content-Length', str(len(body)))
@@ -142,7 +147,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
         if attachment:
-            filename = {'temporal': 'temporal-analysis.json', 'journey': 'patient-journey.json'}.get(attachment, 'research-revision.json')
+            filename = {'temporal': 'temporal-analysis.json', 'journey': 'patient-journey.json',
+                        'recorded': 'recorded-journey.json'}.get(attachment, 'research-revision.json')
             self.send_header('Content-Disposition', 'attachment; filename="' + filename + '"')
         self.end_headers()
         self.wfile.write(body)
@@ -192,6 +198,9 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(200, self.workspace.journey.metadata())
                 if path == '/api/journey/recorded/config':
                     return self.send(200, self.workspace.recorded.metadata())
+                recorded_references = re.fullmatch(r'/api/journey/recorded/([A-Za-z0-9_-]+)/jobs/([A-Za-z0-9_-]+)/references', path)
+                if recorded_references:
+                    return self.send(200, self.workspace.recorded.references(*recorded_references.groups()))
                 recorded_job = re.fullmatch(r'/api/journey/recorded/([A-Za-z0-9_-]+)/jobs/([A-Za-z0-9_-]+)(?:/anchors/([A-Za-z0-9_.:-]+))?', path)
                 if recorded_job:
                     profile, job_id, token = recorded_job.groups()
@@ -270,6 +279,10 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.workspace.temporal.run(data['budget'])
                 elif self.path == '/api/editor/run':
                     result = self.workspace.interval_editor.run(data)
+                elif self.path == '/api/journey/recorded/compare':
+                    result = self.workspace.recorded.compare(data)
+                elif self.path == '/api/journey/recorded/export':
+                    return self.send(200, export_recorded(self.workspace.recorded, data), attachment='recorded')
                 elif self.path == '/api/journey/recorded/jobs':
                     result = self.workspace.recorded.start(data)
                 elif self.path == '/api/journey/run':

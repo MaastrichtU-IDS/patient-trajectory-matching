@@ -202,9 +202,33 @@ def main() -> None:
                     or plan['semantic_run']['backend_result']['backend']['name'] != 'rustdl'
                     or not detail['treatment']['source']):
                 raise SystemExit('Recorded journey source or mapping evidence differs from execution')
+        _, body = get(args.url, job_path + '/references')
+        references = json.loads(body)
+        reference = next(a for a in references['anchors'] if a['patient_id'] == '2')
+        comparison_request = {'profile': 'reviewed', 'job_id': job['id'],
+                              'reference_token': reference['token'], 'top_k': 1}
+        comparison = journey_post('/api/journey/recorded/compare', comparison_request)
+        if (reference['feature']['value'] != '60'
+                or [(p['patient_id'], p['distance'], p['highlighted'])
+                    for p in comparison['ranked_patients']] != [('1', '2', True), ('3', '2', False)]
+                or comparison['eligible_patient_ids'] != ['1', '3', '4']
+                or comparison['unresolved_patients'][0]['patient_id'] != '4'
+                or comparison['temporal_result'] != {k: v for k, v in job['summary'].items()
+                                                      if k != 'elapsed_seconds'}):
+            raise SystemExit('Recorded comparison differs from the declared baseline feature profile')
+        exported = journey_post('/api/journey/recorded/export', comparison_request)
+        if (exported['format'] != 'recorded-journey-export-1'
+                or exported['comparison']['result']['ranked_patients'] != comparison['ranked_patients']
+                or exported['snapshot']['temporal_result']['metrics'] != job['summary']['metrics']
+                or not exported['snapshot']['source_context']
+                or not exported['snapshot']['query_context_id']
+                or not exported['artifacts']):
+            raise SystemExit('Recorded export differs from the completed evidence and comparison')
         recorded_checks += ['/api/journey/recorded/jobs (authored reviewed)',
                             '/api/journey/recorded/reviewed/jobs/<id>',
-                            '/api/journey/recorded/reviewed/jobs/<id>/anchors/<token>']
+                            '/api/journey/recorded/reviewed/jobs/<id>/anchors/<token>',
+                            '/api/journey/recorded/reviewed/jobs/<id>/references',
+                            '/api/journey/recorded/compare', '/api/journey/recorded/export']
     print(json.dumps({'status': 'passed', 'checks': [
         '/healthz', '/readyz', '/api/capabilities', '/', '/temporal',
         '/api/temporal/run', '/api/temporal/export/<report_id>', '/temporal/editor',

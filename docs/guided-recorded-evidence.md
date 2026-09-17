@@ -35,7 +35,7 @@ python -m app.server --recorded-config examples/configured-pressure-service/conf
 
 This supplied example is also authored synthetic data. It activates only the reviewed recorded profile, with measurement item 2001 and narrower defaults of 15 minutes before and 60 minutes after segment start. The configured label, selected item and permitted windows appear in the page. Configured recorded sources require a loopback bind. Configuration paths resolve relative to the configuration file; HTTP callers cannot change them. Real supplied records require their own bounded source-fidelity declaration and reviewed mapping pack under the existing contracts.
 
-Source, mapping, review and implementation checks remain in force for every job, including cache hits. Detected changes prevent new completed membership from being published. Previously completed jobs remain available as historical evidence while retained; each underlying profile retains at most three jobs. This in-memory inspection is not a new replay export or durable archive.
+Source, mapping, review and implementation checks remain in force for every job, including cache hits. Detected changes prevent new completed membership from being published. Previously completed jobs remain available as historical evidence while retained; each underlying profile retains at most three jobs. The [recorded query-by-example and replay workflow](recorded-query-by-example.md) adds downloadable evidence exports that remain available after this in-memory history expires.
 
 ## API and interpretation
 
@@ -54,7 +54,7 @@ Example request:
 
 Only completed, independently checked queries expose a cohort summary. The existing complete-result cache and prepared queries remain in use; results are checked against the independent anchor SQL calculation. Inspection preserves source value strings, units, timestamps, record provenance, claim hashes and review decisions. The presentation adds baseline/follow-up pairs without recalculating or rounding their engine-produced differences.
 
-Recorded input segment starts do not establish treatment-course initiation. The displayed differences are observations around those starts, not treatment effects. Clinical mapping, source history and physical elapsed time retain their explicit unverified status. The recorded panel provides no similarity ranking because this source has no admitted similarity-feature profile.
+Recorded input segment starts do not establish treatment-course initiation. The displayed differences are observations around those starts, not treatment effects. Clinical mapping, source history and physical elapsed time retain their explicit unverified status. The [recorded query-by-example workflow](recorded-query-by-example.md) declares a bounded baseline-measurement feature profile for ranking peers. Its distance does not establish clinical similarity.
 
 ## Verification
 
