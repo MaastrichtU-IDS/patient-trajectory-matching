@@ -21,8 +21,8 @@ still reported. Costs are policy units, not probabilities or clinical utility.
 
 ## Implementation and semantics
 
-`robust-temporal-relaxation-1.0` wraps the existing bounded cohort executor and
-mixed point/interval record executor. Each catalogue option is a **complete**
+`robust-temporal-relaxation-1.0` wraps the existing bounded cohort, extended
+interval-query and mixed point/interval record executors. Each catalogue option is a **complete**
 modification with an exact nonnegative decimal cost; options are not implicitly
 combined. An option can widen several explicitly relaxable targets. Up to 16
 options are supported, with both a cost budget and a changed-target budget.
@@ -34,6 +34,12 @@ queries only the baseline-before-treatment window may be widened. Source bounds,
 source selection policies, clock alignments, class/scalar/unit selectors,
 non-relaxable constraints and follow-up windows remain fixed. Mixed eligibility
 still depends only on baseline and treatment, never on observed response.
+
+For `kind: "extended"`, a named gap range or positive duration range can be
+widened, and a named minimum-overlap constraint can be lowered while remaining
+strictly positive. Allen relations, event selectors, slot references and every
+unlisted target stay fixed. See the [extended-query example](extended-relaxation.md)
+for change syntax, finite-world verification and the connection to edited queries.
 
 The quantifiers are:
 
@@ -64,8 +70,9 @@ entailment claims.
   fixed penalties; no learned preference or clinical equivalence is assumed.
 - **OPEN — search:** Is a finite catalogue sufficient, or is automatic generation
   and composition required? The latter needs an explicit search and optimality contract.
-- **OPEN — integration:** Should extended Allen/duration queries also be relaxable?
-  This increment deliberately supports the existing bounded and mixed profiles.
+- **OPEN — interface integration:** Extended metric predicates now support explicit
+  catalogues through the Python API/CLI. The editor does not yet collect catalogue
+  choices, costs or approval provenance; it continues to execute its unrelaxed query.
 - **OPEN — workload:** Validate the cost of up to 17 executions on deployment data.
   This wrapper does not establish a new partitioning/coverage proof.
 - **OPEN — records:** Existing source acceptance, semantic-support, timestamp and

@@ -169,6 +169,12 @@
       "scope": "Actual editor script with engine responses; stale result, control and failure checks; no visual audit.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
+    },
+    "extended_relaxation": {
+      "command": "python -m unittest patterns.test_extended_relaxation",
+      "scope": "Finite explicit metric relaxation for extended queries; fixed option and binding, finite-world certificate checks and protected Allen relations.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
     }
   },
   "dependencies": [
@@ -3192,6 +3198,21 @@
         "interval_editor_ui"
       ],
       "scope": "All basic Allen relations and bounded metric conjunctions over two fixed event slots and authored sources; no arbitrary pattern editor or clinical acceptance.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "extended-metric-relaxation",
+      "evidence": [
+        "patterns/robust_relaxation.py",
+        "patterns/test_extended_relaxation.py",
+        "docs/extended-relaxation.md",
+        "examples/extended-relaxation/policy.json"
+      ],
+      "acceptance_checks": [
+        "extended_relaxation",
+        "interval_editor_http"
+      ],
+      "scope": "Explicit catalogues over extended gap/duration/minimum-overlap constraints through API/CLI; the HTTP editor remains unrelaxed.",
       "closes_legacy_requirement_automatically": false
     }
   ],

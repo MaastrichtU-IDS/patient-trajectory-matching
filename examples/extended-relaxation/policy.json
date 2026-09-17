@@ -1,0 +1,48 @@
+{
+  "profile": "robust-temporal-relaxation-1.0",
+  "kind": "extended",
+  "relaxable_targets": [
+    "duration",
+    "shared"
+  ],
+  "max_cost": "2",
+  "max_changed_targets": 2,
+  "options": [
+    {
+      "id": "duration-only",
+      "cost": "0.5",
+      "changes": [
+        {
+          "target": "duration",
+          "lower_us": 9,
+          "upper_us": 10
+        }
+      ]
+    },
+    {
+      "id": "overlap-only",
+      "cost": "0.5",
+      "changes": [
+        {
+          "target": "shared",
+          "minimum_us": 2
+        }
+      ]
+    },
+    {
+      "id": "both-metrics",
+      "cost": "1.25",
+      "changes": [
+        {
+          "target": "duration",
+          "lower_us": 9,
+          "upper_us": 10
+        },
+        {
+          "target": "shared",
+          "minimum_us": 2
+        }
+      ]
+    }
+  ]
+}

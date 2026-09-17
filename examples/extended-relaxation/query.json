@@ -1,0 +1,36 @@
+{
+  "profile": "extended-interval-query-1.0",
+  "id": "relax-shared-time",
+  "slots": [
+    {
+      "id": "a",
+      "class_iri": "https://example.org/trajectory/bounded/Infusion"
+    },
+    {
+      "id": "b",
+      "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "containment",
+      "left": "a",
+      "right": "b",
+      "operator": "contains"
+    },
+    {
+      "id": "duration",
+      "slot": "a",
+      "operator": "duration",
+      "minimum_us": 9,
+      "maximum_us": 9
+    },
+    {
+      "id": "shared",
+      "left": "a",
+      "right": "b",
+      "operator": "minimum_overlap",
+      "minimum_us": 3
+    }
+  ]
+}
