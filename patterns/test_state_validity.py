@@ -95,6 +95,15 @@ class StateTests(unittest.TestCase):
             self.assertEqual(r['status'],'UNKNOWN')
             self.assertEqual(r['coverage']['refuted_duration_us'],0)
 
+    def test_holds_means_interval_support_despite_negative_point(self):
+        r=state.execute(source([interval('a',0,30),point('p',10,'negative')]),query())
+        self.assertEqual(r['status'],'HOLDS')
+        self.assertTrue(r['coverage']['continuous_positive_support'])
+        self.assertEqual(r['point_observation_ids'],['p'])
+        self.assertEqual(r['evidence']['p']['record']['polarity'],'negative')
+        self.assertEqual(r['coverage']['refuted_duration_us'],0)
+        self.assertFalse(r['clinical_truth_verified'])
+
     def test_invalid_input_and_distinct_primitives(self):
         for mode in ('zero','reversed','boolean','float','point_interval','duplicate','clock','extra'):
             s=source([interval('a',0,30)])
