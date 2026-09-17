@@ -1,0 +1,24 @@
+{
+  "profile": "bounded-interval-query-1.0",
+  "id": "authored-completion-to-collection",
+  "slots": [
+    {
+      "id": "infusion",
+      "class_iri": "https://example.org/trajectory/bounded/Infusion"
+    },
+    {
+      "id": "collection",
+      "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "completion-gap",
+      "left": "infusion",
+      "right": "collection",
+      "operator": "gap",
+      "min_gap_us": 1,
+      "max_gap_us": 2880000000
+    }
+  ]
+}

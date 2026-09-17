@@ -12,6 +12,7 @@ from urllib.parse import urlsplit, parse_qs
 
 from demo import cohort
 from patterns.patient_similarity import SimilarityEngine
+from app.temporal import TemporalWorkspace
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -39,13 +40,15 @@ class Workspace:
         if self.engine.metadata().get('source_dataset_sha256') != self.source_hash:
             raise ValueError('Similarity and trajectory source fingerprints differ')
         self.comparisons = OrderedDict()
+        self.temporal = TemporalWorkspace()
         self.lock = threading.RLock()
         self.ready = True
 
     def capabilities(self):
         return {'status': 'ready' if self.ready else 'not-ready', 'scope': 'authored-synthetic-research-prototype',
                 'supported': ['pre-index-similarity', 'bounded-refinements',
-                              'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export'],
+                              'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
+                              'bounded-temporal-demonstration'],
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'authentication', 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'],
@@ -126,7 +129,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
         if attachment:
-            self.send_header('Content-Disposition', 'attachment; filename="research-revision.json"')
+            filename = 'temporal-analysis.json' if attachment == 'temporal' else 'research-revision.json'
+            self.send_header('Content-Disposition', 'attachment; filename="' + filename + '"')
         self.end_headers()
         self.wfile.write(body)
 
@@ -167,11 +171,17 @@ class Handler(BaseHTTPRequestHandler):
             with self.workspace.lock:
                 if path == '/api/capabilities':
                     return self.send(200, self.workspace.capabilities())
+                if path == '/api/temporal':
+                    return self.send(200, self.workspace.temporal.metadata())
+                if path.startswith('/api/temporal/export/'):
+                    return self.send(200, self.workspace.temporal.export(identifier(path.rsplit('/', 1)[1])), attachment='temporal')
                 if path.startswith('/api/revisions/'):
                     return self.send(200, self.workspace.engine.get_revision(identifier(path.rsplit('/', 1)[1])))
                 if path.startswith('/api/export/'):
                     return self.send(200, self.workspace.export(path.rsplit('/', 1)[1]), attachment=True)
             static = {'/': ('index.html', 'text/html; charset=utf-8'),
+                      '/temporal': ('temporal.html', 'text/html; charset=utf-8'),
+                      '/temporal.js': ('temporal.js', 'text/javascript; charset=utf-8'),
                       '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
                       '/style.css': ('style.css', 'text/css; charset=utf-8')}
             if path in static:
@@ -220,6 +230,9 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path == '/api/trajectory':
                     exact_keys(data, ('revision_id', 'budget'))
                     result = self.workspace.compare(identifier(data['revision_id']), data['budget'])
+                elif self.path == '/api/temporal/run':
+                    exact_keys(data, ('budget',))
+                    result = self.workspace.temporal.run(data['budget'])
                 else:
                     return self.send(404, {'error': 'Route not found'})
                 self.send(200, result)

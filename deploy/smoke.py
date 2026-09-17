@@ -40,8 +40,22 @@ def main() -> None:
     mime, body = get(args.url, '/')
     if mime != 'text/html' or b'<html' not in body.lower():
         raise SystemExit('Application page did not return HTML')
+    mime, body = get(args.url, '/temporal')
+    if mime != 'text/html' or b'Temporal uncertainty' not in body:
+        raise SystemExit('Temporal page did not return expected HTML')
+    request = urllib.request.Request(args.url.rstrip('/') + '/api/temporal/run',
+                                     data=b'{"budget":"1.25"}',
+                                     headers={'Content-Type': 'application/json'})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        report = json.load(response)
+    if report['result']['robust_patient_ids'] != ['T01', 'T02'] or report['added_robust_patient_ids'] != ['T02']:
+        raise SystemExit('Temporal evaluation differs from the authored example')
+    mime, body = get(args.url, '/api/temporal/export/' + report['report_id'])
+    if mime != 'application/json' or json.loads(body) != report:
+        raise SystemExit('Temporal export differs from the completed evaluation')
     print(json.dumps({'status': 'passed', 'checks': [
-        '/healthz', '/readyz', '/api/capabilities', '/'
+        '/healthz', '/readyz', '/api/capabilities', '/', '/temporal',
+        '/api/temporal/run', '/api/temporal/export/<report_id>'
     ]}))
 
 

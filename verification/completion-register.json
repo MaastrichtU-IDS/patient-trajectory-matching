@@ -142,7 +142,19 @@
     },
     "deployment_smoke": {
       "command": "python deploy/smoke.py --url http://127.0.0.1:8080",
-      "scope": "Requires a separately running app; checks liveness/readiness/capabilities/page, not matcher correctness or Kubernetes operation.",
+      "scope": "Requires a running app; verifies liveness/readiness/capabilities/pages and authored temporal execution/export, not clinical validity or Kubernetes operation.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "temporal_http": {
+      "command": "python -m unittest app.test_temporal",
+      "scope": "Four-history authored temporal HTTP journey, uncertainty certificates, bounded admission and replay; no clinical or general editor claim.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "temporal_ui": {
+      "command": "node app/test_temporal_ui.cjs",
+      "scope": "Actual temporal browser script with engine responses; state and failure checks, no visual or accessibility audit.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
     }
@@ -3137,6 +3149,22 @@
         "deployment_smoke"
       ],
       "scope": "Deployment definitions and direct Python smoke evidence; built image/Helm/cluster acceptance requires separately recorded execution.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "authored-temporal-workspace",
+      "evidence": [
+        "app/temporal.py",
+        "app/temporal_replay.py",
+        "app/test_temporal.py",
+        "app/test_temporal_ui.cjs",
+        "docs/temporal-workspace.md"
+      ],
+      "acceptance_checks": [
+        "temporal_http",
+        "temporal_ui"
+      ],
+      "scope": "Separate four-history bounded-gap fixture with original classifications, one permitted widening and replayable certificates; no general trajectory editor or integrated OWL/GFO runtime.",
       "closes_legacy_requirement_automatically": false
     }
   ],

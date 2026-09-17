@@ -72,6 +72,11 @@ Full instructions and expected output for every component: **[docs/validation.md
 
 ## Interactive demonstration
 
+The [temporal uncertainty demonstration](docs/temporal-workspace.md) is available at
+`/temporal` in the research workspace below. It shows certain, possible-only,
+non-matching and incomparable histories, and how one explicit window widening
+changes certainty while preserving the source evidence.
+
 The **[integrated research workspace](docs/research-workspace.md)** connects query-by-example, two immutable refinements, exact versus relaxed cohort comparison, source inspection and replayable export over the same authored patients:
 
 ```sh
