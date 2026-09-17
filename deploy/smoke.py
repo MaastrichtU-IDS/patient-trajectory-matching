@@ -89,11 +89,46 @@ def main() -> None:
     mime, body = get(args.url, '/api/journey/export/' + report['report_id'])
     if mime != 'application/json' or json.loads(body) != report:
         raise SystemExit('Patient journey export differs from execution')
+    preset_source = report['source']
+    pattern = {
+        'slots': [{'id': 'infusion', 'event_kind': 'infusion'},
+                  {'id': 'collection', 'event_kind': 'specimen_collection'},
+                  {'id': 'followup', 'event_kind': 'specimen_collection'}],
+        'constraints': [
+            {'id': 'c1', 'operator': 'contains', 'left': 'infusion', 'right': 'collection'},
+            {'id': 'c2', 'operator': 'gap', 'left': 'collection', 'right': 'followup',
+             'minimum_minutes': '0', 'maximum_minutes': '30'}]}
+    def journey_post(path, payload):
+        request = urllib.request.Request(args.url.rstrip('/') + path,
+                                         data=json.dumps(payload).encode(),
+                                         headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return json.load(response)
+    compiled = journey_post('/api/journey/compile', {'pattern': pattern})
+    controls.update(question='custom', budget='0', pattern=compiled['pattern'])
+    report = journey_post('/api/journey/run', controls)
+    if (report['query'] != compiled['query'] or report['pattern'] != compiled['pattern']
+            or report['source'] != preset_source
+            or report['eligibility']['eligible_patient_ids'] != ['T01', 'T02', 'T04']
+            or report['result']['certain_patient_ids'] != ['T01']
+            or report['result']['possible_patient_ids'] != ['T01', 'T02']
+            or len(report['ranking']['displayed_patient_ids']) != 1
+            or 'T01' in report['ranking']['displayed_patient_ids']
+            or report['policy']['options']):
+        raise SystemExit('Three-event builder differs from the authored full-pool example')
+    restored = journey_post('/api/journey/decompile', {'query': report['query']})
+    if restored != compiled:
+        raise SystemExit('Three-event builder query does not round trip')
+    mime, body = get(args.url, '/api/journey/export/' + report['report_id'])
+    if mime != 'application/json' or json.loads(body) != report:
+        raise SystemExit('Three-event builder export differs from execution')
     print(json.dumps({'status': 'passed', 'checks': [
         '/healthz', '/readyz', '/api/capabilities', '/', '/temporal',
         '/api/temporal/run', '/api/temporal/export/<report_id>', '/temporal/editor',
         '/api/editor', '/api/editor/run', '/api/editor/export/<report_id>',
-        '/journey', '/api/journey', '/api/journey/run', '/api/journey/export/<report_id>'
+        '/journey', '/api/journey', '/api/journey/run', '/api/journey/export/<report_id>',
+        '/api/journey/compile', '/api/journey/decompile',
+        '/api/journey/run (three-event custom)', '/api/journey/export/<report_id> (three-event custom)'
     ]}))
 
 

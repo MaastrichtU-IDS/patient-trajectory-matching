@@ -5,13 +5,16 @@ from datetime import datetime
 import hashlib
 import json
 
-from app.interval_editor import LIMITS, OPTION_COST, keys, compile_query, compile_policy, classifications
+from app.interval_editor import LIMITS as EDITOR_LIMITS, OPTION_COST, keys, compile_query, compile_policy, classifications
+from app import pattern_builder
 from app.temporal import ROOT, check_limits, digest
 from patterns import bounded_intervals as bt, robust_relaxation as relax
 
 BASELINE_PATH = 'examples/patient-journey/baseline.json'
-SOURCE_PATH = 'examples/interval-editor/overlap-source.json'
-ARTIFACTS = ('app/journey.py', 'app/interval_editor.py', 'app/temporal.py',
+SOURCE_PATH = 'examples/patient-journey/three-event-source.json'
+LIMITS = {**EDITOR_LIMITS, 'events': 12, 'variables': 24, 'slots': 3,
+          'query_constraints': 6, 'candidate_bindings_per_evaluation': 32}
+ARTIFACTS = ('app/pattern_builder.py', 'app/journey.py', 'app/interval_editor.py', 'app/temporal.py',
              'app/interval_explanations.py', 'app/temporal_replay.py',
              'app/journey.html', 'app/journey.js', 'app/journey.css', BASELINE_PATH, SOURCE_PATH)
 DEFAULT_REQUEST = {'reference_patient_id': 'T03', 'top_k': 1, 'maximum_baseline': None,
@@ -24,7 +27,9 @@ QUESTIONS = [
     {'id': 'overlap', 'label': 'Collection during a ten-minute infusion, sharing at least three minutes',
      'option': 'Lower shared time from three to two minutes; retain contains and ten-minute duration.'},
     {'id': 'sequential', 'label': 'Collection starts zero to 48 minutes after infusion completion',
-     'option': 'Widen the signed gap upper bound from 48 to 50 minutes; retain the zero lower bound.'}]
+     'option': 'Widen the signed gap upper bound from 48 to 50 minutes; retain the zero lower bound.'},
+    {'id': 'custom', 'label': 'Build a two- or three-event trajectory',
+     'option': 'Custom patterns evaluate the original constraints at budget zero.'}]
 
 
 def controls_for(request):
@@ -116,13 +121,14 @@ class JourneyWorkspace:
     def metadata(self):
         return {'scope': 'authored-patient-to-cohort-journey', 'patients': deepcopy(self._baseline['patients']),
                 'default_request': deepcopy(DEFAULT_REQUEST), 'questions': deepcopy(QUESTIONS),
+                'builder': pattern_builder.metadata(),
                 'budgets': ['0', OPTION_COST], 'limits': deepcopy(LIMITS), 'ranking_method': RANKING_METHOD,
                 'baseline_provenance': self._baseline['provenance'],
                 'source_sha256': digest(self._source),
-                'source_note': 'Both questions evaluate the same authored patient histories; choosing a question never changes source times.'}
+                'source_note': 'All questions evaluate the same three-event authored patient histories; choosing a question never changes source times.'}
 
     def run(self, request):
-        keys(request, DEFAULT_REQUEST)
+        keys(request, (*DEFAULT_REQUEST, *(('pattern',) if type(request) is dict and 'pattern' in request else ())))
         if type(request['reference_patient_id']) is not str or request['reference_patient_id'] not in {
                 p['patient_id'] for p in self._baseline['patients']}:
             raise ValueError('Select an authored reference patient')
@@ -131,13 +137,26 @@ class JourneyWorkspace:
         maximum = request['maximum_baseline']
         if maximum is not None and (type(maximum) is not int or not 0 <= maximum <= 100):
             raise ValueError('Maximum baseline must be null or an integer from 0 to 100')
-        if type(request['question']) is not str or request['question'] not in ('overlap', 'sequential'):
-            raise ValueError('Select overlap or sequential')
+        if type(request['question']) is not str or request['question'] not in ('overlap', 'sequential', 'custom'):
+            raise ValueError('Select overlap, sequential or custom')
         if type(request['budget']) is not str or request['budget'] not in ('0', OPTION_COST):
             raise ValueError('Budget must be the string 0 or 1.25')
-        controls = controls_for(request)
-        query = compile_query(controls)
-        policy = compile_policy(controls, query)
+        pattern = None
+        if request['question'] == 'custom':
+            if request['budget'] != '0':
+                raise ValueError('Custom patterns currently require budget 0')
+            query = pattern_builder.compile_pattern(request.get('pattern'))
+            pattern = pattern_builder.decompile_query(query)
+            controls = None
+            policy = {'profile': relax.PROFILE, 'kind': 'extended', 'relaxable_targets': [],
+                      'max_cost': '0', 'max_changed_targets': 1, 'options': []}
+            relax.variants(query, policy)
+        else:
+            if 'pattern' in request:
+                raise ValueError('Pattern controls apply only to a custom question')
+            controls = controls_for(request)
+            query = compile_query(controls)
+            policy = compile_policy(controls, query)
         reference, eligibility, ranking = select_and_rank(self._baseline['patients'], request)
         admitted_source = self._source
         source = filter_source(admitted_source, eligibility['eligible_patient_ids'])
@@ -181,7 +200,7 @@ class JourneyWorkspace:
                   'baseline_source': deepcopy(self._baseline), 'ranking': ranking, 'eligibility': eligibility,
                   'patients': patients, 'original_counts': dict(sorted(Counter(p['original_status'] for p in patients).items())),
                   'added_robust_patient_ids': sorted(set(relaxation['robust_patient_ids']) - set(result['certain_patient_ids'])),
-                  'controls': controls, 'query': query, 'policy': policy, 'source': source,
+                  'controls': controls, 'pattern': pattern, 'query': query, 'policy': policy, 'source': source,
                   'admitted_source_sha256': digest(admitted_source), 'result': result, 'relaxation': relaxation,
                   'limits': deepcopy(LIMITS), 'workload': workload,
                   'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ARTIFACTS}}

@@ -1,0 +1,390 @@
+{
+  "profile": "bounded-interval-1.0",
+  "dataset_id": "authored-three-event-journey",
+  "snapshot_id": "v1",
+  "clocks": [
+    {
+      "clock_id": "T01-clock",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "patient:T01",
+      "policy": "offset-datetime-microseconds-v1"
+    },
+    {
+      "clock_id": "T02-clock",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "patient:T02",
+      "policy": "offset-datetime-microseconds-v1"
+    },
+    {
+      "clock_id": "T03-clock",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "patient:T03",
+      "policy": "offset-datetime-microseconds-v1"
+    },
+    {
+      "clock_id": "T04-clock",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "patient:T04",
+      "policy": "offset-datetime-microseconds-v1"
+    },
+    {
+      "clock_id": "T04-unaligned",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "patient:T04",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "variables": [
+    {
+      "id": "T01-a-start",
+      "lower_us": 0,
+      "upper_us": 0,
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "clock_id": "T01-clock",
+      "source_key": "authored:T01-a-start"
+    },
+    {
+      "id": "T01-a-end",
+      "lower_us": 600000000,
+      "upper_us": 600000000,
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "clock_id": "T01-clock",
+      "source_key": "authored:T01-a-end"
+    },
+    {
+      "id": "T01-b-start",
+      "lower_us": 180000000,
+      "upper_us": 240000000,
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "clock_id": "T01-clock",
+      "source_key": "authored:T01-b-start"
+    },
+    {
+      "id": "T01-b-end",
+      "lower_us": 360000000,
+      "upper_us": 420000000,
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "clock_id": "T01-clock",
+      "source_key": "authored:T01-b-end"
+    },
+    {
+      "id": "T02-a-start",
+      "lower_us": 0,
+      "upper_us": 0,
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "clock_id": "T02-clock",
+      "source_key": "authored:T02-a-start"
+    },
+    {
+      "id": "T02-a-end",
+      "lower_us": 600000000,
+      "upper_us": 600000000,
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "clock_id": "T02-clock",
+      "source_key": "authored:T02-a-end"
+    },
+    {
+      "id": "T02-b-start",
+      "lower_us": 480000000,
+      "upper_us": 540000000,
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "clock_id": "T02-clock",
+      "source_key": "authored:T02-b-start"
+    },
+    {
+      "id": "T02-b-end",
+      "lower_us": 540000000,
+      "upper_us": 720000000,
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "clock_id": "T02-clock",
+      "source_key": "authored:T02-b-end"
+    },
+    {
+      "id": "T03-a-start",
+      "lower_us": 0,
+      "upper_us": 0,
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "clock_id": "T03-clock",
+      "source_key": "authored:T03-a-start"
+    },
+    {
+      "id": "T03-a-end",
+      "lower_us": 600000000,
+      "upper_us": 600000000,
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "clock_id": "T03-clock",
+      "source_key": "authored:T03-a-end"
+    },
+    {
+      "id": "T03-b-start",
+      "lower_us": 720000000,
+      "upper_us": 780000000,
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "clock_id": "T03-clock",
+      "source_key": "authored:T03-b-start"
+    },
+    {
+      "id": "T03-b-end",
+      "lower_us": 840000000,
+      "upper_us": 900000000,
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "clock_id": "T03-clock",
+      "source_key": "authored:T03-b-end"
+    },
+    {
+      "id": "T04-a-start",
+      "lower_us": 0,
+      "upper_us": 0,
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "clock_id": "T04-clock",
+      "source_key": "authored:T04-a-start"
+    },
+    {
+      "id": "T04-a-end",
+      "lower_us": 600000000,
+      "upper_us": 600000000,
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "clock_id": "T04-clock",
+      "source_key": "authored:T04-a-end"
+    },
+    {
+      "id": "T04-b-start",
+      "lower_us": 180000000,
+      "upper_us": 240000000,
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "clock_id": "T04-unaligned",
+      "source_key": "authored:T04-b-start"
+    },
+    {
+      "id": "T04-b-end",
+      "lower_us": 360000000,
+      "upper_us": 420000000,
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "clock_id": "T04-unaligned",
+      "source_key": "authored:T04-b-end"
+    },
+    {
+      "id": "T01-c-start",
+      "lower_us": 1200000000,
+      "upper_us": 1200000000,
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "clock_id": "T01-clock",
+      "source_key": "authored:T01-c-start"
+    },
+    {
+      "id": "T01-c-end",
+      "lower_us": 1320000000,
+      "upper_us": 1320000000,
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "clock_id": "T01-clock",
+      "source_key": "authored:T01-c-end"
+    },
+    {
+      "id": "T02-c-start",
+      "lower_us": 1200000000,
+      "upper_us": 1200000000,
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "clock_id": "T02-clock",
+      "source_key": "authored:T02-c-start"
+    },
+    {
+      "id": "T02-c-end",
+      "lower_us": 1320000000,
+      "upper_us": 1320000000,
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "clock_id": "T02-clock",
+      "source_key": "authored:T02-c-end"
+    },
+    {
+      "id": "T03-c-start",
+      "lower_us": 1200000000,
+      "upper_us": 1200000000,
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "clock_id": "T03-clock",
+      "source_key": "authored:T03-c-start"
+    },
+    {
+      "id": "T03-c-end",
+      "lower_us": 1320000000,
+      "upper_us": 1320000000,
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "clock_id": "T03-clock",
+      "source_key": "authored:T03-c-end"
+    },
+    {
+      "id": "T04-c-start",
+      "lower_us": 1200000000,
+      "upper_us": 1200000000,
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "clock_id": "T04-clock",
+      "source_key": "authored:T04-c-start"
+    },
+    {
+      "id": "T04-c-end",
+      "lower_us": 1320000000,
+      "upper_us": 1320000000,
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "clock_id": "T04-clock",
+      "source_key": "authored:T04-c-end"
+    }
+  ],
+  "events": [
+    {
+      "id": "T01-a",
+      "record_id": "record-T01-a",
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "T01-a-start",
+      "end_var": "T01-a-end",
+      "source_key": "authored:T01-a"
+    },
+    {
+      "id": "T01-b",
+      "record_id": "record-T01-b",
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T01-b-start",
+      "end_var": "T01-b-end",
+      "source_key": "authored:T01-b"
+    },
+    {
+      "id": "T02-a",
+      "record_id": "record-T02-a",
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "T02-a-start",
+      "end_var": "T02-a-end",
+      "source_key": "authored:T02-a"
+    },
+    {
+      "id": "T02-b",
+      "record_id": "record-T02-b",
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T02-b-start",
+      "end_var": "T02-b-end",
+      "source_key": "authored:T02-b"
+    },
+    {
+      "id": "T03-a",
+      "record_id": "record-T03-a",
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "T03-a-start",
+      "end_var": "T03-a-end",
+      "source_key": "authored:T03-a"
+    },
+    {
+      "id": "T03-b",
+      "record_id": "record-T03-b",
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T03-b-start",
+      "end_var": "T03-b-end",
+      "source_key": "authored:T03-b"
+    },
+    {
+      "id": "T04-a",
+      "record_id": "record-T04-a",
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "T04-a-start",
+      "end_var": "T04-a-end",
+      "source_key": "authored:T04-a"
+    },
+    {
+      "id": "T04-b",
+      "record_id": "record-T04-b",
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T04-b-start",
+      "end_var": "T04-b-end",
+      "source_key": "authored:T04-b"
+    },
+    {
+      "id": "T01-c",
+      "record_id": "record-T01-c",
+      "patient_id": "T01",
+      "episode_id": "T01-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T01-c-start",
+      "end_var": "T01-c-end",
+      "source_key": "authored:T01-c"
+    },
+    {
+      "id": "T02-c",
+      "record_id": "record-T02-c",
+      "patient_id": "T02",
+      "episode_id": "T02-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T02-c-start",
+      "end_var": "T02-c-end",
+      "source_key": "authored:T02-c"
+    },
+    {
+      "id": "T03-c",
+      "record_id": "record-T03-c",
+      "patient_id": "T03",
+      "episode_id": "T03-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T03-c-start",
+      "end_var": "T03-c-end",
+      "source_key": "authored:T03-c"
+    },
+    {
+      "id": "T04-c",
+      "record_id": "record-T04-c",
+      "patient_id": "T04",
+      "episode_id": "T04-episode",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "T04-c-start",
+      "end_var": "T04-c-end",
+      "source_key": "authored:T04-c"
+    }
+  ],
+  "constraints": []
+}

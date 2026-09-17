@@ -21,7 +21,7 @@ class JourneyTests(unittest.TestCase):
         self.assertEqual((rows['T02']['original_status'], rows['T02']['option_status']), ('NO_RECORDED_MATCH', 'NO_RECORDED_MATCH'))
         self.assertEqual(rows['T04']['option_status'], 'INCOMPARABLE')
         self.assertEqual(report['added_robust_patient_ids'], ['T01'])
-        self.assertEqual(report['workload']['candidate_bindings_per_evaluation'], 3)
+        self.assertEqual(report['workload']['candidate_bindings_per_evaluation'], 6)
         self.assertNotIn('T03', {e['patient_id'] for e in report['source']['events']})
         self.assertTrue(journey.verify(self.workspace.export(report['report_id']))['verified'])
         for row in rows.values():
@@ -74,9 +74,11 @@ class JourneyTests(unittest.TestCase):
         rows = {p['patient_id']: p for p in report['patients']}
         self.assertEqual(report['source'], original['source'])
         self.assertEqual(report['admitted_source_sha256'], original['admitted_source_sha256'])
-        self.assertEqual(rows['T01']['original_status'], 'NO_RECORDED_MATCH')
-        self.assertEqual(rows['T02']['original_status'], 'NO_RECORDED_MATCH')
-        self.assertEqual(rows['T04']['original_status'], 'INCOMPARABLE')
+        # The added follow-up collection at minute 20 supplies a certain
+        # sequential binding on every aligned patient clock.
+        self.assertEqual(rows['T01']['original_status'], 'CERTAIN')
+        self.assertEqual(rows['T02']['original_status'], 'CERTAIN')
+        self.assertEqual(rows['T04']['original_status'], 'CERTAIN')
         self.assertEqual(report['added_robust_patient_ids'], [])
 
     def test_replay_rejects_rehashed_tampering(self):
