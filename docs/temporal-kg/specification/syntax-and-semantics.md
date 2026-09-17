@@ -2,12 +2,12 @@
 
 **Project review draft, 17 September 2026**
 
-**Version:** v0.2
+**Version:** v0.3
 
 **Review status:** R1–R12 answered by Robert Hoehndorf; revised GFO-Time and
 semantic-integration text remains a draft for review.
 
-**Specification identifier:** `temporal-trajectory-semantics-0.2`
+**Specification identifier:** `temporal-trajectory-semantics-0.3`
 
 ## Abstract
 
@@ -37,7 +37,9 @@ adoption of this draft**. Here MUST expresses a requirement, MUST NOT a
 prohibition, SHOULD a recommendation with documented exceptions, and MAY an
 option. These meanings are defined locally for this document.
 
-Sections 2–11 are proposed normative material. The abstract, this status section,
+Sections 2–11 and Sections A.2–A.7 of the separate
+[formal-semantics appendix](formal-semantics.md) are proposed normative material.
+The abstract, this status section,
 Sections 1 and 12–15, and all paragraphs labelled **Example** are informative.
 Accepted decisions and remaining operational obligations are collected in
 Section 14 and referenced at their point of use.
@@ -51,9 +53,10 @@ publication. Its requirements and temporal operators belong to this project.
 The baseline inspected for this draft is upstream commit `511fdce`, together
 with the proposed implementations in [PR #45][pr45], [PR #46][pr46] and
 [PR #47][pr47]. Those PRs retain their own review status. This draft adds no
-runtime syntax parser or service endpoint. A checked Lean metatheory accompanies
-the new [GFO-Time integration contract](gfo-time-and-integration.md). Section 12
-identifies the executable subsets and proposed integrations.
+runtime syntax parser or service endpoint. The
+[formal-semantics appendix](formal-semantics.md) defines the combined semantics in
+Lean, extending the [GFO-Time integration contract](gfo-time-and-integration.md).
+Section 12 identifies the executable subsets and proposed integrations.
 
 ## Table of contents
 
@@ -72,6 +75,8 @@ identifies the executable subsets and proposed integrations.
 13. [Worked examples and distinguishing cases](#13-worked-examples-and-distinguishing-cases)
 14. [Accepted decisions and remaining obligations](#14-accepted-decisions-and-remaining-obligations)
 15. [References and change history](#15-references-and-change-history)
+
+[Appendix A: Formal semantics in Lean](formal-semantics.md)
 
 ## 1 Purpose and example
 
@@ -731,7 +736,7 @@ representative MUST publish a deterministic ordering and identify the selected
 option and binding. PR #46 orders by exact cost, option identifier, canonical
 serialized binding and episode identifier. That ordering is an implementation
 presentation rule; an approved interoperable serialization/tie convention
-remains **review decision R10**.
+remains an **implementation obligation under accepted R10**.
 
 ## 10 Results, evidence and conformance
 
@@ -1017,9 +1022,9 @@ answers. Implementation proofs, source policies and clinical validation remain
 separate obligations; their absence does not reopen the accepted design choice.
 The GFO-specific formalization of R1/R3 is the substantive revision for inspection.
 
-| ID | Review disposition | Rule applied in v0.2 | Outstanding implementation or deployment evidence | Earlier item |
+| ID | Review disposition | Rule applied in v0.3 | Outstanding implementation or deployment evidence | Earlier item |
 |---|---|---|---|---|
-| R1 | Accepted with integration required | OWL 2 DL and temporal evaluators share one compatible-model semantics; Lean records the bridge and conditional results | Full OWL/datatype formalization and adapter extension proof | Q1 |
+| R1 | Accepted with integration required | OWL 2 DL and temporal evaluators share one compatible-model semantics; Lean defines OWL satisfaction, combined worlds and answer semantics | OWL correspondence proof, concrete datatype maps and adapter extension proof | Q1 |
 | R2 | Accepted: identity by identifiers | Event/record identifiers remain distinct at the same time; temporal descriptions can share a BT_C referent | Canonicalisation, aliases and OWL equality-conflict cases | Q2 |
 | R3 | Revised by reviewer: GFO-Time | Primitive chronoids, dependent oriented boundaries and coincidence; finite microsecond coordinates are an execution projection | Frame calibration, precision policies, oriented-boundary admission and chart/adapter proofs | Q3 |
 | R4 | Accepted | One fixed binding across compatible source models | Preserve witness identity in every adapter | Q8 |
@@ -1071,6 +1076,13 @@ presentation model.
   [review guide](README.md).
 
 ### 15.3 Change history
+
+- **v0.3, 17 September 2026:** Add the normative formal-semantics appendix and
+  explicit Lean definitions for OWL interpretation/satisfaction, datatype-domain
+  extensions, combined worlds, chart/source constraints, eligibility, guarded
+  certainty, robust relaxation and dense-axis state coverage. Add eleven checked
+  results to the seven bridge lemmas. Normalizer/adapter correctness and concrete
+  datatype instantiation remain separately flagged obligations.
 
 - **v0.2, 17 September 2026:** Apply R1–R12 review answers. Replace the discrete
   foundation with GFO-Time chronoids and oriented dependent boundaries; distinguish
