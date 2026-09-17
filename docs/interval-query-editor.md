@@ -32,7 +32,7 @@ data or terminology decisions are introduced.
 |---|---|
 | One of 13 basic Allen relations | Infusion is the left interval; collection is the right interval. Before/after are strict on the existing one-microsecond grid. |
 | Signed gap | Collection start minus infusion end lies in the inclusive range. Negative values are allowed. |
-| Optional duration | Infusion end minus start lies in the inclusive nonnegative range. |
+| Optional duration | Infusion end minus start lies in the inclusive positive range. |
 | Optional minimum overlap | `min(infusion end, collection end) − max(infusion start, collection start)` is at least the positive minimum. |
 
 All enabled predicates are conjunctive. The fixed-witness certainty rule remains
@@ -44,7 +44,7 @@ displayed as a known negative.
 Minute values must be decimal **strings**, with no exponent and at most six
 fractional digits. They are converted exactly to integer microseconds with
 `Decimal`, not through floating point. Signed gaps range from −1440 to 1440
-minutes; duration from 0 to 1440; minimum overlap must be greater than zero and
+minutes; duration greater than zero to 1440; minimum overlap must be greater than zero and
 at most 1440. Six decimal places in minutes provide a 60-microsecond control
 resolution; this does not change the solver's one-microsecond time grid.
 

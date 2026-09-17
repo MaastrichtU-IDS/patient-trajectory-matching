@@ -90,6 +90,8 @@ class EditorTests(unittest.TestCase):
         for value in (True, 3, '1e3','NaN','Infinity','1441','-1','0','0.0000001','9'*1000):
             invalid.append({**base, 'minimum_overlap_minutes':value})
         invalid += [{**base,'fixture':'/etc/passwd'}, {**base,'relation':'disjunction'},
+                    {**base,'duration':{'minimum_minutes':'0','maximum_minutes':'10'}},
+                    {**base,'duration':{'minimum_minutes':'0','maximum_minutes':'0'}},
                     {**base,'extra':{}}, {**base,'gap':{'minimum_minutes':'0','maximum_minutes':'1'}},
                     {**base,'duration':{'minimum_minutes':'11','maximum_minutes':'10'}},
                     {**base,'relation':'gap','gap':None},

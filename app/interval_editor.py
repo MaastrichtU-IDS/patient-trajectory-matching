@@ -51,6 +51,8 @@ def compile_query(controls):
     if duration is not None:
         keys(duration, ('minimum_minutes', 'maximum_minutes'))
         low, high = (minutes(duration[k], minimum=0) for k in ('minimum_minutes', 'maximum_minutes'))
+        if low <= 0 or high <= 0:
+            raise ValueError('Duration bounds must be positive')
         if low > high:
             raise ValueError('Duration minimum exceeds maximum')
         constraints.append({'id': 'infusion-duration', 'operator': 'duration', 'slot': 'infusion',
