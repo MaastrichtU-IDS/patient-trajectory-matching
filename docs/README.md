@@ -28,6 +28,7 @@ Start here for the overall design and current state.
 | [PRO/SOLID addendum v2.4](../addenda/specification-2.4.md) | Canonical graph, validation, projection, and exemplar matching | Current executable contract within its declared profile |
 | [Exact-interval profile](exact-interval-profile.md) | Source/RDF adapter, explicit clocks, endpoint comparisons, and evidence | Executable `exact-interval-1.0`; separate from the point-anchor oracle |
 | [Interval cohort matching](interval-cohort-matching.md) | Versioned slot queries, indexed joins, exhaustive reference, and evidence | Executable `interval-cohort-1.0`; exact recorded intervals |
+| [Extended interval queries](extended-interval-query.md) | All basic Allen relations, duration bounds and minimum overlap | Executable bounded-source query profile; fixed-witness possible/certain semantics |
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | Shared-variable constraints, possible/certain bindings, and certificates | Executable `bounded-interval-1.0`; discrete microsecond source profile |
 | [Bounded RDF ingestion](bounded-rdf-ingestion.md) | Closed RDF validation, explicit identities, and source evidence | Executable `bounded-rdf-1.0` input route to the bounded matcher |
 | [Evidence selection](evidence-selection.md) | Explicit support revisions, cutoff selection and bounded matcher integration | Executable bounded subset; broader replay remains open |
@@ -59,10 +60,12 @@ Start here for the overall design and current state.
 | [Indexed source windows](indexed-source-windows.md) | Complete indexed anchor windows, source identities and pending batches | Executable exact-record selector; 24 tests, three separate public-demo strata |
 | [Clinical source preflight](clinical-source-preflight.md) | Proposed item strata, pinned public-demo coverage and measured capacity barriers | Executable aggregate scan; 20 tests; clinical review and mixed evaluation pending |
 | [Source mixed-query pipeline](source-mixed-query.md) | Both CSV importers, explicit review, complete stay roster and independent SQL comparison | Executable exact-source profile; 28 tests, synthetic evaluation |
+| [Robust temporal relaxation](robust-temporal-relaxation.md) | Costed catalogue search with fixed modifications and fixed witnesses | Executable bounded and mixed-query wrapper; deployment policies remain open |
 | [Mixed record queries](mixed-record-query.md) | Interval treatments and point measurements, with separate eligibility/follow-up | Executable bounded record profile; 34 tests, synthetic evaluation |
 | [Measurement point claims](measurement-claims.md) | Scalar/point claims and bounded chartevents import | Executable; 35 tests; separate mixed record-query integration |
 | [MIMIC pending claim import](mimic-claim-import.md) | Source records to bounded claim descriptions and empty acceptance policies | Executable; 25 tests and aggregate public-demo verification |
 | [Patient-local claim projection](local-claim-projection.md) | Local-clock claims, acceptance and checked matching | Executable; 32 tests, recorded and occurrence variants |
+| [State validity and coverage](state-validity-coverage.md) | Explicit state intervals, continuous support, refutation and unknown gaps | Executable exact reference profile with RDF descriptions; clinical admission and sample inference remain open |
 | [Structured claims and controlled projection](claim-projection.md) | Information-object claims and explicit acceptance into bounded reasoning | Executable prototype; 45 tests, pinned-SULO claim-isolation model check |
 | [SULO development proposal](sulo-development/) | Lessons, candidate pattern catalogue, record/occurrence distinction and temporal interoperability | Proposed work programme and evaluation gates; no ontology or executable-profile changes |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |

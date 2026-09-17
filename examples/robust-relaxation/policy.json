@@ -1,0 +1,22 @@
+{
+  "profile": "robust-temporal-relaxation-1.0",
+  "kind": "bounded",
+  "relaxable_targets": [
+    "gap"
+  ],
+  "max_cost": "2",
+  "max_changed_targets": 1,
+  "options": [
+    {
+      "id": "widen",
+      "cost": "1.25",
+      "changes": [
+        {
+          "target": "gap",
+          "lower_us": 0,
+          "upper_us": 3000000000
+        }
+      ]
+    }
+  ]
+}

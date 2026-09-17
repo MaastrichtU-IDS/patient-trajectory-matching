@@ -1,0 +1,76 @@
+{
+  "profile": "bounded-interval-1.0",
+  "dataset_id": "test",
+  "snapshot_id": "one",
+  "clocks": [
+    {
+      "clock_id": "c",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "patient:P",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "variables": [
+    {
+      "id": "as",
+      "lower_us": 0,
+      "upper_us": 0,
+      "patient_id": "P",
+      "episode_id": "E",
+      "clock_id": "c",
+      "source_key": "test:as"
+    },
+    {
+      "id": "ae",
+      "lower_us": 60000000,
+      "upper_us": 60000000,
+      "patient_id": "P",
+      "episode_id": "E",
+      "clock_id": "c",
+      "source_key": "test:ae"
+    },
+    {
+      "id": "bs",
+      "lower_us": 2880000000,
+      "upper_us": 3000000000,
+      "patient_id": "P",
+      "episode_id": "E",
+      "clock_id": "c",
+      "source_key": "test:bs"
+    },
+    {
+      "id": "be",
+      "lower_us": 3060000000,
+      "upper_us": 3060000000,
+      "patient_id": "P",
+      "episode_id": "E",
+      "clock_id": "c",
+      "source_key": "test:be"
+    }
+  ],
+  "events": [
+    {
+      "id": "a",
+      "record_id": "R-a",
+      "patient_id": "P",
+      "episode_id": "E",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "as",
+      "end_var": "ae",
+      "source_key": "test:a"
+    },
+    {
+      "id": "b",
+      "record_id": "R-b",
+      "patient_id": "P",
+      "episode_id": "E",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "bs",
+      "end_var": "be",
+      "source_key": "test:b"
+    }
+  ],
+  "constraints": []
+}

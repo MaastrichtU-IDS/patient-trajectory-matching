@@ -1,0 +1,36 @@
+{
+  "profile": "extended-interval-query-1.0",
+  "id": "collection_contained_with_sustained_overlap",
+  "slots": [
+    {
+      "id": "a",
+      "class_iri": "https://example.org/trajectory/bounded/Infusion"
+    },
+    {
+      "id": "b",
+      "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c",
+      "operator": "contains",
+      "left": "a",
+      "right": "b"
+    },
+    {
+      "id": "overlap",
+      "operator": "minimum_overlap",
+      "left": "a",
+      "right": "b",
+      "minimum_us": 2
+    },
+    {
+      "id": "duration",
+      "operator": "duration",
+      "slot": "a",
+      "minimum_us": 10,
+      "maximum_us": 10
+    }
+  ]
+}
