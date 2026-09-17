@@ -1,8 +1,11 @@
 # Temporal trajectory queries: structural specification and semantics
 
-**Project review draft, 17 September 2026**  
-**Version:** v0.1  
-**Review status:** Awaiting Robert Hoehndorf's review.  
+**Project review draft, 17 September 2026**
+
+**Version:** v0.1
+
+**Review status:** Awaiting Robert Hoehndorf's review.
+
 **Specification identifier:** `temporal-trajectory-semantics-0.1`
 
 ## Abstract
