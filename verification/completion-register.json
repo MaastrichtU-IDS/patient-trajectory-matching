@@ -175,6 +175,24 @@
       "scope": "Finite explicit metric relaxation for extended queries; fixed option and binding, finite-world certificate checks and protected Allen relations.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
+    },
+    "patient_journey": {
+      "command": "python -m unittest app.test_journey app.test_journey_http",
+      "scope": "Shared authored patient population, pre-index ranking, full eligible temporal execution, reference exclusion, uncertainty, evidence and replay through HTTP.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "patient_journey_ui": {
+      "command": "node app/test_journey_ui.cjs",
+      "scope": "Actual guided journey script with engine-produced responses; guided actions, input invalidation and failure recovery; no visual audit.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "interval_explanations": {
+      "command": "python -m unittest app.test_interval_explanations",
+      "scope": "Readable constraint explanations grounded in witnesses and counterexamples; individual examples distinguished from whole-query certainty.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
     }
   },
   "dependencies": [
@@ -3213,6 +3231,26 @@
         "interval_editor_http"
       ],
       "scope": "Explicit catalogues over extended gap/duration/minimum-overlap constraints through API/CLI; the HTTP editor exposes one explicit option with original/relaxed comparison and replay.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "guided-patient-temporal-journey",
+      "evidence": [
+        "app/journey.py",
+        "app/journey.html",
+        "app/journey.js",
+        "app/interval_explanations.py",
+        "app/test_journey.py",
+        "app/test_journey_http.py",
+        "app/test_journey_ui.cjs",
+        "docs/guided-patient-journey.md"
+      ],
+      "acceptance_checks": [
+        "patient_journey",
+        "patient_journey_ui",
+        "interval_explanations"
+      ],
+      "scope": "One bounded authored reference-to-cohort journey with baseline ranking, original/relaxed interval matching, readable evidence and replay; no inferred clinical outcomes, unrestricted source integration or clinical acceptance.",
       "closes_legacy_requirement_automatically": false
     }
   ],

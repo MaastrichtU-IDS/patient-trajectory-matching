@@ -83,6 +83,12 @@ The **[integrated research workspace](docs/research-workspace.md)** connects que
 python -m app.server --host 127.0.0.1 --port 8080
 ```
 
+For the **[guided patient-to-cohort demo](docs/guided-patient-journey.md)**, open
+`http://127.0.0.1:8080/journey`. In 2–3 minutes, select an authored reference, compare
+the original and relaxed temporal question across the full eligible population,
+inspect readable evidence and unresolved clocks, and export the analysis for replay.
+The guide uses a shared four-history population; its clinical outcomes are unrecorded.
+
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 
 The [guided cohort demo](demo/README.md) is a 2–3 minute investigation: start with a

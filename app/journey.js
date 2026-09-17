@@ -1,0 +1,68 @@
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fields=['reference','top-k','maximum-baseline','question','budget'];
+const labels={CERTAIN:'Certain',POSSIBLE:'Possible only',INCOMPARABLE:'Incomparable',NO_RECORDED_MATCH:'No recorded match',ELIGIBLE:'Eligible',EXCLUDED:'Excluded',UNRESOLVED:'Unresolved'};
+const guideLabels=['1. Select reference case','2. Evaluate original question','3. Apply permitted relaxation','4. Inspect the newly certain history','5. Inspect unresolved timing','Restart guided example'];
+let ready=false,busy=false,metadata=null,report=null,guideStep=0;
+async function api(path,body){const response=await fetch(path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Journey evaluation failed.');return data;}
+function controls(){for(const id of fields)$(id).disabled=busy||!ready;$('run').disabled=busy||!ready;$('guide-next').disabled=busy||!ready;$('guide-next').textContent=guideLabels[guideStep];}
+function clear(){report=null;for(const id of ['rows','ranking-rows','eligibility-rows'])$(id).innerHTML='';$('summary').textContent='Evaluate the current controls to see results.';$('ranking-summary').textContent='Choose a reference and evaluate to see baseline similarity.';$('query').textContent='No executed query yet.';$('evidence').textContent='Select Inspect after evaluation.';$('export').className='button hidden';$('export').removeAttribute('href');}
+function describe(){
+ const p=metadata?.patients.find(p=>p.patient_id===$('reference').value);
+ $('reference-description').textContent=p?`${p.patient_id} is excluded from its candidate cohort. Baseline: ${p.baseline?.value??'not recorded'}${p.baseline?.unit?' '+p.baseline.unit:''}.`:'';
+ $('question-description').textContent=$('question').value==='overlap'?'Infusion strictly contains collection, lasts exactly 10 minutes, and shares at least 3 minutes. The permitted option lowers shared time to 2 minutes.':'Collection starts 0–48 minutes after infusion finishes (touching endpoints allowed). The permitted option widens the maximum gap to 50 minutes.';
+}
+function changed(){clear();guideStep=0;describe();controls();$('guide-progress').textContent='Controls changed · Start the guided example again, or evaluate your current question.';$('guide-narrative').textContent='Your next evaluation uses the controls shown below.';$('status').className='';$('status').textContent='Controls changed. Evaluate again for current results.';}
+for(const id of fields){$(id).onchange=changed;$(id).oninput=changed;}
+function request(){return{reference_patient_id:$('reference').value,top_k:Number($('top-k').value),maximum_baseline:$('maximum-baseline').value===''?null:Number($('maximum-baseline').value),question:$('question').value,budget:$('budget').value};}
+function render(value){
+ if(value.result.search_complete!==true||value.relaxation.search_complete!==true||value.relaxation.evaluations.some(e=>e.result.search_complete!==true))throw new Error('Incomplete evaluation; no completed cohort is available.');
+ report=value;
+ const highlighted=new Set(value.ranking.displayed_patient_ids);
+ $('ranking-summary').textContent=`Reference ${value.request.reference_patient_id} · ${value.ranking.method} · ${highlighted.size} highlighted; all ${value.patients.length} eligible histories evaluated temporally.`;
+ $('ranking-rows').innerHTML=value.ranking.all_candidates.map(r=>`<tr><td>${esc(r.patient_id)}</td><td>${esc(r.baseline?.value??'Not recorded')}</td><td>${esc(r.distance??'Unavailable')}</td><td>${highlighted.has(r.patient_id)?'Yes':'No'}</td></tr>`).join('');
+ $('eligibility-rows').innerHTML=value.eligibility.rows.map(r=>`<tr><td>${esc(r.patient_id)}</td><td>${esc(labels[r.status]||r.status)}</td><td>${esc(r.reason)}</td></tr>`).join('');
+ const counts=value.patients.reduce((c,p)=>{c[p.original_status]=(c[p.original_status]||0)+1;return c;},{});
+ $('summary').textContent=`Original: ${counts.CERTAIN||0} certain, ${counts.POSSIBLE||0} possible only, ${counts.INCOMPARABLE||0} incomparable, ${counts.NO_RECORDED_MATCH||0} with no recorded match. `+(value.relaxation.excluded_by_budget.length?'Permitted option excluded by budget.':`${value.added_robust_patient_ids.length} additional certain ${value.added_robust_patient_ids.length===1?'history':'histories'} under the permitted option.`);
+ $('rows').innerHTML=value.patients.map(p=>`<tr><td>${esc(p.patient_id)}</td><td>${esc(labels[p.original_status]||p.original_status)}</td><td>${esc(p.option_status?labels[p.option_status]||p.option_status:'Excluded by budget')}</td><td>${esc(p.selected_option?(p.selected_option==='original'?'Original':'Permitted option')+' · cost '+p.selected_cost:'None')}</td><td><button class="inspect" data-patient="${esc(p.patient_id)}">Inspect</button></td></tr>`).join('');
+ $('query').textContent=JSON.stringify({request:value.request,query:value.query,policy:value.policy,limits:value.limits,workload:value.workload},null,2);
+ $('export').href='/api/journey/export/'+encodeURIComponent(value.report_id);$('export').className='button';
+}
+function inspect(patient){
+ if(!report||busy)return false;
+ const row=report.patients.find(p=>p.patient_id===patient);
+ if(!row){$('evidence').textContent='This history was not temporally evaluated. See its eligibility reason above.';return false;}
+ const explanation=row.explanation,original=explanation.original;
+ const constraints=original.bindings.map(binding=>`<p>${esc(binding.summary)}</p><ul class="reason-list">${binding.constraints.map(c=>`<li>${esc(c.description)}${c.witness?`<br>Example satisfying timeline: ${esc(c.witness.detail)} This constraint ${c.witness.satisfied?'holds':'does not hold'}.`:''}${c.counterexample?`<br>Example counterexample timeline: ${esc(c.counterexample.detail)} This constraint ${c.counterexample.satisfied?'holds':'does not hold'}.`:''}</li>`).join('')}</ul>`).join('');
+ const changes=explanation.options.map(option=>`<div class="explanation-change"><h4>${esc(option.summary)}</h4>${option.changes.map(c=>`<p>${esc(c.before)} → ${esc(c.after)}</p>`).join('')}<p class="hint">Option ${esc(option.id)} · cost ${esc(option.cost)}</p></div>`).join('');
+ const variables=report.source.variables.filter(v=>v.patient_id===patient);
+ const endpoints=`<p class="hint">Recorded endpoint bounds in minutes on each declared clock. Bounds represent uncertainty, not observed point times.</p><div class="table-scroll"><table><thead><tr><th>Endpoint</th><th>Lower (min)</th><th>Upper (min)</th><th>Clock</th></tr></thead><tbody>${variables.map(v=>`<tr><td>${esc(v.id)}</td><td>${esc(v.lower_us/60000000)}</td><td>${esc(v.upper_us/60000000)}</td><td>${esc(v.clock_id)}</td></tr>`).join('')}</tbody></table></div>`;
+ const evaluations=report.relaxation.evaluations.map(e=>({option:e.option,trajectories:e.result.trajectories.filter(t=>t.patient_id===patient)}));
+ $('evidence').innerHTML=`<h3>${esc(patient)} · ${esc(labels[row.original_status]||row.original_status)}</h3><p class="explanation-summary">${esc(original.summary)}</p>${changes}<p>${esc(explanation.budget_note)}</p><p class="hint">${esc(explanation.preserved)} ${esc(explanation.scope)}</p><details><summary>Why this classification follows from the recorded timing</summary>${constraints}${endpoints}</details><dl class="recorded-evidence"><dt>Recorded treatment</dt><dd>${esc(row.evidence.treatment)}</dd><dt>Recorded collection observation</dt><dd>${esc(row.evidence.observation)}</dd><dt>Clinical outcome</dt><dd>${esc(row.evidence.clinical_outcome)}</dd></dl><details><summary>Source records and provenance</summary><pre>${esc(JSON.stringify({baseline:row.baseline,variables,records:row.evidence.records,events:report.source.events.filter(e=>e.patient_id===patient),bindings:report.result.evidence.bindings},null,2))}</pre></details><details><summary>Full original and permitted-option certificates</summary><pre>${esc(JSON.stringify(evaluations,null,2))}</pre></details>`;
+ $('evidence-card').scrollIntoView?.({behavior:'smooth',block:'start'});return true;
+}
+$('rows').onclick=event=>{const button=event.target.closest('[data-patient]');if(button)inspect(button.dataset.patient);};
+async function evaluate(){
+ if(busy||!ready)return false;
+ const body=request();busy=true;clear();controls();$('status').className='';$('status').textContent='Comparing baselines and evaluating every eligible history…';
+ try{render(await api('/api/journey/run',body));$('status').textContent='Complete. Original classifications, permitted changes and recorded evidence are available.';return true;}
+ catch(error){clear();$('status').className='error';$('status').textContent=error.message;return false;}
+ finally{busy=false;controls();}
+}
+$('run').onclick=async()=>{if(busy||!ready)return;guideStep=0;$('guide-progress').textContent='Independent evaluation · Start the guide to follow its example.';await evaluate();};
+function guidedDefaults(){const defaults=metadata.default_request;$('reference').value=defaults.reference_patient_id;$('top-k').value=String(defaults.top_k);$('maximum-baseline').value='';$('question').value='overlap';$('budget').value='0';clear();describe();}
+$('guide-next').onclick=async()=>{
+ if(busy||!ready)return;
+ if(guideStep===0||guideStep===5){guidedDefaults();guideStep=1;$('guide-narrative').textContent='T03 is our reference patient. T02 has the closest baseline, but temporal matching will evaluate all three peers, including T01 and the history with missing baseline.';$('status').className='';$('status').textContent='Reference and question selected. Evaluate the original question next.';}
+ else if(guideStep===1){$('budget').value='0';if(!await evaluate())return;guideStep=2;$('guide-narrative').textContent='The original question requires strict containment, a 10-minute infusion and at least 3 shared minutes. Inspect the original classifications: being closest at baseline does not establish a temporal match.';}
+ else if(guideStep===2){$('budget').value='1.25';if(!await evaluate())return;guideStep=3;$('guide-narrative').textContent='Allow the single option costing 1.25: lower minimum shared time from 3 to 2 minutes. Compare the computed columns; the original query and source uncertainty are preserved.';}
+ else if(guideStep===3){if(!inspect('T01'))return;guideStep=4;$('guide-narrative').textContent='T01 becomes certain under the permitted option, even though it was outside the closest-one baseline highlight. Read the timing explanation and recorded treatment and collection evidence below.';}
+ else if(guideStep===4){if(!inspect('T04'))return;guideStep=5;$('guide-narrative').textContent='T04 remains incomparable because its clocks cannot be compared. Relaxing a metric does not repair missing clock alignment. Download the journey to preserve its controls, cohort decisions and replayable evidence.';}
+ $('guide-progress').textContent=guideStep===5?'Journey complete · Download the report in the temporal cohort card.':`Step ${guideStep} of 5 complete`;controls();
+};
+async function initialize(){
+ controls();try{metadata=await api('/api/journey');$('reference').innerHTML=metadata.patients.map(p=>`<option value="${esc(p.patient_id)}">${esc(p.patient_id)}</option>`).join('');$('question').innerHTML=metadata.questions.map(q=>`<option value="${esc(q.id)}">${esc(q.label)}</option>`).join('');guidedDefaults();ready=true;$('limits').textContent='Bounded to four authored patients and two event types. Complete reports include source records, baseline eligibility, ranking, temporal queries and certificates for reproducibility.';$('status').textContent='Ready. Start the guided example or choose your own controls.';}
+ catch(error){$('status').className='error';$('status').textContent=error.message;}controls();
+}
+initialize();

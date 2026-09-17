@@ -68,10 +68,32 @@ def main() -> None:
     _, body = get(args.url, '/api/editor/export/' + report['report_id'])
     if json.loads(body) != report:
         raise SystemExit('Interval editor export differs from execution')
+    mime, body = get(args.url, '/journey')
+    if mime != 'text/html' or b'<html' not in body.lower():
+        raise SystemExit('Patient journey page did not return HTML')
+    _, body = get(args.url, '/api/journey')
+    controls = json.loads(body)['default_request']
+    controls.update(reference_patient_id='T03', top_k=1, maximum_baseline=None,
+                    question='overlap', budget='1.25')
+    request = urllib.request.Request(args.url.rstrip('/') + '/api/journey/run',
+                                     data=json.dumps(controls).encode(),
+                                     headers={'Content-Type': 'application/json'})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        report = json.load(response)
+    if (report['eligibility']['eligible_patient_ids'] != ['T01', 'T02', 'T04']
+            or report['result']['certain_patient_ids'] != []
+            or report['relaxation']['robust_patient_ids'] != ['T01']
+            or report['added_robust_patient_ids'] != ['T01']
+            or 'T01' in report['ranking']['displayed_patient_ids']):
+        raise SystemExit('Patient journey differs from the authored full-pool example')
+    mime, body = get(args.url, '/api/journey/export/' + report['report_id'])
+    if mime != 'application/json' or json.loads(body) != report:
+        raise SystemExit('Patient journey export differs from execution')
     print(json.dumps({'status': 'passed', 'checks': [
         '/healthz', '/readyz', '/api/capabilities', '/', '/temporal',
         '/api/temporal/run', '/api/temporal/export/<report_id>', '/temporal/editor',
-        '/api/editor', '/api/editor/run', '/api/editor/export/<report_id>'
+        '/api/editor', '/api/editor/run', '/api/editor/export/<report_id>',
+        '/journey', '/api/journey', '/api/journey/run', '/api/journey/export/<report_id>'
     ]}))
 
 
