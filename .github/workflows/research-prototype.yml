@@ -33,6 +33,7 @@ jobs:
           node app/test_ui.cjs
           node app/test_temporal_ui.cjs
           node app/test_editor_ui.cjs
+          node app/test_journey_ui.cjs
       - name: Verify completion-register consistency
         run: |
           python -m unittest discover -s tools -p 'test_*.py'

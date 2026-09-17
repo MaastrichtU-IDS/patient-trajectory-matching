@@ -7,6 +7,9 @@ from app.temporal import TemporalWorkspace, digest
 
 
 def verify(bundle):
+    if isinstance(bundle, dict) and bundle.get('format') == 'patient-journey-export-1':
+        from app.journey import verify as verify_journey
+        return verify_journey(bundle)
     if isinstance(bundle, dict) and bundle.get('format') == 'interval-editor-export-1':
         from app.interval_editor import verify as verify_editor
         return verify_editor(bundle)

@@ -14,6 +14,7 @@ from demo import cohort
 from patterns.patient_similarity import SimilarityEngine
 from app.temporal import TemporalWorkspace
 from app.interval_editor import IntervalEditor
+from app.journey import JourneyWorkspace
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -43,6 +44,7 @@ class Workspace:
         self.comparisons = OrderedDict()
         self.temporal = TemporalWorkspace()
         self.interval_editor = IntervalEditor()
+        self.journey = JourneyWorkspace()
         self.lock = threading.RLock()
         self.ready = True
 
@@ -50,7 +52,8 @@ class Workspace:
         return {'status': 'ready' if self.ready else 'not-ready', 'scope': 'authored-synthetic-research-prototype',
                 'supported': ['pre-index-similarity', 'bounded-refinements',
                               'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
-                              'bounded-temporal-demonstration', 'bounded-interval-query-editor'],
+                              'bounded-temporal-demonstration', 'bounded-interval-query-editor',
+                              'guided-patient-temporal-journey'],
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'authentication', 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'],
@@ -131,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Content-Security-Policy', "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
         if attachment:
-            filename = 'temporal-analysis.json' if attachment == 'temporal' else 'research-revision.json'
+            filename = {'temporal': 'temporal-analysis.json', 'journey': 'patient-journey.json'}.get(attachment, 'research-revision.json')
             self.send_header('Content-Disposition', 'attachment; filename="' + filename + '"')
         self.end_headers()
         self.wfile.write(body)
@@ -177,6 +180,10 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(200, self.workspace.temporal.metadata())
                 if path == '/api/editor':
                     return self.send(200, self.workspace.interval_editor.metadata())
+                if path == '/api/journey':
+                    return self.send(200, self.workspace.journey.metadata())
+                if path.startswith('/api/journey/export/'):
+                    return self.send(200, self.workspace.journey.export(identifier(path.rsplit('/', 1)[1])), attachment='journey')
                 if path.startswith('/api/editor/export/'):
                     return self.send(200, self.workspace.interval_editor.export(identifier(path.rsplit('/', 1)[1])), attachment='temporal')
                 if path.startswith('/api/temporal/export/'):
@@ -190,6 +197,9 @@ class Handler(BaseHTTPRequestHandler):
                       '/temporal.js': ('temporal.js', 'text/javascript; charset=utf-8'),
                       '/temporal/editor': ('editor.html', 'text/html; charset=utf-8'),
                       '/editor.js': ('editor.js', 'text/javascript; charset=utf-8'),
+                      '/journey': ('journey.html', 'text/html; charset=utf-8'),
+                      '/journey.js': ('journey.js', 'text/javascript; charset=utf-8'),
+                      '/journey.css': ('journey.css', 'text/css; charset=utf-8'),
                       '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
                       '/style.css': ('style.css', 'text/css; charset=utf-8')}
             if path in static:
@@ -243,6 +253,8 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.workspace.temporal.run(data['budget'])
                 elif self.path == '/api/editor/run':
                     result = self.workspace.interval_editor.run(data)
+                elif self.path == '/api/journey/run':
+                    result = self.workspace.journey.run(data)
                 else:
                     return self.send(404, {'error': 'Route not found'})
                 self.send(200, result)

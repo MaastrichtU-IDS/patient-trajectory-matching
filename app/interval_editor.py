@@ -8,13 +8,14 @@ import re
 
 from patterns import bounded_intervals as bt, extended_interval_query as extended, robust_relaxation as relax
 from app.temporal import ROOT, LIMITS as DEMO_LIMITS, check_limits, digest
+from app.interval_explanations import explain_patient
 
 LIMITS = {**DEMO_LIMITS, 'query_constraints': 3, 'catalogue_options': 1,
           'evaluations': 2, 'saved_results': 16}
 OPTION_COST = '1.25'
 SOURCES = {'sequential': 'examples/temporal-workspace/source.json',
            'overlap': 'examples/interval-editor/overlap-source.json'}
-ARTIFACTS = ('app/interval_editor.py', 'app/temporal.py', 'app/editor.html', 'app/editor.js')
+ARTIFACTS = ('app/interval_editor.py', 'app/interval_explanations.py', 'app/temporal.py', 'app/editor.html', 'app/editor.js')
 DECIMAL = re.compile(r'-?(?:0|[1-9][0-9]{0,3})(?:\.[0-9]{1,6})?\Z')
 
 
@@ -149,7 +150,8 @@ class IntervalEditor:
             selected = best.get(row['patient_id'])
             row.update(option_status=option_rows.get(row['patient_id'], {}).get('status'),
                        selected_option=selected['option_id'] if selected else None,
-                       selected_cost=selected['cost'] if selected else None)
+                       selected_cost=selected['cost'] if selected else None,
+                       explanation=explain_patient(source, query, relaxation, row['patient_id'], policy))
         report = {'format': 'interval-editor-export-1', 'scope': 'authored-two-slot-interval-editor',
                   'controls': deepcopy(controls), 'query': query, 'source': source,
                   'policy': policy, 'relaxation': relaxation,

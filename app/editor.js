@@ -54,6 +54,12 @@ function render(value){
   $('query').textContent=JSON.stringify({query:value.query,policy:value.policy},null,2);
   $('export').href='/api/editor/export/'+encodeURIComponent(value.report_id);$('export').className='button';
 }
+function explanationCards(explanation){
+  if(!explanation)return '';
+  const examples=(name,example)=>example?`<p>${esc(name)}: ${esc(example.detail)} ${example.satisfied?'This constraint holds.':'This constraint does not hold.'}</p>`:'';
+  const original=explanation.original;
+  return `<section aria-label="Match explanation"><h4>Why this result?</h4><p>${esc(original.summary)}</p>${original.bindings.map(binding=>`<p>${esc(binding.summary)}</p>${binding.contradiction_constraints?.length?`<p>Constraints involved in the reported contradiction: ${binding.contradiction_constraints.map(esc).join(', ')}.</p>`:''}${binding.constraints.map(c=>`<div class="card"><strong>${esc(c.description)}</strong>${examples('Matching example',c.witness)}${examples('Counterexample',c.counterexample)}</div>`).join('')}`).join('')}${explanation.options.map(option=>`<h4>${esc(option.id)} · cost ${esc(option.cost)}</h4><p>${esc(option.summary)}</p>${option.changes.map(change=>`<p><strong>${esc(change.target)}</strong><br>Original: ${esc(change.before)}<br>Relaxed: ${esc(change.after)}</p>`).join('')}`).join('')}<p>${esc(explanation.budget_note)}</p><p>${esc(explanation.preserved)}</p><p class="hint">${esc(explanation.scope)}</p></section>`;
+}
 function inspect(patient){
   if(!report)return;
   const trajectories=report.result.trajectories.filter(t=>t.patient_id===patient);
@@ -62,7 +68,7 @@ function inspect(patient){
   const variables=report.source.variables.filter(v=>v.patient_id===patient);
   const bindings=events.map(e=>report.result.evidence.bindings[e.id]);
   const optionEvidence=report.relaxation.evaluations.slice(1).map(e=>({option:e.option,trajectories:e.result.trajectories.filter(t=>t.patient_id===patient)}));
-  $('evidence').innerHTML=`<h3>${esc(patient)}</h3><p class="hint">Endpoint bounds below are minutes on each declared clock. Certificates retain integer microseconds.</p><div class="table-scroll"><table><thead><tr><th>Endpoint</th><th>Lower (min)</th><th>Upper (min)</th><th>Clock</th></tr></thead><tbody>${variables.map(v=>`<tr><td>${esc(v.id)}</td><td>${esc(v.lower_us/60000000)}</td><td>${esc(v.upper_us/60000000)}</td><td>${esc(v.clock_id)}</td></tr>`).join('')}</tbody></table></div><details><summary>Original query certificates: witness, counterexample or contradiction</summary><pre>${esc(JSON.stringify(trajectories,null,2))}</pre></details><details><summary>Edited option and certificates</summary><pre>${esc(optionEvidence.length?JSON.stringify(optionEvidence,null,2):report.policy.options.length?'Option excluded by budget.':'No relaxation option requested.')}</pre></details><details><summary>Source events and PRO / SOLID provenance</summary><pre>${esc(JSON.stringify({events,bindings},null,2))}</pre></details>`;
+  $('evidence').innerHTML=`<h3>${esc(patient)}</h3>${explanationCards(report.patients.find(row=>row.patient_id===patient)?.explanation)}<p class="hint">Endpoint bounds below are minutes on each declared clock. Certificates retain integer microseconds.</p><div class="table-scroll"><table><thead><tr><th>Endpoint</th><th>Lower (min)</th><th>Upper (min)</th><th>Clock</th></tr></thead><tbody>${variables.map(v=>`<tr><td>${esc(v.id)}</td><td>${esc(v.lower_us/60000000)}</td><td>${esc(v.upper_us/60000000)}</td><td>${esc(v.clock_id)}</td></tr>`).join('')}</tbody></table></div><details><summary>Original query certificates: witness, counterexample or contradiction</summary><pre>${esc(JSON.stringify(trajectories,null,2))}</pre></details><details><summary>Edited option and certificates</summary><pre>${esc(optionEvidence.length?JSON.stringify(optionEvidence,null,2):report.policy.options.length?'Option excluded by budget.':'No relaxation option requested.')}</pre></details><details><summary>Source events and PRO / SOLID provenance</summary><pre>${esc(JSON.stringify({events,bindings},null,2))}</pre></details>`;
 }
 $('rows').onclick=event=>{const button=event.target.closest('[data-patient]');if(button)inspect(button.dataset.patient);};
 $('run').onclick=async()=>{

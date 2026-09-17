@@ -49,6 +49,10 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'editor.js'),'utf8'),vm.crea
  assert.match(el('rows').innerHTML,/Possible only<\/td><td>Certain/);assert.match(el('rows').innerHTML,/Edited option · cost 1.25/);
  el('rows').onclick({target:{closest:()=>({dataset:{patient:'T01'}})}});
  assert.match(el('evidence').innerHTML,/edited-option/);assert.match(el('query').textContent,/relaxable_targets/);
+ assert.match(el('evidence').innerHTML,/Why this result\?/);
+ assert.match(el('evidence').innerHTML,/shared time|share at least/);
+ assert.match(el('evidence').innerHTML,/Original:.*3 min/);
+ assert.match(el('evidence').innerHTML,/Relaxed:.*2 min/);
  el('relax-budget').value='0';el('relax-budget').onchange();assert.equal(el('export').href,undefined);
  await el('run').onclick();assert.match(el('summary').textContent,/Option excluded by budget/);assert.match(el('rows').innerHTML,/Excluded by budget/);
  el('rows').onclick({target:{closest:()=>({dataset:{patient:'T01'}})}});assert.match(el('evidence').innerHTML,/Option excluded by budget/);
@@ -60,8 +64,10 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'editor.js'),'utf8'),vm.crea
  el('relax-enabled').value='off';el('relax-enabled').onchange();el('overlap-enabled').value='on';el('overlap-enabled').onchange();
  el('overlap-min').value='4';el('overlap-min').oninput();assert.equal(el('query').textContent,'No executed query yet.');assert.equal(el('export').href,undefined);
  payload.changed.source.events[0].source_key='<img src=x onerror=alert(1)>';
+ payload.changed.patients[0].explanation.original.summary='<script>bad explanation</script>';
  await el('run').onclick();el('rows').onclick({target:{closest:()=>({dataset:{patient:'T01'}})}});
  assert.match(el('evidence').innerHTML,/&lt;img/);assert.doesNotMatch(el('evidence').innerHTML,/<img/);
+ assert.match(el('evidence').innerHTML,/&lt;script&gt;bad explanation/);assert.doesNotMatch(el('evidence').innerHTML,/<script>/);
  el('relation').value='gap';el('relation').onchange();assert.equal(el('gap-min').disabled,false);
  el('gap-min').value='-7';el('gap-max').value='-6';await el('run').onclick();assert.deepEqual(calls.at(-1).body.gap,{minimum_minutes:'-7',maximum_minutes:'-6'});
  for(const mode of ['error','incomplete']){fail=mode==='error';incomplete=mode==='incomplete';await el('run').onclick();assert.equal(el('status').className,'error');assert.equal(el('rows').innerHTML,'');assert.equal(el('export').href,undefined);assert.equal(el('run').disabled,false);}
