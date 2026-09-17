@@ -2,22 +2,25 @@
 
 **Project review draft, 17 September 2026**
 
-**Version:** v0.1
+**Version:** v0.2
 
-**Review status:** Awaiting Robert Hoehndorf's review.
+**Review status:** R1–R12 answered by Robert Hoehndorf; revised GFO-Time and
+semantic-integration text remains a draft for review.
 
-**Specification identifier:** `temporal-trajectory-semantics-0.1`
+**Specification identifier:** `temporal-trajectory-semantics-0.2`
 
 ## Abstract
 
 This document specifies a finite temporal query language for recorded patient
-trajectories. It defines distinct time points and proper intervals, temporal
-constraints, ontology-supported event selection, possible and certain answers,
+trajectories. It takes GFO-Time chronoids as primitive intervals with dependent,
+oriented boundaries that can coincide. It defines temporal constraints,
+ontology-supported event selection, possible and certain answers,
 finite costed relaxation, and coverage by explicit state assertions. A
 functional-style notation describes the structure independently of the JSON and
 RDF representations used by individual application profiles. The semantics
-combines ordinary OWL 2 DL entailment with a separately defined coordinate
-interpretation and state-support interpretation.
+integrates OWL 2 DL interpretations and GFO-Time models through explicit shared
+interpretation maps. A finite metric execution profile supports query evaluation
+under a stated model-extension obligation.
 
 The running examples concern administration and specimen collection, baseline
 measurements around treatment, and a state asserted over thirty minutes. Every
@@ -25,8 +28,10 @@ answer is relative to a named, admitted snapshot and its declared time profile.
 
 ## Status of this document
 
-This is a project specification proposal for review. Publication as a draft PR
-records proposed definitions; adoption requires the reviewer's approval. The
+This revision implements the reviewer’s R1–R12 answers. R1 additionally requires
+semantic integration and R3 replaces the original discrete-time foundation with
+GFO-Time. The revised formalization remains a draft for inspection; accepted
+design choices and completed implementation proofs have separate status. The
 words MUST, MUST NOT, SHOULD and MAY below express requirements **conditional on
 adoption of this draft**. Here MUST expresses a requirement, MUST NOT a
 prohibition, SHOULD a recommendation with documented exceptions, and MAY an
@@ -34,7 +39,8 @@ option. These meanings are defined locally for this document.
 
 Sections 2–11 are proposed normative material. The abstract, this status section,
 Sections 1 and 12–15, and all paragraphs labelled **Example** are informative.
-Open decisions are collected in Section 14 and referenced at their point of use.
+Accepted decisions and remaining operational obligations are collected in
+Section 14 and referenced at their point of use.
 A profile can implement a declared subset without implementing the whole language.
 
 The organisation follows the distinction between structure and interpretation
@@ -45,8 +51,9 @@ publication. Its requirements and temporal operators belong to this project.
 The baseline inspected for this draft is upstream commit `511fdce`, together
 with the proposed implementations in [PR #45][pr45], [PR #46][pr46] and
 [PR #47][pr47]. Those PRs retain their own review status. This draft adds no
-runtime syntax parser or service endpoint. Section 12 identifies the executable
-subsets and proposed integrations.
+runtime syntax parser or service endpoint. A checked Lean metatheory accompanies
+the new [GFO-Time integration contract](gfo-time-and-integration.md). Section 12
+identifies the executable subsets and proposed integrations.
 
 ## Table of contents
 
@@ -63,7 +70,7 @@ subsets and proposed integrations.
 11. [Compilation obligations](#11-compilation-obligations)
 12. [Implementation correspondence](#12-implementation-correspondence)
 13. [Worked examples and distinguishing cases](#13-worked-examples-and-distinguishing-cases)
-14. [Review decisions](#14-review-decisions)
+14. [Accepted decisions and remaining obligations](#14-accepted-decisions-and-remaining-obligations)
 15. [References and change history](#15-references-and-change-history)
 
 ## 1 Purpose and example
@@ -106,8 +113,8 @@ The notation distinguishes the following sorts:
 | Sort | Meaning | Example |
 |---|---|---|
 | Coordinate variable | An uncertain numerical coordinate | `x_end` |
-| Point | A named temporal entity with one coordinate variable | `administrationEnd` |
-| Interval | A named temporal entity with a beginning and an end point | `administrationExtent` |
+| Boundary | An oriented dependent boundary of a primitive interval | `administrationEnd` |
+| Interval description | An identified description referring to a primitive chronoid | `administrationExtent` |
 | Event handle | An admitted record-level witness associated with an ontology individual | `administration1` |
 | State assertion | An explicit polarity and validity interval for a state key | `low1` |
 | Observation | A recorded state-related point observation | `sample1` |
@@ -116,24 +123,32 @@ The notation distinguishes the following sorts:
 These sorts are structural. OWL classes have their ordinary Direct Semantics.
 A structural sort check is an input validation operation.
 
-### 2.2 Time profile
+### 2.2 GFO-Time foundation and metric execution profile
 
-This draft defines the `IntegerMicrosecond` profile. Coordinates belong to
-ℤ, with one unit equal to one microsecond. Input bounds and metric parameters
-MUST be integers in [−2⁶³, 2⁶³−1]. Intermediate arithmetic uses mathematical
-integers. Strict inequalities therefore have an immediate predecessor bound.
+The ontological time structure satisfies **BT_C**, the chronoid/boundary theory
+in Baumann, Loebe and Herre (2014), §§7–8. Chronoids are primitive intervals.
+Their left and right extremal boundaries are dependent temporal entities of
+exclusive orientations. Meeting chronoids have distinct but coincident right
+and left boundaries. Coincidence classes are densely ordered. The normative
+integration and its literature basis are given in the
+[GFO-Time contract](gfo-time-and-integration.md).
 
-An interval with endpoint coordinates s and e is proper exactly when s < e.
-Its validity region is the half-open set `[s,e) = {t ∈ ℤ | s ≤ t < e}`.
-Its duration is e − s. A point at t is a distinct primitive and has coordinate t;
-a zero-duration interval is invalid.
+The execution profile `GFOBoundaryMicrosecond` uses a rational metric chart whose
+named boundary coordinates are integers in microseconds. Input bounds and metric
+parameters are integers in [−2⁶³, 2⁶³−1]; intermediate arithmetic is exact.
+Unnamed subchronoids and boundaries remain available between named coordinates.
+The integer grid constrains the admitted description, not the entire time domain.
 
-A clock declaration supplies an origin, a unit and a scope. Comparison uses a
-shared declared clock identifier after any approved conversion. Origin strings
-alone confer no alignment authority. Clock conversion, precision and calendar
-normalisation are admission operations, identified in the snapshot policy.
-A rational-time extension requires a separately named profile, including a
-strict-inequality solver contract. **Review decision R3.**
+A chronoid's endpoints have ordered chart coordinates s<e. Its duration is e−s.
+The coverage operator uses the half-open coordinate footprint `[s,e)` on the
+dense chart axis. This footprint is a query convention, separate from the
+primitive chronoid and its two oriented boundaries. A point-like occurrence
+uses a boundary extent; a zero-duration chronoid is invalid.
+
+Charts add metric information to the qualitative foundation. Clock calibration,
+precision and alignment remain admission obligations. Equal rounded timestamps
+need an uncertainty policy before they can establish exact coincidence.
+**Accepted R3; source-specific chart policies remain to be validated.**
 
 ### 2.3 Identity and structural equivalence
 
@@ -146,11 +161,19 @@ argument positions; the ordering of declarations, slots, constraints, state
 assertions and catalogue options is otherwise immaterial to their truth conditions.
 A repeated constraint identifier is invalid even if its contents agree.
 
-Distinct handles denote distinct records in the admitted view. OWL individual
-identity follows OWL entailment; a separate canonicalisation policy relates
-records to individuals. Equal coordinates express temporal coincidence.
-Coordinate equality, common endpoints and equal interval extents each have
-meaning independently of OWL individual identity. **Review decision R2.**
+Distinct event and record identifiers retain their identity when their extents
+coincide. Equality conflicts involving OWL individuals are resolved by the
+admission policy or block the mapping. The specification adds no global unique
+name assumption to OWL.
+
+Temporal description identifiers denote distinct description records. Their
+maps to chronoids or boundaries can be many-to-one: two events or descriptions
+may select the same chronoid. In BT_C, coincidence of both pairs of extremal
+boundaries entails chronoid identity (A25). A right boundary and a left boundary
+can coincide while remaining distinct; coincident boundaries of the same
+orientation are identical (C3–C4). These consequences apply to temporal referents,
+while their source descriptions preserve identifier-based provenance.
+**Accepted R2, interpreted with the GFO-Time foundation required by R3.**
 
 ## 3 Structural specification and syntax
 
@@ -167,18 +190,19 @@ A document contains one snapshot and zero or more requests:
 
 ```ebnf
 Document ::= 'TemporalDocument(' Snapshot Request* ')'
-Snapshot ::= 'Snapshot(' Name 'IntegerMicrosecond'
+Snapshot ::= 'Snapshot(' Name 'GFOBoundaryMicrosecond'
                'OntologyRef(' IRI ')'
                'AdmissionPolicy(' IRI ')'
                Declaration* ')'
-Declaration ::= Clock | Variable | Point | Interval | Event
+Declaration ::= Clock | Variable | Boundary | Interval | Event
               | Difference | StateAssertion | Observation
 Clock ::= 'Clock(' Name String ClockScope ')'
 ClockScope ::= 'Global' | 'Patient(' Name ')'
 Variable ::= 'Variable(' Name Scope Integer Integer IRI ')'
 Scope ::= 'Scope(' Name Name Name ')'
-Point ::= 'Point(' Name Name ')'
-Interval ::= 'Interval(' Name Name Name ')'
+Interval ::= 'Interval(' Name ')'
+Boundary ::= 'Boundary(' Name Side Name Name ')'
+Side ::= 'Left' | 'Right'
 Event ::= 'Event(' Name IRI Name Name Name IRI ')'
 Difference ::= 'Difference(' Name Name Name Integer IRI ')'
 Polarity ::= 'Positive' | 'Negative'
@@ -194,30 +218,35 @@ Request ::= TrajectoryQuery | CoverageQuery | Relaxation
 | `Clock` | clock, origin, scope | A declared microsecond coordinate system |
 | `Scope` | patient, episode, clock | Scope of one coordinate variable |
 | `Variable` | variable, scope, lower, upper, evidence | Inclusive coordinate bounds |
-| `Point` | point, variable | Coordinate assignment for a primitive point |
-| `Interval` | interval, beginning-point, end-point | Proper interval extent |
-| `Event` | handle, entity-IRI, patient, episode, extent, evidence | Eligible event with point or interval extent |
+| `Interval` | interval-description | Reference to a primitive proper chronoid |
+| `Boundary` | boundary-description, side, interval-description, variable | Dependent oriented boundary and its coordinate |
+| `Event` | handle, entity-IRI, patient, episode, extent, evidence | Eligible event with boundary or interval extent |
 | `Difference` | constraint, left-variable, right-variable, upper, evidence | Left minus right is at most upper |
 | `StateAssertion` | assertion, patient, episode, clock, state-IRI, polarity, interval, evidence | State-validity assertion |
-| `Observation` | observation, patient, episode, clock, state-IRI, polarity, point, evidence | Point observation record |
+| `Observation` | observation, patient, episode, clock, state-IRI, polarity, boundary, evidence | Point observation record with explicit boundary context |
 
-Bounds MUST satisfy lower ≤ upper. Both interval endpoints MUST have the same
-scope. An event's patient and episode MUST agree with its extent's scope.
+Bounds MUST satisfy lower ≤ upper. Each interval description MUST have exactly
+one Left and one Right boundary declaration. Their variables MUST have the
+same scope. An event’s patient and episode MUST agree with its extent’s scope.
 The declared clock MUST permit that patient. Difference constraints MUST relate
 variables in the same patient, episode and clock scope. State and observation
 scope arguments MUST agree with the referenced temporal entity.
 
-Points may share a variable. Repeated references to one variable preserve that
-variable's identity and all its constraints. Admission MUST preserve source
+Boundary descriptions may share a variable. A right and left boundary sharing
+one variable remain distinct referents while being coincident. Same-side
+descriptions at an exact common position denote one boundary referent. Repeated
+references to one variable preserve that variable’s identity and all its constraints. Admission MUST preserve source
 correlations that affect the query. Independent copies of a shared variable
 would define a different snapshot.
 
 A snapshot is an immutable selected view. The admission policy MUST identify
 source selection, accepted assertions, ontology and mapping versions, clock
-conversion and identity decisions. `OntologyRef` resolves to a pinned import
+conversion and identity decisions. Historical requests MUST declare whether
+they use the ontology/mappings available at the cutoff or an explicitly
+identified retrospective version. `OntologyRef` resolves to a pinned import
 closure and associated semantic-support contract. An identifier alone records
 a declaration of policy; verification evidence is a separate requirement of
-the admission profile. **Review decisions R1, R2, R6 and R7.**
+the admission profile. **Accepted decisions R1, R2, R6 and R7.**
 
 ### 3.3 Query structures
 
@@ -225,13 +254,13 @@ the admission profile. **Review decisions R1, R2, R6 and R7.**
 TrajectoryQuery ::= 'TrajectoryQuery(' Name Name Name Slots Conditions ')'
 Slots ::= 'Slots(' Slot+ ')'
 Slot ::= 'Slot(' Name ExtentKind IRI ')'
-ExtentKind ::= 'PointExtent' | 'IntervalExtent'
+ExtentKind ::= 'BoundaryExtent' | 'IntervalExtent'
 Conditions ::= 'Conditions(' Condition+ ')'
 Condition ::= 'Condition(' Name Atom ')'
 Atom ::= AllenAtom | Gap | Duration | MinimumOverlap | Offset | Within
 AllenAtom ::= AllenName '(' Name Name ')'
 AllenName ::= 'Before' | 'Meets' | 'Overlaps' | 'Starts' | 'During'
-            | 'Finishes' | 'Equals' | 'After' | 'MetBy'
+            | 'Finishes' | 'SameTime' | 'After' | 'MetBy'
             | 'OverlappedBy' | 'StartedBy' | 'Contains' | 'FinishedBy'
 Gap ::= 'Gap(' Name Name Integer Integer ')'
 Duration ::= 'Duration(' Name Integer Integer ')'
@@ -247,7 +276,7 @@ slots and a conjunction of named conditions. A slot gives its identifier,
 extent kind and required class IRI. Its binding is an eligible event handle.
 Allen, gap and overlap atoms require two interval slots. Duration requires one
 interval slot. Start and end landmarks require an interval slot; an at landmark
-requires a point slot. Within takes a point slot followed by an interval slot.
+requires a boundary slot. Within takes a boundary slot followed by an interval slot.
 Different slots MUST bind different event handles.
 
 A coverage query gives its identifier, patient, episode, clock, state IRI,
@@ -285,7 +314,7 @@ names different from `original`. The changed-condition budget is nonnegative.
 
 Options specify complete alternatives. Their implicit composition is excluded
 from this catalogue semantics. The complete catalogue MUST be validated before
-budget filtering. **Review decision R10.**
+budget filtering. **Accepted decision R10.**
 
 ## 4 OWL representation and semantic support
 
@@ -312,53 +341,52 @@ example, admission supplies the named patient-role/bearer path and the process
 typing evidence. The two identifiers in a numerical scope record alone provide
 scope agreement; clinical participation requires its declared evidence mapping.
 
-### 4.2 Distinct temporal primitives
+### 4.2 Primitive chronoids and dependent boundaries
 
-The standalone v2 core already contains the following OWL 2 functional syntax:
+The foundation has disjoint chronoid and boundary sorts, unique first/last
+boundary functions, temporal parthood and boundary coincidence. Its temporal
+universe is relativised to those sorts. Patients, event records and OWL data
+values remain in their appropriate domains.
 
-```text
-Prefix(:=<https://example.org/temporal-kg/v2#>)
-DisjointClasses(:TimePoint :TimeInterval)
-SubClassOf(:TimeInterval ObjectExactCardinality(1 :hasBeginning :TimePoint))
-SubClassOf(:TimeInterval ObjectExactCardinality(1 :hasEnd :TimePoint))
-```
+The new [standalone bridge module](formal/bridge-vocabulary.ofn) supplies a
+concrete OWL 2 DL projection of the interface. The historical
+[standalone v2 core][core] supplies additional candidate class and endpoint-role
+mappings for comparison. The [SULO interface][sulo-interface] remains a separately
+versioned representation. Full BT_C, including density and A25, is specified in
+the metatheory; OWL 2 DL serialization and profile checking continue to apply
+to the OWL component. New bridge maps must explicitly identify every class,
+property and description/occurrence interpretation. **Accepted R6.**
 
-These are an excerpt of the [complete standalone core][core], where declarations
-and property axioms are supplied. Point and interval interpretations are disjoint
-sets of individuals. Named endpoint extraction, coordinate attachment and the
-positive-duration check belong to the interface specified here.
+A finite named description is a partial view of a temporal model. Boundary
+existence in that model extends beyond named declarations. Conversely, the
+finite query interface requires named, unambiguous support for each selected
+extent; its structural checks remain explicit admission operations.
 
-An OWL cardinality restriction constrains models. The query interface additionally
-requires an unambiguous admitted named endpoint mapping. An OWL model can satisfy
-a cardinality restriction using an anonymous object; that case lies outside the
-finite named interface until an admission rule supplies an eligible handle.
+### 4.3 Integrated semantics with separate execution stages
 
-The repository also has SULO-based application representations. Their mapping
-uses the pinned class and description patterns documented in the
-[SULO interface contract][sulo-interface]. The standalone vocabulary and SULO
-vocabulary retain separate artifact identities. A complete mapping requires
-profile and answer-preservation checks for the selected import closure.
-**Review decisions R2 and R6.**
+The [integration contract, §§4–5](gfo-time-and-integration.md#4-one-integrated-interpretation),
+defines one compatible interpretation `M=(I,T,jC,jB,rho,kappa)`. I satisfies the
+OWL ontology K; T satisfies the relativised BT_C theory. The embeddings jC and
+jB identify temporal entities with objects in I. The map rho interprets admitted
+identifiers, and kappa supplies order-faithful metric charts. Shared class and
+property interpretations obey explicit bridge equations.
 
-### 4.3 Separated semantic interface
+Let `Models(K,S)` be the interpretations satisfying K, BT_C, the bridges and
+admitted source S together. This set must be nonempty before integrated answers
+are returned. Independent consistency of the OWL component and of the numerical
+network is necessary but does not establish compatibility of their shared objects.
 
-Admission MUST resolve ontology identity effects on the selected named interface
-or reject the affected input as unsupported. Equal canonical point identities
-MUST have one coordinate interpretation, using a shared variable or entailed
-equality constraints. Distinct record handles can still refer to one canonical
-individual under the declared record-level distinctness policy.
+Semantic selection remains the approved OWL entailment test against K. The
+execution stages remain one-way: establish supported named bindings, then evaluate
+temporal conditions. Their soundness and completeness for integrated semantics
+require the model-extension and projection properties in Section 11.4.
+**Accepted R1 with the requested integration; accepted R8 for execution order.**
 
-The logical support check is performed against K before temporal matching.
-The numerical compiler consumes the admitted finite endpoint map and source
-constraints. Its results are external query results with explicit provenance.
-Feasible source timelines do not add OWL axioms during the same query.
-
-For a fixed supported binding μ, the combined interpretation is a pair `(I,θ)`,
-where `I ⊨ K` and θ is a feasible coordinate assignment defined in Section 5.
-Semantic support has already been required in every model of K; the remaining
-query variation is over θ. This separation is a defined interface assumption.
-A future bridge from numerical answers to new OWL assertions needs its own
-semantics and closure procedure. **Review decision R8.**
+[IntegratedSemantics.lean](formal/IntegratedSemantics.lean) gives a checked typed
+metatheory for BT_C, the object bridge, boundary-identity consequences and the
+conditional projection theorem. Full OWL satisfaction is an explicit semantic
+parameter. The artifact is not an OWL parser or a complete mechanized Direct
+Semantics; those implementation obligations remain named in Section 14.
 
 ### 4.4 State descriptions
 
@@ -368,46 +396,55 @@ The coverage semantics in Section 8 evaluates the admitted polarity and validity
 region. A negative state assertion refutes its exact state key over its region;
 it is not an OWL negative object-property assertion or an automatic complement
 of every other state class. A domain-specific OWL situation translation requires
-a separately reviewed template. **Review decision R5.**
+a separately reviewed template. **Accepted decision R5.**
 
 ## 5 Temporal interpretations
 
-### 5.1 Coordinate assignments
+### 5.1 Temporal models and coordinate projections
 
-Let X be the finite set of coordinate variables in the snapshot. A coordinate
-assignment is a function `θ : X → ℤ`. For a point p, let `var(p)` be its declared
-variable and define `timeθ(p) = θ(var(p))`. For an interval i with declared
-beginning b(i) and end e(i), define
+A compatible model interprets each interval description i as a chronoid
+`rhoC(i)` and each boundary description p as an oriented boundary `rhoB(p)`.
+For its declared chart kappa and variable map var, the observed assignment obeys
+`θ(var(p)) = kappa([rhoB(p)])`, where brackets denote coincidence class.
+Define `timeθ(p)=θ(var(p))`. For an interval’s declared left and right
+descriptions b(i), e(i), define:
 
 ```text
-startθ(i) = timeθ(b(i))
-endθ(i)   = timeθ(e(i))
-extentθ(i) = [startθ(i), endθ(i))
+startθ(i) = θ(var(b(i)))
+endθ(i)   = θ(var(e(i)))
+footprintθ(i) = [startθ(i), endθ(i))
 ```
 
-The symbol `extentθ(i)` denotes a set of coordinates in one clock. The interval
-individual retains its identity independently of this set.
+The footprint is a set on the dense chart axis. The referent is a primitive
+chronoid. Under BT_C and the exact chart, coincident endpoint pairs select the
+same chronoid even if their description identifiers differ.
 
-### 5.2 Source satisfaction
+### 5.2 Source constraints and compatible assignments
 
-An assignment θ satisfies the source constraints Γ exactly when all of the
-following hold:
+Let X be the finite named coordinate variables. The finite network has candidate
+assignments `θ:X→ℤ` satisfying all admitted numerical constraints Gamma:
 
 | Source structure | Satisfaction condition |
 |---|---|
 | Variable x with bounds l,u | l ≤ θ(x) ≤ u |
 | Difference x,y,k | θ(x) − θ(y) ≤ k |
-| Interval i | startθ(i) < endθ(i) |
+| Interval description i | startθ(i) < endθ(i) |
 
-Write `W(S) = {θ | θ satisfies Γ}` for the feasible source timelines of snapshot S.
-The source includes every admitted variable and constraint, including those
-outside the eventual query binding. The snapshot is temporally consistent iff
-`W(S) ≠ ∅`. A scope-separated implementation may solve independent components,
-provided it checks consistency of every admitted component and preserves all
-constraints within each component.
+Call their set `W_STN(S)`. Every admitted variable and constraint participates,
+including shared variables outside the eventual binding. The integrated set
+`W(S)` consists of projections of `Models(K,S)` onto X. In general only
+`W(S) ⊆ W_STN(S)` is guaranteed. Equality requires the extension proof for the
+admitted ontology/bridge/description profile in Section 11.4.
 
-A source with `W(S) = ∅` produces a blocked result. Universal statements over an
-empty feasible set MUST NOT be reported as certain clinical or trajectory matches.
+All possibility and certainty definitions below use W(S). An existing engine
+that has verified only the finite numerical profile MUST label its results with
+that profile; integrated conformance requires the additional bridge certificate.
+An empty W_STN blocks the source immediately. A nonempty W_STN with an empty
+compatible model set also blocks integrated answers. An unfinished compatibility
+check yields unsupported or incomplete execution, not vacuous certainty.
+
+Independent scope components may be solved separately only when the profile
+proves that the bridges and ontology preserve the claimed decomposition.
 
 ### 5.3 Comparability
 
@@ -423,6 +460,11 @@ preserving clock uncertainty in every other case.
 
 ## 6 Interpretation of temporal expressions
 
+The qualitative foundation defines meeting by coincidence of a chronoid’s last
+boundary and another’s first boundary. The metric tables below are its expression
+in an exact order-faithful chart. Same-side coordinate equality uses the same
+boundary referent; meeting compares different oriented boundary referents.
+
 ### 6.1 Basic interval relations
 
 For intervals i and j in one clock, abbreviate their endpoints under θ as
@@ -437,7 +479,7 @@ truth condition of its expression. The conditions presuppose s < e and u < v.
 | `Starts(i j)` | s = u and e < v |
 | `During(i j)` | u < s and e < v |
 | `Finishes(i j)` | u < s and e = v |
-| `Equals(i j)` | s = u and e = v |
+| `SameTime(i j)` | s = u and e = v |
 | `After(i j)` | v < s |
 | `MetBy(i j)` | v = s |
 | `OverlappedBy(i j)` | u < s < v < e |
@@ -446,15 +488,16 @@ truth condition of its expression. The conditions presuppose s < e and u < v.
 | `FinishedBy(i j)` | s < u and e = v |
 
 These are the thirteen basic Allen relations, named for Allen’s
-[interval-reasoning formalism][allen]. `Equals` is temporal coincidence
-of extents. The table defines the query operator independently of any asserted
+[interval-reasoning formalism][allen]. `SameTime` compares the extents of the bound events. In BT_C the two
+chronoid referents are identical when both corresponding boundaries coincide;
+the event identifiers remain distinct. The legacy JSON spelling is `equals`. The table defines the query operator independently of any asserted
 OWL property bearing a similar name. Using asserted qualitative facts as source
 constraints requires a declared and validated compiler bridge.
 
 ### 6.2 Metric expressions and point membership
 
 For a slot binding, interval terms denote the bound event's interval extent and
-point terms denote its point extent. Landmark expressions select the corresponding
+boundary terms denote its boundary extent. Landmark expressions select the corresponding
 coordinate. For landmarks a and b, `Offset(a b l u)` measures b minus a.
 
 | Expression | Truth condition |
@@ -463,13 +506,13 @@ coordinate. For landmarks a and b, `Offset(a b l u)` measures b minus a.
 | `Duration(i l u)` | l ≤ endθ(i) − startθ(i) ≤ u |
 | `MinimumOverlap(i j d)` | min(endθ(i),endθ(j)) − max(startθ(i),startθ(j)) ≥ d |
 | `Offset(a b l u)` | l ≤ valueθ(b) − valueθ(a) ≤ u |
-| `Within(p i)` | startθ(i) ≤ timeθ(p) < endθ(i) |
+| `Within(p i)` | startθ(i) ≤ timeθ(p) < endθ(i), using p’s chart position |
 
 Gap bounds are signed. An overlapping collection can therefore have a negative
 completion-to-start gap. `Gap(i j 0 u)` includes contact at completion.
 A strictly positive gap in this time profile requires lower bound 1, or an
 additional `Before` condition. The historical 48-hour query uses the strict
-lower boundary. **Review decision R9.**
+lower boundary. **Accepted decision R9.**
 
 Minimum overlap requires d > 0. This avoids assigning the zero-threshold meaning
 from a signed endpoint difference to conventional nonnegative overlap length.
@@ -490,7 +533,7 @@ For snapshot S and query Q, let `B(S,Q)` be the finite set of assignments μ fro
 query slots to admitted event handles satisfying these conditions:
 
 1. The event's patient and episode equal the query's patient and episode.
-2. The event extent has the requested point or interval sort.
+2. The event extent has the requested boundary or interval sort.
 3. The required class is supported under Section 4.1.
 4. The binding is injective on event handles.
 5. Every required admission/support check completed under the declared profile.
@@ -498,7 +541,7 @@ query slots to admitted event handles satisfying these conditions:
 Selection is independent of which feasible timeline will be used. Requiring
 injectivity on handles is the current record-level distinctness convention.
 A process-identity distinctness convention requires reviewed canonicalisation.
-**Review decision R2.**
+**Accepted decision R2.**
 
 ### 7.2 Binding results
 
@@ -538,7 +581,7 @@ which episode scopes were enumerated.
 
 A different property, `∀θ ∃μ : θ ⊨ Q[μ]`, allows the witness to vary with time.
 This draft chooses fixed-witness certainty. Section 13.4 gives a case separating
-the two properties. **Review decision R4.**
+the two properties. **Accepted decision R4.**
 
 A complete empty match set describes eligible represented records. Missing
 support, incomparable clocks and incomplete enumeration MUST remain identifiable
@@ -560,13 +603,15 @@ classifies the conjunction of eligibility and follow-up conditions against the
 original source timelines. A patient remains eligible when no follow-up is
 selected. The adapter MUST retain this distinction in its results and preserve
 the source when inspecting a follow-up. Response values are reported attributes
-of selected records. **Review decisions R8 and R9.**
+of selected records. **Accepted decisions R8 and R9.**
 
 ## 8 State validity and coverage
 
 ### 8.1 Exact state-assertion profile
 
-This section defines an exact profile. Coordinates used by state assertions and
+This section defines exact coverage over the declared half-open chart footprints.
+Boundary orientation belongs to the underlying ontology; a question about the
+state specifically on a left or right boundary requires a separate predicate. Coordinates used by state assertions and
 observations MUST have singleton declared bounds. The coverage query window
 W = [a,b) is proper and exact. State keys, patients, episodes and clocks match
 exactly. A point observation contributes evidence at its named point and contributes
@@ -584,7 +629,7 @@ The source has a state conflict when `P ∩ N ≠ ∅` for any such scope, inclu
 outside the requested window. This profile blocks every coverage request against that supplied state
 snapshot on conflict. A trajectory request consuming only event evidence has
 its own temporal and semantic-support gates. This is a validation policy, separate from OWL ontology
-consistency. **Review decision R5.**
+consistency. **Accepted decision R5.**
 
 Any state assertion or observation for the queried patient, episode and state
 on a different unaligned clock makes the coverage query `INCOMPARABLE` in this
@@ -592,9 +637,10 @@ profile. Whole-source conflict detection precedes this comparability check.
 
 ### 8.2 Partial truth and completion semantics
 
-For a conflict-free, comparable scope, define the partial state function h by
+Let D be the dense coordinate domain of the admitted chart. For a
+conflict-free, comparable scope, define the partial state function h by
 `h(t)=true` when t ∈ P, `h(t)=false` when t ∈ N, and `h(t)=unknown` otherwise.
-Let H be the set of all total functions `f : ℤ → {true,false}` extending h.
+Let H be the set of all total functions `f : D → {true,false}` extending h.
 A statement that the state holds throughout W has the following semantics:
 
 | Coverage result | Set condition | Equivalent completion condition |
@@ -605,7 +651,7 @@ A statement that the state holds throughout W has the following semantics:
 
 This equivalence assumes unrestricted completion of unknown coordinates after
 admission. Ontology-derived temporal rules or dynamics constraints would change
-H and require an extended profile. **Review decisions R5 and R8.**
+H and require an extended profile. **Accepted decisions R5 and R8.**
 
 Explicit refutation anywhere suffices for `VIOLATED`, even when some other
 coordinates remain unknown. Unknown coverage is epistemic incompleteness in
@@ -614,9 +660,10 @@ coordinates. The two classifications MUST retain separate result labels.
 
 ### 8.3 Coverage measures and evidence
 
-For a finite half-open region U, let `length(U)` be its number of microsecond
-positions, equivalently the sum of endpoint differences in its disjoint maximal
-interval decomposition. Report:
+For a finite union U of bounded half-open chart regions, let `length(U)` be
+the sum of endpoint differences in its disjoint maximal interval decomposition.
+This measures chart duration; the dense set of positions has no finite
+cardinality interpretation. Report:
 
 ```text
 positive region = W ∩ P
@@ -769,12 +816,15 @@ to contain a shorter interval, provided their shared duration reaches d.
 
 ### 11.2 Possibility and certainty
 
-For compiled query conjunction Cμ, possibility is satisfiability of `Γ ∧ Cμ`.
+For the finite numerical profile, possibility is satisfiability of `Γ ∧ Cμ`,
+where Cμ is the compiled query conjunction. For integrated semantics this test
+is justified when the profile meets Section 11.4’s extension obligations.
 Certainty holds exactly when Γ entails every edge of Cμ. For an edge x − y ≤ k,
 its integer negation is y − x ≤ −k−1. Testing this negated edge against Γ gives
 a source-feasible counterexample when the edge is unentailed.
 
-Certainty MUST use Γ as its premise. Replacing Γ by `Γ ∧ Cμ` would condition the
+Within a profile certified to have W(S)=W_STN(S), certainty MUST use Γ as its
+premise. Replacing Γ by `Γ ∧ Cμ` would condition the
 source on the queried answer and yield an invalid certainty test.
 
 ### 11.3 Preservation requirements
@@ -793,9 +843,27 @@ For exact state coverage, aggregation additionally MUST preserve the union of
 positive and negative regions and all conflicts. Pair coverage for measurement
 batches alone supplies no proof of this interval-union property.
 
+### 11.4 Integrated model-extension obligation
+
+The STN algorithm is a complete evaluator of its finite integer constraints.
+Its use as an evaluator of this GFO/OWL specification additionally requires:
+
+1. Every compatible model projects to a feasible network assignment.
+2. Every feasible assignment extends to a compatible OWL/BT_C model while
+   preserving admitted identities, oriented boundaries and semantic support.
+3. Query atoms and eligible named bindings agree under that projection.
+
+The [Lean artifact](formal/IntegratedSemantics.lean) proves preservation of
+possible and certain answers under these assumptions. The particular adapter
+extension proof remains outstanding. A right/left boundary merge and three
+different coincident boundary referents are counterexamples to an unrestricted
+extension claim; the file also checks their relevant impossibility lemmas.
+
 ## 12 Implementation correspondence
 
-This table is an implementation inventory, separate from adoption of the draft.
+This table is an implementation inventory. Acceptance of R1–R12 fixes the
+design directions; it does not certify the existing engines against the new
+GFO/OWL bridge.
 The new notation is a review language; links below identify the executable JSON
 schemas and algorithms from which particular subsets were derived.
 
@@ -807,20 +875,27 @@ schemas and algorithms from which particular subsets were derived.
 | Mixed point/interval offsets and membership | [Mixed queries][mixed] | Specific baseline/follow-up shapes, scalar/item/unit filters and explicit clock alignment |
 | Finite robust relaxation | [PR #46][pr46] | Existing bounded gap windows or mixed baseline windows; at most 16 explicit options; general `Offset` rewriting remains proposed |
 | Exact state coverage | [PR #47][pr47] | Separate exact state source, maximum 256 records; point observations supply no interval persistence |
-| OWL point/interval distinction | [Standalone v2 core][core] | Local ontology with separate validation package; SULO mapping has its own scope |
+| Historical OWL point/interval distinction | [Standalone v2 core][core] | Earlier local ontology; GFO-oriented boundary mapping and full BT_C conformance remain additional obligations |
+| GFO/OWL integration metatheory | [Lean artifact](formal/IntegratedSemantics.lean) | Typed BTC assumptions, object bridge and checked conditional preservation/identity lemmas; full application extension proof remains open |
 | One document combining all request kinds | Section 3 proposal | Unified parser, adapters and composed service conformance await implementation |
 | State-constrained trajectory query | Future extension | Coverage is currently a separate request, with no state atom inside `Conditions` |
 
-The formal source notation uses named point and interval declarations. Bounded
+The revised source notation declares primitive interval descriptions and
+left/right boundary descriptions with explicit ownership. Bounded
 JSON events refer directly to endpoint variables; their adapter supplies the
 structural extent mapping. State JSON assertions store exact coordinates; their
-adapter supplies singleton variables and distinct interval/point descriptions.
+adapter must supply singleton variables and reviewed interval/boundary descriptions.
 These transformations require a reviewed identity and provenance mapping.
+A legacy shared-endpoint fixture that identifies one object as both a last and
+first boundary requires two coincident oriented referents for GFO conformance.
+The current numeric engines can reuse its coordinate variable, but their old
+object mapping is not thereby certified.
 
 The bounded selector table and the OWL support gate are alternative declared
 profiles. Implementing the former does not claim the latter's reasoning scope.
-The earlier rational-time v2 proposal and this discrete profile have distinct
-identifiers and strict-order compilation rules.
+The GFO foundation is dense. `GFOBoundaryMicrosecond` is a restriction on
+selected named coordinates and has its own strict-order compilation rule.
+Finer/rational-coordinate execution requires another numerical solver profile.
 
 ## 13 Worked examples and distinguishing cases
 
@@ -877,7 +952,8 @@ hour-scale query identifier `administrationCollection`.
 The original binding is possible-only and the widened binding is certain.
 A budget below 1.25 excludes this option. The hour/minute scaling and inclusive
 zero boundary are explicit differences between the original clinical example
-and the implementation fixture. Adopting a clinical catalogue requires R9/R10.
+and the implementation fixture. A clinical catalogue still requires the validation
+and approval recorded as deployment obligations under R9/R10.
 
 ### 13.4 Witness and modification quantifier order
 
@@ -919,9 +995,10 @@ inference rule. PR #47 supplies these five example snapshots.
 
 ### 13.7 Identity, unknown support and source inconsistency
 
-**Example.** Two point individuals can have equal coordinates while remaining
-different named objects. `Equals` for their containing intervals is a temporal
-result. Identity queries use the separate canonicalisation/OWL contract.
+**Example.** The right boundary of [0,15) and the left boundary of [15,30)
+are different coincident objects. Two events with the same interval footprint
+retain different event identifiers while selecting the same BT_C chronoid.
+Identifying the right boundary with the left boundary violates the new bridge.
 
 **Example.** If a completed class-entailment check establishes that K fails to
 entail the required membership, the event is absent from that slot’s eligible
@@ -933,35 +1010,37 @@ execution status.
 then W(S) is empty. The result is blocked, including when the query itself would
 be vacuously true under universal quantification over an empty set.
 
-## 14 Review decisions
+## 14 Accepted decisions and remaining obligations
 
-Every entry below is **OPEN FOR REVIEW**. The proposed definitions are concrete
-so that acceptance or revision can target a specific semantic choice. Approval
-of this document and evidence that a deployment meets it are separate gates.
-The Q references identify the [v2 decision register][v2-response].
+Robert Hoehndorf answered R1–R12 on 17 September 2026. This table records those
+answers. Implementation proofs, source policies and clinical validation remain
+separate obligations; their absence does not reopen the accepted design choice.
+The GFO-specific formalization of R1/R3 is the substantive revision for inspection.
 
-| ID | Decision requested | Proposed rule in this draft | Operational evidence still required | Earlier item |
+| ID | Review disposition | Rule applied in v0.2 | Outstanding implementation or deployment evidence | Earlier item |
 |---|---|---|---|---|
-| R1 | Approve the execution boundary | OWL 2 DL support plus external temporal/state evaluators | Declared service and supported fragments | Q1 |
-| R2 | Choose identity and distinctness | Distinct event handles; coincidence separate from identity; named endpoint map | Duplicate records, inferred equality, conflicting endpoint and process-identity cases | Q2 |
-| R3 | Approve the numerical profile | Discrete microseconds, proper half-open intervals, explicit clock alignment | Precision, timezone, offset and rate policies per source; separate rational profile if required | Q3 |
-| R4 | Choose patient certainty | One fixed binding across all feasible source timelines | Acceptance of the witness-switching example | Q8 |
-| R5 | Approve state meaning and completion | Explicit positive/negative interval assertions; unknown gaps; whole-snapshot conflict blocking | Reviewed state templates, acceptance rules, sample persistence and bounded-state policy | Q5 |
-| R6 | Choose ontology and mapping closure | Preserve standalone/SULO distinction and declare the support fragment | Pinned full-closure OWL 2 DL checks and mapping preservation evidence | Q6 |
-| R7 | Approve snapshot admission and history | Immutable selected snapshot with declared policy/version | Source acceptance, correction, availability cutoff and historical mapping tests | Q7 |
-| R8 | Approve the finite interface | One-way entailed support then temporal evaluation; coverage remains a separate request | Parser/adapters, scalar selection contract, composed service and any future feedback proof | Q8 |
-| R9 | Approve the clinical pattern | Original example uses strict completion-to-start ≤48 hours | Clinical validation of landmarks, boundaries and record/occurrence meanings | Q9 |
-| R10 | Approve robust relaxation | Finite complete alternatives with fixed cost, binding and option | Approved catalogue, budgets, protected conditions and canonical tie convention | Q10 |
-| R11 | Choose operational limits | Complete supported execution or an explicit incomplete status | Workload limits, timeout behaviour, independent references and batching proofs | Q11 |
-| R12 | Choose additional temporal extents | Current profile admits points and bounded proper intervals | Separate syntax/semantics for ongoing, disconnected or recurrent extents | Q4 |
+| R1 | Accepted with integration required | OWL 2 DL and temporal evaluators share one compatible-model semantics; Lean records the bridge and conditional results | Full OWL/datatype formalization and adapter extension proof | Q1 |
+| R2 | Accepted: identity by identifiers | Event/record identifiers remain distinct at the same time; temporal descriptions can share a BT_C referent | Canonicalisation, aliases and OWL equality-conflict cases | Q2 |
+| R3 | Revised by reviewer: GFO-Time | Primitive chronoids, dependent oriented boundaries and coincidence; finite microsecond coordinates are an execution projection | Frame calibration, precision policies, oriented-boundary admission and chart/adapter proofs | Q3 |
+| R4 | Accepted | One fixed binding across compatible source models | Preserve witness identity in every adapter | Q8 |
+| R5 | Accepted | Explicit positive/negative interval support; unknown gaps; whole-snapshot coverage conflict blocking | Reviewed state templates, acceptance and any sample-persistence rules | Q5 |
+| R6 | Accepted | Standalone and SULO representations remain separate with explicit mappings | Pinned full-closure DL checks and mapping evidence | Q6 |
+| R7 | Accepted | Immutable selected snapshots; explicit historical versus retrospective mapping mode | Acceptance, revision, cutoff and historical-policy tests | Q7 |
+| R8 | Accepted | One-way entailed support then temporal execution; coverage is a separate request | Unified parser/adapters and any later composition or feedback proof | Q8 |
+| R9 | Accepted | Strict administration-completion to collection-start gap, at most 48 hours | Clinical validation and source landmark interpretation | Q9 |
+| R10 | Accepted | Finite fixed-cost alternatives; fixed option and binding; explicit budgets/protected conditions; deterministic representative among co-optima | Approved clinical catalogue and published tie serialization | Q10 |
+| R11 | Accepted | Profile-specific limits; explicit incomplete status; partial evidence is diagnostic | Workload/latency limits, timeout tests, completeness and batching proofs | Q11 |
+| R12 | Accepted | Boundary extents and bounded proper chronoids; ongoing/disconnected/recurrent extents deferred | Separate profiles if required | Q4 |
 
-Review should begin with R2–R5 and R9–R10 because these decisions change which
-patients or state windows receive positive answers. Implementation convenience
-alone cannot settle those choices.
+**R5 interpretation:** the answer “yes” accepts the proposed whole-snapshot
+conflict rule; it is not taken as a request for the alternative query-local rule.
+No numerical service limits were supplied for R11; profiles must publish theirs.
+R3 establishes the literature-based foundation, while the new formalization and
+its conformance obligations remain visible for the draft PR review.
 
 ## 15 References and change history
 
-### 15.1 Normative dependencies of the proposed specification
+### 15.1 Normative dependencies
 
 - [OWL 2 Web Ontology Language: Structural Specification and Functional-Style
   Syntax, Second Edition][owl-syntax]. W3C Recommendation, 11 December 2012.
@@ -969,7 +1048,11 @@ alone cannot settle those choices.
 - [OWL 2 Web Ontology Language: Direct Semantics, Second Edition][owl-semantics].
   W3C Recommendation, 11 December 2012. Used for OWL interpretation and entailment.
 
-The grammar and temporal semantics in this document are original project
+- Baumann, Loebe and Herre. [Axiomatic theories of the ontology of time in GFO][gfo-time],
+  2014, §§7–8, BT_C. Relativised to temporal entities under the
+  [integration contract](gfo-time-and-integration.md).
+
+The grammar and application metric semantics in this document are original project
 specification text. The W3C documents supply the OWL dependency and structural
 presentation model.
 
@@ -988,6 +1071,12 @@ presentation model.
   [review guide](README.md).
 
 ### 15.3 Change history
+
+- **v0.2, 17 September 2026:** Apply R1–R12 review answers. Replace the discrete
+  foundation with GFO-Time chronoids and oriented dependent boundaries; distinguish
+  description/event identifiers from temporal referents; add shared-model OWL/GFO
+  semantics, literature rationale and checked Lean conditional theorems. Retain
+  the microsecond grid as a declared finite observation profile.
 
 - **v0.1, 17 September 2026:** Initial review draft. Defines proposed functional
   syntax, typed finite structures, separated OWL/temporal semantics, exact state
@@ -1008,3 +1097,5 @@ presentation model.
 [pr47]: https://github.com/MaastrichtU-IDS/patient-trajectory-matching/pull/47
 
 [allen]: https://doi.org/10.1145/182.358434
+
+[gfo-time]: https://www.onto-med.de/sites/www.onto-med.de/files/files/uploads/Publications/2014/gfo-time.pdf

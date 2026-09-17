@@ -1,55 +1,82 @@
-# Syntax and semantics: review package
+# Syntax and semantics: reviewed decisions and revised formalization
 
-**Status: draft for Robert Hoehndorf's review; no semantic decisions adopted.**
+**Status: v0.2 draft. Robert Hoehndorf's R1–R12 answers are incorporated.**
 
-The [specification](syntax-and-semantics.md) provides a structural language and
-formal meaning for the temporal examples and extensions. It follows the
-organisation of the W3C OWL structural and direct-semantics documents: document
-status, notation, grammar, interpretations, satisfaction tables, inference
-problems, conformance and informative examples.
+The [specification](syntax-and-semantics.md) defines the syntax and meaning of
+the temporal examples. The revised [GFO-Time integration contract](gfo-time-and-integration.md)
+implements the two substantive review directions: primitive chronoids with
+oriented dependent boundaries, and a shared semantics integrating OWL 2 DL
+with temporal interpretations. Source-specific policies and conformance proofs
+remain explicit obligations in Section 14.
 
-## Suggested review order
+## Read first
 
-1. Read Sections 1–2 for scope, primitive points/intervals and identity.
-2. Review Sections 4–5 for the OWL-to-temporal execution boundary.
-3. Review Sections 7–9 for the quantifiers governing certainty, state completion
-   and robust relaxation. These choices directly affect returned answers.
-4. Use Section 13 to check the choices against counterexamples.
-5. Record acceptance or revisions against R1–R12 in Section 14.
-6. Check Section 12 before attributing a capability to an implementation.
+1. [Literature findings and GFO-Time model](gfo-time-and-integration.md#1-literature-findings).
+2. [One integrated interpretation](gfo-time-and-integration.md#4-one-integrated-interpretation).
+3. [Solver projection obligation](gfo-time-and-integration.md#5-integrated-query-answers-and-solver-projection).
+4. Main specification Sections 7–9 for fixed-witness certainty, state completion
+   and fixed-option robust relaxation.
+5. Section 14 for accepted decisions and implementation/clinical obligations.
+
+GFO-Time has an important distinction: different events and source descriptions
+can share one chronoid, while chronoids with the same extremal boundaries are
+identical under BT_C A25. Meeting uses distinct right/left boundaries that
+coincide. These distinctions preserve identifier-based event and record identity.
 
 ## Companion example
 
-[example.ttq](example.ttq) is a complete document in the **proposed** notation.
-[example.ofn](example.ofn) supplies the ontology identified by its `OntologyRef`.
-It asserts the two class memberships used for event selection. The fixture's
-admission policy and evidence IRIs are synthetic declarations. The example is
-intended for reading and adapter design; the current command-line tools accept
-their existing JSON profiles.
+[example.ttq](example.ttq) is a complete document in the revised proposed notation.
+[example.ofn](example.ofn) supplies its class-support ontology, combined with
+the standalone [bridge module](formal/bridge-vocabulary.ofn) under the fixture
+admission policy. The source now
+declares primitive interval descriptions and owned Left/Right boundary
+descriptions. At minute 15, `lowRight` and `nextLowLeft` share a coordinate
+variable but describe two different coincident boundary referents.
 
-Expected mathematical outcomes:
+The admission policy and evidence IRIs are synthetic declarations. Current
+command-line tools retain their JSON contracts; this draft does not install a
+new application parser or silently change their temporal semantics.
 
-| Request | Outcome | Reason |
+| Request | Expected mathematical outcome | Reason |
 |---|---|---|
-| `minuteQuery` | Possible-only | Collection begins 47–49 minutes after administration ends; the allowed gap is 0–48 |
-| `reviewedWindows` | Robust match at cost 1.25 | Widening to 50 minutes admits the same binding in every timeline |
-| `continuousLow` | Holds | Two adjacent positive assertions cover [0,30 minutes) |
+| `minuteQuery` | Possible-only | Gap ranges over 47–49 minutes; the window is 0–48 |
+| `reviewedWindows` | Robust match at cost 1.25 | One fixed widening to 50 minutes works throughout |
+| `continuousLow` | Holds | Positive footprints cover [0,30 minutes) on the dense chart |
 
-Remove the two `StateAssertion` declarations, retaining the observations, to
-obtain an unknown coverage result. The samples at 0 and 30 carry no interval
-persistence policy. The second sample is outside the half-open query window.
+Remove only the two `StateAssertion` declarations to obtain unknown coverage.
+The observations and their boundary contexts remain. The observation at minute
+30 lies outside the half-open coverage footprint.
 
-The companion is a minute-scale arithmetic illustration. Section 13.1 separately
-preserves the original strict completion-to-start query with a 48-hour deadline.
-The two query identifiers and parameter sets are deliberately separate.
+## Checked metatheory
 
-## Review and validation scope
+[IntegratedSemantics.lean](formal/IntegratedSemantics.lean) contains the typed
+BT_C axiomatic interface, the shared OWL-object bridge and seven named theorems.
+The core results make the model-extension condition for solver equivalence
+explicit. Full OWL satisfaction is a parameter; this artifact has no claim to
+implement a full OWL translator, prove BT_C consistency or discharge the
+application adapter's extension obligation.
 
-This PR is documentation-only. It leaves executable query contracts unchanged.
-Checks cover local links, notation examples and independently calculated boundary
-and quantifier cases. Existing tests in PRs #45–#47 provide evidence for their
-specific implemented profiles. Parser conformance, full-import OWL reasoning,
-clinical admission and combined state/trajectory execution remain separate gates.
+```sh
+cd docs/temporal-kg/specification/formal
+lean IntegratedSemantics.lean
+```
 
-Markdown is the authoritative review source. GitHub renders its headings, tables,
-code blocks and Unicode mathematics without a documentation build dependency.
+The local `lean-toolchain` pins Lean v4.34.0. The command prints theorem axiom
+dependencies so proof placeholders or unrecorded global postulates are visible.
+The conditional results have explicit structure assumptions and no proof holes.
+
+Run the independent documentation/example checks from the repository root:
+
+```sh
+python3 docs/temporal-kg/specification/check_examples.py
+```
+
+These checks cover links/anchors, example structure/scope/ownership, oriented
+contact boundaries, numerical and quantifier examples, and state-completion
+cases. GitHub Actions runs both this checker and the Lean file. Neither check
+is a claim of integrated clinical-engine conformance.
+
+Markdown remains the authoritative review source; the Lean file gives a checked
+companion to the explicitly identified metatheory. The original clinical example
+retains its strict 48-hour deadline; the companion uses the separately named
+minute-scale variant.
