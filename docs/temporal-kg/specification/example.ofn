@@ -1,0 +1,9 @@
+Prefix(owl:=<http://www.w3.org/2002/07/owl#>)
+Ontology(<urn:temporal-trajectory:review-example>
+  Declaration(Class(<urn:example:Administration>))
+  Declaration(Class(<urn:example:Collection>))
+  Declaration(NamedIndividual(<urn:example:administration>))
+  Declaration(NamedIndividual(<urn:example:collection>))
+  ClassAssertion(<urn:example:Administration> <urn:example:administration>)
+  ClassAssertion(<urn:example:Collection> <urn:example:collection>)
+)
