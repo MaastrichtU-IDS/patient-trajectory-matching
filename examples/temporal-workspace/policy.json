@@ -1,0 +1,22 @@
+{
+  "profile": "robust-temporal-relaxation-1.0",
+  "kind": "bounded",
+  "relaxable_targets": [
+    "completion-gap"
+  ],
+  "max_cost": "1.25",
+  "max_changed_targets": 1,
+  "options": [
+    {
+      "id": "widen-to-50-minutes",
+      "cost": "1.25",
+      "changes": [
+        {
+          "target": "completion-gap",
+          "lower_us": 1,
+          "upper_us": 3000000000
+        }
+      ]
+    }
+  ]
+}

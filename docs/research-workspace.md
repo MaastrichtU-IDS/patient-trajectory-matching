@@ -12,6 +12,8 @@ python -m app.server --host 127.0.0.1 --port 8080
 
 Open `http://127.0.0.1:8080`. The default host is loopback. A container must explicitly supply `--host 0.0.0.0`; see [deployment](deployment.md). The service writes nothing to disk. Revisions and comparisons exist only in process memory and disappear on restart.
 
+The **Temporal uncertainty** link opens the separate [bounded temporal demonstration](temporal-workspace.md) at `/temporal`: four authored histories, possible/certain/incomparable results, one explicit widening and replayable solver evidence. It uses its own fixture and does not change the kidney cohort or its selected revision.
+
 A downloaded analysis can be checked against the same implementation and authored fixture:
 
 ```sh
