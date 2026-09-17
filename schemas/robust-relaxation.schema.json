@@ -9,7 +9,8 @@
     "kind": {
       "enum": [
         "bounded",
-        "mixed"
+        "mixed",
+        "extended"
       ]
     },
     "relaxable_targets": {
@@ -68,12 +69,47 @@
                   "type": "integer",
                   "minimum": -9223372036854775808,
                   "maximum": 9223372036854775807
+                },
+                "minimum_us": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9223372036854775807
                 }
               },
               "required": [
-                "target",
-                "lower_us",
-                "upper_us"
+                "target"
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "lower_us",
+                    "upper_us"
+                  ],
+                  "not": {
+                    "required": [
+                      "minimum_us"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "minimum_us"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "lower_us"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "upper_us"
+                        ]
+                      }
+                    ]
+                  }
+                }
               ]
             }
           }

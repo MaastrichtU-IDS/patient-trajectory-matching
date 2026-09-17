@@ -11,4 +11,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r patterns/requirements-semantic.lock.txt
-      - run: python -m unittest patterns.test_robust_relaxation patterns.test_bounded_intervals patterns.test_mixed_record_query
+      - run: python -m unittest patterns.test_extended_relaxation patterns.test_robust_relaxation patterns.test_bounded_intervals patterns.test_mixed_record_query

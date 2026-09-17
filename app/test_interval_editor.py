@@ -72,6 +72,23 @@ class EditorTests(unittest.TestCase):
             self.assertTrue(report['result']['search_complete'])
             self.assertEqual(len(report['patients']), 4)
 
+    def test_edited_query_accepts_explicit_extended_relaxation_policy(self):
+        from patterns import robust_relaxation
+        controls = self.controls()
+        controls['duration'] = {'minimum_minutes':'10','maximum_minutes':'10'}
+        controls['minimum_overlap_minutes'] = '3'
+        original = self.request('/api/editor/run', controls)
+        policy = {'profile':'robust-temporal-relaxation-1.0','kind':'extended',
+                  'relaxable_targets':['shared-time'],'max_cost':'1.25','max_changed_targets':1,
+                  'options':[{'id':'less-shared-time','cost':'1.25',
+                              'changes':[{'target':'shared-time','minimum_us':120000000}]}]}
+        result = robust_relaxation.execute(original['source'], original['query'], policy)
+        self.assertEqual(original['result']['certain_patient_ids'], [])
+        self.assertEqual(result['robust_patient_ids'], ['T01'])
+        self.assertEqual(result['best_robust_matches'][0]['option_id'], 'less-shared-time')
+        self.assertEqual(result['evaluations'][1]['option']['query']['constraints'][:2], original['query']['constraints'][:2])
+        self.assertTrue(verify(original)['verified'])
+
     def test_signed_gap_and_exact_decimal_conversion(self):
         controls = self.controls()
         controls.update(fixture='sequential', relation='gap', gap={'minimum_minutes':'0','maximum_minutes':'48'})
