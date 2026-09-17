@@ -140,8 +140,18 @@ strict-inequality solver contract. **Review decision R3.**
 Declarations are finite maps keyed by their identifiers. Repeated identifiers
 across source declarations are invalid. Request identifiers are unique within
 the document; slot and condition identifiers are unique within their query.
-A relaxation reference MUST resolve to a trajectory query in the same document. Each reference MUST resolve to a
-declaration of the required sort. Sequence order has meaning only in grammar
+A relaxation reference MUST resolve to a trajectory query in the same document.
+References to declared clocks, variables, points, intervals, events, queries and
+conditions MUST resolve in the relevant scope to a declaration of the required
+sort. Patient and episode handles are scope identifiers introduced by use, not
+references requiring separate declarations. Patient handles are snapshot-wide;
+episode identity is the pair (patient handle, episode handle). They are compared
+by exact identifier equality. Reusing an episode handle for a different patient
+does not equate their episodes. Neither handle asserts an OWL individual identity
+or clinical participation. A query for a patient/episode without admitted events
+has no eligible bindings. Evidence, policy and ontology IRIs follow their declared
+external resolution contracts, not this local-name declaration rule.
+Sequence order has meaning only in grammar
 argument positions; the ordering of declarations, slots, constraints, state
 assertions and catalogue options is otherwise immaterial to their truth conditions.
 A repeated constraint identifier is invalid even if its contents agree.
@@ -681,10 +691,13 @@ evaluations are diagnostic evidence.
 
 Equal-cost alternatives are semantically co-optimal. A service choosing one
 representative MUST publish a deterministic ordering and identify the selected
-option and binding. PR #46 orders by exact cost, option identifier, canonical
-serialized binding and episode identifier. That ordering is an implementation
-presentation rule; an approved interoperable serialization/tie convention
-remains **review decision R10**.
+option and binding. The proposed presentation rule orders by exact cost, prefers
+the unchanged `original` on a cost tie, then uses option identifier, canonical
+serialized binding and episode identifier. Original-first ties avoid presenting
+unnecessary modifications without changing robust membership or optimum cost.
+The reviewed PR #46 head orders by cost and then option identifier; the
+original-first refinement is a review follow-up. An approved interoperable
+serialization/tie convention remains **review decision R10**.
 
 ## 10 Results, evidence and conformance
 
@@ -916,6 +929,15 @@ An observation at 30 lies outside W under the half-open convention. A negative
 assertion starting at 30 has no intersection with W. A normal-valued measurement
 becomes a negative low-state assertion only through an approved admission or
 inference rule. PR #47 supplies these five example snapshots.
+
+**Example: contrary point evidence.** Positive interval support [0,30 minutes)
+plus a negative observation at minute 10 still yields `HOLDS` in the current
+interval-assertion profile. The observation is retained as evidence but does not
+constrain h or its completions. Thus `HOLDS` denotes complete interval-assertion
+support, not agreement with every recorded observation. Under R5, reviewers must
+decide whether observations remain sample descriptions or may be admitted as
+point refutations/conflicts. Point refutation would not itself assume persistence
+between samples. This draft does not silently adopt that extension.
 
 ### 13.7 Identity, unknown support and source inconsistency
 

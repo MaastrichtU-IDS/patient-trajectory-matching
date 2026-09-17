@@ -18,6 +18,11 @@ problems, conformance and informative examples.
 5. Record acceptance or revisions against R1–R12 in Section 14.
 6. Check Section 12 before attributing a capability to an implementation.
 
+Review follow-ups clarify that patient/episode handles are scope identifiers
+introduced by use (Section 2.3), propose original-first equal-cost ties (Section
+9.3), and expose the contrary-point example behind the state-meaning decision R5
+(Section 13.6). These edits do not approve any of R1–R12.
+
 ## Companion example
 
 [example.ttq](example.ttq) is a complete document in the **proposed** notation.
