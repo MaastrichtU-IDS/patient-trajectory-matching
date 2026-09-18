@@ -1,0 +1,138 @@
+{
+  "schema": "public-demo-distinct-variable-evaluation-1",
+  "status": "TECHNICALLY_VERIFIED",
+  "executed_at_utc": "2026-09-18T04:02:45.813314+00:00",
+  "stratum": "art",
+  "extraction": {
+    "schema": "public-demo-clinical-extraction-1",
+    "version": "public-demo-distinct-stream-extraction-1.0",
+    "dataset_id": "mimic-iv-demo-2.2",
+    "source_files": {
+      "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+      "icustays": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+      "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+      "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
+    },
+    "anchors": 944,
+    "roster_stays": 140,
+    "roster_patients": 100,
+    "counts": {
+      "candidate_rows": 27826,
+      "outside_preindex_windows": 26488,
+      "selected_220045": 639,
+      "selected_220210": 648,
+      "source_rows_scanned": 668862,
+      "unsupported_row": 51
+    },
+    "selected_rows": 1287,
+    "csv_sha256": "b321fe2187559af26ad566f7ba4f64c19915c7bea293b8b6d450520b491dfcd8",
+    "pack_sha256": "d3fbf49fa7c74bf70c5c29f79652e339629cbdc2050cccb9ceec355a4629d87c",
+    "csv_bytes": 178426,
+    "variables": [
+      {
+        "id": "heart_rate",
+        "label": "Heart Rate",
+        "item_id": "220045",
+        "unit": "bpm",
+        "lookback_minutes": 30
+      },
+      {
+        "id": "respiratory_rate",
+        "label": "Respiratory Rate",
+        "item_id": "220210",
+        "unit": "insp/min",
+        "lookback_minutes": 30
+      }
+    ],
+    "tool_sha256": "1799daefa827e1426a9fcabd92837e808df08a8285b2f000c7e6d8c5f79364c3",
+    "dependencies": {
+      "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+      "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+      "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
+      "app/clinical_features.py": "9819004d1b2bb840a5aca43f66ad2a4eb13e48b2ec09f25a178c51ae7b692792"
+    },
+    "dependency_context": "b1bb812daebfd44cafbac562478a79fca5a67d7926cf4c7bf01ae7984e75a83a",
+    "clinical_mapping_verified": false,
+    "interpretation": "Automated source-fidelity extraction only; clinical review remains pending."
+  },
+  "original_supplemental_source_rows_verified": 1287,
+  "temporal": {
+    "anchors_verified": 944,
+    "patients_retained": 100,
+    "stays_retained": 140,
+    "bindings": 10,
+    "missing_followup_bindings": 0,
+    "all_anchors_agree_with_sql_and_independent_enumeration": true,
+    "clinical_mapping_verified": false
+  },
+  "profile": {
+    "schema": "recorded-clinical-features-1",
+    "features": [
+      {
+        "id": "latest_value",
+        "weight": "1",
+        "scale": "10"
+      },
+      {
+        "id": "heart_rate",
+        "weight": "1",
+        "scale": "10"
+      },
+      {
+        "id": "respiratory_rate",
+        "weight": "1",
+        "scale": "4"
+      }
+    ]
+  },
+  "available_anchors_by_feature": {
+    "heart_rate": 553,
+    "respiratory_rate": 557,
+    "latest_value": 33
+  },
+  "complete_reference_anchors": 32,
+  "ranking": {
+    "ranked_patients": 2,
+    "unresolved_patients": 97,
+    "reference_patient_wide_exclusion": true,
+    "exact_independent_patient_ranking": true,
+    "exact_contribution_totals": true,
+    "temporal_result_preserved": true
+  },
+  "timings": {
+    "source_query_and_supplemental_admission_seconds": 54.087875,
+    "distinct_variable_comparison_seconds": 0.435148,
+    "durable_restart_readback_seconds": 1.530432,
+    "cold_source_backed_replay_seconds": 72.79898
+  },
+  "export_bytes": 5270230,
+  "durable_restart_exact": true,
+  "source_backed_replay_verified": true,
+  "artifacts": {
+    "app/recorded_export.py": "4a302aa4c84b0910c4d8d35a78be86674e9e0ec25df13f46c4cfd35c4e4b8c84",
+    "app/recorded_journey.py": "15dbe6999ea71d938e6ac66c079abd1e3b5baaf766a4a1ad27c5c575ef8e8f6f",
+    "app/recorded_similarity.py": "073095eabf6655243227e605ab201c3a818ad294781cb556829221e8727d9e65",
+    "app/recorded_selectors.py": "e7b767878cbd8625dd6eb613f8388160fe8ef01cd527a51d3d58247762ae0ad9",
+    "app/feature_profiles.py": "ff5cf777307e394ea1db5d8ddf3427b1816cae9d3fb9feb3c8d33705ae91b221",
+    "app/clinical_features.py": "9819004d1b2bb840a5aca43f66ad2a4eb13e48b2ec09f25a178c51ae7b692792",
+    "app/recorded_pattern.py": "65c61b44103ddff7fa70c7b35bd204f958970cd46dabe679d626d52be4757fc1",
+    "app/temporal_replay.py": "5bd2cf4107975fe71242fae1337981145845460003842fa66dfac9700899a67e",
+    "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
+    "demo/mapped_pressure.py": "37a50496df4eecca7d33b29cc65dec211734181ff9bb416c9336d45965fba56d",
+    "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
+    "patterns/pressure_service_config.py": "496d59f34386c315d5aa2ad4b3b6de840fe0682bb2e92c8b56365805b404ad11"
+  },
+  "evaluation_tools": {
+    "tools/evaluate_demo_clinical_features.py": "c0de11722f303c0f660e6ae10ba0b565514a36ffabfc485a3aec023cd69dfcaa",
+    "tools/prepare_demo_clinical_features.py": "1799daefa827e1426a9fcabd92837e808df08a8285b2f000c7e6d8c5f79364c3"
+  },
+  "clinical_mapping_verified": false,
+  "clinical_retrieval_usefulness_evaluated": false,
+  "limitations": [
+    "Illustrative weights/scales; clinical review pending.",
+    "No relevant-peer labels or clinical usefulness claim.",
+    "ART pressure stratum only for distinct-variable ranking.",
+    "Timings are descriptive single-process measurements on a shared host; concurrent work may affect them.",
+    "Full MIMIC release and production throughput are not evaluated."
+  ]
+}

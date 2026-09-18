@@ -39,7 +39,7 @@ def identifier(value):
 
 
 class Workspace:
-    def __init__(self, recorded_config=None, state_dir=None, access=None):
+    def __init__(self, recorded_config=None, state_dir=None, access=None, public_demo_dir=None, clinical_features_path=None):
         self.engine = SimilarityEngine()
         source_bytes = (ROOT.parent / 'demo/cohort-data.json').read_bytes()
         self.dataset = json.loads(source_bytes)
@@ -50,7 +50,8 @@ class Workspace:
         self.temporal = TemporalWorkspace()
         self.interval_editor = IntervalEditor()
         self.journey = JourneyWorkspace()
-        self.recorded = RecordedJourneyWorkspace(config=recorded_config, state_dir=state_dir)
+        self.recorded = RecordedJourneyWorkspace(config=recorded_config, state_dir=state_dir,
+                                                 public_demo_dir=public_demo_dir, clinical_features_path=clinical_features_path)
         self.access = access
         self.lock = threading.RLock()
         self.ready = True
@@ -58,6 +59,7 @@ class Workspace:
     def capabilities(self):
         return {'status': 'ready' if self.ready else 'not-ready',
                 'scope': ('research-prototype-with-configured-recorded-sources' if self.recorded.config is not None
+                          else 'public-demo-research-prototype' if self.recorded.public_demo_dir is not None
                           else 'authored-synthetic-research-prototype'),
                 'supported': ['pre-index-similarity', 'bounded-refinements',
                               'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
@@ -315,6 +317,9 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.workspace.temporal.run(data['budget'])
                 elif self.path == '/api/editor/run':
                     result = self.workspace.interval_editor.run(data)
+                elif self.path == '/api/journey/recorded/references':
+                    exact_keys(data, ('profile', 'job_id', 'feature_profile'))
+                    result = self.workspace.recorded.references(data['profile'], data['job_id'], data['feature_profile'])
                 elif self.path == '/api/journey/recorded/compare':
                     result = self.workspace.recorded.compare(data)
                 elif self.path == '/api/journey/recorded/export':
@@ -361,13 +366,15 @@ class ResearchServer(ThreadingHTTPServer):
                 self.workspace.recorded.close()
 
 
-def make_server(host='127.0.0.1', port=8080, *, recorded_config=None, state_dir=None, auth_file=None):
-    if recorded_config is not None and host not in ('127.0.0.1', 'localhost'):
+def make_server(host='127.0.0.1', port=8080, *, recorded_config=None, state_dir=None, auth_file=None,
+                public_demo_dir=None, clinical_features_path=None):
+    if (recorded_config is not None or public_demo_dir is not None or clinical_features_path is not None) and host not in ('127.0.0.1', 'localhost'):
         raise ValueError('Configured recorded sources require a loopback host')
     if auth_file is not None and host not in ('127.0.0.1', 'localhost'):
         raise ValueError('Owner authentication requires a loopback host')
     access = OwnerAccess(auth_file) if auth_file is not None else None
-    workspace = Workspace(recorded_config=recorded_config, state_dir=state_dir, access=access)
+    workspace = Workspace(recorded_config=recorded_config, state_dir=state_dir, access=access,
+                          public_demo_dir=public_demo_dir, clinical_features_path=clinical_features_path)
     try:
         server = ResearchServer((host, port), Handler)
     except Exception:
@@ -384,8 +391,11 @@ def main():
     parser.add_argument('--recorded-config', type=Path, help='Startup-only reviewed source and mapping configuration for the recorded journey')
     parser.add_argument('--state-dir', type=Path, help='Private local directory for durable recorded jobs and audit metadata')
     parser.add_argument('--auth-file', type=Path, help='Private owner:<secret> credential file; loopback only')
+    parser.add_argument('--public-demo-dir', type=Path, help='Pinned public MIMIC-IV demo source directory; literal strata only')
+    parser.add_argument('--clinical-features', type=Path, help='Startup-only reviewed supplemental feature pack')
     args = parser.parse_args()
-    server = make_server(args.host, args.port, recorded_config=args.recorded_config, state_dir=args.state_dir, auth_file=args.auth_file)
+    server = make_server(args.host, args.port, recorded_config=args.recorded_config, state_dir=args.state_dir, auth_file=args.auth_file,
+                         public_demo_dir=args.public_demo_dir, clinical_features_path=args.clinical_features)
     print(f'Research workspace: http://{args.host}:{server.server_port}', flush=True)
     try:
         server.serve_forever()

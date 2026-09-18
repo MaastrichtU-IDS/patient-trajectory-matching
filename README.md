@@ -108,6 +108,15 @@ preserve completed recorded jobs across restarts. The [evaluation protocol](docs
 separates technical source agreement from the remaining clinical review.
 The [delivery and acceptance status](docs/recorded-workflow-delivery.md) lists the six
 work areas and the external evidence still required.
+Separately admitted [clinical-variable packs](examples/clinical-features/README.md)
+now add heart rate and respiratory rate with exact item/unit and pre-index evidence.
+[Integrated public-demo evaluation](docs/integrated-recorded-evaluation.md),
+[recorded three-variable evaluation](docs/clinical-feature-source-evaluation.md),
+[held-out retrieval evaluation](docs/retrieval-evaluation.md), and
+[version-bound clinical review](docs/clinical-review-workflow.md) keep technical
+checks and pending clinical decisions explicit. The [research release guide](docs/research-release.md)
+adds private persistent Compose/Helm modes and backup/restore acceptance.
+
 
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 

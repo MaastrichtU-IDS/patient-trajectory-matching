@@ -1,0 +1,35 @@
+{
+  "schema": "recorded-clinical-feature-pack-1",
+  "csv_path": "authored-measurements.csv",
+  "csv_sha256": "5e595ec3597102b08d07c1389282c945ce2d0180cc8cfde6720adb7d12ffe5b9",
+  "source_kind": "AUTHORED",
+  "source_files": {
+    "inputevents": "1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884",
+    "icustays": "add9e84050e9b5da0d5a2ca9bddc30084dc770e3ba647853bfdf0970fc8e5c6a",
+    "d_items": "96bd5284a8c8de4736bf5e7361345fbbe10c8ef530dd3b13337b3a3e85ac625f",
+    "chartevents": "a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90"
+  },
+  "clock": "patient-local-charttime",
+  "review": {
+    "status": "TECHNICAL_ACCEPTED",
+    "reviewer": "authored-fixture-contract",
+    "rationale": "Authored numeric heart-rate and respiratory-rate examples with declared units, patient/stay identities and patient-local charttime. Accepted solely to exercise the technical admission contract; not derived from real patients.",
+    "clinical_status": "PENDING"
+  },
+  "variables": [
+    {
+      "id": "heart_rate",
+      "label": "Latest pre-index heart rate",
+      "item_id": "3000",
+      "unit": "beats/min",
+      "lookback_minutes": 30
+    },
+    {
+      "id": "respiratory_rate",
+      "label": "Latest pre-index respiratory rate",
+      "item_id": "3001",
+      "unit": "breaths/min",
+      "lookback_minutes": 30
+    }
+  ]
+}

@@ -20,3 +20,13 @@ ingress:
   annotations: {}
   host: trajectory.example.invalid
   tls: []
+
+# Local single-owner research mode: access only via kubectl port-forward.
+localResearch:
+  enabled: false
+  ownerSecret: ""
+  clinicalFeaturesPath: ""
+  persistence:
+    existingClaim: ""
+    size: 1Gi
+    storageClass: ""

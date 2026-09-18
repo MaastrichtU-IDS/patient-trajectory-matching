@@ -48,7 +48,7 @@ jobs:
           retention-days: 14
 
   package:
-    name: Container smoke and Helm validation
+    name: Container and isolated Kubernetes acceptance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,17 +61,51 @@ jobs:
           helm template research-prototype deploy/helm/patient-trajectory > /tmp/research-prototype.yaml
           helm template research-prototype deploy/helm/patient-trajectory --set ingress.enabled=true > /tmp/research-prototype-ingress.yaml
           if helm template invalid deploy/helm/patient-trajectory --set replicaCount=2 > /tmp/invalid-replicas.yaml 2>&1; then
-            echo 'Expected the chart to reject multiple replicas for in-memory state'
+            echo 'Expected the chart to reject multiple SQLite writers'
+            exit 1
+          fi
+      - name: Validate private persistent Helm deployment
+        run: |
+          helm lint deploy/helm/patient-trajectory --set localResearch.enabled=true --set localResearch.ownerSecret=ptm-owner
+          helm template research-prototype deploy/helm/patient-trajectory --set localResearch.enabled=true --set localResearch.ownerSecret=ptm-owner --set localResearch.clinicalFeaturesPath=/opt/trajectory/examples/clinical-features/authored-pack.json > /tmp/research-prototype-private.yaml
+          helm template research-prototype deploy/helm/patient-trajectory --set localResearch.enabled=true --set localResearch.ownerSecret=ptm-owner --set localResearch.persistence.existingClaim=retained-state > /tmp/research-prototype-existing-pvc.yaml
+          if helm template invalid deploy/helm/patient-trajectory --set localResearch.enabled=true --set localResearch.ownerSecret=ptm-owner --set ingress.enabled=true > /tmp/invalid-private-ingress.yaml 2>&1; then
+            echo 'Expected local research mode to reject ingress'
+            exit 1
+          fi
+          if helm template invalid deploy/helm/patient-trajectory --set localResearch.enabled=true > /tmp/invalid-private-secret.yaml 2>&1; then
+            echo 'Expected local research mode to require owner credentials'
             exit 1
           fi
       - name: Validate Compose configuration
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
+          PTM_UID=10001 PTM_GID=10001 PTM_STATE_DIR=/tmp/state PTM_AUTH_FILE=/tmp/owner docker compose --file compose.research.yaml config --quiet
       - name: Build research image
         run: docker build --tag patient-trajectory-matching:test .
       - name: Run read-only non-root container and smoke-check HTTP
         run: |
           docker run --detach --name ptm-research --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --publish 127.0.0.1:8080:8080 patient-trajectory-matching:test
           python deploy/smoke.py --url http://127.0.0.1:8080
+      - name: Stop ephemeral demo before local research acceptance
+        run: docker rm --force ptm-research
+      - name: Verify container owner access, durable restart and backup restore
+        run: python -m deploy.container_acceptance --image patient-trajectory-matching:test
+      - name: Install official kind tools for isolated authored acceptance
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+          version: v0.33.0
+          kubectl_version: v1.37.0
+      - name: Verify Helm PVC, owner access and evidence after pod replacement
+        run: python -m deploy.kubernetes_acceptance --image patient-trajectory-matching:test --output verification/research-prototype-run/kubernetes-acceptance.json
+      - name: Upload isolated Kubernetes acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubernetes-research-acceptance
+          path: verification/research-prototype-run/kubernetes-acceptance.json
+          retention-days: 14
       - name: Show container diagnostics and clean up
         if: always()
         run: |

@@ -1,0 +1,82 @@
+{
+  "artifacts": {
+    "app/feature_profiles.py": "ff5cf777307e394ea1db5d8ddf3427b1816cae9d3fb9feb3c8d33705ae91b221",
+    "app/recorded_similarity.py": "073095eabf6655243227e605ab201c3a818ad294781cb556829221e8727d9e65",
+    "tools/evaluate_retrieval.py": "20b2f9012c6f48f68d3a46224421cba896c04ba471156b45b27de805a9163fe2"
+  },
+  "clinical_relevance_evaluated": false,
+  "dataset": "authored_uniform_four_measurement_fixture",
+  "executed_at_utc": "2026-09-18T03:53:13.810933+00:00",
+  "feature_profile": {
+    "features": [
+      {
+        "id": "latest_value",
+        "scale": "10",
+        "weight": "2"
+      },
+      {
+        "id": "value_change",
+        "scale": "5",
+        "weight": "1"
+      },
+      {
+        "id": "measurement_count",
+        "scale": "2",
+        "weight": "1"
+      },
+      {
+        "id": "latest_recency",
+        "scale": "5",
+        "weight": "1"
+      }
+    ],
+    "schema": "recorded-similarity-features-1"
+  },
+  "full_mimic_evaluated": false,
+  "limitations": [
+    "Single trial per size in fresh isolated Python processes on a shared host.",
+    "Wall time covers one exact comparison; peak RSS covers fixture construction and subsequent invariant checks.",
+    "No ingestion, source reasoning, durable storage, concurrency, real missingness, or clinical quality benchmark.",
+    "Four history features of one authored pressure stream; not distinct clinical variables.",
+    "Known comparison implementation scans patient anchors and roster repeatedly; timings do not establish production throughput."
+  ],
+  "patient_identifiers_included": false,
+  "platform": "Linux",
+  "python_version": "3.12.14",
+  "schema": "authored-retrieval-scale-1",
+  "trials": [
+    {
+      "anchors": 101,
+      "exact_contributions_verified": true,
+      "first_comparison_wall_seconds": 0.027906,
+      "followup_and_end_time_independence_verified": true,
+      "patient_wide_exclusion_verified": true,
+      "patients": 100,
+      "ranked_output_sha256": "5db51636e1c5b16b1f444ee14df7b3f306f6af8df574409eddbb8176bcd0f47d",
+      "ranked_patients": 99,
+      "worker_peak_rss_bytes": 15921152
+    },
+    {
+      "anchors": 1001,
+      "exact_contributions_verified": true,
+      "first_comparison_wall_seconds": 0.400813,
+      "followup_and_end_time_independence_verified": true,
+      "patient_wide_exclusion_verified": true,
+      "patients": 1000,
+      "ranked_output_sha256": "3009c492f354f57699717ce5f27f854943ea4bbd8ec167c0b937d01153bc4f60",
+      "ranked_patients": 999,
+      "worker_peak_rss_bytes": 50487296
+    },
+    {
+      "anchors": 5001,
+      "exact_contributions_verified": true,
+      "first_comparison_wall_seconds": 3.187607,
+      "followup_and_end_time_independence_verified": true,
+      "patient_wide_exclusion_verified": true,
+      "patients": 5000,
+      "ranked_output_sha256": "bdb38b553b3a27efa3e82445ff06f1edaf43d9b3f839329a3c0b9936cd4b466b",
+      "ranked_patients": 4999,
+      "worker_peak_rss_bytes": 205090816
+    }
+  ]
+}

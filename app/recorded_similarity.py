@@ -7,7 +7,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation, localcontext
 
-from app import feature_profiles
+from app import clinical_features, feature_profiles
 
 PROFILE = 'recorded-preindex-pressure-distance-1.0'
 SCHEMA = 'recorded-query-by-example-1'
@@ -69,8 +69,10 @@ def _feature(detail, profile):
 
 def references(snapshot, feature_profile=None):
     profile = _scope_profile(snapshot)
+    clinical = isinstance(feature_profile, dict) and feature_profile.get('schema') == clinical_features.SCHEMA
     if feature_profile is not None:
-        profile = feature_profiles.compile_profile(feature_profile, profile)
+        profile = (clinical_features.compile_profile(feature_profile, profile, snapshot) if clinical
+                   else feature_profiles.compile_profile(feature_profile, profile))
     anchors = []
     for detail in snapshot['details']:
         anchor = {key: deepcopy(detail['anchor'][key]) for key in
@@ -78,7 +80,8 @@ def references(snapshot, feature_profile=None):
         anchor['feature'] = _feature(detail, profile)
         anchor['feature_status'] = 'AVAILABLE' if anchor['feature'] is not None else 'MISSING_PREINDEX_FEATURE'
         if feature_profile is not None:
-            anchor.update(feature_profiles.extract(detail, profile))
+            anchor.update(clinical_features.extract(detail, profile, snapshot) if clinical
+                          else feature_profiles.extract(detail, profile))
             anchor['feature_status'] = 'AVAILABLE' if anchor['coverage']['complete'] else 'MISSING_PREINDEX_FEATURE'
         anchor['temporal_status'] = detail['anchor']['status']
         anchors.append(anchor)

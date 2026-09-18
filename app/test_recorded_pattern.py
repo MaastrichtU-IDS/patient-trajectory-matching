@@ -50,6 +50,20 @@ class RecordedPatternTests(unittest.TestCase):
         self.assertNotIn('parent_job_id', result['context'])
         self.assertNotIn('controls', result['context'])
 
+    def test_prepared_pattern_reuses_batches_without_changing_exact_evidence(self):
+        from patterns.prepared_mixed_query import PreparedExecutor
+        executor = PreparedExecutor()
+        form = self.form()
+        adapter = authored.prepare(self.session, form, parent_query_context_id=self.original['context_id'])
+        adapter.execute(CONTROLS, batch_executor=executor.execute)
+        form['baseline'].update(operator='ge', value_lexical='60')
+        adapter = authored.prepare(self.session, form, parent_query_context_id=self.original['context_id'])
+        actual = adapter.execute(CONTROLS, batch_executor=executor.execute)
+        expected = adapter.execute(CONTROLS)
+        actual.pop('elapsed_seconds'); expected.pop('elapsed_seconds')
+        self.assertEqual(actual, expected)
+        self.assertGreater(executor.snapshot()['hits'], 0)
+
     def test_all_scalar_operators_checked_by_independent_sql(self):
         for operator, expected in [('lt', 1), ('le', 2), ('eq', 1), ('ge', 2), ('gt', 1)]:
             with self.subTest(operator=operator):

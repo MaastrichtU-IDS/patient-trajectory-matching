@@ -1,0 +1,36 @@
+{
+  "schema": "recorded-clinical-protocol-1",
+  "protocol_id": "public-demo-pressure-descriptive-review-1",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "permitted_claim": "reviewed_descriptive_protocol",
+  "artifacts": {
+    "source_pin": {
+      "path": "data/clinical-source-demo-pin.json",
+      "sha256": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e"
+    },
+    "candidate_plan": {
+      "path": "data/clinical-candidate-plan.json",
+      "sha256": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3"
+    },
+    "mapping_candidates": {
+      "path": "data/clinical-measurement-mapping-candidates.json",
+      "sha256": "06c98d4d8f03e9ed0cce23b254b43d69bcb5c5770a558fd96a06b9a175cd45a2"
+    }
+  },
+  "decisions": {
+    "scientific_question": "For ICU patients with a recorded norepinephrine segment and a preceding same-item pressure below 65 mmHg, describe recorded subsequent pressure observations and retrieve peers from strictly pre-index measurements. This is descriptive; no treatment efficacy, causal effect or validated phenotype is claimed. Clinical relevance and exclusions require reviewer judgment.",
+    "treatment_anchor": "Use item 221906 source segment start as index; do not infer treatment-course initiation, dose equivalence or independence of repeated segments. Review source revisions, duplicates and repeated-stay handling.",
+    "measurement_identity": "Keep pressure items 220052, 220181 and 225312 as separate strata, admitted literal mmHg only. Proposed terminology mappings remain pending. Any distinct-variable extension must bind a separate versioned catalogue with exact source item IDs, dictionary identity, literal units, selection rules and review decisions; no interchangeability or unit conversion is implicit.",
+    "eligibility": "All admitted ICU stays, with complete excluded/blocked accounting; no age restriction implemented. Follow-up is optional. No missing value is replaced by zero. Multiple segments/pairs per patient are dependent observations, not independent subjects.",
+    "baseline": "Default: every same-item pressure strictly below 65 mmHg in [index minus 30 minutes, index minus 1 microsecond]. Distinguish eligible baseline/segment pairs from the latest-value selection used for similarity. Narrower custom patterns require their exact specification to be included in a new protocol before clinical approval applies.",
+    "followup": "Default: same-item, same-unit observations in [segment start, segment start plus 120 minutes], inclusive, whether or not the segment has ended. Retain eligible pairs without follow-up. Describe change relative to the named baseline, never a treatment effect. Changes to windows/outcomes require a revised protocol.",
+    "time_and_availability": "Same-release, same-patient shifted calendar only. Chart time is not verified information-availability time; no real-time clinical availability claim. Similarity excludes measurements at or after index and never uses follow-up, match status, outcome or segment end. Review leakage and elapsed-time assumptions.",
+    "similarity": "Primary technical baseline: latest pre-index same-item pressure, weight 1 and scale 1 mmHg. Extended profiles require an exact versioned list of variables, units, pre-index windows, scale and weight per variable, aggregation/tie rules, strict missingness and minimum coverage. Scale and weight choices are illustrative until reviewed. Review meaning of distance and per-feature explanations; do not infer relevance from nearest rank.",
+    "validation_target": "Before a clinical usefulness study, freeze patient-disjoint development/evaluation sets, relevance rubric, blinded independent reviewers, adjudication rules, review sample size, relevance grades, candidate pool, baselines, metrics and acceptance thresholds. Missing these inputs means technical evaluation only. SQL agreement does not establish clinical correctness or retrieval usefulness."
+  },
+  "scope_limits": [
+    "Public-demo retrospective descriptive protocol only.",
+    "No approval of distinct-variable profiles until their exact definitions are bound and reviewed.",
+    "No full-MIMIC study approval; the separate antibiotic/renal study remains unexecuted."
+  ]
+}

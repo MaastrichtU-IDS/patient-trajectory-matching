@@ -31,6 +31,14 @@ spec:
       containers:
         - name: trajectory
           image: {{ if .Values.image.digest }}{{ printf "%s@%s" .Values.image.repository .Values.image.digest | quote }}{{ else }}{{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}{{ end }}
+          {{- if .Values.localResearch.enabled }}
+          command: ["python", "-m", "deploy.local_runtime"]
+          {{- if .Values.localResearch.clinicalFeaturesPath }}
+          env:
+            - name: PTM_CLINICAL_FEATURES
+              value: {{ .Values.localResearch.clinicalFeaturesPath | quote }}
+          {{- end }}
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -43,28 +51,62 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           startupProbe:
+            {{- if .Values.localResearch.enabled }}
+            exec:
+              command: ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2).read()"]
+            {{- else }}
             httpGet:
               path: /healthz
               port: http
+            {{- end }}
             periodSeconds: 2
             failureThreshold: 30
           livenessProbe:
+            {{- if .Values.localResearch.enabled }}
+            exec:
+              command: ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2).read()"]
+            {{- else }}
             httpGet:
               path: /healthz
               port: http
+            {{- end }}
             periodSeconds: 30
             timeoutSeconds: 3
           readinessProbe:
+            {{- if .Values.localResearch.enabled }}
+            exec:
+              command: ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/readyz', timeout=2).read()"]
+            {{- else }}
             httpGet:
               path: /readyz
               port: http
+            {{- end }}
             periodSeconds: 10
             timeoutSeconds: 3
           volumeMounts:
             - name: temporary
               mountPath: /tmp
+            {{- if .Values.localResearch.enabled }}
+            - name: state
+              mountPath: /var/lib/trajectory
+            - name: owner
+              mountPath: /run/secrets
+              readOnly: true
+            {{- end }}
       volumes:
         - name: temporary
           emptyDir:
             medium: Memory
             sizeLimit: 64Mi
+        {{- if .Values.localResearch.enabled }}
+        - name: state
+          persistentVolumeClaim:
+            claimName: {{ .Values.localResearch.persistence.existingClaim | default (include "trajectory.name" .) }}
+        - name: owner
+          secret:
+            secretName: {{ required "localResearch.ownerSecret is required" .Values.localResearch.ownerSecret }}
+            defaultMode: 0440
+            items:
+              - key: owner
+                path: owner
+        {{- end }}

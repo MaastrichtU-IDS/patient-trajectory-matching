@@ -1,0 +1,72 @@
+{
+  "schema": "recorded-clinical-review-1",
+  "review_id": "public-demo-pressure-review-pending-1",
+  "status": "PENDING",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "artifacts": {
+    "protocol": {
+      "path": "data/clinical-review/pressure-protocol.json",
+      "sha256": "96cde5a4b7f1be13d4b2c1d941bbbd09636bd92cf7600571638deb9bc28f991d"
+    },
+    "source_pin": {
+      "path": "data/clinical-source-demo-pin.json",
+      "sha256": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e"
+    },
+    "candidate_plan": {
+      "path": "data/clinical-candidate-plan.json",
+      "sha256": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3"
+    },
+    "mapping_candidates": {
+      "path": "data/clinical-measurement-mapping-candidates.json",
+      "sha256": "06c98d4d8f03e9ed0cce23b254b43d69bcb5c5770a558fd96a06b9a175cd45a2"
+    }
+  },
+  "decisions": {
+    "scientific_question": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "treatment_anchor": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "measurement_identity": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "eligibility": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "baseline": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "followup": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "time_and_availability": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "similarity": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "validation_target": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    }
+  },
+  "signoff": null
+}
