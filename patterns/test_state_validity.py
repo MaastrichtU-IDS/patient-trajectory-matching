@@ -55,6 +55,28 @@ class StateTests(unittest.TestCase):
             expected=max((len(s) for s in ''.join('x' if v=='positive' else ' ' for v in values).split()),default=0)
             self.assertEqual(coverage['longest_supported_duration_us'],expected)
 
+    def test_finite_grid_oracle_with_admitted_points(self):
+        """Exhaustive small worlds: one interval cell and one admitted point fact."""
+        for cells in product(('positive','negative','unknown'),repeat=4):
+            for at,polarity in product(range(5),('positive','negative')):
+                rows=[interval('r'+str(i),i,i+1,value) for i,value in enumerate(cells) if value!='unknown']
+                rows.append(point('p',at,polarity))
+                result=state.execute(source(rows),query(0,4))
+                containing=cells[at] if at<4 else None
+                if containing is not None and containing!='unknown' and containing!=polarity:
+                    self.assertEqual(result['status'],'BLOCKED_SOURCE_CONFLICT',(cells,at,polarity))
+                    continue
+                refutes=polarity=='negative' and at<4
+                expected=('VIOLATED' if 'negative' in cells or refutes
+                          else 'UNKNOWN' if 'unknown' in cells else 'HOLDS')
+                self.assertEqual(result['status'],expected,(cells,at,polarity))
+                # Points never alter the interval partition or its durations.
+                self.assertEqual(sum(result['coverage'][k] for k in
+                                     ('supported_duration_us','refuted_duration_us','unknown_duration_us')),4)
+                for name,value in [('supported','positive'),('refuted','negative'),('unknown','unknown')]:
+                    self.assertEqual(result['coverage'][name+'_duration_us'],cells.count(value))
+                self.assertEqual(result['coverage']['refuting_point_count'],1 if refutes else 0)
+
     def test_union_and_exact_provenance(self):
         r=state.execute(source([interval('a',-3,10),interval('b',5,20),interval('c',20,40)]),query())
         self.assertEqual(r['status'],'HOLDS')
@@ -66,7 +88,12 @@ class StateTests(unittest.TestCase):
         self.assertEqual(set(r['evidence']),{'a','b','c'})
 
     def test_half_open_and_boundary_points(self):
+        # A positive point at 30 is outside [0,30) but inside the negative interval [30,40),
+        # so the whole-snapshot conflict policy blocks it (R5, fourth rule).
         r=state.execute(source([interval('a',0,30),interval('b',30,40,'negative'),point('p',30)]),query())
+        self.assertEqual(r['status'],'BLOCKED_SOURCE_CONFLICT')
+        # Without that containing interval the same point is merely outside the window.
+        r=state.execute(source([interval('a',0,30),point('p',30)]),query())
         self.assertEqual(r['status'],'HOLDS'); self.assertEqual(r['point_observation_ids'],[])
         r=state.execute(source([interval('a',-10,0)]),query())
         self.assertEqual(r['coverage']['unknown_duration_us'],30)
@@ -74,7 +101,8 @@ class StateTests(unittest.TestCase):
     def test_conflict_blocks_and_does_not_explode(self):
         r=state.execute(source([interval('a',0,20),interval('b',10,30,'negative')]),query())
         self.assertEqual(r['status'],'BLOCKED_SOURCE_CONFLICT'); self.assertIsNone(r['coverage'])
-        self.assertEqual(r['conflicts'],[{'positive_id':'a','negative_id':'b','start_us':10,'end_us':20}])
+        self.assertEqual(r['conflicts'],[{'kind':'interval_overlap','positive_id':'a','negative_id':'b',
+                                          'start_us':10,'end_us':20}])
         # Whole admitted snapshot is checked, including conflicts outside the window.
         self.assertEqual(state.execute(source([interval('a',40,60),interval('b',50,70,'negative')]),query())['status'],'BLOCKED_SOURCE_CONFLICT')
 
@@ -89,20 +117,84 @@ class StateTests(unittest.TestCase):
         s['clocks'][1]['scope']='patient:OTHER'
         with self.assertRaises(ei.ContractError): state.execute(s,query())
 
-    def test_empty_unknown_and_negative_point_not_interval(self):
-        for rows in ([],[point('a',10,'negative')]):
-            r=state.execute(source(rows),query())
-            self.assertEqual(r['status'],'UNKNOWN')
-            self.assertEqual(r['coverage']['refuted_duration_us'],0)
-
-    def test_holds_means_interval_support_despite_negative_point(self):
-        r=state.execute(source([interval('a',0,30),point('p',10,'negative')]),query())
-        self.assertEqual(r['status'],'HOLDS')
-        self.assertTrue(r['coverage']['continuous_positive_support'])
-        self.assertEqual(r['point_observation_ids'],['p'])
-        self.assertEqual(r['evidence']['p']['record']['polarity'],'negative')
+    def test_empty_window_is_unknown(self):
+        r=state.execute(source([]),query())
+        self.assertEqual(r['status'],'UNKNOWN')
         self.assertEqual(r['coverage']['refuted_duration_us'],0)
+
+    def test_negative_point_refutes_without_refuted_duration(self):
+        """R5, second rule: an admitted negative fact refutes even when the rest is unknown."""
+        r=state.execute(source([point('a',10,'negative')]),query())
+        self.assertEqual(r['status'],'VIOLATED')
+        self.assertEqual(r['refuting_point_ids'],['a'])
+        self.assertEqual(r['coverage']['refuting_point_count'],1)
+        # No interval refutes anything, so the refuted extent is genuinely zero.
+        self.assertEqual(r['coverage']['refuted_duration_us'],0)
+        self.assertEqual(r['coverage']['unknown_duration_us'],30)
+        self.assertFalse(r['coverage']['continuous_positive_support'])
+        self.assertEqual(r['points'],[{'id':'a','time_us':10,'polarity':'negative','role':'REFUTING'}])
         self.assertFalse(r['clinical_truth_verified'])
+
+    def test_negative_point_inside_positive_interval_blocks(self):
+        """R5, first rule: this is a conflict, not an unqualified HOLDS."""
+        r=state.execute(source([interval('a',0,30),point('p',10,'negative')]),query())
+        self.assertEqual(r['status'],'BLOCKED_SOURCE_CONFLICT')
+        self.assertIsNone(r['coverage'])
+        self.assertEqual(r['conflicts'],[{'kind':'point_in_interval','positive_id':'a',
+                                          'negative_id':'p','time_us':10}])
+        self.assertEqual(r['evidence']['p']['record']['polarity'],'negative')
+
+    def test_positive_point_inside_negative_interval_blocks(self):
+        """The mirror case: an unqualified VIOLATED would be as wrong as an unqualified HOLDS."""
+        r=state.execute(source([interval('a',0,30,'negative'),point('p',10)]),query())
+        self.assertEqual(r['status'],'BLOCKED_SOURCE_CONFLICT')
+        self.assertEqual(r['conflicts'],[{'kind':'point_in_interval','positive_id':'p',
+                                          'negative_id':'a','time_us':10}])
+
+    def test_contradictory_point_facts_block(self):
+        """Opposite admitted facts at one instant block rather than choosing one to believe."""
+        r=state.execute(source([point('p',10),point('n',10,'negative')]),query())
+        self.assertEqual(r['status'],'BLOCKED_SOURCE_CONFLICT')
+        self.assertEqual(r['conflicts'],[{'kind':'point_point','positive_id':'p',
+                                          'negative_id':'n','time_us':10}])
+        # One instant apart is not a contradiction.
+        self.assertEqual(state.execute(source([point('p',10),point('n',11,'negative')]),
+                                       query())['status'],'VIOLATED')
+
+    def test_positive_points_establish_no_coverage(self):
+        """R5, third rule: positive point facts alone never establish throughout-truth."""
+        r=state.execute(source([point('a',0),point('b',10),point('c',20)]),query())
+        self.assertEqual(r['status'],'UNKNOWN')
+        self.assertEqual(r['coverage']['supported_duration_us'],0)
+        self.assertEqual(r['coverage']['unknown_duration_us'],30)
+        self.assertEqual(r['coverage']['refuting_point_count'],0)
+        self.assertEqual([p['role'] for p in r['points']],['RETAINED']*3)
+
+    def test_point_polarity_at_window_boundaries(self):
+        # Half-open: a negative fact at the start refutes; at the end it is outside the window.
+        self.assertEqual(state.execute(source([point('a',0,'negative')]),query())['status'],'VIOLATED')
+        r=state.execute(source([point('a',30,'negative')]),query())
+        self.assertEqual(r['status'],'UNKNOWN'); self.assertEqual(r['refuting_point_ids'],[])
+
+    def test_negative_point_inside_negative_interval_is_not_a_conflict(self):
+        r=state.execute(source([interval('a',0,30,'negative'),point('p',10,'negative')]),query())
+        self.assertEqual(r['status'],'VIOLATED'); self.assertEqual(r['conflicts'] if 'conflicts' in r else [],[])
+
+    def test_point_conflict_outside_window_still_blocks(self):
+        """Conflict detection is whole-snapshot, never clipped to the query window."""
+        r=state.execute(source([interval('a',40,60),point('p',50,'negative')]),query())
+        self.assertEqual(r['status'],'BLOCKED_SOURCE_CONFLICT')
+
+    def test_points_on_other_clock_do_not_conflict(self):
+        s=source([interval('a',0,30),point('p',10,'negative')])
+        s['records'][1]['clock_id']='d'
+        s['clocks'].append({**s['clocks'][0],'clock_id':'d'})
+        # Cross-clock facts are never compared; the foreign record makes the query incomparable.
+        self.assertEqual(state.execute(s,query())['status'],'INCOMPARABLE')
+
+    def test_rejects_superseded_query_profile(self):
+        q=query(); q['profile']='state-validity-query-1.0'
+        with self.assertRaises(ValidationError): state.execute(source([interval('a',0,30)]),q)
 
     def test_invalid_input_and_distinct_primitives(self):
         for mode in ('zero','reversed','boolean','float','point_interval','duplicate','clock','extra'):
