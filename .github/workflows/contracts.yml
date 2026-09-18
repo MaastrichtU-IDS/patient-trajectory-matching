@@ -146,6 +146,8 @@ jobs:
           python -m patterns.joint_evidence --request examples/joint-evidence/retrospective-request.json --output verification/joint-evidence-run/retrospective
       - name: Joint revision, availability and reasoning checks
         run: python -m patterns.test_joint_evidence
+      - name: Synthetic genomic replay and cohort use-case conformance
+        run: python -m patterns.test_use_case_conformance
       - name: End-to-end recorded-source query
         run: python -m patterns.mimic_record_query
       - name: Source-to-RDF-to-Rust-to-temporal query checks

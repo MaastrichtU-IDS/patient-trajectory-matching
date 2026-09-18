@@ -1,0 +1,29 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S6",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "The selected record scope is incomplete | Absence of an intermediate record alone cannot establish adjacency certainty",
+  "narrative": "A query such as FILTER NOT EXISTS establishes absence within its evaluated view, not absence in every model. If the declared scope is known or suspected to be incomplete, the same A/B pair that looked directly-succeeding under a complete-scope assumption (TP-S2) must not be reported as certain direct succession; it is at best a possible one, contingent on an explicit completeness policy the decision document has not yet defined.",
+  "illustrative_processes": [
+    {"id": "A", "class": "sulo:Process", "interval": {"start": "2026-01-01T09:00:00Z", "end": "2026-01-01T10:00:00Z"}},
+    {"id": "B", "class": "sulo:Process", "interval": {"start": "2026-01-01T12:00:00Z", "end": "2026-01-01T13:00:00Z"}}
+  ],
+  "illustrative_scope": {
+    "members": ["A", "B"],
+    "declared_complete": false,
+    "note": "same interval facts as TP-S2, but the completeness flag flips the illustrative outcome"
+  },
+  "illustrative_expectation": {
+    "precedes": {"subject": "A", "object": "B", "holds": true, "basis": "strict interval inequality is unaffected by scope completeness"},
+    "direct_succession_within_declared_scope": {
+      "subject": "A", "object": "B", "certainty": "POSSIBLE_NOT_CERTAIN",
+      "basis": "scope is declared incomplete; an unrecorded intervening process cannot be ruled out"
+    }
+  },
+  "unresolved_before_adoption": [
+    "the completeness policy itself: what evidence or assertion is required to call a scope complete, and who supplies it",
+    "whether an incomplete-scope result should reuse the existing possible/certain vocabulary from bounded-interval-1.0 or needs its own status",
+    "sequence/context representation for scope S",
+    "canonical name for the direct-succession property"
+  ]
+}

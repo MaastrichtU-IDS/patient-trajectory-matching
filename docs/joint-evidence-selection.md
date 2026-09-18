@@ -24,6 +24,59 @@ The [archive](../examples/joint-evidence/archive.json) records an administration
 
 The first outcome does not entail that the drug was not an antibiotic. It says the selected evidence does not entail the query's required class. Clinical occurrence time, source-recorded time and source-availability time have different roles here; only declared availability determines this selection.
 
+## GEN-01: synthetic genomic release replay
+
+GEN-01 asks a narrow replay question: in the synthetic `PGEN01`/`EGEN01` history,
+which genomic observation and release-specific classification assertions are
+available at the requested source cutoff? It is a **synthetic release replay**, not
+a production ClinGen integration or a clinical interpretation of a patient. The
+fixture places the observation and classification assertions in the same patient
+and episode, but does not encode a semantic link proving that either release
+interprets that exact observed variant. It also does not test a clinical action
+conditioned on the classification. The ClinGen-style source identifiers and release
+dates are fixture data; all
+`https://example.org/trajectory/genomics/...` terms are local application
+vocabulary.
+
+That boundary is imposed by the current admitted semantic fragment: it supports
+`sulo:hasParticipant` and `sulo:isFeatureOf`, neither of which is an appropriate
+variant-interpretation relation. A future clinical-genomic integration case needs
+a versioned application profile for a stable variant identity and an explicit
+interpretation-to-variant relation, plus query/action tests over that relation; it
+must not smuggle an application predicate into SULO or infer the link from shared
+patient/episode scope.
+
+Run the two source-as-known snapshots and the acceptance cases with the supplied
+JSON, writing disposable reports outside the repository:
+
+```sh
+python -m patterns.joint_evidence \
+  --archive examples/joint-evidence/gen-01/archive.json \
+  --request examples/joint-evidence/gen-01/before-request.json \
+  --policy examples/joint-evidence/gen-01/policy.json \
+  --query examples/joint-evidence/gen-01/query.json \
+  --output /tmp/gen-01-before
+python -m patterns.joint_evidence \
+  --archive examples/joint-evidence/gen-01/archive.json \
+  --request examples/joint-evidence/gen-01/after-request.json \
+  --policy examples/joint-evidence/gen-01/policy.json \
+  --query examples/joint-evidence/gen-01/query.json \
+  --output /tmp/gen-01-after
+python -m patterns.test_use_case_conformance
+```
+
+Both source-as-known runs return outer status `READY` and
+`selection.later_evidence_used: false`. At the 1 March cutoff, the selected
+semantic facts contain `variant_observation` and the R1 uncertain interpretation,
+but not `clingen_r2_pathogenic`. At the 1 August cutoff, the R2 pathogenic
+interpretation and its release identity are selected as well. The test asserts that
+the complete `variant_observation` fact payload is identical in both results: the
+release changes the selected external assertion, not the recorded patient
+observation. Deliberately conflicting classification claims fail closed as
+`BLOCKED_EVIDENCE` or `INCONSISTENT_ONTOLOGY`, rather than selecting an
+interpretation by list order. These checks validate source-as-known replay only;
+they do not validate variant matching, ClinGen ingestion, or treatment selection.
+
 The CLI accepts `--archive`, `--request`, `--policy`, `--query`, `--output` and `--timeout-seconds`. Each output directory receives a complete `result.json`; reusing a directory replaces its report. Ready and empty selections exit 0. Blocked, inconsistent or invalid selected evidence writes the audit and exits 2. Malformed input exits 2 with `INVALID_INPUT` before producing a new report.
 
 ## Archive and policy contracts

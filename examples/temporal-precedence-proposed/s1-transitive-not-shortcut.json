@@ -1,0 +1,25 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S1",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "A directly precedes B; B directly precedes C | Infer A precedes C; do not infer the direct shortcut from these axioms",
+  "narrative": "Given a chain of two proposed directlyPrecedes edges (A to B, B to C), the transitive superproperty precedes must entail A precedes C. The candidate axioms in the decision document do not entail A directlyPrecedes C, and no test may assert that shortcut.",
+  "illustrative_processes": [
+    {"id": "A", "class": "sulo:Process", "interval": {"start": "2026-01-01T00:00:00Z", "end": "2026-01-01T01:00:00Z"}},
+    {"id": "B", "class": "sulo:Process", "interval": {"start": "2026-01-02T00:00:00Z", "end": "2026-01-02T01:00:00Z"}},
+    {"id": "C", "class": "sulo:Process", "interval": {"start": "2026-01-03T00:00:00Z", "end": "2026-01-03T01:00:00Z"}}
+  ],
+  "illustrative_asserted_edges": [
+    {"subject": "A", "property": "directlyPrecedes", "object": "B"},
+    {"subject": "B", "property": "directlyPrecedes", "object": "C"}
+  ],
+  "illustrative_expectation": {
+    "entailed": [{"subject": "A", "property": "precedes", "object": "C"}],
+    "not_entailed": [{"subject": "A", "property": "directlyPrecedes", "object": "C"}]
+  },
+  "unresolved_before_adoption": [
+    "canonical name for the direct-succession property (directlyPrecedes vs immediatelyPrecedes)",
+    "sequence/context representation for scope S (not needed for this pairwise entailment, but required before any executable query could select A, B, C as a scope)",
+    "whether the eventual profile exposes transitive-closure queries at all, or only pairwise direct-edge lookups"
+  ]
+}

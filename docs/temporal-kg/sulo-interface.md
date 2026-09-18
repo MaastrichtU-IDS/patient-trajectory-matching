@@ -42,6 +42,37 @@ The common view contains clocks, variable domains, process endpoints/scopes and 
 
 The declared event ID pairs processes and their unique role/interval witnesses; the patient identifier pairs bearers. Endpoint correspondence concerns coordinate variables and may map one primitive point to several SULO descriptions. Endpoint-identity queries are outside the common fragment. These correspondences add no `owl:sameAs` assertions between source resources.
 
+## Composition with selected evidence and cohort results
+
+The interface sits between selected source evidence and the temporal answer; it
+does not make source-history, ontology, or query-language claims on their behalf:
+
+```text
+snapshot/revision selection
+  -> SULO process-role-bearer binding
+  -> temporal constraint evaluation
+  -> certain/possible or exact/incomparable result
+  -> provenance-bearing explanation
+```
+
+**Executable JSON and Python.** The source-as-known selector and its JSON bundles
+are described in [joint evidence selection](../joint-evidence-selection.md),
+including the synthetic GEN-01 release replay. The exact cohort engine consumes a
+prepared snapshot and returns the process, role, bearer, evidence ID, source record,
+and context ID for each binding; [COH-01](../interval-cohort-matching.md#coh-01-constructed-cohort-refinement)
+shows its indexed/reference agreement and membership delta.
+
+**Formal semantics.** Within this interface's admitted finite fragment, the
+process-role-bearer witnesses establish the binding scope, and temporal evaluation
+uses the declared coordinate variables, clock identity, and constraints. Bounded
+queries report fixed-witness `certain`/`possible` answers; exact interval queries
+report `MATCH`, `NO_RECORDED_MATCH`, or `INCOMPARABLE`. These are profile results,
+not a proof of full SULO or OWL semantics.
+
+**Illustrative query syntax.** Any SPARQL shown elsewhere is explanatory only. It
+does not select a revision, establish ontology entailment, or replace the
+executable JSON/Python and formal semantics above.
+
 ### Why the temporal answers are preserved within this fragment
 
 For equal admitted views, both routes have the same coordinate variables, domains, source inequalities and proper-interval conditions. They therefore define the same feasible coordinate assignments. Both routes enumerate the same distinct event-ID bindings within the same patient/episode scopes. Each supported query atom has the same endpoint inequality and clock-comparability condition on those bindings.

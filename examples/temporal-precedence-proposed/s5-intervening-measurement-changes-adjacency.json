@@ -1,0 +1,35 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S5",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "A measurement is inserted between two administrations | Treatment-only adjacency can remain; a sequence including measurements must be reevaluated",
+  "narrative": "Direct succession is scope-relative. Two administrations can be direct successors within a treatment-only scope (S = {administrations}) while a measurement recorded strictly between them breaks that adjacency the moment the scope is widened to S' = {administrations, measurements}. Neither scope is more correct in the abstract; each is a distinct, explicitly declared query.",
+  "illustrative_processes": [
+    {"id": "Admin1", "class": "sulo:Process", "process_type": "administration", "interval": {"start": "2026-01-01T08:00:00Z", "end": "2026-01-01T08:05:00Z"}},
+    {"id": "Measure1", "class": "sulo:Process", "process_type": "measurement", "interval": {"start": "2026-01-01T09:00:00Z", "end": "2026-01-01T09:02:00Z"}},
+    {"id": "Admin2", "class": "sulo:Process", "process_type": "administration", "interval": {"start": "2026-01-01T10:00:00Z", "end": "2026-01-01T10:05:00Z"}}
+  ],
+  "illustrative_scope_variants": [
+    {
+      "scope_id": "treatment_only",
+      "members": ["Admin1", "Admin2"],
+      "illustrative_expectation": {"direct_succession": {"subject": "Admin1", "object": "Admin2", "holds": true}}
+    },
+    {
+      "scope_id": "treatment_and_measurement",
+      "members": ["Admin1", "Measure1", "Admin2"],
+      "illustrative_expectation": {
+        "direct_succession": {"subject": "Admin1", "object": "Admin2", "holds": false, "basis": "Measure1 lies strictly between them in this scope"},
+        "direct_succession_alternate": [
+          {"subject": "Admin1", "object": "Measure1", "holds": true},
+          {"subject": "Measure1", "object": "Admin2", "holds": true}
+        ]
+      }
+    }
+  ],
+  "unresolved_before_adoption": [
+    "sequence/context representation for scope S: how a scope declares its eligible member types and who is authoritative for that declaration",
+    "canonical name for the direct-succession property",
+    "whether a change of scope invalidates a cached adjacency view automatically or requires an explicit recompute request"
+  ]
+}

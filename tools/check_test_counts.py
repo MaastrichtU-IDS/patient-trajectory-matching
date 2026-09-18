@@ -41,6 +41,7 @@ LABELS = {
     'test_temporal_interface': 'Temporal interface conformance tests',
     'test_semantic_support': 'Checked Rust semantic support tests (optional dependency, separate CI job)',
     'test_joint_evidence': 'Joint temporal/semantic selection tests',
+    'test_use_case_conformance': 'Reproducible GEN-01/COH-01 use-case tests',
     'test_mimic_inputevents': 'MIMIC inputevents admission tests',
     'test_patient_local': 'Patient-local clock and RDF tests',
     'test_mimic_record_query': 'End-to-end MIMIC record-query tests',

@@ -1,0 +1,27 @@
+{
+  "status": "PROPOSED_NOT_EXECUTABLE",
+  "scenario_id": "TP-S7",
+  "decision_reference": "docs/decisions/temporal-precedence.md#acceptance-scenarios-for-adoption",
+  "table_row": "A direct-edge cycle is supplied | Report an invalid strict-order input through validation; transitivity alone does not reject it",
+  "narrative": "OWL transitivity is an entailment rule, not an integrity constraint: declaring precedes transitive does not by itself make a reasoner reject a cyclic input. A direct-edge cycle among A, B, C is a strict-order violation (it would require e_A < e_A after closure) and must be caught by an explicit validation step before any adjacency or precedence query runs, not left to the ontology to reject implicitly.",
+  "illustrative_processes": [
+    {"id": "A", "class": "sulo:Process", "interval": {"start": "2026-01-01T09:00:00Z", "end": "2026-01-01T10:00:00Z"}},
+    {"id": "B", "class": "sulo:Process", "interval": {"start": "2026-01-01T11:00:00Z", "end": "2026-01-01T12:00:00Z"}},
+    {"id": "C", "class": "sulo:Process", "interval": {"start": "2026-01-01T13:00:00Z", "end": "2026-01-01T14:00:00Z"}}
+  ],
+  "illustrative_asserted_edges": [
+    {"subject": "A", "property": "directlyPrecedes", "object": "B"},
+    {"subject": "B", "property": "directlyPrecedes", "object": "C"},
+    {"subject": "C", "property": "directlyPrecedes", "object": "A"}
+  ],
+  "illustrative_expectation": {
+    "validation_status": "INVALID_STRICT_ORDER_INPUT",
+    "basis": "the direct-edge graph contains a cycle A -> B -> C -> A, which is inconsistent with any strict total or partial order over occurrence intervals",
+    "note": "this must be caught by a validation pass distinct from ontology consistency checking; declaring precedes owl:TransitiveProperty does not entail rejection of this input on its own"
+  },
+  "unresolved_before_adoption": [
+    "where this validation pass would live relative to the existing PRO/SOLID validation and semantic-consistency gates",
+    "canonical name for the direct-succession property",
+    "sequence/context representation for scope S"
+  ]
+}
