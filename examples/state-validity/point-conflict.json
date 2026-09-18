@@ -1,0 +1,39 @@
+{
+  "profile": "state-validity-source-1.0",
+  "dataset_id": "synthetic",
+  "snapshot_id": "one",
+  "assertion_policy_id": "synthetic-explicit-assertions-v1",
+  "clocks": [
+    {
+      "clock_id": "c",
+      "origin": "2026-09-01T00:00:00Z",
+      "scope": "patient:P",
+      "unit": "microsecond"
+    }
+  ],
+  "records": [
+    {
+      "id": "a",
+      "kind": "state_interval",
+      "patient_id": "P",
+      "episode_id": "E",
+      "clock_id": "c",
+      "state_iri": "urn:state:low",
+      "polarity": "positive",
+      "source_key": "synthetic:a",
+      "start_us": 0,
+      "end_us": 1800000000
+    },
+    {
+      "id": "n",
+      "kind": "point_observation",
+      "patient_id": "P",
+      "episode_id": "E",
+      "clock_id": "c",
+      "state_iri": "urn:state:low",
+      "polarity": "negative",
+      "source_key": "synthetic:n",
+      "time_us": 600000000
+    }
+  ]
+}
