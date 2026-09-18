@@ -98,6 +98,9 @@ The [recorded-evidence workflow](docs/guided-recorded-evidence.md) on the same p
 connects recorded treatment segments to baseline and optional follow-up measurements.
 Select an exact source item or a reviewed ontology concept, then inspect the measured
 changes, missing follow-up, source rows and mapping evidence.
+[Recorded query-by-example](docs/recorded-query-by-example.md) compares patients
+using an explicit pre-segment measurement feature, keeps unresolved peers visible,
+and exports the completed query and optional comparison for exact local replay.
 
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 

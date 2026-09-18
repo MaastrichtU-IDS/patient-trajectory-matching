@@ -6,7 +6,12 @@ from pathlib import Path
 from app.temporal import TemporalWorkspace, digest
 
 
-def verify(bundle):
+def verify(bundle, *, recorded_config=None):
+    if isinstance(bundle, dict) and bundle.get('format') == 'recorded-journey-export-1':
+        from app.recorded_export import verify_recorded
+        return verify_recorded(bundle, config=recorded_config)
+    if recorded_config is not None:
+        raise ValueError('--recorded-config applies only to recorded-query exports')
     if isinstance(bundle, dict) and bundle.get('format') == 'patient-journey-export-1':
         from app.journey import verify as verify_journey
         return verify_journey(bundle)
@@ -30,12 +35,14 @@ def verify(bundle):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', type=Path)
+    parser.add_argument('--recorded-config', type=Path,
+                        help='Explicit local startup configuration for a recorded-query replay')
     args = parser.parse_args()
     with args.manifest.open('rb') as handle:
-        raw = handle.read(4 * 1024 * 1024 + 1)
-    if len(raw) > 4 * 1024 * 1024:
-        parser.error('Temporal export exceeds 4 MiB')
-    print(json.dumps(verify(json.loads(raw)), indent=2))
+        raw = handle.read(8 * 1024 * 1024 + 1)
+    if len(raw) > 8 * 1024 * 1024:
+        parser.error('Temporal export exceeds 8 MiB')
+    print(json.dumps(verify(json.loads(raw), recorded_config=args.recorded_config), indent=2))
 
 
 if __name__ == '__main__':
