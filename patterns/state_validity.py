@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator
 from . import exact_intervals as ei, claim_rdf as cr
 
 SOURCE_PROFILE='state-validity-source-1.0'
-QUERY_PROFILE='state-validity-query-1.0'
+QUERY_PROFILE='state-validity-query-1.1'
 SCHEMA=ei.ROOT/'schemas/state-validity.schema.json'
 FIELDS=cr.FIELDS | frozenset(('assertion_policy_id','records','unit','state_iri','polarity','start_us','end_us','time_us'))
 
@@ -49,18 +49,40 @@ def _scope(r):
 
 
 def _conflicts(records):
+    """Whole-snapshot contradiction between admitted facts; never clipped to a query window.
+
+    An admitted point fact constrains the state at its instant, so it contradicts an
+    opposite-polarity interval containing it and an opposite-polarity fact at the same
+    instant. Points are never encoded as zero-duration intervals; each conflict kind
+    carries its own extent fields.
+    """
     groups=defaultdict(list)
-    for r in records:
-        if r['kind']=='state_interval': groups[(_scope(r),r['clock_id'])].append(r)
+    for r in records: groups[(_scope(r),r['clock_id'])].append(r)
     conflicts=[]
     for rows in groups.values():
-        for a in rows:
+        intervals=[r for r in rows if r['kind']=='state_interval']
+        points=[r for r in rows if r['kind']=='point_observation']
+        for a in intervals:
             if a['polarity']!='positive': continue
-            for b in rows:
+            for b in intervals:
                 if b['polarity']!='negative': continue
                 start,end=max(a['start_us'],b['start_us']),min(a['end_us'],b['end_us'])
-                if start<end: conflicts.append({'positive_id':a['id'],'negative_id':b['id'],'start_us':start,'end_us':end})
-    return sorted(conflicts,key=lambda r:(r['positive_id'],r['negative_id']))
+                if start<end: conflicts.append({'kind':'interval_overlap','positive_id':a['id'],
+                                                'negative_id':b['id'],'start_us':start,'end_us':end})
+        for interval in intervals:
+            for p in points:
+                if interval['polarity']==p['polarity']: continue
+                if not interval['start_us']<=p['time_us']<interval['end_us']: continue
+                positive,negative=(interval,p) if interval['polarity']=='positive' else (p,interval)
+                conflicts.append({'kind':'point_in_interval','positive_id':positive['id'],
+                                  'negative_id':negative['id'],'time_us':p['time_us']})
+        for a in points:
+            if a['polarity']!='positive': continue
+            for b in points:
+                if b['polarity']=='negative' and a['time_us']==b['time_us']:
+                    conflicts.append({'kind':'point_point','positive_id':a['id'],
+                                      'negative_id':b['id'],'time_us':a['time_us']})
+    return sorted(conflicts,key=lambda r:(r['kind'],r['positive_id'],r['negative_id']))
 
 
 def _union(segments, statuses):
@@ -108,14 +130,25 @@ def execute(source, query):
                          'positive_record_ids':positive,'negative_record_ids':negative})
     positive=_union(segments,{'SUPPORTED'}); negative=_union(segments,{'REFUTED'}); unknown=_union(segments,{'UNKNOWN'})
     length=lambda intervals:sum(r['end_us']-r['start_us'] for r in intervals)
+    # Admitted point facts carry no extent, so they stay outside the segment partition and
+    # the duration sum. A surviving negative point refutes a throughout-window claim; any
+    # point inside a positive interval was already returned as a conflict above.
+    window_points=sorted((r for r in relevant if r['kind']=='point_observation' and start<=r['time_us']<end),
+                         key=lambda r:(r['time_us'],r['id']))
+    refuting=[r['id'] for r in window_points if r['polarity']=='negative']
     coverage={'positive_intervals':positive,'negative_intervals':negative,'unknown_intervals':unknown,
               'supported_duration_us':length(positive),'refuted_duration_us':length(negative),
               'unknown_duration_us':length(unknown),'window_duration_us':end-start,
               'longest_supported_duration_us':max((r['end_us']-r['start_us'] for r in positive),default=0),
-              'continuous_positive_support':not negative and not unknown,
+              'continuous_positive_support':not negative and not unknown and not refuting,
+              'refuting_point_count':len(refuting),
               'monitoring_completeness':'NOT_ESTABLISHED'}
-    result.update(status='VIOLATED' if negative else 'UNKNOWN' if unknown else 'HOLDS',segments=segments,coverage=coverage,
-                  point_observation_ids=sorted(r['id'] for r in relevant if r['kind']=='point_observation' and start<=r['time_us']<end))
+    result.update(status='VIOLATED' if negative or refuting else 'UNKNOWN' if unknown else 'HOLDS',
+                  segments=segments,coverage=coverage,
+                  points=[{'id':r['id'],'time_us':r['time_us'],'polarity':r['polarity'],
+                           'role':'REFUTING' if r['polarity']=='negative' else 'RETAINED'} for r in window_points],
+                  refuting_point_ids=sorted(refuting),
+                  point_observation_ids=sorted(r['id'] for r in window_points))
     return result
 
 
