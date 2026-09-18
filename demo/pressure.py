@@ -7,7 +7,10 @@ import threading
 import time
 import uuid
 
-from pressure_cache import ResultCache, implementation_stamp
+if __package__:
+    from .pressure_cache import ResultCache, implementation_stamp
+else:
+    from pressure_cache import ResultCache, implementation_stamp
 
 ROOT=Path(__file__).resolve().parent
 SOURCE=ROOT.parent

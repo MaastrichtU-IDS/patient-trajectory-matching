@@ -1,6 +1,6 @@
 # Authored patient-to-cohort research workspace
 
-The workspace implements one connected H0 journey over the existing eleven authored PRO/SOLID histories: select an index patient, rank eligible earlier features, apply two successive refinements, compare an exact trajectory with declared near matches, inspect source evidence, and download a replayable analysis. It is a bounded, single-process research prototype. It has no clinical data upload, authentication, multi-user isolation or clinical-validation claim.
+The workspace implements one connected H0 journey over the existing eleven authored PRO/SOLID histories: select an index patient, rank eligible earlier features, apply two successive refinements, compare an exact trajectory with declared near matches, inspect source evidence, and download a replayable analysis. It is a bounded, single-process research prototype. It has no clinical data upload, multi-user isolation or clinical-validation claim. Optional single-owner authentication and durable recorded-job storage are documented in [the operations guide](durable-recorded-workspace.md).
 
 ## Run and reproduce
 
@@ -11,6 +11,8 @@ python -m app.server --host 127.0.0.1 --port 8080
 ```
 
 Open `http://127.0.0.1:8080`. The default host is loopback. A container must explicitly supply `--host 0.0.0.0`; see [deployment](deployment.md). The service writes nothing to disk. Revisions and comparisons exist only in process memory and disappear on restart.
+
+The **Temporal uncertainty** link opens the separate [bounded temporal demonstration](temporal-workspace.md) at `/temporal`: four authored histories, possible/certain/incomparable results, one explicit widening and replayable solver evidence. It uses its own fixture and does not change the kidney cohort or its selected revision.
 
 A downloaded analysis can be checked against the same implementation and authored fixture:
 
@@ -58,7 +60,7 @@ All JSON mutations require the exact supported fields; unknown keys, duplicate J
 | `GET /api/evidence?revision_id=<id>&patient_id=<id>` | Feature eligibility, authored source rows and PRO/SOLID bindings |
 | `GET /api/export/<comparison_id>` | Combined revision chain, results, contexts and replay bundles |
 
-The engine admits at most 256 revisions; the app retains at most 64 recent trajectory comparisons. An evicted comparison returns an explicit missing-result response. An expired export must be regenerated from its retained revision. The HTTP service serializes workspace operations; it is not a scalable asynchronous job service. Origin checks and bounded requests do not provide user authentication or authorization. Use restricted clinical datasets only after the separate access-control, clinical mapping, extraction and deployment work is completed in an authorized environment.
+The engine admits at most 256 revisions; the app retains at most 64 recent trajectory comparisons. An evicted comparison returns an explicit missing-result response. An expired export must be regenerated from its retained revision. The HTTP service serializes workspace operations; it is not a scalable asynchronous job service. Origin checks and bounded requests do not provide authentication. The optional owner credential protects this single-owner local instance; it does not provide patient-level or multi-user authorization. Use restricted clinical datasets only after the separate access-control, clinical mapping, extraction and deployment work is completed in an authorized environment.
 
 The research path still lacks clinical evaluation, general trajectory editing, outcome summaries with study denominators, all-pairs similarity, persistent projects and authenticated multi-user operations. These remain explicit capabilities outside this release.
 

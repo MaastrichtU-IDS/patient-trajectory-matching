@@ -78,6 +78,16 @@ The default [evidence-selection example](evidence-selection.md) yields `READY`, 
 
 ---
 
+## How totals are counted
+
+The current contract-check total lives in [status.md](status.md#verification-results) and is **generated, not typed**. `tools/check_test_counts.py` counts every `patterns/test_*.py` with the unittest loader — nothing is executed — adds the oracle cases and properties, and rewrites the marked table. CI runs it in check mode and fails on drift; a new suite without a table label fails too, which is the reminder that was missing. To refresh after adding tests:
+
+```sh
+python tools/check_test_counts.py --write
+```
+
+The per-increment totals quoted in the sections below ("through this profile, the suites total N checks") are **historical**: each was correct for the increment that introduced it and is kept as the project's growth record. They are not maintained and are not the current total.
+
 ## Component 1 — Reference oracle
 
 ```sh
@@ -668,7 +678,7 @@ python -m unittest discover -s demo -p 'test_mapped_pressure.py'
 python demo/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
 ```
 
-Sixteen tests cover reviewed mapping gates, live/fresh query and inspection equality, cache invalidation on review/source/implementation changes, SQL disagreement, query envelopes, malformed input, budgets, eviction and defensive copies. Demo CI uploads the aggregate result of the real HTTP test. The demo suite totals 67 tests; the contract total remains 781. [The runbook](mapped-pressure-service.md) distinguishes local timing observations from a performance guarantee.
+Sixteen tests cover reviewed mapping gates, live/fresh query and inspection equality, cache invalidation on review/source/implementation changes, SQL disagreement, query envelopes, malformed input, budgets, eviction and defensive copies. Demo CI uploads the aggregate result of the real HTTP test. The demo suite totals 67 tests; the contract total was 781 at this increment. [The runbook](mapped-pressure-service.md) distinguishes local timing observations from a performance guarantee.
 
 
 ## Configured mapped pressure service
@@ -678,7 +688,7 @@ python -m unittest discover -s demo -p 'test_configured_pressure.py'
 node demo/test_configured_pressure_ui.cjs
 ```
 
-Thirteen additional integration tests bring the demo suite to 80; the contract suite remains 781 checks. Configured HTTP evidence is written to `verification/configured-pressure-run/report.json` and uploaded by CI. Tests cover alternate source/item operation, exact fresh-result and inspection equality, request boundaries, immutable reviews and failure during cached or active work. The [runbook](configured-pressure-service.md) documents the supported pressure shape and review requirements.
+Thirteen additional integration tests bring the demo suite to 80; the contract suite was 781 checks at this increment. Configured HTTP evidence is written to `verification/configured-pressure-run/report.json` and uploaded by CI. Tests cover alternate source/item operation, exact fresh-result and inspection equality, request boundaries, immutable reviews and failure during cached or active work. The [runbook](configured-pressure-service.md) documents the supported pressure shape and review requirements.
 
 
 ## Configured pressure workloads
@@ -687,7 +697,7 @@ Thirteen additional integration tests bring the demo suite to 80; the contract s
 python -m unittest discover -s demo -p 'test_configured_pressure_workload.py'
 ```
 
-Twelve additional tests bring the demo suite to 92; the contract suite remains 781 checks. The [workload runbook](configured-pressure-workload.md) documents the CLI, aggregate committed evidence and failure behavior. Demo CI uploads a fresh one-repetition HTTP workload report; elapsed times are observations, not pass/fail thresholds.
+Twelve additional tests bring the demo suite to 92; the contract suite was 781 checks at this increment. The [workload runbook](configured-pressure-workload.md) documents the CLI, aggregate committed evidence and failure behavior. Demo CI uploads a fresh one-repetition HTTP workload report; elapsed times are observations, not pass/fail thresholds.
 
 ## Reproducible use-case conformance
 
@@ -701,6 +711,7 @@ cutoffs,
 cohort membership delta, indexed/reference agreement, and retained binding evidence.
 GEN-01 does not link a classification to a stable variant identity or test a clinical
 action based on that classification; it is not yet a clinical-genomic integration
-test. The full suite totals **813 checks: 790 suite tests, 16 oracle cases and seven
-properties**. These fixtures are synthetic; they do not establish a production
+test. The current contract-check total is generated into
+[status.md](status.md#verification-results); see [How totals are counted](#how-totals-are-counted).
+These fixtures are synthetic; they do not establish a production
 ClinGen workflow, HPO matching, diagnosis, or treatment advice.

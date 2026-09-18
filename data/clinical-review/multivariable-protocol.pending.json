@@ -1,0 +1,66 @@
+{
+  "schema": "recorded-clinical-protocol-1",
+  "protocol_id": "public-demo-pressure-heart-respiratory-review-2",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "permitted_claim": "reviewed_descriptive_protocol",
+  "artifacts": {
+    "source_pin": {
+      "path": "data/clinical-source-demo-pin.json",
+      "sha256": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e"
+    },
+    "candidate_plan": {
+      "path": "data/clinical-candidate-plan.json",
+      "sha256": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3"
+    },
+    "mapping_candidates": {
+      "path": "data/clinical-measurement-mapping-candidates.json",
+      "sha256": "06c98d4d8f03e9ed0cce23b254b43d69bcb5c5770a558fd96a06b9a175cd45a2"
+    },
+    "variable_definition": {
+      "path": "data/clinical-review/public-demo-multivariable-definition.json",
+      "sha256": "a242d3b5f641fa9e15783f33b0f9231963573c5ca94e738a6c02628721a8c6ad"
+    },
+    "authored_contract_example": {
+      "path": "examples/clinical-features/authored-pack.json",
+      "sha256": "881c94e61b50ec93a1d136407c16764e9309dba65a89fb5ea0ed143ff4661935"
+    },
+    "public_source_extractor": {
+      "path": "tools/prepare_demo_clinical_features.py",
+      "sha256": "1799daefa827e1426a9fcabd92837e808df08a8285b2f000c7e6d8c5f79364c3"
+    },
+    "clinical_feature_implementation": {
+      "path": "app/clinical_features.py",
+      "sha256": "9819004d1b2bb840a5aca43f66ad2a4eb13e48b2ec09f25a178c51ae7b692792"
+    },
+    "treatment_admission": {
+      "path": "patterns/mimic_inputevents.py",
+      "sha256": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f"
+    },
+    "measurement_admission": {
+      "path": "patterns/mimic_measurement_import.py",
+      "sha256": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12"
+    },
+    "source_preflight": {
+      "path": "patterns/clinical_source_preflight.py",
+      "sha256": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df"
+    }
+  },
+  "decisions": {
+    "scientific_question": "Extend the descriptive recorded pressure question to peers ranked by separately admitted pre-index pressure, heart rate and respiratory rate. Judge whether these three variables and illustrative scales serve the intended descriptive clinical question. No efficacy, causation or validated clinical similarity claim follows.",
+    "treatment_anchor": "Use item 221906 source segment start as index; do not infer treatment-course initiation, dose equivalence or independence of repeated segments. Review source revisions, duplicates and repeated-stay handling.",
+    "measurement_identity": "Review the exact public-demo-multivariable-definition.json: pressure strata 220052/220181/225312 mmHg remain separate; Heart Rate 220045 bpm and Respiratory Rate 220210 insp/min follow pinned source dictionary and admission. No terminology or method equivalence is inferred. The separately bound authored pack uses fictitious IDs 3000/3001 and different literal unit labels; it is only a software contract example and cannot substitute for recorded clinical evidence.",
+    "eligibility": "All admitted ICU stays, with complete excluded/blocked accounting; no age restriction implemented. Follow-up is optional. No missing value is replaced by zero. Multiple segments/pairs per patient are dependent observations, not independent subjects.",
+    "baseline": "Default: every same-item pressure strictly below 65 mmHg in [index minus 30 minutes, index minus 1 microsecond]. Distinguish eligible baseline/segment pairs from the latest-value selection used for similarity. Narrower custom patterns require their exact specification to be included in a new protocol before clinical approval applies.",
+    "followup": "Default: same-item, same-unit observations in [segment start, segment start plus 120 minutes], inclusive, whether or not the segment has ended. Retain eligible pairs without follow-up. Describe change relative to the named baseline, never a treatment effect. Changes to windows/outcomes require a revised protocol.",
+    "time_and_availability": "Same-release, same-patient shifted calendar only. Chart time is not verified information-availability time; no real-time clinical availability claim. Similarity excludes measurements at or after index and never uses follow-up, match status, outcome or segment end. Review leakage and elapsed-time assumptions.",
+    "similarity": "Review exact profile recorded-clinical-features-1: latest_value weight 1 scale 10 mmHg, heart_rate weight 1 scale 10 bpm, respiratory_rate weight 1 scale 4 insp/min. Latest event in the same patient/stay [-30 minutes,-1 microsecond] before segment start; timestamp ties ascending event ID. Exact weighted scaled Manhattan normalized by total weight; require all three variables, no imputation, complete per-feature contributions. Closest complete anchor per candidate patient, excluding reference patient. Scales are illustrative until reviewed; neither eligibility threshold nor future outcome enters ranking.",
+    "validation_target": "Before a clinical usefulness study, freeze patient-disjoint development/evaluation sets, relevance rubric, blinded independent reviewers, adjudication rules, review sample size, relevance grades, candidate pool, baselines, metrics and acceptance thresholds. Missing these inputs means technical evaluation only. SQL agreement does not establish clinical correctness or retrieval usefulness."
+  },
+  "scope_limits": [
+    "Pending public-demo retrospective multivariable protocol only.",
+    "Authored pack is a bound implementation example; accepting its mechanics does not approve clinical identities or establish relevance.",
+    "Pressure-only review cannot authorize this protocol: new protocol hash and all new decisions/signoff are required.",
+    "No full-MIMIC study approval or validated retrieval usefulness.",
+    "Use fixed default query and exact bound profile; different query/profile requires amended review."
+  ]
+}

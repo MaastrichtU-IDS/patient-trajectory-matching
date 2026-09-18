@@ -72,11 +72,51 @@ Full instructions and expected output for every component: **[docs/validation.md
 
 ## Interactive demonstration
 
+The [temporal uncertainty demonstration](docs/temporal-workspace.md) is available at
+`/temporal` in the research workspace below. It shows certain, possible-only,
+non-matching and incomparable histories, and how one explicit window widening
+changes certainty while preserving the source evidence.
+
 The **[integrated research workspace](docs/research-workspace.md)** connects query-by-example, two immutable refinements, exact versus relaxed cohort comparison, source inspection and replayable export over the same authored patients:
 
 ```sh
 python -m app.server --host 127.0.0.1 --port 8080
 ```
+
+For the **[guided patient-to-cohort demo](docs/guided-patient-journey.md)**, open
+`http://127.0.0.1:8080/journey`. In 2–3 minutes, select an authored reference, compare
+the original and relaxed temporal question across the full eligible population,
+inspect readable evidence and unresolved clocks, and export the analysis for replay.
+The guide uses a shared four-history population; its clinical outcomes are unrecorded.
+The [configurable trajectory builder](docs/configurable-trajectory-builder.md) in the same
+workflow lets you select two or three event slots and edit their temporal constraints,
+inspect the canonical query, and replay the resulting cohort.
+[Custom relaxation catalogues](docs/custom-relaxation-catalogue.md) let you explicitly
+permit metric changes, compare up to three costed options, and retain the least-cost
+certain match with each option's evidence.
+The [recorded-evidence workflow](docs/guided-recorded-evidence.md) on the same page
+connects recorded treatment segments to baseline and optional follow-up measurements.
+Select an exact source item or a reviewed ontology concept, then inspect the measured
+changes, missing follow-up, source rows and mapping evidence.
+[Recorded query-by-example](docs/recorded-query-by-example.md) compares patients
+using an explicit pre-segment measurement feature, keeps unresolved peers visible,
+and exports the completed query and optional comparison for exact local replay.
+The recorded pattern editor revises point/interval queries within admitted source
+windows; explicit feature profiles add weighted pressure-history features with
+per-feature evidence. Optional [durable jobs and owner access](docs/durable-recorded-workspace.md)
+preserve completed recorded jobs across restarts. The [evaluation protocol](docs/recorded-workflow-evaluation.md)
+separates technical source agreement from the remaining clinical review.
+The [delivery and acceptance status](docs/recorded-workflow-delivery.md) lists the six
+work areas and the external evidence still required.
+Separately admitted [clinical-variable packs](examples/clinical-features/README.md)
+now add heart rate and respiratory rate with exact item/unit and pre-index evidence.
+[Integrated public-demo evaluation](docs/integrated-recorded-evaluation.md),
+[recorded three-variable evaluation](docs/clinical-feature-source-evaluation.md),
+[held-out retrieval evaluation](docs/retrieval-evaluation.md), and
+[version-bound clinical review](docs/clinical-review-workflow.md) keep technical
+checks and pending clinical decisions explicit. The [research release guide](docs/research-release.md)
+adds private persistent Compose/Helm modes and backup/restore acceptance.
+
 
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 

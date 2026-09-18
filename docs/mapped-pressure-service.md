@@ -58,4 +58,4 @@ python -m unittest discover -s demo -p 'test_mapped_pressure.py'
 python demo/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
 ```
 
-With the configured route, the demo suite now has 80 tests; the contract suite remains 781 checks (758 suite tests and 23 oracle checks). The existing literal pressure route and its public-demo evidence remain separately available. The [configured route](configured-pressure-service.md) now accepts supplied sources and frozen review inputs. Next steps are explicit adoption of clinical reviews and representative workload measurements under the existing batch-coverage requirements.
+With the configured route, the demo suite now has 80 tests; the contract suite was 781 checks at this increment (758 suite tests and 23 oracle checks). The existing literal pressure route and its public-demo evidence remain separately available. The [configured route](configured-pressure-service.md) now accepts supplied sources and frozen review inputs. Next steps are explicit adoption of clinical reviews and representative workload measurements under the existing batch-coverage requirements.

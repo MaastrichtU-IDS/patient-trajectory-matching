@@ -1,0 +1,100 @@
+{
+  "schema": "recorded-clinical-review-1",
+  "review_id": "public-demo-multivariable-review-pending-2",
+  "status": "PENDING",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "artifacts": {
+    "protocol": {
+      "path": "data/clinical-review/multivariable-protocol.pending.json",
+      "sha256": "5a49057ee66205ffdab615b3d2ba2f73c4c2222a8e23eddd3ca14924f3eb8242"
+    },
+    "source_pin": {
+      "path": "data/clinical-source-demo-pin.json",
+      "sha256": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e"
+    },
+    "candidate_plan": {
+      "path": "data/clinical-candidate-plan.json",
+      "sha256": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3"
+    },
+    "mapping_candidates": {
+      "path": "data/clinical-measurement-mapping-candidates.json",
+      "sha256": "06c98d4d8f03e9ed0cce23b254b43d69bcb5c5770a558fd96a06b9a175cd45a2"
+    },
+    "variable_definition": {
+      "path": "data/clinical-review/public-demo-multivariable-definition.json",
+      "sha256": "a242d3b5f641fa9e15783f33b0f9231963573c5ca94e738a6c02628721a8c6ad"
+    },
+    "authored_contract_example": {
+      "path": "examples/clinical-features/authored-pack.json",
+      "sha256": "881c94e61b50ec93a1d136407c16764e9309dba65a89fb5ea0ed143ff4661935"
+    },
+    "public_source_extractor": {
+      "path": "tools/prepare_demo_clinical_features.py",
+      "sha256": "1799daefa827e1426a9fcabd92837e808df08a8285b2f000c7e6d8c5f79364c3"
+    },
+    "clinical_feature_implementation": {
+      "path": "app/clinical_features.py",
+      "sha256": "9819004d1b2bb840a5aca43f66ad2a4eb13e48b2ec09f25a178c51ae7b692792"
+    },
+    "treatment_admission": {
+      "path": "patterns/mimic_inputevents.py",
+      "sha256": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f"
+    },
+    "measurement_admission": {
+      "path": "patterns/mimic_measurement_import.py",
+      "sha256": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12"
+    },
+    "source_preflight": {
+      "path": "patterns/clinical_source_preflight.py",
+      "sha256": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df"
+    }
+  },
+  "decisions": {
+    "scientific_question": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "treatment_anchor": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "measurement_identity": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "eligibility": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "baseline": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "followup": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "time_and_availability": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "similarity": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    },
+    "validation_target": {
+      "decision": "PENDING",
+      "reviewer": null,
+      "requested_changes": null
+    }
+  },
+  "signoff": null
+}

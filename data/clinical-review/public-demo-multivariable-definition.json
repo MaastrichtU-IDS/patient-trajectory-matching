@@ -1,0 +1,118 @@
+{
+  "schema": "pending-public-demo-clinical-variables-1",
+  "status": "PROPOSED_FOR_REVIEW",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "source_pin": {
+    "path": "data/clinical-source-demo-pin.json",
+    "sha256": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e"
+  },
+  "clinical_approval_recorded": false,
+  "selection": {
+    "patient_and_stay": "exact same patient and ICU stay as index segment",
+    "anchor": "recorded norepinephrine item 221906 segment start",
+    "clock": "patient-local-charttime; information availability unverified",
+    "minimum_offset_us": -1800000000,
+    "maximum_offset_us": -1,
+    "aggregation": "latest charted measurement; timestamp ties ordered by ascending event ID",
+    "missing_policy": "all requested features required; no imputation; preserve unresolved coverage",
+    "deduplication": "exact source rows deduplicated by canonical row hash",
+    "numeric_policy": "existing source admission and finite exact decimals; supplemental HR/RR plain lexical decimal maximum 12 integer and 12 fractional digits",
+    "unit_policy": "literal exact units; no conversion or pooling",
+    "excluded_inputs": [
+      "eligibility threshold",
+      "temporal match status",
+      "follow-up observations",
+      "segment end"
+    ]
+  },
+  "pressure_strata": [
+    {
+      "id": "arterial",
+      "item_id": "220052",
+      "dictionary_label": "Arterial Blood Pressure mean",
+      "unit": "mmHg"
+    },
+    {
+      "id": "noninvasive",
+      "item_id": "220181",
+      "dictionary_label": "Non Invasive Blood Pressure mean",
+      "unit": "mmHg"
+    },
+    {
+      "id": "art",
+      "item_id": "225312",
+      "dictionary_label": "ART BP Mean",
+      "unit": "mmHg"
+    }
+  ],
+  "variables": [
+    {
+      "id": "latest_value",
+      "source": "one separately admitted pressure stratum above",
+      "unit": "mmHg",
+      "scale": "10",
+      "weight": "1"
+    },
+    {
+      "id": "heart_rate",
+      "item_id": "220045",
+      "dictionary_label": "Heart Rate",
+      "table": "chartevents",
+      "dictionary_unit": "bpm",
+      "unit": "bpm",
+      "scale": "10",
+      "weight": "1"
+    },
+    {
+      "id": "respiratory_rate",
+      "item_id": "220210",
+      "dictionary_label": "Respiratory Rate",
+      "table": "chartevents",
+      "dictionary_unit": "insp/min",
+      "unit": "insp/min",
+      "scale": "4",
+      "weight": "1"
+    }
+  ],
+  "feature_profile": {
+    "schema": "recorded-clinical-features-1",
+    "features": [
+      {
+        "id": "latest_value",
+        "weight": "1",
+        "scale": "10"
+      },
+      {
+        "id": "heart_rate",
+        "weight": "1",
+        "scale": "10"
+      },
+      {
+        "id": "respiratory_rate",
+        "weight": "1",
+        "scale": "4"
+      }
+    ]
+  },
+  "distance": "sum(weight * abs(candidate - reference) / scale) / sum(weight); exact rational ordering",
+  "retrieval_unit": "closest complete anchor per candidate patient; exclude every anchor of the reference patient",
+  "scale_status": "illustrative fixed technical values, not clinically optimized or approved",
+  "authored_example": {
+    "binding": {
+      "path": "examples/clinical-features/authored-pack.json",
+      "sha256": "881c94e61b50ec93a1d136407c16764e9309dba65a89fb5ea0ed143ff4661935"
+    },
+    "role": "implementation contract example only; source_kind AUTHORED",
+    "not_public_source_ids": {
+      "heart_rate": "3000",
+      "respiratory_rate": "3001"
+    },
+    "not_public_source_units": {
+      "heart_rate": "beats/min",
+      "respiratory_rate": "breaths/min"
+    },
+    "clinical_approval_recorded": false
+  },
+  "source_fidelity": "Pinned dictionary identities and automated admission do not establish clinical validity or terminology equivalence.",
+  "scope": "Fixed default 30-minute baseline only; custom/narrower profiles need their exact amended specification reviewed."
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Edit interval constraints · Trajectory research</title><link rel="stylesheet" href="/style.css"><script defer src="/editor.js"></script></head>
+<body><header><span class="brand">TRAJECTORY / INTERVAL QUERY EDITOR</span><span class="badge">Authored synthetic records</span></header><main>
+<nav aria-label="Research workflows"><a href="/journey">Guided patient-to-cohort demo</a> · <a href="/">Patient-to-cohort workflow</a> · <a href="/temporal">Temporal uncertainty</a> · <a href="/temporal/editor" aria-current="page">Edit interval constraints</a></nav>
+<section class="intro"><p class="eyebrow">TWO EVENT TYPES · EXPLICIT TEMPORAL CONSTRAINTS</p><h1>Define how the intervals<br>must relate.</h1><p>Select a relation between an infusion and a specimen collection. Add an infusion-duration range or a minimum amount of shared time. Every enabled constraint must hold for the same event pair.</p><p class="hint">Two authored four-history fixtures. Fixed event types and source records; no clinical upload, clinical interpretation or automatic relaxation.</p></section>
+<div id="status" role="status" aria-live="polite">Loading interval controls…</div>
+<div class="workspace"><aside><section class="card"><span class="step">01 · SOURCE + RELATION</span><h2>Edit the temporal question</h2>
+<label for="fixture">Authored source fixture</label><select id="fixture" disabled><option value="overlap">Overlapping intervals</option><option value="sequential">Sequential intervals</option></select>
+<label for="relation">Infusion … collection</label><select id="relation" disabled></select>
+<p class="hint">Allen relations describe both intervals. Before and after are strict; meets means touching endpoints. A signed gap measures collection start minus infusion end and uses inclusive bounds.</p>
+<label for="gap-min">Minimum signed gap (minutes; gap relation only)</label><input id="gap-min" type="text" inputmode="decimal" value="0" disabled>
+<label for="gap-max">Maximum signed gap (minutes; gap relation only)</label><input id="gap-max" type="text" inputmode="decimal" value="48" disabled>
+</section><section class="card"><span class="step">02 · OPTIONAL CONJUNCTS</span><h2>Constrain duration and overlap</h2>
+<label for="duration-enabled">Infusion duration</label><select id="duration-enabled" disabled><option value="off">No duration constraint</option><option value="on">Require this inclusive range</option></select>
+<label for="duration-min">Minimum infusion duration (minutes)</label><input id="duration-min" type="text" inputmode="decimal" value="10" disabled>
+<label for="duration-max">Maximum infusion duration (minutes)</label><input id="duration-max" type="text" inputmode="decimal" value="10" disabled>
+<label for="overlap-enabled">Shared time</label><select id="overlap-enabled" disabled><option value="off">No shared-time constraint</option><option value="on">Require a positive minimum</option></select>
+<label for="overlap-min">Minimum shared time (minutes)</label><input id="overlap-min" type="text" inputmode="decimal" value="2" disabled>
+<p class="hint">Use ordinary decimal minutes, up to six fractional digits. Signed gaps: −1440 to 1440. Duration: greater than 0 to 1440. Shared time: greater than 0 to 1440. Conflicting constraints can yield no match.</p>
+</section><section class="card"><span class="step">03 · EXPLICIT RELAXATION</span><h2>Compare one permitted option</h2>
+<label for="relax-enabled">Relaxation</label><select id="relax-enabled" disabled><option value="off">Original query only</option><option value="on">Author one combined option</option></select>
+<p class="hint">Choose which metric bounds may change. All chosen changes form one option with demonstration cost 1.25. Allen relations and source uncertainty stay fixed.</p>
+<label for="relax-gap-enabled">Signed gap</label><select id="relax-gap-enabled" disabled><option value="off">Keep original bounds</option><option value="on">Widen gap range</option></select>
+<label for="relax-gap-min">Relaxed minimum gap (minutes)</label><input id="relax-gap-min" type="text" inputmode="decimal" value="0" disabled>
+<label for="relax-gap-max">Relaxed maximum gap (minutes)</label><input id="relax-gap-max" type="text" inputmode="decimal" value="50" disabled>
+<label for="relax-duration-enabled">Infusion duration</label><select id="relax-duration-enabled" disabled><option value="off">Keep original bounds</option><option value="on">Widen duration range</option></select>
+<label for="relax-duration-min">Relaxed minimum duration (minutes)</label><input id="relax-duration-min" type="text" inputmode="decimal" value="9" disabled>
+<label for="relax-duration-max">Relaxed maximum duration (minutes)</label><input id="relax-duration-max" type="text" inputmode="decimal" value="11" disabled>
+<label for="relax-overlap-enabled">Shared time</label><select id="relax-overlap-enabled" disabled><option value="off">Keep original minimum</option><option value="on">Lower minimum shared time</option></select>
+<label for="relax-overlap-min">Relaxed minimum shared time (minutes)</label><input id="relax-overlap-min" type="text" inputmode="decimal" value="2" disabled>
+<label for="relax-budget">Maximum option cost</label><select id="relax-budget" disabled><option value="1.25">1.25 · admit the option</option><option value="0">0 · exclude the option</option></select>
+<p class="hint">Try the overlapping fixture: contains, duration 10–10, shared time ≥3; then lower shared time to 2. Every range must widen strictly; shared time remains positive.</p>
+<button id="run" disabled>Evaluate and compare</button></section></aside>
+<article><section class="card"><span class="step">COMPLETE REPRESENTED POPULATION</span><h2>Which pairs satisfy every constraint?</h2><p id="summary" class="hint">Evaluate the current controls to see results.</p><div class="table-scroll"><table><thead><tr><th>History</th><th>Original</th><th>Edited option</th><th>Least-cost certain match</th><th>Evidence</th></tr></thead><tbody id="rows"></tbody></table></div><p class="hint">Certain requires one fixed pair in every feasible source timeline. Possible only means some timelines satisfy the whole query. Incomparable clocks remain unresolved unless another comparable constraint already rules out the pair. No recorded match applies only to represented events.</p><a id="export" class="button hidden" download="temporal-analysis.json">Download this query and evidence</a></section>
+<section class="card"><span class="step">EXECUTED QUERY</span><h2>Inspect the query and permitted option</h2><pre id="query">No executed query yet.</pre></section>
+<section class="card"><span class="step">SOURCE + CERTIFICATES</span><h2>Inspect a history</h2><div id="evidence">Select Inspect after evaluation.</div></section>
+<section class="card"><span class="step">BOUNDED EXECUTION</span><p id="limits" class="hint"></p><p class="hint">This form supports all 13 basic Allen relations, a signed gap and two optional metric constraints. Source uncertainty is retained. One explicit metric option can be compared within budget. Its cost is an authored demonstration value, not a clinical similarity score.</p></section>
+</article></div><footer>Authored two-slot research editor · Integer-microsecond reasoning · No clinical validation</footer></main></body></html>

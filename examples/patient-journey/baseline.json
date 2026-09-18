@@ -1,0 +1,11 @@
+{
+  "dataset_id": "authored-patient-journey-baseline",
+  "snapshot_id": "v1",
+  "provenance": "Authored synthetic baseline metadata for the T01-T04 temporal fixtures. The demonstration score is not a clinical scale; no real patient data or efficacy outcomes are represented.",
+  "patients": [
+    {"patient_id": "T01", "index_at": "2026-09-02T00:00:00Z", "baseline": {"value": 55, "unit": "demonstration-score", "observed_at": "2026-09-01T10:00:00Z", "source_key": "authored:baseline:T01", "recorded_at": "2026-09-01T11:00:00Z"}},
+    {"patient_id": "T02", "index_at": "2026-09-02T00:00:00Z", "baseline": {"value": 49, "unit": "demonstration-score", "observed_at": "2026-09-01T10:00:00Z", "source_key": "authored:baseline:T02", "recorded_at": "2026-09-01T11:00:00Z"}},
+    {"patient_id": "T03", "index_at": "2026-09-02T00:00:00Z", "baseline": {"value": 50, "unit": "demonstration-score", "observed_at": "2026-09-01T10:00:00Z", "source_key": "authored:baseline:T03", "recorded_at": "2026-09-01T11:00:00Z"}},
+    {"patient_id": "T04", "index_at": "2026-09-02T00:00:00Z", "baseline": {"value": null, "unit": "demonstration-score", "observed_at": null, "source_key": "authored:baseline:T04:missing", "recorded_at": null}}
+  ]
+}

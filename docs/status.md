@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: 813 contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
+**Summary: <!-- test-counts:total -->855<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
 
 The original `requirements.csv` remains byte-preserved as the historical authority. The [current completion register](completion.md) maps every original row to evidence and remaining clauses and separately tracks 16 additional profiles, including the interval work. The family table below reports the original CSV statuses; it is not the current implementation assessment.
 
@@ -62,6 +62,8 @@ All ten PS requirements are covered by gate **AC19-PRO-SOLID** and verified by t
 
 The synthetic checks below are produced by commands in [validation.md](validation.md) and re-checked by CI on each push. Public-demo reconciliation is a separate local run; CI checks its committed aggregate provenance without downloading patient data.
 
+<!-- test-counts:start -->
+
 | Check | Result |
 |---|---|
 | Oracle cases | 16 passed |
@@ -69,16 +71,21 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | PRO/SOLID acceptance tests | 42 passed |
 | Exact-interval conformance tests | 51 passed |
 | Interval cohort tests | 18 passed |
+| Extended interval query tests | 5 passed |
 | Bounded uncertainty tests | 22 passed |
 | Bounded RDF ingestion tests | 21 passed |
+| Extended metric relaxation tests | 13 passed |
+| Robust costed relaxation tests | 12 passed |
 | Evidence selection tests | 29 passed |
 | Temporal interface conformance tests | 22 passed |
 | Checked Rust semantic support tests (optional dependency, separate CI job) | 22 passed |
 | Joint temporal/semantic selection tests | 28 passed |
+| Reproducible GEN-01/COH-01 use-case tests | 4 passed |
 | MIMIC inputevents admission tests | 28 passed |
 | Patient-local clock and RDF tests | 27 passed |
 | End-to-end MIMIC record-query tests | 24 passed |
 | Structured claim/projection tests | 45 passed |
+| State validity and coverage tests | 12 passed |
 | Patient-local claim projection tests | 32 passed |
 | MIMIC pending claim import tests | 25 passed |
 | Measurement claims and chartevents import tests | 35 passed |
@@ -97,8 +104,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Measurement source catalogue and audit tests | 20 passed |
 | Prepared measurement session tests | 20 passed |
 | Pre-index similarity and immutable refinement tests | 28 passed |
-| Reproducible GEN-01/COH-01 use-case tests | 4 passed |
-| **Total** | **813 contract checks** |
+| **Total** | **855 contract checks** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -107,7 +113,9 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 790 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 13, and the completion checker has 13. Four Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
+The total is 832 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 13, and the completion checker has 13. Four Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
+
+<!-- test-counts:end -->
 
 **Properties checked by the oracle:** cost decomposition · zero-cost exact equivalence on supplied cases · subclass direction · budget monotonicity on supplied cases · not-given exclusion · incomplete-source propagation · unsupported-pattern rejection.
 
@@ -143,7 +151,6 @@ The total is 790 suite tests plus 16 oracle cases and seven oracle properties; n
 | Structured claims and acceptance | Executable bounded prototype | [45 tests](claim-projection.md); an empty-Process model for the claim description closure, explicit projection and withdrawal |
 | Rust semantic support | Executable restricted integration | [22 differential/gate tests](semantic-support.md); complete checked class support and consistency for the admitted module |
 | Joint temporal/semantic selection | Executable restricted integration | [28 tests](joint-evidence-selection.md); shared support chains, cutoffs and scoped semantic facts |
-| Reproducible use-case conformance | Executable synthetic acceptance fixtures | [4 tests](validation.md#reproducible-use-case-conformance); GEN-01 source-as-known release replay and COH-01 constructed cohort refinement |
 | Full temporal replay | Partially implemented | The bounded selector does not implement all 8 declarative families, historical semantics, derived indices or a replay UI |
 | Graphiti comparison | Specified | Protocol only, no measurements |
 | UI | Local demonstrations executable | Guided synthetic cohort selection and [reviewed pressure inspection](live-pressure-inspector.md); production workspace and measured usability remain open |

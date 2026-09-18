@@ -1,0 +1,35 @@
+# Standalone Linux-host research mode. Do not combine with compose.yaml.
+services:
+  trajectory:
+    image: patient-trajectory-matching:local
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm}
+    user: "${PTM_UID:?Set PTM_UID to your numeric user id}:${PTM_GID:?Set PTM_GID to your numeric group id}"
+    environment:
+      PTM_CLINICAL_FEATURES: ${PTM_CLINICAL_FEATURES:-}
+    network_mode: host
+    command: ["python", "-m", "deploy.local_runtime"]
+    volumes:
+      - type: bind
+        source: ${PTM_STATE_DIR:?Set PTM_STATE_DIR to a private absolute directory}
+        target: /var/lib/trajectory
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PTM_AUTH_FILE:?Set PTM_AUTH_FILE to a private absolute owner credential file}
+        target: /run/secrets/owner
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 1.0
+    init: true
+    restart: "no"

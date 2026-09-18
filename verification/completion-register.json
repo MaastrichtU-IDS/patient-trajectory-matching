@@ -142,7 +142,85 @@
     },
     "deployment_smoke": {
       "command": "python deploy/smoke.py --url http://127.0.0.1:8080",
-      "scope": "Requires a separately running app; checks liveness/readiness/capabilities/page, not matcher correctness or Kubernetes operation.",
+      "scope": "Requires a running app; verifies liveness/readiness/capabilities/pages and authored temporal execution/export, not clinical validity or Kubernetes operation.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "temporal_http": {
+      "command": "python -m unittest app.test_temporal",
+      "scope": "Four-history authored temporal HTTP journey, uncertainty certificates, bounded admission and replay; no clinical or general editor claim.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "temporal_ui": {
+      "command": "node app/test_temporal_ui.cjs",
+      "scope": "Actual temporal browser script with engine responses; state and failure checks, no visual or accessibility audit.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "interval_editor_http": {
+      "command": "python -m unittest app.test_interval_editor",
+      "scope": "Two-slot authored interval controls, exact metric compilation, one explicit relaxation option, budget exclusion, HTTP certificates and export replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "interval_editor_ui": {
+      "command": "node app/test_editor_ui.cjs",
+      "scope": "Actual editor script with engine responses; original/relaxed comparison, budgets, stale result, control and failure checks; no visual audit.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "extended_relaxation": {
+      "command": "python -m unittest patterns.test_extended_relaxation",
+      "scope": "Finite explicit metric relaxation for extended queries; fixed option and binding, finite-world certificate checks and protected Allen relations.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "patient_journey": {
+      "command": "python -m unittest app.test_journey app.test_journey_http",
+      "scope": "Shared authored patient population, pre-index ranking, full eligible temporal execution, reference exclusion, uncertainty, evidence and replay through HTTP.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "patient_journey_ui": {
+      "command": "node app/test_journey_ui.cjs",
+      "scope": "Actual guided journey script with engine-produced responses; guided actions, input invalidation and failure recovery; no visual audit.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "interval_explanations": {
+      "command": "python -m unittest app.test_interval_explanations",
+      "scope": "Readable constraint explanations grounded in witnesses and counterexamples; individual examples distinguished from whole-query certainty.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "configurable_pattern": {
+      "command": "python -m unittest app.test_pattern_builder app.test_pattern_builder_http",
+      "scope": "Configurable two/three-event form compilation, canonical AST roundtrip, strict admission, full-cohort HTTP execution and replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "custom_relaxation_catalogue": {
+      "command": "python -m unittest app.test_relaxation_catalogue app.test_relaxation_catalogue_http",
+      "scope": "Explicit custom metric permissions, separately evaluated options, exact costs, original-first least-cost certainty, budget exclusions, HTTP evidence and replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "recorded_journey": {
+      "command": "python -m unittest app.test_recorded_journey app.test_recorded_selectors app.test_recorded_journey_http",
+      "scope": "Guided exact recorded treatment and measurement evidence, actual reviewed ontology selector execution, source/configuration invalidation and completed historical evidence.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "recorded_journey_ui": {
+      "command": "node app/test_recorded_journey_ui.cjs",
+      "scope": "Guided recorded job controls, complete-only cohorts, original measurements, missing follow-up, selector evidence and stale-response protection.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "recorded_query_by_example": {
+      "command": "python -m unittest app.test_recorded_similarity app.test_recorded_export app.test_recorded_qbe_http",
+      "scope": "Explicit pre-index feature selection, patient-wide reference exclusion, complete peer population, nonleaking ranking, immutable recorded export and exact admitted-source replay.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
     }
@@ -3137,6 +3215,144 @@
         "deployment_smoke"
       ],
       "scope": "Deployment definitions and direct Python smoke evidence; built image/Helm/cluster acceptance requires separately recorded execution.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "authored-temporal-workspace",
+      "evidence": [
+        "app/temporal.py",
+        "app/temporal_replay.py",
+        "app/test_temporal.py",
+        "app/test_temporal_ui.cjs",
+        "docs/temporal-workspace.md"
+      ],
+      "acceptance_checks": [
+        "temporal_http",
+        "temporal_ui"
+      ],
+      "scope": "Separate four-history bounded-gap fixture with original classifications, one permitted widening and replayable certificates; no general trajectory editor or integrated OWL/GFO runtime.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "authored-interval-query-editor",
+      "evidence": [
+        "app/interval_editor.py",
+        "app/test_interval_editor.py",
+        "app/test_editor_ui.cjs",
+        "docs/interval-query-editor.md"
+      ],
+      "acceptance_checks": [
+        "interval_editor_http",
+        "interval_editor_ui"
+      ],
+      "scope": "All basic Allen relations and bounded metric conjunctions with one explicit metric relaxation option over two fixed event slots and authored sources; no arbitrary pattern editor or clinical acceptance.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "extended-metric-relaxation",
+      "evidence": [
+        "patterns/robust_relaxation.py",
+        "patterns/test_extended_relaxation.py",
+        "docs/extended-relaxation.md",
+        "examples/extended-relaxation/policy.json"
+      ],
+      "acceptance_checks": [
+        "extended_relaxation",
+        "interval_editor_http"
+      ],
+      "scope": "Explicit catalogues over extended gap/duration/minimum-overlap constraints through API/CLI; the HTTP editor exposes one explicit option with original/relaxed comparison and replay.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "guided-patient-temporal-journey",
+      "evidence": [
+        "app/journey.py",
+        "app/journey.html",
+        "app/journey.js",
+        "app/interval_explanations.py",
+        "app/test_journey.py",
+        "app/test_journey_http.py",
+        "app/test_journey_ui.cjs",
+        "docs/guided-patient-journey.md"
+      ],
+      "acceptance_checks": [
+        "patient_journey",
+        "patient_journey_ui",
+        "interval_explanations"
+      ],
+      "scope": "One bounded authored reference-to-cohort journey with baseline ranking, original/relaxed interval matching, readable evidence and replay; no inferred clinical outcomes, unrestricted source integration or clinical acceptance.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "configurable-three-event-builder",
+      "evidence": [
+        "app/pattern_builder.py",
+        "app/journey.py",
+        "app/journey.js",
+        "app/test_pattern_builder.py",
+        "app/test_pattern_builder_http.py",
+        "docs/configurable-trajectory-builder.md",
+        "examples/patient-journey/three-event-source.json"
+      ],
+      "acceptance_checks": [
+        "configurable_pattern",
+        "patient_journey_ui"
+      ],
+      "scope": "Two/three named event slots and up to six conjunctive temporal constraints edited in the guided workflow; one canonical extended-query AST with exact metric conversion and replay over fixed authored records. Custom patterns support original-only evaluation or an explicitly authored bounded relaxation catalogue; no unrestricted data or clinical validity claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "custom-metric-relaxation-catalogue",
+      "evidence": [
+        "app/relaxation_catalogue.py",
+        "app/journey.py",
+        "app/journey.js",
+        "app/test_relaxation_catalogue.py",
+        "app/test_relaxation_catalogue_http.py",
+        "docs/custom-relaxation-catalogue.md"
+      ],
+      "acceptance_checks": [
+        "custom_relaxation_catalogue",
+        "patient_journey_ui"
+      ],
+      "scope": "Up to three explicitly authored metric options on bounded configurable trajectories; protected constraints, exact decimal costs, per-option classifications, least-cost fixed-binding certainty and replay. No implicit option composition or clinical cost calibration.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "guided-recorded-treatment-measurement-evidence",
+      "evidence": [
+        "app/recorded_journey.py",
+        "app/recorded_selectors.py",
+        "app/recorded_journey.js",
+        "app/test_recorded_journey.py",
+        "app/test_recorded_selectors.py",
+        "app/test_recorded_journey_http.py",
+        "docs/guided-recorded-evidence.md"
+      ],
+      "acceptance_checks": [
+        "recorded_journey",
+        "recorded_journey_ui"
+      ],
+      "scope": "Recorded treatment segments and all admitted baseline/follow-up measurement bindings integrated on the guided journey page; explicit literal or reviewed ontology selector dispatch, original evidence and missing follow-up retained. Separate recorded-source profile/population; no synthetic similarity transfer, general event-vocabulary support or causal treatment-effect claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "recorded-query-by-example-and-replay",
+      "evidence": [
+        "app/recorded_similarity.py",
+        "app/recorded_export.py",
+        "app/recorded_journey.py",
+        "app/recorded_journey.js",
+        "app/test_recorded_similarity.py",
+        "app/test_recorded_export.py",
+        "app/test_recorded_qbe_http.py",
+        "docs/recorded-query-by-example.md"
+      ],
+      "acceptance_checks": [
+        "recorded_query_by_example",
+        "recorded_journey_ui"
+      ],
+      "scope": "One explicit latest pre-index same-item/unit pressure feature for patient ranking over complete recorded query snapshots, unresolved peers retained, reference patient excluded across stays, top-k highlighting only, canonical recorded-query export and local replay. No clinical validation, availability-at-index claim or causal effect estimation.",
       "closes_legacy_requirement_automatically": false
     }
   ],
