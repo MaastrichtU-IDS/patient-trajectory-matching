@@ -168,6 +168,67 @@ def main() -> None:
         mime, body = get(args.url, '/api/journey/export/' + retained['report_id'])
         if mime != 'application/json' or json.loads(body) != retained:
             raise SystemExit('Retained journey export changed after catalogue execution')
+    _, body = get(args.url, '/api/journey/recorded/config')
+    recorded = json.loads(body)
+    reviewed = recorded['profiles'].get('reviewed', {})
+    recorded_checks = ['/api/journey/recorded/config']
+    # Run only the built-in authored fixture. A configured server may use other records.
+    if reviewed.get('source_mode') == 'synthetic':
+        selector = reviewed['selectors']['synthetic']
+        if selector['source_item_ids'] != ['2000'] or not selector['review_evidence']:
+            raise SystemExit('Reviewed recorded selector differs from the authored mapping')
+        job = journey_post('/api/journey/recorded/jobs', {
+            'profile': 'reviewed', 'stratum': 'synthetic', 'controls': reviewed['defaults']})
+        job_path = '/api/journey/recorded/reviewed/jobs/' + job['id']
+        job_deadline = time.monotonic() + 30
+        while job['status'] == 'RUNNING' and time.monotonic() < job_deadline:
+            time.sleep(.05)
+            _, body = get(args.url, job_path)
+            job = json.loads(body)
+        if (job['status'] != 'COMPLETED'
+                or job['summary']['metrics']['patients'] != 3
+                or job['summary']['metrics']['pairs_without_followup'] != 1
+                or len(job['summary']['roster']) != 5):
+            raise SystemExit('Recorded journey differs from the authored reviewed cohort')
+        for patient, expected in [('1', [('58', '68', '10'), ('58', '72', '14')]),
+                                  ('2', [('60', None, None)])]:
+            anchor = next(a for a in job['summary']['anchors'] if a['patient_id'] == patient)
+            _, body = get(args.url, job_path + '/anchors/' + anchor['token'])
+            detail = json.loads(body)
+            observed = [(o['baseline']['value'], o['followup']['value'] if o['followup'] else None,
+                         o['delta']) for o in detail['observations']]
+            plan = detail['measurement_mapping']['selection_plan']
+            if (observed != expected or not detail['sql_agreement']
+                    or plan['semantic_run']['backend_result']['backend']['name'] != 'rustdl'
+                    or not detail['treatment']['source']):
+                raise SystemExit('Recorded journey source or mapping evidence differs from execution')
+        _, body = get(args.url, job_path + '/references')
+        references = json.loads(body)
+        reference = next(a for a in references['anchors'] if a['patient_id'] == '2')
+        comparison_request = {'profile': 'reviewed', 'job_id': job['id'],
+                              'reference_token': reference['token'], 'top_k': 1}
+        comparison = journey_post('/api/journey/recorded/compare', comparison_request)
+        if (reference['feature']['value'] != '60'
+                or [(p['patient_id'], p['distance'], p['highlighted'])
+                    for p in comparison['ranked_patients']] != [('1', '2', True), ('3', '2', False)]
+                or comparison['eligible_patient_ids'] != ['1', '3', '4']
+                or comparison['unresolved_patients'][0]['patient_id'] != '4'
+                or comparison['temporal_result'] != {k: v for k, v in job['summary'].items()
+                                                      if k != 'elapsed_seconds'}):
+            raise SystemExit('Recorded comparison differs from the declared baseline feature profile')
+        exported = journey_post('/api/journey/recorded/export', comparison_request)
+        if (exported['format'] != 'recorded-journey-export-1'
+                or exported['comparison']['result']['ranked_patients'] != comparison['ranked_patients']
+                or exported['snapshot']['temporal_result']['metrics'] != job['summary']['metrics']
+                or not exported['snapshot']['source_context']
+                or not exported['snapshot']['query_context_id']
+                or not exported['artifacts']):
+            raise SystemExit('Recorded export differs from the completed evidence and comparison')
+        recorded_checks += ['/api/journey/recorded/jobs (authored reviewed)',
+                            '/api/journey/recorded/reviewed/jobs/<id>',
+                            '/api/journey/recorded/reviewed/jobs/<id>/anchors/<token>',
+                            '/api/journey/recorded/reviewed/jobs/<id>/references',
+                            '/api/journey/recorded/compare', '/api/journey/recorded/export']
     print(json.dumps({'status': 'passed', 'checks': [
         '/healthz', '/readyz', '/api/capabilities', '/', '/temporal',
         '/api/temporal/run', '/api/temporal/export/<report_id>', '/temporal/editor',
@@ -177,7 +238,7 @@ def main() -> None:
         '/api/journey/run (three-event custom)', '/api/journey/export/<report_id> (three-event custom)',
         '/api/journey/catalogue', '/api/journey/run (custom option outcomes and budget)',
         '/api/journey/export/<report_id> (retained custom catalogue reports)'
-    ]}))
+    ] + recorded_checks}))
 
 
 if __name__ == '__main__':

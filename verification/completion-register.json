@@ -205,6 +205,24 @@
       "scope": "Explicit custom metric permissions, separately evaluated options, exact costs, original-first least-cost certainty, budget exclusions, HTTP evidence and replay.",
       "kind": "executable_acceptance",
       "last_run": "not_executed_by_completion_checker"
+    },
+    "recorded_journey": {
+      "command": "python -m unittest app.test_recorded_journey app.test_recorded_selectors app.test_recorded_journey_http",
+      "scope": "Guided exact recorded treatment and measurement evidence, actual reviewed ontology selector execution, source/configuration invalidation and completed historical evidence.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "recorded_journey_ui": {
+      "command": "node app/test_recorded_journey_ui.cjs",
+      "scope": "Guided recorded job controls, complete-only cohorts, original measurements, missing follow-up, selector evidence and stale-response protection.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
+    },
+    "recorded_query_by_example": {
+      "command": "python -m unittest app.test_recorded_similarity app.test_recorded_export app.test_recorded_qbe_http",
+      "scope": "Explicit pre-index feature selection, patient-wide reference exclusion, complete peer population, nonleaking ranking, immutable recorded export and exact admitted-source replay.",
+      "kind": "executable_acceptance",
+      "last_run": "not_executed_by_completion_checker"
     }
   },
   "dependencies": [
@@ -3298,6 +3316,43 @@
         "patient_journey_ui"
       ],
       "scope": "Up to three explicitly authored metric options on bounded configurable trajectories; protected constraints, exact decimal costs, per-option classifications, least-cost fixed-binding certainty and replay. No implicit option composition or clinical cost calibration.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "guided-recorded-treatment-measurement-evidence",
+      "evidence": [
+        "app/recorded_journey.py",
+        "app/recorded_selectors.py",
+        "app/recorded_journey.js",
+        "app/test_recorded_journey.py",
+        "app/test_recorded_selectors.py",
+        "app/test_recorded_journey_http.py",
+        "docs/guided-recorded-evidence.md"
+      ],
+      "acceptance_checks": [
+        "recorded_journey",
+        "recorded_journey_ui"
+      ],
+      "scope": "Recorded treatment segments and all admitted baseline/follow-up measurement bindings integrated on the guided journey page; explicit literal or reviewed ontology selector dispatch, original evidence and missing follow-up retained. Separate recorded-source profile/population; no synthetic similarity transfer, general event-vocabulary support or causal treatment-effect claim.",
+      "closes_legacy_requirement_automatically": false
+    },
+    {
+      "id": "recorded-query-by-example-and-replay",
+      "evidence": [
+        "app/recorded_similarity.py",
+        "app/recorded_export.py",
+        "app/recorded_journey.py",
+        "app/recorded_journey.js",
+        "app/test_recorded_similarity.py",
+        "app/test_recorded_export.py",
+        "app/test_recorded_qbe_http.py",
+        "docs/recorded-query-by-example.md"
+      ],
+      "acceptance_checks": [
+        "recorded_query_by_example",
+        "recorded_journey_ui"
+      ],
+      "scope": "One explicit latest pre-index same-item/unit pressure feature for patient ranking over complete recorded query snapshots, unresolved peers retained, reference patient excluded across stays, top-k highlighting only, canonical recorded-query export and local replay. No clinical validation, availability-at-index claim or causal effect estimation.",
       "closes_legacy_requirement_automatically": false
     }
   ],
