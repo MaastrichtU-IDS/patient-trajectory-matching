@@ -36,7 +36,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', type=Path)
     parser.add_argument('--recorded-config', type=Path,
-                        help='Explicit local startup configuration for a recorded-query replay')
+                        help='Explicit local startup configuration for recorded-query, pattern and feature-profile replay')
     args = parser.parse_args()
     with args.manifest.open('rb') as handle:
         raw = handle.read(8 * 1024 * 1024 + 1)

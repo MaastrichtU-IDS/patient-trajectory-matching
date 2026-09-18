@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     'app/recorded_export.py', 'app/recorded_journey.py',
     'app/recorded_similarity.py', 'app/recorded_selectors.py',
+    'app/feature_profiles.py', 'app/recorded_pattern.py',
     'app/temporal_replay.py', 'demo/pressure.py', 'demo/mapped_pressure.py',
     'demo/pressure_cache.py', 'patterns/pressure_service_config.py',
 )
@@ -79,37 +80,46 @@ def _validate_snapshot(snapshot):
         raise ValueError('Recorded export requires complete, consistent anchor evidence') from error
 
 
-def _comparison(snapshot, reference_token, top_k):
+def _comparison(snapshot, reference_token, top_k, feature_profile=None):
     if reference_token is None:
-        if top_k is not None:
-            raise ValueError('top_k must be null when no reference is selected')
+        if top_k is not None or feature_profile is not None:
+            raise ValueError('top_k and feature_profile must be null when no reference is selected')
         return None
     from app.recorded_similarity import compare
-    return {'reference_token': reference_token, 'top_k': top_k,
-            'result': compare(snapshot, reference_token, top_k)}
+    result = compare(snapshot, reference_token, top_k, feature_profile)
+    comparison = {'reference_token': reference_token, 'top_k': top_k, 'result': result}
+    if feature_profile is not None:
+        comparison['feature_profile'] = deepcopy(result['feature_profile']['definition'])
+    return comparison
 
 
 def export_recorded(workspace, request):
     """Export retained job evidence without reopening changed sources or reviews."""
-    if not isinstance(request, dict) or set(request) != {
-            'profile', 'job_id', 'reference_token', 'top_k'}:
+    fields = {'profile', 'job_id', 'reference_token', 'top_k'}
+    if not isinstance(request, dict) or not fields <= set(request) or set(request) - fields - {'feature_profile'}:
         raise ValueError('Recorded export fields must be profile, job_id, reference_token, top_k')
     snapshot = deepcopy(workspace.snapshot(request['profile'], request['job_id']))
     _validate_snapshot(snapshot)
     # Operational IDs and execution/cache timings are deliberately outside the
     # portable claim. Stable source-derived anchor tokens remain meaningful.
     snapshot.pop('job_id', None)
+    # Retained requests support archive reopening, but their execution identities
+    # are not part of the portable report. Preserve only the canonical query input.
+    retained_request = snapshot.pop('request', None)
     result = snapshot['temporal_result']
     result.pop('elapsed_seconds', None)
     query_request = {'profile': request['profile'],
                      'stratum': result['stratum'],
-                     'controls': deepcopy(snapshot['query_context']['controls'])}
+                     'controls': deepcopy(retained_request['controls'] if retained_request is not None
+                                          else snapshot['query_context']['controls'])}
+    if retained_request is not None and 'pattern' in retained_request:
+        query_request['pattern'] = deepcopy(retained_request['pattern'])
     bundle = {
         'format': FORMAT,
         'source_mode': result['source_mode'],
         'request': query_request,
         'snapshot': snapshot,
-        'comparison': _comparison(snapshot, request['reference_token'], request['top_k']),
+        'comparison': _comparison(snapshot, request['reference_token'], request['top_k'], request.get('feature_profile')),
         'artifacts': _artifacts(),
         'interpretation': INTERPRETATION,
     }
@@ -131,7 +141,8 @@ def verify_recorded(bundle, *, config=None):
         raise ValueError('Recorded export implementation differs from this checkout')
     _validate_snapshot(bundle['snapshot'])
     request = bundle['request']
-    if not isinstance(request, dict) or set(request) != {'profile', 'stratum', 'controls'}:
+    fields = {'profile', 'stratum', 'controls'}
+    if not isinstance(request, dict) or not fields <= set(request) or set(request) - fields - {'pattern'}:
         raise ValueError('Invalid recorded export request')
     mode = bundle['source_mode']
     if mode == 'configured-records':
@@ -147,10 +158,16 @@ def verify_recorded(bundle, *, config=None):
     else:
         raise ValueError('Unsupported recorded export source mode')
     comparison = bundle['comparison']
+    feature_profile = None
     if comparison is None:
         reference_token = top_k = None
-    elif isinstance(comparison, dict) and set(comparison) == {'reference_token', 'top_k', 'result'}:
+    elif (isinstance(comparison, dict) and {'reference_token', 'top_k', 'result'} <= set(comparison)
+          and not set(comparison) - {'reference_token', 'top_k', 'result', 'feature_profile'}):
         reference_token, top_k = comparison['reference_token'], comparison['top_k']
+        if 'feature_profile' in comparison:
+            feature_profile = comparison['feature_profile']
+            if feature_profile is None:
+                raise ValueError('Recorded comparison feature profile must be explicit')
         if reference_token is None:
             raise ValueError('Recorded comparison must identify a reference')
     else:
@@ -158,17 +175,25 @@ def verify_recorded(bundle, *, config=None):
     from app.recorded_journey import RecordedJourneyWorkspace
     workspace = RecordedJourneyWorkspace(config=config)
     try:
-        job = workspace.start(deepcopy(request))
+        job = workspace.start({key: deepcopy(request[key]) for key in ('profile', 'stratum', 'controls')})
         deadline = time.monotonic() + 120
         while job['status'] == 'RUNNING' and time.monotonic() < deadline:
             time.sleep(.01)
             job = workspace.get(request['profile'], job['id'])
         if job['status'] != 'COMPLETED':
             raise ValueError('Recorded replay did not complete: ' + str(job.get('error', job['status'])))
-        expected = export_recorded(workspace, {
+        if 'pattern' in request:
+            job = workspace.pattern({'profile': request['profile'], 'job_id': job['id'],
+                                     'pattern': deepcopy(request['pattern'])})
+            if job['status'] != 'COMPLETED':
+                raise ValueError('Recorded pattern replay did not complete')
+        export_request = {
             'profile': request['profile'], 'job_id': job['id'],
             'reference_token': reference_token, 'top_k': top_k,
-        })
+        }
+        if feature_profile is not None:
+            export_request['feature_profile'] = deepcopy(feature_profile)
+        expected = export_recorded(workspace, export_request)
         if _encoded(expected) != _encoded(bundle):
             raise ValueError('Recorded export differs from replay on admitted local sources and reviews')
         return {'verified': True, 'report_id': expected['report_id'],

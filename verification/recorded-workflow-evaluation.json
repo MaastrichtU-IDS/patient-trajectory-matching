@@ -1,0 +1,1072 @@
+{
+  "profile": "recorded-workflow-evaluation-1.0",
+  "status": "TECHNICALLY_VERIFIED",
+  "executed_at_utc": "2026-09-18T03:18:28.006882+00:00",
+  "python_version": "3.12.14",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "source_mode": "pinned_public_demo",
+  "source_row_counts": {
+    "inputevents": 20404,
+    "icustays": 140,
+    "d_items": 4014,
+    "chartevents": 668862
+  },
+  "strata": [
+    {
+      "stratum": "arterial",
+      "source_sha256": {
+        "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+        "icustays": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+        "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+        "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
+      },
+      "declaration_sha256": "42052d27857f6581c7ae01490b43aa415221e4cd2e903ef586643383b7029374",
+      "artifacts": {
+        "data/clinical-candidate-plan.json": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3",
+        "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
+        "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
+        "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
+        "demo/profile_pressure_workload.py": "01a2f9e96e7062f48fc5329e77c43e4963bcc62974648d221fd782a681f81fa9",
+        "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+        "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+        "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+        "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+        "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+        "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+        "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+        "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
+        "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
+        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+        "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+        "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
+        "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+        "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+        "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+        "patterns/partitioned_window_query.py": "49c134ab1575733cf58987659c8896a536312509f023c35a1dd1792fa803eabb",
+        "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+        "patterns/prepared_mixed_query.py": "9b5e9f558b1648600065b783d05b41c3c7104217876e3a16306296734975ad83",
+        "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+        "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+        "patterns/reviewed_pressure_session.py": "b333e97d59ded5475b01dcd6a9071d30e5c24073ff5ccfaabb056a74ff23af6d",
+        "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
+        "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/source_fidelity_audit.py": "2508b00b7c09b4d56f59bc0aa9f4a3f3c3ecb6e53aecb7d1fa24cea7a6c20172",
+        "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
+        "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
+        "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+        "patterns/unique_claim_review.py": "5c149c94a7cfa497074dc5aa59904148dd903d5fe51ab369c0d09da89e3d1761",
+        "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+        "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+        "schemas/clinical-source-preflight.schema.json": "7c89064fd182afb529abf83609fecd9c4d31b1d5c4c1644e83f4eab7bc858496",
+        "schemas/indexed-source-windows.schema.json": "0852e518623dcb80cd730b53cb4a9026d8b16b039916c167764ed9b2f22f3532",
+        "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+        "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+        "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+        "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+        "schemas/mimic-claim-import.schema.json": "503485df46f59cbbbc1cc53383864a8e952d7eec62defe2a542973b75236d460",
+        "schemas/mimic-measurement-import.schema.json": "bff31307d9a3350645ced5b5f07a6bd2d5be87140f6e1d143125d21fe28517c0",
+        "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+        "schemas/partitioned-window-review.schema.json": "d0bb51d89a77a340c5c6f58b0a49a37c490a3f854d856bac13b80b6ad3f20b33",
+        "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+        "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+        "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
+        "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
+        "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
+        "tools/evaluate_recorded_workflow.py": "02c60bb921f3849f03b08d0d98c0a53b2c3d3ab978aeb44dde468bd1103379bb"
+      },
+      "trials": [
+        {
+          "label": "cold_default",
+          "controls": {
+            "threshold": "65",
+            "baseline_minutes": 30,
+            "followup_minutes": 120
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 571.188498,
+          "job_timing": {
+            "prepare_seconds": 15.543148,
+            "execute_seconds": 555.50271,
+            "final_validation_seconds": 0.012935,
+            "cache_seconds": 0.117875,
+            "total_seconds": 571.176668,
+            "original_execution_seconds": 555.492
+          },
+          "batch_preparation": {
+            "reused_batches": 0,
+            "fresh_batches": 557,
+            "fresh_seconds": 551.83607,
+            "reevaluation_seconds": 0.0,
+            "cache": {
+              "hits": 0,
+              "misses": 557,
+              "admitted": 557,
+              "evicted": 0,
+              "fresh_seconds": 551.8360703650505,
+              "reevaluation_seconds": 0.0,
+              "entries": 557,
+              "serialized_bytes": 104819911,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 13,
+            "stays": 15,
+            "segments": 66,
+            "eligible_pairs": 86,
+            "followup_bindings": 340,
+            "pairs_without_followup": 1
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 15,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 18
+          },
+          "delta_sign_binding_counts": {
+            "positive": 297,
+            "negative": 25,
+            "zero": 18
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "warm_default_fresh_execution",
+          "controls": {
+            "threshold": "65",
+            "baseline_minutes": 30,
+            "followup_minutes": 120
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 5.349724,
+          "job_timing": {
+            "prepare_seconds": 0.014457,
+            "execute_seconds": 5.205738,
+            "final_validation_seconds": 0.012962,
+            "cache_seconds": 0.058466,
+            "total_seconds": 5.291624,
+            "original_execution_seconds": 5.183
+          },
+          "batch_preparation": {
+            "reused_batches": 557,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 2.029211,
+            "cache": {
+              "hits": 557,
+              "misses": 557,
+              "admitted": 557,
+              "evicted": 0,
+              "fresh_seconds": 551.8360703650505,
+              "reevaluation_seconds": 2.029211359076726,
+              "entries": 557,
+              "serialized_bytes": 104819911,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 13,
+            "stays": 15,
+            "segments": 66,
+            "eligible_pairs": 86,
+            "followup_bindings": 340,
+            "pairs_without_followup": 1
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 15,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 18
+          },
+          "delta_sign_binding_counts": {
+            "positive": 297,
+            "negative": 25,
+            "zero": 18
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "warm_changed_windows_and_threshold",
+          "controls": {
+            "threshold": "60",
+            "baseline_minutes": 25,
+            "followup_minutes": 60
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 7.758733,
+          "job_timing": {
+            "prepare_seconds": 0.010552,
+            "execute_seconds": 7.63575,
+            "final_validation_seconds": 0.03023,
+            "cache_seconds": 0.067837,
+            "total_seconds": 7.744368,
+            "original_execution_seconds": 7.624
+          },
+          "batch_preparation": {
+            "reused_batches": 557,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 3.014641,
+            "cache": {
+              "hits": 1114,
+              "misses": 557,
+              "admitted": 557,
+              "evicted": 0,
+              "fresh_seconds": 551.8360703650505,
+              "reevaluation_seconds": 5.0438521980941005,
+              "entries": 557,
+              "serialized_bytes": 104819911,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 12,
+            "stays": 14,
+            "segments": 27,
+            "eligible_pairs": 36,
+            "followup_bindings": 106,
+            "pairs_without_followup": 1
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 14,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 19
+          },
+          "delta_sign_binding_counts": {
+            "positive": 92,
+            "negative": 9,
+            "zero": 5
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "cached_changed_complete_result",
+          "controls": {
+            "threshold": "60",
+            "baseline_minutes": 25,
+            "followup_minutes": 60
+          },
+          "mode": "cached_complete_result",
+          "wall_seconds_including_polling": 0.170479,
+          "job_timing": {
+            "prepare_seconds": 0.036327,
+            "execute_seconds": 0,
+            "final_validation_seconds": 0.010965,
+            "cache_seconds": 0.072997,
+            "total_seconds": 0.12054,
+            "original_execution_seconds": 7.624
+          },
+          "batch_preparation": {
+            "reused_batches": 0,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 0.0,
+            "cache": {
+              "hits": 1114,
+              "misses": 557,
+              "admitted": 557,
+              "evicted": 0,
+              "fresh_seconds": 551.8360703650505,
+              "reevaluation_seconds": 5.0438521980941005,
+              "entries": 557,
+              "serialized_bytes": 104819911,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 12,
+            "stays": 14,
+            "segments": 27,
+            "eligible_pairs": 36,
+            "followup_bindings": 106,
+            "pairs_without_followup": 1
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 14,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 19
+          },
+          "delta_sign_binding_counts": {
+            "positive": 92,
+            "negative": 9,
+            "zero": 5
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        }
+      ],
+      "warm_full_evidence_equal": true,
+      "cached_full_evidence_equal": true,
+      "process_measurement": {
+        "elapsed_seconds": 586.766739,
+        "timed_out": false,
+        "sampling_failure": null,
+        "child_exit_code": 0,
+        "memory": {
+          "method": "linux_proc_sequential_process_tree_rss_samples",
+          "sample_interval_requested_seconds": 0.05,
+          "samples": 11526,
+          "samples_with_processes": 11526,
+          "samples_with_resident_memory": 11524,
+          "samples_with_root": 11526,
+          "maximum_sampled_aggregate_rss_bytes": 558030848,
+          "maximum_processes_observed_together": 2,
+          "distinct_process_instances_observed": 558,
+          "first_sample_offset_seconds": 6.709997251164168e-07,
+          "last_sample_offset_seconds": 586.7659622520005,
+          "maximum_sample_gap_seconds": 0.3796831949985062,
+          "maximum_scan_seconds": 0.02817167100147344,
+          "unreadable_or_exited_process_records": 6,
+          "coverage_complete": false,
+          "limitations": [
+            "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
+            "Short-lived processes and between-sample allocation peaks can be missed.",
+            "RSS counts shared pages in each process; this is not unique physical memory or PSS.",
+            "Includes the isolated runner, HTTP service, fresh references and visible descendants; excludes the profiling parent.",
+            "Reparented descendants remain covered if in the runner session; detached and reparented descendants can be missed.",
+            "No per-process high-water marks are summed; serialized cache bytes are not used as RSS.",
+            "Unreadable/exited record count includes unrelated processes encountered during the system-wide scan."
+          ]
+        }
+      }
+    },
+    {
+      "stratum": "noninvasive",
+      "source_sha256": {
+        "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+        "icustays": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+        "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+        "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
+      },
+      "declaration_sha256": "3695f19121770c76c27e0b79edc33290c363ed5d1a69fe08db3ef26d74f912af",
+      "artifacts": {
+        "data/clinical-candidate-plan.json": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3",
+        "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
+        "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
+        "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
+        "demo/profile_pressure_workload.py": "01a2f9e96e7062f48fc5329e77c43e4963bcc62974648d221fd782a681f81fa9",
+        "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+        "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+        "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+        "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+        "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+        "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+        "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+        "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
+        "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
+        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+        "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+        "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
+        "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+        "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+        "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+        "patterns/partitioned_window_query.py": "49c134ab1575733cf58987659c8896a536312509f023c35a1dd1792fa803eabb",
+        "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+        "patterns/prepared_mixed_query.py": "9b5e9f558b1648600065b783d05b41c3c7104217876e3a16306296734975ad83",
+        "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+        "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+        "patterns/reviewed_pressure_session.py": "b333e97d59ded5475b01dcd6a9071d30e5c24073ff5ccfaabb056a74ff23af6d",
+        "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
+        "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/source_fidelity_audit.py": "2508b00b7c09b4d56f59bc0aa9f4a3f3c3ecb6e53aecb7d1fa24cea7a6c20172",
+        "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
+        "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
+        "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+        "patterns/unique_claim_review.py": "5c149c94a7cfa497074dc5aa59904148dd903d5fe51ab369c0d09da89e3d1761",
+        "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+        "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+        "schemas/clinical-source-preflight.schema.json": "7c89064fd182afb529abf83609fecd9c4d31b1d5c4c1644e83f4eab7bc858496",
+        "schemas/indexed-source-windows.schema.json": "0852e518623dcb80cd730b53cb4a9026d8b16b039916c167764ed9b2f22f3532",
+        "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+        "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+        "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+        "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+        "schemas/mimic-claim-import.schema.json": "503485df46f59cbbbc1cc53383864a8e952d7eec62defe2a542973b75236d460",
+        "schemas/mimic-measurement-import.schema.json": "bff31307d9a3350645ced5b5f07a6bd2d5be87140f6e1d143125d21fe28517c0",
+        "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+        "schemas/partitioned-window-review.schema.json": "d0bb51d89a77a340c5c6f58b0a49a37c490a3f854d856bac13b80b6ad3f20b33",
+        "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+        "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+        "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
+        "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
+        "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
+        "tools/evaluate_recorded_workflow.py": "02c60bb921f3849f03b08d0d98c0a53b2c3d3ab978aeb44dde468bd1103379bb"
+      },
+      "trials": [
+        {
+          "label": "cold_default",
+          "controls": {
+            "threshold": "65",
+            "baseline_minutes": 30,
+            "followup_minutes": 120
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 393.738154,
+          "job_timing": {
+            "prepare_seconds": 22.919916,
+            "execute_seconds": 370.762607,
+            "final_validation_seconds": 0.007761,
+            "cache_seconds": 0.040888,
+            "total_seconds": 393.731172,
+            "original_execution_seconds": 370.754
+          },
+          "batch_preparation": {
+            "reused_batches": 0,
+            "fresh_batches": 517,
+            "fresh_seconds": 368.599348,
+            "reevaluation_seconds": 0.0,
+            "cache": {
+              "hits": 0,
+              "misses": 517,
+              "admitted": 517,
+              "evicted": 0,
+              "fresh_seconds": 368.59934808305115,
+              "reevaluation_seconds": 0.0,
+              "entries": 517,
+              "serialized_bytes": 95616484,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 19,
+            "stays": 23,
+            "segments": 131,
+            "eligible_pairs": 151,
+            "followup_bindings": 603,
+            "pairs_without_followup": 10
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 23,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 10
+          },
+          "delta_sign_binding_counts": {
+            "positive": 474,
+            "negative": 107,
+            "zero": 22
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "warm_default_fresh_execution",
+          "controls": {
+            "threshold": "65",
+            "baseline_minutes": 30,
+            "followup_minutes": 120
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 3.138969,
+          "job_timing": {
+            "prepare_seconds": 0.008499,
+            "execute_seconds": 3.077531,
+            "final_validation_seconds": 0.007436,
+            "cache_seconds": 0.032153,
+            "total_seconds": 3.125618,
+            "original_execution_seconds": 3.068
+          },
+          "batch_preparation": {
+            "reused_batches": 517,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 1.270017,
+            "cache": {
+              "hits": 517,
+              "misses": 517,
+              "admitted": 517,
+              "evicted": 0,
+              "fresh_seconds": 368.59934808305115,
+              "reevaluation_seconds": 1.2700165249952988,
+              "entries": 517,
+              "serialized_bytes": 95616484,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 19,
+            "stays": 23,
+            "segments": 131,
+            "eligible_pairs": 151,
+            "followup_bindings": 603,
+            "pairs_without_followup": 10
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 23,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 10
+          },
+          "delta_sign_binding_counts": {
+            "positive": 474,
+            "negative": 107,
+            "zero": 22
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "warm_changed_windows_and_threshold",
+          "controls": {
+            "threshold": "60",
+            "baseline_minutes": 25,
+            "followup_minutes": 60
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 3.171606,
+          "job_timing": {
+            "prepare_seconds": 0.008698,
+            "execute_seconds": 3.104621,
+            "final_validation_seconds": 0.00857,
+            "cache_seconds": 0.025554,
+            "total_seconds": 3.147444,
+            "original_execution_seconds": 3.096
+          },
+          "batch_preparation": {
+            "reused_batches": 517,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 1.319124,
+            "cache": {
+              "hits": 1034,
+              "misses": 517,
+              "admitted": 517,
+              "evicted": 0,
+              "fresh_seconds": 368.59934808305115,
+              "reevaluation_seconds": 2.5891406449809438,
+              "entries": 517,
+              "serialized_bytes": 95616484,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 16,
+            "stays": 19,
+            "segments": 74,
+            "eligible_pairs": 83,
+            "followup_bindings": 189,
+            "pairs_without_followup": 7
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 19,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 14
+          },
+          "delta_sign_binding_counts": {
+            "positive": 150,
+            "negative": 30,
+            "zero": 9
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "cached_changed_complete_result",
+          "controls": {
+            "threshold": "60",
+            "baseline_minutes": 25,
+            "followup_minutes": 60
+          },
+          "mode": "cached_complete_result",
+          "wall_seconds_including_polling": 0.056403,
+          "job_timing": {
+            "prepare_seconds": 0.008382,
+            "execute_seconds": 0,
+            "final_validation_seconds": 0.007645,
+            "cache_seconds": 0.018616,
+            "total_seconds": 0.034719,
+            "original_execution_seconds": 3.096
+          },
+          "batch_preparation": {
+            "reused_batches": 0,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 0.0,
+            "cache": {
+              "hits": 1034,
+              "misses": 517,
+              "admitted": 517,
+              "evicted": 0,
+              "fresh_seconds": 368.59934808305115,
+              "reevaluation_seconds": 2.5891406449809438,
+              "entries": 517,
+              "serialized_bytes": 95616484,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 16,
+            "stays": 19,
+            "segments": 74,
+            "eligible_pairs": 83,
+            "followup_bindings": 189,
+            "pairs_without_followup": 7
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 19,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 14
+          },
+          "delta_sign_binding_counts": {
+            "positive": 150,
+            "negative": 30,
+            "zero": 9
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        }
+      ],
+      "warm_full_evidence_equal": true,
+      "cached_full_evidence_equal": true,
+      "process_measurement": {
+        "elapsed_seconds": 401.313906,
+        "timed_out": false,
+        "sampling_failure": null,
+        "child_exit_code": 0,
+        "memory": {
+          "method": "linux_proc_sequential_process_tree_rss_samples",
+          "sample_interval_requested_seconds": 0.05,
+          "samples": 7926,
+          "samples_with_processes": 7926,
+          "samples_with_resident_memory": 7924,
+          "samples_with_root": 7926,
+          "maximum_sampled_aggregate_rss_bytes": 566255616,
+          "maximum_processes_observed_together": 2,
+          "distinct_process_instances_observed": 518,
+          "first_sample_offset_seconds": 9.019968274515122e-07,
+          "last_sample_offset_seconds": 401.3134634889975,
+          "maximum_sample_gap_seconds": 0.19102539099912974,
+          "maximum_scan_seconds": 0.01880347899714252,
+          "unreadable_or_exited_process_records": 2,
+          "coverage_complete": false,
+          "limitations": [
+            "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
+            "Short-lived processes and between-sample allocation peaks can be missed.",
+            "RSS counts shared pages in each process; this is not unique physical memory or PSS.",
+            "Includes the isolated runner, HTTP service, fresh references and visible descendants; excludes the profiling parent.",
+            "Reparented descendants remain covered if in the runner session; detached and reparented descendants can be missed.",
+            "No per-process high-water marks are summed; serialized cache bytes are not used as RSS.",
+            "Unreadable/exited record count includes unrelated processes encountered during the system-wide scan."
+          ]
+        }
+      }
+    },
+    {
+      "stratum": "art",
+      "source_sha256": {
+        "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+        "icustays": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+        "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+        "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
+      },
+      "declaration_sha256": "098b60ce4fe90f2bc530dc8d2f354c586dda263011238e78640b7ca0e862b651",
+      "artifacts": {
+        "data/clinical-candidate-plan.json": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3",
+        "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
+        "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
+        "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
+        "demo/profile_pressure_workload.py": "01a2f9e96e7062f48fc5329e77c43e4963bcc62974648d221fd782a681f81fa9",
+        "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+        "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+        "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+        "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
+        "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+        "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+        "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+        "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
+        "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
+        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+        "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+        "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
+        "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+        "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+        "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
+        "patterns/partitioned_window_query.py": "49c134ab1575733cf58987659c8896a536312509f023c35a1dd1792fa803eabb",
+        "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+        "patterns/prepared_mixed_query.py": "9b5e9f558b1648600065b783d05b41c3c7104217876e3a16306296734975ad83",
+        "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
+        "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+        "patterns/reviewed_pressure_session.py": "b333e97d59ded5475b01dcd6a9071d30e5c24073ff5ccfaabb056a74ff23af6d",
+        "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
+        "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/source_fidelity_audit.py": "2508b00b7c09b4d56f59bc0aa9f4a3f3c3ecb6e53aecb7d1fa24cea7a6c20172",
+        "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
+        "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
+        "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+        "patterns/unique_claim_review.py": "5c149c94a7cfa497074dc5aa59904148dd903d5fe51ab369c0d09da89e3d1761",
+        "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+        "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+        "schemas/clinical-source-preflight.schema.json": "7c89064fd182afb529abf83609fecd9c4d31b1d5c4c1644e83f4eab7bc858496",
+        "schemas/indexed-source-windows.schema.json": "0852e518623dcb80cd730b53cb4a9026d8b16b039916c167764ed9b2f22f3532",
+        "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+        "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
+        "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+        "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
+        "schemas/mimic-claim-import.schema.json": "503485df46f59cbbbc1cc53383864a8e952d7eec62defe2a542973b75236d460",
+        "schemas/mimic-measurement-import.schema.json": "bff31307d9a3350645ced5b5f07a6bd2d5be87140f6e1d143125d21fe28517c0",
+        "schemas/mixed-record-query.schema.json": "5ed197df6f93f44e0a7027ff955be57f6814ec9c9d73b6f9d1f4f9d27583f84f",
+        "schemas/partitioned-window-review.schema.json": "d0bb51d89a77a340c5c6f58b0a49a37c490a3f854d856bac13b80b6ad3f20b33",
+        "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+        "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+        "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
+        "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
+        "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
+        "tools/evaluate_recorded_workflow.py": "02c60bb921f3849f03b08d0d98c0a53b2c3d3ab978aeb44dde468bd1103379bb"
+      },
+      "trials": [
+        {
+          "label": "cold_default",
+          "controls": {
+            "threshold": "65",
+            "baseline_minutes": 30,
+            "followup_minutes": 120
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 57.018753,
+          "job_timing": {
+            "prepare_seconds": 11.881663,
+            "execute_seconds": 45.101843,
+            "final_validation_seconds": 0.010564,
+            "cache_seconds": 0.02023,
+            "total_seconds": 57.0143,
+            "original_execution_seconds": 45.092
+          },
+          "batch_preparation": {
+            "reused_batches": 0,
+            "fresh_batches": 67,
+            "fresh_seconds": 44.450042,
+            "reevaluation_seconds": 0.0,
+            "cache": {
+              "hits": 0,
+              "misses": 67,
+              "admitted": 67,
+              "evicted": 0,
+              "fresh_seconds": 44.45004203301869,
+              "reevaluation_seconds": 0.0,
+              "entries": 67,
+              "serialized_bytes": 12011063,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 2,
+            "stays": 2,
+            "segments": 3,
+            "eligible_pairs": 3,
+            "followup_bindings": 10,
+            "pairs_without_followup": 0
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 2,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 31
+          },
+          "delta_sign_binding_counts": {
+            "positive": 8,
+            "negative": 2,
+            "zero": 0
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "warm_default_fresh_execution",
+          "controls": {
+            "threshold": "65",
+            "baseline_minutes": 30,
+            "followup_minutes": 120
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 0.759652,
+          "job_timing": {
+            "prepare_seconds": 0.008451,
+            "execute_seconds": 0.717973,
+            "final_validation_seconds": 0.00833,
+            "cache_seconds": 0.01917,
+            "total_seconds": 0.753924,
+            "original_execution_seconds": 0.71
+          },
+          "batch_preparation": {
+            "reused_batches": 67,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 0.131587,
+            "cache": {
+              "hits": 67,
+              "misses": 67,
+              "admitted": 67,
+              "evicted": 0,
+              "fresh_seconds": 44.45004203301869,
+              "reevaluation_seconds": 0.13158721501531545,
+              "entries": 67,
+              "serialized_bytes": 12011063,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 2,
+            "stays": 2,
+            "segments": 3,
+            "eligible_pairs": 3,
+            "followup_bindings": 10,
+            "pairs_without_followup": 0
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 2,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 31
+          },
+          "delta_sign_binding_counts": {
+            "positive": 8,
+            "negative": 2,
+            "zero": 0
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "warm_changed_windows_and_threshold",
+          "controls": {
+            "threshold": "60",
+            "baseline_minutes": 25,
+            "followup_minutes": 60
+          },
+          "mode": "fresh_query",
+          "wall_seconds_including_polling": 1.012656,
+          "job_timing": {
+            "prepare_seconds": 0.008423,
+            "execute_seconds": 0.965074,
+            "final_validation_seconds": 0.011249,
+            "cache_seconds": 0.019275,
+            "total_seconds": 1.00402,
+            "original_execution_seconds": 0.957
+          },
+          "batch_preparation": {
+            "reused_batches": 67,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 0.134794,
+            "cache": {
+              "hits": 134,
+              "misses": 67,
+              "admitted": 67,
+              "evicted": 0,
+              "fresh_seconds": 44.45004203301869,
+              "reevaluation_seconds": 0.2663816700114694,
+              "entries": 67,
+              "serialized_bytes": 12011063,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 1,
+            "stays": 1,
+            "segments": 1,
+            "eligible_pairs": 1,
+            "followup_bindings": 2,
+            "pairs_without_followup": 0
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 1,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 32
+          },
+          "delta_sign_binding_counts": {
+            "positive": 2,
+            "negative": 0,
+            "zero": 0
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        },
+        {
+          "label": "cached_changed_complete_result",
+          "controls": {
+            "threshold": "60",
+            "baseline_minutes": 25,
+            "followup_minutes": 60
+          },
+          "mode": "cached_complete_result",
+          "wall_seconds_including_polling": 0.054482,
+          "job_timing": {
+            "prepare_seconds": 0.007853,
+            "execute_seconds": 0,
+            "final_validation_seconds": 0.008565,
+            "cache_seconds": 0.012433,
+            "total_seconds": 0.028908,
+            "original_execution_seconds": 0.957
+          },
+          "batch_preparation": {
+            "reused_batches": 0,
+            "fresh_batches": 0,
+            "fresh_seconds": 0.0,
+            "reevaluation_seconds": 0.0,
+            "cache": {
+              "hits": 134,
+              "misses": 67,
+              "admitted": 67,
+              "evicted": 0,
+              "fresh_seconds": 44.45004203301869,
+              "reevaluation_seconds": 0.2663816700114694,
+              "entries": 67,
+              "serialized_bytes": 12011063,
+              "max_entries": 1024,
+              "max_serialized_bytes": 134217728,
+              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+            }
+          },
+          "metrics": {
+            "patients": 1,
+            "stays": 1,
+            "segments": 1,
+            "eligible_pairs": 1,
+            "followup_bindings": 2,
+            "pairs_without_followup": 0
+          },
+          "anchors_verified": 944,
+          "stays_retained": 140,
+          "patients_retained": 100,
+          "roster_status_counts": {
+            "MATCH": 1,
+            "NO_ADMITTED_ANCHOR": 107,
+            "NO_SELECTED_MATCH": 32
+          },
+          "delta_sign_binding_counts": {
+            "positive": 2,
+            "negative": 0,
+            "zero": 0
+          },
+          "all_anchors_agree_with_sql_and_independent_enumeration": true,
+          "missing_followup_preserved": true
+        }
+      ],
+      "warm_full_evidence_equal": true,
+      "cached_full_evidence_equal": true,
+      "process_measurement": {
+        "elapsed_seconds": 59.606951,
+        "timed_out": false,
+        "sampling_failure": null,
+        "child_exit_code": 0,
+        "memory": {
+          "method": "linux_proc_sequential_process_tree_rss_samples",
+          "sample_interval_requested_seconds": 0.05,
+          "samples": 1174,
+          "samples_with_processes": 1174,
+          "samples_with_resident_memory": 1172,
+          "samples_with_root": 1174,
+          "maximum_sampled_aggregate_rss_bytes": 556412928,
+          "maximum_processes_observed_together": 2,
+          "distinct_process_instances_observed": 68,
+          "first_sample_offset_seconds": 5.110014171805233e-07,
+          "last_sample_offset_seconds": 59.60657547200026,
+          "maximum_sample_gap_seconds": 0.15014565200181096,
+          "maximum_scan_seconds": 0.012323671002377523,
+          "unreadable_or_exited_process_records": 0,
+          "coverage_complete": false,
+          "limitations": [
+            "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
+            "Short-lived processes and between-sample allocation peaks can be missed.",
+            "RSS counts shared pages in each process; this is not unique physical memory or PSS.",
+            "Includes the isolated runner, HTTP service, fresh references and visible descendants; excludes the profiling parent.",
+            "Reparented descendants remain covered if in the runner session; detached and reparented descendants can be missed.",
+            "No per-process high-water marks are summed; serialized cache bytes are not used as RSS.",
+            "Unreadable/exited record count includes unrelated processes encountered during the system-wide scan."
+          ]
+        }
+      }
+    }
+  ],
+  "patient_rows_or_identifiers_included": false,
+  "clinical_mapping_verified": false,
+  "clinical_retrieval_relevance_evaluated": false,
+  "full_mimic_evaluated": false,
+  "scaled_authored_fixture_evaluated": false,
+  "representative_production_scale_established": false,
+  "reproduce": "python -m tools.evaluate_recorded_workflow --mimic-dir /path/to/mimic-demo/icu --output verification/recorded-workflow-evaluation.json",
+  "limitations": [
+    "One cold/warm/cache sequence per stratum, run sequentially in isolated processes; shared host load is uncontrolled.",
+    "Memory covers the worker and observed descendants over all four trials, including independent verification; it is sampled RSS, not an exact peak.",
+    "Cold means fresh application state, not cleared operating-system disk caches.",
+    "Independent SQL and Python enumeration share the admitted source boundary; neither establishes clinical correctness of that boundary.",
+    "Per-stratum populations overlap and must not be summed as distinct patients.",
+    "No clinical reviewer judgments, held-out relevance labels, full credentialed MIMIC data, or production throughput claim."
+  ]
+}

@@ -6,45 +6,61 @@ const payload=JSON.parse(execFileSync(process.env.PYTHON||'python',['-c',`
 import json,time
 from app.recorded_journey import RecordedJourneyWorkspace
 from app.recorded_export import export_recorded
+from app.recorded_pattern import describe,execute
+from copy import deepcopy
 w=RecordedJourneyWorkspace()
 try:
  result={'metadata':w.metadata()}
+ features={'schema':'recorded-similarity-features-1','features':[{'id':'latest_value','weight':'1','scale':'1'},{'id':'measurement_count','weight':'2','scale':'10'}]}
+ result['feature_request']=features
  for profile in ('literal','reviewed'):
   job=w.start({'profile':profile,'stratum':'synthetic','controls':result['metadata']['profiles'][profile]['defaults']})
   while (job:=w.get(profile,job['id']))['status']=='RUNNING':time.sleep(.01)
   assert job['status']=='COMPLETED',job
   refs=w.references(profile,job['id'])
   comparisons={a['token']:w.compare({'profile':profile,'job_id':job['id'],'reference_token':a['token'],'top_k':3}) for a in refs['anchors'] if a['feature']}
+  feature_comparisons={a['token']:w.compare({'profile':profile,'job_id':job['id'],'reference_token':a['token'],'top_k':3,'feature_profile':features}) for a in refs['anchors'] if a['feature']}
+  session=w._service(profile).jobs[job['id']]['_session']
+  pattern_metadata=describe(session,job['summary']['context']['query'])
   export_request={'profile':profile,'job_id':job['id'],'reference_token':None,'top_k':None}
-  exports={'whole':export_recorded(w,export_request),'comparison':export_recorded(w,{**export_request,'reference_token':next(a['token'] for a in refs['anchors'] if a['feature']),'top_k':1})}
-  result[profile]={'exports':exports,'job':job,'references':refs,'comparisons':comparisons,'details':{a['token']:w.inspect(profile,job['id'],a['token']) for a in job['summary']['anchors']}}
+  exports={'features':export_recorded(w,{**export_request,'reference_token':next(a['token'] for a in refs['anchors'] if a['feature']),'top_k':1,'feature_profile':features}),'whole':export_recorded(w,export_request),'comparison':export_recorded(w,{**export_request,'reference_token':next(a['token'] for a in refs['anchors'] if a['feature']),'top_k':1})}
+  pattern=deepcopy(pattern_metadata['default_pattern']);pattern['baseline']['operator']='le';pattern['baseline']['value_lexical']='64'
+  child=w.pattern({'profile':profile,'job_id':job['id'],'pattern':pattern})
+  childrefs=w.references(profile,child['id'])
+  childdata={'job':child,'references':childrefs,'pattern_metadata':w.pattern_metadata(profile,child['id']),'comparisons':{a['token']:w.compare({'profile':profile,'job_id':child['id'],'reference_token':a['token'],'top_k':3}) for a in childrefs['anchors'] if a['feature']},'details':{a['token']:w.inspect(profile,child['id'],a['token']) for a in child['summary']['anchors']}}
+  result[profile]={'child':childdata,'feature_comparisons':feature_comparisons,'pattern_metadata':pattern_metadata,'exports':exports,'job':job,'references':refs,'comparisons':comparisons,'details':{a['token']:w.inspect(profile,job['id'],a['token']) for a in job['summary']['anchors']}}
  print(json.dumps(result))
 finally:w.close()
 `],{cwd:path.resolve(__dirname,'..'),encoding:'utf8',maxBuffer:16*1024*1024}));
 const html=fs.readFileSync(path.join(__dirname,'journey.html'),'utf8'),script=fs.readFileSync(path.join(__dirname,'recorded_journey.js'),'utf8');
-class Element{constructor(){this.value='';this._text='';this._html='';this.disabled=false;this.className='';}set textContent(v){this._text=v;this._html='';}get textContent(){return this._text;}set innerHTML(v){this._html=v;this._text='';}get innerHTML(){return this._html;}}
+let activeElements=null;
+class Element{constructor(){this.checked=false;this.value='';this._text='';this._html='';this.disabled=false;this.className='';}set textContent(v){this._text=v;this._html='';}get textContent(){return this._text;}set innerHTML(v){this._html=v;this._text='';if(activeElements)for(const m of v.matchAll(/<[^>]+\bid="([^"]+)"[^>]*>/g)){const x=activeElements.get(m[1])||new Element();x.value=m[0].match(/\bvalue="([^"]*)"/)?.[1]||'';x.checked=/\bchecked\b/.test(m[0]);activeElements.set(m[1],x);}}get innerHTML(){return this._html;}}
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function harness(metadata=payload.metadata){
  const elements=new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],new Element()])),calls=[];const el=id=>elements.get('recorded-'+id);
- const controls={postGate:null,detailGate:null,jobGate:null,fail:false,mutate:null,pollRunning:false,detailMutate:null,referencesGate:null,referencesMutate:null,comparisonGate:null,comparisonMutate:null,exportGate:null,exportMutate:null};el('top-k').value='3';
+ activeElements=elements;const controls={postGate:null,detailGate:null,jobGate:null,fail:false,mutate:null,pollRunning:false,detailMutate:null,referencesGate:null,referencesMutate:null,comparisonGate:null,comparisonMutate:null,patternGate:null,patternMutate:null,exportGate:null,exportMutate:null};el('top-k').value='3';
  const fetch=async(url,options={})=>{const body=options.body?JSON.parse(options.body):null;calls.push({url,body});if(url.endsWith('/config'))return{ok:true,json:async()=>structuredClone(metadata)};
   const response=value=>({ok:true,json:async()=>structuredClone(value)});
-  if(url==='/api/journey/recorded/compare'){if(controls.comparisonGate)await controls.comparisonGate.promise;const value=structuredClone(payload[body.profile].comparisons[body.reference_token]);value.top_k=body.top_k;value.ranked_patients.forEach(r=>r.highlighted=r.rank<=body.top_k);if(controls.comparisonMutate)controls.comparisonMutate(value);return response(value);}
-  if(url==='/api/journey/recorded/export'){if(controls.exportGate)await controls.exportGate.promise;const p=payload[body.profile],value=structuredClone(p.exports[body.reference_token?'comparison':'whole']);if(controls.exportMutate)controls.exportMutate(value);return response(value);}
+  if(url==='/api/journey/recorded/history')return response({durable:false,jobs:controls.history||[]});
+  if(url==='/api/journey/recorded/resume')return response(controls.resumeRunning?{...payload.reviewed.job,status:'RUNNING',summary:null}:payload.reviewed.job);
+  if(url==='/api/journey/recorded/pattern'){if(controls.patternGate)await controls.patternGate.promise;const j=structuredClone(payload[body.profile].child.job);if(controls.patternMutate)controls.patternMutate(j);return response(j);}
+  if(url==='/api/journey/recorded/compare'){if(controls.comparisonGate)await controls.comparisonGate.promise;const data=body.job_id===payload[body.profile].child.job.id?payload[body.profile].child:payload[body.profile];const value=structuredClone(data[body.feature_profile?'feature_comparisons':'comparisons'][body.reference_token]);value.top_k=body.top_k;value.ranked_patients.forEach(r=>r.highlighted=r.rank<=body.top_k);if(controls.comparisonMutate)controls.comparisonMutate(value);return response(value);}
+  if(url==='/api/journey/recorded/export'){if(controls.exportGate)await controls.exportGate.promise;const p=payload[body.profile],value=structuredClone(p.exports[body.feature_profile?'features':body.reference_token?'comparison':'whole']);if(controls.exportMutate)controls.exportMutate(value);return response(value);}
   if(url==='/api/journey/recorded/jobs'){if(controls.postGate)await controls.postGate.promise;if(controls.fail){controls.fail=false;return{ok:false,json:async()=>({error:'Source review changed'})};}return response({id:payload[body.profile].job.id,profile:body.profile});}
-  const mode=url.includes('/literal/')?'literal':'reviewed';
-  if(url.endsWith('/references')){if(controls.referencesGate)await controls.referencesGate.promise;const value=structuredClone(payload[mode].references);if(controls.referencesMutate)controls.referencesMutate(value);return response(value);}
-  if(url.includes('/anchors/')){if(controls.detailGate)await controls.detailGate.promise;const value=structuredClone(payload[mode].details[url.split('/').at(-1)]);if(controls.detailMutate)controls.detailMutate(value);return response(value);}
+  const mode=url.includes('/literal/')?'literal':'reviewed',data=url.includes(payload[mode].child.job.id)?payload[mode].child:payload[mode];
+  if(url.endsWith('/pattern'))return response(data.pattern_metadata);
+  if(url.endsWith('/references')){if(controls.referencesGate)await controls.referencesGate.promise;const value=structuredClone(data.references);if(controls.referencesMutate)controls.referencesMutate(value);return response(value);}
+  if(url.includes('/anchors/')){if(controls.detailGate)await controls.detailGate.promise;const value=structuredClone(data.details[url.split('/').at(-1)]);if(controls.detailMutate)controls.detailMutate(value);return response(value);}
   if(controls.jobGate)await controls.jobGate.promise;
   if(controls.pollRunning){controls.pollRunning=false;return response({status:'RUNNING',progress:{stage:'Checking source',completed:1,total:2}});}
-  const value=structuredClone(payload[mode].job);if(controls.mutate)controls.mutate(value);return response(value);
+  const value=structuredClone(data.job);if(controls.mutate)controls.mutate(value);return response(value);
  };
  const downloads=[],blobs=[];const document={getElementById:id=>elements.get(id)||null,body:{appendChild(){}},createElement:()=>({click(){downloads.push(this.download);},remove(){}})};
  // Existing journey globals can coexist with this script because it is IIFE scoped.
  const context=vm.createContext({document,fetch,setTimeout:resolve=>setImmediate(resolve),console,Error,encodeURIComponent,Blob,URL:{createObjectURL(blob){blobs.push(blob);return 'blob:test';},revokeObjectURL(){}}});
  vm.runInContext('const api=1,busy=2,config=3,revision=4;',context);vm.runInContext(script,context);
- return{el,calls,controls,downloads,blobs,peer:(patient,token)=>el('comparison').onclick({target:{closest:()=>({dataset:{peer:patient,peerAnchor:token}})}}),inspect:token=>el('anchors').onclick({target:{closest:()=>({dataset:{anchor:token}})}})};
+ return{el,calls,controls,downloads,blobs,peer:(patient,token)=>el('comparison').onclick({target:{closest:()=>({dataset:{peer:patient,peerAnchor:token}})}}),restore:(job,state='COMPLETED')=>el('history').onclick({target:{closest:()=>({dataset:{historyJob:job.id,historyProfile:job.profile,historyStatus:state}})}}),inspect:token=>el('anchors').onclick({target:{closest:()=>({dataset:{anchor:token}})}})};
 }
 (async()=>{
  const h=harness(),{el,calls,controls}=h;await tick();
@@ -60,6 +76,9 @@ function harness(metadata=payload.metadata){
  const referenceToken=el('reference').value,actual=payload.reviewed.comparisons[referenceToken];assert.ok(actual.ranked_patients.length>1);assert.equal((el('comparison').innerHTML.match(/class="highlighted"/g)||[]).length,1);for(const row of actual.ranked_patients)assert.ok(el('comparison').innerHTML.includes(`Patient ${row.patient_id}`));assert.ok(!actual.eligible_patient_ids.includes(actual.reference.patient_id));
  const peer=actual.ranked_patients[0];await h.peer(peer.patient_id,peer.selected_anchor.token);assert.equal(el('patient').value,peer.patient_id);assert.equal(el('stay').value,peer.selected_anchor.episode_id);assert.match(el('inspector').innerHTML,/Baseline and follow-up observations/);
  await el('export-comparison').onclick();assert.equal(h.downloads.at(-1),'recorded-peer-comparison.json');assert.equal(JSON.parse(await h.blobs.at(-1).text()).comparison.reference_token,referenceToken);
+ // Explicit features are actual engine results; invalid weights never send requests.
+ el('features-enabled').checked=true;el('features-enabled').onchange();el('feature-measurement_count').checked=true;el('weight-measurement_count').value='2.00';el('scale-measurement_count').value='10.000';el('features').onchange();await el('compare').onclick();assert.deepEqual(calls.filter(c=>c.url==='/api/journey/recorded/compare').at(-1).body.feature_profile,payload.feature_request);assert.match(el('comparison').innerHTML,/How each feature contributes/);assert.match(el('comparison').innerHTML,/Feature coverage: 2 \/ 2/);assert.match(el('comparison').innerHTML,/Follow-up values are excluded/);await el('export-comparison').onclick();assert.deepEqual(JSON.parse(await h.blobs.at(-1).text()).comparison.feature_profile,payload.feature_request);
+ for(const invalid of ['0','-1','NaN','1e2','0.0000001','1000001']){el('weight-measurement_count').value=invalid;el('features').oninput();assert.equal(el('compare').disabled,true);const n=calls.length;await el('compare').onclick();assert.equal(calls.length,n);}el('weight-measurement_count').value='2';el('features').oninput();controls.comparisonMutate=d=>{d.feature_profile.definition.features[0].weight='3';};await el('compare').onclick();assert.match(el('comparison-status').textContent,/different feature profile/);controls.comparisonMutate=null;el('features-enabled').checked=false;el('features-enabled').onchange();await el('compare').onclick();
  // Current reference/top-k are part of the comparison, and stale comparisons cannot export.
  el('top-k').value='2';el('top-k').oninput();assert.equal(el('comparison').innerHTML,'');assert.equal(el('export-comparison').disabled,true);let callCount=calls.length;await el('export-comparison').onclick();assert.equal(calls.length,callCount);
  for(const invalid of ['', '0','21','1.5']){el('top-k').value=invalid;el('top-k').oninput();assert.equal(el('compare').disabled,true);callCount=calls.length;await el('compare').onclick();assert.equal(calls.length,callCount);}el('top-k').value='1';el('top-k').oninput();
@@ -77,7 +96,7 @@ function harness(metadata=payload.metadata){
  // Every query input invalidates cohort and evidence before a new run.
  for(const id of ['threshold','baseline','followup']){el(id).oninput();assert.equal(el('patient').disabled,true);assert.equal(el('anchors').innerHTML,'');assert.match(el('summary').textContent,/current controls/);await el('run').onclick();}
  // Source item choice routes a distinct service, with its own provenance.
- el('profile').value='literal';el('profile').onchange();assert.match(el('selection').textContent,/Direct source-item selection/);await el('run').onclick();assert.equal(calls.filter(c=>c.body).at(-1).body.profile,'literal');assert.ok(calls.at(-1).url.includes('/literal/'));
+ el('profile').value='literal';el('profile').onchange();assert.match(el('selection').textContent,/Direct source-item selection/);await el('run').onclick();assert.equal(calls.filter(c=>c.body).at(-1).body.profile,'literal');assert.ok(calls.some(c=>c.url.includes('/literal/')&&c.url.endsWith('/references')));
  // Blank numeric windows are invalid, never an implicit zero-minute follow-up.
  el('followup').value='';el('followup').oninput();await el('run').onclick();assert.equal(calls.filter(c=>c.body).at(-1).body.controls.followup_minutes,null);assert.equal(el('status').className,'error');el('followup').value='120';
  // A delayed old job cannot repopulate results after a control revision.
@@ -99,6 +118,12 @@ function harness(metadata=payload.metadata){
  controls.referencesGate=deferred();const lateReferences=el('run').onclick();await tick();el('baseline').oninput();controls.referencesGate.resolve();await lateReferences;controls.referencesGate=null;assert.equal(el('reference').innerHTML,'');assert.equal(el('export').disabled,true);
  for(const mutate of [d=>{d.job_id='wrong';},d=>{d.query_context.controls.threshold='64';}]){controls.referencesMutate=mutate;await el('run').onclick();assert.equal(el('comparison-status').className,'error');assert.equal(el('compare').disabled,true);assert.equal(el('export').disabled,false);}controls.referencesMutate=null;
  // Unavailable ontology review remains visibly blocked and never becomes literal.
- const blocked=structuredClone(payload.metadata);blocked.profiles.reviewed.available=false;blocked.profiles.reviewed.error='BLOCKED_MAPPING_REVIEW';blocked.profiles.reviewed.selectors={};const b=harness(blocked);await tick();assert.equal(b.el('profile').value,'reviewed');assert.equal(b.el('run').disabled,true);assert.match(b.el('status').textContent,/BLOCKED_MAPPING_REVIEW/);await b.el('run').onclick();assert.equal(b.calls.length,1);b.el('profile').value='literal';b.el('profile').onchange();assert.equal(b.el('run').disabled,false);
- console.log('Recorded journey UI: source-backed reference selection, full peer comparison, independent temporal results, pre-index provenance, stale comparison/export guards, downloads; real source/reviewed results, missing follow-ups, complete-only counts, isolation, errors, stale responses and escaped evidence passed.');
+ const blocked=structuredClone(payload.metadata);blocked.profiles.reviewed.available=false;blocked.profiles.reviewed.error='BLOCKED_MAPPING_REVIEW';blocked.profiles.reviewed.selectors={};const b=harness(blocked);await tick();assert.equal(b.el('profile').value,'reviewed');assert.equal(b.el('run').disabled,true);assert.match(b.el('status').textContent,/BLOCKED_MAPPING_REVIEW/);await b.el('run').onclick();assert.equal(b.calls.filter(c=>c.url!=='/api/journey/recorded/history').length,1);b.el('profile').value='literal';b.el('profile').onchange();assert.equal(b.el('run').disabled,false);
+ // Edited point/interval pattern becomes the single active query for comparisons and evidence.
+ const editing=harness();await tick();await editing.el('run').onclick();const ed=editing.el;assert.equal(ed('pattern-run').disabled,false);ed('pattern-operator').value='le';ed('pattern-value').value='64';ed('pattern-value').oninput();await ed('pattern-run').onclick();assert.match(ed('summary').innerHTML,/baseline ≤ 64/);assert.match(ed('pattern-result').innerHTML,/Executed pattern and parent query/);assert.match(ed('status').textContent,/now use this query/);await ed('compare').onclick();assert.equal(editing.calls.filter(c=>c.url==='/api/journey/recorded/compare').at(-1).body.job_id,payload.reviewed.child.job.id);assert.match(ed('comparison').innerHTML,/Peer patients/);
+ editing.controls.history=[payload.reviewed.job,payload.reviewed.child.job];await ed('history-refresh').onclick();assert.match(ed('history').innerHTML,/Restore evaluation/);await editing.restore(payload.reviewed.job);assert.match(ed('summary').innerHTML,/baseline &lt; 65/);await editing.restore(payload.reviewed.child.job);assert.match(ed('summary').innerHTML,/baseline ≤ 64/);assert.match(ed('run').textContent,/Start a new evaluation/);
+ await editing.restore(payload.literal.job);editing.controls.resumeRunning=true;await editing.restore(payload.reviewed.job,'INTERRUPTED');assert.equal(ed('profile').value,'reviewed');assert.match(ed('summary').innerHTML,/baseline &lt; 65/);
+ for(const mutate of [j=>{j.request.pattern.baseline.operator='gt';},j=>{j.parent_job_id='wrong';},j=>{j.summary.context.session_id='wrong';},j=>{j.summary.anchors_verified=-1;}]){editing.controls.patternMutate=mutate;ed('pattern-operator').value='le';ed('pattern-value').value='64';await ed('pattern-run').onclick();assert.equal(ed('pattern-status').className,'error');assert.match(ed('summary').innerHTML,/baseline &lt; 65/);}editing.controls.patternMutate=null;
+ editing.controls.patternGate=deferred();const stalePattern=ed('pattern-run').onclick();ed('threshold').oninput();editing.controls.patternGate.resolve();await stalePattern;assert.equal(ed('patient').disabled,true);assert.equal(ed('pattern-run').disabled,true);
+ console.log('Recorded journey UI: explicit weighted features and export, invalid scales/weights, recorded point/interval editing, child-query adoption, history restore/resume, stale pattern guards; source-backed reference selection, full peer comparison, independent temporal results, pre-index provenance, stale comparison/export guards, downloads; real source/reviewed results, missing follow-ups, complete-only counts, isolation, errors, stale responses and escaped evidence passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
