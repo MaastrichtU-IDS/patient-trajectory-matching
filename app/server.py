@@ -19,6 +19,7 @@ from app.pattern_builder import compile_pattern, decompile_query
 from app.relaxation_catalogue import compile_catalogue
 from app.recorded_journey import RecordedJourneyWorkspace
 from app.recorded_export import export_recorded
+from app.access_control import OwnerAccess
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 8192
@@ -38,7 +39,7 @@ def identifier(value):
 
 
 class Workspace:
-    def __init__(self, recorded_config=None):
+    def __init__(self, recorded_config=None, state_dir=None, access=None):
         self.engine = SimilarityEngine()
         source_bytes = (ROOT.parent / 'demo/cohort-data.json').read_bytes()
         self.dataset = json.loads(source_bytes)
@@ -49,7 +50,8 @@ class Workspace:
         self.temporal = TemporalWorkspace()
         self.interval_editor = IntervalEditor()
         self.journey = JourneyWorkspace()
-        self.recorded = RecordedJourneyWorkspace(config=recorded_config)
+        self.recorded = RecordedJourneyWorkspace(config=recorded_config, state_dir=state_dir)
+        self.access = access
         self.lock = threading.RLock()
         self.ready = True
 
@@ -63,10 +65,14 @@ class Workspace:
                               'guided-patient-temporal-journey', 'configurable-three-event-patterns',
                               'custom-relaxation-catalogues', 'guided-recorded-treatment-evidence',
                               'reviewed-ontology-measurement-selection', 'recorded-query-by-example',
-                              'recorded-query-export-replay'],
+                              'recorded-query-export-replay', 'recorded-pattern-revisions',
+                              'explicit-recorded-feature-profiles'] +
+                             (['single-owner-authentication'] if self.access else []) +
+                             (['durable-recorded-jobs'] if self.recorded.store else []),
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
-                                'authentication', 'multi-user-isolation', 'restricted-patient-data',
-                                'all-pairs-search', 'production-deployment'],
+                                'multi-user-isolation', 'restricted-patient-data',
+                                'all-pairs-search', 'production-deployment'] +
+                               (['authentication'] if self.access is None else []),
                 'max_request_bytes': MAX_BODY, 'max_saved_comparisons': MAX_COMPARISONS,
                 'metadata': self.engine.metadata()}
 
@@ -135,12 +141,29 @@ class Handler(BaseHTTPRequestHandler):
     def workspace(self):
         return self.server.workspace
 
-    def send(self, status, value, mime='application/json; charset=utf-8', attachment=False):
+    def authorized(self):
+        access = self.workspace.access
+        if access is None:
+            return True
+        headers = self.headers.get_all('Authorization', [])
+        accepted = len(headers) == 1 and access.accepts(headers[0])
+        self.workspace.recorded.audit('owner' if accepted else 'anonymous',
+                                      'access', status='accepted' if accepted else 'denied')
+        if not accepted:
+            self.send(401, {'error': 'Owner authentication required'}, challenge=True)
+        return accepted
+
+    def send(self, status, value, mime='application/json; charset=utf-8', attachment=False, challenge=False):
         if attachment == 'recorded':
             body = json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
         else:
             body = json.dumps(value, allow_nan=False).encode() if mime.startswith('application/json') else value
+        if getattr(self, '_audit_action', None):
+            self.workspace.recorded.audit('owner' if self.workspace.access else 'local',
+                                          self._audit_action, status='http_' + str(status))
         self.send_response(status)
+        if challenge:
+            self.send_header('WWW-Authenticate', 'Basic realm="Research workspace", charset="UTF-8"')
         self.send_header('Content-Type', mime)
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Cache-Control', 'no-store')
@@ -181,6 +204,10 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError('Unexpected query parameters')
                 ready = path == '/healthz' or self.workspace.ready
                 return self.send(200 if ready else 503, {'status': 'ok' if ready else 'not-ready'})
+            if not self.authorized():
+                return
+            if path.startswith('/api/journey/recorded/'):
+                self._audit_action = 'read'
             if path == '/api/evidence':
                 exact_keys(query, ('revision_id', 'patient_id'))
                 with self.workspace.lock:
@@ -198,6 +225,11 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(200, self.workspace.journey.metadata())
                 if path == '/api/journey/recorded/config':
                     return self.send(200, self.workspace.recorded.metadata())
+                if path == '/api/journey/recorded/history':
+                    return self.send(200, self.workspace.recorded.history())
+                recorded_pattern = re.fullmatch(r'/api/journey/recorded/([A-Za-z0-9_-]+)/jobs/([A-Za-z0-9_-]+)/pattern', path)
+                if recorded_pattern:
+                    return self.send(200, self.workspace.recorded.pattern_metadata(*recorded_pattern.groups()))
                 recorded_references = re.fullmatch(r'/api/journey/recorded/([A-Za-z0-9_-]+)/jobs/([A-Za-z0-9_-]+)/references', path)
                 if recorded_references:
                     return self.send(200, self.workspace.recorded.references(*recorded_references.groups()))
@@ -243,6 +275,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if not self.origin_valid():
                 return self.send(403, {'error': 'Same-origin access required'})
+            if not self.authorized():
+                return
+            if self.path.startswith('/api/journey/recorded/'):
+                self._audit_action = 'export' if self.path.endswith('/export') else 'request'
             if self.headers.get('Transfer-Encoding'):
                 raise ValueError('Transfer encoding is unsupported')
             if self.headers.get_content_type() != 'application/json':
@@ -283,6 +319,10 @@ class Handler(BaseHTTPRequestHandler):
                     result = self.workspace.recorded.compare(data)
                 elif self.path == '/api/journey/recorded/export':
                     return self.send(200, export_recorded(self.workspace.recorded, data), attachment='recorded')
+                elif self.path == '/api/journey/recorded/pattern':
+                    result = self.workspace.recorded.pattern(data)
+                elif self.path == '/api/journey/recorded/resume':
+                    result = self.workspace.recorded.resume(data)
                 elif self.path == '/api/journey/recorded/jobs':
                     result = self.workspace.recorded.start(data)
                 elif self.path == '/api/journey/run':
@@ -321,10 +361,13 @@ class ResearchServer(ThreadingHTTPServer):
                 self.workspace.recorded.close()
 
 
-def make_server(host='127.0.0.1', port=8080, *, recorded_config=None):
+def make_server(host='127.0.0.1', port=8080, *, recorded_config=None, state_dir=None, auth_file=None):
     if recorded_config is not None and host not in ('127.0.0.1', 'localhost'):
         raise ValueError('Configured recorded sources require a loopback host')
-    workspace = Workspace(recorded_config=recorded_config)
+    if auth_file is not None and host not in ('127.0.0.1', 'localhost'):
+        raise ValueError('Owner authentication requires a loopback host')
+    access = OwnerAccess(auth_file) if auth_file is not None else None
+    workspace = Workspace(recorded_config=recorded_config, state_dir=state_dir, access=access)
     try:
         server = ResearchServer((host, port), Handler)
     except Exception:
@@ -339,8 +382,10 @@ def main():
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', default=8080, type=int)
     parser.add_argument('--recorded-config', type=Path, help='Startup-only reviewed source and mapping configuration for the recorded journey')
+    parser.add_argument('--state-dir', type=Path, help='Private local directory for durable recorded jobs and audit metadata')
+    parser.add_argument('--auth-file', type=Path, help='Private owner:<secret> credential file; loopback only')
     args = parser.parse_args()
-    server = make_server(args.host, args.port, recorded_config=args.recorded_config)
+    server = make_server(args.host, args.port, recorded_config=args.recorded_config, state_dir=args.state_dir, auth_file=args.auth_file)
     print(f'Research workspace: http://{args.host}:{server.server_port}', flush=True)
     try:
         server.serve_forever()

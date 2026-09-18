@@ -220,6 +220,81 @@ class RecordedExportTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'implementation differs'):
                 verify_recorded(bundle)
 
+    def test_explicit_feature_profile_canonical_replay_and_tamper_detection(self):
+        workspace = self.workspace()
+        job = self.job(workspace)
+        reference = job['summary']['anchors'][0]['token']
+        request = {'profile': 'literal', 'job_id': job['id'], 'reference_token': reference, 'top_k': 1,
+                   'feature_profile': {'schema': 'recorded-similarity-features-1', 'features': [
+                       {'id': 'latest_recency', 'weight': '2.00', 'scale': '5'},
+                       {'id': 'latest_value', 'weight': '1', 'scale': '10'},
+                       {'id': 'measurement_count', 'weight': '1', 'scale': '1'}]}}
+        bundle = export_recorded(workspace, request)
+        self.assertTrue(verify_recorded(bundle)['comparison_verified'])
+        self.assertEqual(bundle['comparison']['feature_profile'],
+                         bundle['comparison']['result']['feature_profile']['definition'])
+        self.assertEqual(len(bundle['comparison']['result']['feature_profile']['sha256']), 64)
+        self.assertIn('app/feature_profiles.py', bundle['artifacts'])
+        for field in ('weight', 'scale'):
+            changed = deepcopy(bundle)
+            changed['comparison']['feature_profile']['features'][0][field] = '3'
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'differs from replay'):
+                verify_recorded(self.rehash(changed))
+        with self.assertRaises(ValueError):
+            export_recorded(workspace, {**request, 'reference_token': None, 'top_k': None})
+
+    def test_recorded_pattern_replay_preserves_base_controls_and_stable_parent(self):
+        for profile in ('literal', 'reviewed'):
+            with self.subTest(profile=profile):
+                workspace = self.workspace()
+                initial = self.job(workspace, profile)
+                parent_context = initial['summary']['context_id']
+                pattern = workspace.pattern_metadata(profile, initial['id'])['default_pattern']
+                pattern['baseline']['operator'] = 'le'
+                pattern['baseline']['value_lexical'] = '62'
+                pattern['followup']['maximum_offset_us'] = 30 * 60000000
+                revision = workspace.pattern({'profile': profile, 'job_id': initial['id'], 'pattern': pattern})
+                first = self.export(workspace, revision, profile)
+                self.assertEqual(first['request']['controls'], CONTROLS)
+                self.assertEqual(first['request']['pattern'], pattern)
+                self.assertEqual(first['snapshot']['query_context']['parent_query_context_id'], parent_context)
+                self.assertNotIn('request', first['snapshot'])
+                self.assertNotIn(initial['id'], json.dumps(first))
+                self.assertTrue(verify_recorded(first)['verified'])
+                second = workspace.pattern({'profile': profile, 'job_id': revision['id'], 'pattern': pattern})
+                self.assertEqual(self.export(workspace, second, profile), first)
+                changed = deepcopy(first)
+                changed['request']['pattern']['baseline']['value_lexical'] = '61'
+                with self.assertRaisesRegex(ValueError, 'differs from replay'):
+                    verify_recorded(self.rehash(changed))
+
+    def test_restarted_durable_pattern_and_feature_export_are_identical(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.workspace(state_dir=directory)
+            initial = self.job(workspace)
+            pattern = workspace.pattern_metadata('literal', initial['id'])['default_pattern']
+            pattern['followup']['maximum_offset_us'] = 30 * 60000000
+            revision = workspace.pattern({'profile': 'literal', 'job_id': initial['id'], 'pattern': pattern})
+            request = {'profile': 'literal', 'job_id': revision['id'],
+                       'reference_token': revision['summary']['anchors'][0]['token'], 'top_k': 1,
+                       'feature_profile': {'schema': 'recorded-similarity-features-1', 'features': [
+                           {'id': 'latest_value', 'weight': '1', 'scale': '10'},
+                           {'id': 'measurement_count', 'weight': '2', 'scale': '1'}]}}
+            bundle = export_recorded(workspace, request)
+            workspace.close()
+            restored = self.workspace(state_dir=directory)
+            self.assertEqual(export_recorded(restored, request), bundle)
+            self.assertTrue(verify_recorded(bundle)['verified'])
+
+    def test_legacy_comparison_omits_new_optional_fields(self):
+        workspace = self.workspace()
+        job = self.job(workspace)
+        bundle = self.export(workspace, job, reference=job['summary']['anchors'][0]['token'], top_k=1)
+        self.assertNotIn('pattern', bundle['request'])
+        self.assertNotIn('request', bundle['snapshot'])
+        self.assertNotIn('feature_profile', bundle['comparison'])
+        self.assertNotIn('definition', bundle['comparison']['result']['feature_profile'])
+
     def test_cli_replays_saved_json_and_size_cap_applies_before_engine(self):
         workspace = self.workspace()
         bundle = self.export(workspace, self.job(workspace))

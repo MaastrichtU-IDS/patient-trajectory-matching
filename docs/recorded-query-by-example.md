@@ -29,12 +29,12 @@ Only source timestamps are available for this calculation. Being recorded before
 | Route | Request or result |
 |---|---|
 | `GET /api/journey/recorded/{profile}/jobs/{id}/references` | Reference segments, declared feature profile and full roster for a completed recorded query |
-| `POST /api/journey/recorded/compare` | Exactly `profile`, `job_id`, `reference_token`, `top_k` |
-| `POST /api/journey/recorded/export` | Exactly `profile`, `job_id`, `reference_token`, `top_k`; returns a JSON attachment |
+| `POST /api/journey/recorded/compare` | `profile`, `job_id`, `reference_token`, `top_k`, optional `feature_profile` |
+| `POST /api/journey/recorded/export` | `profile`, `job_id`, `reference_token`, `top_k`, optional `feature_profile`; returns a JSON attachment |
 
-A comparison uses the opaque reference token supplied by the references route. Callers cannot provide source files, feature values, alternate units, mapping classes or arbitrary ranking weights. Job and reference identifiers are validated and scoped to their recorded profile. Requests enforce the same origin and bounded JSON admission rules as the existing recorded query routes.
+A comparison uses the opaque reference token supplied by the references route. Callers cannot provide source files, feature values, alternate units or mapping classes. Explicit profiles admit only the four documented feature identifiers and bounded positive weights/scales. Job and reference identifiers are validated and scoped to their recorded profile. Requests enforce the same origin and bounded JSON admission rules as the existing recorded query routes.
 
-Export without a comparison uses `null` for both `reference_token` and `top_k`. Export with a comparison uses the selected token and an admitted positive integer `top_k`. Export retains the completed query, source and review context, observed evidence and, when selected, the comparison. Download it before its in-memory job expires: the service retains up to three jobs per profile, and a server restart removes that history.
+Export without a comparison uses `null` for both `reference_token` and `top_k`. Export with a comparison uses the selected token and an admitted positive integer `top_k`. Export retains the completed query, source and review context, observed evidence and, when selected, the comparison. The default in-memory service retains up to three jobs per profile and loses that history on restart. With `--state-dir`, completed recorded jobs remain inspectable and exportable across restarts under the bounded [retention policy](durable-recorded-workspace.md).
 
 ## Replay
 
@@ -70,3 +70,48 @@ The automated browser attempt to open the local `/journey` page was blocked with
 3. Inspect the peer observations and the reference's missing follow-up. Increase `top_k` and confirm only highlighting changes.
 4. Change the value threshold or follow-up window, rerun, and confirm those controls change temporal membership/observations without entering the baseline feature calculation.
 5. Download the recorded export and run the replay command above. Restart the server and replay the saved file again against the same checkout and admitted inputs.
+
+
+## Explicit feature profiles and recorded pattern edits
+
+The default one-feature comparison remains available. Selecting an explicit profile
+adds any combination of latest value, pre-index value change, measurement count,
+and latest-measurement recency. All four derive from the same admitted pressure
+item and exact unit. This is richer measurement history, not independently reviewed
+multi-variable clinical similarity. Feature extraction honors both bounds of the
+recorded pattern's strictly pre-index baseline window; it never uses follow-up,
+the scalar eligibility threshold, or temporal match status.
+
+Each selected feature has a positive decimal weight and scale. The distance is
+`sum(weight * abs(candidate - reference) / scale) / sum(weight)`. Fractions determine
+ordering exactly; displayed decimals round half-even to twelve places. Per-feature
+contributions and source observations explain the distance. Missing any selected
+feature leaves that segment unresolved, with no imputation. At least two distinct
+pre-index timestamps are required for value change.
+
+For example, the optional request member is:
+
+```json
+{"feature_profile":{"schema":"recorded-similarity-features-1","features":[
+  {"id":"latest_value","weight":"2","scale":"10"},
+  {"id":"latest_recency","weight":"1","scale":"30"}
+]}}
+```
+
+Weights and scales are positive decimal strings, at most 1,000,000 with at most
+six fractional digits. The canonical profile version, definition, item/unit and
+window are bound into its hash and reproduced during export replay.
+
+The recorded pattern editor treats treatment segments as intervals and measurements
+as points. It supports explicit scalar predicates, exact signed microsecond baseline
+bounds, and optional follow-up windows anchored to segment start or end. It only
+admits temporal windows whose evidence is covered by the retained reviewed parent
+query. A completed edit creates a new job over that same population; reference
+selection, comparison and export then use that revised job. The original remains
+in history while retained. Follow-up absence never excludes an otherwise eligible
+baseline/treatment pair.
+
+The additional routes are `GET .../{profile}/jobs/{id}/pattern`,
+`POST /api/journey/recorded/pattern` with `profile`, `job_id`, `pattern`,
+`GET /api/journey/recorded/history`, and `POST /api/journey/recorded/resume`
+with `job_id`. Resume is an explicit re-execution of an interrupted durable intent.

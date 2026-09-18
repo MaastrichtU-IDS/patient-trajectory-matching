@@ -3,8 +3,12 @@
 The container runs the research application (`python -m app.server`) with authored
 examples. Its API, matching features and limitations are described in the research
 application documentation. Deployment does not authorize clinical use or admit
-locally supplied patient records. The application has no authentication or durable
-shared state. Keep access local or within an access-controlled research environment.
+locally supplied patient records. The default container has in-memory state. The local server also supports optional
+single-owner authentication and durable recorded jobs, described in
+[the durable workspace guide](durable-recorded-workspace.md). These options do not
+provide shared or distributed state. Keep access local or within an access-controlled
+research environment. The Compose and Helm examples below retain their default
+in-memory configuration.
 
 The image uses CPython 3.12 and the existing pinned
 `patterns/requirements-semantic.lock.txt`, including rustDL. No Java runtime is
