@@ -12,6 +12,8 @@ data/local-mimic
 verification
 docs
 evaluation
-deploy
+deploy/*
+!deploy/local_runtime.py
+!deploy/state_archive.py
 node_modules
 **/.DS_Store

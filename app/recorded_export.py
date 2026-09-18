@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = (
     'app/recorded_export.py', 'app/recorded_journey.py',
     'app/recorded_similarity.py', 'app/recorded_selectors.py',
-    'app/feature_profiles.py', 'app/recorded_pattern.py',
+    'app/feature_profiles.py', 'app/clinical_features.py', 'app/recorded_pattern.py',
     'app/temporal_replay.py', 'demo/pressure.py', 'demo/mapped_pressure.py',
     'demo/pressure_cache.py', 'patterns/pressure_service_config.py',
 )
@@ -48,6 +48,9 @@ def _artifacts():
 def _validate_snapshot(snapshot):
     """Reject partial or internally stale evidence before offering an export."""
     try:
+        if 'clinical_features' in snapshot:
+            from app.clinical_features import validate_snapshot
+            validate_snapshot(snapshot)
         result = snapshot['temporal_result']
         anchors = result['anchors']
         details = snapshot['details']
@@ -128,7 +131,7 @@ def export_recorded(workspace, request):
     return json.loads(_encoded(bundle))
 
 
-def verify_recorded(bundle, *, config=None):
+def verify_recorded(bundle, *, config=None, public_demo_dir=None, clinical_features_path=None):
     """Replay against authored defaults or an explicitly supplied local config."""
     _encoded(bundle)
     if not isinstance(bundle, dict) or set(bundle) != {
@@ -144,14 +147,24 @@ def verify_recorded(bundle, *, config=None):
     fields = {'profile', 'stratum', 'controls'}
     if not isinstance(request, dict) or not fields <= set(request) or set(request) - fields - {'pattern'}:
         raise ValueError('Invalid recorded export request')
+    if public_demo_dir is not None and config is not None:
+        raise ValueError('Choose one explicit replay source')
+    has_features = 'clinical_features' in bundle['snapshot']
+    if has_features != (clinical_features_path is not None):
+        raise ValueError('Clinical feature replay requires the matching explicit --clinical-features pack')
     mode = bundle['source_mode']
     if mode == 'configured-records':
         if config is None:
             raise ValueError('Configured recorded replay requires explicit --recorded-config')
         if request['profile'] != 'reviewed' or request['stratum'] != 'configured':
             raise ValueError('Invalid configured recorded export profile')
+    elif mode == 'public-demo':
+        if public_demo_dir is None:
+            raise ValueError('Public-demo replay requires explicit --public-demo-dir')
+        if request['profile'] != 'literal' or request['stratum'] not in ('arterial', 'noninvasive', 'art'):
+            raise ValueError('Invalid public-demo recorded export profile')
     elif mode == 'synthetic':
-        if config is not None:
+        if config is not None or public_demo_dir is not None:
             raise ValueError('Authored recorded replay does not accept a configured source')
         if request['profile'] not in ('literal', 'reviewed') or request['stratum'] != 'synthetic':
             raise ValueError('Invalid authored recorded export profile')
@@ -173,10 +186,11 @@ def verify_recorded(bundle, *, config=None):
     else:
         raise ValueError('Invalid recorded export comparison')
     from app.recorded_journey import RecordedJourneyWorkspace
-    workspace = RecordedJourneyWorkspace(config=config)
+    workspace = RecordedJourneyWorkspace(config=config, public_demo_dir=public_demo_dir,
+                                         clinical_features_path=clinical_features_path)
     try:
         job = workspace.start({key: deepcopy(request[key]) for key in ('profile', 'stratum', 'controls')})
-        deadline = time.monotonic() + 120
+        deadline = time.monotonic() + (3600 if mode != 'synthetic' else 120)
         while job['status'] == 'RUNNING' and time.monotonic() < deadline:
             time.sleep(.01)
             job = workspace.get(request['profile'], job['id'])

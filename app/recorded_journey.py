@@ -15,16 +15,24 @@ ANCHOR_ID = re.compile(r'[0-9a-f]{24}\Z')
 
 
 class RecordedJourneyWorkspace:
-    def __init__(self, config=None, *, literal_service=None, mapped_service=None, state_dir=None):
+    def __init__(self, config=None, *, literal_service=None, mapped_service=None, state_dir=None,
+                 public_demo_dir=None, clinical_features_path=None):
         if config is not None and (literal_service is not None or mapped_service is not None):
             raise ValueError('Choose a startup configuration or injected services')
+        if public_demo_dir is not None and (config is not None or literal_service is not None or mapped_service is not None):
+            raise ValueError('Choose one recorded source configuration')
+        self.public_demo_dir = Path(public_demo_dir).resolve() if public_demo_dir is not None else None
+        self.clinical_features = None
+        if clinical_features_path is not None:
+            from app.clinical_features import ClinicalFeaturePack
+            self.clinical_features = ClinicalFeaturePack(clinical_features_path, lazy=True)
         self.config = config
         self._services = None
         self._injected = {'literal': literal_service, 'reviewed': mapped_service}
         self._lock = threading.RLock()
         self._closed = False
         self.store = None
-        if config is not None:
+        if config is not None or public_demo_dir is not None:
             self._ensure_services()
         if state_dir is not None:
             from app.recorded_store import RecordedStore
@@ -35,6 +43,8 @@ class RecordedJourneyWorkspace:
                        'configuration_context_id': service.metadata().get('configuration_context_id'),
                        'source_mode': service.metadata()['source_mode']}
                 for name, service in services.items()}}
+            if self.clinical_features is not None:
+                namespace['clinical_features'] = self.clinical_features.configuration()
             try:
                 self.store = RecordedStore(Path(state_dir) / 'recorded-jobs.sqlite3', namespace)
                 self.store.recover()
@@ -56,6 +66,8 @@ class RecordedJourneyWorkspace:
                 from demo.mapped_pressure import MappedPressureService
                 if self.config is not None:
                     self._services = {'reviewed': MappedPressureService(config=self.config)}
+                elif self.public_demo_dir is not None:
+                    self._services = {'literal': PressureService(folder=self.public_demo_dir, synthetic=False)}
                 else:
                     self._services = {
                         'literal': self._injected['literal'] or PressureService(synthetic=True),
@@ -90,7 +102,7 @@ class RecordedJourneyWorkspace:
             profiles[profile] = entry
         return {
             'profile': PROFILE,
-            'default_profile': 'reviewed',
+            'default_profile': 'reviewed' if 'reviewed' in profiles else 'literal',
             'profiles': profiles,
             'interpretation': 'Recorded treatment segments and all eligible baseline/follow-up pairs. '
                               'Observed differences are not treatment effects.',
@@ -100,6 +112,7 @@ class RecordedJourneyWorkspace:
                         if self.store else 'Up to three jobs per profile are retained in this server process.'),
             'durable': self.store is not None,
             'feature_profiles': feature_metadata(),
+            'clinical_features': self.clinical_features.metadata() if self.clinical_features is not None else None,
             'query_by_example': {
                 'feature_profile': 'recorded-preindex-pressure-distance-1.0',
                 'top_k_range': [1, 20],
@@ -113,21 +126,41 @@ class RecordedJourneyWorkspace:
         if not isinstance(request, dict) or set(request) != {'profile', 'stratum', 'controls'}:
             raise ValueError('Recorded request fields must be profile, stratum, controls')
         service = self._service(request['profile'])
+        if self.clinical_features is not None:
+            self.clinical_features.check_current()
         if not isinstance(request['stratum'], str) or request['stratum'] not in service.metadata()['strata']:
             raise ValueError('Unknown recorded measurement stratum')
         # Admission comes from the existing service's exact input/review contract.
         # In particular, clients cannot submit files, mappings or arbitrary IRIs.
         if self.store is None:
             job = service.start({'stratum': request['stratum'], 'controls': deepcopy(request['controls'])})
+            if self.clinical_features is not None:
+                service.pool.submit(self._capture_completed, request['profile'], job['id'])
             return {**job, 'profile': request['profile']}
         with self._lock:
             key = uuid.uuid4().hex
             self.store.record_started(key, deepcopy(request))
             return self._start_durable(key, request)
 
+    def _capture_completed(self, profile, job_id):
+        with self._lock:
+            service = self._service(profile)
+            with service.lock:
+                job = service.jobs.get(job_id)
+                if job is None or job['status'] != 'COMPLETED':
+                    return
+                try:
+                    self._live_snapshot(profile, job_id)
+                except Exception:
+                    job['status'] = 'FAILED'
+                    job['error'] = 'Clinical feature admission failed; no complete result is available'
+                    job.pop('summary', None)
+
     def _start_durable(self, key, request):
         service = self._service(request['profile'])
         try:
+            if self.clinical_features is not None:
+                self.clinical_features.check_current()
             job = service.start({'stratum': request['stratum'], 'controls': deepcopy(request['controls'])})
             self.store.record_running(key, job['id'])
             # The same one-worker queue saves immediately after execution, before
@@ -144,7 +177,11 @@ class RecordedJourneyWorkspace:
             if record['state'] not in ('queued', 'running'):
                 return
             service = self._service(profile)
-            job = service.get(service_id)
+            try:
+                job = service.get(service_id)
+            except KeyError:
+                self.store.record_failure(key, 'service_job_expired')
+                return
             if job['status'] == 'RUNNING':
                 return
             if job['status'] != 'COMPLETED':
@@ -167,6 +204,8 @@ class RecordedJourneyWorkspace:
     def get(self, profile, job_id):
         self._identifier(job_id, JOB_ID, 'job')
         if self.store is None:
+            if self.clinical_features is not None:
+                self._capture_completed(profile, job_id)
             return {**self._service(profile).get(job_id), 'profile': profile}
         with self._lock:
             record = self._record(profile, job_id)
@@ -191,6 +230,8 @@ class RecordedJourneyWorkspace:
             if detail is None:
                 raise KeyError('Unknown recorded anchor')
         else:
+            if self.clinical_features is not None:
+                self._capture_completed(profile, job_id)
             detail = self._service(profile).inspect(job_id, token)
         return self._observations(profile, detail)
 
@@ -232,15 +273,22 @@ class RecordedJourneyWorkspace:
             job = service.jobs[job_id]
             if job['status'] != 'COMPLETED':
                 raise ValueError('Comparison and export require a completed recorded query')
+            if '_clinical_snapshot' in job:
+                return deepcopy(job['_clinical_snapshot'])
             result, session = job['_result'], job['_session']
             summary = deepcopy(job['summary'])
             summary.pop('elapsed_seconds', None)
-            return {'profile': profile, 'job_id': job_id,
+            snapshot = {'profile': profile, 'job_id': job_id,
                     'request': deepcopy(job['request']), 'source_mode': summary['source_mode'],
                     'source_context': deepcopy(session.context), 'session_context_id': session.id,
                     'query_context': deepcopy(result['context']), 'query_context_id': result['context_id'],
                     'temporal_result': summary,
                     'details': [session.inspect(result, anchor['token']) for anchor in result['anchors']]}
+            if self.clinical_features is not None:
+                self.clinical_features.check_current()
+                snapshot = self.clinical_features.bind(snapshot)
+                job['_clinical_snapshot'] = deepcopy(snapshot)
+            return snapshot
 
     def references(self, profile, job_id, feature_profile=None):
         from app.recorded_similarity import references
@@ -268,6 +316,12 @@ class RecordedJourneyWorkspace:
         else:
             jobs = []
             for profile, service in self._ensure_services().items():
+                if self.clinical_features is not None:
+                    with self._lock:
+                        with service.lock:
+                            keys = list(service.jobs)
+                        for key in keys:
+                            self._capture_completed(profile, key)
                 with service.lock:
                     jobs.extend({'id': j['id'], 'profile': profile, 'status': j['status'],
                                  'request': deepcopy(j['request']), 'created_at': j.get('created'),
@@ -291,6 +345,8 @@ class RecordedJourneyWorkspace:
 
     def _retained_session(self, profile, job_id):
         """Reopen admitted sources only when an archived query is edited."""
+        if self.clinical_features is not None:
+            self.clinical_features.check_current()
         snapshot = self.snapshot(profile, job_id)
         service = self._service(profile)
         if self.store:
@@ -342,12 +398,13 @@ class RecordedJourneyWorkspace:
                 prepared = prepare(session, request['pattern'], parent_query_context_id=parent['query_context'].get('parent_query_context_id', parent['query_context_id']))
                 if self.store:
                     self.store.record_running(key, key)
-                result = prepared.execute(request['controls'])
+                executor = service.prepared_executor.execute if service.prepared_executor is not None else None
+                result = prepared.execute(request['controls'], batch_executor=executor)
                 from patterns.reviewed_pressure_session import Session
                 Session.check_current(prepared)
                 service._check_implementation()
                 service._check_inputs(request['stratum'], prepared)
-                summary = {k: deepcopy(v) for k, v in result.items() if k != 'details'}
+                summary = {k: deepcopy(v) for k, v in result.items() if k not in ('details', 'evidence')}
                 summary.update(source_mode=service.metadata()['source_mode'], stratum=request['stratum'])
                 job = {'id': key, 'profile': profile, 'status': result['status'],
                        'parent_job_id': request['parent_job_id'],
@@ -356,10 +413,19 @@ class RecordedJourneyWorkspace:
                 while len(service.jobs) >= 3:
                     service.jobs.pop(next(iter(service.jobs)))
                 service.jobs[key] = job
+                if self.clinical_features is not None:
+                    self._live_snapshot(profile, key)
                 if self.store:
                     self._persist_finished(profile, key, key)
                 return self.get(profile, key)
         except Exception:
+            with service.lock:
+                if key in service.jobs:
+                    failed = service.jobs[key]
+                    failed['status'] = 'FAILED'
+                    failed['error'] = 'Pattern admission failed; no complete result is available'
+                    failed.pop('summary', None)
+                    failed.pop('_clinical_snapshot', None)
             if self.store:
                 record = self.store.get(key)
                 if record['state'] in ('queued', 'running', 'interrupted'):

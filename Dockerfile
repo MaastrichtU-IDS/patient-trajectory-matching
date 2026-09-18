@@ -14,6 +14,7 @@ RUN python -m pip install --no-cache-dir --only-binary=:all: -r patterns/require
 
 # Explicit runtime inputs; local datasets and verification outputs are not copied.
 COPY app/ ./app/
+COPY deploy/local_runtime.py deploy/state_archive.py ./deploy/
 COPY patterns/ ./patterns/
 COPY schemas/ ./schemas/
 COPY ontology/ ./ontology/

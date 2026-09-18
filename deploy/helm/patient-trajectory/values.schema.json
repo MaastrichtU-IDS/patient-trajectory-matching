@@ -1,22 +1,183 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["replicaCount", "image", "service", "resources", "ingress"],
+  "required": [
+    "replicaCount",
+    "image",
+    "service",
+    "resources",
+    "ingress"
+  ],
   "properties": {
-    "replicaCount": {"type": "integer", "enum": [1]},
+    "replicaCount": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
     "image": {
       "type": "object",
-      "required": ["repository", "tag", "digest", "pullPolicy"],
+      "required": [
+        "repository",
+        "tag",
+        "digest",
+        "pullPolicy"
+      ],
       "properties": {
-        "repository": {"type": "string", "minLength": 1},
-        "tag": {"type": "string", "minLength": 1},
-        "digest": {"type": "string", "pattern": "^$|^sha256:[a-f0-9]{64}$"},
-        "pullPolicy": {"enum": ["Always", "IfNotPresent", "Never"]}
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^$|^sha256:[a-f0-9]{64}$"
+        },
+        "pullPolicy": {
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
       }
     },
-    "imagePullSecrets": {"type": "array", "items": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string", "minLength": 1}}}},
-    "service": {"type": "object", "properties": {"port": {"type": "integer", "minimum": 1, "maximum": 65535}}},
-    "resources": {"type": "object", "required": ["requests", "limits"]},
-    "ingress": {"type": "object", "required": ["enabled", "host"], "properties": {"enabled": {"type": "boolean"}, "host": {"type": "string", "minLength": 1}}}
-  }
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "required": [
+        "requests",
+        "limits"
+      ]
+    },
+    "ingress": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "host"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "localResearch": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "ownerSecret",
+        "persistence"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "ownerSecret": {
+          "type": "string"
+        },
+        "persistence": {
+          "type": "object",
+          "required": [
+            "existingClaim",
+            "size",
+            "storageClass"
+          ],
+          "properties": {
+            "existingClaim": {
+              "type": "string"
+            },
+            "size": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$"
+            },
+            "storageClass": {
+              "type": "string"
+            }
+          }
+        },
+        "clinicalFeaturesPath": {
+          "type": "string",
+          "pattern": "^$|^/"
+        }
+      },
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ownerSecret": {
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "localResearch": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled"
+            ]
+          }
+        },
+        "required": [
+          "localResearch"
+        ]
+      },
+      "then": {
+        "properties": {
+          "ingress": {
+            "properties": {
+              "enabled": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

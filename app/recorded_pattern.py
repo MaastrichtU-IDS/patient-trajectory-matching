@@ -122,7 +122,7 @@ class _RetainedSession(pressure.Session):
         return deepcopy(self._pattern_query)
 
     def execute(self, options, progress=lambda **kw: None, **kwargs):
-        result = pressure.Session.execute(self, options, progress)
+        result = pressure.Session.execute(self, options, progress, **kwargs)
         result['context'].pop('controls')
         result['context'].update(profile=PROFILE, pattern=deepcopy(self._pattern_form),
             parent_query_context_id=self._parent_query_context_id,

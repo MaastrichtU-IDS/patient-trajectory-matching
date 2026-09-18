@@ -3,7 +3,7 @@
     "app/app.js": "ba5b23faf30ae86adfd28cf28c78ac0118e665dd87aeb46c4964690193ff4ea0",
     "app/index.html": "52d05591525ec2f1b1a4e91eb5f2f233024789dc2b17eeb07afddfe518e05ecb",
     "app/replay.py": "edbee41d7fc40d3387022e3552aede3396083b7e374e847e0006f2d40398c2bb",
-    "app/server.py": "96d725b1775e15fc69c53211be6296ab8eb386748377c31940ce406e7680e0ae",
+    "app/server.py": "196b9f03092c6d7cb24220591be103f2edc0bffbb84c8151c1a0d43aadd96713",
     "app/style.css": "4a28d353c9089b7174e45f84438f583dd287a19dc21a73147da2eb468520b9f9",
     "app/test_server.py": "0c6ee1fb6c86dcd7402c6e6715830829b89c5c3cb4551b029a19714480bf97cf",
     "app/test_ui.cjs": "ace4e036ee6890c0ef790d6d414e178a41ff968aa58a6aecf648f95d7d7945da",

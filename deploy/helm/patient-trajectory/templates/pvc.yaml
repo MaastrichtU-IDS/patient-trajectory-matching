@@ -1,0 +1,16 @@
+{{- if and .Values.localResearch.enabled (not .Values.localResearch.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "trajectory.name" . }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.localResearch.persistence.storageClass }}
+  storageClassName: {{ .Values.localResearch.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.localResearch.persistence.size }}
+{{- end }}

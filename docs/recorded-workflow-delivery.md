@@ -10,15 +10,23 @@ that needs a browser, clinical reviewer, or representative deployment environmen
 |---|---|---|
 | Usability and accessibility | Connected interface, labels, focus styles, live statuses, stale-result isolation, actual-engine DOM tests | Rendered visual, keyboard and screen-reader rehearsal; supported browser cannot reach the local origin |
 | Patterns over recorded sources | Typed point/interval compiler; exact bounds and scalar predicates; reviewed source envelope; immutable revisions feeding comparison/evidence/export | Additional clinical event types require their own admitted data and reviewed selectors |
-| Explicit similarity profiles | Four pressure-history features, positive scales/weights, exact rational ranking, missing-feature coverage, contributions, bound profile hash | Independent clinical variables and clinically chosen weights/scales require review and data |
-| Meaningful MIMIC-IV use case | Reproducible public-demo norepinephrine/pressure query, separate source strata, complete anchor accounting, independent SQL and enumeration | Clinical question/mapping approval and authorized full-source validation |
-| Usefulness and performance | Fresh public-demo cold/warm/changed/cache evaluation, complete-result equality, sampled process-tree RSS, clinical evaluation protocol | Adjudicated relevant-peer labels, held-out retrieval quality and representative scale/concurrency measurements |
-| Durable operation and access | Private SQLite state, automatic completion persistence, restart restoration, explicit resume, bounded retention, owner authentication and audit metadata | Institutional access policy, multi-user authorization, shared production deployment and operational acceptance |
+| Explicit similarity profiles | Pressure-history profiles plus startup-admitted distinct measurement packs; exact units/windows, weighted contributions, source-bound replay and missingness | Clinical approval of variables and weights/scales remains pending |
+| Meaningful MIMIC-IV use case | Public-demo source admission and application-level pattern, comparison, retention and replay evaluation; fixed clinical-review packages | Clinical question/mapping approval and authorized full-source validation |
+| Usefulness and performance | Public-demo workflow evaluation, authored scaling through 5,000 patients, and held-out metric tooling with explicit missing judgments | Independent relevant-peer labels, full-source retrieval quality and representative throughput |
+| Durable operation and access | Private SQLite, owner access, resume, backup/restore utility, private Compose/Helm configurations and container plus disposable-Kubernetes lifecycle CI | Successful container/Kubernetes CI, intended-cluster recovery, institutional access policy and multi-user authorization |
 
-The four similarity features derive from one reviewed pressure item and unit:
-latest value, value change, measurement count and recency. They are an explicit
-extension of the original measurement feature, not a claim that multiple clinical
-variables or a clinically validated similarity function have been implemented.
+The original four-feature profile still describes one pressure stream. The optional
+`recorded-clinical-features-1` profile independently admits additional measurement
+streams, with authored heart-rate/respiratory-rate examples and a reproducible
+pinned public-demo extraction. Both remain descriptive, clinically unvalidated
+similarity functions. Source fidelity does not approve the scientific protocol.
+
+The [recorded three-variable evaluation](clinical-feature-source-evaluation.md)
+checks all 944 public-demo anchors against the original source rows, then verifies
+ranking, durable restart and source-backed replay. Its ART pressure stream yields
+32 complete three-variable anchors, two ranked peers and 97 unresolved patients
+for the selected reference. This technical result does not establish retrieval
+usefulness; explicit coverage is part of the result.
 
 ## Run and verify
 
@@ -53,3 +61,32 @@ These additions do not change the original 104-requirement completion register
 into a finished-product claim. They advance the bounded research implementation;
 the remaining clinical and operational acceptance requires the evidence listed
 above.
+
+
+## Distinct variables and public sources
+
+Enable the authored distinct-variable example with a fresh private state directory:
+
+```sh
+python -m app.server --host 127.0.0.1 --port 8080 \
+  --state-dir "$HOME/.ptm-clinical-example" \
+  --clinical-features examples/clinical-features/authored-pack.json
+```
+
+The interface offers a distinct-variable profile after the recorded query completes.
+Feature-aware reference selection shows which segments have every requested value.
+Completed retained evidence remains readable after the supplemental CSV changes;
+new execution and fresh replay require the exact admitted source again.
+
+For pinned public-demo pressure strata use `--public-demo-dir /path/to/demo/icu`.
+This source mode is explicit, literal-only and bound to the committed public source
+pin. It does not enable unreviewed ontology mappings or select filesystem paths
+from a downloaded report. Replay uses the same explicit option, and adds
+`--clinical-features /path/to/pack.json` for exports with supplemental variables.
+The [clinical-variable pack guide](../examples/clinical-features/README.md) documents
+source extraction and the reviewed input contract. Keep generated source rows and
+packs outside the repository.
+
+The [research release guide](research-release.md) provides optional private Compose
+and Helm modes, owner credentials, consistent backups and restoration checks.
+A release tag remains conditional on the stated environment acceptance gates.
