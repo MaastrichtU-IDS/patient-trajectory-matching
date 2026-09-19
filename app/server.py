@@ -183,7 +183,13 @@ class Handler(BaseHTTPRequestHandler):
         if not host or any(c in host for c in '/\\@, \r\n'):
             return False
         if self.headers.get('Sec-Fetch-Site') == 'cross-site':
-            return False
+            # Fetch Metadata resource isolation: a top-level GET navigation is how a link on
+            # another site reaches this page. It carries no Origin and changes no state.
+            # Cross-site fetches, embeds and every cross-site POST are still refused.
+            navigation = (self.command == 'GET' and self.headers.get('Sec-Fetch-Mode') == 'navigate'
+                          and self.headers.get('Sec-Fetch-Dest') not in ('object', 'embed'))
+            if not navigation:
+                return False
         origin = self.headers.get('Origin')
         if origin:
             parsed = urlsplit(origin)
