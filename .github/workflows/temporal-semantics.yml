@@ -1,0 +1,31 @@
+name: temporal semantics specification
+on:
+  pull_request:
+    paths:
+      - 'docs/temporal-kg/specification/**'
+      - '.github/workflows/temporal-semantics.yml'
+  push:
+    paths:
+      - 'docs/temporal-kg/specification/**'
+      - '.github/workflows/temporal-semantics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  specification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check examples and documentation links
+        run: python docs/temporal-kg/specification/check_examples.py
+      - name: Install elan
+        run: |
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/v4.1.2/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check integration metatheory
+        working-directory: docs/temporal-kg/specification/formal
+        run: sh check.sh
