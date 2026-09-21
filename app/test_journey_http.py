@@ -1,7 +1,11 @@
 """Live HTTP acceptance for the bounded reference-to-temporal-cohort journey."""
 import json
+import subprocess
+import sys
+import tempfile
 import threading
 import unittest
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -35,6 +39,39 @@ class JourneyHTTPTests(unittest.TestCase):
     def controls(self, **changes):
         return {'reference_patient_id': 'T03', 'top_k': 1, 'maximum_baseline': None,
                 'question': 'overlap', 'budget': '0', **changes}
+
+    def test_replay_cli_reports_a_refused_export_as_a_result_not_a_traceback(self):
+        """A refusal is the tool working: the export does not match this implementation.
+
+        verify() raises, and several test modules rely on that, so its contract is unchanged.
+        The CLI must translate the refusal into this repository's contract-failure convention
+        -- structured stdout and exit 2 -- rather than let the traceback escape.
+        """
+        root = Path(server.__file__).resolve().parents[1]
+        run = self.request('/api/journey/run', self.controls(budget='1.25'))
+        export = self.request('/api/journey/export/' + run['report_id'])
+
+        def replay(bundle_or_text, name):
+            with tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / f'{name}.json'
+                path.write_text(bundle_or_text if isinstance(bundle_or_text, str) else json.dumps(bundle_or_text))
+                return subprocess.run([sys.executable, '-m', 'app.temporal_replay', str(path)],
+                                      cwd=root, capture_output=True, text=True, timeout=120)
+
+        ok = replay(export, 'valid')
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        self.assertTrue(json.loads(ok.stdout)['verified'])
+
+        for name, bundle in (('tampered', {**export, 'request': dict(export['request'], budget='0')}),
+                             ('unsupported', {'format': 'no-such-export-1'}),
+                             ('malformed', '{not json')):
+            with self.subTest(case=name):
+                refused = replay(bundle, name)
+                self.assertEqual(refused.returncode, 2, refused.stderr)
+                self.assertNotIn('Traceback', refused.stderr)
+                payload = json.loads(refused.stdout)
+                self.assertIs(payload['verified'], False)
+                self.assertTrue(payload['reason'])
 
     def test_reference_to_cohort_preserves_original_and_evaluates_beyond_preview(self):
         metadata = self.request('/api/journey')

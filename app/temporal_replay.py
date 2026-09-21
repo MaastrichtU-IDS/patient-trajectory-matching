@@ -45,9 +45,19 @@ def main():
         raw = handle.read(8 * 1024 * 1024 + 1)
     if len(raw) > 8 * 1024 * 1024:
         parser.error('Temporal export exceeds 8 MiB')
-    print(json.dumps(verify(json.loads(raw), recorded_config=args.recorded_config,
-                            public_demo_dir=args.public_demo_dir, clinical_features_path=args.clinical_features), indent=2))
+    try:
+        # A refusal is this tool working: the export does not match the admitted fixtures
+        # and implementation. Report it as a result, not a traceback. verify() keeps
+        # raising, because callers that import it depend on that. JSONDecodeError is a
+        # ValueError, so malformed input is refused the same way.
+        result = verify(json.loads(raw), recorded_config=args.recorded_config,
+                        public_demo_dir=args.public_demo_dir, clinical_features_path=args.clinical_features)
+    except ValueError as refusal:
+        print(json.dumps({'verified': False, 'reason': str(refusal)}, indent=2))
+        return 2
+    print(json.dumps(result, indent=2))
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

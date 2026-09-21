@@ -17,6 +17,6 @@ If asked to prove reproduction, save the download as `patient-journey.json` and 
 python -m app.temporal_replay patient-journey.json
 ```
 
-A successful replay prints `"verified": true`. For an alternate question after the timed demo, select the sequential gap preset. It asks about the same recorded histories, so changing the question can remove matches; it does not replace their timelines. Do not switch questions midway through the overlap explanation.
+A successful replay prints `"verified": true` and exits 0. A refused replay — an export that does not match the admitted fixtures and this implementation — prints `"verified": false` with a reason and exits 2, rather than failing with a traceback. For an alternate question after the timed demo, select the sequential gap preset. It asks about the same recorded histories, so changing the question can remove matches; it does not replace their timelines. Do not switch questions midway through the overlap explanation.
 
 The take-away is an explained, reproducible cohort decision. The synthetic baseline score, option cost and temporal certainty must not be presented as clinical similarity validation, treatment benefit or statistical confidence.

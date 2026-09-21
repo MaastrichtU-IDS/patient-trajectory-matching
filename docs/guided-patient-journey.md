@@ -43,7 +43,7 @@ Save the downloaded JSON as `patient-journey.json` and replay against the same a
 python -m app.temporal_replay patient-journey.json
 ```
 
-Replay recomputes the admitted analysis and compares the complete report. A digest alone does not establish that an altered report is valid. Changing the implementation or authored fixtures can require a fresh export.
+Replay recomputes the admitted analysis and compares the complete report. A verified replay prints `verified: true` and exits 0; a refusal prints `verified: false` with a reason and exits 2, matching the contract-failure convention used by the interval profiles. The importable `verify()` raises instead, which is what its callers expect. A digest alone does not establish that an altered report is valid. Changing the implementation or authored fixtures can require a fresh export.
 
 ## Acceptance checks
 
