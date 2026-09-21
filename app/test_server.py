@@ -146,6 +146,28 @@ class ResearchHTTPTests(unittest.TestCase):
             self.request('/api/initial', {'patient_id': 'P00', 'top_k': 5}, {'Origin': 'https://other.example'})
         self.assertEqual(caught.exception.code, 403)
 
+    def test_cross_site_top_level_navigation_is_admitted_but_cross_site_reads_and_writes_are_not(self):
+        """A link on another site arrives as a cross-site GET navigation with no Origin header.
+        That is how a browser reaches this page at all; refusing it shows the JSON error in the tab."""
+        def raw(path, method='GET', headers=None, body=None):
+            try:
+                with urlopen(Request(self.url + path, data=body, headers=headers or {}, method=method), timeout=10) as response:
+                    return response.status
+            except HTTPError as caught:
+                return caught.code
+        navigation = {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document',
+                      'Sec-Fetch-User': '?1', 'Referer': 'http://other.test/'}  # as Chrome sends for a link click
+        self.assertEqual(raw('/journey', headers=navigation), 200)
+        self.assertEqual(raw('/', headers=navigation), 200)
+        # Embedding vectors, cross-site fetch reads and every cross-site write stay refused.
+        self.assertEqual(raw('/journey', headers={**navigation, 'Sec-Fetch-Dest': 'object'}), 403)
+        self.assertEqual(raw('/journey', headers={**navigation, 'Sec-Fetch-Dest': 'embed'}), 403)
+        self.assertEqual(raw('/api/capabilities', headers={'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'cors',
+                                                          'Sec-Fetch-Dest': 'empty'}), 403)
+        json_post = {**navigation, 'Content-Type': 'application/json'}
+        self.assertEqual(raw('/api/initial', 'POST', {**json_post, 'Origin': 'https://other.example'}, b'{}'), 403)
+        self.assertEqual(raw('/api/initial', 'POST', json_post, b'{}'), 403)
+
     def test_strict_body_types_keys_duplicates_and_size(self):
         for body in ([1], {'patient_id': 'P00', 'top_k': True}, {'patient_id': 'P00', 'top_k': 0},
                      {'patient_id': 'P00', 'top_k': 5, 'source_dir': '/tmp'},

@@ -46,7 +46,7 @@ DrugAChild membership under DrugA is existing toy taxonomy entailment. A DrugB s
 
 ## API and operational boundaries
 
-All JSON mutations require the exact supported fields; unknown keys, duplicate JSON keys, non-finite constants, wrong primitive types and bodies over 8 KiB are rejected. Client-supplied paths and uploads are not supported. API requests reject cross-site browser context and mismatched Origin/Host. No CORS permissions are emitted. Browser assets use a same-origin content security policy and escaped content.
+All JSON mutations require the exact supported fields; unknown keys, duplicate JSON keys, non-finite constants, wrong primitive types and bodies over 8 KiB are rejected. Client-supplied paths and uploads are not supported. API requests reject cross-site browser context and mismatched Origin/Host. A cross-site **top-level GET navigation** — following a link to this page from another site — is admitted, because it carries no Origin and changes no state; cross-site fetches, embeds and every cross-site POST remain refused. No CORS permissions are emitted. Browser assets use a same-origin content security policy and escaped content.
 
 | Route | Purpose |
 |---|---|
@@ -71,7 +71,7 @@ python -m unittest discover -s app -p 'test_*.py'
 node app/test_ui.cjs
 ```
 
-`app/test_server.py` executes the whole journey over real HTTP: initial search, two successive refinements, full-population exact/relaxed comparison, source inspection, export and replay. It also tests a non-default reference, unresolved evidence, top-k separation, tamper detection, source-fingerprint mismatch, bounded comparison retention, strict request validation, browser origin checks and health/readiness separation.
+`app/test_server.py` executes the whole journey over real HTTP: initial search, two successive refinements, full-population exact/relaxed comparison, source inspection, export and replay. It also tests a non-default reference, unresolved evidence, top-k separation, tamper detection, source-fingerprint mismatch, bounded comparison retention, strict request validation, browser origin checks including cross-site navigation admission, and health/readiness separation.
 
 `app/test_ui.cjs` executes the actual browser script with engine-produced responses. It checks both refinements and their parent IDs, cohort additions, unresolved patients, source escaping, export state, undo and failed evaluation. This is DOM behaviour verification; it does not claim a full visual or accessibility audit.
 
