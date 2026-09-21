@@ -146,6 +146,22 @@ class ResearchHTTPTests(unittest.TestCase):
             self.request('/api/initial', {'patient_id': 'P00', 'top_k': 5}, {'Origin': 'https://other.example'})
         self.assertEqual(caught.exception.code, 403)
 
+    def test_workspace_grid_items_may_shrink_below_their_content_width(self):
+        """UI-012 reflow at 320 CSS px.
+
+        The 850px breakpoint collapses .workspace to a single `1fr` column, but `1fr` is
+        `minmax(auto,1fr)` and that `auto` minimum is min-content, so a control panel keeps
+        its natural width and the page scrolls sideways anyway. `min-width:0` removes that
+        floor. #recorded-workflow already carried the same guard locally.
+
+        CI has no browser, so this pins the guard rather than measuring layout. The reflow
+        itself was verified in Chrome: /journey 426->320, /temporal 361->320 and
+        /temporal/editor 419->320 against a 320px viewport.
+        """
+        css = (Path(server.__file__).resolve().parent / 'style.css').read_text()
+        self.assertIn('.workspace{display:grid', css)
+        self.assertIn('.workspace>*{min-width:0}', css)
+
     def test_cross_site_top_level_navigation_is_admitted_but_cross_site_reads_and_writes_are_not(self):
         """A link on another site arrives as a cross-site GET navigation with no Origin header.
         That is how a browser reaches this page at all; refusing it shows the JSON error in the tab."""
