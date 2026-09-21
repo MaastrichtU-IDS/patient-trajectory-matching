@@ -70,6 +70,7 @@ Start here for the overall design and current state.
 | [SULO development proposal](sulo-development/) | Lessons, candidate pattern catalogue, record/occurrence distinction and temporal interoperability | Proposed work programme and evaluation gates; no ontology or executable-profile changes |
 | [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |
 | [Temporal precedence](decisions/temporal-precedence.md) | Strict precedence, direct succession, and temporal contact | Proposed decision; no SULO core change adopted |
+| [Relaxation cost models](decisions/relaxation-cost-models.md) | Why the point-anchor oracle and `robust-temporal-relaxation-1.0` price relaxation differently, and the options for reconciling them | Proposed decision; nothing adopted, no reported cost changed |
 | [Replay addendum v2.3](../addenda/specification-2.3.md) | Observation/correction semantics and Graphiti comparison | Specified |
 | [Workspace addendum v2.2](../addenda/specification-2.2.md) | Patient workspace and interaction design | Specified |
 | [Clinical workflow addendum v2.1](../addenda/specification-2.1.md) | Query by example, normalization cases, and MIMIC-IV study plan | Specified |

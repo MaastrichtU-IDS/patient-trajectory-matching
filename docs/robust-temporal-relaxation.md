@@ -64,6 +64,9 @@ entailment claims.
 
 ## Open questions before operational use
 
+This profile is one of two relaxation cost models in the repository. The point-anchor oracle prices relaxation compositionally and continuously; this one prices whole authored options. [Relaxation cost models](decisions/relaxation-cost-models.md) records where they disagree and the options for reconciling them. Nothing is adopted and no cost here changes.
+
+
 - **OPEN — authority:** Who approves relaxable predicates, widened limits, costs,
   budgets and the catalogue version for a particular use?
 - **OPEN — utility:** What domain meaning should the costs have? They are currently
