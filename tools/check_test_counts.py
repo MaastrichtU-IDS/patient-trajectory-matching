@@ -25,6 +25,8 @@ TOTAL_RE = re.compile(r'<!-- test-counts:total -->\d+<!-- /test-counts:total -->
 ROW_RE = re.compile(r'^\| (?P<label>[^|]+?) \| (?P<count>\d+) passed \|$')
 TOTAL_ROW_RE = re.compile(r'^\| \*\*Total\*\* \| \*\*\d+ contract checks\*\* \|$')
 SENTENCE_RE = re.compile(r'The total is \d+ suite tests plus \d+ oracle cases and [\w-]+ oracle properties')
+ADJACENT_RE = re.compile(r'the demo suite has \d+ tests, the research HTTP suite has \d+, and the completion checker has \d+')
+NODE_RE = re.compile(r'\b(?:[A-Z][a-z]+|\d+) Node DOM-state suites\b')
 WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
 
 # Table order. A module missing from here fails the check: that reminder is the point.
@@ -72,16 +74,21 @@ class CountError(Exception):
     """The recorded totals cannot be derived; never a statement that a test failed."""
 
 
-def count_suites(root=ROOT, labels=LABELS, package='patterns'):
-    """Count loadable test cases per module. Import failures raise; they are never counted as one."""
+def count_suites(root=ROOT, labels=LABELS, package='patterns', exhaustive=True):
+    """Count loadable test cases per module. Import failures raise; they are never counted as one.
+
+    `exhaustive` requires labels to name every test module in the package, so a new suite
+    fails the check until it is recorded. Pass False to count named modules only.
+    """
     root = Path(root)
     modules = sorted(p.stem for p in (root / package).glob('test_*.py'))
-    unlabelled = [m for m in modules if m not in labels]
-    if unlabelled:
-        raise CountError('Add a table label in LABELS for: ' + ', '.join(unlabelled))
+    if exhaustive:
+        unlabelled = [m for m in modules if m not in labels]
+        if unlabelled:
+            raise CountError('Add a table label in LABELS for: ' + ', '.join(unlabelled))
     missing = [m for m in labels if m not in modules]
     if missing:
-        raise CountError('LABELS names suites that no longer exist: ' + ', '.join(missing))
+        raise CountError(f'{package}: labelled suites that no longer exist: ' + ', '.join(missing))
     # Import against this root only. Snapshot the package namespace so a `patterns`
     # already cached from another root (or by the caller) cannot shadow it, and put
     # everything back afterwards so counting leaves the process as it found it.
@@ -108,6 +115,26 @@ def count_suites(root=ROOT, labels=LABELS, package='patterns'):
     return counts
 
 
+def adjacent_counts(root=ROOT):
+    """Counts for the suites the status sentence names beside the contract total.
+
+    These are not contract checks: the demo, research-HTTP and completion-audit suites
+    exercise the application and tooling, not the matching contracts. They were hand-typed
+    and drifted, so they are derived here too. Node suites are counted as files because
+    they are driven by `node`, not the unittest loader.
+    """
+    demo_modules = {p.stem: p.stem for p in sorted((Path(root) / 'demo').glob('test_*.py'))}
+    demo = sum(count_suites(root, demo_modules, package='demo').values())
+    server = count_suites(root, {'test_server': 'test_server'}, package='app',
+                          exhaustive=False)['test_server']
+    completion = count_suites(root, {'test_check_completion': 'test_check_completion'},
+                              package='tools', exhaustive=False)['test_check_completion']
+    node = sorted(str(q.relative_to(root)) for d in ('app', 'demo')
+                  for q in (Path(root) / d).glob('test_*.cjs'))
+    return {'demo_suite': demo, 'research_http_suite': server,
+            'completion_checker': completion, 'node_dom_suites': len(node), 'node_suite_files': node}
+
+
 def oracle_counts(root=ROOT):
     cases = json.loads((Path(root) / CASES).read_text())
     properties = json.loads((Path(root) / ORACLE_REPORT).read_text())['properties']
@@ -118,14 +145,14 @@ def _number(n):
     return WORDS[n] if 0 <= n < len(WORDS) else str(n)
 
 
-def render_block(block, counts, cases, properties, labels=LABELS):
+def render_block(block, counts, cases, properties, labels=LABELS, adjacent=None):
     """Regenerate suite rows, the total row and the total sentence; preserve everything else."""
     suite_total = sum(counts.values())
     contract_total = suite_total + cases + properties
     by_label = {labels[m]: counts[m] for m in counts}
     generated = [f'| {labels[m]} | {counts[m]} passed |' for m in labels]
     generated.append(f'| **Total** | **{contract_total} contract checks** |')
-    out, emitted, saw_sentence = [], False, False
+    out, emitted, saw_sentence, seen = [], False, False, set()
     for line in block.split('\n'):  # not splitlines(): keep the block's exact line breaks
         row = ROW_RE.match(line)
         if (row and row.group('label') in by_label) or TOTAL_ROW_RE.match(line):
@@ -138,32 +165,48 @@ def render_block(block, counts, cases, properties, labels=LABELS):
                 f'The total is {suite_total} suite tests plus {cases} oracle cases and '
                 f'{_number(properties)} oracle properties', line)
             saw_sentence = True
+        if adjacent and ADJACENT_RE.search(line):
+            line = ADJACENT_RE.sub(
+                f"the demo suite has {adjacent['demo_suite']} tests, the research HTTP suite has "
+                f"{adjacent['research_http_suite']}, and the completion checker has "
+                f"{adjacent['completion_checker']}", line)
+            seen.add('adjacent')
+        if adjacent and NODE_RE.search(line):
+            line = NODE_RE.sub(f"{_number(adjacent['node_dom_suites']).capitalize()} Node DOM-state suites"
+                               if NODE_RE.search(line).group(0)[0].isupper()
+                               else f"{_number(adjacent['node_dom_suites'])} Node DOM-state suites", line)
+            seen.add('node')
         out.append(line)
     if not emitted:
         raise CountError('No recognised suite rows or total row inside the marked block')
     if not saw_sentence:
         raise CountError('The marked block has no "The total is ... suite tests" sentence')
+    for name in (('adjacent', 'node') if adjacent else ()):
+        if name not in seen:
+            raise CountError(f'The marked block has no {name} suite-count phrase to regenerate')
     return '\n'.join(out), contract_total
 
 
-def render_status(text, counts, cases, properties, labels=LABELS):
+def render_status(text, counts, cases, properties, labels=LABELS, adjacent=None):
     if text.count(START) != 1 or text.count(END) != 1:
         raise CountError(f'{STATUS} must contain exactly one {START} and one {END}')
     if len(TOTAL_RE.findall(text)) != 1:
         raise CountError(f'{STATUS} must contain exactly one inline total marker')
     head, rest = text.split(START, 1)
     block, tail = rest.split(END, 1)
-    new_block, contract_total = render_block(block, counts, cases, properties, labels)
+    new_block, contract_total = render_block(block, counts, cases, properties, labels, adjacent)
     text = head + START + new_block + END + tail
     text = TOTAL_RE.sub(f'<!-- test-counts:total -->{contract_total}<!-- /test-counts:total -->', text)
     return text, contract_total
 
 
-def report(counts, cases, properties, contract_total):
+def report(counts, cases, properties, contract_total, adjacent=None):
     return {'profile': 'test-count-report-1.0', 'method': 'unittest loader; no tests executed',
             'suites': counts, 'suite_tests': sum(counts.values()),
             'oracle_cases': cases, 'oracle_properties': properties,
-            'contract_checks': contract_total}
+            'contract_checks': contract_total,
+            'adjacent_suites': {k: v for k, v in (adjacent or {}).items() if k != 'node_suite_files'},
+            'node_suite_files': (adjacent or {}).get('node_suite_files', [])}
 
 
 def main(argv=None):
@@ -175,12 +218,13 @@ def main(argv=None):
     try:
         counts = count_suites(args.root, LABELS)
         cases, properties = oracle_counts(args.root)
+        adjacent = adjacent_counts(args.root)
         current = status.read_text()
-        rendered, contract_total = render_status(current, counts, cases, properties, LABELS)
+        rendered, contract_total = render_status(current, counts, cases, properties, LABELS, adjacent)
     except CountError as exc:
         print(f'test-counts: {exc}', file=sys.stderr)
         return 2
-    summary = report(counts, cases, properties, contract_total)
+    summary = report(counts, cases, properties, contract_total, adjacent)
     if args.write:
         status.write_text(rendered)
         (args.root / REPORT).write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')

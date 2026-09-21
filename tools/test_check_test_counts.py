@@ -10,8 +10,8 @@ import textwrap
 import unittest
 from unittest import mock
 
-from tools.check_test_counts import (ROOT, STATUS, REPORT, START, END, CountError, count_suites,
-                                     oracle_counts, render_status, main)
+from tools.check_test_counts import (ROOT, STATUS, REPORT, START, END, CountError, adjacent_counts,
+                                     count_suites, oracle_counts, render_status, main)
 
 LABELS = {'test_alpha': 'Alpha tests', 'test_beta': 'Beta tests'}
 
@@ -29,6 +29,14 @@ def fixture_root(tmp, *, alpha=2, beta=3, cases=2, properties=3, extra_module=No
             'import unittest\nclass T(unittest.TestCase):\n    def test_x(self): pass\n')
     if broken:
         (root / 'patterns/test_alpha.py').write_text('import no_such_module_anywhere\n')
+    for pkg, modules, cjs in (('demo', {'test_d1': 3, 'test_d2': 4}, 2), ('app', {'test_server': 5}, 3),
+                              ('tools', {'test_check_completion': 6}, 0)):
+        (root / pkg).mkdir(); (root / pkg / '__init__.py').write_text('')
+        for name, n in modules.items():
+            body = '\n'.join(f'    def test_{i}(self): pass' for i in range(n))
+            (root / pkg / f'{name}.py').write_text(f'import unittest\nclass T(unittest.TestCase):\n{body}\n')
+        for i in range(cjs):
+            (root / pkg / f'test_{i}_ui.cjs').write_text('// node suite\n')
     (root / 'examples').mkdir(); (root / 'verification').mkdir(); (root / 'docs').mkdir()
     (root / 'examples/cases.json').write_text(json.dumps([{}] * cases))
     (root / 'verification/reference-report.json').write_text(json.dumps({'properties': ['p'] * properties}))
@@ -49,7 +57,7 @@ def fixture_root(tmp, *, alpha=2, beta=3, cases=2, properties=3, extra_module=No
         | **Total** | **0 contract checks** |
         | Release manifest digests | 9 verified |
 
-        The total is 0 suite tests plus 0 oracle cases and zero oracle properties; other checks are not added again.
+        The total is 0 suite tests plus 0 oracle cases and zero oracle properties; other checks are not added again. Separately, the demo suite has 0 tests, the research HTTP suite has 0, and the completion checker has 0. Four Node DOM-state suites cover the demos.
 
         {END}
         '''))
@@ -94,6 +102,56 @@ class CountTests(unittest.TestCase):
             self.assertEqual(written['contract_checks'], 10)
             self.assertEqual(written['suites'], {'test_alpha': 2, 'test_beta': 3})
             self.assertEqual(written['method'], 'unittest loader; no tests executed')
+
+    def test_adjacent_suite_counts_are_measured_not_typed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = fixture_root(tmp)
+            a = adjacent_counts(root)
+            self.assertEqual(a['demo_suite'], 7)            # 3 + 4 across two demo modules
+            self.assertEqual(a['research_http_suite'], 5)   # app/test_server.py
+            self.assertEqual(a['completion_checker'], 6)    # tools/test_check_completion.py
+            self.assertEqual(a['node_dom_suites'], 5)       # 2 under demo/ + 3 under app/
+            self.assertEqual(len(a['node_suite_files']), 5)
+            self.assertTrue(all(f.endswith('.cjs') for f in a['node_suite_files']))
+
+    def test_render_rewrites_the_adjacent_sentence_and_node_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = fixture_root(tmp)
+            text, _ = render_status((root / STATUS).read_text(), {'test_alpha': 2, 'test_beta': 3},
+                                    2, 3, LABELS, adjacent_counts(root))
+            self.assertIn('the demo suite has 7 tests, the research HTTP suite has 5, '
+                          'and the completion checker has 6', text)
+            self.assertIn('Five Node DOM-state suites', text)   # sentence-initial stays capitalised
+            self.assertNotIn('Four Node DOM-state suites', text)
+
+    def test_missing_adjacent_phrase_fails_rather_than_passing_silently(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = fixture_root(tmp)
+            status = root / STATUS
+            status.write_text(status.read_text().replace(' Four Node DOM-state suites cover the demos.', ''))
+            with self.assertRaises(CountError) as ctx:
+                render_status(status.read_text(), {'test_alpha': 2, 'test_beta': 3}, 2, 3,
+                              LABELS, adjacent_counts(root))
+            self.assertIn('node', str(ctx.exception))
+
+    def test_named_module_counting_skips_the_completeness_requirement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = fixture_root(tmp)
+            # app/ holds an unlabelled module; exhaustive counting must still refuse it.
+            (root / 'app/test_extra.py').write_text('import unittest\nclass T(unittest.TestCase):\n    def test_x(self): pass\n')
+            self.assertEqual(count_suites(root, {'test_server': 'x'}, package='app',
+                                          exhaustive=False)['test_server'], 5)
+            with self.assertRaises(CountError):
+                count_suites(root, {'test_server': 'x'}, package='app')
+
+    def test_committed_status_adjacent_counts_match_the_repository(self):
+        """The guard CI runs: the committed sentence must match today's adjacent suites."""
+        a = adjacent_counts()
+        status = (ROOT / STATUS).read_text()
+        self.assertIn(f"the demo suite has {a['demo_suite']} tests, the research HTTP suite has "
+                      f"{a['research_http_suite']}, and the completion checker has "
+                      f"{a['completion_checker']}", status)
+        self.assertRegex(status, r'\b[A-Z][a-z]+ Node DOM-state suites\b')
 
     def test_unlabelled_suite_fails_and_names_the_module(self):
         with tempfile.TemporaryDirectory() as tmp:
