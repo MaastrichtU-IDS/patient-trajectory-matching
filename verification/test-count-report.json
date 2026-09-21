@@ -1,6 +1,22 @@
 {
+  "adjacent_suites": {
+    "completion_checker": 13,
+    "demo_suite": 104,
+    "node_dom_suites": 8,
+    "research_http_suite": 15
+  },
   "contract_checks": 865,
   "method": "unittest loader; no tests executed",
+  "node_suite_files": [
+    "app/test_editor_ui.cjs",
+    "app/test_journey_ui.cjs",
+    "app/test_recorded_journey_ui.cjs",
+    "app/test_temporal_ui.cjs",
+    "app/test_ui.cjs",
+    "demo/test_configured_pressure_ui.cjs",
+    "demo/test_guided_ui.cjs",
+    "demo/test_pressure_ui.cjs"
+  ],
   "oracle_cases": 16,
   "oracle_properties": 7,
   "profile": "test-count-report-1.0",

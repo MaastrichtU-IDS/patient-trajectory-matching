@@ -86,6 +86,8 @@ The current contract-check total lives in [status.md](status.md#verification-res
 python tools/check_test_counts.py --write
 ```
 
+The suite counts named beside that total — the demo suite, the research HTTP suite, the completion checker and the Node DOM-state suites — are generated from the same command; Node suites are counted as files because `node` drives them, not the unittest loader.
+
 The per-increment totals quoted in the sections below ("through this profile, the suites total N checks") are **historical**: each was correct for the increment that introduced it and is kept as the project's growth record. They are not maintained and are not the current total.
 
 ## Component 1 — Reference oracle
