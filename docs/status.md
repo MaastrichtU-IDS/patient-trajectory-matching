@@ -113,7 +113,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 842 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 14, and the completion checker has 13. Four Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
+The total is 842 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 15, and the completion checker has 13. Four Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
 
 <!-- test-counts:end -->
 
