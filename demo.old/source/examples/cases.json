@@ -1,0 +1,2402 @@
+[
+  {
+    "case_id": "C01",
+    "description": "Exact upper boundary",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "PASS",
+      "accepted_as": "EXACT",
+      "total_cost": "0",
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C02",
+    "description": "Entailed subclass is exact",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugAChild",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "PASS",
+      "accepted_as": "EXACT",
+      "total_cost": "0",
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C03",
+    "description": "Reviewed concept alternative",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugB",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "RELAXED",
+      "total_cost": "1",
+      "relaxed_constraint_ids": [
+        "exposure"
+      ],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C04",
+    "description": "Time cap boundary",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -777600000000,
+          "start_max_us": -777600000000,
+          "end_min_us": -777600000000,
+          "end_max_us": -777600000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "RELAXED",
+      "total_cost": "1",
+      "relaxed_constraint_ids": [
+        "exposure_window"
+      ],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C05",
+    "description": "Combined maximum cost",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugB",
+        "source_code": "ex:DrugB",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -777600000000,
+          "start_max_us": -777600000000,
+          "end_min_us": -777600000000,
+          "end_max_us": -777600000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "RELAXED",
+      "total_cost": "2",
+      "relaxed_constraint_ids": [
+        "exposure",
+        "exposure_window"
+      ],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C06",
+    "description": "Beyond time cap",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -864000000000,
+          "start_max_us": -864000000000,
+          "end_min_us": -864000000000,
+          "end_max_us": -864000000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "NONE",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C07",
+    "description": "Hard numeric threshold",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.29",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "NONE",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C08",
+    "description": "No recorded baseline",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "NONE",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C09",
+    "description": "Unresolved baseline unit",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": null,
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "INDETERMINATE",
+      "accepted_as": "UNRESOLVED",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C10",
+    "description": "Prescription is not administration",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "prescription",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "NONE",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C11",
+    "description": "Combined cost exceeds smaller budget",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugB",
+        "source_code": "ex:DrugB",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -777600000000,
+          "start_max_us": -777600000000,
+          "end_min_us": -777600000000,
+          "end_max_us": -777600000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": {
+      "max_relaxed_constraints": 2,
+      "max_total_cost": "1"
+    },
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "NONE",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C12",
+    "description": "Possible exact but definite relaxed",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -691200000000,
+          "start_max_us": -518400000000,
+          "end_min_us": -691200000000,
+          "end_max_us": -518400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "INDETERMINATE",
+      "accepted_as": "RELAXED",
+      "total_cost": "0.5",
+      "relaxed_constraint_ids": [
+        "exposure_window"
+      ],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C13",
+    "description": "No permitted alternative",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugC",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "FAIL",
+      "accepted_as": "NONE",
+      "total_cost": null,
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": null
+    }
+  },
+  {
+    "case_id": "C14",
+    "description": "Ignore unrelated extra event",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "N1",
+        "record_id": "record-N1",
+        "clinical_event_id": "occurrence-N1",
+        "event_kind": "other",
+        "concept": "ex:Noise",
+        "source_code": "ex:Noise",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -43200000000,
+          "start_max_us": -43200000000,
+          "end_min_us": -43200000000,
+          "end_max_us": -43200000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "N1",
+          "source_record_sha256": "b79f477f6d435116155b1121455748240bb5e7c81f7043519980df21a8167ca1",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-N1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "PASS",
+      "accepted_as": "EXACT",
+      "total_cost": "0",
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C15",
+    "description": "Select minimum baseline",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "0.8",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B2",
+        "record_id": "record-B2",
+        "clinical_event_id": "occurrence-B2",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -43200000000,
+          "start_max_us": -43200000000,
+          "end_min_us": -43200000000,
+          "end_max_us": -43200000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.2",
+        "unit": "mg/dL",
+        "original_value": "1.2",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B2",
+          "source_record_sha256": "abdbc2b5cc2c7a519b72bf7a164c58ebf892ab0c2df6468213705cc2f0da8561",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B2"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "PASS",
+      "accepted_as": "EXACT",
+      "total_cost": "0",
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": "B1"
+    }
+  },
+  {
+    "case_id": "C16",
+    "description": "Tie by time then event ID",
+    "patient_id": "P1",
+    "episode_id": "A1",
+    "age": 50,
+    "source_search_complete": true,
+    "events": [
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B1",
+        "record_id": "record-B1",
+        "clinical_event_id": "occurrence-B1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B1",
+          "source_record_sha256": "5b950e77941d01cdf246d00b1ece546bc95234b77d98b44c9187e2733afa696a",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "E1",
+        "record_id": "record-E1",
+        "clinical_event_id": "occurrence-E1",
+        "event_kind": "administration",
+        "concept": "ex:DrugA",
+        "source_code": "ex:DrugA",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -604800000000,
+          "start_max_us": -604800000000,
+          "end_min_us": -604800000000,
+          "end_max_us": -604800000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": null,
+        "unit": null,
+        "original_value": null,
+        "original_unit": null,
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "E1",
+          "source_record_sha256": "22249aa61fd2594e50910aa574afbb977f9df8f7377e6f02e19c72245d899ad8",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-E1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "F1",
+        "record_id": "record-F1",
+        "clinical_event_id": "occurrence-F1",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": 0,
+          "start_max_us": 0,
+          "end_min_us": 0,
+          "end_max_us": 0,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.3",
+        "unit": "mg/dL",
+        "original_value": "1.3",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "F1",
+          "source_record_sha256": "deae2d4d75857c1081f113bcfc950dca567dd5a2e14e6ac8fb8e5785ff4dd5ec",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-F1"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      },
+      {
+        "dataset_id": "toy",
+        "snapshot_id": "toy-snapshot-v1",
+        "patient_id": "P1",
+        "episode_id": "A1",
+        "event_id": "B2",
+        "record_id": "record-B2",
+        "clinical_event_id": "occurrence-B2",
+        "event_kind": "measurement",
+        "concept": "ex:Creatinine",
+        "source_code": "ex:Creatinine",
+        "source_system": "constructed_fixture",
+        "mapping_ref": null,
+        "status": "performed",
+        "experiencer": "patient",
+        "time": {
+          "kind": "point",
+          "clock_id": "P1-relative",
+          "start_min_us": -86400000000,
+          "start_max_us": -86400000000,
+          "end_min_us": -86400000000,
+          "end_max_us": -86400000000,
+          "precision": "second",
+          "timestamp_role": "occurrence"
+        },
+        "value": "1.0",
+        "unit": "mg/dL",
+        "original_value": "1.0",
+        "original_unit": "mg/dL",
+        "comparator": "eq",
+        "provenance": {
+          "source_file": "constructed://case",
+          "source_key": "B2",
+          "source_record_sha256": "abdbc2b5cc2c7a519b72bf7a164c58ebf892ab0c2df6468213705cc2f0da8561",
+          "adapter_rule": "toy_v1",
+          "assertion_ids": [
+            "assertion-B2"
+          ]
+        },
+        "record_version": 1,
+        "supersedes": null
+      }
+    ],
+    "budget_override": null,
+    "expected": {
+      "exact_status": "PASS",
+      "accepted_as": "EXACT",
+      "total_cost": "0",
+      "relaxed_constraint_ids": [],
+      "baseline_event_id": "B1"
+    }
+  }
+]

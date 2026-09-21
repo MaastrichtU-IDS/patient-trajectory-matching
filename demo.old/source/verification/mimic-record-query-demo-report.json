@@ -1,0 +1,235 @@
+{
+  "profile": "mimic-record-query-verification-1.0",
+  "scope": "Public-demo recorded source intervals only; no clinical cohort claim.",
+  "full_mimic_analyzed": false,
+  "patient_rows_included": false,
+  "request_sha256": "fd0e8b4e9b549307ca51e303b2f1582d566ace8df67b674a12c5b85602bc2e4e",
+  "verifier_sha256": "795be6f76a8d7c6ae396fb377d56d8ff8d03bf1d438a69878f4e505f646b1cbf",
+  "rustdl_version": "0.4.28",
+  "admission": {
+    "source_url": "https://physionet.org/content/mimic-iv-demo/2.2/",
+    "published_checksum_url": "https://physionet.org/files/mimic-iv-demo/2.2/SHA256SUMS.txt",
+    "published_file_hashes_verified": true,
+    "source_pin_sha256": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
+    "verifier_sha256": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
+    "scope": "Public demo inputevents staging only; no patient-level data in this report.",
+    "full_mimic_analyzed": false,
+    "summary": {
+      "profile": "mimic-inputevents-staging-1.0",
+      "context_id": "e69c10905683c01258605cbe3441ff68571c22852049d2bad5fdf2fbc6580e80",
+      "context": {
+        "dataset_id": "mimic-iv-demo-2.2",
+        "schema_version": "MIMIC-IV-demo-2.2",
+        "profile": "mimic-inputevents-staging-1.0",
+        "files": [
+          {
+            "table": "inputevents",
+            "file_sha256": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
+            "csv_sha256": "34ff7b19dbdfdf4608c4de3ad589a4b1624f6e767a09cd5489fe6d2448e4edfd",
+            "columns": [
+              "subject_id",
+              "hadm_id",
+              "stay_id",
+              "caregiver_id",
+              "starttime",
+              "endtime",
+              "storetime",
+              "itemid",
+              "amount",
+              "amountuom",
+              "rate",
+              "rateuom",
+              "orderid",
+              "linkorderid",
+              "ordercategoryname",
+              "secondaryordercategoryname",
+              "ordercomponenttypedescription",
+              "ordercategorydescription",
+              "patientweight",
+              "totalamount",
+              "totalamountuom",
+              "isopenbag",
+              "continueinnextdept",
+              "statusdescription",
+              "originalamount",
+              "originalrate"
+            ],
+            "rows": 20404
+          },
+          {
+            "table": "icustays",
+            "file_sha256": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+            "csv_sha256": "9a79a759372a6075560a0dcf53d10122e691a8a4dce7141101f6660ab8476f42",
+            "columns": [
+              "subject_id",
+              "hadm_id",
+              "stay_id",
+              "first_careunit",
+              "last_careunit",
+              "intime",
+              "outtime",
+              "los"
+            ],
+            "rows": 140
+          },
+          {
+            "table": "d_items",
+            "file_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+            "csv_sha256": "3a9ff93b12727ec17000896c144c03573bccae0f8f71d5d5c2ba773ebf7ffa5d",
+            "columns": [
+              "itemid",
+              "label",
+              "abbreviation",
+              "linksto",
+              "category",
+              "unitname",
+              "param_type",
+              "lownormalvalue",
+              "highnormalvalue"
+            ],
+            "rows": 4014
+          }
+        ],
+        "implementation_sha256": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f"
+      },
+      "status": "STAGED_NOT_MATCHER_READY",
+      "matcher_ready": false,
+      "matcher_blockers": [
+        "PATIENT_LOCAL_CLOCK_BRIDGE_REQUIRED",
+        "CLINICAL_MAPPING_REVIEW_REQUIRED",
+        "OCCURRENCE_PRECISION_POLICY_REQUIRED",
+        "SOURCE_AVAILABILITY_UNVERIFIED",
+        "SOURCE_REVISION_HISTORY_UNAVAILABLE"
+      ],
+      "input_rows": 20404,
+      "outcome_counts": {
+        "STAGED_SEGMENT": 10980,
+        "UNSUPPORTED_ROW": 9424,
+        "INVALID_ROW": 0,
+        "DUPLICATE_ROW": 0
+      },
+      "reason_counts": {
+        "MISSING_QUANTITY_OR_UNIT:rate": 9366,
+        "NON_POSITIVE_QUANTITY:amount": 31,
+        "NON_POSITIVE_QUANTITY:rate": 2,
+        "ONE_MINUTE_BOLUS_AMBIGUITY": 8550,
+        "UNSUPPORTED_ORDER_CATEGORY": 8497,
+        "UNSUPPORTED_STATUS": 12
+      },
+      "reconciliation_complete": true,
+      "staged_segments": 10980,
+      "clinical_mapping_verified": false,
+      "availability_verified": false,
+      "history_coverage": "unavailable",
+      "clinical_knowledge_status": "UNKNOWN",
+      "matching": null
+    }
+  },
+  "query_summary": {
+    "profile": "mimic-record-query-1.0",
+    "context_id": "106874639f43422572db968cba5513558b426499c45f944acbf73892bc8f95b5",
+    "context": {
+      "profile": "mimic-record-query-1.0",
+      "request": {
+        "constraints": [
+          {
+            "id": "order",
+            "left": "a",
+            "operator": "before",
+            "right": "b"
+          }
+        ],
+        "dataset_id": "mimic-iv-demo-2.2",
+        "id": "demo_item_order",
+        "mode": "retrospective_source_records",
+        "patient_ids": "all",
+        "profile": "mimic-record-query-1.0",
+        "slots": [
+          {
+            "id": "a",
+            "itemids": [
+              "225152"
+            ]
+          },
+          {
+            "id": "b",
+            "itemids": [
+              "222056"
+            ]
+          }
+        ],
+        "time_policy": "recorded-label-exact-v1"
+      },
+      "admission_context_id": "e69c10905683c01258605cbe3441ff68571c22852049d2bad5fdf2fbc6580e80",
+      "time_semantics": "recorded_source_intervals",
+      "endpoint_policy": "recorded-label-exact-v1",
+      "origin_policy": "minimum_admitted_start_per_patient_before_query_filtering",
+      "mapping_policy": "item-code-to-recorded-process-class-v1",
+      "scope": "requested_patients_and_admitted_inputevents_in_supplied_snapshot",
+      "history_mode": "retrospective_source_records",
+      "physical_elapsed_time_verified": false,
+      "clinical_mapping_verified": false,
+      "source_history_verified": false,
+      "limits": {
+        "events_per_episode": 30,
+        "candidate_bindings": 20000,
+        "episodes": 256
+      },
+      "artifacts": {
+        "patterns/mimic_record_query.py": "6581f6f4b2c692f709d6b63760a103a055df09b56f23f2384d7eddeee5539759",
+        "schemas/mimic-record-query.schema.json": "dd6ad358d1760147d07f8bc7e61d4b6b88c66dd67412accd7de56771713e9abc",
+        "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+        "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
+        "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
+        "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
+        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+        "patterns/exact_intervals.py": "4451dbda47f6e771f6d1ad9210f59195a497e84af5a9fbd03f2c9a14856cf6a7",
+        "patterns/pro_solid.py": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+        "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+        "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
+        "ontology/bounded-interval-profile.ttl": "b05c784671c0e1599cc015f678dd9213fc9036727afe820b3161bb591f9e62f6",
+        "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
+        "ontology/exact-interval-profile.ttl": "ac6189ff68ea3bfe3dbc24aac272dc72e494d45991a0665c14eee943368fee5b",
+        "ontology/pro-solid-profile.ttl": "72a5ac88b904ac54483ae11be9d7108b4c2b6fc6f0309c9c0df0ee45a53b483d",
+        "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+        "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+        "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+        "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+        "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f"
+      }
+    },
+    "status": "COMPLETED_RECORDED_QUERY",
+    "search_complete_over_admitted_records": true,
+    "clinical_mapping_verified": false,
+    "clinical_knowledge_status": "UNKNOWN",
+    "source_history_verified": false,
+    "physical_elapsed_time_verified": false,
+    "input_rows": 20404,
+    "admission_outcome_counts": {
+      "STAGED_SEGMENT": 10980,
+      "UNSUPPORTED_ROW": 9424,
+      "INVALID_ROW": 0,
+      "DUPLICATE_ROW": 0
+    },
+    "query_outcome_counts": {
+      "NOT_ADMITTED": 9424,
+      "OUTSIDE_ITEM_SCOPE": 10690,
+      "SELECTED_RECORD": 290
+    },
+    "represented_patients": 100,
+    "represented_icu_stays": 140,
+    "episode_outcome_counts": {
+      "NO_ADMITTED_RECORD_MATCH": 139,
+      "RECORDED_PATTERN_MATCH": 1
+    },
+    "matched_patients": 1,
+    "matched_bindings": 1,
+    "semantic_episodes": 3,
+    "candidate_bindings_checked": 94,
+    "reference_verified": true
+  }
+}

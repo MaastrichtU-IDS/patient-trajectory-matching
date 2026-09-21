@@ -1,0 +1,322 @@
+{
+  "profile": "patient-local-interval-1.0",
+  "dataset_id": "constructed-patient-local",
+  "snapshot_id": "local-example-01",
+  "clocks": [
+    {
+      "clock_id": "P1_common",
+      "origin": "2150-01-01T00:00:00",
+      "scope": "patient:P1",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:declared-coordinate-zero:P1:common"
+    },
+    {
+      "clock_id": "P2_common",
+      "origin": "2200-03-12T00:00:00",
+      "scope": "patient:P2",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:declared-coordinate-zero:P2:common"
+    },
+    {
+      "clock_id": "P3_common",
+      "origin": "2110-10-25T00:00:00",
+      "scope": "patient:P3",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:declared-coordinate-zero:P3:common"
+    },
+    {
+      "clock_id": "P4_common",
+      "origin": "2180-01-01T00:00:00",
+      "scope": "patient:P4",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:declared-coordinate-zero:P4:common"
+    },
+    {
+      "clock_id": "P4_other",
+      "origin": "2180-01-01T00:00:00",
+      "scope": "patient:P4",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic:declared-coordinate-zero:P4:other"
+    }
+  ],
+  "variables": [
+    {
+      "id": "P1as",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "P1_common",
+      "source_key": "synthetic:P1as",
+      "local_lower": "2150-01-01T00:00:00.000000",
+      "local_upper": "2150-01-01T00:00:00.000002"
+    },
+    {
+      "id": "P1ae",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "P1_common",
+      "source_key": "synthetic:P1ae",
+      "local_lower": "2150-01-01T00:00:00.000001",
+      "local_upper": "2150-01-01T00:00:00.000003"
+    },
+    {
+      "id": "P1bs",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "P1_common",
+      "source_key": "synthetic:P1bs",
+      "local_lower": "2150-01-01T00:00:00.000003",
+      "local_upper": "2150-01-01T00:00:00.000005"
+    },
+    {
+      "id": "P1be",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "P1_common",
+      "source_key": "synthetic:P1be",
+      "local_lower": "2150-01-01T00:00:00.000004",
+      "local_upper": "2150-01-01T00:00:00.000006"
+    },
+    {
+      "id": "P2as",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "P2_common",
+      "source_key": "synthetic:P2as",
+      "local_lower": "2200-03-12T00:00:00.000000",
+      "local_upper": "2200-03-12T00:00:00.000000"
+    },
+    {
+      "id": "P2ae",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "P2_common",
+      "source_key": "synthetic:P2ae",
+      "local_lower": "2200-03-12T00:00:00.000001",
+      "local_upper": "2200-03-12T00:00:00.000001"
+    },
+    {
+      "id": "P2bs",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "P2_common",
+      "source_key": "synthetic:P2bs",
+      "local_lower": "2200-03-12T00:00:00.000001",
+      "local_upper": "2200-03-12T00:00:00.000003"
+    },
+    {
+      "id": "P2be",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "P2_common",
+      "source_key": "synthetic:P2be",
+      "local_lower": "2200-03-12T00:00:00.000004",
+      "local_upper": "2200-03-12T00:00:00.000004"
+    },
+    {
+      "id": "P3as",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "P3_common",
+      "source_key": "synthetic:P3as",
+      "local_lower": "2110-10-25T00:00:00.000003",
+      "local_upper": "2110-10-25T00:00:00.000003"
+    },
+    {
+      "id": "P3ae",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "P3_common",
+      "source_key": "synthetic:P3ae",
+      "local_lower": "2110-10-25T00:00:00.000004",
+      "local_upper": "2110-10-25T00:00:00.000004"
+    },
+    {
+      "id": "P3bs",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "P3_common",
+      "source_key": "synthetic:P3bs",
+      "local_lower": "2110-10-25T00:00:00.000000",
+      "local_upper": "2110-10-25T00:00:00.000000"
+    },
+    {
+      "id": "P3be",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "P3_common",
+      "source_key": "synthetic:P3be",
+      "local_lower": "2110-10-25T00:00:00.000001",
+      "local_upper": "2110-10-25T00:00:00.000001"
+    },
+    {
+      "id": "P4as",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "P4_common",
+      "source_key": "synthetic:P4as",
+      "local_lower": "2180-01-01T00:00:00.000000",
+      "local_upper": "2180-01-01T00:00:00.000000"
+    },
+    {
+      "id": "P4ae",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "P4_common",
+      "source_key": "synthetic:P4ae",
+      "local_lower": "2180-01-01T00:00:00.000001",
+      "local_upper": "2180-01-01T00:00:00.000001"
+    },
+    {
+      "id": "P4bs",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "P4_other",
+      "source_key": "synthetic:P4bs",
+      "local_lower": "2180-01-01T00:00:00.000003",
+      "local_upper": "2180-01-01T00:00:00.000003"
+    },
+    {
+      "id": "P4be",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "P4_other",
+      "source_key": "synthetic:P4be",
+      "local_lower": "2180-01-01T00:00:00.000004",
+      "local_upper": "2180-01-01T00:00:00.000004"
+    }
+  ],
+  "events": [
+    {
+      "id": "P1a",
+      "record_id": "R-P1a",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P1as",
+      "end_var": "P1ae",
+      "source_key": "synthetic:P1a"
+    },
+    {
+      "id": "P1b",
+      "record_id": "R-P1b",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P1bs",
+      "end_var": "P1be",
+      "source_key": "synthetic:P1b"
+    },
+    {
+      "id": "P2a",
+      "record_id": "R-P2a",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P2as",
+      "end_var": "P2ae",
+      "source_key": "synthetic:P2a"
+    },
+    {
+      "id": "P2b",
+      "record_id": "R-P2b",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P2bs",
+      "end_var": "P2be",
+      "source_key": "synthetic:P2b"
+    },
+    {
+      "id": "P3a",
+      "record_id": "R-P3a",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P3as",
+      "end_var": "P3ae",
+      "source_key": "synthetic:P3a"
+    },
+    {
+      "id": "P3b",
+      "record_id": "R-P3b",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P3bs",
+      "end_var": "P3be",
+      "source_key": "synthetic:P3b"
+    },
+    {
+      "id": "P4a",
+      "record_id": "R-P4a",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P4as",
+      "end_var": "P4ae",
+      "source_key": "synthetic:P4a"
+    },
+    {
+      "id": "P4b",
+      "record_id": "R-P4b",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P4bs",
+      "end_var": "P4be",
+      "source_key": "synthetic:P4b"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "ae-upper",
+      "left_var": "P1ae",
+      "right_var": "P1as",
+      "upper_us": 1,
+      "source_key": "synthetic:shared-anchor:ae"
+    },
+    {
+      "id": "ae-lower",
+      "left_var": "P1as",
+      "right_var": "P1ae",
+      "upper_us": -1,
+      "source_key": "synthetic:shared-anchor:ae"
+    },
+    {
+      "id": "bs-upper",
+      "left_var": "P1bs",
+      "right_var": "P1as",
+      "upper_us": 3,
+      "source_key": "synthetic:shared-anchor:bs"
+    },
+    {
+      "id": "bs-lower",
+      "left_var": "P1as",
+      "right_var": "P1bs",
+      "upper_us": -3,
+      "source_key": "synthetic:shared-anchor:bs"
+    },
+    {
+      "id": "be-upper",
+      "left_var": "P1be",
+      "right_var": "P1as",
+      "upper_us": 4,
+      "source_key": "synthetic:shared-anchor:be"
+    },
+    {
+      "id": "be-lower",
+      "left_var": "P1as",
+      "right_var": "P1be",
+      "upper_us": -4,
+      "source_key": "synthetic:shared-anchor:be"
+    }
+  ]
+}

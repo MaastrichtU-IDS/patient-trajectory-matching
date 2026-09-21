@@ -1,0 +1,34 @@
+# Local virtualenv (see README for setup)
+.venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# Reproducible exact-interval CLI outputs (the stable example graph is committed).
+verification/exact-interval-run/
+verification/interval-cohort-run/
+verification/bounded-interval-run/
+verification/bounded-rdf-run/
+verification/evidence-selection-run/
+verification/temporal-interface-run/
+verification/semantic-support-run/
+verification/joint-evidence-run/
+
+# Detailed source staging and locally supplied MIMIC files.
+verification/mimic-inputevents-run/
+data/local-mimic/
+verification/patient-local-run/
+verification/mimic-record-query-run/
+verification/claim-projection-run/
+verification/local-claim-projection-run/
+verification/mimic-claim-import-run/
+verification/mimic-measurement-run/
+verification/mixed-record-query-run/
+verification/source-mixed-query-run/
+verification/clinical-source-preflight-run/
+verification/indexed-source-windows-run/
+verification/partitioned-window-query-run/

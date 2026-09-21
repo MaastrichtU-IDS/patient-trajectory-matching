@@ -1,0 +1,51 @@
+{
+  "profile": "source-mixed-query-1.0",
+  "id": "synthetic_source_mixed",
+  "interval_import": {
+    "profile": "mimic-claim-import-1.0",
+    "id": "synthetic_pending_records",
+    "dataset_id": "synthetic-source-mixed-1.0",
+    "mode": "retrospective_source_records",
+    "time_policy": "recorded-label-exact-v1",
+    "patient_ids": "all",
+    "itemids": [
+      "1000"
+    ]
+  },
+  "measurement_import": {
+    "profile": "mimic-measurement-import-1.0",
+    "id": "synthetic_points",
+    "dataset_id": "synthetic-source-mixed-1.0",
+    "mode": "retrospective_source_records",
+    "time_policy": "recorded-point-label-exact-v1",
+    "patient_ids": "all",
+    "itemids": [
+      "2000"
+    ]
+  },
+  "query": {
+    "profile": "mixed-record-trajectory-1.0",
+    "id": "synthetic_pressure_followup",
+    "treatment_class_iri": "https://example.org/trajectory/mimic-record-item/1000",
+    "baseline": {
+      "item_ids": [
+        "2000"
+      ],
+      "unit_lexical": "mmHg",
+      "operator": "lt",
+      "value_lexical": "65",
+      "min_before_start_us": 1,
+      "max_before_start_us": 1800000000
+    },
+    "followup": {
+      "item_ids": [
+        "2000"
+      ],
+      "unit_lexical": "mmHg",
+      "anchor": "start",
+      "min_after_anchor_us": 0,
+      "max_after_anchor_us": 7200000000,
+      "within_interval": false
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "plan_context_id",
+    "batches"
+  ],
+  "properties": {
+    "profile": {
+      "const": "partitioned-window-review-1.0"
+    },
+    "plan_context_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "batches": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "batch_id",
+          "interval_policy",
+          "measurement_policy",
+          "alignment"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "interval_policy": {
+            "type": "object"
+          },
+          "measurement_policy": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "alignment": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

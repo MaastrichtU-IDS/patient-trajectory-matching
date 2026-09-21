@@ -1,0 +1,26 @@
+@prefix tkg: <https://example.org/trajectory/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+tkg:ontology a owl:Ontology ;
+ rdfs:comment "Proposed extension. Resolve a pinned SULO import through the build catalog before reasoning. No completeness claim for full SULO." .
+tkg:ClinicalEvent a owl:Class ; rdfs:subClassOf sulo:Process .
+tkg:ClinicalRecord a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+tkg:TemporalAssertion a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+tkg:Episode a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+tkg:CoverageAssertion a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+tkg:TimeSpecification a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+tkg:sourceRecord a owl:ObjectProperty ; rdfs:domain tkg:TemporalAssertion ; rdfs:range tkg:ClinicalRecord .
+tkg:validTime a owl:ObjectProperty ; rdfs:domain tkg:TemporalAssertion ; rdfs:range tkg:TimeSpecification .
+tkg:recordedTime a owl:ObjectProperty ; rdfs:domain tkg:ClinicalRecord ; rdfs:range tkg:TimeSpecification .
+tkg:supersedes a owl:ObjectProperty ; rdfs:domain tkg:ClinicalRecord ; rdfs:range tkg:ClinicalRecord .
+tkg:subject a owl:ObjectProperty .
+tkg:predicate a owl:AnnotationProperty .
+tkg:object a owl:ObjectProperty .
+tkg:polarity a owl:DatatypeProperty .
+tkg:clockId a owl:DatatypeProperty .
+tkg:lowerMicroseconds a owl:DatatypeProperty .
+tkg:upperMicroseconds a owl:DatatypeProperty .
+# Predicate is a reified predicate identifier; no rule here asserts its triple.

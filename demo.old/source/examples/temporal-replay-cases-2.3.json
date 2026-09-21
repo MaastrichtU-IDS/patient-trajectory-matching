@@ -1,0 +1,102 @@
+{
+  "specification_version": "2.3",
+  "status": "declarative_expectations_not_executable_tests",
+  "data": "constructed_only",
+  "query_for_T01_T02": "Two distinct creatinine observations within 48 elapsed hours with follow-up minus baseline at least 0.3 mg/dL; complete scoped history and exact decimal arithmetic.",
+  "cases": [
+    {
+      "case_id": "T01",
+      "title": "Repeated observations",
+      "input_design": {
+        "M1": {
+          "clinical_day": 1,
+          "value": "1.0"
+        },
+        "M2": {
+          "clinical_day": 2,
+          "value": "1.5"
+        },
+        "unit": "mg/dL"
+      },
+      "expected": "Preserve two observation identities and both source links."
+    },
+    {
+      "case_id": "T02",
+      "title": "Source correction",
+      "input_design": {
+        "base_case": "T01",
+        "correction_day": 3,
+        "target": "M1",
+        "corrected_value": "1.2",
+        "boundary_variant_M2": "1.4"
+      },
+      "expected": "Preserve original M1 assertion, successor and M2. Main query still passes at rise 0.3; boundary variant changes from rise 0.4 PASS to rise 0.2 FAIL. Earlier source-as-known replay selects original M1."
+    },
+    {
+      "case_id": "T03",
+      "title": "Late source availability",
+      "input_design": {
+        "clinical_offset_hours": -2,
+        "source_available_offset_hours": 1,
+        "index_offset_hours": 0
+      },
+      "expected": "Not eligible as a source-as-known pre-index feature."
+    },
+    {
+      "case_id": "T04",
+      "title": "Competing claims",
+      "input_design": {
+        "same_observation_ref": "M3",
+        "source_a_value": "1.0",
+        "source_b_value": "1.2",
+        "explicit_correction_link": false
+      },
+      "expected": "Retain conflicting assertions; later ingestion alone does not authorize supersession."
+    },
+    {
+      "case_id": "T05",
+      "title": "Semantic alternatives",
+      "input_design": {
+        "exact_subclass": "DrugAChild",
+        "requested": "DrugA",
+        "permitted_alternative": "DrugB",
+        "forbidden_alternative": "DrugC"
+      },
+      "expected": "Subclass costs zero; DrugB costs one only under the named policy; DrugC is not accepted."
+    },
+    {
+      "case_id": "T06",
+      "title": "Time meaning",
+      "input_design": {
+        "inputs": [
+          "48 elapsed hours",
+          "two calendar days",
+          "timezone unspecified"
+        ]
+      },
+      "expected": "Evaluate under declared clock and unit policy; do not equate calendar days with elapsed hours universally or invent UTC."
+    },
+    {
+      "case_id": "T07",
+      "title": "Missing history",
+      "input_design": {
+        "variants": [
+          "no observed baseline in complete scope",
+          "availability unknown",
+          "prior assertion archive unavailable"
+        ]
+      },
+      "expected": "Keep NO_OBSERVED_BINDING, unresolved availability and unavailable replay separate from computation completeness."
+    },
+    {
+      "case_id": "T08",
+      "title": "Candidate scope",
+      "input_design": {
+        "population": "constructed relevant and distractor histories",
+        "reference": "independent exhaustive enumeration",
+        "candidate_budget": "reported per run"
+      },
+      "expected": "Report reference-eligible candidate recall and final verification separately; incomplete retrieval is not exact cohort completeness."
+    }
+  ]
+}

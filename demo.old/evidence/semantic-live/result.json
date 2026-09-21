@@ -1,0 +1,642 @@
+{
+  "profile": "semantic-support-1.0",
+  "status": "UNRESOLVED_SEMANTICS",
+  "context": {
+    "profile": "semantic-support-1.0",
+    "source_context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+    "query": {
+      "profile": "semantic-bounded-query-1.0",
+      "id": "antibiotic_before_collection",
+      "slots": [
+        {
+          "id": "a",
+          "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+        },
+        {
+          "id": "b",
+          "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+        }
+      ],
+      "constraints": [
+        {
+          "id": "order",
+          "left": "a",
+          "right": "b",
+          "operator": "before"
+        }
+      ]
+    },
+    "module": {
+      "profile": "semantic-support-1.0",
+      "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
+      "classes": [
+        "https://example.org/trajectory/semantic/DrugAdministration",
+        "https://example.org/trajectory/semantic/AntibioticAdministration",
+        "https://example.org/trajectory/semantic/AdministeredDrugRole",
+        "https://example.org/trajectory/semantic/Antibiotic",
+        "https://example.org/trajectory/semantic/NonAntibiotic"
+      ],
+      "individuals": [
+        "https://example.org/trajectory/semantic/P1a-drug-role",
+        "https://example.org/trajectory/semantic/P1a-drug",
+        "https://example.org/trajectory/semantic/P2a-drug-role",
+        "https://example.org/trajectory/semantic/P2a-drug",
+        "https://example.org/trajectory/semantic/P3a-drug-role",
+        "https://example.org/trajectory/semantic/P3a-drug",
+        "https://example.org/trajectory/semantic/P4a-drug-role",
+        "https://example.org/trajectory/semantic/P4a-drug"
+      ],
+      "class_assertions": [
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P1a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P2a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P3a-drug",
+          "class": "https://example.org/trajectory/semantic/NonAntibiotic"
+        },
+        {
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "individual": "https://example.org/trajectory/semantic/P4a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        }
+      ],
+      "property_assertions": [
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P1a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P1a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P1a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P1a-drug"
+        },
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P2a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P2a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P2a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P2a-drug"
+        },
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P3a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P3a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P3a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P3a-drug"
+        },
+        {
+          "subject": "https://example.org/trajectory/bounded-data/events/P4a",
+          "property": "https://w3id.org/sulo/hasParticipant",
+          "object": "https://example.org/trajectory/semantic/P4a-drug-role"
+        },
+        {
+          "subject": "https://example.org/trajectory/semantic/P4a-drug-role",
+          "property": "https://w3id.org/sulo/isFeatureOf",
+          "object": "https://example.org/trajectory/semantic/P4a-drug"
+        }
+      ],
+      "rules": [
+        {
+          "id": "antibiotic_administration",
+          "if": {
+            "all": [
+              {
+                "class": "https://example.org/trajectory/semantic/DrugAdministration"
+              },
+              {
+                "some": {
+                  "property": "https://w3id.org/sulo/hasParticipant",
+                  "filler": {
+                    "all": [
+                      {
+                        "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+                      },
+                      {
+                        "some": {
+                          "property": "https://w3id.org/sulo/isFeatureOf",
+                          "filler": {
+                            "class": "https://example.org/trajectory/semantic/Antibiotic"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+        }
+      ],
+      "disjoint": [
+        {
+          "id": "drug_classes",
+          "classes": [
+            "https://example.org/trajectory/semantic/Antibiotic",
+            "https://example.org/trajectory/semantic/NonAntibiotic"
+          ]
+        }
+      ]
+    },
+    "model_sha256": "ef59e80ba171be1de57813d596bbf1286ba026d4d88c11d8531fa9fd2e419f7b",
+    "ontology_sha256": "ab124ecc0eb8bee6290f9fdd9edda0775cacbc0b34d9f6e578f4976b875ba628",
+    "backend": {
+      "status": "BACKEND_ERROR",
+      "error_type": "ModuleNotFoundError",
+      "reason": "No module named 'rustdl'"
+    },
+    "timeout_seconds": 20,
+    "artifacts": {
+      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+      "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+      "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f"
+    }
+  },
+  "context_id": "287e1b914ab11659932eeda75473fb47c68db2c03b7e4a2d92a52285935d473f",
+  "semantic_support": {
+    "reference": {
+      "consistent": true,
+      "clashes": [],
+      "memberships": {
+        "https://example.org/trajectory/bounded/Infusion": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/bounded/IntervalProcess": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4a",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/bounded/SpecimenCollection": [
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/semantic/AdministeredDrugRole": [
+          "https://example.org/trajectory/semantic/P1a-drug-role",
+          "https://example.org/trajectory/semantic/P2a-drug-role",
+          "https://example.org/trajectory/semantic/P3a-drug-role",
+          "https://example.org/trajectory/semantic/P4a-drug-role"
+        ],
+        "https://example.org/trajectory/semantic/Antibiotic": [
+          "https://example.org/trajectory/semantic/P1a-drug",
+          "https://example.org/trajectory/semantic/P2a-drug",
+          "https://example.org/trajectory/semantic/P4a-drug"
+        ],
+        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/semantic/DrugAdministration": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/semantic/NonAntibiotic": [
+          "https://example.org/trajectory/semantic/P3a-drug"
+        ],
+        "https://example.org/trajectory/toy/PatientRole": [
+          "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P3a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P3b/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
+          "https://example.org/trajectory/bounded-data/events/P4b/patient-role"
+        ],
+        "https://example.org/trajectory/toy/Person": [
+          "https://example.org/trajectory/bounded-data/persons/P1",
+          "https://example.org/trajectory/bounded-data/persons/P2",
+          "https://example.org/trajectory/bounded-data/persons/P3",
+          "https://example.org/trajectory/bounded-data/persons/P4"
+        ],
+        "https://w3id.org/sulo/Process": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4a",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ]
+      },
+      "derivations": [
+        {
+          "kind": "rule",
+          "rule_id": "antibiotic_administration",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1a",
+              "https://example.org/trajectory/semantic/DrugAdministration"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1a",
+                "https://w3id.org/sulo/hasParticipant",
+                "https://example.org/trajectory/semantic/P1a-drug-role"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P1a-drug-role",
+              "https://example.org/trajectory/semantic/AdministeredDrugRole"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/semantic/P1a-drug-role",
+                "https://w3id.org/sulo/isFeatureOf",
+                "https://example.org/trajectory/semantic/P1a-drug"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P1a-drug",
+              "https://example.org/trajectory/semantic/Antibiotic"
+            ]
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "antibiotic_administration",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2a",
+              "https://example.org/trajectory/semantic/DrugAdministration"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2a",
+                "https://w3id.org/sulo/hasParticipant",
+                "https://example.org/trajectory/semantic/P2a-drug-role"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P2a-drug-role",
+              "https://example.org/trajectory/semantic/AdministeredDrugRole"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/semantic/P2a-drug-role",
+                "https://w3id.org/sulo/isFeatureOf",
+                "https://example.org/trajectory/semantic/P2a-drug"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P2a-drug",
+              "https://example.org/trajectory/semantic/Antibiotic"
+            ]
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "antibiotic_administration",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4a",
+              "https://example.org/trajectory/semantic/DrugAdministration"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4a",
+                "https://w3id.org/sulo/hasParticipant",
+                "https://example.org/trajectory/semantic/P4a-drug-role"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P4a-drug-role",
+              "https://example.org/trajectory/semantic/AdministeredDrugRole"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/semantic/P4a-drug-role",
+                "https://w3id.org/sulo/isFeatureOf",
+                "https://example.org/trajectory/semantic/P4a-drug"
+              ]
+            },
+            [
+              "https://example.org/trajectory/semantic/P4a-drug",
+              "https://example.org/trajectory/semantic/Antibiotic"
+            ]
+          ]
+        }
+      ],
+      "assertions": [
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/Infusion"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/IntervalProcess"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://w3id.org/sulo/Process"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b/patient-role",
+          "class": "https://example.org/trajectory/toy/PatientRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P1",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P2",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P3",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/bounded-data/persons/P4",
+          "class": "https://example.org/trajectory/toy/Person"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P1a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P2a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P3a-drug",
+          "class": "https://example.org/trajectory/semantic/NonAntibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P4a-drug",
+          "class": "https://example.org/trajectory/semantic/Antibiotic"
+        },
+        {
+          "kind": "asserted",
+          "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
+          "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+        }
+      ]
+    },
+    "backend_result": {
+      "status": "BACKEND_ERROR",
+      "error_type": "ModuleNotFoundError",
+      "reason": "No module named 'rustdl'"
+    },
+    "ontology_ofn": "Ontology(\nDeclaration(Class(<https://example.org/trajectory/bounded/Infusion>))\nDeclaration(Class(<https://example.org/trajectory/bounded/IntervalProcess>))\nDeclaration(Class(<https://example.org/trajectory/bounded/SpecimenCollection>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AdministeredDrugRole>))\nDeclaration(Class(<https://example.org/trajectory/semantic/Antibiotic>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AntibioticAdministration>))\nDeclaration(Class(<https://example.org/trajectory/semantic/DrugAdministration>))\nDeclaration(Class(<https://example.org/trajectory/semantic/NonAntibiotic>))\nDeclaration(Class(<https://example.org/trajectory/toy/PatientRole>))\nDeclaration(Class(<https://example.org/trajectory/toy/Person>))\nDeclaration(Class(<https://w3id.org/sulo/Process>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P1>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P2>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P3>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P4>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug-role>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/hasParticipant>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/isFeatureOf>))\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P1a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P2a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P3a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P4a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P1a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P2a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P4a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/semantic/NonAntibiotic> <https://example.org/trajectory/semantic/P3a-drug>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P1>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P2>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P3>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P4>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P4b>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1b> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2b> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3b> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4b> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1a/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1b/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2a/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2b/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3a/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3b/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4a/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4b/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P1a-drug-role> <https://example.org/trajectory/semantic/P1a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/semantic/P1a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P2a-drug-role> <https://example.org/trajectory/semantic/P2a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/semantic/P2a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P3a-drug-role> <https://example.org/trajectory/semantic/P3a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/semantic/P3a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P4a-drug-role> <https://example.org/trajectory/semantic/P4a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/semantic/P4a-drug-role>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/semantic/DrugAdministration> ObjectSomeValuesFrom(<https://w3id.org/sulo/hasParticipant> ObjectIntersectionOf(<https://example.org/trajectory/semantic/AdministeredDrugRole> ObjectSomeValuesFrom(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/Antibiotic>)))) <https://example.org/trajectory/semantic/AntibioticAdministration>)\nDisjointClasses(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/NonAntibiotic>)\n)\n",
+    "ontology_sha256": "ab124ecc0eb8bee6290f9fdd9edda0775cacbc0b34d9f6e578f4976b875ba628",
+    "memberships": null,
+    "status": "UNRESOLVED_SEMANTICS",
+    "reason_code": "BACKEND_ERROR"
+  },
+  "matching": null,
+  "full_owl_mapping_verified": false,
+  "semantic_support_complete": false,
+  "scope": "selected_snapshot_and_explicit_semantic_module"
+}

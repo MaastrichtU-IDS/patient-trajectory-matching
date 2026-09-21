@@ -1,0 +1,12 @@
+{
+  "profile": "mimic-claim-import-1.0",
+  "id": "demo_pending_records",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "mode": "retrospective_source_records",
+  "time_policy": "recorded-label-exact-v1",
+  "patient_ids": "all",
+  "itemids": [
+    "225152",
+    "222056"
+  ]
+}

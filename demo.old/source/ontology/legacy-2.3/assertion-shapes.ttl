@@ -1,0 +1,15 @@
+@prefix tkg: <https://example.org/trajectory/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+tkg:AssertionShape a sh:NodeShape ; sh:targetClass tkg:TemporalAssertion ;
+ sh:property [ sh:path tkg:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+ sh:property [ sh:path tkg:predicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+ sh:property [ sh:path tkg:object ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+ sh:property [ sh:path tkg:polarity ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ("positive" "negative") ] ;
+ sh:property [ sh:path tkg:sourceRecord ; sh:minCount 1 ; sh:class tkg:ClinicalRecord ] ;
+ sh:property [ sh:path tkg:validTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:class tkg:TimeSpecification ] .
+tkg:PointTimeShape a sh:NodeShape ; sh:targetClass tkg:TimeSpecification ;
+ sh:property [ sh:path tkg:clockId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+ sh:property [ sh:path tkg:lowerMicroseconds ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:lessThanOrEquals tkg:upperMicroseconds ] ;
+ sh:property [ sh:path tkg:upperMicroseconds ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ] .
+# Initial example shape profile: point-time assertions with IRI objects only.

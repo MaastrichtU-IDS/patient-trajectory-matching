@@ -1,0 +1,197 @@
+{
+  "profile": "source-mixed-review-1.0",
+  "preparation_context_id": "e075fe52085a3bc6b768ef48e0fe54fc3096084ed06ee7139f2fb8d9095f8a6a",
+  "episodes": [
+    {
+      "patient_id": "1",
+      "episode_id": "100",
+      "interval_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_2e10e2ce3880462e1ba0f43fd1f26faef04ec1f7da1e0c67f4c724f9bf813852",
+        "store_sha256": "2e10e2ce3880462e1ba0f43fd1f26faef04ec1f7da1e0c67f4c724f9bf813852",
+        "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_1",
+            "claim_sha256": "cfe8a77e3de0c6767bf56f4b9c963987f3355bad73ae37e58599b780fd7ba05e",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          }
+        ]
+      },
+      "measurement_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_7c84639b15bc3a6aee9defeefd2d6661ad155236336a785d13234bc7d0d4d086",
+        "store_sha256": "7c84639b15bc3a6aee9defeefd2d6661ad155236336a785d13234bc7d0d4d086",
+        "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_1",
+            "claim_sha256": "2ba4f306674ac9081cda896c31bcda0b16bd9b14a2a7344bbc7b717d035f83bc",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          },
+          {
+            "id": "synthetic_1",
+            "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_2",
+            "claim_sha256": "5e0f267e9bd0e8f11163ab2ec43914d694f41d00417fd17f34d2656e64c5abd3",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          },
+          {
+            "id": "synthetic_2",
+            "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_3",
+            "claim_sha256": "74e7e3a61dc20427be35df30509cef4d427b987cd20e78d897fef84a93997f59",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          }
+        ]
+      },
+      "alignment": {
+        "profile": "patient-local-clock-alignment-1.0",
+        "id": "alignment_100",
+        "interval_store_sha256": "2e10e2ce3880462e1ba0f43fd1f26faef04ec1f7da1e0c67f4c724f9bf813852",
+        "measurement_store_sha256": "7c84639b15bc3a6aee9defeefd2d6661ad155236336a785d13234bc7d0d4d086",
+        "bindings": [
+          {
+            "patient_id": "1",
+            "interval_clock_id": "patient_1",
+            "measurement_clock_id": "patient_1",
+            "basis": "same_dataset_patient_calendar",
+            "reason": "The fabricated CSV fixture uses one constructed calendar for both tables per patient."
+          }
+        ]
+      }
+    },
+    {
+      "patient_id": "1",
+      "episode_id": "101",
+      "interval_policy": null,
+      "measurement_policy": null,
+      "alignment": null
+    },
+    {
+      "patient_id": "2",
+      "episode_id": "200",
+      "interval_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_8cc023d320cc9b7ce6b8ca5f411ea309e2d9c6ffbc3b16a86f2170dce28b942e",
+        "store_sha256": "8cc023d320cc9b7ce6b8ca5f411ea309e2d9c6ffbc3b16a86f2170dce28b942e",
+        "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_2",
+            "claim_sha256": "086a6238a03ae47edad8ce704946fc718cd3952458cb5cc631c27f3b2626af1c",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          }
+        ]
+      },
+      "measurement_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_3738e677718286d02ca0cb0d7786c01bf89f51d3ee79962ce3775a0e8a8cdb4d",
+        "store_sha256": "3738e677718286d02ca0cb0d7786c01bf89f51d3ee79962ce3775a0e8a8cdb4d",
+        "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_4",
+            "claim_sha256": "46444b7c1273d5ae70669712d518838adb1a2bd1fd888c3bfaf0202179705d35",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          }
+        ]
+      },
+      "alignment": {
+        "profile": "patient-local-clock-alignment-1.0",
+        "id": "alignment_200",
+        "interval_store_sha256": "8cc023d320cc9b7ce6b8ca5f411ea309e2d9c6ffbc3b16a86f2170dce28b942e",
+        "measurement_store_sha256": "3738e677718286d02ca0cb0d7786c01bf89f51d3ee79962ce3775a0e8a8cdb4d",
+        "bindings": [
+          {
+            "patient_id": "2",
+            "interval_clock_id": "patient_2",
+            "measurement_clock_id": "patient_2",
+            "basis": "same_dataset_patient_calendar",
+            "reason": "The fabricated CSV fixture uses one constructed calendar for both tables per patient."
+          }
+        ]
+      }
+    },
+    {
+      "patient_id": "3",
+      "episode_id": "300",
+      "interval_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_21188d5f65bad2529100072553189650319009d0da0aa921e1e4f188515193b3",
+        "store_sha256": "21188d5f65bad2529100072553189650319009d0da0aa921e1e4f188515193b3",
+        "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_input_1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884_3",
+            "claim_sha256": "c5949be380fdf7676a1eac9ff724786d8f612cf82bfa04a9c1328481910b091e",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          }
+        ]
+      },
+      "measurement_policy": {
+        "profile": "claim-acceptance-policy-1.0",
+        "id": "pending_d1d024ff0142d0ab88dac330c1ba6eee89216b083907f76f09dd45f9236ed3a7",
+        "store_sha256": "d1d024ff0142d0ab88dac330c1ba6eee89216b083907f76f09dd45f9236ed3a7",
+        "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
+        "decisions": [
+          {
+            "id": "synthetic_0",
+            "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_5",
+            "claim_sha256": "b25476dcd096d885aadc562347957e2ef55009ee2cd2ed334959e0749545edbe",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          },
+          {
+            "id": "synthetic_1",
+            "claim_id": "claim_chart_a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90_6",
+            "claim_sha256": "e77a9a68e4424138f8ddd4286e4bc4396f7650f7c490d2f0a85c649016934f8f",
+            "action": "accept",
+            "supersedes": null,
+            "reason": "Explicit constructed selection for fabricated fixture; no clinical approval."
+          }
+        ]
+      },
+      "alignment": {
+        "profile": "patient-local-clock-alignment-1.0",
+        "id": "alignment_300",
+        "interval_store_sha256": "21188d5f65bad2529100072553189650319009d0da0aa921e1e4f188515193b3",
+        "measurement_store_sha256": "d1d024ff0142d0ab88dac330c1ba6eee89216b083907f76f09dd45f9236ed3a7",
+        "bindings": [
+          {
+            "patient_id": "3",
+            "interval_clock_id": "patient_3",
+            "measurement_clock_id": "patient_3",
+            "basis": "same_dataset_patient_calendar",
+            "reason": "The fabricated CSV fixture uses one constructed calendar for both tables per patient."
+          }
+        ]
+      }
+    },
+    {
+      "patient_id": "4",
+      "episode_id": "400",
+      "interval_policy": null,
+      "measurement_policy": null,
+      "alignment": null
+    }
+  ]
+}

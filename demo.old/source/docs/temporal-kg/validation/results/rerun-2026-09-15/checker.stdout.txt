@@ -1,0 +1,19 @@
+PASS: OWL 2 DL profile: formal-definition-v2/temporal-core.ofn
+PASS: OWL 2 DL profile: formal-definition-v2/example.ofn
+PASS: example consistent
+PASS: all named classes satisfiable
+PASS: antibiotic administration inferred
+PASS: PRO chain infers bearer participation
+PASS: interval occurrence inferred as ExtendedProcess
+PASS: point and interval on same individual inconsistent
+PASS: identical beginning and end inconsistent
+PASS: interval with unnamed endpoints consistent
+PASS: process with unknown extent consistent
+PASS: point occurrence consistent
+PASS: point and interval exact extents on one process inconsistent
+PASS: two-way pointBefore inconsistent
+PASS: functional endpoint infers equality
+PASS: different functional endpoint fillers inconsistent
+PASS: pointBefore closure not entailed by core
+PASS: reversed interval endpoint order awaits external validation
+All checks passed. These validate the OWL core, not a temporal query engine.

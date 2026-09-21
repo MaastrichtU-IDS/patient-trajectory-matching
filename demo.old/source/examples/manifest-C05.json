@@ -1,0 +1,20 @@
+{
+  "schema_version": "2.0",
+  "scope": "constructed C05 case only",
+  "dataset_snapshot": "toy-snapshot-v1",
+  "semantic_bundle": "toy-semantic-v1",
+  "mapping_release": "toy_policy_v1",
+  "unit_registry": "toy-identity-mg-dL",
+  "candidate_policy": "exhaustive selected case",
+  "software": "reference_oracle.py; no production service executed",
+  "inputs": {
+    "examples/exemplar.pattern.json": "31945337af8240626772951d101d13aeb462b7ec3dc2df6106d036136c9c2428",
+    "examples/cases.json": "1a4d9d78bcf80105a943fff892b4fc97c5e9686adbe3afe4573b2ac4e152c0be",
+    "ontology/toy-taxonomy.json": "8ffbe370d820bedab4e5bacac847fa4e4bfe86e6fccda89da0747252f8f577ee",
+    "reference_oracle.py": "f1ecb80ee8accb307ccbdb19de77a06abe4d75123a3f586e61029d01a0858a20"
+  },
+  "knowledge_claim": "No clinical diagnosis or equivalence claim",
+  "search_complete": true,
+  "alignment_optimality": "GLOBAL for this finite constructed case",
+  "source_record_context": "All source and event identifiers refer to constructed data"
+}

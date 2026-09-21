@@ -1,0 +1,13 @@
+{
+  "profile": "evidence-selection-request-1.0",
+  "mode": "retrospective",
+  "patient_cutoffs": {
+    "P1": "2026-01-03T00:00:00Z"
+  },
+  "admissible_source_ids": [
+    "hospital"
+  ],
+  "revision_policy": "explicit-source-chain-1.0",
+  "missing_availability_policy": "block",
+  "semantic_policy": "current-pinned-retrospective"
+}

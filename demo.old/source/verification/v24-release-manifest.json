@@ -1,0 +1,19 @@
+{
+  "version": "2.4",
+  "date": "2026-09-15",
+  "new_profile_tests": 42,
+  "existing_oracle_cases": 16,
+  "existing_oracle_property_checks": 7,
+  "scope": "synthetic PRO/SOLID adapter and three-slot exemplar only",
+  "files": {
+    "patterns/pro_solid.py": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+    "patterns/test_pro_solid.py": "3b484c92a2888002cd903158ffccb8b2cbc59d7a49114e91d8c319de9c3a4a7a",
+    "ontology/pro-solid-profile.ttl": "72a5ac88b904ac54483ae11be9d7108b4c2b6fc6f0309c9c0df0ee45a53b483d",
+    "ontology/pro-solid-shapes.ttl": "4cfd1f6d54c1fbe59cb5ce8469c2ed02ced0114420a4d14f6c1d519c3da5d7c8",
+    "ontology/sulo-pin.json": "bd9665681d5210ee3df6cb14814e8b68251db263a02f17262baf07380132e04c",
+    "examples/pro-solid/source-rows.json": "a4a491c6d317337acf0bf834911a425463f0ef04cac003913410edfa510f187b",
+    "examples/pro-solid/manifest.json": "33c40fe38ad3de63e451c098d96f1702a25241ccddf223ba775dbdceebc695f4",
+    "reference_oracle.py": "f1ecb80ee8accb307ccbdb19de77a06abe4d75123a3f586e61029d01a0858a20",
+    "examples/exemplar.pattern.json": "31945337af8240626772951d101d13aeb462b7ec3dc2df6106d036136c9c2428"
+  }
+}

@@ -39,6 +39,7 @@ LABELS = {
     'test_bounded_rdf': 'Bounded RDF ingestion tests',
     'test_extended_relaxation': 'Extended metric relaxation tests',
     'test_robust_relaxation': 'Robust costed relaxation tests',
+    'test_relaxation_contract': 'Relaxation cost-model contract tests',
     'test_evidence_selection': 'Evidence selection tests',
     'test_temporal_interface': 'Temporal interface conformance tests',
     'test_semantic_support': 'Checked Rust semantic support tests (optional dependency, separate CI job)',

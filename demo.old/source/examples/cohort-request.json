@@ -1,0 +1,97 @@
+{
+  "dataset_snapshot": "toy-snapshot-v1",
+  "semantic_bundle": "toy-semantic-v1",
+  "pattern": {
+    "schema_version": "2.0",
+    "pattern_id": "exposure_then_creatinine_change",
+    "scope": {
+      "episode": "admission",
+      "minimum_age": 18
+    },
+    "events": {
+      "baseline": {
+        "kind": "measurement",
+        "concept": "ex:Creatinine"
+      },
+      "exposure": {
+        "kind": "administration",
+        "concept": "ex:DrugA"
+      },
+      "followup": {
+        "kind": "measurement",
+        "concept": "ex:Creatinine"
+      }
+    },
+    "constraints": [
+      {
+        "id": "lab_order",
+        "op": "before",
+        "from": "baseline",
+        "to": "followup"
+      },
+      {
+        "id": "lab_window",
+        "op": "max_gap",
+        "from": "baseline",
+        "to": "followup",
+        "seconds": 172800
+      },
+      {
+        "id": "delta",
+        "op": "value_delta_min",
+        "from": "baseline",
+        "to": "followup",
+        "value": "0.3",
+        "unit": "mg/dL"
+      },
+      {
+        "id": "exposure_order",
+        "op": "before",
+        "from": "exposure",
+        "to": "followup"
+      },
+      {
+        "id": "exposure_window",
+        "op": "max_gap",
+        "from": "exposure",
+        "to": "followup",
+        "seconds": 604800
+      }
+    ],
+    "selection": {
+      "baseline": {
+        "op": "minimum_value",
+        "window_constraint": "lab_window",
+        "ties": [
+          "time",
+          "event_id"
+        ]
+      }
+    },
+    "relaxations": [
+      {
+        "target": "exposure",
+        "op": "concept_alternative",
+        "concept": "ex:DrugB",
+        "cost": "1",
+        "review": "toy_policy_v1"
+      },
+      {
+        "target": "exposure_window",
+        "op": "extend_max_gap",
+        "extra_seconds": 172800,
+        "maximum_cost": "1"
+      }
+    ],
+    "budget": {
+      "max_relaxed_constraints": 2,
+      "max_total_cost": "2"
+    }
+  },
+  "mode": "relaxed",
+  "purpose": "contract_verification",
+  "result_limit": 100,
+  "candidate_policy": "lossless",
+  "allow_partial": false,
+  "evidence_level": "full"
+}

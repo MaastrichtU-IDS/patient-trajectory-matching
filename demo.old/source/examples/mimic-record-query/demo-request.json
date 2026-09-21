@@ -1,0 +1,30 @@
+{
+  "profile": "mimic-record-query-1.0",
+  "id": "demo_item_order",
+  "dataset_id": "mimic-iv-demo-2.2",
+  "mode": "retrospective_source_records",
+  "time_policy": "recorded-label-exact-v1",
+  "patient_ids": "all",
+  "slots": [
+    {
+      "id": "a",
+      "itemids": [
+        "225152"
+      ]
+    },
+    {
+      "id": "b",
+      "itemids": [
+        "222056"
+      ]
+    }
+  ],
+  "constraints": [
+    {
+      "id": "order",
+      "left": "a",
+      "right": "b",
+      "operator": "before"
+    }
+  ]
+}

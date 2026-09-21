@@ -1,0 +1,11 @@
+{
+  "profile": "mimic-claim-import-1.0",
+  "id": "synthetic_pending_records",
+  "dataset_id": "synthetic-mimic-demo-2.2",
+  "mode": "retrospective_source_records",
+  "time_policy": "recorded-label-exact-v1",
+  "patient_ids": "all",
+  "itemids": [
+    "1000"
+  ]
+}

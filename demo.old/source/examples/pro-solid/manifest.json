@@ -1,0 +1,11 @@
+{
+  "profile": "pro-solid-2.4",
+  "dataset_id": "toy",
+  "snapshot_id": "toy-pro-solid-v1",
+  "clock_id": "P1-relative",
+  "origin": "2024-01-08T00:00:00Z",
+  "patient_id": "P1",
+  "episode_id": "A1",
+  "age": 50,
+  "source_search_complete": true
+}

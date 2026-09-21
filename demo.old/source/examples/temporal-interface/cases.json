@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ordered",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "CERTAIN"
+  },
+  {
+    "id": "coincident_boundaries",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "IMPOSSIBLE"
+  },
+  {
+    "id": "shared_boundary",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "IMPOSSIBLE"
+  },
+  {
+    "id": "correlated",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "CERTAIN"
+  },
+  {
+    "id": "possible_only",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "POSSIBLE"
+  },
+  {
+    "id": "incomparable",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "INCOMPARABLE"
+  },
+  {
+    "id": "chain_order",
+    "expected_query": "before",
+    "expected_slots": {
+      "a": "A",
+      "b": "C"
+    },
+    "expected_status": "CERTAIN"
+  },
+  {
+    "id": "joint_impossibility",
+    "expected_query": "joint",
+    "expected_slots": {
+      "a": "A",
+      "b": "B"
+    },
+    "expected_status": "IMPOSSIBLE"
+  }
+]

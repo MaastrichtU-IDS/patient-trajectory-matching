@@ -1,0 +1,185 @@
+@prefix data: <https://example.org/trajectory/data/> .
+@prefix ex: <https://example.org/trajectory/toy/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+data:record-B1 a ex:SourceRecord ;
+    sulo:hasPart data:B1-episode_id,
+        data:B1-event_id,
+        data:B1-record_id,
+        data:B1-source_code,
+        data:B1-source_file,
+        data:B1-source_hash,
+        data:B1-source_key,
+        data:B1-status ;
+    sulo:refersTo data:event-B1 .
+
+data:record-E1 a ex:SourceRecord ;
+    sulo:hasPart data:E1-episode_id,
+        data:E1-event_id,
+        data:E1-record_id,
+        data:E1-source_code,
+        data:E1-source_file,
+        data:E1-source_hash,
+        data:E1-source_key,
+        data:E1-status ;
+    sulo:refersTo data:event-E1 .
+
+data:record-F1 a ex:SourceRecord ;
+    sulo:hasPart data:F1-episode_id,
+        data:F1-event_id,
+        data:F1-record_id,
+        data:F1-source_code,
+        data:F1-source_file,
+        data:F1-source_hash,
+        data:F1-source_key,
+        data:F1-status ;
+    sulo:refersTo data:event-F1 .
+
+data:B1-episode_id a ex:EpisodeIdentifier ;
+    sulo:hasValue "A1"^^xsd:string .
+
+data:B1-event_id a ex:EventIdentifier ;
+    sulo:hasValue "B1"^^xsd:string .
+
+data:B1-patient-role a ex:PatientRole ;
+    sulo:isFeatureOf data:person-P1 .
+
+data:B1-quality a ex:CreatinineConcentration ;
+    sulo:isFeatureOf data:person-P1 .
+
+data:B1-record_id a ex:RecordIdentifier ;
+    sulo:hasValue "record-B1"^^xsd:string .
+
+data:B1-result a ex:CreatinineResult ;
+    sulo:hasPart ex:MilligramPerLitre ;
+    sulo:hasValue 10.0 ;
+    sulo:refersTo data:B1-quality .
+
+data:B1-result-role a ex:MeasurementResultRole ;
+    sulo:isFeatureOf data:B1-result .
+
+data:B1-source_code a ex:SourceCode ;
+    sulo:hasValue "ex:Creatinine"^^xsd:string .
+
+data:B1-source_file a ex:SourceLocation ;
+    sulo:hasValue "constructed://pro-solid/source-rows.json"^^xsd:string .
+
+data:B1-source_hash a ex:SourceHash ;
+    sulo:hasValue "07d5c5b716b85c15448a9367e1919bc6e7e9b6673ce9c1d88d3079797b77a688"^^xsd:string .
+
+data:B1-source_key a ex:SourceKey ;
+    sulo:hasValue "B1"^^xsd:string .
+
+data:B1-status a ex:RecordStatus ;
+    sulo:hasValue "performed"^^xsd:string .
+
+data:B1-time a ex:RecordedAnchorTime ;
+    sulo:hasPart ex:Second ;
+    sulo:hasValue "2024-01-07T01:00:00+01:00"^^xsd:dateTimeStamp .
+
+data:E1-drug a ex:DrugA .
+
+data:E1-drug-role a ex:AdministeredDrugRole ;
+    sulo:isFeatureOf data:E1-drug .
+
+data:E1-episode_id a ex:EpisodeIdentifier ;
+    sulo:hasValue "A1"^^xsd:string .
+
+data:E1-event_id a ex:EventIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+data:E1-patient-role a ex:PatientRole ;
+    sulo:isFeatureOf data:person-P1 .
+
+data:E1-record_id a ex:RecordIdentifier ;
+    sulo:hasValue "record-E1"^^xsd:string .
+
+data:E1-source_code a ex:SourceCode ;
+    sulo:hasValue "ex:DrugA"^^xsd:string .
+
+data:E1-source_file a ex:SourceLocation ;
+    sulo:hasValue "constructed://pro-solid/source-rows.json"^^xsd:string .
+
+data:E1-source_hash a ex:SourceHash ;
+    sulo:hasValue "8de2cab77452a6ec2bb3fdd179d77eaa5a3de9a6e65782654599169b9812093f"^^xsd:string .
+
+data:E1-source_key a ex:SourceKey ;
+    sulo:hasValue "E1"^^xsd:string .
+
+data:E1-status a ex:RecordStatus ;
+    sulo:hasValue "performed"^^xsd:string .
+
+data:E1-time a ex:RecordedAnchorTime ;
+    sulo:hasPart ex:Second ;
+    sulo:hasValue "2024-01-01T00:00:00Z"^^xsd:dateTimeStamp .
+
+data:F1-episode_id a ex:EpisodeIdentifier ;
+    sulo:hasValue "A1"^^xsd:string .
+
+data:F1-event_id a ex:EventIdentifier ;
+    sulo:hasValue "F1"^^xsd:string .
+
+data:F1-patient-role a ex:PatientRole ;
+    sulo:isFeatureOf data:person-P1 .
+
+data:F1-quality a ex:CreatinineConcentration ;
+    sulo:isFeatureOf data:person-P1 .
+
+data:F1-record_id a ex:RecordIdentifier ;
+    sulo:hasValue "record-F1"^^xsd:string .
+
+data:F1-result a ex:CreatinineResult ;
+    sulo:hasPart ex:MilligramPerDecilitre ;
+    sulo:hasValue 1.30 ;
+    sulo:refersTo data:F1-quality .
+
+data:F1-result-role a ex:MeasurementResultRole ;
+    sulo:isFeatureOf data:F1-result .
+
+data:F1-source_code a ex:SourceCode ;
+    sulo:hasValue "ex:Creatinine"^^xsd:string .
+
+data:F1-source_file a ex:SourceLocation ;
+    sulo:hasValue "constructed://pro-solid/source-rows.json"^^xsd:string .
+
+data:F1-source_hash a ex:SourceHash ;
+    sulo:hasValue "b3a444314967983e68d273f3c5ef435be93d4487b71780aef62e89b7794634a8"^^xsd:string .
+
+data:F1-source_key a ex:SourceKey ;
+    sulo:hasValue "F1"^^xsd:string .
+
+data:F1-status a ex:RecordStatus ;
+    sulo:hasValue "performed"^^xsd:string .
+
+data:F1-time a ex:RecordedAnchorTime ;
+    sulo:hasPart ex:Second ;
+    sulo:hasValue "2024-01-08T00:00:00Z"^^xsd:dateTimeStamp .
+
+data:P1-identifier a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+data:event-B1 a ex:Measurement ;
+    sulo:atTime data:B1-time ;
+    sulo:hasParticipant data:B1-patient-role,
+        data:B1-result-role .
+
+data:event-E1 a ex:DrugAdministration ;
+    sulo:atTime data:E1-time ;
+    sulo:hasParticipant data:E1-drug-role,
+        data:E1-patient-role .
+
+data:event-F1 a ex:Measurement ;
+    sulo:atTime data:F1-time ;
+    sulo:hasParticipant data:F1-patient-role,
+        data:F1-result-role .
+
+ex:MilligramPerDecilitre a sulo:Unit .
+
+ex:MilligramPerLitre a sulo:Unit .
+
+ex:Second a sulo:Unit .
+
+data:person-P1 a ex:Person ;
+    sulo:hasFeature data:P1-identifier .
+

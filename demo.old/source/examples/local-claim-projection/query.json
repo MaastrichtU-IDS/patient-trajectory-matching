@@ -1,0 +1,22 @@
+{
+  "profile": "patient-local-semantic-query-1.0",
+  "id": "antibiotic_before_collection",
+  "slots": [
+    {
+      "id": "a",
+      "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+    },
+    {
+      "id": "b",
+      "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "order",
+      "left": "a",
+      "right": "b",
+      "operator": "before"
+    }
+  ]
+}

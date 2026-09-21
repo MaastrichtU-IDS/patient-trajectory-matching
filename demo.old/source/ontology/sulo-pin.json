@@ -1,0 +1,9 @@
+{
+  "version": "0.2.14",
+  "version_iri": "https://w3id.org/sulo/sulo-0.2.14.ttl",
+  "retrieved_from": "https://raw.githubusercontent.com/AIDAVA-DEV/sulo/refs/heads/main/versions/latest/sulo.ttl",
+  "retrieved_date": "2026-09-15",
+  "sha256": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "reasoning_profile": "named subclass closure, hasFeature inverse, PRO participation chain; no full OWL consistency or completeness claim"
+}

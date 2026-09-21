@@ -1,0 +1,299 @@
+{
+  "profile": "bounded-interval-1.0",
+  "dataset_id": "constructed-bounded-interval",
+  "snapshot_id": "synthetic-bounded-01",
+  "clocks": [
+    {
+      "clock_id": "common",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "global",
+      "policy": "offset-datetime-microseconds-v1"
+    },
+    {
+      "clock_id": "other",
+      "origin": "2026-09-02T00:00:00Z",
+      "scope": "global",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "variables": [
+    {
+      "id": "P1as",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 0,
+      "upper_us": 2,
+      "source_key": "synthetic:P1as"
+    },
+    {
+      "id": "P1ae",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 1,
+      "upper_us": 3,
+      "source_key": "synthetic:P1ae"
+    },
+    {
+      "id": "P1bs",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 3,
+      "upper_us": 5,
+      "source_key": "synthetic:P1bs"
+    },
+    {
+      "id": "P1be",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 4,
+      "upper_us": 6,
+      "source_key": "synthetic:P1be"
+    },
+    {
+      "id": "P2as",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 0,
+      "upper_us": 0,
+      "source_key": "synthetic:P2as"
+    },
+    {
+      "id": "P2ae",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 1,
+      "upper_us": 1,
+      "source_key": "synthetic:P2ae"
+    },
+    {
+      "id": "P2bs",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 1,
+      "upper_us": 3,
+      "source_key": "synthetic:P2bs"
+    },
+    {
+      "id": "P2be",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 4,
+      "upper_us": 4,
+      "source_key": "synthetic:P2be"
+    },
+    {
+      "id": "P3as",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 3,
+      "upper_us": 3,
+      "source_key": "synthetic:P3as"
+    },
+    {
+      "id": "P3ae",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 4,
+      "upper_us": 4,
+      "source_key": "synthetic:P3ae"
+    },
+    {
+      "id": "P3bs",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 0,
+      "upper_us": 0,
+      "source_key": "synthetic:P3bs"
+    },
+    {
+      "id": "P3be",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 1,
+      "upper_us": 1,
+      "source_key": "synthetic:P3be"
+    },
+    {
+      "id": "P4as",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 0,
+      "upper_us": 0,
+      "source_key": "synthetic:P4as"
+    },
+    {
+      "id": "P4ae",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "common",
+      "lower_us": 1,
+      "upper_us": 1,
+      "source_key": "synthetic:P4ae"
+    },
+    {
+      "id": "P4bs",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "other",
+      "lower_us": 3,
+      "upper_us": 3,
+      "source_key": "synthetic:P4bs"
+    },
+    {
+      "id": "P4be",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "other",
+      "lower_us": 4,
+      "upper_us": 4,
+      "source_key": "synthetic:P4be"
+    }
+  ],
+  "events": [
+    {
+      "id": "P1a",
+      "record_id": "R-P1a",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P1as",
+      "end_var": "P1ae",
+      "source_key": "synthetic:P1a"
+    },
+    {
+      "id": "P1b",
+      "record_id": "R-P1b",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P1bs",
+      "end_var": "P1be",
+      "source_key": "synthetic:P1b"
+    },
+    {
+      "id": "P2a",
+      "record_id": "R-P2a",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P2as",
+      "end_var": "P2ae",
+      "source_key": "synthetic:P2a"
+    },
+    {
+      "id": "P2b",
+      "record_id": "R-P2b",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P2bs",
+      "end_var": "P2be",
+      "source_key": "synthetic:P2b"
+    },
+    {
+      "id": "P3a",
+      "record_id": "R-P3a",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P3as",
+      "end_var": "P3ae",
+      "source_key": "synthetic:P3a"
+    },
+    {
+      "id": "P3b",
+      "record_id": "R-P3b",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P3bs",
+      "end_var": "P3be",
+      "source_key": "synthetic:P3b"
+    },
+    {
+      "id": "P4a",
+      "record_id": "R-P4a",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P4as",
+      "end_var": "P4ae",
+      "source_key": "synthetic:P4a"
+    },
+    {
+      "id": "P4b",
+      "record_id": "R-P4b",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P4bs",
+      "end_var": "P4be",
+      "source_key": "synthetic:P4b"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "ae-upper",
+      "left_var": "P1ae",
+      "right_var": "P1as",
+      "upper_us": 1,
+      "source_key": "synthetic:shared-anchor:ae"
+    },
+    {
+      "id": "ae-lower",
+      "left_var": "P1as",
+      "right_var": "P1ae",
+      "upper_us": -1,
+      "source_key": "synthetic:shared-anchor:ae"
+    },
+    {
+      "id": "bs-upper",
+      "left_var": "P1bs",
+      "right_var": "P1as",
+      "upper_us": 3,
+      "source_key": "synthetic:shared-anchor:bs"
+    },
+    {
+      "id": "bs-lower",
+      "left_var": "P1as",
+      "right_var": "P1bs",
+      "upper_us": -3,
+      "source_key": "synthetic:shared-anchor:bs"
+    },
+    {
+      "id": "be-upper",
+      "left_var": "P1be",
+      "right_var": "P1as",
+      "upper_us": 4,
+      "source_key": "synthetic:shared-anchor:be"
+    },
+    {
+      "id": "be-lower",
+      "left_var": "P1as",
+      "right_var": "P1be",
+      "upper_us": -4,
+      "source_key": "synthetic:shared-anchor:be"
+    }
+  ]
+}
