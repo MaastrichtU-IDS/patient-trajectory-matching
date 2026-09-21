@@ -1,0 +1,43 @@
+{
+  "profile_id": "toy-qbe-2.1",
+  "status": "specified_not_implemented",
+  "clinical_validity_claim": false,
+  "scope": {
+    "history": "strictly before each patient index",
+    "index_rule": "same named rule for index and candidates",
+    "exclude_same_patient": true,
+    "candidate_search": "exhaustive within declared eligible pool",
+    "tie_break": "patient_id"
+  },
+  "components": [
+    {
+      "id": "age_band",
+      "weight": "1",
+      "distance": "0 for identical declared age band; 1 otherwise",
+      "missing": "omit from observed weighted distance and reduce coverage; top-coded age is not exact age"
+    },
+    {
+      "id": "baseline_creatinine",
+      "weight": "1",
+      "distance": "min(1, abs(candidate-reference)/1.0 mg/dL)",
+      "selector": "minimum eligible pre-index value within 48 elapsed hours",
+      "missing": "omit and reduce coverage"
+    },
+    {
+      "id": "clinical_concepts",
+      "weight": "1",
+      "distance": "1 minus Jaccard similarity on selected pre-index concept sets after versioned reviewed ancestor expansion",
+      "empty_sets": "missing component unless source coverage explicitly establishes observed empty sets; two observed empty sets have distance 0",
+      "missing": "omit and reduce coverage"
+    }
+  ],
+  "aggregation": {
+    "observed_distance": "sum(w_i*d_i for observed pairs) / sum(w_i for observed pairs)",
+    "coverage": "sum(w_i for observed pairs) / sum(w_i for all configured components)",
+    "ranking_distance": "1 - coverage * (1 - observed_distance)",
+    "no_observed_components": "unrankable",
+    "minimum_coverage": "0.5",
+    "score_semantics": "demonstration preference score; neither relaxation cost nor clinical probability"
+  },
+  "promotion": "promoting a component to hard eligibility creates a new revision with an explicit predicate; this is not a weight change"
+}

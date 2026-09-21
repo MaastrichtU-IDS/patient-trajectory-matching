@@ -1,0 +1,36 @@
+{
+  "clocks": [
+    {
+      "clock_id": "fixture-clock",
+      "origin": "1970-01-01T00:00:00Z",
+      "scope": "patient:P1",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "A", "patient_id": "P1", "episode_id": "E1", "record_id": "R-A",
+      "event_kind": "infusion", "status": "performed", "clock_id": "fixture-clock",
+      "start": "2026-09-02T14:00:00Z", "end": "2026-09-02T14:30:00Z",
+      "duration": {"value": "30", "unit": "minute"}, "source_key": "synthetic:A"
+    },
+    {
+      "event_id": "B", "patient_id": "P1", "episode_id": "E1", "record_id": "R-B",
+      "event_kind": "specimen_collection", "status": "performed", "clock_id": "fixture-clock",
+      "start": "2026-09-02T15:30:00+01:00", "end": "2026-09-02T14:35:00Z",
+      "duration": {"value": "300", "unit": "second"}, "source_key": "synthetic:B"
+    },
+    {
+      "event_id": "C", "patient_id": "P1", "episode_id": "E1", "record_id": "R-C",
+      "event_kind": "infusion", "status": "performed", "clock_id": "fixture-clock",
+      "start": "2026-09-02T14:20:00Z", "end": "2026-09-02T14:40:00Z",
+      "duration": {"value": "20", "unit": "minute"}, "source_key": "synthetic:C"
+    },
+    {
+      "event_id": "D", "patient_id": "P1", "episode_id": "E1", "record_id": "R-D",
+      "event_kind": "specimen_collection", "status": "performed", "clock_id": "fixture-clock",
+      "start": "2026-09-02T14:45:00Z", "end": "2026-09-02T15:00:00Z",
+      "source_key": "synthetic:D"
+    }
+  ]
+}

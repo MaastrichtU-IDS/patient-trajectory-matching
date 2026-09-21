@@ -1,0 +1,19 @@
+id	input	expression	expected	actual	outcome	evidence
+C01	temporal-core.ofn	OWL2DLProfile(core).isInProfile	true	true	PASS	checker.stdout.txt:1
+C02	example.ofn	OWL2DLProfile(example).isInProfile	true	true	PASS	checker.stdout.txt:2
+C03	example.ofn	isConsistent(example)	true	true	PASS	checker.stdout.txt:3
+C04	example.ofn	unsatisfiableNamedClasses(example).isEmpty	true	true	PASS	checker.stdout.txt:4
+C05	example.ofn	isEntailed(AntibioticAdministration(administration1))	true	true	PASS	checker.stdout.txt:5
+C06	example.ofn	isEntailed(hasParticipant(administration1, patient1))	true	true	PASS	checker.stdout.txt:6
+C07	example.ofn	isEntailed(ExtendedProcess(administration1))	true	true	PASS	checker.stdout.txt:7
+C08	temporal-core.ofn	isConsistent(core + TimePoint(x) + TimeInterval(x))	false	false	PASS	checker.stdout.txt:8
+C09	temporal-core.ofn	isConsistent(core + hasBeginning(i,p) + hasEnd(i,p))	false	false	PASS	checker.stdout.txt:9
+C10	temporal-core.ofn	isConsistent(core + TimeInterval(i))	true	true	PASS	checker.stdout.txt:10
+C11	temporal-core.ofn	isConsistent(core + Process(event))	true	true	PASS	checker.stdout.txt:11
+C12	temporal-core.ofn	isConsistent(core + TimePoint(p) + exactExtent(event,p))	true	true	PASS	checker.stdout.txt:12
+C13	temporal-core.ofn	isConsistent(core + TimePoint(p) + TimeInterval(i) + exactExtent(event,p) + exactExtent(event,i))	false	false	PASS	checker.stdout.txt:13
+C14	temporal-core.ofn	isConsistent(core + pointBefore(p,q) + pointBefore(q,p))	false	false	PASS	checker.stdout.txt:14
+C15	temporal-core.ofn	isEntailed(SameIndividual(p,q)) with core + hasBeginning(i,p) + hasBeginning(i,q)	true	true	PASS	checker.stdout.txt:15
+C16	temporal-core.ofn	isConsistent(core + hasBeginning(i,p) + hasBeginning(i,q) + DifferentIndividuals(p,q))	false	false	PASS	checker.stdout.txt:16
+C17	temporal-core.ofn	isEntailed(pointBefore(p,r)) with core + pointBefore(p,q) + pointBefore(q,r)	false	false	PASS	checker.stdout.txt:17
+C18	temporal-core.ofn	isConsistent(core + hasBeginning(i,start) + hasEnd(i,end) + pointBefore(end,start))	true	true	PASS	checker.stdout.txt:18

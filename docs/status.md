@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: <!-- test-counts:total -->865<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
+**Summary: <!-- test-counts:total -->870<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
 
 The original `requirements.csv` remains byte-preserved as the historical authority. The [current completion register](completion.md) maps every original row to evidence and remaining clauses and separately tracks 16 additional profiles, including the interval work. The family table below reports the original CSV statuses; it is not the current implementation assessment.
 
@@ -76,6 +76,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded RDF ingestion tests | 21 passed |
 | Extended metric relaxation tests | 13 passed |
 | Robust costed relaxation tests | 12 passed |
+| Relaxation cost-model contract tests | 5 passed |
 | Evidence selection tests | 29 passed |
 | Temporal interface conformance tests | 22 passed |
 | Checked Rust semantic support tests (optional dependency, separate CI job) | 22 passed |
@@ -104,7 +105,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Measurement source catalogue and audit tests | 20 passed |
 | Prepared measurement session tests | 20 passed |
 | Pre-index similarity and immutable refinement tests | 28 passed |
-| **Total** | **865 contract checks** |
+| **Total** | **870 contract checks** |
 | Release manifest digests | 9 verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
@@ -113,7 +114,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 842 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 15, and the completion checker has 13. Eight Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
+The total is 847 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 15, and the completion checker has 13. Eight Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
 
 <!-- test-counts:end -->
 

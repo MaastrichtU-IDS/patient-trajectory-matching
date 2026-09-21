@@ -1,0 +1,22 @@
+{
+  "profile": "interval-cohort-1.0",
+  "id": "infusion_before_collection",
+  "slots": [
+    {
+      "id": "a",
+      "class_iri": "https://example.org/trajectory/interval/Infusion"
+    },
+    {
+      "id": "b",
+      "class_iri": "https://example.org/trajectory/interval/SpecimenCollection"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "order",
+      "left": "a",
+      "right": "b",
+      "operator": "before"
+    }
+  ]
+}

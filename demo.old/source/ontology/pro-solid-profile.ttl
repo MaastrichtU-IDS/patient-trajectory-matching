@@ -1,0 +1,39 @@
+@prefix ex: <https://example.org/trajectory/toy/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:ProSolidProfile a owl:Ontology ;
+  rdfs:comment "Application classes for the bounded PRO/SOLID adapter. SULO is resolved locally through sulo-pin.json. No new object or datatype properties." .
+
+ex:Person a owl:Class ; rdfs:subClassOf sulo:SpatialObject .
+ex:RecordedClinicalProcess a owl:Class ; rdfs:subClassOf sulo:Process .
+ex:Measurement a owl:Class ; rdfs:subClassOf ex:RecordedClinicalProcess .
+ex:AdministrationRecordProcess a owl:Class ; rdfs:subClassOf ex:RecordedClinicalProcess .
+ex:DrugAdministration a owl:Class ; rdfs:subClassOf ex:AdministrationRecordProcess .
+ex:PatientRole a owl:Class ; rdfs:subClassOf sulo:Role .
+ex:CareProviderRole a owl:Class ; rdfs:subClassOf sulo:Role .
+ex:MeasurementResultRole a owl:Class ; rdfs:subClassOf sulo:Role .
+ex:AdministeredDrugRole a owl:Class ; rdfs:subClassOf sulo:Role .
+ex:CreatinineResult a owl:Class ; rdfs:subClassOf sulo:Quantity .
+ex:CreatinineConcentration a owl:Class ; rdfs:subClassOf sulo:Quality .
+ex:DrugA a owl:Class ; rdfs:subClassOf sulo:SpatialObject .
+ex:DrugAChild a owl:Class ; rdfs:subClassOf ex:DrugA .
+ex:DrugB a owl:Class ; rdfs:subClassOf sulo:SpatialObject .
+ex:SourceRecord a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:RecordedAnchorTime a owl:Class ; rdfs:subClassOf sulo:TimeInstant .
+ex:PatientIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:EventIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:RecordIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:EpisodeIdentifier a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:SourceKey a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:SourceLocation a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:SourceHash a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:RecordStatus a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+ex:SourceCode a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+
+[] a owl:AllDisjointClasses ; owl:members (ex:PatientRole ex:CareProviderRole ex:MeasurementResultRole ex:AdministeredDrugRole) .
+ex:Measurement owl:disjointWith ex:AdministrationRecordProcess .
+ex:MilligramPerDecilitre a sulo:Unit .
+ex:MilligramPerLitre a sulo:Unit .
+ex:Second a sulo:Unit .

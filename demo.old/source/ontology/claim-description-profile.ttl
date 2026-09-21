@@ -1,0 +1,51 @@
+@prefix cp: <https://example.org/trajectory/claim/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+cp:ArrayDescription a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Document a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_bundle a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_claims a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_class_iri a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_clock_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_clocks a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_constraints a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_dataset_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_end_var a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_episode_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_event_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_event_kind a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_events a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_kind a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_left_var a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_local_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_lower_us a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_object a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_origin a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_patient_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_policy a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_profile a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_property_iri a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_record_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_right_var a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_scope a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_semantic_facts a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_snapshot_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_source_hash a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_source_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_source_key a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_source_location a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_source_record_id a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_source_sha256 a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_start_var a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_status a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_subject a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_upper_us a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:Field_variables a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:IndexDatum a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:IntegerDatum a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:ItemBinding a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:ObjectDescription a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+cp:StringDatum a owl:Class ; rdfs:subClassOf sulo:InformationObject .

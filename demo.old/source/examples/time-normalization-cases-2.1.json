@@ -1,0 +1,205 @@
+{
+  "specification_version": "2.1",
+  "status": "declarative_expected_results_not_implementation_tests",
+  "cases": [
+    {
+      "id": "T01",
+      "input": {
+        "duration": "90",
+        "unit": "min"
+      },
+      "expected": {
+        "microseconds": "5400000000",
+        "normalization_status": "EXACT"
+      }
+    },
+    {
+      "id": "T02",
+      "input": {
+        "duration": "5400000",
+        "unit": "ms"
+      },
+      "expected": {
+        "microseconds": "5400000000",
+        "normalization_status": "EXACT"
+      }
+    },
+    {
+      "id": "T03",
+      "input": {
+        "duration": "1",
+        "unit": "wk"
+      },
+      "expected": {
+        "microseconds": "604800000000",
+        "normalization_status": "EXACT"
+      }
+    },
+    {
+      "id": "T04",
+      "input": {
+        "timestamp": "2026-09-14T10:00:00+02:00"
+      },
+      "expected": {
+        "utc": "2026-09-14T08:00:00Z",
+        "normalization_status": "EXACT"
+      }
+    },
+    {
+      "id": "T05",
+      "input": {
+        "start": "2026-03-29T00:00:00",
+        "end": "2026-03-30T00:00:00",
+        "zone": "Europe/Amsterdam"
+      },
+      "expected": {
+        "calendar_days": 1,
+        "elapsed_hours": 23
+      }
+    },
+    {
+      "id": "T06",
+      "input": {
+        "datetime": "2026-10-25T02:30:00",
+        "zone": "Europe/Amsterdam"
+      },
+      "expected": {
+        "normalization_status": "UNRESOLVED",
+        "reason": "AMBIGUOUS_LOCAL_TIME",
+        "possible_utc": [
+          "2026-10-25T00:30:00Z",
+          "2026-10-25T01:30:00Z"
+        ]
+      }
+    },
+    {
+      "id": "T07",
+      "input": {
+        "datetime": "2026-03-29T02:30:00",
+        "zone": "Europe/Amsterdam"
+      },
+      "expected": {
+        "normalization_status": "INVALID",
+        "reason": "NONEXISTENT_LOCAL_TIME"
+      }
+    },
+    {
+      "id": "T08",
+      "input": {
+        "age": "65",
+        "unit": "calendar_year",
+        "convention": "completed",
+        "reference": "2026-09-14"
+      },
+      "expected": {
+        "age_domain": "at least 65 and less than 66 completed-calendar-year boundary",
+        "exact_birth_date": null
+      }
+    },
+    {
+      "id": "T09",
+      "input": {
+        "ordinal": "3",
+        "label": "hospital day",
+        "origin": "one_based_local_calendar",
+        "admission_local": "2026-09-14T18:00:00"
+      },
+      "expected": {
+        "local_date": "2026-09-16",
+        "is_elapsed_72_hours": false
+      }
+    },
+    {
+      "id": "T10",
+      "input": {
+        "offset": "3",
+        "unit": "d",
+        "semantics": "elapsed",
+        "anchor": "2026-09-14T18:00:00Z"
+      },
+      "expected": {
+        "instant": "2026-09-17T18:00:00Z"
+      }
+    },
+    {
+      "id": "T11",
+      "input": {
+        "date": "2026-09-14",
+        "role": "measurement occurrence",
+        "clock": "source-local-unknown-offset"
+      },
+      "expected": {
+        "support": "that local date with explicit half-open bounds",
+        "utc_instant": null,
+        "invent_midnight_event": false
+      }
+    },
+    {
+      "id": "T12",
+      "input": {
+        "numeric_timestamp": "1789392000000",
+        "epoch": null,
+        "unit": null
+      },
+      "expected": {
+        "normalization_status": "UNRESOLVED",
+        "reasons": [
+          "UNKNOWN_EPOCH",
+          "UNKNOWN_UNIT"
+        ]
+      }
+    },
+    {
+      "id": "T13",
+      "input": {
+        "source": "MIMIC-IV",
+        "anchor_age": 91,
+        "anchor_year": 2150
+      },
+      "expected": {
+        "top_coded": true,
+        "exact_age": null,
+        "birthday": null
+      }
+    },
+    {
+      "id": "T14",
+      "input": {
+        "quantity": "1",
+        "unit": "year",
+        "semantic_kind": "unspecified"
+      },
+      "expected": {
+        "normalization_status": "UNRESOLVED",
+        "requires": "elapsed convention or anchored calendar/age interpretation"
+      }
+    },
+    {
+      "id": "T15",
+      "input": {
+        "two_offsets_hours": [
+          "2",
+          "5"
+        ],
+        "shared_uncertain_anchor": "A"
+      },
+      "expected": {
+        "difference_hours": "3",
+        "preserve_shared_anchor_dependency": true
+      }
+    },
+    {
+      "id": "T16",
+      "input": {
+        "calendar_date": "2024-02-29",
+        "operation": "add_calendar_years",
+        "value": 1,
+        "policy": "clamp_last_day"
+      },
+      "expected": {
+        "calendar_date": "2025-02-28",
+        "convert_to_fixed_seconds": false
+      }
+    }
+  ]
+}

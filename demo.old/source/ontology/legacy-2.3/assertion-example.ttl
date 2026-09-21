@@ -1,0 +1,15 @@
+@prefix tkg: <https://example.org/trajectory/> .
+@prefix ex: <https://example.org/trajectory/toy/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:recordE1 a tkg:ClinicalRecord ; prov:wasDerivedFrom ex:sourceRowE1 .
+ex:assertionE1 a tkg:TemporalAssertion ;
+ tkg:subject ex:administrationE1 ; tkg:predicate rdf:type ; tkg:object ex:DrugA ;
+ tkg:polarity "positive" ; tkg:sourceRecord ex:recordE1 ; tkg:validTime ex:timeE1 .
+ex:administrationE1 a tkg:ClinicalEvent .
+ex:timeE1 a tkg:TimeSpecification ; tkg:clockId "P1-relative" ;
+ tkg:lowerMicroseconds "-604800000000"^^xsd:integer ;
+ tkg:upperMicroseconds "-604800000000"^^xsd:integer .
+# The temporal interpreter, not RDF reification itself, activates the assertion.

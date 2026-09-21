@@ -1,0 +1,104 @@
+{
+  "run_kind": "rerun of unchanged original checker and OWL inputs",
+  "started_at_utc": "2026-09-15T05:55:59.636636+00:00",
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "robot_sha256": "16a73c074f3df359a7338a84b4e0788785fe06117f931bb9796e9619ea776105",
+  "input_sha256": {
+    "docs/temporal-kg/ontology/temporal-core.ofn": "37a601d2ff91a0af730368fb97f06cbe71942900ff85cd277d9bb8bfd6e8e142",
+    "docs/temporal-kg/ontology/example.ofn": "0334e88d0932615327874dd500bf513212beed8ee16da02807efd8be078c7e5e",
+    "docs/temporal-kg/validation/ValidateTemporal.java": "bc97604298b8b53822360434abb628f981bca9f71f9d0e8d4df549ac653174b6",
+    "docs/temporal-kg/Temporal_Knowledge_Graph_Formal_Definition_v2.pdf": "bb30830d5e08ab4f02207b48719469a54af1c8c8c71a8ff4b5aacf3e09e5d0f9",
+    "docs/temporal-kg/validation/results/original-2026-09-15/owl2dl-profile.txt": "82e9af84deb82760549964321b2898a85a26d91b5b40d372c8033d3dca0327da",
+    "docs/temporal-kg/validation/results/original-2026-09-15/reasoner-checks.txt": "5618cff92c4c667e4c80b16b5fa6d094bc89ff478bfd240f7cc3d8d5f5fcde9a",
+    "docs/temporal-kg/validation/results/original-2026-09-15/document-checks.txt": "194cb53b6e4c94a77a6228b1ed664e2f8696c927d20bad737b76622b90691c6a"
+  },
+  "runner_sha256": "25d9f23d5868f71ab7877bb4a4d66526ce8bacb0a1fb1eab01d5d76890dcb66e",
+  "inventory_sha256": "8b338983fb4313ea1838ee6eba62ff6087782a06fd39124d48320195f98df866",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/java",
+        "-version"
+      ],
+      "cwd": "/tmp/temporal-kg-v2-a0ljx49m",
+      "returncode": 0,
+      "stdout": "java-version.stdout.txt",
+      "stderr": "java-version.stderr.txt"
+    },
+    {
+      "argv": [
+        "/usr/bin/javac",
+        "-version"
+      ],
+      "cwd": "/tmp/temporal-kg-v2-a0ljx49m",
+      "returncode": 0,
+      "stdout": "javac-version.stdout.txt",
+      "stderr": "javac-version.stderr.txt"
+    },
+    {
+      "argv": [
+        "/usr/bin/java",
+        "-jar",
+        "/home/leechuck/Public/software/flopoontology/tools/robot.jar",
+        "--version"
+      ],
+      "cwd": "/tmp/temporal-kg-v2-a0ljx49m",
+      "returncode": 0,
+      "stdout": "robot-version.stdout.txt",
+      "stderr": "robot-version.stderr.txt"
+    },
+    {
+      "argv": [
+        "/usr/bin/java",
+        "-jar",
+        "/home/leechuck/Public/software/flopoontology/tools/robot.jar",
+        "validate-profile",
+        "--input",
+        "formal-definition-v2/temporal-core.ofn",
+        "--profile",
+        "DL",
+        "--output",
+        "/home/leechuck/Public/software/patient-trajectory-matching/docs/temporal-kg/validation/results/rerun-2026-09-15/owl2dl-profile.txt"
+      ],
+      "cwd": "/tmp/temporal-kg-v2-a0ljx49m",
+      "returncode": 0,
+      "stdout": "profile.stdout.txt",
+      "stderr": "profile.stderr.txt"
+    },
+    {
+      "argv": [
+        "/usr/bin/javac",
+        "-cp",
+        "/home/leechuck/Public/software/flopoontology/tools/robot.jar",
+        "-d",
+        "/tmp/temporal-kg-v2-a0ljx49m/classes",
+        "/home/leechuck/Public/software/patient-trajectory-matching/docs/temporal-kg/validation/ValidateTemporal.java"
+      ],
+      "cwd": "/tmp/temporal-kg-v2-a0ljx49m",
+      "returncode": 0,
+      "stdout": "compile.stdout.txt",
+      "stderr": "compile.stderr.txt"
+    },
+    {
+      "argv": [
+        "/usr/bin/java",
+        "-cp",
+        "/tmp/temporal-kg-v2-a0ljx49m/classes:/home/leechuck/Public/software/flopoontology/tools/robot.jar",
+        "ValidateTemporal",
+        "formal-definition-v2/temporal-core.ofn",
+        "formal-definition-v2/example.ofn"
+      ],
+      "cwd": "/tmp/temporal-kg-v2-a0ljx49m",
+      "returncode": 0,
+      "stdout": "checker.stdout.txt",
+      "stderr": "checker.stderr.txt"
+    }
+  ],
+  "result_values": "Recovered from successful boolean assertions in the original checker; see raw logs.",
+  "validation_scope": "Standalone OWL core/example; no SULO import alignment or temporal query engine.",
+  "passed": true,
+  "checks_passed": 18,
+  "original_transcript_byte_match": true,
+  "original_profile_byte_match": true,
+  "finished_at_utc": "2026-09-15T05:56:05.820240+00:00"
+}

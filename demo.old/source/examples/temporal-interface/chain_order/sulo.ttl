@@ -1,0 +1,511 @@
+@prefix bt: <https://example.org/trajectory/bounded/> .
+@prefix data: <https://example.org/trajectory/bounded-data/> .
+@prefix ei: <https://example.org/trajectory/interval/> .
+@prefix ex: <https://example.org/trajectory/toy/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/trajectory/bounded-data/records/record_A> a ex:SourceRecord ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/records/record_A/episode_id>,
+        <https://example.org/trajectory/bounded-data/records/record_A/id>,
+        <https://example.org/trajectory/bounded-data/records/record_A/record_id>,
+        <https://example.org/trajectory/bounded-data/records/record_A/source-hash>,
+        <https://example.org/trajectory/bounded-data/records/record_A/source-key>,
+        <https://example.org/trajectory/bounded-data/records/record_A/source-location>,
+        <https://example.org/trajectory/bounded-data/records/record_A/status> ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/events/A> .
+
+<https://example.org/trajectory/bounded-data/records/record_B> a ex:SourceRecord ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/records/record_B/episode_id>,
+        <https://example.org/trajectory/bounded-data/records/record_B/id>,
+        <https://example.org/trajectory/bounded-data/records/record_B/record_id>,
+        <https://example.org/trajectory/bounded-data/records/record_B/source-hash>,
+        <https://example.org/trajectory/bounded-data/records/record_B/source-key>,
+        <https://example.org/trajectory/bounded-data/records/record_B/source-location>,
+        <https://example.org/trajectory/bounded-data/records/record_B/status> ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/events/B> .
+
+<https://example.org/trajectory/bounded-data/records/record_C> a ex:SourceRecord ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/records/record_C/episode_id>,
+        <https://example.org/trajectory/bounded-data/records/record_C/id>,
+        <https://example.org/trajectory/bounded-data/records/record_C/record_id>,
+        <https://example.org/trajectory/bounded-data/records/record_C/source-hash>,
+        <https://example.org/trajectory/bounded-data/records/record_C/source-key>,
+        <https://example.org/trajectory/bounded-data/records/record_C/source-location>,
+        <https://example.org/trajectory/bounded-data/records/record_C/status> ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/events/C> .
+
+data:snapshot a bt:Snapshot ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/constraints/A_before_B>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C>,
+        <https://example.org/trajectory/bounded-data/snapshot/dataset>,
+        <https://example.org/trajectory/bounded-data/snapshot/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/snapshot/snapshot>,
+        <https://example.org/trajectory/bounded-data/variables/Ae>,
+        <https://example.org/trajectory/bounded-data/variables/As>,
+        <https://example.org/trajectory/bounded-data/variables/Be>,
+        <https://example.org/trajectory/bounded-data/variables/Bs>,
+        <https://example.org/trajectory/bounded-data/variables/Ce>,
+        <https://example.org/trajectory/bounded-data/variables/Cs> .
+
+<https://example.org/trajectory/bounded-data/clocks/clock/clock_id> a ei:ClockIdentifier ;
+    sulo:hasValue "clock"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/clocks/clock/origin> a ei:ClockOrigin ;
+    sulo:hasDirectPart ei:Second ;
+    sulo:hasValue "2026-01-01T00:00:00Z"^^xsd:dateTimeStamp .
+
+<https://example.org/trajectory/bounded-data/clocks/clock/policy> a ei:ClockPolicy ;
+    sulo:hasValue "offset-datetime-microseconds-v1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/clocks/clock/scope> a ei:ClockScope ;
+    sulo:hasValue "global"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B> a bt:DifferenceConstraint ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/constraints/A_before_B/left_var>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/operator>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/right_var>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/source-hash>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/source-key>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/source-location>,
+        <https://example.org/trajectory/bounded-data/constraints/A_before_B/upper> .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/left_var> a bt:LeftOperandBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Ae> .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/operator> a bt:OperatorDatum ;
+    sulo:hasValue "left_minus_right_le"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/ConstraintIdentifier> ;
+    sulo:hasValue "A_before_B"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/right_var> a bt:RightOperandBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Bs> .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/source-hash> a ex:SourceHash ;
+    sulo:hasValue "2c09ee15c619b739f67a6308cfdb4a42727bfa93195287c067dc52c3bbecca55"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/source-key> a ex:SourceKey ;
+    sulo:hasValue "declared_A_before_B"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/A_before_B/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue -1 .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C> a bt:DifferenceConstraint ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/constraints/B_before_C/left_var>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/operator>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/right_var>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/source-hash>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/source-key>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/source-location>,
+        <https://example.org/trajectory/bounded-data/constraints/B_before_C/upper> .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/left_var> a bt:LeftOperandBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Be> .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/operator> a bt:OperatorDatum ;
+    sulo:hasValue "left_minus_right_le"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/ConstraintIdentifier> ;
+    sulo:hasValue "B_before_C"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/right_var> a bt:RightOperandBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Cs> .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/source-hash> a ex:SourceHash ;
+    sulo:hasValue "82abd3fccc55523b8b3fbd967fc7fc984a2f4e27f49dfa8c350683c42e074865"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/source-key> a ex:SourceKey ;
+    sulo:hasValue "declared_B_before_C"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/constraints/B_before_C/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue -1 .
+
+<https://example.org/trajectory/bounded-data/events/A> a bt:Infusion ;
+    sulo:atTime <https://example.org/trajectory/bounded-data/events/A/interval> ;
+    sulo:hasParticipant <https://example.org/trajectory/bounded-data/events/A/patient-role> .
+
+<https://example.org/trajectory/bounded-data/events/A/end> a bt:EndDescriptor ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Ae> .
+
+<https://example.org/trajectory/bounded-data/events/A/interval> a bt:OccurrenceInterval ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/events/A/end>,
+        <https://example.org/trajectory/bounded-data/events/A/start> .
+
+<https://example.org/trajectory/bounded-data/events/A/patient-role> a ex:PatientRole ;
+    sulo:isFeatureOf <https://example.org/trajectory/bounded-data/persons/P1> .
+
+<https://example.org/trajectory/bounded-data/events/A/start> a bt:StartDescriptor ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/As> .
+
+<https://example.org/trajectory/bounded-data/events/B> a bt:SpecimenCollection ;
+    sulo:atTime <https://example.org/trajectory/bounded-data/events/B/interval> ;
+    sulo:hasParticipant <https://example.org/trajectory/bounded-data/events/B/patient-role> .
+
+<https://example.org/trajectory/bounded-data/events/B/end> a bt:EndDescriptor ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Be> .
+
+<https://example.org/trajectory/bounded-data/events/B/interval> a bt:OccurrenceInterval ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/events/B/end>,
+        <https://example.org/trajectory/bounded-data/events/B/start> .
+
+<https://example.org/trajectory/bounded-data/events/B/patient-role> a ex:PatientRole ;
+    sulo:isFeatureOf <https://example.org/trajectory/bounded-data/persons/P1> .
+
+<https://example.org/trajectory/bounded-data/events/B/start> a bt:StartDescriptor ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Bs> .
+
+<https://example.org/trajectory/bounded-data/events/C> a bt:SpecimenCollection ;
+    sulo:atTime <https://example.org/trajectory/bounded-data/events/C/interval> ;
+    sulo:hasParticipant <https://example.org/trajectory/bounded-data/events/C/patient-role> .
+
+<https://example.org/trajectory/bounded-data/events/C/end> a bt:EndDescriptor ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Ce> .
+
+<https://example.org/trajectory/bounded-data/events/C/interval> a bt:OccurrenceInterval ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/events/C/end>,
+        <https://example.org/trajectory/bounded-data/events/C/start> .
+
+<https://example.org/trajectory/bounded-data/events/C/patient-role> a ex:PatientRole ;
+    sulo:isFeatureOf <https://example.org/trajectory/bounded-data/persons/P1> .
+
+<https://example.org/trajectory/bounded-data/events/C/start> a bt:StartDescriptor ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Cs> .
+
+<https://example.org/trajectory/bounded-data/persons/P1/id> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/episode_id> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/id> a ex:EventIdentifier ;
+    sulo:hasValue "A"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/record_id> a ex:RecordIdentifier ;
+    sulo:hasValue "record_A"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/source-hash> a ex:SourceHash ;
+    sulo:hasValue "8f84b764e9188e87a34fc7ec3f59cf067608585280bf511c5e73cafe6b2aa9e0"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_A"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_A/status> a ex:RecordStatus ;
+    sulo:hasValue "performed"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/episode_id> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/id> a ex:EventIdentifier ;
+    sulo:hasValue "B"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/record_id> a ex:RecordIdentifier ;
+    sulo:hasValue "record_B"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/source-hash> a ex:SourceHash ;
+    sulo:hasValue "094450610393bf31a637c70ed621a04a239ed0a7a424a6257129e24b12fd62c9"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_B"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_B/status> a ex:RecordStatus ;
+    sulo:hasValue "performed"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/episode_id> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/id> a ex:EventIdentifier ;
+    sulo:hasValue "C"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/record_id> a ex:RecordIdentifier ;
+    sulo:hasValue "record_C"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/source-hash> a ex:SourceHash ;
+    sulo:hasValue "1c760da4ee1a16644ae9722e5c62b450124451edff0d07a103a9263824fa098e"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_C"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/records/record_C/status> a ex:RecordStatus ;
+    sulo:hasValue "performed"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/snapshot/dataset> a bt:DatasetIdentifier ;
+    sulo:hasValue "mapping_examples"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/snapshot/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/ProfileIdentifier> ;
+    sulo:hasValue "bounded-rdf-1.0"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/snapshot/snapshot> a bt:SnapshotIdentifier ;
+    sulo:hasValue "chain_order"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/clock> a ei:ClockBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/clocks/clock> .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/episode> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/lower> a bt:LowerBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 0 .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/patient> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/VariableIdentifier> ;
+    sulo:hasValue "Ae"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/source-hash> a ex:SourceHash ;
+    sulo:hasValue "1ba4629d9d89aae5897e73c8bffb7f8684dacdfb4d3dfd8a0907f639a3c2575b"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_Ae"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ae/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 5 .
+
+<https://example.org/trajectory/bounded-data/variables/As/clock> a ei:ClockBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/clocks/clock> .
+
+<https://example.org/trajectory/bounded-data/variables/As/episode> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/As/lower> a bt:LowerBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 0 .
+
+<https://example.org/trajectory/bounded-data/variables/As/patient> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/As/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/VariableIdentifier> ;
+    sulo:hasValue "As"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/As/source-hash> a ex:SourceHash ;
+    sulo:hasValue "7a7075f4f48ee3ea67f5d9295459d979720d9e724b6eb5de1fad8fc175716cb8"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/As/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_As"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/As/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/As/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 5 .
+
+<https://example.org/trajectory/bounded-data/variables/Be/clock> a ei:ClockBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/clocks/clock> .
+
+<https://example.org/trajectory/bounded-data/variables/Be/episode> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Be/lower> a bt:LowerBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 0 .
+
+<https://example.org/trajectory/bounded-data/variables/Be/patient> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Be/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/VariableIdentifier> ;
+    sulo:hasValue "Be"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Be/source-hash> a ex:SourceHash ;
+    sulo:hasValue "dd1560eec0f1c192f705a0d289b72ce9b494e8042012e4e61e79d71a7fdd5fd6"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Be/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_Be"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Be/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Be/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 5 .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/clock> a ei:ClockBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/clocks/clock> .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/episode> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/lower> a bt:LowerBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 0 .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/patient> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/VariableIdentifier> ;
+    sulo:hasValue "Bs"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/source-hash> a ex:SourceHash ;
+    sulo:hasValue "3dc4857a4057dc802972294b2b0d288bf2491ce36794e06cb946042fc8021490"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_Bs"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Bs/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 5 .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/clock> a ei:ClockBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/clocks/clock> .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/episode> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/lower> a bt:LowerBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 0 .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/patient> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/VariableIdentifier> ;
+    sulo:hasValue "Ce"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/source-hash> a ex:SourceHash ;
+    sulo:hasValue "da40a109e07d6f67f7fd381cb4c44a6e3ba28f7c638babb2d4175d03ea0b9523"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_Ce"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Ce/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 5 .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/clock> a ei:ClockBinding ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/clocks/clock> .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/episode> a ex:EpisodeIdentifier ;
+    sulo:hasValue "E1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/lower> a bt:LowerBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 0 .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/patient> a ex:PatientIdentifier ;
+    sulo:hasValue "P1"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/rdf-identifier> a <https://example.org/trajectory/bounded-rdf/VariableIdentifier> ;
+    sulo:hasValue "Cs"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/source-hash> a ex:SourceHash ;
+    sulo:hasValue "d7b0c6cce4f3a5e9d8fc9ad8da93d8ed55f70f6b3f56de8152c8ea29bb352cd5"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/source-key> a ex:SourceKey ;
+    sulo:hasValue "fixture_Cs"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/source-location> a ex:SourceLocation ;
+    sulo:hasValue "constructed://bounded-interval/source.json"^^xsd:string .
+
+<https://example.org/trajectory/bounded-data/variables/Cs/upper> a bt:UpperBound ;
+    sulo:hasDirectPart bt:Microsecond ;
+    sulo:hasValue 5 .
+
+ei:Second a sulo:Unit .
+
+<https://example.org/trajectory/bounded-data/variables/As> a bt:TemporalVariable ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/variables/As/clock>,
+        <https://example.org/trajectory/bounded-data/variables/As/episode>,
+        <https://example.org/trajectory/bounded-data/variables/As/lower>,
+        <https://example.org/trajectory/bounded-data/variables/As/patient>,
+        <https://example.org/trajectory/bounded-data/variables/As/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/variables/As/source-hash>,
+        <https://example.org/trajectory/bounded-data/variables/As/source-key>,
+        <https://example.org/trajectory/bounded-data/variables/As/source-location>,
+        <https://example.org/trajectory/bounded-data/variables/As/upper> .
+
+<https://example.org/trajectory/bounded-data/variables/Ce> a bt:TemporalVariable ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/variables/Ce/clock>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/episode>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/lower>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/patient>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/source-hash>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/source-key>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/source-location>,
+        <https://example.org/trajectory/bounded-data/variables/Ce/upper> .
+
+<https://example.org/trajectory/bounded-data/persons/P1> a ex:Person ;
+    sulo:hasFeature <https://example.org/trajectory/bounded-data/persons/P1/id> .
+
+<https://example.org/trajectory/bounded-data/variables/Ae> a bt:TemporalVariable ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/variables/Ae/clock>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/episode>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/lower>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/patient>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/source-hash>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/source-key>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/source-location>,
+        <https://example.org/trajectory/bounded-data/variables/Ae/upper> .
+
+<https://example.org/trajectory/bounded-data/variables/Be> a bt:TemporalVariable ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/variables/Be/clock>,
+        <https://example.org/trajectory/bounded-data/variables/Be/episode>,
+        <https://example.org/trajectory/bounded-data/variables/Be/lower>,
+        <https://example.org/trajectory/bounded-data/variables/Be/patient>,
+        <https://example.org/trajectory/bounded-data/variables/Be/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/variables/Be/source-hash>,
+        <https://example.org/trajectory/bounded-data/variables/Be/source-key>,
+        <https://example.org/trajectory/bounded-data/variables/Be/source-location>,
+        <https://example.org/trajectory/bounded-data/variables/Be/upper> .
+
+<https://example.org/trajectory/bounded-data/variables/Bs> a bt:TemporalVariable ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/variables/Bs/clock>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/episode>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/lower>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/patient>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/source-hash>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/source-key>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/source-location>,
+        <https://example.org/trajectory/bounded-data/variables/Bs/upper> .
+
+<https://example.org/trajectory/bounded-data/variables/Cs> a bt:TemporalVariable ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/variables/Cs/clock>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/episode>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/lower>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/patient>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/rdf-identifier>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/source-hash>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/source-key>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/source-location>,
+        <https://example.org/trajectory/bounded-data/variables/Cs/upper> .
+
+<https://example.org/trajectory/bounded-data/clocks/clock> a ei:TemporalReferenceSystem ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/clocks/clock/clock_id>,
+        <https://example.org/trajectory/bounded-data/clocks/clock/origin>,
+        <https://example.org/trajectory/bounded-data/clocks/clock/policy>,
+        <https://example.org/trajectory/bounded-data/clocks/clock/scope> .
+
+bt:Microsecond a sulo:Unit .

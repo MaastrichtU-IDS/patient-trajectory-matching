@@ -1,0 +1,32 @@
+{
+  "profile": "claim-acceptance-policy-1.0",
+  "id": "synthetic_selection",
+  "store_sha256": "7df59840d1e4827c055dbe4a5ab6883fba24c66a1187537e1a45b2509b30c530",
+  "semantic_policy_sha256": "4fac9d4119bb517f63046075538d5c90d59338aeab731918e7bf73188ea02937",
+  "decisions": [
+    {
+      "id": "accept_claim_treatment_P1",
+      "claim_id": "claim_treatment_P1",
+      "claim_sha256": "d92586794cf3838034705003293a8dd03188b4261273b9bb7a12c075ee10d25a",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_treatment_P2",
+      "claim_id": "claim_treatment_P2",
+      "claim_sha256": "6a0361e29d93b10bd277642bc160fda66c697fd280f60e39d3cb11506fb9a5e6",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    },
+    {
+      "id": "accept_claim_treatment_P3",
+      "claim_id": "claim_treatment_P3",
+      "claim_sha256": "0e34c0f615b1464eb42770c7ac5413837b74ddfabe0b24a2eb1573697f4db0b6",
+      "action": "accept",
+      "supersedes": null,
+      "reason": "Constructed synthetic analysis selection; no clinical approval claimed."
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "synthea": {
+    "role": "synthetic longitudinal ETL and scale",
+    "format": "CSV",
+    "generator_execution": "upstream only, outside product no-JVM build and runtime",
+    "required_manifest_fields": [
+      "revision",
+      "population_seed",
+      "clinician_seed_if_used",
+      "population_parameters",
+      "reference_date",
+      "modules_sha256",
+      "config_sha256",
+      "export_settings",
+      "schema_version",
+      "output_sha256"
+    ],
+    "medications_event_kind": "prescription",
+    "administration_exemplar": "requires explicitly constructed or separately sourced administration records"
+  },
+  "mimic_iv_demo": {
+    "version": "2.2",
+    "role": "realistic structured ETL and qualitative evidence review",
+    "required_tables": [
+      "patients",
+      "admissions",
+      "labevents",
+      "d_labitems",
+      "emar",
+      "emar_detail"
+    ],
+    "initial_administration_status": [
+      "Administered"
+    ],
+    "other_statuses": "retained as distinct records; review needed for promotion",
+    "clock": "dataset-local shifted; do not invent timezone",
+    "cross_patient_time": "relative to index only"
+  },
+  "constructed": {
+    "role": "known-answer conformance cases",
+    "clinical_validity_claim": false
+  },
+  "mimic_iv_full": {
+    "access": "available to team",
+    "reference_release": "3.1; pin actual release",
+    "role": "clinical exploration and patient retrieval evaluation",
+    "plan": "full-mimic-study-plan-2.1.json",
+    "clock": "patient-scoped shifted; no inferred IANA offset",
+    "status": "planned_not_analyzed"
+  }
+}

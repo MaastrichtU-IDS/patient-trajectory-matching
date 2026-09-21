@@ -1,0 +1,11 @@
+{
+  "profile": "clinical-source-preflight-1.0",
+  "id": "synthetic_source_preflight",
+  "dataset_id": "synthetic-source-mixed-1.0",
+  "treatment_itemids": [
+    "1000"
+  ],
+  "measurement_itemids": [
+    "2000"
+  ]
+}

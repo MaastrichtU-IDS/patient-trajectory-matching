@@ -1,0 +1,47 @@
+{
+  "status": "planned_not_run",
+  "decision_ref": "ADR23",
+  "engineer_hours_cap": 6,
+  "schedule": "After H0 integration; after the event for a three-person team.",
+  "data": "constructed_only",
+  "pins": [
+    "graphiti_commit",
+    "backend_and_version",
+    "model_and_version",
+    "prompt_versions",
+    "extraction_settings",
+    "hardware",
+    "cache_state"
+  ],
+  "arms": [
+    "direct_assertion_insertion_if_supported",
+    "equivalent_synthetic_narratives"
+  ],
+  "stochastic_ingestion_repeats": 3,
+  "reference": "independent enumeration of event and assertion semantics",
+  "case_refs": [
+    "T01",
+    "T02",
+    "T03",
+    "T04",
+    "T05",
+    "T06",
+    "T07",
+    "T08"
+  ],
+  "metrics": [
+    "observation_and_assertion_preservation",
+    "supersession_correctness",
+    "evidence_traceability",
+    "source_as_known_replay_agreement",
+    "candidate_recall",
+    "final_cohort_agreement",
+    "alignment_correctness",
+    "extraction_errors",
+    "ingestion_cost",
+    "end_to_end_latency"
+  ],
+  "candidate_recall_definition": "Reference-eligible patients present in candidate set / all reference-eligible patients. Zero denominator is not applicable. State shortlist budget and population.",
+  "unsupported_policy": "Report unsupported separately; do not score unavailable replay as accuracy.",
+  "adoption_rule": "Optional only after mandatory identity and provenance cases are preserved, unsupported semantics are explicit and useful improvement is measured. Canonical ETL, ontology and matching contracts remain authoritative."
+}

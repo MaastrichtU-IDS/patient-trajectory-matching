@@ -1,0 +1,48 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <https://example.org/trajectory/toy/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Closed-world adapter obligations on the separately materialized graph.
+# These are not global OWL cardinality axioms; the runner also performs procedural checks.
+ex:LiteralDatumShape a sh:NodeShape ;
+  sh:targetSubjectsOf sulo:hasValue ; sh:class sulo:InformationObject ;
+  sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:Literal ] .
+
+ex:RoleShape a sh:NodeShape ; sh:targetClass sulo:Role ;
+  sh:property [ sh:path sulo:isFeatureOf ; sh:minCount 1 ; sh:maxCount 1 ; sh:class sulo:Object ] ;
+  sh:xone ( [ sh:class ex:PatientRole ] [ sh:class ex:CareProviderRole ]
+             [ sh:class ex:MeasurementResultRole ] [ sh:class ex:AdministeredDrugRole ] ) .
+
+ex:PatientRoleShape a sh:NodeShape ; sh:targetClass ex:PatientRole ;
+  sh:property [ sh:path sulo:isFeatureOf ; sh:class ex:Person ] .
+
+ex:ProcessShape a sh:NodeShape ; sh:targetClass ex:RecordedClinicalProcess ;
+  sh:xone ( [ sh:class ex:Measurement ] [ sh:class ex:DrugAdministration ] ) ;
+  sh:property [ sh:path sulo:hasParticipant ; sh:qualifiedValueShape [ sh:class ex:PatientRole ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:atTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:RecordedAnchorTime ] .
+
+ex:MeasurementShape a sh:NodeShape ; sh:targetClass ex:Measurement ;
+  sh:property [ sh:path sulo:hasParticipant ; sh:qualifiedValueShape [ sh:class ex:MeasurementResultRole ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+
+ex:AdministrationShape a sh:NodeShape ; sh:targetClass ex:DrugAdministration ;
+  sh:property [ sh:path sulo:hasParticipant ; sh:qualifiedValueShape [ sh:class ex:AdministeredDrugRole ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+
+ex:ResultRoleShape a sh:NodeShape ; sh:targetClass ex:MeasurementResultRole ;
+  sh:property [ sh:path sulo:isFeatureOf ; sh:class ex:CreatinineResult ] .
+
+ex:ResultShape a sh:NodeShape ; sh:targetClass ex:CreatinineResult ;
+  sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] ;
+  sh:property [ sh:path sulo:hasPart ; sh:qualifiedValueShape [ sh:class sulo:Unit ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:CreatinineConcentration ] .
+
+ex:TimeShape a sh:NodeShape ; sh:targetClass ex:RecordedAnchorTime ;
+  sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:or ( [ sh:datatype xsd:dateTime ] [ sh:datatype xsd:dateTimeStamp ] ) ] .
+
+ex:SourceRecordShape a sh:NodeShape ; sh:targetClass ex:SourceRecord ;
+  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:RecordedClinicalProcess ] .

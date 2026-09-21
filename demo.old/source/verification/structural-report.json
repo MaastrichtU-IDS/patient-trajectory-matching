@@ -1,0 +1,16 @@
+{
+  "json_schema": "draft2020-12 valid",
+  "openapi": "3.1 valid",
+  "definitions": 22,
+  "api_paths": 14,
+  "event_examples_validated": 50,
+  "document_ast_matches_json": true,
+  "pattern_references_valid": true,
+  "zero_cost_nonexact_alternative_rejected": true,
+  "rdf_files_parsed": 3,
+  "assertion_shape_positive": true,
+  "assertion_shape_missing_valid_time_rejected": true,
+  "full_owl_reasoning_tested": false,
+  "production_services_tested": false,
+  "complete_result_and_evidence_examples_validated": true
+}

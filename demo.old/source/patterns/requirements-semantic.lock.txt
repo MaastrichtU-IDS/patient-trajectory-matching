@@ -1,0 +1,3 @@
+# Optional Rust integration, tested with CPython 3.12; includes the base profile.
+-r requirements.lock.txt
+rustdl==0.4.28

@@ -1,0 +1,9 @@
+{
+  "profile": "exact-interval-1.0",
+  "tests_run": 51,
+  "failures": 0,
+  "errors": 0,
+  "passed": true,
+  "scope": "synthetic exact occurrence intervals and finite endpoint comparisons only",
+  "production_readiness_claim": false
+}

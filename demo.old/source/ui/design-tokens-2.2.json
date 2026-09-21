@@ -1,0 +1,50 @@
+{
+  "specification_version": "2.2",
+  "status": "proposed_not_conformance_verified",
+  "type_px": {
+    "body": 16,
+    "dense_table_minimum": 14,
+    "heading": 24
+  },
+  "spacing_px": [
+    4,
+    8,
+    12,
+    16,
+    24
+  ],
+  "colors": {
+    "text": "#172B3A",
+    "secondary_text": "#475569",
+    "surface": "#FFFFFF",
+    "background": "#F4F7F9",
+    "selection": "#174EA6",
+    "exact": "#126B5D",
+    "relaxed": "#805400",
+    "unresolved": "#68449A",
+    "error": "#B42318"
+  },
+  "status_semantics": "Each color also requires a text label and distinguishable shape; contrast must be tested in actual rendered states.",
+  "layouts": [
+    {
+      "min_css_px": 1440,
+      "regions": 3,
+      "width_percent_after_gutters": [
+        44,
+        26,
+        30
+      ]
+    },
+    {
+      "min_css_px": 1024,
+      "max_css_px": 1439,
+      "regions": 2
+    },
+    {
+      "max_css_px": 1023,
+      "navigation": "labelled tabs with persistent reference patient, revision and scope"
+    }
+  ],
+  "focus_and_reflow": "WCAG 2.2 AA checks with manual keyboard, screen reader and 200% zoom; 320 CSS px event-list view.",
+  "motion": "Honor reduced motion; never reorder focused results during background refresh."
+}

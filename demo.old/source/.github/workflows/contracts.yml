@@ -1,0 +1,218 @@
+name: contracts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    name: PRO/SOLID profile and oracle (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # The pack is authored and tested against CPython 3.12.
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: patterns/requirements.lock.txt
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r patterns/requirements.lock.txt
+
+      - name: Verify release manifest hashes
+        run: python .github/scripts/check_manifest.py
+
+      - name: Reference oracle (16 cases, 7 property checks)
+        run: python reference_oracle.py
+
+      - name: Pipeline from synthetic source rows
+        run: python -m patterns.pro_solid
+
+      - name: Regenerated graph matches committed example
+        run: python .github/scripts/check_graph.py
+
+      - name: Pipeline from committed RDF graph
+        run: python -m patterns.pro_solid --graph examples/pro-solid/graph.ttl
+
+      - name: Acceptance suite (42 profile tests)
+        run: python -m patterns.test_pro_solid
+
+      - name: Exact interval pipeline
+        run: python -m patterns.exact_intervals
+
+      - name: Exact interval conformance and RDF round trip
+        run: python -m patterns.test_exact_intervals
+
+      - name: Exact interval cohort example
+        run: python -m patterns.interval_cohort
+
+      - name: Cohort contract and differential search checks
+        run: python -m patterns.test_interval_cohort
+
+      - name: Bounded uncertainty example
+        run: python -m patterns.bounded_cohort
+
+      - name: Bounded uncertainty finite-world and certificate checks
+        run: python -m patterns.test_bounded_intervals
+
+      - name: Bounded RDF ingestion example
+        run: python -m patterns.bounded_rdf
+
+      - name: Bounded RDF validation and source equivalence
+        run: python -m patterns.test_bounded_rdf
+
+      - name: Evidence selection example
+        run: python -m patterns.evidence_selection
+
+      - name: Evidence lifecycle and matcher integration
+        run: python -m patterns.test_evidence_selection
+
+      - name: Paired temporal interface examples
+        run: python -m patterns.temporal_interface
+
+      - name: SULO interface conformance and declared differences
+        run: python -m patterns.test_temporal_interface
+
+      - name: Synthetic MIMIC inputevents staging
+        run: python -m patterns.mimic_inputevents
+
+      - name: MIMIC source admission and reconciliation checks
+        run: python -m patterns.test_mimic_inputevents
+
+      - name: Patient-local clock and RDF example
+        run: python -m patterns.patient_local
+
+      - name: Patient-local normalization, isolation and reasoning checks
+        run: python -m patterns.test_patient_local
+
+      - name: Clinical source coverage preflight
+        run: |
+          python -m patterns.clinical_source_preflight
+          python -m patterns.test_clinical_source_preflight
+
+      - name: Report generated-file drift
+        # Informational only. Report files record the runner's Python patch
+        # version, so they are expected to differ from the committed release.
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::notice::generated files changed during this run:"
+            git status --porcelain
+            git diff -- verification | head -60
+          else
+            echo "no generated-file drift"
+          fi
+
+      - name: Upload run outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-output
+          path: verification/
+          retention-days: 14
+
+  semantic-support:
+    name: Checked Rust semantic support (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            patterns/requirements.lock.txt
+            patterns/requirements-semantic.lock.txt
+      - name: Install pinned Rust integration
+        run: python -m pip install -r patterns/requirements-semantic.lock.txt
+      - name: Inferred process-class temporal query
+        run: python -m patterns.semantic_support
+      - name: Rust, finite-model and failure-gate checks
+        run: python -m patterns.test_semantic_support
+      - name: Joint evidence replay examples
+        run: |
+          python -m patterns.joint_evidence
+          python -m patterns.joint_evidence --request examples/joint-evidence/after-request.json --output verification/joint-evidence-run/after
+          python -m patterns.joint_evidence --request examples/joint-evidence/retrospective-request.json --output verification/joint-evidence-run/retrospective
+      - name: Joint revision, availability and reasoning checks
+        run: python -m patterns.test_joint_evidence
+      - name: End-to-end recorded-source query
+        run: python -m patterns.mimic_record_query
+      - name: Source-to-RDF-to-Rust-to-temporal query checks
+        run: python -m patterns.test_mimic_record_query
+      - name: Structured claims and controlled projection
+        run: python -m patterns.claim_projection
+      - name: Claim isolation, acceptance and withdrawal checks
+        run: python -m patterns.test_claim_projection
+      - name: Local-clock claim projections
+        run: |
+          python -m patterns.local_claim_projection
+          python -m patterns.local_claim_projection --store examples/local-claim-projection/record-store.json --policy examples/local-claim-projection/record-policy.json --semantic-policy examples/local-claim-projection/record-semantic-policy.json --query examples/local-claim-projection/record-query.json --output verification/local-claim-projection-run/record-result.json
+      - name: Local claim clocks, dependencies and profile checks
+        run: python -m patterns.test_local_claim_projection
+      - name: Import source records as pending claims
+        run: |
+          python -m patterns.mimic_claim_import
+          python -m patterns.test_mimic_claim_import
+      - name: Measurement point claims and source admission
+        run: |
+          python -m patterns.mimic_measurement_import
+          python -m patterns.test_measurement_claims
+      - name: Mixed interval and point record queries
+        run: |
+          python -m patterns.mixed_record_query
+          python -m patterns.test_mixed_record_query
+      - name: Source imports, explicit review and SQL comparison
+        run: |
+          python -m patterns.source_mixed_query
+          python -m patterns.source_mixed_query --review examples/source-mixed-query/synthetic-review.json
+          python -m patterns.test_source_mixed_query
+      - name: Indexed source windows and pending anchor batches
+        run: |
+          python -m patterns.indexed_source_windows
+          python -m patterns.test_indexed_source_windows
+      - name: Partition coverage, review and complete execution
+        run: |
+          python -m patterns.partitioned_window_query --prepare-review
+          python -m patterns.test_partitioned_window_query
+      - name: Upload semantic reasoning evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-support-output
+          path: |
+            verification/semantic-support-run/
+            verification/joint-evidence-run/
+            verification/mimic-record-query-run/
+            verification/claim-projection-run/
+            verification/local-claim-projection-run/
+            verification/mimic-claim-import-run/
+            verification/mimic-measurement-run/
+            verification/mixed-record-query-run/
+            verification/source-mixed-query-run/
+            verification/indexed-source-windows-run/
+            verification/partitioned-window-query-run/
+          retention-days: 14
+
+  oracle-compatibility:
+    name: Oracle on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The README claims the dependency-free oracle runs on 3.10 or newer.
+        python-version: ['3.10', '3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Reference oracle, no third-party dependencies
+        run: python reference_oracle.py

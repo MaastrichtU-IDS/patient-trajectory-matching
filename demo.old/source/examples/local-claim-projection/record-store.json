@@ -1,0 +1,184 @@
+{
+  "profile": "patient-local-record-claim-store-1.0",
+  "dataset_id": "synthetic_local_claims",
+  "snapshot_id": "local_record_claims_1",
+  "clocks": [
+    {
+      "clock_id": "clinical",
+      "origin": "2150-01-01T10:00:00",
+      "scope": "patient:P1",
+      "policy": "patient-local-calendar-microseconds-v1",
+      "origin_source_key": "synthetic_declared_origin"
+    }
+  ],
+  "claims": [
+    {
+      "id": "admin",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "bundle": {
+        "variables": [
+          {
+            "id": "As",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "source_key": "As",
+            "local_lower": "2150-01-01T10:00:00.000000",
+            "local_upper": "2150-01-01T10:00:00.000000"
+          },
+          {
+            "id": "Ae",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "source_key": "Ae",
+            "local_lower": "2150-01-01T10:00:00.000001",
+            "local_upper": "2150-01-01T10:00:00.000001"
+          }
+        ],
+        "events": [
+          {
+            "id": "A",
+            "record_id": "record_A",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "event_kind": "recorded_input_segment",
+            "status": "recorded",
+            "start_var": "As",
+            "end_var": "Ae",
+            "source_key": "A"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "type_A",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "event_id": "A"
+            },
+            "class_iri": "https://example.org/trajectory/recorded-claim/ItemA"
+          }
+        ]
+      },
+      "source_id": "synthetic_hospital",
+      "source_record_id": "admin_row",
+      "source_sha256": "ac08cf9d91f03a11d7669215a590fc28315958a8afbe075652b638d088bdad46"
+    },
+    {
+      "id": "collection_original",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "bundle": {
+        "variables": [
+          {
+            "id": "Bs",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "source_key": "Bs",
+            "local_lower": "2150-01-01T10:00:00.000003",
+            "local_upper": "2150-01-01T10:00:00.000003"
+          },
+          {
+            "id": "Be",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "source_key": "Be",
+            "local_lower": "2150-01-01T10:00:00.000004",
+            "local_upper": "2150-01-01T10:00:00.000004"
+          }
+        ],
+        "events": [
+          {
+            "id": "B",
+            "record_id": "record_B",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "event_kind": "recorded_input_segment",
+            "status": "recorded",
+            "start_var": "Bs",
+            "end_var": "Be",
+            "source_key": "B"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "type_B",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "event_id": "B"
+            },
+            "class_iri": "https://example.org/trajectory/recorded-claim/ItemB"
+          }
+        ]
+      },
+      "source_id": "synthetic_hospital",
+      "source_record_id": "collection_row",
+      "source_sha256": "a549b6ef346579778b367d180c1666b99a40e2a0673c71e5a93372b732dee89c"
+    },
+    {
+      "id": "admin_classified",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "bundle": {
+        "variables": [
+          {
+            "id": "As",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "source_key": "As",
+            "local_lower": "2150-01-01T10:00:00.000000",
+            "local_upper": "2150-01-01T10:00:00.000000"
+          },
+          {
+            "id": "Ae",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "clock_id": "clinical",
+            "source_key": "Ae",
+            "local_lower": "2150-01-01T10:00:00.000001",
+            "local_upper": "2150-01-01T10:00:00.000001"
+          }
+        ],
+        "events": [
+          {
+            "id": "A",
+            "record_id": "record_A",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "event_kind": "recorded_input_segment",
+            "status": "recorded",
+            "start_var": "As",
+            "end_var": "Ae",
+            "source_key": "A"
+          }
+        ],
+        "constraints": [],
+        "semantic_facts": [
+          {
+            "id": "type_A",
+            "patient_id": "P1",
+            "episode_id": "E1",
+            "kind": "class",
+            "subject": {
+              "event_id": "A"
+            },
+            "class_iri": "https://example.org/trajectory/recorded-claim/ItemA"
+          }
+        ]
+      },
+      "source_id": "synthetic_hospital",
+      "source_record_id": "admin_row",
+      "source_sha256": "bf7aa21488b2788facb5541e9e856ee0cb01312e79ad8782024d77814dd8ebf3"
+    }
+  ]
+}

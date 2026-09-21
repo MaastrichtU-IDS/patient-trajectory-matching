@@ -1,0 +1,9 @@
+@prefix pl: <https://example.org/trajectory/patient-local/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+pl:Profile a owl:Ontology ; rdfs:comment "Patient-local calendar coordinates. Raw bound labels and fixed-origin provenance accompany bounded PRO/SOLID instances. No new properties; no inferred timezone or clinical precision." .
+pl:OriginSourceKey a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+pl:LocalLowerLexical a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+pl:LocalUpperLexical a owl:Class ; rdfs:subClassOf sulo:InformationObject .

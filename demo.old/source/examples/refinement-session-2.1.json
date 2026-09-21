@@ -1,0 +1,92 @@
+{
+  "specification_version": "2.1",
+  "status": "specified_not_implemented",
+  "session_id": "toy:session-001",
+  "index_patient_ref": "toy:patient-001",
+  "index_rule_ref": "toy:first-antibiotic-plus-24h",
+  "base_population_ref": "toy:eligible-pool-v1",
+  "dataset_snapshot_ref": "toy:snapshot-v1",
+  "semantic_bundle_ref": "toy:bundle-v1",
+  "normalization_policy_ref": "temporal-policy-2.1",
+  "history_window": {
+    "value": "7",
+    "unit": "d",
+    "semantics": "elapsed",
+    "ends": "strictly before each index"
+  },
+  "outcome_window": {
+    "value": "7",
+    "unit": "d",
+    "semantics": "elapsed",
+    "starts": "at each index",
+    "censoring": [
+      "discharge",
+      "recorded_death",
+      "data_boundary"
+    ]
+  },
+  "revisions": [
+    {
+      "id": "r0",
+      "parent": null,
+      "operation": "create_qbe",
+      "profile_ref": "qbe-profile-2.1.json",
+      "result_kind": "ranked_candidates"
+    },
+    {
+      "id": "r1",
+      "parent": "r0",
+      "operation": "promote_to_hard_filter",
+      "predicate": {
+        "field": "age_band",
+        "operator": "equals_index_band"
+      },
+      "run_scope": "base_eligible_population",
+      "result_kind": "filtered_ranked_candidates"
+    },
+    {
+      "id": "r2",
+      "parent": "r1",
+      "operation": "add_trajectory_constraints",
+      "constraints": [
+        "reviewed antibiotic administration before index",
+        "observed pre-index creatinine baseline within 48 elapsed hours"
+      ],
+      "run_scope": "base_eligible_population",
+      "result_kind": "defined_cohort_with_optional_preference_rank"
+    },
+    {
+      "id": "r3",
+      "parent": "r2",
+      "operation": "add_reviewed_semantic_alternative",
+      "target": "antibiotic_class",
+      "policy_ref": "toy:reviewed-alternatives-v1",
+      "run_scope": "base_eligible_population",
+      "result_kind": "exact_cohort_and_relaxed_additions"
+    },
+    {
+      "id": "r4",
+      "parent": "r3",
+      "operation": "freeze",
+      "requires": [
+        "named_question",
+        "compiled_pattern_ref",
+        "resolved_policy_refs",
+        "result_ref",
+        "complete_replay_manifest"
+      ]
+    }
+  ],
+  "every_result_requires": [
+    "base_population",
+    "candidate_search_scope",
+    "complete_or_incomplete_counts",
+    "membership_delta_from_parent",
+    "change_reasons",
+    "feature_coverage",
+    "normalization_policy",
+    "index_rule",
+    "pre_index_features_only"
+  ],
+  "outcome_guided_revision": "label exploratory; do not reuse held-out outcomes as independent validation"
+}

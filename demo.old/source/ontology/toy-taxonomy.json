@@ -1,0 +1,20 @@
+{
+  "ex:DrugAChild": [
+    "ex:DrugA"
+  ],
+  "ex:DrugA": [
+    "ex:Medication"
+  ],
+  "ex:DrugB": [
+    "ex:Medication"
+  ],
+  "ex:DrugC": [
+    "ex:Medication"
+  ],
+  "ex:Creatinine": [
+    "ex:Measurement"
+  ],
+  "ex:Noise": [
+    "ex:ClinicalConcept"
+  ]
+}

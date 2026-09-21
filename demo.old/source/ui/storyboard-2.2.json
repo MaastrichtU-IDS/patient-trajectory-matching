@@ -1,0 +1,106 @@
+{
+  "specification_version": "2.2",
+  "status": "specified_not_implemented",
+  "fixture_note": "Constructed screen illustrations. Cohort totals are illustrative, not outputs of the 16-case oracle. C05 costs follow the existing exemplar contract. The retrospective exemplar is a separate query mode from pre-index D01 similarity.",
+  "states": [
+    {
+      "id": "UI-S01",
+      "title": "Select patient",
+      "action": "Open P001 with an explicit index and history window.",
+      "expected_observable_behaviour": "Show ranked candidates and coverage; 20 displayed neighbours do not redefine the 120-patient base population.",
+      "next": "UI-S02"
+    },
+    {
+      "id": "UI-S02",
+      "title": "Focus similarity",
+      "action": "Change a feature from Prefer similar to Must match.",
+      "expected_observable_behaviour": "Explain eligibility change; Ignore and Hide from view have different effects.",
+      "next": "UI-S03"
+    },
+    {
+      "id": "UI-S03",
+      "title": "Promote events",
+      "action": "Create slots and a relation from selected history events.",
+      "expected_observable_behaviour": "Preview context, boundaries, selectors and distinctness; synchronize one AST.",
+      "next": "UI-S04"
+    },
+    {
+      "id": "UI-S04",
+      "title": "Edit semantic and time rules",
+      "action": "Enable the toy DrugB alternative and a bounded seven-to-nine-day extension.",
+      "expected_observable_behaviour": "Show separate costs, retained hard constraints and typed elapsed time.",
+      "next": "UI-S05"
+    },
+    {
+      "id": "UI-S05",
+      "title": "Compare cohort membership",
+      "action": "Run the full eligible scope and compare completed revisions.",
+      "expected_observable_behaviour": "Separate exact, semantic-only, time-only, combined, unresolved and excluded; never replace results with an obsolete response.",
+      "next": "UI-S06"
+    },
+    {
+      "id": "UI-S06",
+      "title": "Explain C05",
+      "action": "Open the selected relaxed match and source evidence.",
+      "expected_observable_behaviour": "Link slots to events; show semantic cost 1, time cost 1 and total 2; mark the case as constructed.",
+      "next": "UI-S07"
+    },
+    {
+      "id": "UI-S07",
+      "title": "Inspect follow-up",
+      "action": "Open subsequent treatments and outcomes for the D01 clinical workflow.",
+      "expected_observable_behaviour": "Show censoring, missingness and denominators; outcomes never enter pre-index similarity.",
+      "next": "UI-S08"
+    },
+    {
+      "id": "UI-S08",
+      "title": "Branch and freeze",
+      "action": "Branch from an earlier revision and freeze a named complete result.",
+      "expected_observable_behaviour": "Preserve scope, semantic versions, lineage and replay manifest; drafts and frozen cohorts stay distinct.",
+      "next": null
+    }
+  ],
+  "variants": [
+    "invalid_draft",
+    "queued",
+    "running",
+    "partial",
+    "complete_empty",
+    "complete_with_unresolved",
+    "failed",
+    "cancelled",
+    "stale_response",
+    "version_conflict",
+    "access_revoked"
+  ],
+  "illustrative_membership": {
+    "population_unit": "patient",
+    "base_population": 120,
+    "exact": 14,
+    "relaxed": 8,
+    "semantic_only": 3,
+    "time_only": 4,
+    "combined": 1,
+    "unresolved": 3,
+    "excluded": 95,
+    "partition_rule": "Deterministic selected minimum-cost alignment; alternative alignments are inspectable."
+  },
+  "critical_interpretation_tasks": [
+    "Explain why DrugB is permitted and why ontology ancestry alone is insufficient.",
+    "Distinguish 48 elapsed hours from two calendar days.",
+    "Distinguish an unfinished search from a complete empty cohort.",
+    "Recognize displayed top-20 neighbours as a ranked view, not the full eligible population.",
+    "Explain why observed outcome differences are not treatment recommendations."
+  ],
+  "formative_study": {
+    "target_users": [
+      6,
+      8
+    ],
+    "domain_reviewers": 2,
+    "comparison": "Counterbalanced equivalent tasks with a conventional form query builder.",
+    "core_unassisted_completion_target": 0.8,
+    "two_refinements_median_minutes_target": 5,
+    "gate": "Correct and retest all observed critical interpretation defects; report small-sample limitations."
+  }
+}

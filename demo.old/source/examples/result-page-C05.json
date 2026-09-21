@@ -1,0 +1,107 @@
+{
+  "job_id": "constructed-C05",
+  "manifest_ref": "manifest-C05.json",
+  "search_complete": true,
+  "exact_count": 0,
+  "returned_count": 1,
+  "unresolved_count": 0,
+  "results": [
+    {
+      "patient_id": "P1",
+      "episode_id": "A1",
+      "exact_status": "FAIL",
+      "accepted_as": "RELAXED",
+      "knowledge_status": "UNDETERMINED",
+      "computation_status": "COMPLETE",
+      "total_cost": "2",
+      "relaxed_constraint_ids": [
+        "exposure",
+        "exposure_window"
+      ],
+      "bindings": [
+        {
+          "slot_id": "baseline",
+          "event_id": "B1",
+          "semantic_relation": "entailed",
+          "semantic_cost": "0",
+          "proof_or_policy_ref": "toy-semantic-v1:identity"
+        },
+        {
+          "slot_id": "exposure",
+          "event_id": "E1",
+          "semantic_relation": "reviewed_alternative",
+          "semantic_cost": "1",
+          "proof_or_policy_ref": "toy_policy_v1"
+        },
+        {
+          "slot_id": "followup",
+          "event_id": "F1",
+          "semantic_relation": "entailed",
+          "semantic_cost": "0",
+          "proof_or_policy_ref": "toy-semantic-v1:identity"
+        }
+      ],
+      "checks": [
+        {
+          "constraint_id": "lab_order",
+          "status": "PASS",
+          "event_ids": [
+            "B1",
+            "F1"
+          ],
+          "detail": "Baseline is strictly earlier by 86400 seconds",
+          "cost": "0",
+          "evidence_ref": null
+        },
+        {
+          "constraint_id": "lab_window",
+          "status": "PASS",
+          "event_ids": [
+            "B1",
+            "F1"
+          ],
+          "detail": "86400 seconds <= 172800 seconds",
+          "cost": "0",
+          "evidence_ref": null
+        },
+        {
+          "constraint_id": "delta",
+          "status": "PASS",
+          "event_ids": [
+            "B1",
+            "F1"
+          ],
+          "detail": "1.3 - 1.0 = 0.3 mg/dL; inclusive threshold passes",
+          "cost": "0",
+          "evidence_ref": null
+        },
+        {
+          "constraint_id": "exposure_order",
+          "status": "PASS",
+          "event_ids": [
+            "E1",
+            "F1"
+          ],
+          "detail": "Exposure strictly precedes follow-up",
+          "cost": "0",
+          "evidence_ref": null
+        },
+        {
+          "constraint_id": "exposure_window",
+          "status": "PASS",
+          "event_ids": [
+            "E1",
+            "F1"
+          ],
+          "detail": "777600 seconds exceeds exact 604800 limit; allowed extension 172800 seconds has cost 1",
+          "cost": "1",
+          "evidence_ref": null
+        }
+      ],
+      "reason_codes": [],
+      "alignment_optimality": "GLOBAL",
+      "evidence_ref": "evidence-C05.json"
+    }
+  ],
+  "next_cursor": null
+}

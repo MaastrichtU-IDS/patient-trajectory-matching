@@ -1,0 +1,53 @@
+@prefix ei: <https://example.org/trajectory/interval/> .
+@prefix ex: <https://example.org/trajectory/toy/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Applied to named-class/PRO closure only, without parthood materialization.
+ei:LiteralShape a sh:NodeShape ; sh:targetSubjectsOf sulo:hasValue ;
+  sh:class sulo:InformationObject ;
+  sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:Literal ] .
+
+ei:ProcessShape a sh:NodeShape ; sh:targetClass ei:IntervalProcess ;
+  sh:property [ sh:path sulo:atTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ei:ExactOccurrenceInterval ] ;
+  sh:property [ sh:path sulo:hasParticipant ; sh:qualifiedValueShape [ sh:class ex:PatientRole ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+
+ei:PatientRoleShape a sh:NodeShape ; sh:targetClass ex:PatientRole ;
+  sh:property [ sh:path sulo:isFeatureOf ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:Person ] .
+
+ei:RecordShape a sh:NodeShape ; sh:targetClass ex:SourceRecord ;
+  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ei:IntervalProcess ] .
+
+ei:IntervalShape a sh:NodeShape ; sh:targetClass ei:ExactOccurrenceInterval ;
+  sh:property [ sh:path sulo:hasValue ; sh:maxCount 0 ] ;
+  sh:property [ sh:path sulo:hasDirectPart ;
+    sh:or ( [ sh:class ei:ExactStartTime ] [ sh:class ei:ExactEndTime ]
+            [ sh:class ei:ElapsedDuration ] [ sh:class ei:ClockBinding ] ) ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:qualifiedValueShape [ sh:class sulo:StartTime ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:qualifiedValueShape [ sh:class sulo:EndTime ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:qualifiedValueShape [ sh:class sulo:Duration ] ;
+                sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:qualifiedValueShape [ sh:class ei:ClockBinding ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+
+ei:InstantShape a sh:NodeShape ;
+  sh:targetClass ei:ExactStartTime, ei:ExactEndTime, ei:ClockOrigin ;
+  sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTimeStamp ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue ei:Second ; sh:class sulo:Unit ] .
+
+ei:DurationShape a sh:NodeShape ; sh:targetClass ei:ElapsedDuration ;
+  sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minExclusive 0 ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:minCount 1 ; sh:maxCount 1 ; sh:class sulo:Unit ;
+                sh:in (ei:Second ei:Minute ei:Hour) ] .
+
+ei:ClockBindingShape a sh:NodeShape ; sh:targetClass ei:ClockBinding ;
+  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ei:TemporalReferenceSystem ] .
+
+ei:ClockShape a sh:NodeShape ; sh:targetClass ei:TemporalReferenceSystem ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:minCount 4 ; sh:maxCount 4 ;
+    sh:or ( [ sh:class ei:ClockIdentifier ] [ sh:class ei:ClockOrigin ]
+            [ sh:class ei:ClockPolicy ] [ sh:class ei:ClockScope ] ) ] .

@@ -1,0 +1,347 @@
+{
+  "scope": "constructed three-slot exemplar only",
+  "cases_passed": 16,
+  "properties": [
+    "cost decomposition",
+    "zero-cost exact equivalence on supplied cases",
+    "subclass direction",
+    "budget monotonicity on supplied cases",
+    "not-given exclusion",
+    "incomplete-source propagation",
+    "unsupported-pattern rejection"
+  ],
+  "results": [
+    {
+      "case_id": "C01",
+      "passed": true,
+      "actual": {
+        "exact_status": "PASS",
+        "accepted_as": "EXACT",
+        "total_cost": "0",
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "0"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C02",
+      "passed": true,
+      "actual": {
+        "exact_status": "PASS",
+        "accepted_as": "EXACT",
+        "total_cost": "0",
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "0"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C03",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "RELAXED",
+        "total_cost": "1",
+        "relaxed_constraint_ids": [
+          "exposure"
+        ],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "1",
+          "exposure_window": "0"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C04",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "RELAXED",
+        "total_cost": "1",
+        "relaxed_constraint_ids": [
+          "exposure_window"
+        ],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "1"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C05",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "RELAXED",
+        "total_cost": "2",
+        "relaxed_constraint_ids": [
+          "exposure",
+          "exposure_window"
+        ],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "1",
+          "exposure_window": "1"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C06",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "NONE",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "HARD_TEMPORAL_FAILURE",
+          "NO_OBSERVED_BINDING"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C07",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "NONE",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "HARD_VALUE_FAILURE",
+          "NO_OBSERVED_BINDING"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C08",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "NONE",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "NO_OBSERVED_BINDING"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C09",
+      "passed": true,
+      "actual": {
+        "exact_status": "INDETERMINATE",
+        "accepted_as": "UNRESOLVED",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "NO_OBSERVED_BINDING",
+          "UNRESOLVED_MEASUREMENT"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C10",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "NONE",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "NO_OBSERVED_BINDING"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C11",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "NONE",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "BUDGET_EXCEEDED",
+          "NO_OBSERVED_BINDING"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C12",
+      "passed": true,
+      "actual": {
+        "exact_status": "INDETERMINATE",
+        "accepted_as": "RELAXED",
+        "total_cost": "0.5",
+        "relaxed_constraint_ids": [
+          "exposure_window"
+        ],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "0.5"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C13",
+      "passed": true,
+      "actual": {
+        "exact_status": "FAIL",
+        "accepted_as": "NONE",
+        "total_cost": null,
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": null,
+        "binding": null,
+        "reason_codes": [
+          "NO_OBSERVED_BINDING",
+          "NO_PERMITTED_CONCEPT"
+        ],
+        "components": {},
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C14",
+      "passed": true,
+      "actual": {
+        "exact_status": "PASS",
+        "accepted_as": "EXACT",
+        "total_cost": "0",
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "0"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C15",
+      "passed": true,
+      "actual": {
+        "exact_status": "PASS",
+        "accepted_as": "EXACT",
+        "total_cost": "0",
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "B2"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "0"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    },
+    {
+      "case_id": "C16",
+      "passed": true,
+      "actual": {
+        "exact_status": "PASS",
+        "accepted_as": "EXACT",
+        "total_cost": "0",
+        "relaxed_constraint_ids": [],
+        "baseline_event_id": "B1",
+        "binding": {
+          "baseline": "B1",
+          "exposure": "E1",
+          "followup": "F1"
+        },
+        "reason_codes": [],
+        "components": {
+          "exposure": "0",
+          "exposure_window": "0"
+        },
+        "clinical_knowledge_status": "UNDETERMINED"
+      }
+    }
+  ],
+  "production_readiness_claim": false
+}

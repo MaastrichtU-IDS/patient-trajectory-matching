@@ -1,0 +1,171 @@
+{
+  "profile": "claim-projection-1.0",
+  "context_id": "c8bc7d0a055477f4b1782bbabae4ae92e7df04d5de5601395c2f5f1edd9dc57c",
+  "context": {
+    "profile": "claim-projection-1.0",
+    "store_sha256": "4acec3fdb392237ec02bc640a2ea1305246baf1567d9966956b1bd4d797803c8",
+    "policy": {
+      "profile": "claim-acceptance-policy-1.0",
+      "id": "synthetic_review_1",
+      "store_sha256": "4acec3fdb392237ec02bc640a2ea1305246baf1567d9966956b1bd4d797803c8",
+      "semantic_policy_sha256": "4b3f43c25ad50ab2ab8eed7957b4f256a4cb5ab8060ff3419e57bf9be10ace4f",
+      "decisions": [
+        {
+          "id": "accept_collection_original",
+          "claim_id": "collection_original",
+          "claim_sha256": "3af0ee59e0b7bcbfc058af2c43f2e635691e00b5ed0fbdfaa49b74b4b7d234f4",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Constructed acceptance for this synthetic analysis; no clinical review claimed."
+        },
+        {
+          "id": "accept_admin_classified",
+          "claim_id": "admin_classified",
+          "claim_sha256": "8a47b73d8e0f241ccc1b060021442b2e40d99f1ddf6115721535fc76fa478dac",
+          "action": "accept",
+          "supersedes": null,
+          "reason": "Constructed acceptance for this synthetic analysis; no clinical review claimed."
+        }
+      ]
+    },
+    "semantic_policy": {
+      "profile": "joint-semantic-policy-1.0",
+      "id": "constructed-antibiotic-rule-v1",
+      "classes": [
+        "https://example.org/trajectory/semantic/DrugAdministration",
+        "https://example.org/trajectory/semantic/AntibioticAdministration",
+        "https://example.org/trajectory/semantic/AdministeredDrugRole",
+        "https://example.org/trajectory/semantic/Antibiotic",
+        "https://example.org/trajectory/semantic/NonAntibiotic"
+      ],
+      "rules": [
+        {
+          "id": "antibiotic_administration",
+          "if": {
+            "all": [
+              {
+                "class": "https://example.org/trajectory/semantic/DrugAdministration"
+              },
+              {
+                "some": {
+                  "property": "https://w3id.org/sulo/hasParticipant",
+                  "filler": {
+                    "all": [
+                      {
+                        "class": "https://example.org/trajectory/semantic/AdministeredDrugRole"
+                      },
+                      {
+                        "some": {
+                          "property": "https://w3id.org/sulo/isFeatureOf",
+                          "filler": {
+                            "class": "https://example.org/trajectory/semantic/Antibiotic"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+        }
+      ],
+      "disjoint": [
+        {
+          "id": "drug_classes",
+          "classes": [
+            "https://example.org/trajectory/semantic/Antibiotic",
+            "https://example.org/trajectory/semantic/NonAntibiotic"
+          ]
+        }
+      ]
+    },
+    "query": {
+      "profile": "semantic-bounded-query-1.0",
+      "id": "antibiotic_before_collection",
+      "slots": [
+        {
+          "id": "a",
+          "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+        },
+        {
+          "id": "b",
+          "class_iri": "https://example.org/trajectory/bounded/SpecimenCollection"
+        }
+      ],
+      "constraints": [
+        {
+          "id": "order",
+          "left": "a",
+          "right": "b",
+          "operator": "before"
+        }
+      ]
+    },
+    "timeout_seconds": 20,
+    "interpretation": "caller_accepted_assertions_for_analysis",
+    "history_mode": "explicit_policy_revision_order_not_source_time",
+    "artifacts": {
+      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
+      "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+      "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
+      "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+      "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+      "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+      "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
+      "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+      "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
+      "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
+      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
+      "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
+      "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f"
+    }
+  },
+  "status": "READY",
+  "claim_isolation": {
+    "status": "VERIFIED_EMPTY_PROCESS_MODEL",
+    "sulo_sha256": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
+    "profile_sha256": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
+    "checker_sha256": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
+    "extension_sha256": {},
+    "domain_size": 483,
+    "assertion_triples_checked": 1164,
+    "logical_axioms_checked": 134,
+    "axiom_counts": {
+      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": 9,
+      "http://www.w3.org/2000/01/rdf-schema#domain": 13,
+      "http://www.w3.org/2000/01/rdf-schema#range": 12,
+      "http://www.w3.org/2000/01/rdf-schema#subClassOf": 77,
+      "http://www.w3.org/2000/01/rdf-schema#subPropertyOf": 6,
+      "http://www.w3.org/2002/07/owl#disjointUnionOf": 2,
+      "http://www.w3.org/2002/07/owl#disjointWith": 5,
+      "http://www.w3.org/2002/07/owl#inverseOf": 9,
+      "http://www.w3.org/2002/07/owl#propertyChainAxiom": 1
+    },
+    "process_extension_size": 0,
+    "temporal_extension_size": 0,
+    "scope": "claim descriptions plus pinned SULO and the declared claim class modules only; not the accepted assertion view",
+    "general_owl_reasoner": false
+  },
+  "clinical_mapping_verified": false,
+  "clinical_knowledge_status": "UNKNOWN",
+  "source_history_verified": false,
+  "accepted_view_full_owl_verified": false,
+  "synthetic_only": true,
+  "patient_data_included": false,
+  "accepted_claim_ids": [
+    "admin_classified",
+    "collection_original"
+  ],
+  "pending_claim_ids": [
+    "admin"
+  ],
+  "certain_synthetic_patient_ids": [
+    "P1"
+  ],
+  "semantic_status": "READY"
+}
