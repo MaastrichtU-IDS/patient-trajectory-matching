@@ -1,6 +1,6 @@
-# Proposed decision: reconciling the two relaxation cost models
+# Decision: reconciling the two relaxation cost models
 
-**Status:** Proposed, 21 September 2026. This records the design problem and options; it adopts nothing, changes no executable profile and changes no cost already reported by either model.
+**Status:** **Accepted 21 September 2026 — option D.** The project accepted unifying the reported contract while keeping both evaluators. Acceptance settles the choice; implementation is separate and staged, and no cost either model reports has changed yet. The options below are retained as the record of what was decided against.
 
 **Related:** [exemplar pattern](../../examples/exemplar.pattern.json) and [reference oracle](../../reference_oracle.py); [robust temporal relaxation](../robust-temporal-relaxation.md); [custom relaxation catalogue](../custom-relaxation-catalogue.md); [extended relaxation](../extended-relaxation.md).
 
@@ -46,17 +46,47 @@ These are not presentation differences. Each changes which cohort a researcher g
 
 **D. Unify the contract, keep two evaluators.** Treat the split as legitimate — the query classes really do differ — and unify only what a reader sees: one declared meaning for each budget dimension, one tie-break rule, one `relaxation_profile` field on every result, and one reporting shape for cost provenance. Each evaluator keeps its own pricing because each is correct for its own inputs.
 
-**Recommendation: D.** The two models are not competing implementations of one idea; they price different things. Exact recorded times admit continuous compositional pricing safely, and bounded uncertainty does not, because composition is where a world-dependent choice can re-enter. What is not defensible is that both surfaces say *budget* and mean different things without saying so. D fixes the defect that actually reaches a researcher and leaves the pricing where the evidence supports it.
+**Accepted: D.** The two models are not competing implementations of one idea; they price different things. Exact recorded times admit continuous compositional pricing safely, and bounded uncertainty does not, because composition is where a world-dependent choice can re-enter. What is not defensible is that both surfaces say *budget* and mean different things without saying so. D fixes the defect that actually reaches a researcher and leaves the pricing where the evidence supports it.
 
 B deserves a second look if the oracle's 16 committed cases are ever re-authored for another reason; converging then would be much cheaper than converging now.
 
-## What adoption would require
+## Declared meanings, as accepted
 
-- A named field on every relaxation result identifying which model priced it, present in exports and in replay.
-- One declared definition per budget dimension, with the oracle's constraint count and the catalogue's target count either reconciled or explicitly renamed so they cannot be read as the same limit.
-- One tie-break statement covering both, including whether the oracle should gain an explicit original-first rule rather than relying on zero being the cost floor.
-- Acceptance cases that put the same clinical question through both surfaces and assert that the reported cost, budget and tie-break are interpreted as documented — currently nothing compares the two models against each other.
-- A decision on whether a relaxed result from the oracle path may be presented beside a certain/possible result from the catalogue path in one view. The guided demo and `/journey` already sit one click apart.
+These are the unified statements option D calls for. They describe both models as they behave today; neither model changed to produce them.
+
+**Which model priced a result.** `robust-temporal-relaxation-1.0` already identifies itself: every result carries `profile`, and its context carries `context_id`. The point-anchor oracle path does not stamp an identifier, so it is recognised by `schema_version: guided-cohort-result-1` and by the absence of a catalogue profile. Giving that path an explicit identifier is implementation work with a cost recorded below.
+
+**The budget keys are already distinct, and are not interchangeable.** No rename is needed; the earlier draft of this note was wrong to suggest one.
+
+| Key | Model | Bounds |
+|---|---|---|
+| `max_total_cost` | oracle | the **sum** of component costs across relaxed targets |
+| `max_relaxed_constraints` | oracle | how many constraints have a component cost above zero |
+| `max_cost` | catalogue | the cost of the **single** option applied; costs are never summed across options |
+| `max_changed_targets` | catalogue | how many targets that one option modifies |
+
+A limit of 2 therefore admits a compositional sum in the oracle and one option priced at most 2 in the catalogue. The numbers are not comparable and must not be presented as one control.
+
+**Tie-breaking is equivalent in outcome, by different routes.** The catalogue prefers the unchanged original on an equal-cost tie, then option identifier, canonical binding and episode. The oracle orders by total cost, then by the number of altered constraints, then by binding. It has no explicit original-first rule and does not need one: an unrelaxed binding costs zero, zero is the floor for both its component costs, and a zero total is reported as `EXACT`. That reasoning holds only while every authored relaxation cost is nonnegative, which both models require today.
+
+## Implementation cost of the identifier
+
+Stamping the oracle path was attempted and deliberately not completed. The field itself is one line in `demo/cohort.py`, but the change propagates:
+
+1. `run_cohort()` output is embedded in `demo/Guided_Cohort_Demo.html`, so the standalone demo must be rebuilt.
+2. `demo/build_guided.py` rewrites `demo/cohort-data.json` as a side effect, giving it a new generation commit.
+3. Those bytes are pinned at `construction_origin.sha256` in `examples/patient-similarity/dataset.json`, which `patterns/patient_similarity.py` surfaces as `source_dataset_sha256` and `app/server.py` compares against the file it reads. The application refuses to start otherwise, with `Similarity and trajectory source fingerprints differ`.
+4. `examples/patient-similarity/dataset.json` is itself pinned in `verification/research-prototype-journey.json`.
+
+So a reporting field on that path requires regenerating a fixture and its evidence, in that order. The oracle and its exemplar pattern are separately pinned in the v2.4 release manifest and must not change at all.
+
+This does not block the accepted decision. It re-scopes the work: the identifier is not the free addition it appeared to be, and should be planned with the fixture regeneration it entails, or deferred until that fixture is being regenerated for another reason.
+
+## What adoption still requires
+
+- The explicit identifier on the oracle path, with the regeneration chain above.
+- Acceptance cases that put one clinical question through both surfaces and assert the reported cost, budget and tie-break are interpreted as documented. Nothing currently compares the two models against each other.
+- A decision on whether a relaxed oracle result may be presented beside a certain or possible catalogue result in one view. The guided demo and `/journey` sit one click apart.
 
 ## Remaining decisions
 
