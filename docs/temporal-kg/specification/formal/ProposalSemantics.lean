@@ -274,8 +274,11 @@ theorem inconsistent_never_certain {D} {dm : OWL.DatatypeMap D} {k v s q}
     (h : ¬Consistent dm k v s) : ¬Certain dm k v s q := fun hc => h hc.1
 
 /-- Fixed and world-dependent witnesses have different meanings, even for two
-worlds and two candidate events. -/
-theorem fixed_witness_counterexample :
+worlds and two candidate events. This is an abstract `∀∃` versus `∃∀`
+separation over `Bool`; it does not mention `Certain`, `Possible`, bindings or
+queries. The semantic content for the answer semantics is carried by
+`certain_projection` and `inconsistent_never_certain`, not by this theorem. -/
+theorem abstract_witness_separation :
     (∀ w : Bool, ∃ e : Bool, e = w) ∧ ¬(∃ e : Bool, ∀ w : Bool, e = w) := by
   constructor
   · intro w; exact ⟨w, rfl⟩
@@ -283,7 +286,7 @@ theorem fixed_witness_counterexample :
     exact Bool.false_ne_true ((h false).symm.trans (h true))
 
 #print axioms inconsistent_never_certain
-#print axioms fixed_witness_counterexample
+#print axioms abstract_witness_separation
 #print axioms projection_sound
 #print axioms coverage_iff_positive
 #print axioms certain_possible

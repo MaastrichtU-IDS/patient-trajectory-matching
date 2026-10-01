@@ -409,8 +409,10 @@ assignment giving all three a coordinate of 15 leaves that conflict undetected.
 
 **World-dependent witnesses.** Take two worlds and two events, with event e
 matching exactly world e. Every world has a matching event; no event matches
-both worlds. `fixed_witness_counterexample` checks this finite separation in
-Lean. Patient certainty uses one event binding across the worlds.
+both worlds. `abstract_witness_separation` checks this finite separation in
+Lean as a bare quantifier statement; the semantic content for queries is
+carried by `certain_projection` and `inconsistent_never_certain`, not by this
+theorem. Patient certainty uses one event binding across the worlds.
 
 **Unknown coverage.** Two observations at 0 and 30 give empty positive interval
 support. The all-false completion is available on [0,30), so the window is
@@ -426,9 +428,18 @@ python3 docs/temporal-kg/specification/check_examples.py
 ```
 
 The shell runner builds imports in a temporary directory and removes its build
-artifacts. CI runs the same commands. There are **18 named checked theorems**:
-seven existing bridge/projection results, three OWL results and eight combined
-semantics/coverage results. Axiom reports contain only Lean's standard
+artifacts. CI runs the same commands, followed by the two ROBOT v1.9.5 checks
+listed in the integration note (OWL 2 DL profile of the bridge module with the
+example, and HermiT consistency of the merged three-boundary fixture), so the
+OWL-side premise of the boundary result is checked alongside the Lean side.
+There are **18 named checked theorems**: seven existing bridge/projection
+results, three OWL results and eight combined semantics/coverage results.
+Every theorem that takes a `BTC` hypothesis is conditional: no compatible BT_C
+model is constructed in the development, so the realizability of fields A3
+through A34 is an unproven assumption, and these results, including
+`three_coincident_boundaries_impossible` and `endpoint_collapse_impossible`,
+would hold vacuously if that assumption failed. The count must be read with
+this qualification. Axiom reports contain only Lean's standard
 `propext` and `Quot.sound` where required; the files have no proof placeholders
 or added global axioms. The BT_C fields and datatype-map conditions are explicit
 model assumptions. Four additional finite OWL fixtures check name co-denotation,

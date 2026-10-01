@@ -319,9 +319,13 @@ java -jar "$ROBOT_JAR" merge \
   reason --reasoner HermiT --output /tmp/temporal-three-boundaries.owl
 ```
 
-`ROBOT_JAR` denotes the locally installed release JAR. These optional Java checks
-are separate from the Python/Lean CI job. Full import/mapping conformance still
-requires the chosen deployment ontologies and the joint extension proof.
+`ROBOT_JAR` denotes the locally installed release JAR. The CI workflow runs both
+commands after the Lean check, with a Temurin 17 JDK and the ROBOT v1.9.5 release
+JAR pinned by SHA-256
+(`21e96a9f6ac90dacdb6fa1303ac9b49b0d2be3594ecacf4c0e3d0e68e86def57`), so both
+halves of the three-boundary result are machine-checked on every change. Full
+import/mapping conformance still requires the chosen deployment ontologies and
+the joint extension proof.
 
 The main specification records the user's accepted decisions separately from
 these proof and deployment obligations. Ongoing and disconnected regions remain
