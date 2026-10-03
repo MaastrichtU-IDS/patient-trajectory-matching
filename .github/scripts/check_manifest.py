@@ -1,7 +1,11 @@
-"""Verify every file hashed in the v2.4 release manifest is unchanged."""
+"""Verify every file hashed in the current release manifest is unchanged.
+
+Superseded manifests stay in verification/ as historical release records and are not
+re-checked: they describe the tree at the time of that release, not the tree today.
+"""
 import hashlib, json, pathlib, sys
 
-manifest = json.load(open('verification/v24-release-manifest.json'))
+manifest = json.load(open('verification/v25-release-manifest.json'))
 files = manifest['files']
 problems = []
 for name, expected in files.items():

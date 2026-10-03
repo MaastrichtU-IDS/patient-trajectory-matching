@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: <!-- test-counts:total -->870<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
+**Summary: <!-- test-counts:total -->875<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
 
 The original `requirements.csv` remains byte-preserved as the historical authority. The [current completion register](completion.md) maps every original row to evidence and remaining clauses and separately tracks 16 additional profiles, including the interval work. The family table below reports the original CSV statuses; it is not the current implementation assessment.
 
@@ -34,7 +34,7 @@ These are requirement-register counts, not a count of every implemented capabili
 
 ## The executable profile
 
-All ten PS requirements are covered by gate **AC19-PRO-SOLID** and verified by the 42-test acceptance suite.
+All ten PS requirements are covered by gate **AC19-PRO-SOLID** and verified by the 47-test acceptance suite.
 
 | ID | Requirement |
 |---|---|
@@ -68,7 +68,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 |---|---|
 | Oracle cases | 16 passed |
 | Oracle property checks | 7 passed |
-| PRO/SOLID acceptance tests | 42 passed |
+| PRO/SOLID acceptance tests | 47 passed |
 | Exact-interval conformance tests | 51 passed |
 | Interval cohort tests | 18 passed |
 | Extended interval query tests | 5 passed |
@@ -105,8 +105,9 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Measurement source catalogue and audit tests | 20 passed |
 | Prepared measurement session tests | 20 passed |
 | Pre-index similarity and immutable refinement tests | 28 passed |
-| **Total** | **870 contract checks** |
+| **Total** | **875 contract checks** |
 | Release manifest digests | 9 verified |
+| OWL 2 DL profile and HermiT consistency | 2 merged graphs verified |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
 | Interval comparisons | 9 evaluated, 5 satisfied / 4 not satisfied as specified |
@@ -114,7 +115,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 847 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 15, and the completion checker has 13. Eight Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
+The total is 852 suite tests plus 16 oracle cases and seven oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 104 tests, the research HTTP suite has 15, and the completion checker has 13. Eight Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
 
 <!-- test-counts:end -->
 
@@ -134,7 +135,7 @@ The total is 847 suite tests plus 16 oracle cases and seven oracle properties; n
 | Component | Status | Evidence |
 |---|---|---|
 | Reference oracle | Executable | 16 cases, 7 properties |
-| PRO/SOLID adapter | Executable | 42 tests, bounded profile |
+| PRO/SOLID adapter | Executable | 47 tests, bounded profile |
 | Exact-interval adapter | Executable | 51 tests, RDF round trip |
 | Interval cohort matcher | Executable | 18 tests, differential against reference engine |
 | Ontology profile and shapes | Executable | Loaded and enforced in CI |

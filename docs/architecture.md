@@ -70,6 +70,10 @@ Three kinds of "no," which most clinical tooling collapses into one:
 
 A `ContractError` stops projection outright. It is **never** returned as "patient does not match." A structurally valid graph can still yield no accepted trajectory.
 
+The top row is enforced at two different strengths. In process, the adapter compares named types — including the `rdfs:domain` and `rdfs:range` consequences of the permitted object properties — against the disjoint class groups **derived from the loaded ontology**, raising `DISJOINT_UPPER_CLASSES` or `PROPERTY_TYPE_DISJOINT`. Deriving them matters: a hand-kept list drifts from the ontology it mirrors, and `sulo:StartTime` against `sulo:EndTime` went unchecked for exactly that reason.
+
+That check still sees only named classes. In CI, [`check_owl_consistency.py`](../.github/scripts/check_owl_consistency.py) merges the pinned SULO, the application profile and each committed instance graph into one document and runs the OWL 2 DL profile check and a HermiT consistency check over it. Anything stated as a class expression rather than a named class is caught there and not in process. A process with an object as its part is the concrete case: SULO constrains `sulo:Process` to `∀hasPart.Process`, so the part is entailed to be a process and contradicts `sulo:Object owl:disjointWith sulo:Process`. The restriction is an anonymous class expression and `sulo:hasPart` declares no named domain or range, so the in-process check admits it and the reasoner does not.
+
 The failure vocabulary keeps four things distinct that are routinely conflated:
 
 - missing data within the supported profile

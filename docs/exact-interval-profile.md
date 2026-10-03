@@ -117,6 +117,6 @@ Projection reads the graph once per execution context. Requests resolve event id
 
 The separate suite checks the nine independently specified example results, source/RDF/CLI equivalence, PRO and source evidence, clock/snapshot incompatibility, exact duration arithmetic, and malformed inputs. An independent table of weak endpoint orders checks all 441 pairs of proper intervals on a seven-point grid against the 13 Allen relations.
 
-CI runs this suite alongside the unchanged 42-test PRO/SOLID suite and reference oracle's 16 cases/seven property checks. The v2.4 release manifest and pinned ontology are preserved.
+CI runs this suite alongside the 47-test PRO/SOLID suite and reference oracle's 16 cases/seven property checks. The pinned ontology, reference oracle and exemplar pattern are preserved; the current release manifest is v2.5.
 
 The separate [interval cohort matcher](interval-cohort-matching.md) now defines versioned interval slots and joins, retains role/evidence bindings through candidate search, and checks indexed execution against an exhaustive reference matcher. Bounded uncertainty requires a separate joint-feasibility and certain/possible-answer contract. Passing this exact fixture suite does not establish either capability, full OWL reasoning, or production readiness.
