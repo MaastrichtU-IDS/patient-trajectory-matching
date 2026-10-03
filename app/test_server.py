@@ -1,6 +1,7 @@
 """The actual HTTP patient-to-pattern journey and its integrity boundaries."""
 import copy
 import hashlib
+import re
 from pathlib import Path
 import json
 import threading
@@ -161,6 +162,54 @@ class ResearchHTTPTests(unittest.TestCase):
         css = (Path(server.__file__).resolve().parent / 'style.css').read_text()
         self.assertIn('.workspace{display:grid', css)
         self.assertIn('.workspace>*{min-width:0}', css)
+
+
+    def test_research_navigation_links_declare_a_twenty_four_pixel_target(self):
+        """UI-012 target size for the research navigation, as a declaration.
+
+        The four research pages share one `<nav aria-label="Research workflows">` of text
+        links. They carried no rule of their own, so each anchor was an inline box whose
+        height was whatever the inherited font produced -- around 19px on the three pages
+        that load only style.css, and 23.4px on /journey, where journey.css sets 13px type
+        at a 1.8 line-height. Both are under the 24px of WCAG 2.2 SC 2.5.8, and the
+        shortfall also set how far apart the rows sit once the nav wraps on a narrow
+        viewport, which is where the spacing exception would otherwise have covered it.
+
+        `min-height` is what makes the floor independent of the inherited font size, and it
+        needs a non-inline box to apply, so the display declaration is part of the
+        guarantee rather than decoration. CI has no browser and no layout engine here --
+        the DOM suites run against a hand-written element stub -- so this pins the
+        declared geometry and does not measure a rendered target. Measuring one is still
+        listed as remaining under UI-012.
+        """
+        directory = Path(server.__file__).resolve().parent
+        def declarations(css, selector):
+            match = re.search(re.escape(selector) + r'\{([^}]*)\}', css)
+            self.assertIsNotNone(match, f'{selector} is not declared')
+            return dict(part.split(':', 1) for part in match.group(1).split(';') if part)
+
+        css = (directory / 'style.css').read_text()
+        rule = declarations(css, 'nav a')
+        self.assertIn(rule.get('display'), ('inline-block', 'block', 'flex'),
+                      'min-height does not apply to an inline box')
+        # Under border-box the declared minimum is the whole box, padding included, so the
+        # floor is the min-height alone. Without that reset it would be content height and
+        # the arithmetic below would be wrong rather than conservative.
+        self.assertIn('*{box-sizing:border-box}', css)
+        self.assertGreaterEqual(int(rule.get('min-height', '0px').removesuffix('px')), 24)
+        # /journey sets 13px type on the nav. That is what the floor exists to survive, so
+        # the smaller font must not arrive with its own box declarations for these anchors.
+        journey = (directory / 'journey.css').read_text()
+        smaller = int(declarations(journey, 'nav')['font-size'].removesuffix('px'))
+        self.assertLess(smaller, 16, 'this page is why the floor cannot be derived from type size')
+        self.assertNotIn('nav a{', journey, 'a second rule here could undo the floor silently')
+        # A page that forgot the stylesheet would not be covered by any of the above.
+        for page in ('index.html', 'journey.html', 'editor.html', 'temporal.html'):
+            markup = (directory / page).read_text()
+            navigation = re.search(r'<nav[^>]*aria-label="Research workflows">(.*?)</nav>', markup)
+            self.assertIsNotNone(navigation, f'{page} has no research navigation')
+            self.assertGreater(navigation.group(1).count('<a '), 1)
+            self.assertIn('href="/style.css"', markup, f'{page} is not covered by the nav rule')
 
     def test_cross_site_top_level_navigation_is_admitted_but_cross_site_reads_and_writes_are_not(self):
         """A link on another site arrives as a cross-site GET navigation with no Origin header.
