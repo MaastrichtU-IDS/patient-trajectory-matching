@@ -46,14 +46,64 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   assert.equal(calls.at(-1).body.patient_id,'P00');
   assert.match(el('rankings').innerHTML,/P01/);
   assert.match(el('scope').textContent,/10 eligible/);
-  await el('weight').onclick();
-  assert.equal(calls.at(-1).body.operation.type,'set_weights');
-  assert.equal(calls.at(-1).body.revision_id,payload.initial.revision_id);
+  // UI-002: the four dispositions. The first three are one control; hiding is its own.
+  assert.match(el('components').innerHTML,/Must match/);
+  assert.match(el('components').innerHTML,/Prefer similar/);
+  assert.match(el('components').innerHTML,/Ignore/);
+  assert.match(el('components').innerHTML,/Hide from view/);
+  assert.match(el('effect-age_band').textContent,/ranking only/);
+  const change=(component,kind,value)=>el('components').onchange(
+    {target:{dataset:{component,kind},value,checked:value===true}});
+  change('baseline_creatinine','mode','must');
+  assert.match(el('effect-baseline_creatinine').textContent,/eligibility/);
+  change('clinical_concepts','mode','ignore');
+  assert.match(el('effect-clinical_concepts').textContent,/neither/);
   el('maximum').value='1.1';
-  await el('filter').onclick();
+  const beforeApply=calls.length;
+  await el('apply').onclick();
+  assert.equal(calls.length,beforeApply+2,'weights first, then the required value');
+  assert.equal(calls[beforeApply].body.operation.type,'set_weights');
+  assert.equal(calls[beforeApply].body.revision_id,payload.initial.revision_id);
+  // A feature that must match is given weight zero, so the two effects stay separable.
+  assert.equal(calls[beforeApply].body.operation.weights.baseline_creatinine,'0');
+  assert.equal(calls[beforeApply].body.operation.weights.clinical_concepts,'0');
+  assert.equal(calls[beforeApply].body.operation.weights.age_band,'1');
+  assert.equal(calls.at(-1).body.operation.type,'add_filter');
+  assert.equal(calls.at(-1).body.operation.predicate.component,'baseline_creatinine');
+  assert.equal(calls.at(-1).body.operation.predicate.value.max,'1.1');
   assert.equal(calls.at(-1).body.revision_id,payload.weighted.revision_id);
+  assert.match(el('effects').textContent,/Eligibility: \d+ added, \d+ removed/);
+  assert.match(el('effects').textContent,/Ranking: /);
   assert.match(el('missing').textContent,/P08/);
   assert.match(el('changes').textContent,/removed P08/);
+  // The invariant: hiding is display-only. No request, no revision, no change to who is
+  // eligible or to the order they are shown in.
+  el('rankings').onclick({target:{closest:()=>({dataset:{patient:'P03'}})}});
+  await settle();
+  const quiet=calls.length, ranking=el('rankings').innerHTML, scope=el('scope').textContent;
+  const evidenceBefore=el('evidence').innerHTML;
+  change('age_band','hide',true);
+  await settle();
+  assert.equal(calls.length,quiet,'hiding a feature must not reach the server');
+  assert.equal(el('rankings').innerHTML,ranking,'hiding must not reorder the ranking');
+  assert.equal(el('scope').textContent,scope,'hiding must not change who is eligible');
+  assert.match(el('effect-age_band').textContent,/hidden from view/);
+  assert.match(el('profile').textContent,/1 feature is hidden from this view; the analysis used all 3/);
+  // esc() escapes the quotes, so the rendered JSON spells keys &quot;like this&quot;.
+  assert.match(evidenceBefore,/&quot;age_band&quot;/,'the unhidden evidence names the feature');
+  assert.doesNotMatch(el('evidence').innerHTML,/&quot;age_band&quot;/);
+  assert.match(el('evidence').innerHTML,/Hidden from this view: Age band/);
+  change('age_band','hide',false);
+  await settle();
+  assert.equal(calls.length,quiet,'unhiding must not reach the server either');
+  assert.equal(el('evidence').innerHTML,evidenceBefore,'unhiding restores the withheld rows exactly');
+  // A ranking needs something to rank on, and that is refused before any request.
+  for (const component of ['age_band','baseline_creatinine','clinical_concepts']) change(component,'mode','ignore');
+  await el('apply').onclick();
+  assert.equal(calls.length,quiet,'a plan with nothing to rank on must not be sent');
+  assert.equal(el('status').className,'error');
+  assert.match(el('status').textContent,/Prefer similar/);
+  change('baseline_creatinine','mode','prefer');
   el('budget').value='2';
   await el('compare').onclick();
   assert.equal(calls.at(-1).body.revision_id,payload.refined.revision_id);
@@ -76,5 +126,5 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   assert.match(el('status').textContent,/Deliberate evaluation failure/);
   assert.match(el('export').className,/hidden/);
   assert.equal(el('compare').disabled,false);
-  console.log('Research UI: complete two-refinement journey, comparison, evidence, safe rendering, undo and failure states passed.');
+  console.log('Research UI: four feature dispositions with display-only hiding, complete two-refinement journey, comparison, evidence, safe rendering, undo and failure states passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

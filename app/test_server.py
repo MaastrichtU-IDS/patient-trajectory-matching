@@ -164,6 +164,57 @@ class ResearchHTTPTests(unittest.TestCase):
         self.assertIn('.workspace>*{min-width:0}', css)
 
 
+
+    def test_a_weight_moves_only_the_order_and_a_requirement_only_the_eligible_set(self):
+        """UI-002's two effects, at the engine the page reports them from.
+
+        The page offers each feature as Must match, Prefer similar or Ignore, and tells the
+        reader which of eligibility and ranking it changed. That report is only honest if
+        the engine keeps the two apart, so this pins the separation rather than the wording:
+        a weight never moves anyone into or out of the eligible set, and a requirement does.
+
+        It also pins why Must match contributes weight zero. If a required feature kept a
+        weight, one setting would move both effects at once and the page could not report
+        them separately without attributing a reordering to the wrong cause.
+        """
+        engine = self.server.workspace.engine
+        initial = engine.initial('P00', 5)
+        order = lambda revision: [row['patient_id'] for row in revision['results']['displayed']]
+        eligible = lambda revision: revision['results']['eligible_patient_ids']
+
+        weighted = engine.refine(initial['revision_id'], {'type': 'set_weights', 'weights': {
+            'age_band': '0', 'baseline_creatinine': '1', 'clinical_concepts': '0'}})
+        self.assertEqual(eligible(weighted), eligible(initial), 'a weight is not a criterion')
+        self.assertNotEqual(order(weighted), order(initial), 'this weight should reorder the display')
+
+        required = {'component': 'baseline_creatinine', 'operator': 'between',
+                    'value': {'min': '0', 'max': '1.1'}}
+        filtered = engine.refine(initial['revision_id'], {'type': 'add_filter', 'predicate': required})
+        self.assertNotEqual(eligible(filtered), eligible(initial), 'a criterion changes who is eligible')
+        self.assertNotIn('P08', eligible(filtered))
+        self.assertIn('P08', eligible(initial))
+
+        # Must match as the page sends it: weight zero first, then the requirement. The
+        # eligible set must land where the requirement alone lands, whatever the weight was.
+        zeroed = engine.refine(initial['revision_id'], {'type': 'set_weights', 'weights': {
+            'age_band': '1', 'baseline_creatinine': '0', 'clinical_concepts': '1'}})
+        applied = engine.refine(zeroed['revision_id'], {'type': 'add_filter', 'predicate': required})
+        self.assertEqual(eligible(applied), eligible(filtered))
+
+    def test_a_ranking_needs_something_to_rank_on(self):
+        """Ignoring every feature is refused, which is why the page keeps one preferred.
+
+        The page blocks this before sending anything, but the engine is where the rule
+        lives: a zero total weight has no score to divide, and silently substituting a
+        default would rank patients by a criterion nobody chose.
+        """
+        engine = self.server.workspace.engine
+        initial = engine.initial('P00', 5)
+        with self.assertRaises(ValueError) as refusal:
+            engine.refine(initial['revision_id'], {'type': 'set_weights', 'weights': {
+                'age_band': '0', 'baseline_creatinine': '0', 'clinical_concepts': '0'}})
+        self.assertIn('INVALID_WEIGHTS', str(refusal.exception))
+
     def test_research_navigation_links_declare_a_twenty_four_pixel_target(self):
         """UI-012 target size for the research navigation, as a declaration.
 
