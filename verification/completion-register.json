@@ -2180,7 +2180,9 @@
       "evidence": [
         "addenda/specification-2.2.md",
         "app/app.js",
+        "app/index.html",
         "app/server.py",
+        "app/style.css",
         "app/test_ui.cjs",
         "docs/research-workspace.md"
       ],
@@ -2189,7 +2191,7 @@
         "research_ui"
       ],
       "remaining": [
-        "Implement and test distinct Must match, Prefer similar, Ignore and Hide from view controls; view hiding must never change eligibility or ranking."
+        "Distinct Must match, Prefer similar, Ignore and Hide from view controls are implemented and tested; hiding is never sent to the server, so it creates no revision and cannot change eligibility or ranking, and the DOM suite pins that it issues no request and leaves the eligible set and the displayed order identical. Remaining: verify the controls in a browser, including keyboard operation and the announcement of the reported effects; the DOM suite runs without a layout engine or an accessibility tree."
       ],
       "dependencies": []
     },

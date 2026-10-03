@@ -1,12 +1,12 @@
 {
   "artifacts": {
-    "app/app.js": "ba5b23faf30ae86adfd28cf28c78ac0118e665dd87aeb46c4964690193ff4ea0",
-    "app/index.html": "52d05591525ec2f1b1a4e91eb5f2f233024789dc2b17eeb07afddfe518e05ecb",
+    "app/app.js": "c85c8e265270f9ef5d1c8e83f88465b8d86c051bc72c809ceed7b5bd7c18671d",
+    "app/index.html": "a556218522e7a0433a7a2a46b174efdf5f50a559ea481224b4632a84d088bd84",
     "app/replay.py": "edbee41d7fc40d3387022e3552aede3396083b7e374e847e0006f2d40398c2bb",
     "app/server.py": "6dc6873a5e8657167c3a6d0495e4c73da86a0b3045e7c2a13df1bfcbffd4eed8",
-    "app/style.css": "2ebe1ab97493d518ce212e4bb1423266c6fdc20560b7c1cdfd0f683ec985a64c",
-    "app/test_server.py": "f667c43ab7b9a02c50cc49dae4f52197b00924dfddab94550bff9074e554f06e",
-    "app/test_ui.cjs": "ace4e036ee6890c0ef790d6d414e178a41ff968aa58a6aecf648f95d7d7945da",
+    "app/style.css": "2c64c1b8d404f4ca229526b6e9fafb029bc6c337f035a9dc73f47f4b2b6471a6",
+    "app/test_server.py": "6590aeb00e9ab04264eaeeb0a59986e1b1580c876b4720b581c699b3a34cb518",
+    "app/test_ui.cjs": "aeaedcad309e78563740e70c85b26b9a1eef6aca41c521e8e80b1296de403017",
     "demo/cohort-data.json": "20f3c831d582f8b0b98d7485486502a9750e47eaf8f816f7e55b138a63d03fe1",
     "demo/cohort.py": "dd0bbec5a6af01c74a578ca6677b52fc1625389e54bde042e8a25b2032af755e",
     "examples/exemplar.pattern.json": "31945337af8240626772951d101d13aeb462b7ec3dc2df6106d036136c9c2428",
