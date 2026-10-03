@@ -64,7 +64,7 @@ entailment claims.
 
 ## Open questions before operational use
 
-This profile is one of two relaxation cost models in the repository. The point-anchor oracle prices relaxation compositionally and continuously; this one prices whole authored options. [Relaxation cost models](decisions/relaxation-cost-models.md) records where they disagree and the options for reconciling them. Nothing is adopted and no cost here changes.
+This profile is one of two relaxation cost models in the repository. The point-anchor oracle prices relaxation compositionally and continuously; this one prices whole authored options. [Relaxation cost models](decisions/relaxation-cost-models.md) records where they disagree and accepts option D: both evaluators are kept, and only what a reader sees is unified. Each result now names the model that priced it — `profile` here, `relaxation_profile` on the oracle path. No cost in this profile changes.
 
 
 - **OPEN — authority:** Who approves relaxable predicates, widened limits, costs,

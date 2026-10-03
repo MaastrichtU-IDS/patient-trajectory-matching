@@ -13,9 +13,34 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cohort
 import serve
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from patterns import robust_relaxation as robust
 
 
 class GuidedCohortTests(unittest.TestCase):
+    def test_every_result_names_the_cost_model_that_priced_it(self):
+        """Both relaxation models call their limit a budget and mean different things.
+
+        The catalogue has always identified itself through its own profile field.
+        This path did not, so a reader meeting a relaxed result from each surface
+        could not tell which model answered. See decisions/relaxation-cost-models.md.
+        """
+        for budget in ('0', '1', '2'):
+            result = cohort.run_cohort(serve.COHORT, budget)
+            self.assertEqual(result['relaxation_profile'], 'point-anchor-relaxation-1.0')
+        self.assertNotEqual(cohort.RELAXATION_PROFILE, robust.PROFILE)
+
+    def test_the_two_budget_keys_are_not_interchangeable(self):
+        """max_total_cost bounds a sum here; the catalogue's max_cost bounds one option.
+
+        Pinning the key names keeps the documented meanings attached to distinct
+        fields, so neither surface can be read as the other's control.
+        """
+        result = cohort.run_cohort(serve.COHORT, '2')
+        self.assertEqual(set(result['query']['budget']), {'max_total_cost', 'max_relaxed_constraints'})
+        self.assertNotIn('max_cost', result['query']['budget'])
+        self.assertNotIn('max_changed_targets', result['query']['budget'])
+
     def test_expected_membership_and_fixed_boundaries(self):
         expected = {'0': ['P01', 'P02', 'P03'],
                     '1': ['P01', 'P02', 'P03', 'P04', 'P05'],

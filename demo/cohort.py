@@ -16,6 +16,15 @@ SOURCE = ROOT.parent
 sys.path.insert(0, str(SOURCE))
 from reference_oracle import evaluate, validate_pattern
 
+# Names the cost model that priced this result. The repository has two, and both
+# call their limits a budget while meaning different things: here max_total_cost
+# bounds a sum of component costs across relaxed targets, while the catalogue's
+# max_cost bounds the one option applied and is never summed. The catalogue has
+# always identified itself through its own profile field; this path did not, so a
+# reader could not tell which model answered. See
+# docs/decisions/relaxation-cost-models.md.
+RELAXATION_PROFILE = 'point-anchor-relaxation-1.0'
+
 
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -94,7 +103,8 @@ def run_cohort(data, budget):
         results.append({'patient_id': pid, **result})
         membership[groups[result['accepted_as']]].append(pid)
     membership['included'] = sorted(membership['exact'] + membership['relaxed'])
-    return {'schema_version': 'guided-cohort-result-1', 'execution_mode': 'live-python',
+    return {'schema_version': 'guided-cohort-result-1', 'relaxation_profile': RELAXATION_PROFILE,
+            'execution_mode': 'live-python',
             'query': query, 'query_sha256': digest(query), 'taxonomy': taxonomy,
             'oracle_sha256': file_digest(SOURCE / 'reference_oracle.py'),
             'dataset_sha256': digest(data), 'snapshot_id': data['snapshot_id'],

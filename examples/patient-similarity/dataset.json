@@ -1878,7 +1878,7 @@
   ],
   "construction_origin": {
     "path": "demo/cohort-data.json",
-    "sha256": "91189c7c61f8cd5807ad2284ea83b8a11fc4076a86a054375e36c567bfadeb28",
+    "sha256": "20f3c831d582f8b0b98d7485486502a9750e47eaf8f816f7e55b138a63d03fe1",
     "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
     "original_availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted.",
     "scope": "Same patient episodes and projected source events; added age-band and availability declarations."
