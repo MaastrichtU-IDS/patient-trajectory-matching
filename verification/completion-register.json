@@ -2448,7 +2448,7 @@
         "research_ui"
       ],
       "remaining": [
-        "Implement and manually verify responsive reflow, focus order, screen-reader/text alternatives, target sizes and status announcements."
+        "Implement and manually verify responsive reflow, focus order, screen-reader/text alternatives and status announcements. The research navigation now declares a 24px target floor that CI checks; no rendered target has been measured, because the DOM suites run without a layout engine."
       ],
       "dependencies": []
     },
