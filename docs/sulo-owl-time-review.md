@@ -333,7 +333,7 @@ Benchmark exact arrays, interval joins, uncertain constraint solving and full gr
 
 ## 16. Verification boundary and required evidence
 
-The repository includes the [v2.4 profile report](../verification/v24-pro-solid-report.json) and [reference-oracle report](../verification/reference-report.json). They record 42 profile tests, 16 matcher cases and seven property checks for the bounded contracts. The [SULO pin](../ontology/sulo-pin.json) identifies the vendored core used by that adapter.
+The repository includes the [v2.4 profile report](../verification/v24-pro-solid-report.json) and [reference-oracle report](../verification/reference-report.json). They record 47 profile tests, 16 matcher cases and seven property checks for the bounded contracts. The [SULO pin](../ontology/sulo-pin.json) identifies the vendored core used by that adapter.
 
 Those reports do not certify the extensions recommended here. Before activating a new temporal profile, add independent positive and negative cases for missing endpoints, duplicate scalar values, merged boundary classes, multiple clocks, reversed intervals, duration disagreement, temporal coincidence with distinct descriptor identity, transitive unit propagation, shared-anchor correlation, jointly impossible query atoms, point-variable identity, fixed-witness quantification and correlated relaxation cost. Check the interval relation partition and its inverses on a finite grid as a supplemental regression exercise.
 

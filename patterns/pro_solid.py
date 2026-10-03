@@ -15,7 +15,7 @@ from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
 
 import rdflib
-from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
+from rdflib import Graph, Literal, Namespace, OWL, RDF, RDFS, URIRef, XSD
 from pyshacl import validate as shacl_validate
 
 # Dedicated runner configuration: retain source literal spelling when parsing RDF.
@@ -203,18 +203,78 @@ def build_graph(rows):
     return g
 
 
+def named_ancestors(ont, cls):
+    """Named superclasses of cls, including cls. Blank-node class expressions are skipped."""
+    seen, frontier = set(), [cls]
+    while frontier:
+        current = frontier.pop()
+        if not isinstance(current, URIRef) or current in seen:
+            continue
+        seen.add(current)
+        frontier.extend(ont.objects(current, RDFS.subClassOf))
+    return seen
+
+
+def implied_types(ont, g):
+    """Named rdfs:domain and rdfs:range consequences for the permitted object properties.
+
+    The limited closure does not infer from domain and range, so a participant that is
+    declared a Process is accepted by subclass closure alone while contradicting the
+    range of hasParticipant. These consequences are returned for the disjointness check
+    only; they are never added to the projection graph, because the adapter reports a
+    contradiction rather than asserting new types.
+    """
+    implied = {}
+    for prop in OBJECT_PROPERTIES:
+        ends = ((RDFS.domain, 0), (RDFS.range, 2))
+        for axiom, position in ends:
+            classes = {c for c in ont.objects(prop, axiom)
+                       if isinstance(c, URIRef) and c != OWL.Thing}
+            if not classes:
+                continue
+            ancestors = set().union(*(named_ancestors(ont, c) for c in classes))
+            for triple in g.triples((None, prop, None)):
+                entity = triple[position]
+                if isinstance(entity, URIRef):
+                    implied.setdefault(entity, set()).update(ancestors)
+    return implied
+
+
+def disjoint_groups(ont):
+    """Named disjoint class groups declared by the loaded ontology.
+
+    Derived rather than listed, so an axiom added to SULO or to the application profile is
+    enforced without editing this module. A hand-kept list silently stops matching the
+    ontology it is meant to mirror; `sulo:StartTime` against `sulo:EndTime` was missed that
+    way. Blank-node class expressions are skipped, so this still does not replace OWL
+    consistency checking for arbitrary class expressions.
+    """
+    groups = []
+    for left, _, right in ont.triples((None, OWL.disjointWith, None)):
+        if isinstance(left, URIRef) and isinstance(right, URIRef):
+            groups.append(frozenset((left, right)))
+    for predicate in (OWL.members, OWL.disjointUnionOf):
+        for _, _, listing in ont.triples((None, predicate, None)):
+            named = frozenset(m for m in rdflib.collection.Collection(ont, listing)
+                              if isinstance(m, URIRef))
+            groups.append(named)
+    # AllDisjointClasses and disjointUnionOf often state the same group twice.
+    return [group for index, group in enumerate(groups)
+            if len(group) > 1 and group not in groups[:index]]
+
+
 def validate_graph(source):
     g = materialize(source)
-    # Check the named disjoint upper categories needed by this profile only.
-    # This does not replace OWL consistency checking for arbitrary class expressions.
-    disjoint_groups = [(S.Object, S.Process), (S.SpatialObject, S.Feature),
-                       (S.Role, S.Quality, S.InformationObject, S.Capability),
-                       (S.Duration, S.TimeInstant, S.TimeInterval), (S.Time, S.Unit),
-                       (S.Collection, S.Quantity)]
+    ont = ontology()
+    groups = disjoint_groups(ont)
     for subject in set(g.subjects(RDF.type, None)):
         types = set(g.objects(subject, RDF.type))
-        for group in disjoint_groups:
+        for group in groups:
             require(len(types.intersection(group)) <= 1, 'DISJOINT_UPPER_CLASSES')
+    for subject, inferred in implied_types(ont, g).items():
+        types = set(g.objects(subject, RDF.type)) | inferred
+        for group in groups:
+            require(len(types.intersection(group)) <= 1, 'PROPERTY_TYPE_DISJOINT')
     for subject, predicate, obj in source:
         require(isinstance(subject, URIRef), 'NAMED_INSTANCE_REQUIRED')
         if isinstance(obj, Literal):

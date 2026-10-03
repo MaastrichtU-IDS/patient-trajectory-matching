@@ -52,7 +52,7 @@ The original profile quick checks remain available individually:
 ```sh
 python reference_oracle.py           # 16 cases, 7 properties
 python -m patterns.pro_solid         # point-anchor pipeline
-python -m patterns.test_pro_solid    # 42 tests
+python -m patterns.test_pro_solid    # 47 tests
 
 python -m patterns.exact_intervals       # interval pipeline
 python -m patterns.test_exact_intervals  # 51 tests
@@ -173,7 +173,30 @@ python .github/scripts/check_manifest.py
 manifest: checked 9 files, 0 problem(s)
 ```
 
-Verifies the nine SHA-256 digests in `verification/v24-release-manifest.json`. These cover adapter inputs — code, ontology, shapes, pin and fixtures — not generated reports.
+Verifies the nine SHA-256 digests in `verification/v25-release-manifest.json`. These cover adapter inputs — code, ontology, shapes, pin and fixtures — not generated reports. Superseded manifests stay in `verification/` as historical release records and are not re-checked, because they describe the tree at the time of that release.
+
+---
+
+## Component 2b — OWL consistency of the pinned stack
+
+```sh
+curl --fail --silent --location -o /tmp/robot.jar \
+  https://github.com/ontodev/robot/releases/download/v1.9.5/robot.jar
+echo "21e96a9f6ac90dacdb6fa1303ac9b49b0d2be3594ecacf4c0e3d0e68e86def57  /tmp/robot.jar" | sha256sum --check -
+python .github/scripts/check_owl_consistency.py
+```
+
+```
+owl: examples/pro-solid/graph.ttl is OWL 2 DL and consistent; negative control detected
+owl: demo/evidence/pro-solid/graph.ttl is OWL 2 DL and consistent; negative control detected
+owl: checked 2 merged graphs, 0 problem(s)
+```
+
+**Verifies:** the pinned SULO, the application profile and each committed instance graph, merged into one document, stay inside the OWL 2 DL profile and are consistent under HermiT. This covers the ontology-axiom level that the adapter's own named-type checks reach only partially.
+
+Each graph is also re-checked with a deliberate contradiction injected. If that control is not detected the run fails, because a consistency check that cannot fail proves nothing. This guards a specific trap: passing the files as separate `--input` documents makes OWLAPI parse the undeclared SULO properties as annotation assertions, which both reports spurious punning violations and silently empties the check.
+
+Requires Java 17 and ROBOT 1.9.5 at the pinned digest; set `ROBOT_JAR` if the jar is elsewhere.
 
 ---
 
@@ -183,9 +206,9 @@ Verifies the nine SHA-256 digests in `verification/v24-release-manifest.json`. T
 python -m patterns.test_pro_solid
 ```
 
-**Verifies:** 42 tests across projection and schema compatibility, PRO derivation, role integrity, SOLID literal discipline, values and units, time handling, observation identity, matching semantics, evidence and unsupported statuses.
+**Verifies:** 47 tests across projection and schema compatibility, PRO derivation, role integrity, SOLID literal discipline, values and units, time handling, observation identity, matching semantics, evidence, ontology-derived disjointness, property domain/range consistency and unsupported statuses.
 
-**Expected:** `Ran 42 tests`, `OK`, exit 0.
+**Expected:** `Ran 47 tests`, `OK`, exit 0.
 
 **Writes:** `verification/v24-pro-solid-report.json` with `passed: true` and `production_readiness_claim: false`. Exits nonzero on any failure.
 
@@ -445,7 +468,7 @@ The distinction in the last two rows matters. A `ContractError` means the data f
 3. Point-anchor pipeline from synthetic source rows
 4. Graph isomorphism against the committed copy
 5. Point-anchor pipeline from the committed graph
-6. Acceptance suite — 42 tests
+6. Acceptance suite — 47 tests
 7. Exact-interval pipeline and conformance suite — 51 tests
 8. Interval cohort example and differential suite — 18 tests
 9. Bounded uncertainty example and finite-world/certificate suite — 22 tests

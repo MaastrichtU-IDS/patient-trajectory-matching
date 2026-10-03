@@ -78,7 +78,7 @@ Stamping the oracle path was attempted and deliberately not completed. The field
 3. Those bytes are pinned at `construction_origin.sha256` in `examples/patient-similarity/dataset.json`, which `patterns/patient_similarity.py` surfaces as `source_dataset_sha256` and `app/server.py` compares against the file it reads. The application refuses to start otherwise, with `Similarity and trajectory source fingerprints differ`.
 4. `examples/patient-similarity/dataset.json` is itself pinned in `verification/research-prototype-journey.json`.
 
-So a reporting field on that path requires regenerating a fixture and its evidence, in that order. The oracle and its exemplar pattern are separately pinned in the v2.4 release manifest and must not change at all.
+So a reporting field on that path requires regenerating a fixture and its evidence, in that order. The oracle and its exemplar pattern are separately pinned in the release manifest (v2.5, carried over unchanged from v2.4) and must not change at all.
 
 This does not block the accepted decision. It re-scopes the work: the identifier is not the free addition it appeared to be, and should be planned with the fixture regeneration it entails, or deferred until that fixture is being regenerated for another reason.
 

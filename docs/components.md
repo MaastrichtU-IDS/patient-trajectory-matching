@@ -103,7 +103,7 @@ python -m patterns.pro_solid [--source ROWS] [--manifest M] [--graph TTL] [--out
 
 ## Acceptance suite
 
-**Path:** `patterns/test_pro_solid.py` · **Status:** Executable · **42 tests**
+**Path:** `patterns/test_pro_solid.py` · **Status:** Executable · **47 tests**
 
 ```sh
 python -m patterns.test_pro_solid   # writes verification/v24-pro-solid-report.json, nonzero exit on failure
@@ -253,6 +253,8 @@ The `ex:` prefix denotes `https://example.org/trajectory/toy/`. Instance data us
 
 SULO is checked against its digest at load; a mismatch raises `SULO_PIN_MISMATCH`. Declared reasoning profile: named subclass closure, `hasFeature` inverse, PRO participation chain. No full OWL consistency or completeness claim.
 
+Disjoint class groups are derived from the loaded ontology rather than listed in code, so an axiom added to SULO or to the application profile is enforced without editing the adapter. The named `rdfs:domain` and `rdfs:range` consequences of the six permitted object properties are checked against those same groups, raising `PROPERTY_TYPE_DISJOINT`. A process used as a participant is rejected here, where subclass closure alone would accept it. These consequences are never materialized, so the declared reasoning profile above is unchanged and the projection graph gains no types. Class expressions, cardinality and property characteristics remain outside this check and are covered by the CI consistency gate.
+
 The archived drafts in `legacy-2.3/` must not be loaded with the current profile.
 
 ---
@@ -310,7 +312,9 @@ The 16 matcher cases and the 16 normalization expectations are **different sets*
 | `pro-solid-run/` | `patterns/pro_solid.py` |
 | `structural-report.json` | Authoring-time structural validation |
 | `v21-` / `v22-` / `v23-additions-report.json` | Per-version structural checks |
-| `v24-release-manifest.json` | 9 SHA-256 digests over adapter inputs |
+| `v25-release-manifest.json` | 9 SHA-256 digests over adapter inputs; the manifest CI verifies |
+| `check_owl_consistency.py` | OWL 2 DL profile and HermiT consistency over the merged pinned stack, with a negative control |
+| `v24-release-manifest.json` | Superseded by v2.5; retained as a historical release record |
 
 Reports certify this pack's internal consistency only. `v24-pro-solid-report.json` records `production_readiness_claim: false` and the runner's Python version, so it changes whenever the interpreter patch version changes.
 
