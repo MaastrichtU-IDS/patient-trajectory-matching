@@ -1,6 +1,6 @@
 # Decision: reconciling the two relaxation cost models
 
-**Status:** **Accepted 21 September 2026 — option D.** The project accepted unifying the reported contract while keeping both evaluators. Acceptance settles the choice; implementation is separate and staged, and no cost either model reports has changed yet. The options below are retained as the record of what was decided against.
+**Status:** **Accepted 21 September 2026 — option D.** The project accepted unifying the reported contract while keeping both evaluators. The identifier the decision called for was implemented on 3 October 2026; the remaining adoption items are listed at the end. No cost either model reports has changed. The options below are retained as the record of what was decided against.
 
 **Related:** [exemplar pattern](../../examples/exemplar.pattern.json) and [reference oracle](../../reference_oracle.py); [robust temporal relaxation](../robust-temporal-relaxation.md); [custom relaxation catalogue](../custom-relaxation-catalogue.md); [extended relaxation](../extended-relaxation.md).
 
@@ -54,7 +54,7 @@ B deserves a second look if the oracle's 16 committed cases are ever re-authored
 
 These are the unified statements option D calls for. They describe both models as they behave today; neither model changed to produce them.
 
-**Which model priced a result.** `robust-temporal-relaxation-1.0` already identifies itself: every result carries `profile`, and its context carries `context_id`. The point-anchor oracle path does not stamp an identifier, so it is recognised by `schema_version: guided-cohort-result-1` and by the absence of a catalogue profile. Giving that path an explicit identifier is implementation work with a cost recorded below.
+**Which model priced a result.** `robust-temporal-relaxation-1.0` identifies itself: every result carries `profile`, and its context carries `context_id`. The point-anchor oracle path now stamps `relaxation_profile: point-anchor-relaxation-1.0` on every result from `run_cohort()`, so neither surface has to be recognised by inference from `schema_version` or from the absence of a catalogue profile. The field reports which model priced the result; the implementation that produced it remains identified by `oracle_sha256`.
 
 **The budget keys are already distinct, and are not interchangeable.** No rename is needed; the earlier draft of this note was wrong to suggest one.
 
@@ -71,25 +71,24 @@ A limit of 2 therefore admits a compositional sum in the oracle and one option p
 
 ## Implementation cost of the identifier
 
-Stamping the oracle path was attempted and deliberately not completed. The field itself is one line in `demo/cohort.py`, but the change propagates:
+Stamping the oracle path is done. The field itself is one line in `demo/cohort.py`, but the change propagates, and the order below is the order it must be carried out in:
 
 1. `run_cohort()` output is embedded in `demo/Guided_Cohort_Demo.html`, so the standalone demo must be rebuilt.
 2. `demo/build_guided.py` rewrites `demo/cohort-data.json` as a side effect, giving it a new generation commit.
 3. Those bytes are pinned at `construction_origin.sha256` in `examples/patient-similarity/dataset.json`, which `patterns/patient_similarity.py` surfaces as `source_dataset_sha256` and `app/server.py` compares against the file it reads. The application refuses to start otherwise, with `Similarity and trajectory source fingerprints differ`.
 4. `examples/patient-similarity/dataset.json` is itself pinned in `verification/research-prototype-journey.json`.
 
-So a reporting field on that path requires regenerating a fixture and its evidence, in that order. The oracle and its exemplar pattern are separately pinned in the release manifest (v2.5, carried over unchanged from v2.4) and must not change at all.
+So a reporting field on that path requires regenerating a fixture and its evidence, in that order. Regenerating the evidence before the fixture captures a digest that is about to change, and the failure surfaces two steps away as a refusal to start rather than as a stale pin.
 
-This does not block the accepted decision. It re-scopes the work: the identifier is not the free addition it appeared to be, and should be planned with the fixture regeneration it entails, or deferred until that fixture is being regenerated for another reason.
+The oracle and its exemplar pattern are separately pinned in the release manifest (v2.5, carried over unchanged from v2.4) and did not change: the identifier is stamped by `demo/cohort.py`, which calls the oracle, not by the oracle itself. That is what kept this a fixture regeneration rather than a release change.
 
 ## What adoption still requires
 
-- The explicit identifier on the oracle path, with the regeneration chain above.
-- Acceptance cases that put one clinical question through both surfaces and assert the reported cost, budget and tie-break are interpreted as documented. Nothing currently compares the two models against each other.
+- Acceptance cases that put one clinical question through both surfaces and assert the reported cost, budget and tie-break are interpreted as documented. `demo/test_guided.py` now pins the identifier and the distinctness of the budget keys, but nothing yet runs one question through both models and compares the answers.
 - A decision on whether a relaxed oracle result may be presented beside a certain or possible catalogue result in one view. The guided demo and `/journey` sit one click apart.
 
 ## Remaining decisions
 
 Both models carry their own open questions, recorded where they are implemented and not reopened here: who approves relaxable predicates, widened limits, costs and catalogue versions ([robust-temporal-relaxation](../robust-temporal-relaxation.md), *authority*), and what domain meaning the costs should have, given that both are fixed policy penalties and neither is a learned preference or a clinical equivalence ([*utility*](../robust-temporal-relaxation.md)).
 
-Nothing here is adopted. Both models remain as implemented, and every cost either currently reports is unchanged.
+Both models remain as implemented, and every cost either currently reports is unchanged. What was adopted is the reported contract: each result names the model that priced it, and the budget keys stay distinct because the limits they bound are not comparable.

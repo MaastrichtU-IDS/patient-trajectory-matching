@@ -1,7 +1,7 @@
 {
   "adjacent_suites": {
     "completion_checker": 13,
-    "demo_suite": 104,
+    "demo_suite": 106,
     "node_dom_suites": 8,
     "research_http_suite": 15
   },
