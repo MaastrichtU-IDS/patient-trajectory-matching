@@ -14,7 +14,7 @@
     "examples/patient-similarity/profile.json": "4e3e471043637d50a30a803aa7bf7e2e82a9a76a976d499495270781bcc592a1",
     "ontology/toy-taxonomy.json": "8ffbe370d820bedab4e5bacac847fa4e4bfe86e6fccda89da0747252f8f577ee",
     "patterns/patient_similarity.py": "6d635d22b76767543f3a048f40e733c7e317727a72dadd9ded95d4be2e0ab5c1",
-    "patterns/pro_solid.py": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+    "patterns/pro_solid.py": "aad9a32b76fae17ef2b2c8321143a46e3f8510b7011a29e06c878b5ba555a1e7",
     "reference_oracle.py": "f1ecb80ee8accb307ccbdb19de77a06abe4d75123a3f586e61029d01a0858a20"
   },
   "clinical_validity_claim": false,

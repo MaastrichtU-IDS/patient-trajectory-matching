@@ -5,10 +5,10 @@ import unittest
 from decimal import Decimal
 
 from jsonschema import Draft202012Validator
-from rdflib import Graph, Literal, OWL, RDF, XSD
+from rdflib import Graph, Literal, OWL, RDF, URIRef, XSD
 
 from patterns.pro_solid import (ROOT, S, EX, DATA, PROFILE, ContractError, build_graph,
-                               digest, instant, materialize, project)
+                               digest, disjoint_groups, instant, materialize, ontology, project)
 from reference_oracle import evaluate
 
 
@@ -236,6 +236,59 @@ class PatternAcceptance(unittest.TestCase):
     def test_named_sulo_disjointness_is_checked(self):
         self.graph.add((DATA['person-P1'], RDF.type, S.InformationObject))
         self.reject('DISJOINT_UPPER_CLASSES')
+
+    def test_disjoint_groups_are_derived_from_the_ontology_not_listed(self):
+        """Every named disjointness axiom the ontology states must be enforced.
+
+        A hand-kept list drifts from the ontology it mirrors: `sulo:StartTime` against
+        `sulo:EndTime` was declared by SULO and silently unchecked for exactly that reason.
+        """
+        ont = ontology()
+        groups = disjoint_groups(ont)
+        for left, _, right in ont.triples((None, OWL.disjointWith, None)):
+            if isinstance(left, URIRef) and isinstance(right, URIRef):
+                self.assertTrue(any({left, right} <= group for group in groups),
+                                f'undetected disjointness: {left} {right}')
+        self.assertIn(frozenset({S.StartTime, S.EndTime}), groups)
+        self.assertIn(frozenset({EX.PatientRole, EX.CareProviderRole,
+                                 EX.MeasurementResultRole, EX.AdministeredDrugRole}), groups)
+        self.assertEqual(len(groups), len({frozenset(g) for g in groups}), 'duplicate groups')
+
+    def test_disjointness_the_previous_fixed_list_missed_is_rejected(self):
+        """StartTime and EndTime are disjoint in SULO but were outside the six listed groups."""
+        self.graph.add((DATA['B1-time'], RDF.type, S.StartTime))
+        self.graph.add((DATA['B1-time'], RDF.type, S.EndTime))
+        self.reject('DISJOINT_UPPER_CLASSES')
+
+    def test_property_range_contradiction_is_checked(self):
+        """A process used as a participant contradicts the range of hasParticipant.
+
+        Subclass closure alone cannot see this: the participant carries only Process
+        types, so the asserted-type check passes. HermiT reports the merged SULO,
+        profile and instance graph as inconsistent, and the adapter must agree.
+        """
+        self.graph.add((DATA['event-B1'], S.hasParticipant, DATA['event-E1']))
+        self.reject('PROPERTY_TYPE_DISJOINT')
+
+    def test_property_domain_contradiction_is_checked(self):
+        """refersTo has domain InformationObject, which is disjoint from Role."""
+        self.graph.add((DATA['B1-patient-role'], S.refersTo, DATA['event-B1']))
+        self.reject('PROPERTY_TYPE_DISJOINT')
+
+    def test_implied_types_are_checked_without_being_asserted(self):
+        """The domain/range consequences are a check, not an assertion.
+
+        Reporting the contradiction must not enrich the closure that projection and the
+        evidence digests are computed from. A Process participant stays a Process there.
+        """
+        before = set(materialize(self.graph))
+        self.projected()
+        self.assertEqual(set(materialize(self.graph)), before)
+        self.graph.add((DATA['event-B1'], S.hasParticipant, DATA['event-E1']))
+        self.reject('PROPERTY_TYPE_DISJOINT')
+        closure = materialize(self.graph)
+        self.assertIn((DATA['event-E1'], RDF.type, S.Process), closure)
+        self.assertNotIn((DATA['event-E1'], RDF.type, S.Object), closure)
 
     def test_metadata_cannot_be_mistyped_numeric_literal(self):
         self.graph.set((DATA['B1-event_id'], S.hasValue, Literal(1)))
