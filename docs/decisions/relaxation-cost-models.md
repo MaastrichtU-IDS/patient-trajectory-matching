@@ -18,7 +18,7 @@ The word **budget** appears in both. It does not mean the same thing. A budget o
 | Cost shape | Semantic cost is a fixed policy value; temporal cost is **continuous**, proportional to the overrun | Every option carries one **fixed** exact decimal cost |
 | Composition | Costs **sum across targets**: `total = sum(components.values())` | Options are **never implicitly combined**; no cost is summed across options |
 | Budget dimensions | `max_total_cost` and `max_relaxed_constraints` (altered constraints) | cost budget and changed-**target** budget |
-| Uncertainty | None: exact recorded point times | `exists option, exists binding, forall feasible timelines` |
+| Uncertainty | Worst case priced as a relaxation; measurement times must be exact | `exists option, exists binding, forall feasible timelines` |
 | Accepts | Any binding within budget | Only `CERTAIN` bindings; `POSSIBLE` reported separately |
 | Equal-cost tie | Lower cost, then fewer altered constraints, then binding order | **Original query first**, then option id, binding, episode |
 
@@ -32,7 +32,9 @@ These are not presentation differences. Each changes which cohort a researcher g
 
 **3. What the count budget counts.** `max_relaxed_constraints` counts constraints whose component cost exceeded zero. The catalogue's changed-target budget counts targets a single option modifies. The same number therefore bounds different things.
 
-**4. Certainty.** The catalogue accepts only bindings certain in every feasible timeline, because its inputs carry bounded uncertainty. The oracle has no possible/certain distinction to make: its times are exact, so a relaxed acceptance is unconditional. A reader comparing a "relaxed match" from each surface is not comparing like with like.
+**4. Certainty.** The catalogue accepts only bindings certain in every feasible timeline, because its inputs carry bounded uncertainty. The oracle takes bounded times too — `C12` records an exposure with a two-day span — but it never withholds a match because some feasible timeline would break it. It prices the worst case, admits the patient, and reports the uncertainty in `exact_status` rather than in `accepted_as`. The same recorded uncertainty therefore puts a patient in the cohort on one surface and out of it on the other, and a reader comparing a "relaxed match" from each is not comparing like with like.
+
+An earlier draft of this note gave the reason as the oracle having exact times and so no distinction to make. That was wrong, and `C12` has contradicted it since before the note was written: the oracle's *measurement* times must be exact, its exposure times need not be, and what it lacks is not uncertainty but the certain-in-every-timeline filter.
 
 **5. Tie-breaking.** [#49](https://github.com/MaastrichtU-IDS/patient-trajectory-matching/pull/49) made the catalogue prefer the unchanged original on an equal-cost tie, so a zero-cost alternative can never displace the original for no benefit. The oracle has no notion of an `original` option in its ordering; a zero total cost is `EXACT` and wins on cost alone, which reaches the same outcome by a different route and only because zero is the floor.
 
@@ -46,7 +48,7 @@ These are not presentation differences. Each changes which cohort a researcher g
 
 **D. Unify the contract, keep two evaluators.** Treat the split as legitimate — the query classes really do differ — and unify only what a reader sees: one declared meaning for each budget dimension, one tie-break rule, one `relaxation_profile` field on every result, and one reporting shape for cost provenance. Each evaluator keeps its own pricing because each is correct for its own inputs.
 
-**Accepted: D.** The two models are not competing implementations of one idea; they price different things. Exact recorded times admit continuous compositional pricing safely, and bounded uncertainty does not, because composition is where a world-dependent choice can re-enter. What is not defensible is that both surfaces say *budget* and mean different things without saying so. D fixes the defect that actually reaches a researcher and leaves the pricing where the evidence supports it.
+**Accepted: D.** The two models are not competing implementations of one idea; they price different things. Pricing a worst case admits continuous compositional pricing safely — the oracle reads a bounded exposure time off its upper bound and never chooses a world — while accepting only what holds in every world does not, because composition is where a world-dependent choice can re-enter. What is not defensible is that both surfaces say *budget* and mean different things without saying so. D fixes the defect that actually reaches a researcher and leaves the pricing where the evidence supports it.
 
 B deserves a second look if the oracle's 16 committed cases are ever re-authored for another reason; converging then would be much cheaper than converging now.
 
@@ -84,8 +86,26 @@ The oracle and its exemplar pattern are separately pinned in the release manifes
 
 ## What adoption still requires
 
-- Acceptance cases that put one clinical question through both surfaces and assert the reported cost, budget and tie-break are interpreted as documented. `demo/test_guided.py` now pins the identifier and the distinctness of the budget keys, but nothing yet runs one question through both models and compares the answers.
+- ~~Acceptance cases that put one clinical question through both surfaces~~ — done on 3 October 2026 in `patterns/test_relaxation_contract.py`, class `OneClinicalQuestionThroughBothSurfaces`. One timeline specification generates both fixtures, and a test reads the gap back out of each to establish that the two surfaces were asked the same thing before any divergence is attributed to the models. What the cases pin is below.
 - A decision on whether a relaxed oracle result may be presented beside a certain or possible catalogue result in one view. The guided demo and `/journey` sit one click apart.
+
+### What the acceptance cases pin
+
+The shared question is the temporal core both surfaces express: *was there an administration followed, within seven days, by a creatinine measurement?* The oracle's value delta and baseline selection are held fixed rather than compared, because the bounded profile expresses neither.
+
+| Timeline | Stated budget | Oracle | Catalogue |
+|---|---|---|---|
+| Exposure 7 days before | 0.5 | `EXACT`, cost 0 | `original`, cost 0 |
+| 8 days | 0.5 | `RELAXED`, cost 0.5 | admitted, cost 0.5 |
+| 9 days | 0.5 | **`NONE`** | **admitted, cost 0.5** |
+| Exposure recorded in a 6.5–7.5 day span | 0.5 | **`RELAXED`, cost 0.25** | **possible, not robust** |
+
+The two disagreements are the point. At nine days both surfaces are given the number 0.5 and return different cohorts, because the oracle prices the overrun and the catalogue prices the authored option. Under recorded uncertainty the oracle prices its worst case and admits; the catalogue quantifies over timelines and refuses. Neither answer is wrong for its own model, which is why the `relaxation_profile` field has to be read before the number is.
+
+Two further differences surfaced while writing the cases, both now pinned:
+
+- **Composition is a difference in vocabulary before it is a difference in arithmetic.** A catalogue option relaxes a metric constraint, so the concept half of the oracle's summed total on `C05` has no target it could be authored against: the policy is rejected with `INVALID_RELAXABLE_TARGET` before any budget is considered.
+- **The two surfaces do not share a representation of an instant.** The oracle's events are points; the bounded profile requires `start + 1 <= end` and rejects a zero-length event as an inconsistent source. The acceptance builder gives each instant a one-minute extent, placed so that it cannot move the gap under test. That is a translation step, and a comparison that forgot it would be comparing a timeline neither surface was given.
 
 ## Remaining decisions
 
