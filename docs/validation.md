@@ -177,7 +177,7 @@ Verifies the nine SHA-256 digests in `verification/v25-release-manifest.json`. T
 
 ---
 
-## Component 2b — OWL consistency of the pinned stack
+## Component 2b — OWL consistency of the SULO stack and every graph that uses it
 
 ```sh
 curl --fail --silent --location -o /tmp/robot.jar \
@@ -187,16 +187,30 @@ python .github/scripts/check_owl_consistency.py
 ```
 
 ```
-owl: examples/pro-solid/graph.ttl is OWL 2 DL and consistent; negative control detected
-owl: demo/evidence/pro-solid/graph.ttl is OWL 2 DL and consistent; negative control detected
-owl: checked 2 merged graphs, 0 problem(s)
+owl: the SULO stack and every application profile is OWL 2 DL and consistent; 2 negative control(s) detected
+owl: examples/pro-solid/graph.ttl is OWL 2 DL and consistent; 5 negative control(s) detected
+owl: examples/temporal-interface/ordered/sulo.ttl is OWL 2 DL and consistent; 5 negative control(s) detected
+owl: examples/temporal-interface/ordered/formal.ttl is OWL 2 DL and consistent; 2 negative control(s) detected
+owl: checked 20 merged documents, 0 problem(s)
 ```
 
-**Verifies:** the pinned SULO, the application profile and each committed instance graph, merged into one document, stay inside the OWL 2 DL profile and are consistent under HermiT. This covers the ontology-axiom level that the adapter's own named-type checks reach only partially.
+Four of the twenty lines are shown; 73 negative controls are detected in all.
 
-Each graph is also re-checked with a deliberate contradiction injected. If that control is not detected the run fails, because a consistency check that cannot fail proves nothing. This guards a specific trap: passing the files as separate `--input` documents makes OWLAPI parse the undeclared SULO properties as annotation assertions, which both reports spurious punning violations and silently empties the check.
+**Verifies:** twenty merged documents stay inside the OWL 2 DL profile and are consistent under HermiT. This covers the ontology-axiom level that the adapter's own named-type checks reach only partially.
 
-Requires Java 17 and ROBOT 1.9.5 at the pinned digest; set `ROBOT_JAR` if the jar is elsewhere.
+| Target | Merged document | Why it is separate |
+|---|---|---|
+| The stack | pinned SULO plus all nine application profiles | The profiles are authored independently of each other; nothing else establishes that their union has a model |
+| 11 SULO-side graphs | the stack plus one instance graph | Includes the eight `examples/temporal-interface/*/sulo.ttl` fixtures that carry the conformance claim |
+| 8 formal-core graphs | `temporal-core.ofn` plus one `formal.ttl` | These speak the standalone core's vocabulary, not SULO; against the SULO stack every one of their classes reports as undeclared |
+
+The last row is why the two halves of each conformance pair are checked against different stacks. Gating only the SULO half would leave the pairing in [sulo-interface.md](temporal-kg/sulo-interface.md) reasoner-checked on one side.
+
+Every target is also re-checked with deliberate contradictions injected, and the run fails if any goes undetected, because a check that cannot fail proves nothing. For the nineteen targets that have instance data, **each control is built from the document's own content** — it contradicts a type the document asserts, reached through a property assertion the document makes. That matters: a control minted from fresh individuals fires against SULO alone, so it survives the instance graph being dropped from the merge, which is the regression the control exists to catch. The stack target has no instance data, so its control is a probe typed as both a bounded start and a bounded end descriptor; that is unsatisfiable only if two profile subclass axioms and SULO's `StartTime`/`EndTime` disjointness were all read, which is what the stack target has to establish instead. The SULO controls between them exercise named disjointness, the `Duration`/`TimeInstant`/`TimeInterval` disjoint union, the functional `sulo:hasValue`, and the `∀hasPart.Process` restriction — that last being the class expression the in-process check cannot reach. One further control takes each document out of OWL 2 DL with a type in an undeclared class, so the profile check is not trusted on a corpus that happens to be clean.
+
+This guards a specific trap: passing the files as separate `--input` documents makes OWLAPI parse the undeclared SULO properties as annotation assertions, which both reports spurious punning violations and silently empties the check.
+
+Requires Java 17 and ROBOT 1.9.5 at the pinned digest; set `ROBOT_JAR` if the jar is elsewhere. The twenty documents and their controls take about a minute.
 
 ---
 
