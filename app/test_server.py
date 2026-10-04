@@ -14,6 +14,8 @@ from app import server
 from app.replay import verify
 from patterns.patient_similarity import SimilarityEngine
 from demo import cohort
+from patterns import robust_relaxation
+from app import interval_editor
 
 
 class ResearchHTTPTests(unittest.TestCase):
@@ -102,6 +104,73 @@ class ResearchHTTPTests(unittest.TestCase):
         committed = root / 'verification/research-prototype-journey.json'
         if committed.exists():
             self.assertEqual(report, json.loads(committed.read_text()), 'Committed research journey evidence is stale')
+
+    def test_each_workflow_names_its_cost_model_and_no_response_carries_both(self):
+        """Decision D's second adoption item, decided: the two models may not share a view.
+
+        The acceptance cases in `patterns/test_relaxation_contract.py` established that at one
+        stated budget the two surfaces return different cohorts, and that under recorded
+        uncertainty one admits where the other refuses. So a reader who meets both numbers
+        must be told which model produced each, and must not meet them in one view where the
+        numbers read as one control.
+
+        Both halves are checked here. Each response names its own model, and neither response
+        mentions the other's identifier anywhere in its payload -- which is what makes the
+        separation a property of the data rather than of the page that happens to render it.
+        """
+        oracle, catalogue = cohort.RELAXATION_PROFILE, robust_relaxation.PROFILE
+        self.assertNotEqual(oracle, catalogue, 'the guard below is vacuous if they coincide')
+
+        revision = self.initial()
+        trajectory = self.request('/api/trajectory', {'revision_id': revision['revision_id'], 'budget': '2'})
+        for part in ('exact', 'relaxed'):
+            self.assertEqual(trajectory[part]['relaxation_profile'], oracle, part)
+
+        priced = {'trajectory': trajectory}
+        priced['journey'] = self.request('/api/journey/run', {
+            'reference_patient_id': 'T03', 'top_k': 1, 'maximum_baseline': None,
+            'question': 'overlap', 'budget': '1.25'})
+        priced['temporal'] = self.request('/api/temporal/run', {'budget': '1.25'})
+        priced['editor'] = self.request('/api/editor/run', interval_editor.IntervalEditor().metadata()['default_controls'])
+        # The three catalogue surfaces nest the executed policy differently; each must still
+        # name its model somewhere a reader's page can reach.
+        for name, policy in (('journey', priced['journey'].get('policy')),
+                             ('temporal', priced['temporal'].get('inputs', {}).get('policy')),
+                             ('editor', priced['editor'].get('policy'))):
+            self.assertIsNotNone(policy, f'{name} response carries no executed policy')
+            self.assertEqual(policy['profile'], catalogue, name)
+
+        for name, response, own, other in (('trajectory', trajectory, oracle, catalogue),
+                                           ('journey', priced['journey'], catalogue, oracle),
+                                           ('temporal', priced['temporal'], catalogue, oracle),
+                                           ('editor', priced['editor'], catalogue, oracle)):
+            serialized = json.dumps(response)
+            self.assertIn(own, serialized, f'{name} does not name the model that priced it')
+            self.assertNotIn(other, serialized,
+                             f'{name} carries both cost-model identifiers; decision D requires '
+                             f'that a reader never meets the two budgets as one control')
+
+    def test_every_workflow_declares_what_its_budget_bounds(self):
+        """The identifier alone does not help a reader who has not read the decision note.
+
+        Each page states, beside its own control, what its number bounds and that it is not
+        the other page's number. The two statements have to disagree about summing, because
+        that is the difference: the oracle sums component costs across relaxed targets and the
+        catalogue never sums across options.
+        """
+        pages = {}
+        for path in ('/', '/journey', '/temporal', '/temporal/editor'):
+            with urlopen(Request(self.url + path, headers={'Origin': self.url}), timeout=10) as response:
+                pages[path] = response.read().decode()
+            self.assertIn('id="priced-by"', pages[path], f'{path} has nowhere to name its model')
+            self.assertIn('not one control', pages[path], f'{path} does not warn against the comparison')
+        # The oracle page is the only one that sums. Every catalogue page must say the opposite,
+        # or a reader moving between them meets two numbers described the same way.
+        self.assertIn('<strong>sum</strong> of component costs across every relaxed target', pages['/'])
+        self.assertNotIn('<strong>single</strong> option applied', pages['/'])
+        for path in ('/journey', '/temporal', '/temporal/editor'):
+            self.assertIn('<strong>single</strong> option applied', pages[path], path)
+            self.assertNotIn('<strong>sum</strong> of component costs across every relaxed target', pages[path], path)
 
     def test_selected_reference_is_excluded_in_matching_and_replay(self):
         revision = self.initial('P03')

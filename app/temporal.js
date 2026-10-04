@@ -1,4 +1,20 @@
 'use strict';
+// Decision D (docs/decisions/relaxation-cost-models.md) refused a combined view of the two
+// cost models and required each result to name the model that priced it. Read out of the
+// executed policy, never written here as a constant: a label kept by hand drifts from the
+// model that actually answered, which is the defect the field exists to prevent.
+function pricedBy(value){
+ // Read the executed POLICY, wherever a surface nests it: /journey and the interval editor
+ // carry it at `policy`, /temporal under `inputs`. Only the policy is read, because
+ // `profile` is not one field in this repository -- `result.profile` on the editor is the
+ // query language (`extended-interval-query-1.0`), not a cost model, and reading it here
+ // made the line refuse on a result that was perfectly well identified.
+ const profiles=[...new Set([value.policy?.profile,value.inputs?.policy?.profile,
+                             value.relaxation?.profile].filter(Boolean))];
+ if(profiles.length!==1)return 'This result does not name the cost model that priced it; do not compare it with a result from another workflow.';
+ return `Priced by ${profiles[0]}. This cost bounds the single option applied and is never summed across options. A certain match here holds in every feasible source timeline, which is not the claim a near match makes on the patient-to-cohort workflow.`;
+}
+
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels = {CERTAIN_MATCH:'Certain', POSSIBLE_MATCH:'Possible only', NO_RECORDED_MATCH:'No recorded match', INCOMPARABLE:'Incomparable'};
@@ -17,6 +33,7 @@ function clear() {
   report = null;
   $('temporal-rows').innerHTML = '';
   $('summary').textContent = 'Run the selected budget to evaluate all four histories.';
+  $('priced-by').textContent = '';
   $('temporal-evidence').textContent = 'Choose Inspect after running the question.';
   $('temporal-export').className = 'button hidden';
   $('temporal-export').removeAttribute('href');
@@ -26,6 +43,7 @@ function render(value) {
   report = value;
   const original = value.result.evaluations[0].result;
   $('summary').textContent = `Budget ${value.budget}. Original question: ${original.certain_patient_ids.length} certain; ${original.possible_patient_ids.length - original.certain_patient_ids.length} possible only. Certain under a permitted option: ${value.result.robust_patient_ids.join(', ') || 'none'}. Added by widening: ${value.added_robust_patient_ids.join(', ') || 'none'}. Original classifications remain visible.`;
+  $('priced-by').textContent = pricedBy(value);
   $('temporal-rows').innerHTML = value.patients.map(row => `<tr><td>${esc(row.patient_id)}</td><td>${esc(labels[row.original_status] || row.original_status)}</td><td>${row.selected_option ? `${esc(row.selected_option === 'original' ? 'Original · 48 minutes' : 'Widened · 50 minutes')} · cost ${esc(row.selected_cost)}` : 'No certain option'}</td><td><button class="inspect" data-patient="${esc(row.patient_id)}">Inspect</button></td></tr>`).join('');
   $('temporal-export').href = '/api/temporal/export/' + encodeURIComponent(value.report_id);
   $('temporal-export').className = 'button';
