@@ -58,6 +58,11 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'temporal.js'),'utf8'),vm.cr
   payload.widened.inputs.source.events[0].source_key='<img src=x onerror=alert(1)>';
   await el('run').onclick();
   assert.match(el('summary').textContent,/Added by widening: T02/);
+  // Decision D: this result names the model that priced it, read from the executed policy,
+  // and never names the other model. /temporal nests its policy under `inputs`, so this
+  // also pins that the helper looks where this surface actually keeps it.
+  assert.match(el('priced-by').textContent,/robust-temporal-relaxation-1\.0/);
+  assert.doesNotMatch(el('priced-by').textContent,/point-anchor/);
   assert.match(el('temporal-rows').innerHTML,/cost 1.25/);
   el('temporal-rows').onclick({target:{closest:()=>({dataset:{patient:'T01'}})}});
   assert.match(el('temporal-evidence').innerHTML,/&lt;img/);

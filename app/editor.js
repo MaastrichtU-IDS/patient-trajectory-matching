@@ -1,4 +1,20 @@
 'use strict';
+// Decision D (docs/decisions/relaxation-cost-models.md) refused a combined view of the two
+// cost models and required each result to name the model that priced it. Read out of the
+// executed policy, never written here as a constant: a label kept by hand drifts from the
+// model that actually answered, which is the defect the field exists to prevent.
+function pricedBy(value){
+ // Read the executed POLICY, wherever a surface nests it: /journey and the interval editor
+ // carry it at `policy`, /temporal under `inputs`. Only the policy is read, because
+ // `profile` is not one field in this repository -- `result.profile` on the editor is the
+ // query language (`extended-interval-query-1.0`), not a cost model, and reading it here
+ // made the line refuse on a result that was perfectly well identified.
+ const profiles=[...new Set([value.policy?.profile,value.inputs?.policy?.profile,
+                             value.relaxation?.profile].filter(Boolean))];
+ if(profiles.length!==1)return 'This result does not name the cost model that priced it; do not compare it with a result from another workflow.';
+ return `Priced by ${profiles[0]}. This cost bounds the single option applied and is never summed across options. A certain match here holds in every feasible source timeline, which is not the claim a near match makes on the patient-to-cohort workflow.`;
+}
+
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fields=['fixture','relation','gap-min','gap-max','duration-enabled','duration-min','duration-max','overlap-enabled','overlap-min','relax-enabled','relax-budget','relax-gap-enabled','relax-gap-min','relax-gap-max','relax-duration-enabled','relax-duration-min','relax-duration-max','relax-overlap-enabled','relax-overlap-min'];
@@ -24,7 +40,7 @@ function controls(){
   $('run').disabled=busy||!ready;
 }
 function clear(){
-  report=null;$('rows').innerHTML='';$('summary').textContent='Evaluate the current controls to see results.';
+  report=null;$('rows').innerHTML='';$('summary').textContent='Evaluate the current controls to see results.';$('priced-by').textContent='';
   $('query').textContent='No executed query yet.';$('evidence').textContent='Select Inspect after evaluation.';
   $('export').className='button hidden';$('export').removeAttribute('href');
 }
@@ -50,6 +66,7 @@ function render(value){
   $('summary').textContent=`${value.controls.fixture} fixture · ${value.query.constraints.length} constraints evaluated together · ${counts.CERTAIN||0} certain, ${counts.POSSIBLE||0} possible only, ${counts.INCOMPARABLE||0} incomparable, ${counts.NO_RECORDED_MATCH||0} with no recorded match.`;
   const optionNote=value.policy.options.length?(value.relaxation.excluded_by_budget.length?'Option excluded by budget.':`Option evaluated; ${value.patients.filter(r=>r.status!=='CERTAIN'&&r.selected_option==='edited-option').length} additional certain histories.`):'No relaxation option requested.';
   $('summary').textContent+=' '+optionNote;
+  $('priced-by').textContent=pricedBy(value);
   $('rows').innerHTML=value.patients.map(row=>`<tr><td>${esc(row.patient_id)}</td><td>${esc(labels[row.status]||row.status)}</td><td>${esc(row.option_status?labels[row.option_status]:value.policy.options.length?'Excluded by budget':'Not requested')}</td><td>${esc(row.selected_option?(row.selected_option==='original'?'Original':'Edited option')+' · cost '+row.selected_cost:'None')}</td><td><button class="inspect" data-patient="${esc(row.patient_id)}">Inspect</button></td></tr>`).join('');
   $('query').textContent=JSON.stringify({query:value.query,policy:value.policy},null,2);
   $('export').href='/api/editor/export/'+encodeURIComponent(value.report_id);$('export').className='button';

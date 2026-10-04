@@ -1,6 +1,6 @@
 # Decision: reconciling the two relaxation cost models
 
-**Status:** **Accepted 21 September 2026 — option D.** The project accepted unifying the reported contract while keeping both evaluators. The identifier the decision called for was implemented on 3 October 2026; the remaining adoption items are listed at the end. No cost either model reports has changed. The options below are retained as the record of what was decided against.
+**Status:** **Accepted 21 September 2026 — option D.** The project accepted unifying the reported contract while keeping both evaluators. The identifier the decision called for was implemented on 3 October 2026, and the last open adoption item was decided on 4 October 2026; both are recorded at the end. No cost either model reports has changed. The options below are retained as the record of what was decided against.
 
 **Related:** [exemplar pattern](../../examples/exemplar.pattern.json) and [reference oracle](../../reference_oracle.py); [robust temporal relaxation](../robust-temporal-relaxation.md); [custom relaxation catalogue](../custom-relaxation-catalogue.md); [extended relaxation](../extended-relaxation.md).
 
@@ -87,7 +87,7 @@ The oracle and its exemplar pattern are separately pinned in the release manifes
 ## What adoption still requires
 
 - ~~Acceptance cases that put one clinical question through both surfaces~~ — done on 3 October 2026 in `patterns/test_relaxation_contract.py`, class `OneClinicalQuestionThroughBothSurfaces`. One timeline specification generates both fixtures, and a test reads the gap back out of each to establish that the two surfaces were asked the same thing before any divergence is attributed to the models. What the cases pin is below.
-- A decision on whether a relaxed oracle result may be presented beside a certain or possible catalogue result in one view. The guided demo and `/journey` sit one click apart.
+- ~~A decision on whether a relaxed oracle result may be presented beside a certain or possible catalogue result in one view~~ — decided on 4 October 2026: no. What that required of the product is below.
 
 ### What the acceptance cases pin
 
@@ -106,6 +106,20 @@ Two further differences surfaced while writing the cases, both now pinned:
 
 - **Composition is a difference in vocabulary before it is a difference in arithmetic.** A catalogue option relaxes a metric constraint, so the concept half of the oracle's summed total on `C05` has no target it could be authored against: the policy is rejected with `INVALID_RELAXABLE_TARGET` before any budget is considered.
 - **The two surfaces do not share a representation of an instant.** The oracle's events are points; the bounded profile requires `start + 1 <= end` and rejects a zero-length event as an inconsistent source. The acceptance builder gives each instant a one-minute extent, placed so that it cannot move the gap under test. That is a translation step, and a comparison that forgot it would be comparing a timeline neither surface was given.
+
+### Whether the two may share a view — decided, no
+
+A relaxed oracle result may **not** be presented beside a certain or possible catalogue result as a comparable finding. The acceptance cases above are the reason, and they are stronger than a stylistic preference: given the same stated number, nine days returns `NONE` from one surface and an admitted cost-0.5 match from the other, and under recorded uncertainty one admits on its worst case where the other refuses for want of robustness. Two results placed side by side read as two values of one control. Here they are two answers to two different questions, and nothing on the screen said so.
+
+That decision only matters if something enforces it, and the `relaxation_profile` field was not enough on its own: it was in both payloads from 3 October and reached neither screen. Three things now carry it.
+
+- **Each result names the model that priced it**, on screen, beside the result, on all four surfaces that show a budget: `/`, `/journey`, `/temporal` and `/temporal/editor`. The workspace reads `relaxation_profile` off the oracle result; the three catalogue surfaces read `profile` off the executed policy, which `/temporal` nests under `inputs` and the other two carry at `policy`. All read the identifier out of the payload rather than printing a constant, because a label kept by hand drifts from the model that actually answered — which is the failure the field exists to prevent. Two disagreeing identifiers refuse rather than pick one.
+
+  Only the executed *policy* is read. `profile` is not one field in this repository: `result.profile` on the interval editor is the query language, `extended-interval-query-1.0`, not a cost model. A first implementation read it, and the line refused on a result that was perfectly well identified.
+- **Each surface states what its own number bounds**, beside its own control, and that it is not the other surface's number. The two statements have to disagree about summing, because that is the difference.
+- **No response carries both identifiers.** `app/test_server.py` serializes a response from each of the four surfaces and asserts that each names its own model and mentions neither the other's anywhere in its payload. That makes the separation a property of the data rather than of whichever page happens to render it, so a future combined view would fail the test rather than quietly succeed.
+
+What is *not* claimed: the two surfaces remain one click apart in the research navigation, and nothing prevents a reader from opening both. The decision is that neither surface may present the other's result as comparable, and that a reader who navigates between them is told, on each, which model answered and what its number means.
 
 ## Remaining decisions
 
