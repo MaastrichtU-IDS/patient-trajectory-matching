@@ -107,7 +107,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Pre-index similarity and immutable refinement tests | 28 passed |
 | **Total** | **883 contract checks** |
 | Release manifest digests | 9 verified |
-| OWL 2 DL profile and HermiT consistency | 2 merged graphs verified |
+| OWL 2 DL profile and HermiT consistency | 20 merged documents verified, 73 negative controls detected |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
 | Graph reproducibility | Regenerated graph isomorphic to the committed copy, 131 triples |
 | Interval comparisons | 9 evaluated, 5 satisfied / 4 not satisfied as specified |

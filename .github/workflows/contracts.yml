@@ -57,7 +57,7 @@ jobs:
           curl --fail --silent --show-error --location -o /tmp/robot.jar https://github.com/ontodev/robot/releases/download/v1.9.5/robot.jar
           echo "21e96a9f6ac90dacdb6fa1303ac9b49b0d2be3594ecacf4c0e3d0e68e86def57  /tmp/robot.jar" | sha256sum --check -
 
-      - name: Pinned SULO stack and committed graphs stay OWL 2 DL and consistent
+      - name: SULO stack, every profile and every committed graph stay OWL 2 DL and consistent
         run: python .github/scripts/check_owl_consistency.py
 
       - name: Exact interval pipeline

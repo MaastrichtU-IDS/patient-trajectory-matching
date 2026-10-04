@@ -313,7 +313,7 @@ The 16 matcher cases and the 16 normalization expectations are **different sets*
 | `structural-report.json` | Authoring-time structural validation |
 | `v21-` / `v22-` / `v23-additions-report.json` | Per-version structural checks |
 | `v25-release-manifest.json` | 9 SHA-256 digests over adapter inputs; the manifest CI verifies |
-| `check_owl_consistency.py` | OWL 2 DL profile and HermiT consistency over the merged pinned stack, with a negative control |
+| `check_owl_consistency.py` | OWL 2 DL profile and HermiT consistency over 20 merged documents — the SULO stack, 11 SULO-side graphs, 8 formal-core graphs — each with negative controls built from its own content |
 | `v24-release-manifest.json` | Superseded by v2.5; retained as a historical release record |
 
 Reports certify this pack's internal consistency only. `v24-pro-solid-report.json` records `production_readiness_claim: false` and the runner's Python version, so it changes whenever the interpreter patch version changes.
