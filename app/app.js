@@ -32,6 +32,9 @@ async function action(work) {
 function clearComparison() {
   $('cohorts').innerHTML = '';
   $('trajectory-summary').textContent = 'Run the trajectory on this revision’s entire eligible population, including patients outside the displayed ranking.';
+  // Cleared with the result it describes. A profile line left standing beside no result names
+  // a model that priced nothing on screen.
+  $('priced-by').textContent = '';
   $('export').className = 'button hidden'; $('export').removeAttribute('href');
   $('evidence').textContent = 'No patient selected.'; lastEvidence = null;
 }
@@ -127,8 +130,21 @@ function cohortGroup(title, ids, results) {
   const byId = new Map(results.map(row => [row.patient_id, row]));
   return `<div class="cohort-group"><h3>${esc(title)} · ${ids.length}</h3>${ids.map(id => `<button class="inspect" data-patient="${esc(id)}">${esc(id)} · inspect</button><p class="hint">${esc((byId.get(id)?.reason_codes || []).join(', '))}</p>`).join('') || '<p class="hint">No patients in this group.</p>'}</div>`;
 }
+// Decision D (docs/decisions/relaxation-cost-models.md) refused a combined view of the two
+// cost models and required each result to name the model that priced it. The identifier is
+// read out of the payload and never written here as a constant: a label kept by hand drifts
+// from the model that actually answered, which is the defect the field exists to prevent.
+function pricedBy(value) {
+  const named = [value.exact, value.relaxed].map(part => part && part.relaxation_profile);
+  const profiles = [...new Set(named)];
+  if (profiles.length !== 1 || !profiles[0]) {
+    return 'This result does not name the cost model that priced it; do not compare it with a result from another workflow.';
+  }
+  return `Priced by ${profiles[0]}. This budget bounds the sum of component costs across relaxed targets. A near match here is admitted on its worst-case timing, which is not the claim a certain match makes on the temporal uncertainty workflow.`;
+}
 function renderComparison(value) {
   $('trajectory-summary').textContent = `${value.eligible_patient_ids.length} eligible patients evaluated. ${value.exact.membership.included.length} exact matches; ${value.added.length} additional permitted near matches. Unresolved trajectory evidence: ${value.relaxed.membership.unresolved.join(', ') || 'none'}. This is an authored exposure-associated pattern, not a causal finding.`;
+  $('priced-by').textContent = pricedBy(value);
   $('cohorts').innerHTML = '<div class="cohort-grid">' + cohortGroup('Exact', value.exact.membership.included, value.exact.results) + cohortGroup('Added by declared relaxation', value.added, value.relaxed.results) + '</div>';
   $('export').href = '/api/export/' + encodeURIComponent(value.comparison_id);
   $('export').className = 'button';

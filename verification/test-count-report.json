@@ -3,7 +3,7 @@
     "completion_checker": 13,
     "demo_suite": 106,
     "node_dom_suites": 8,
-    "research_http_suite": 18
+    "research_http_suite": 20
   },
   "contract_checks": 883,
   "method": "unittest loader; no tests executed",
