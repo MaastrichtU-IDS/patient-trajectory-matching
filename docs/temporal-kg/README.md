@@ -1,5 +1,7 @@
 # Temporal knowledge graph formal definitions
 
+- [Syntax and semantics review draft](specification/README.md): functional syntax, GFO-Time/OWL integration, state coverage and robust relaxation; R1–R12 answers incorporated, revised formalization under review
+
 - [Original formal definition](Temporal_Knowledge_Graph_Formal_Definition.pdf)
 - [Revised formal definition v2](Temporal_Knowledge_Graph_Formal_Definition_v2.pdf), working specification of 15 September 2026
 - [v2 ontology artifacts and validation evidence](validation/README.md): exact standalone ontologies, original checker/logs, all 18 identified checks and reproduction commands

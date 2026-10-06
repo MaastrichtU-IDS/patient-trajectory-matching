@@ -1,0 +1,52 @@
+name: temporal semantics specification
+on:
+  pull_request:
+    paths:
+      - 'docs/temporal-kg/specification/**'
+      - '.github/workflows/temporal-semantics.yml'
+  push:
+    paths:
+      - 'docs/temporal-kg/specification/**'
+      - '.github/workflows/temporal-semantics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  specification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check examples and documentation links
+        run: python docs/temporal-kg/specification/check_examples.py
+      - name: Install elan
+        run: |
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/v4.1.2/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Check integration metatheory
+        working-directory: docs/temporal-kg/specification/formal
+        run: sh check.sh
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Fetch pinned ROBOT 1.9.5
+        run: |
+          curl --fail --silent --show-error --location -o /tmp/robot.jar https://github.com/ontodev/robot/releases/download/v1.9.5/robot.jar
+          echo "21e96a9f6ac90dacdb6fa1303ac9b49b0d2be3594ecacf4c0e3d0e68e86def57  /tmp/robot.jar" | sha256sum --check -
+      - name: Bridge module and example stay in OWL 2 DL
+        run: |
+          java -jar /tmp/robot.jar merge \
+            --input docs/temporal-kg/specification/formal/bridge-vocabulary.ofn \
+            --input docs/temporal-kg/specification/example.ofn \
+            validate-profile --profile DL --output /tmp/temporal-bridge-profile.txt
+          grep --quiet 'Ontology and imports closure in profile' /tmp/temporal-bridge-profile.txt
+      - name: Three-boundary fixture stays OWL-consistent
+        run: |
+          java -jar /tmp/robot.jar merge \
+            --input docs/temporal-kg/specification/formal/bridge-vocabulary.ofn \
+            --input docs/temporal-kg/specification/formal/three-boundaries.ofn \
+            reason --reasoner HermiT --output /tmp/temporal-three-boundaries.owl

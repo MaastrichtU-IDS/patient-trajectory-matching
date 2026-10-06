@@ -1,0 +1,12 @@
+Prefix(:=<urn:temporal-trajectory:bridge#>)
+Ontology(<urn:example:three-coincident-boundaries>
+ Declaration(NamedIndividual(:x))
+ Declaration(NamedIndividual(:y))
+ Declaration(NamedIndividual(:z))
+ ClassAssertion(:Boundary :x)
+ ClassAssertion(:Boundary :y)
+ ClassAssertion(:Boundary :z)
+ DifferentIndividuals(:x :y :z)
+ ObjectPropertyAssertion(:coincides :x :y)
+ ObjectPropertyAssertion(:coincides :x :z)
+)
