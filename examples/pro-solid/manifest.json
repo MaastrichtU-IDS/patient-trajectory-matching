@@ -7,5 +7,16 @@
   "patient_id": "P1",
   "episode_id": "A1",
   "age": 50,
-  "source_search_complete": true
+  "source_search": {
+    "basis": "coverage",
+    "clock_id": "P1-relative",
+    "from_us": -864000000000,
+    "to_us": 0,
+    "concepts": [
+      "ex:Creatinine",
+      "ex:DrugA",
+      "ex:DrugAChild",
+      "ex:DrugB"
+    ]
+  }
 }

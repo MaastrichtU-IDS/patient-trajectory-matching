@@ -8,7 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT.parent
 sys.path.insert(0, str(SOURCE))
-from reference_oracle import evaluate
+from reference_oracle import evaluate, without_source_search
 from cohort import export_cohort, run_cohort
 from pressure import PressureService
 PRESSURE = PressureService()
@@ -120,7 +120,8 @@ class Handler(BaseHTTPRequestHandler):
             for case in DATA['cases']:
                 c = copy.deepcopy(case)
                 c['budget_override'] = {'max_total_cost': budget, 'max_relaxed_constraints': int(count)}
-                c['source_search_complete'] = complete == '1'
+                if complete != '1':
+                    c = without_source_search(c)
                 results.append(evaluate(c, DATA['pattern'], DATA['taxonomy']))
             return self.send({'engine': 'repository Python oracle', 'results': results})
         self.send({'error': 'Not found'}, 404)

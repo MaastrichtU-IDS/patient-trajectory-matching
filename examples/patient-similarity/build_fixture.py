@@ -6,6 +6,7 @@ new synthetic assumption, not a claim about the prior fixture or real records.
 """
 from hashlib import sha256
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -13,9 +14,12 @@ HERE = Path(__file__).resolve().parent
 HOUR = 3600000000
 SOURCE = ROOT / 'demo/cohort-data.json'
 POLICY = 'Authored overlay: event available at occurrence; age band known one hour before origin.'
+sys.path.insert(0, str(ROOT))
+from reference_oracle import uncovered_demands
 
 def build():
     data = json.loads(SOURCE.read_text())
+    pattern = json.loads((ROOT/'examples/exemplar.pattern.json').read_text())
     profile = {'profile_id':'authored-guided-h0-qbe-1.0','clinical_validity_claim':False,
         'weights':{'age_band':'1','baseline_creatinine':'1','clinical_concepts':'1'},
         'minimum_coverage':'0.5','history_us':14*24*HOUR,'creatinine_window_us':48*HOUR,
@@ -40,7 +44,10 @@ def build():
                 'process':{'id':binding['process'],'hasParticipant':binding['patient_role']},
                 'role':{'id':binding['patient_role'],'isFeatureOf':binding['patient_bearer']}}
             if event['event_kind']=='measurement':record['unit']=event['unit']
-            else:record['coverage_complete']=case['source_search_complete']
+            # Derived from the case's own coverage warrant rather than copied from an
+            # asserted flag: a record is covered when the search that produced it reached
+            # everything this pattern reads at its own budget.
+            else:record['coverage_complete']=not uncovered_demands(case,pattern,pattern['budget'])
             patient['records'].append(record)
         age = case['age']; age_band=f'{age//10*10}-{age//10*10+9}'; aid=f'{pid}-age-overlay'
         patient['records'].append({'id':aid,'component':'age_band','value':age_band,'occurrence_us':-HOUR,

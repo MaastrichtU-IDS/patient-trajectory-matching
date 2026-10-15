@@ -382,7 +382,7 @@ def project(source, manifest):
                            'source_record_sha256': meta['source_hash'], 'adapter_rule': 'pro-solid-2.4',
                            'assertion_ids': [assertion_id]}, 'record_version': 1, 'supersedes': None})
     graph_hash = digest('\n'.join(sorted(' '.join(x.n3() for x in triple) + ' .' for triple in source)))
-    case = {k: manifest[k] for k in ('patient_id', 'episode_id', 'age', 'source_search_complete')}
+    case = {k: manifest[k] for k in ('patient_id', 'episode_id', 'age', 'source_search')}
     case.update(case_id='PRO-SOLID-01', description='Projected PRO/SOLID synthetic trajectory',
                 events=output, budget_override=None)
     return case, {'profile': 'pro-solid-2.4', 'source_graph_sha256': graph_hash,

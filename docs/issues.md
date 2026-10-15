@@ -116,10 +116,14 @@ The original runner consumes one already-selected snapshot. The new [bounded sel
 
 `build_graph` still reads constructed synthetic JSON. The separate [MIMIC inputevents staging adapter](mimic-inputevents-staging.md) now reconciles all rows in the pinned demo 2.2 inputevents extract, retaining unsupported and invalid outcomes. It emits no clinical graph or cohort answer. The [patient-local clock bridge](patient-local-clocks.md) converts explicit bounds; the [recorded-source pipeline](mimic-record-query.md) now connects MIMIC staging through RDF and checked Rust/temporal queries using recorded-label semantics. Choosing justified occurrence bounds and reviewed clinical mappings for MIMIC, then integrating source availability and revision-history coverage, remain open; the staging handoff is still blocked. Other source tables and FHIR ingestion remain unimplemented.
 
-### S2. Source completeness is an input, not a check **[risk]**
-*Source: [2.4 §5](../addenda/specification-2.4.md)*
+### S2. Source completeness is derived, but coverage itself is still declared **[partial]**
+*Source: [2.4 §5](../addenda/specification-2.4.md), [decision: source completeness](decisions/source-completeness.md)*
 
-`source_search_complete` arrives from the fixture manifest. Source-completeness verification is not implemented. A caller can assert completeness that was never established — and the matcher's `UNRESOLVED` semantics depend on this flag being truthful.
+**The asserted flag is gone.** `source_search_complete` no longer exists. A case carries a coverage warrant — searched clock, window and concepts — and the point-anchor matcher derives whether that covers what the pattern reads at the budget in force, naming any gap in `uncovered_demands`. A case with no warrant raises rather than defaulting to permissive, and an authored `stipulated` basis is carried into every outcome as `completeness_basis` so it cannot pass for evidence.
+
+Fixing it surfaced a defect this entry had not recorded: completeness is a relation between the extract and the question, and **relaxation changes the question**. The priced extension reads two days further back than the exposure window, and the concept alternative reads a concept the original search never looked for, so a search that was *truthfully* complete for the exact query became silently incomplete for the same query relaxed. Both demands now widen with the budget and are checked.
+
+What remains open is one level down: declaring a window does not establish that the search of that window was exhaustive. The [source preflight](clinical-source-preflight.md) establishes that for the pinned public demo; no other source has it. The interval profiles are unaffected and carry their own coverage treatment — see [T1](#t1-the-four-profiles-are-not-unified).
 
 ### S3. Age derivation not implemented **[gap]**
 *Source: [2.4 §5](../addenda/specification-2.4.md)*

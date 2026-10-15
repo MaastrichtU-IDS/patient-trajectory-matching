@@ -57,11 +57,117 @@ def validate_events(events):
             raise ValueError('UNSUPPORTED_FEATURE: uncertain measurement time')
 
 
+def reachable_extension(pattern, budget):
+    """How far past the exposure window this budget can actually reach, in microseconds.
+
+    The temporal relaxation is priced continuously: overrunning by the whole
+    `extra_seconds` costs `maximum_cost`, and a shorter overrun costs in
+    proportion. A budget therefore buys a specific depth rather than the whole
+    extension, and that is the depth the source search has to have covered.
+    """
+    extension = next(r for r in pattern['relaxations'] if r['op'] == 'extend_max_gap')
+    if budget['max_relaxed_constraints'] < 1 or Decimal(budget['max_total_cost']) <= 0:
+        return 0
+    share = min(Decimal(1), Decimal(budget['max_total_cost']) / Decimal(extension['maximum_cost']))
+    return int(Decimal(extension['extra_seconds']) * US * share)
+
+
+def required_concepts(pattern, budget):
+    """The concepts a search must have looked for before a negative answer means anything.
+
+    The alternative concept is demanded only when the budget can actually pay for
+    it. A search for the exposure concept alone is complete for an exact query and
+    incomplete for the same query relaxed, which is the whole point.
+    """
+    alternative = next(r for r in pattern['relaxations'] if r['op'] == 'concept_alternative')
+    needed = {pattern['events']['followup']['concept'], pattern['events']['exposure']['concept']}
+    if (budget['max_relaxed_constraints'] >= 1
+            and Decimal(budget['max_total_cost']) >= Decimal(alternative['cost'])):
+        needed.add(alternative['concept'])
+    return needed
+
+
+def required_window(pattern, budget, events):
+    """The span on the measurement clock that the search must have covered.
+
+    Anchored on the measurements actually held, because those are the only
+    follow-up candidates the matcher will consider. The read-back is the deeper
+    of the two constraint windows, with the exposure window widened by whatever
+    the budget can reach.
+    """
+    constraints = {c['id']: c for c in pattern['constraints']}
+    back = max(constraints['lab_window']['seconds'] * US,
+               constraints['exposure_window']['seconds'] * US + reachable_extension(pattern, budget))
+    times = [e['time']['start_min_us'] for e in events if e['event_kind'] == 'measurement'
+             and e['time']['start_min_us'] is not None]
+    if not times:
+        return None
+    return min(times) - back, max(times)
+
+
+def uncovered_demands(case, pattern, budget):
+    """What this question needs that the declared search did not cover.
+
+    Returns a sorted list of demands the coverage record does not meet; an empty
+    list means a negative answer is a conclusion rather than an absence of
+    looking. Raises when no warrant is supplied at all: a missing warrant is a
+    defective case, not a permissive default.
+    """
+    search = case.get('source_search')
+    if search is None:
+        raise ValueError('INVALID_CASE: no source_search warrant. A bare '
+                         'source_search_complete flag no longer establishes completeness.')
+    basis = search.get('basis')
+    if basis == 'stipulated':
+        return []
+    if basis != 'coverage':
+        raise ValueError(f'INVALID_CASE: unknown source-search basis {basis!r}')
+    gaps = []
+    events = [e for e in case['events'] if e['patient_id'] == case['patient_id']
+              and e['episode_id'] == case['episode_id']]
+    clocks = {e['time']['clock_id'] for e in events} or {search['clock_id']}
+    if clocks != {search['clock_id']}:
+        gaps.append(f'clock {sorted(clocks - {search["clock_id"]})} outside the searched clock')
+    window = required_window(pattern, budget, events)
+    if window is not None:
+        start, end = window
+        if search['from_us'] is not None and search['from_us'] > start:
+            gaps.append(f'{(search["from_us"] - start) / US / 86400:.2f} days before the '
+                        f'searched window')
+        if search['to_us'] is not None and search['to_us'] < end:
+            gaps.append(f'{(end - search["to_us"]) / US / 86400:.2f} days after the '
+                        f'searched window')
+    missing = required_concepts(pattern, budget) - set(search['concepts'])
+    gaps.extend(f'concept {concept} never searched for' for concept in sorted(missing))
+    return sorted(gaps)
+
+
+def without_source_search(case):
+    """A copy of `case` whose warrant declares that nothing was searched.
+
+    The demo exposes source completeness as a control. That control used to set a
+    boolean; completeness is now derived, so it has to produce a coverage record
+    instead, and this is the record that covers nothing at all. Keeping it here
+    rather than in the demo means the three call sites cannot drift apart.
+    """
+    narrowed = copy.deepcopy(case)
+    narrowed['source_search'] = {'basis': 'coverage',
+                                 'clock_id': case['source_search']['clock_id'],
+                                 'from_us': 0, 'to_us': 0, 'concepts': []}
+    return narrowed
+
+
 def evaluate(case, pattern, taxonomy):
     validate_events(case['events'])
-    if not case['source_search_complete']:
+    budget = case.get('budget_override') or pattern['budget']
+    # Completeness is derived here rather than read off the case. The demands below
+    # widen with the budget, so a search that was genuinely complete for the exact
+    # question can be incomplete for the same question relaxed.
+    uncovered = uncovered_demands(case, pattern, budget)
+    if uncovered:
         return outcome('INDETERMINATE', 'UNRESOLVED', None, [], None,
-                       ['INCOMPLETE_SOURCE_SEARCH'])
+                       ['INCOMPLETE_SOURCE_SEARCH'], uncovered=uncovered,
+                       basis=case['source_search']['basis'])
     if case['age'] < pattern['scope']['minimum_age']:
         return outcome('FAIL', 'NONE', None, [], None, ['AGE_INELIGIBLE'])
     events = [e for e in case['events'] if e['patient_id'] == case['patient_id']
@@ -72,7 +178,6 @@ def evaluate(case, pattern, taxonomy):
     limit = constraints['exposure_window']['seconds'] * US
     threshold = Decimal(constraints['delta']['value'])
     required_unit = constraints['delta']['unit']
-    budget = case.get('budget_override') or pattern['budget']
     alternative = next(r for r in pattern['relaxations'] if r['op'] == 'concept_alternative')
     extension = next(r for r in pattern['relaxations'] if r['op'] == 'extend_max_gap')
     extension_us = extension['extra_seconds'] * US
@@ -149,22 +254,29 @@ def evaluate(case, pattern, taxonomy):
             else:
                 reasons.add('BUDGET_EXCEEDED')
     exact_status = 'PASS' if exacts else ('INDETERMINATE' if unknown_data or possible_exact else 'FAIL')
+    basis = case['source_search']['basis']
     if exacts:
         binding = min(exacts)[1]
-        return outcome('PASS','EXACT',Decimal(0),[],binding,[],{'exposure':Decimal(0),'exposure_window':Decimal(0)})
+        return outcome('PASS','EXACT',Decimal(0),[],binding,[],
+                       {'exposure':Decimal(0),'exposure_window':Decimal(0)},basis=basis)
     if relaxed:
         best = min(relaxed, key=lambda r:r[:3])
-        return outcome(exact_status,'RELAXED',best[0],best[4],best[3],[],best[5])
+        return outcome(exact_status,'RELAXED',best[0],best[4],best[3],[],best[5],basis=basis)
     if unknown_data or possible_exact:
-        return outcome(exact_status,'UNRESOLVED',None,[],None,sorted(reasons))
-    return outcome(exact_status,'NONE',None,[],None,sorted(reasons or {'NO_OBSERVED_BINDING'}))
+        return outcome(exact_status,'UNRESOLVED',None,[],None,sorted(reasons),basis=basis)
+    return outcome(exact_status,'NONE',None,[],None,sorted(reasons or {'NO_OBSERVED_BINDING'}),
+                   basis=basis)
 
 
-def outcome(exact, accepted, cost, relaxed, binding, reasons, components=None):
+def outcome(exact, accepted, cost, relaxed, binding, reasons, components=None,
+            uncovered=None, basis=None):
     return {'exact_status':exact,'accepted_as':accepted,'total_cost':decimal_text(cost),
             'relaxed_constraint_ids':relaxed,'baseline_event_id':binding['baseline'] if binding else None,
             'binding':binding,'reason_codes':reasons,
             'components':{k:decimal_text(v) for k,v in (components or {}).items()},
+            # A stipulated warrant is carried into the result so that a reader can tell
+            # a checked completeness from an asserted one without opening the case.
+            'completeness_basis':basis,'uncovered_demands':uncovered or [],
             'clinical_knowledge_status':'UNDETERMINED'}
 
 
@@ -197,8 +309,30 @@ def main():
     # Context and record completeness have dedicated adversarial checks.
     c = copy.deepcopy(cases[0]); c['events'][1]['status']='not_given'
     assert evaluate(c,pattern,taxonomy)['accepted_as'] == 'NONE'
-    c = copy.deepcopy(cases[0]); c['source_search_complete']=False
+    c = copy.deepcopy(cases[0]); c['source_search']={'basis':'stipulated','reason':'probe'}
+    assert evaluate(c,pattern,taxonomy)['completeness_basis'] == 'stipulated'
+    c = copy.deepcopy(cases[0]); c['source_search']['concepts']=[]
     assert evaluate(c,pattern,taxonomy)['accepted_as'] == 'UNRESOLVED'
+    c = copy.deepcopy(cases[0]); del c['source_search']
+    try:
+        evaluate(c,pattern,taxonomy)
+        raise AssertionError('A case with no completeness warrant was evaluated')
+    except ValueError:
+        pass
+    # The budget widens what must have been searched. A window that is complete for
+    # the exact question is incomplete for the same question relaxed, and the relaxed
+    # run must say so instead of reporting a confident negative.
+    exact_cover = copy.deepcopy(cases[0])
+    constraints = {c['id']: c for c in pattern['constraints']}
+    labs = [e['time']['start_min_us'] for e in exact_cover['events']
+            if e['event_kind'] == 'measurement']
+    exact_cover['source_search'].update(
+        from_us=min(labs) - constraints['exposure_window']['seconds']*US, to_us=max(labs))
+    for amount, expected in (('0', False), ('2', True)):
+        c = copy.deepcopy(exact_cover)
+        c['budget_override'] = {'max_relaxed_constraints':2,'max_total_cost':amount}
+        got = evaluate(c,pattern,taxonomy)
+        assert bool(got['uncovered_demands']) == expected, (amount, got['uncovered_demands'])
     altered=copy.deepcopy(pattern);altered['events']['extra']={'kind':'other','concept':'ex:Noise'}
     try:
         validate_pattern(altered,pattern)
@@ -208,7 +342,8 @@ def main():
     report={'scope':'constructed three-slot exemplar only','cases_passed':len(outputs),
             'properties':['cost decomposition','zero-cost exact equivalence on supplied cases',
                           'subclass direction','budget monotonicity on supplied cases',
-                          'not-given exclusion','incomplete-source propagation','unsupported-pattern rejection'],
+                          'not-given exclusion','incomplete-source propagation','unsupported-pattern rejection',
+                          'completeness derived from declared coverage','budget widens the required coverage'],
             'results':outputs,'production_readiness_claim':False}
     (ROOT/'verification').mkdir(exist_ok=True)
     (ROOT/'verification/reference-report.json').write_text(json.dumps(report,indent=2)+'\n')

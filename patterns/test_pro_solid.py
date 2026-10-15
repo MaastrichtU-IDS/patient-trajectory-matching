@@ -23,8 +23,9 @@ class PatternAcceptance(unittest.TestCase):
     def projected(self, graph=None):
         return project(self.graph if graph is None else graph, self.manifest)
 
-    def match(self, graph=None):
+    def match(self, graph=None, budget=None):
         case, _ = self.projected(graph)
+        case['budget_override'] = budget
         return evaluate(case, self.pattern, self.taxonomy)
 
     def reject(self, code):
@@ -225,8 +226,57 @@ class PatternAcceptance(unittest.TestCase):
         self.assertNotEqual(previous, self.projected()[1]['bindings']['B1']['assertion_id'])
 
     def test_incomplete_source_scope_remains_unresolved(self):
-        self.manifest['source_search_complete'] = False
-        self.assertEqual(self.match()['accepted_as'], 'UNRESOLVED')
+        """A window the search never reached cannot yield a conclusion about it."""
+        self.manifest['source_search']['from_us'] = 0
+        result = self.match()
+        self.assertEqual(result['accepted_as'], 'UNRESOLVED')
+        self.assertIn('INCOMPLETE_SOURCE_SEARCH', result['reason_codes'])
+        self.assertTrue(result['uncovered_demands'], 'the gap must be named, not just flagged')
+
+    def test_relaxation_widens_the_coverage_the_search_must_have_had(self):
+        """The defect this check exists for: a search that was genuinely complete for
+        the exact question is incomplete for the same question relaxed, because the
+        permitted extension reads further back than the original window ever covered.
+        Reporting a confident negative there is an absence of looking, not a finding.
+        """
+        exposure_window = next(c for c in self.pattern['constraints']
+                               if c['id'] == 'exposure_window')['seconds']
+        self.manifest['source_search']['from_us'] = -(86400 + exposure_window) * 1000000
+        exact = self.match(budget={'max_relaxed_constraints': 0, 'max_total_cost': '0'})
+        self.assertFalse(exact['uncovered_demands'], 'the exact question is inside this window')
+        relaxed = self.match(budget={'max_relaxed_constraints': 2, 'max_total_cost': '2'})
+        self.assertEqual(relaxed['accepted_as'], 'UNRESOLVED')
+        self.assertTrue(any('before the searched window' in d
+                            for d in relaxed['uncovered_demands']), relaxed['uncovered_demands'])
+
+    def test_relaxation_widens_the_concepts_the_search_must_have_looked_for(self):
+        """The semantic twin of the window defect. A search executed for the exposure
+        concept alone is complete for the exact question and incomplete once the budget
+        can pay for the reviewed alternative, because admitting DrugB reads a concept
+        that search never looked for.
+        """
+        alternative = next(r for r in self.pattern['relaxations']
+                           if r['op'] == 'concept_alternative')
+        self.manifest['source_search']['concepts'] = [
+            c for c in self.manifest['source_search']['concepts'] if c != alternative['concept']]
+        exact = self.match(budget={'max_relaxed_constraints': 0, 'max_total_cost': '0'})
+        self.assertFalse(exact['uncovered_demands'], 'the exact question never reads it')
+        relaxed = self.match(budget={'max_relaxed_constraints': 2, 'max_total_cost': '2'})
+        self.assertEqual(relaxed['accepted_as'], 'UNRESOLVED')
+        self.assertIn(f'concept {alternative["concept"]} never searched for',
+                      relaxed['uncovered_demands'])
+
+    def test_a_case_without_a_warrant_is_refused(self):
+        """A missing warrant is a defective case, never a permissive default."""
+        del self.manifest['source_search']
+        with self.assertRaises(KeyError):
+            self.match()
+
+    def test_a_stipulated_warrant_is_carried_into_the_result(self):
+        """Stipulation stays available for authored fixtures, but it never passes for
+        evidence: the result says which basis decided it."""
+        self.manifest['source_search'] = {'basis': 'stipulated', 'reason': 'authored fixture'}
+        self.assertEqual(self.match()['completeness_basis'], 'stipulated')
 
     def test_extension_declares_no_specialized_properties(self):
         profile = Graph().parse(PROFILE)
