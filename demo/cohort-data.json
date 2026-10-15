@@ -10,7 +10,18 @@
         "patient_id": "P00",
         "episode_id": "P00-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P00-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P00",
         "description": "Synthetic trajectory P00",
         "events": [
@@ -254,7 +265,18 @@
         "patient_id": "P00",
         "episode_id": "P00-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P00-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -263,7 +285,18 @@
         "patient_id": "P01",
         "episode_id": "P01-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P01-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P01",
         "description": "Synthetic trajectory P01",
         "events": [
@@ -507,7 +540,18 @@
         "patient_id": "P01",
         "episode_id": "P01-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P01-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -516,7 +560,18 @@
         "patient_id": "P02",
         "episode_id": "P02-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P02-relative",
+          "from_us": -950400000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P02",
         "description": "Synthetic trajectory P02",
         "events": [
@@ -760,7 +815,18 @@
         "patient_id": "P02",
         "episode_id": "P02-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P02-relative",
+          "from_us": -950400000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -769,7 +835,18 @@
         "patient_id": "P03",
         "episode_id": "P03-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P03-relative",
+          "from_us": -820800000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P03",
         "description": "Synthetic trajectory P03",
         "events": [
@@ -1013,7 +1090,18 @@
         "patient_id": "P03",
         "episode_id": "P03-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P03-relative",
+          "from_us": -820800000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -1022,7 +1110,18 @@
         "patient_id": "P04",
         "episode_id": "P04-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P04-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P04",
         "description": "Synthetic trajectory P04",
         "events": [
@@ -1266,7 +1365,18 @@
         "patient_id": "P04",
         "episode_id": "P04-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P04-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -1275,7 +1385,18 @@
         "patient_id": "P05",
         "episode_id": "P05-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P05-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P05",
         "description": "Synthetic trajectory P05",
         "events": [
@@ -1519,7 +1640,18 @@
         "patient_id": "P05",
         "episode_id": "P05-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P05-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -1528,7 +1660,18 @@
         "patient_id": "P06",
         "episode_id": "P06-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P06-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P06",
         "description": "Synthetic trajectory P06",
         "events": [
@@ -1772,7 +1915,18 @@
         "patient_id": "P06",
         "episode_id": "P06-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P06-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -1781,7 +1935,18 @@
         "patient_id": "P07",
         "episode_id": "P07-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P07-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P07",
         "description": "Synthetic trajectory P07",
         "events": [
@@ -2025,7 +2190,18 @@
         "patient_id": "P07",
         "episode_id": "P07-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P07-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -2034,7 +2210,18 @@
         "patient_id": "P08",
         "episode_id": "P08-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P08-relative",
+          "from_us": -993600000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P08",
         "description": "Synthetic trajectory P08",
         "events": [
@@ -2278,7 +2465,18 @@
         "patient_id": "P08",
         "episode_id": "P08-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P08-relative",
+          "from_us": -993600000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -2287,7 +2485,18 @@
         "patient_id": "P09",
         "episode_id": "P09-admission",
         "age": 50,
-        "source_search_complete": true,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P09-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        },
         "case_id": "GUIDED-P09",
         "description": "Synthetic trajectory P09",
         "events": [
@@ -2531,7 +2740,18 @@
         "patient_id": "P09",
         "episode_id": "P09-admission",
         "age": 50,
-        "source_search_complete": true
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P09-relative",
+          "from_us": -864000000000,
+          "to_us": 0,
+          "concepts": [
+            "ex:Creatinine",
+            "ex:DrugA",
+            "ex:DrugAChild",
+            "ex:DrugB"
+          ]
+        }
       }
     },
     {
@@ -2540,7 +2760,13 @@
         "patient_id": "P10",
         "episode_id": "P10-admission",
         "age": 50,
-        "source_search_complete": false,
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P10-relative",
+          "from_us": 0,
+          "to_us": 0,
+          "concepts": []
+        },
         "case_id": "GUIDED-P10",
         "description": "Synthetic trajectory P10",
         "events": [
@@ -2784,11 +3010,17 @@
         "patient_id": "P10",
         "episode_id": "P10-admission",
         "age": 50,
-        "source_search_complete": false
+        "source_search": {
+          "basis": "coverage",
+          "clock_id": "P10-relative",
+          "from_us": 0,
+          "to_us": 0,
+          "concepts": []
+        }
       }
     }
   ],
-  "generation_base_commit": "4cdd1a844b141296b9cc2450210f09faf8cbf8c5",
-  "projection_sha256": "aad9a32b76fae17ef2b2c8321143a46e3f8510b7011a29e06c878b5ba555a1e7",
+  "generation_base_commit": "40f662adf3a6bb9cbbee737af0c75777a2c275ed",
+  "projection_sha256": "688fb20894ec58feb05754bd34315411a7c53817628249cdc02e133aa5cb3d9f",
   "availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted."
 }

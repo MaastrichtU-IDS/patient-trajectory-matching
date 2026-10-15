@@ -9,7 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT.parent
 sys.path.insert(0, str(SOURCE))
-from reference_oracle import evaluate
+from reference_oracle import evaluate, without_source_search
 
 
 def read(path):
@@ -32,7 +32,8 @@ def main():
                 for case in cases:
                     c = copy.deepcopy(case)
                     c['budget_override'] = {'max_total_cost': budget, 'max_relaxed_constraints': count}
-                    c['source_search_complete'] = complete
+                    if not complete:
+                        c = without_source_search(c)
                     runs[key].append(evaluate(c, pattern, taxonomy))
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=SOURCE, text=True).strip()
     data = {

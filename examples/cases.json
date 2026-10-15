@@ -5,7 +5,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -141,6 +140,18 @@
       "total_cost": "0",
       "relaxed_constraint_ids": [],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -149,7 +160,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -285,6 +295,18 @@
       "total_cost": "0",
       "relaxed_constraint_ids": [],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -293,7 +315,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -431,6 +452,18 @@
         "exposure"
       ],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -439,7 +472,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -577,6 +609,18 @@
         "exposure_window"
       ],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -585,7 +629,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -724,6 +767,18 @@
         "exposure_window"
       ],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -732,7 +787,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -868,6 +922,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -876,7 +942,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1012,6 +1077,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1020,7 +1097,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1114,6 +1190,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -777600000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1122,7 +1210,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1258,6 +1345,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1266,7 +1365,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1402,6 +1500,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1410,7 +1520,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1549,6 +1658,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1557,7 +1678,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1695,6 +1815,18 @@
         "exposure_window"
       ],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1703,7 +1835,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -1839,6 +1970,18 @@
       "total_cost": null,
       "relaxed_constraint_ids": [],
       "baseline_event_id": null
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -1847,7 +1990,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -2025,6 +2167,18 @@
       "total_cost": "0",
       "relaxed_constraint_ids": [],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -2033,7 +2187,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -2211,6 +2364,18 @@
       "total_cost": "0",
       "relaxed_constraint_ids": [],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   },
   {
@@ -2219,7 +2384,6 @@
     "patient_id": "P1",
     "episode_id": "A1",
     "age": 50,
-    "source_search_complete": true,
     "events": [
       {
         "dataset_id": "toy",
@@ -2397,6 +2561,18 @@
       "total_cost": "0",
       "relaxed_constraint_ids": [],
       "baseline_event_id": "B1"
+    },
+    "source_search": {
+      "basis": "coverage",
+      "clock_id": "P1-relative",
+      "from_us": -864000000000,
+      "to_us": 0,
+      "concepts": [
+        "ex:Creatinine",
+        "ex:DrugA",
+        "ex:DrugAChild",
+        "ex:DrugB"
+      ]
     }
   }
 ]

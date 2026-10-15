@@ -30,7 +30,8 @@ class DemoTests(unittest.TestCase):
             for fixture in serve.DATA['cases']:
                 case = copy.deepcopy(fixture)
                 case['budget_override'] = {'max_total_cost': budget, 'max_relaxed_constraints': int(count)}
-                case['source_search_complete'] = complete == '1'
+                if complete != '1':
+                    case = serve.without_source_search(case)
                 actual.append(serve.evaluate(case, serve.DATA['pattern'], serve.DATA['taxonomy']))
             self.assertEqual(actual, expected, key)
 

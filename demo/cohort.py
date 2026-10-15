@@ -34,6 +34,28 @@ def file_digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# The deepest read-back this pattern can reach: the exposure window plus the whole
+# priced extension. A search shallower than this cannot support a negative answer
+# once any relaxation budget is permitted.
+SEARCH_BACK_US = (7 + 2) * 86400 * 1000000
+
+
+def source_search(hours, complete):
+    """The warrant a projected case carries instead of an asserted boolean.
+
+    `complete` is the demo's own control. True declares a window that reaches the
+    full relaxed read-back, so every budget in the guided journey is answerable.
+    False declares a search that never looked before the index at all, which is why
+    P10 stays unresolved under every budget -- now because the coverage says so,
+    not because a flag said so.
+    """
+    baseline_us = -hours * 3600 * 1000000
+    return {'basis': 'coverage', 'clock_id': None,
+            'from_us': baseline_us - SEARCH_BACK_US if complete else 0, 'to_us': 0,
+            'concepts': ['ex:Creatinine', 'ex:DrugA', 'ex:DrugAChild', 'ex:DrugB']
+                        if complete else []}
+
+
 def build_dataset():
     from patterns.pro_solid import build_graph, project
     # ID, drug, exposure days before index, baseline hours before index,
@@ -68,7 +90,8 @@ def build_dataset():
         manifest = {'profile': 'pro-solid-2.4', 'origin': iso(origin),
                     'dataset_id': 'guided-synthetic-cohort', 'snapshot_id': 'guided-cohort-v1',
                     'clock_id': f'{pid}-relative', 'patient_id': pid, 'episode_id': f'{pid}-admission',
-                    'age': 50, 'source_search_complete': complete}
+                    'age': 50, 'source_search': dict(source_search(hours, complete),
+                                                     clock_id=f'{pid}-relative')}
         # project() performs actual graph validation and retains role/value/source bindings.
         case, evidence = project(build_graph(rows), manifest)
         case.update(case_id=f'GUIDED-{pid}', description=f'Synthetic trajectory {pid}')

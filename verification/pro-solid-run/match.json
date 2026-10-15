@@ -14,5 +14,7 @@
     "exposure": "0",
     "exposure_window": "0"
   },
+  "completeness_basis": "coverage",
+  "uncovered_demands": [],
   "clinical_knowledge_status": "UNDETERMINED"
 }

@@ -26,7 +26,7 @@
       "demo/mapped_pressure.py": "37a50496df4eecca7d33b29cc65dec211734181ff9bb416c9336d45965fba56d",
       "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
       "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
-      "demo/serve.py": "74a8fde9c0d8e341573de846f63b76f560cf972943f933eb95616293deb86df3",
+      "demo/serve.py": "20cff0bb3da48aee8d9b6603662c3dd75da7a2e43a99bb98ff86318120aeb39c",
       "demo/serve_mapped_pressure.py": "2c3dcde229eb577034e6e683e9b0690ae953b5b4e2354ee3722170cb8d39e032",
       "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
       "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
@@ -94,8 +94,8 @@
       "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9"
     }
   },
-  "context_id": "eaddf0af327dab6a8bbf304b5b15b7393cc1f50732abb986ca5d729c2d62afd0",
-  "session_context_id": "990c788e742a6b29422a6110021f1be58656bbdeaa54d48dc89bfda087e5b73c",
+  "context_id": "d98280669121677714cc492bcace32cd9e99ce0c54b91b626de591601db7710e",
+  "session_context_id": "d7285babe2af9b6dc24d3c491146dcedf97f8cc99427688564e98f8759b8e2c4",
   "source_sha256": {
     "inputevents": "1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884",
     "icustays": "add9e84050e9b5da0d5a2ca9bddc30084dc770e3ba647853bfdf0970fc8e5c6a",
@@ -105,15 +105,15 @@
   "source_scope": "supplied_records_not_publisher_authenticated",
   "clinical_mapping_verified": false,
   "patient_rows_or_identifiers_included": false,
-  "python": "3.12.14",
-  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "python": "3.12.13",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
   "stays_retained": 5,
   "anchors": 3,
   "batches": 3,
   "nonempty_measurement_batches": 1,
   "cold": {
-    "service_seconds": 0.57838,
-    "http_seconds": 0.588278,
+    "service_seconds": 0.291632,
+    "http_seconds": 0.311241,
     "operation_counts": {
       "source_audits": 1,
       "mapping_plans": 2,
@@ -149,11 +149,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.016381,
-      "prepared_http_seconds": 0.023466,
-      "repeat_service_seconds": 0.005958,
-      "repeat_http_seconds": 0.012921,
-      "fresh_mapped_execution_seconds": 0.468186,
+      "prepared_service_seconds": 0.01102,
+      "prepared_http_seconds": 0.026213,
+      "repeat_service_seconds": 0.004047,
+      "repeat_http_seconds": 0.051349,
+      "fresh_mapped_execution_seconds": 0.226668,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -197,11 +197,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.016232,
-      "prepared_http_seconds": 0.023066,
-      "repeat_service_seconds": 0.004831,
-      "repeat_http_seconds": 0.012556,
-      "fresh_mapped_execution_seconds": 0.436171,
+      "prepared_service_seconds": 0.010622,
+      "prepared_http_seconds": 0.025931,
+      "repeat_service_seconds": 0.003629,
+      "repeat_http_seconds": 0.05131,
+      "fresh_mapped_execution_seconds": 0.222995,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -245,11 +245,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.019957,
-      "prepared_http_seconds": 0.023836,
-      "repeat_service_seconds": 0.007832,
-      "repeat_http_seconds": 0.012471,
-      "fresh_mapped_execution_seconds": 0.524276,
+      "prepared_service_seconds": 0.010605,
+      "prepared_http_seconds": 0.013924,
+      "repeat_service_seconds": 0.00404,
+      "repeat_http_seconds": 0.022289,
+      "fresh_mapped_execution_seconds": 0.239348,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -293,11 +293,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.016053,
-      "prepared_http_seconds": 0.023481,
-      "repeat_service_seconds": 0.004672,
-      "repeat_http_seconds": 0.012913,
-      "fresh_mapped_execution_seconds": 0.493574,
+      "prepared_service_seconds": 0.010898,
+      "prepared_http_seconds": 0.014031,
+      "repeat_service_seconds": 0.003856,
+      "repeat_http_seconds": 0.022128,
+      "fresh_mapped_execution_seconds": 0.232702,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -341,11 +341,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.017824,
-      "prepared_http_seconds": 0.025528,
-      "repeat_service_seconds": 0.006841,
-      "repeat_http_seconds": 0.012748,
-      "fresh_mapped_execution_seconds": 0.428248,
+      "prepared_service_seconds": 0.011165,
+      "prepared_http_seconds": 0.042585,
+      "repeat_service_seconds": 0.003937,
+      "repeat_http_seconds": 0.042815,
+      "fresh_mapped_execution_seconds": 0.231332,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -368,7 +368,7 @@
         "max_serialized_bytes": 134217728,
         "evicted": 0
       },
-      "result_cache_serialized_bytes": 15142
+      "result_cache_serialized_bytes": 15143
     },
     {
       "repetition": 3,
@@ -389,11 +389,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.016922,
-      "prepared_http_seconds": 0.023766,
-      "repeat_service_seconds": 0.004843,
-      "repeat_http_seconds": 0.012599,
-      "fresh_mapped_execution_seconds": 0.437293,
+      "prepared_service_seconds": 0.011981,
+      "prepared_http_seconds": 0.035592,
+      "repeat_service_seconds": 0.004162,
+      "repeat_http_seconds": 0.025883,
+      "fresh_mapped_execution_seconds": 0.233686,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -424,33 +424,33 @@
       "query_index": 0,
       "prepared_service": {
         "samples": 3,
-        "minimum_seconds": 0.016381,
-        "median_seconds": 0.017824,
-        "maximum_seconds": 0.019957
+        "minimum_seconds": 0.010605,
+        "median_seconds": 0.01102,
+        "maximum_seconds": 0.011165
       },
       "prepared_http": {
         "samples": 3,
-        "minimum_seconds": 0.023466,
-        "median_seconds": 0.023836,
-        "maximum_seconds": 0.025528
+        "minimum_seconds": 0.013924,
+        "median_seconds": 0.026213,
+        "maximum_seconds": 0.042585
       },
       "cached_service": {
         "samples": 3,
-        "minimum_seconds": 0.005958,
-        "median_seconds": 0.006841,
-        "maximum_seconds": 0.007832
+        "minimum_seconds": 0.003937,
+        "median_seconds": 0.00404,
+        "maximum_seconds": 0.004047
       },
       "cached_http": {
         "samples": 3,
-        "minimum_seconds": 0.012471,
-        "median_seconds": 0.012748,
-        "maximum_seconds": 0.012921
+        "minimum_seconds": 0.022289,
+        "median_seconds": 0.042815,
+        "maximum_seconds": 0.051349
       },
       "fresh_mapped_execution": {
         "samples": 3,
-        "minimum_seconds": 0.428248,
-        "median_seconds": 0.468186,
-        "maximum_seconds": 0.524276
+        "minimum_seconds": 0.226668,
+        "median_seconds": 0.231332,
+        "maximum_seconds": 0.239348
       },
       "repeat_recomputations": 0
     },
@@ -458,33 +458,33 @@
       "query_index": 1,
       "prepared_service": {
         "samples": 3,
-        "minimum_seconds": 0.016053,
-        "median_seconds": 0.016232,
-        "maximum_seconds": 0.016922
+        "minimum_seconds": 0.010622,
+        "median_seconds": 0.010898,
+        "maximum_seconds": 0.011981
       },
       "prepared_http": {
         "samples": 3,
-        "minimum_seconds": 0.023066,
-        "median_seconds": 0.023481,
-        "maximum_seconds": 0.023766
+        "minimum_seconds": 0.014031,
+        "median_seconds": 0.025931,
+        "maximum_seconds": 0.035592
       },
       "cached_service": {
         "samples": 3,
-        "minimum_seconds": 0.004672,
-        "median_seconds": 0.004831,
-        "maximum_seconds": 0.004843
+        "minimum_seconds": 0.003629,
+        "median_seconds": 0.003856,
+        "maximum_seconds": 0.004162
       },
       "cached_http": {
         "samples": 3,
-        "minimum_seconds": 0.012556,
-        "median_seconds": 0.012599,
-        "maximum_seconds": 0.012913
+        "minimum_seconds": 0.022128,
+        "median_seconds": 0.025883,
+        "maximum_seconds": 0.05131
       },
       "fresh_mapped_execution": {
         "samples": 3,
-        "minimum_seconds": 0.436171,
-        "median_seconds": 0.437293,
-        "maximum_seconds": 0.493574
+        "minimum_seconds": 0.222995,
+        "median_seconds": 0.232702,
+        "maximum_seconds": 0.233686
       },
       "repeat_recomputations": 0
     }

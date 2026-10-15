@@ -32,7 +32,7 @@ jobs:
       - name: Verify recorded contract-check totals match loadable suites
         run: python tools/check_test_counts.py
 
-      - name: Reference oracle (16 cases, 7 property checks)
+      - name: Reference oracle (16 cases, 9 property checks)
         run: python reference_oracle.py
 
       - name: Pipeline from synthetic source rows

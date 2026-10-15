@@ -8,7 +8,9 @@
     "budget monotonicity on supplied cases",
     "not-given exclusion",
     "incomplete-source propagation",
-    "unsupported-pattern rejection"
+    "unsupported-pattern rejection",
+    "completeness derived from declared coverage",
+    "budget widens the required coverage"
   ],
   "results": [
     {
@@ -30,6 +32,8 @@
           "exposure": "0",
           "exposure_window": "0"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -52,6 +56,8 @@
           "exposure": "0",
           "exposure_window": "0"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -76,6 +82,8 @@
           "exposure": "1",
           "exposure_window": "0"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -100,6 +108,8 @@
           "exposure": "0",
           "exposure_window": "1"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -125,6 +135,8 @@
           "exposure": "1",
           "exposure_window": "1"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -143,6 +155,8 @@
           "NO_OBSERVED_BINDING"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -161,6 +175,8 @@
           "NO_OBSERVED_BINDING"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -178,6 +194,8 @@
           "NO_OBSERVED_BINDING"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -196,6 +214,8 @@
           "UNRESOLVED_MEASUREMENT"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -213,6 +233,8 @@
           "NO_OBSERVED_BINDING"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -231,6 +253,8 @@
           "NO_OBSERVED_BINDING"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -255,6 +279,8 @@
           "exposure": "0",
           "exposure_window": "0.5"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -273,6 +299,8 @@
           "NO_PERMITTED_CONCEPT"
         ],
         "components": {},
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -295,6 +323,8 @@
           "exposure": "0",
           "exposure_window": "0"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -317,6 +347,8 @@
           "exposure": "0",
           "exposure_window": "0"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     },
@@ -339,6 +371,8 @@
           "exposure": "0",
           "exposure_window": "0"
         },
+        "completeness_basis": "coverage",
+        "uncovered_demands": [],
         "clinical_knowledge_status": "UNDETERMINED"
       }
     }
