@@ -1,0 +1,23 @@
+{
+  "profile": "mimic-matcher-handoff-1.0",
+  "dataset_id": "synthetic-mimic-demo-2.2",
+  "staging_context_id": "f5f3625a90e26a8594908044ec38d80345bce660de61d9ca518685244e564d4b",
+  "clock_bridge": {
+    "policy": "patient-local-calendar-microseconds-v1",
+    "clock_id": "mimic-local:synthetic-mimic-demo-2.2:1",
+    "origin": "2150-01-01T10:00:00"
+  },
+  "occurrence_policy": {
+    "policy": "recorded-endpoints-as-occurrence-bounds-v1",
+    "justification": "Recorded segment endpoints are treated as occurrence bounds for this profile only. MIMIC-IV documents charttime as an observation-time proxy and storetime as entry or validation time; neither establishes historical availability. This policy is a stated reading of the recorded endpoints, not evidence about when administration physically began or ended."
+  },
+  "item_concepts": {
+    "1000": "ex:DrugA"
+  },
+  "clinical_review": null,
+  "source_availability": null,
+  "revision_history": null,
+  "ages": {
+    "1": 50
+  }
+}

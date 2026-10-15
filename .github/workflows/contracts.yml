@@ -102,6 +102,11 @@ jobs:
       - name: MIMIC source admission and reconciliation checks
         run: python -m patterns.test_mimic_inputevents
 
+      - name: Staged MIMIC rows reach the matcher or refuse by name
+        run: |
+          python -m patterns.mimic_matcher_handoff
+          python -m patterns.test_mimic_matcher_handoff
+
       - name: Patient-local clock and RDF example
         run: python -m patterns.patient_local
 

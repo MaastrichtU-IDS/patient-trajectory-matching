@@ -20,6 +20,7 @@ verification/joint-evidence-run/
 
 # Detailed source staging and locally supplied MIMIC files.
 verification/mimic-inputevents-run/
+verification/mimic-matcher-handoff-run/
 data/local-mimic/
 verification/patient-local-run/
 verification/mimic-record-query-run/
