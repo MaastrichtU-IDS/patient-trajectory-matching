@@ -46,6 +46,11 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'editor.js'),'utf8'),vm.crea
  await el('run').onclick();
  assert.deepEqual(calls.at(-1).body.relaxation,{max_cost:'1.25',gap:null,duration:null,minimum_overlap_minutes:'2'});
  assert.match(el('summary').textContent,/1 additional certain histories/);
+ // Decision D: this result names the model that priced it, read from the executed policy,
+ // and never names the other model. The editor carries it at `policy`; /temporal nests it under `inputs`, so this
+ // pair of tests pins that the helper looks in both places.
+ assert.match(el('priced-by').textContent,/robust-temporal-relaxation-1\.0/);
+ assert.doesNotMatch(el('priced-by').textContent,/point-anchor/);
  assert.match(el('rows').innerHTML,/Possible only<\/td><td>Certain/);assert.match(el('rows').innerHTML,/Edited option · cost 1.25/);
  el('rows').onclick({target:{closest:()=>({dataset:{patient:'T01'}})}});
  assert.match(el('evidence').innerHTML,/edited-option/);assert.match(el('query').textContent,/relaxable_targets/);

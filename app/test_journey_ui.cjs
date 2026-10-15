@@ -66,6 +66,12 @@ const inspect=patient=>el('rows').onclick({target:{closest:()=>({dataset:{patien
  assert.match(el('guide-next').textContent,/3\. Apply/);
  await el('guide-next').onclick();assert.equal(calls.at(-1).body.budget,'1.25');
  assert.match(el('summary').textContent,/1 additional certain history/);assert.match(el('rows').innerHTML,/Possible only<\/td><td>Certain/);
+ // Decision D: this result names the model that priced it, taken from the executed policy,
+ // and never names the other model. The two surfaces answer different questions at the
+ // same stated number, so a reader must not meet both identifiers in one view.
+ assert.match(el('priced-by').textContent,/robust-temporal-relaxation-1\.0/);
+ assert.match(el('priced-by').textContent,/every feasible source timeline/);
+ assert.doesNotMatch(el('priced-by').textContent,/point-anchor/);
  assert.match(el('export').href,/^\/api\/journey\/export\//);
  await el('guide-next').onclick();assert.match(el('evidence').innerHTML,/T01/);assert.match(el('evidence').innerHTML,/counterexample/);assert.match(el('evidence').innerHTML,/This constraint holds/);assert.match(el('evidence').innerHTML,/This constraint does not hold/);assert.match(el('evidence').innerHTML,/Recorded endpoint bounds/);assert.match(el('evidence').innerHTML,/Clinical outcome/);assert.match(el('evidence').innerHTML,/not an efficacy outcome/);
  await el('guide-next').onclick();assert.match(el('evidence').innerHTML,/T04/);assert.match(el('evidence').innerHTML,/clock/i);assert.match(el('guide-progress').textContent,/Journey complete/);
