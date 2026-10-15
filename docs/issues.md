@@ -111,10 +111,16 @@ The original runner consumes one already-selected snapshot. The new [bounded sel
 
 ## Ingestion and sources
 
-### S1. Clinical source-to-matcher handoff incomplete **[gap]**
-*Source: [2.4 §3](../addenda/specification-2.4.md), ETL-001*
+### S1. The source-to-matcher handoff exists; three of its five blockers are external **[partial]**
+*Source: [2.4 §3](../addenda/specification-2.4.md), ETL-001, [handoff profile](mimic-matcher-handoff.md)*
 
-`build_graph` still reads constructed synthetic JSON. The separate [MIMIC inputevents staging adapter](mimic-inputevents-staging.md) now reconciles all rows in the pinned demo 2.2 inputevents extract, retaining unsupported and invalid outcomes. It emits no clinical graph or cohort answer. The [patient-local clock bridge](patient-local-clocks.md) converts explicit bounds; the [recorded-source pipeline](mimic-record-query.md) now connects MIMIC staging through RDF and checked Rust/temporal queries using recorded-label semantics. Choosing justified occurrence bounds and reviewed clinical mappings for MIMIC, then integrating source availability and revision-history coverage, remain open; the staging handoff is still blocked. Other source tables and FHIR ingestion remain unimplemented.
+**The mechanism is no longer missing.** `pro_solid.build_graph` was the only route to the point-anchor matcher and it read constructed synthetic JSON, so no source row had ever reached a cohort answer. [`mimic-matcher-handoff-1.0`](mimic-matcher-handoff.md) carries staged segments the rest of the way: it emits rows and a per-patient manifest that the existing projection admits unchanged, with a coverage warrant derived from the staging reconciliation rather than declared.
+
+What remains is not code. The staging adapter already named its five blockers, and this profile discharges exactly the two the repository can legitimately supply — the [patient-local clock bridge](patient-local-clocks.md) and a declared occurrence policy. The other three need a clinical reviewer (`CLINICAL_MAPPING_REVIEW_REQUIRED`, **D-CLINICAL**) or the source owner (`SOURCE_AVAILABILITY_UNVERIFIED` and `SOURCE_REVISION_HISTORY_UNAVAILABLE`, **D-HISTORY**). The committed declaration therefore refuses, and a refusal emits no rows, no manifest and no warrant.
+
+Running the path with an explicitly synthetic review reaches the matcher and returns `UNRESOLVED` with *"concept ex:Creatinine never searched for"*. That is the correct answer: `inputevents` holds administrations and was never searched for measurements, so the exemplar cannot be concluded from this extract — a gap that was invisible before the warrant existed. Answering it from real source needs the measurement side as well.
+
+Other source tables and FHIR ingestion remain unimplemented.
 
 ### S2. Source completeness is derived, but coverage itself is still declared **[partial]**
 *Source: [2.4 §5](../addenda/specification-2.4.md), [decision: source completeness](decisions/source-completeness.md)*

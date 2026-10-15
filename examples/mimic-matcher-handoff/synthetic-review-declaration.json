@@ -1,0 +1,33 @@
+{
+  "profile": "mimic-matcher-handoff-1.0",
+  "dataset_id": "synthetic-mimic-demo-2.2",
+  "staging_context_id": "f5f3625a90e26a8594908044ec38d80345bce660de61d9ca518685244e564d4b",
+  "clock_bridge": {
+    "policy": "patient-local-calendar-microseconds-v1",
+    "clock_id": "mimic-local:synthetic-mimic-demo-2.2:1",
+    "origin": "2150-01-01T10:00:00"
+  },
+  "occurrence_policy": {
+    "policy": "recorded-endpoints-as-occurrence-bounds-v1",
+    "justification": "Recorded segment endpoints are treated as occurrence bounds for this profile only. This is a stated reading of the recorded endpoints, not evidence about physical administration times."
+  },
+  "item_concepts": {
+    "1000": "ex:DrugA"
+  },
+  "clinical_review": {
+    "synthetic": true,
+    "reviewer": "none; this document exists so the handoff path can be executed and tested",
+    "decision": "Item 1000 of the constructed six-row fixture is read as the exemplar exposure concept. The fixture is authored; no real item, label, unit, method or context has been adjudicated."
+  },
+  "source_availability": {
+    "synthetic": true,
+    "statement": "The constructed fixture declares its own availability. No real source-availability semantics are established."
+  },
+  "revision_history": {
+    "synthetic": true,
+    "statement": "The constructed fixture has no revision history. No historical correction coverage is established."
+  },
+  "ages": {
+    "1": 50
+  }
+}
