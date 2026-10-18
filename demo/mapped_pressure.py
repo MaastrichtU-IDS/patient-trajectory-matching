@@ -98,7 +98,11 @@ class MappedPressureService(PressureService):
         session = mapped.Session(self.folder, request, declaration, self.mapping_dir, progress)
         if self.configuration:
             session.context['service_configuration'] = deepcopy(self.configuration['context'])
-            session.id = mapped.cr.digest(session.context)
+            # Same rule as the session's own identity: adding the configuration changes
+            # what was analysed, so the id must change, but the backend's runtime
+            # fingerprint still must not decide it. A plain digest here reintroduced
+            # exactly the machine dependence the session had just excluded.
+            session.id = mapped.cr.digest(mapped.pressure.identity(session.context))
         if self.use_prepared: self.prepared_executor = mapped.BatchExecutor(self.folder, session._pack)
         self._job_executor = self.prepared_executor
         self.session = session; self.session_name = name

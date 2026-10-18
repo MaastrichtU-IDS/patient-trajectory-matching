@@ -10,7 +10,19 @@ from pathlib import Path
 import time
 
 from app.temporal import digest
-from patterns.claim_rdf import digest as context_digest
+from patterns.claim_rdf import digest as _digest
+from patterns.reviewed_pressure_session import identity as _identity
+
+
+def context_digest(context):
+    """Recompute a context id the same way the session computed it.
+
+    The session withholds the semantic backend's runtime fingerprint from its identity,
+    so a plain digest of the stored context cannot reproduce the recorded id. Any
+    independent recomputation has to apply the same rule or it disagrees by
+    construction -- which is a silent retention failure, not a detected tampering.
+    """
+    return _digest(_identity(context))
 
 FORMAT = 'recorded-journey-export-1'
 MAX_BYTES = 8 * 1024 * 1024
