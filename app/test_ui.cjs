@@ -111,6 +111,22 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   assert.match(el('trajectory-summary').textContent,/P10/);
   assert.match(el('cohorts').innerHTML,/P06/);
   assert.equal(el('export').href,'/api/export/'+payload.comparison.comparison_id);
+  // Decision D: the result names the model that priced it, and the name is read from the
+  // payload rather than printed. Two probes establish that it is read -- a different
+  // identifier has to reach the screen, and two disagreeing identifiers have to refuse
+  // rather than quietly pick one.
+  assert.match(el('priced-by').textContent,/point-anchor-relaxation-1\.0/);
+  assert.match(el('priced-by').textContent,/worst-case timing/);
+  payload.comparison.exact.relaxation_profile='probe-profile-9.9';
+  payload.comparison.relaxed.relaxation_profile='probe-profile-9.9';
+  await el('compare').onclick();
+  assert.match(el('priced-by').textContent,/probe-profile-9\.9/,'the identifier is printed, not read from the result');
+  payload.comparison.relaxed.relaxation_profile='a-disagreeing-profile';
+  await el('compare').onclick();
+  assert.match(el('priced-by').textContent,/does not name the cost model/,'disagreeing identifiers must refuse, not pick one');
+  payload.comparison.exact.relaxation_profile='point-anchor-relaxation-1.0';
+  payload.comparison.relaxed.relaxation_profile='point-anchor-relaxation-1.0';
+  await el('compare').onclick();
   payload.evidence.source_rows[0].source_code='<img src=x onerror=alert(1)>';
   el('cohorts').onclick({target:{closest:()=>({dataset:{patient:'P03'}})}});
   await settle();
@@ -120,11 +136,12 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   await el('undo').onclick();
   assert.match(el('export').className,/hidden/);
   assert.equal(el('cohorts').innerHTML,'');
+  assert.equal(el('priced-by').textContent,'','a profile line outliving its result names a model that priced nothing on screen');
   failNext=true;
   await el('compare').onclick();
   assert.equal(el('status').className,'error');
   assert.match(el('status').textContent,/Deliberate evaluation failure/);
   assert.match(el('export').className,/hidden/);
   assert.equal(el('compare').disabled,false);
-  console.log('Research UI: four feature dispositions with display-only hiding, complete two-refinement journey, comparison, evidence, safe rendering, undo and failure states passed.');
+  console.log('Research UI: four feature dispositions with display-only hiding, complete two-refinement journey, comparison, the cost model named from the payload, evidence, safe rendering, undo and failure states passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
