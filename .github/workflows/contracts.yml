@@ -32,6 +32,9 @@ jobs:
       - name: Verify recorded contract-check totals match loadable suites
         run: python tools/check_test_counts.py
 
+      - name: Verify committed reports still bind their current implementations
+        run: python tools/check_report_provenance.py
+
       - name: Reference oracle (16 cases, 9 property checks)
         run: python reference_oracle.py
 
