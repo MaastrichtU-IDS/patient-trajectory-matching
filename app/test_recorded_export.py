@@ -312,5 +312,36 @@ class RecordedExportTests(unittest.TestCase):
             verify_recorded(bundle, config='/tmp/never-open-this.json')
 
 
+class ContextDigestTests(unittest.TestCase):
+    """The export validator recomputes the session id, so it must use the session's rule."""
+
+    def context(self, python='3.12.13'):
+        return {'profile': 'mapped-pressure-session-1.0',
+                'measurement_mapping': {'selection_plan': {'semantic_run': {
+                    'backend_result': {'backend': {
+                        'name': 'rustdl', 'version': '0.4.28', 'python': python,
+                        'native_sha256': 'a' * 64, 'wrapper_sha256': 'b' * 64}}}}}}
+
+    def test_recomputation_matches_the_session_identity_rule(self):
+        """A plain digest of the stored context cannot reproduce the recorded id,
+        because the session withholds the backend's runtime fingerprint from identity.
+        Recomputing it any other way disagrees by construction, and the disagreement
+        surfaces as a silent retention failure rather than as detected tampering.
+        """
+        from patterns import claim_rdf, reviewed_pressure_session as session
+        from app import recorded_export
+        context = self.context()
+        self.assertEqual(recorded_export.context_digest(context),
+                         claim_rdf.digest(session.identity(context)))
+        self.assertNotEqual(recorded_export.context_digest(context),
+                            claim_rdf.digest(context),
+                            'a plain digest would be indistinguishable from the rule')
+
+    def test_recomputation_ignores_the_runtime_that_produced_the_evidence(self):
+        from app import recorded_export
+        self.assertEqual(recorded_export.context_digest(self.context()),
+                         recorded_export.context_digest(self.context(python='3.12.15')))
+
+
 if __name__ == '__main__':
     unittest.main()

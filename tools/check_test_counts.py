@@ -47,6 +47,7 @@ LABELS = {
     'test_use_case_conformance': 'Reproducible GEN-01/COH-01 use-case tests',
     'test_mimic_inputevents': 'MIMIC inputevents admission tests',
     'test_mimic_matcher_handoff': 'MIMIC staging-to-matcher handoff tests',
+    'test_session_identity': 'Session identity reproducibility tests',
     'test_patient_local': 'Patient-local clock and RDF tests',
     'test_mimic_record_query': 'End-to-end MIMIC record-query tests',
     'test_claim_projection': 'Structured claim/projection tests',

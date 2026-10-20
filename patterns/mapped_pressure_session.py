@@ -109,7 +109,7 @@ class Session(pressure.Session):
         self.context.update(profile=PROFILE, literal_session_id=self.id, mapping_files=stamps,
                             measurement_mapping={'catalogue_report':catalogue, 'selection_plan':plan})
         self.context['artifacts'] = {f:ei.digest((ei.ROOT/f).read_text()) for f in FILES}
-        self.id = cr.digest(self.context)
+        self.id = cr.digest(pressure.identity(self.context))
         self._fresh = FreshExecutor(folder, pack)
         self.check_current()
 

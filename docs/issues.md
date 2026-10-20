@@ -201,6 +201,14 @@ The comparison is a planned protocol. No Graphiti results exist in this reposito
 
 The [completion register](completion.md) now retains the exact 104 original requirements and records evidence, acceptance commands, remaining clauses and external dependencies. Sixteen additional profiles have separate traceability entries. Its checker verifies coverage and evidence digests; it does not execute the referenced acceptance commands or claim full-product completion.
 
+### R4. A session identity once hashed the machine that computed it **[addressed]**
+
+`session_context_id` was computed over a context that embeds the semantic backend's own description, including its interpreter patch version and the sha256 of its native wheel. Those are properties of the runner, so the value could never be reproduced anywhere else: CI, the authoring machine and the committed report held three different ids for identical inputs, and the demo workflow failed on a check that could not have passed.
+
+The fix separates identity from evidence. [`reviewed_pressure_session.identity`](../patterns/reviewed_pressure_session.py) withholds those three fields from the hash and leaves them in the context, which is the line the repository already draws for native build information: an evidence report identifies the build that produced it and is not a claim about the visitor's runtime. A different engine *version* still changes identity, because a different reasoner can reach different conclusions.
+
+The rule has to hold at every point an id is computed or recomputed, and it did not: four sites needed it — the reviewed session, the mapped session, the configured service's recomputation after adding its configuration, and the export validator's independent check. The last two were found only after the first fix appeared to work, because a half-applied rule turns a loud mismatch into a silent `retention_failed`. `patterns/test_session_identity.py` covers the rule itself; the pressure and recorded-export suites between them kill a revert at each of the four sites.
+
 ### R2. Legacy ontology drafts are loadable **[risk]**
 *Source: [2.4 §8](../addenda/specification-2.4.md)*
 

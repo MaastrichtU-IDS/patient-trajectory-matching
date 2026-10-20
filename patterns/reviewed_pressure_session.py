@@ -22,6 +22,35 @@ def controls(value):
     return deepcopy(value)
 
 
+# What the semantic backend records about the machine that ran it, as opposed to what
+# it concluded. Pinned fields like `version` stay: a different engine version is a real
+# difference. These three are not.
+RUNTIME_FIELDS = ('python', 'native_sha256', 'wrapper_sha256')
+
+
+def identity(context):
+    """The context with the runtime that produced it removed, for hashing.
+
+    A session identity has to mean "same inputs, same logical mapping". The semantic
+    backend records its own interpreter patch version and the digest of its native
+    wheel, and those are properties of the machine: three runners produced three ids
+    for identical inputs, so the committed value could never be reproduced anywhere but
+    the machine that wrote it. The fingerprint stays in the context as recorded
+    evidence; it simply stops deciding identity. The repository already draws this line
+    -- evidence reports identify the native build used to generate them and are not a
+    claim about the visitor's runtime.
+    """
+    def strip(node):
+        if isinstance(node, dict):
+            return {key: ({k: v for k, v in value.items() if k not in RUNTIME_FIELDS}
+                          if key == 'backend' and isinstance(value, dict) else strip(value))
+                    for key, value in node.items()}
+        if isinstance(node, list):
+            return [strip(item) for item in node]
+        return node
+    return strip(context)
+
+
 def fingerprint(folder):
     paths={**p.windows.inputs.source_paths(folder),**p.windows.measurements.paths_for(folder)}
     answer={}
@@ -49,7 +78,7 @@ class Session:
             'audit_context_id':self.audit['context_id'],'review_sha256':p.cr.digest(self.review),
             'declaration':self.declaration,'parent_request':deepcopy(request),'source_files':before,
             'artifacts':{f:p.ei.digest((p.ei.ROOT/f).read_text()) for f in FILES}}
-        self.id=p.cr.digest(self.context)
+        self.id=p.cr.digest(identity(self.context))
         self.claims={c['claim']['bundle']['events'][0]['id']:c for c in self.package['context']['claims']}
         self.decisions={c['claim_id']:c['decisions'] for c in self.review['claims']}
         self.by_anchor={a['id']:a for a in self.selection['anchors']}
