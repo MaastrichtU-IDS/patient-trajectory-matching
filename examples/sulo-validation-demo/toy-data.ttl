@@ -1,0 +1,7 @@
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix toy:  <https://example.org/toy/> .
+
+# SULO declares AllDisjointClasses(Capability, InformationObject, Quality, Role),
+# so this individual cannot exist. Checked against SULO it is a contradiction;
+# checked alone it is not, because alone there is no SULO.
+toy:datum a sulo:Quality, sulo:InformationObject .
