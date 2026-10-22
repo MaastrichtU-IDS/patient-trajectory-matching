@@ -246,5 +246,75 @@ class MappingTests(unittest.TestCase):
         self.assertEqual(register['common_selectors'], [str(ei.S.Process)])
 
 
+class BoundaryIdentityTests(unittest.TestCase):
+    """BT_C forbids configurations that OWL and the integer network each accept.
+
+    The specification's `three-boundaries.ofn` is consistent as OWL and satisfiable as
+    integers while being impossible under the time theory, so running those two checks
+    side by side is not the same as checking the pair. These read the fixture data for
+    the configurations the theory rules out.
+    """
+
+    def conflicts(self, name, data=None, graph=None):
+        formal, sulo, interface, _ = load(name)
+        view, _ = ti.sulo_view(graph if graph is not None else sulo)
+        return ti.boundary_conflicts(view['entities'], data if data is not None else interface)
+
+    def test_every_committed_fixture_is_free_of_forbidden_configurations(self):
+        for folder in sorted(p.name for p in ti.EXAMPLES.iterdir() if p.is_dir()):
+            conflicts, _ = self.conflicts(folder)
+            self.assertEqual(conflicts, [], folder)
+
+    def test_the_fixtures_with_pinned_coordinates_actually_place_boundaries(self):
+        """Without this, the check above passes on a walk that matched nothing. The
+        evidence names variables by IRI and the interface by short id, and comparing
+        those two forms directly reports every fixture clean.
+        """
+        placed = {name: self.conflicts(name)[1]
+                  for name in sorted(p.name for p in ti.EXAMPLES.iterdir() if p.is_dir())}
+        self.assertEqual(placed['ordered'], 4)
+        self.assertEqual(placed['coincident_boundaries'], 4)
+        self.assertGreaterEqual(sum(1 for n in placed.values() if n), 5)
+
+    def test_fixtures_without_pinned_coordinates_place_nothing(self):
+        """Not a gap: an uncertain boundary has no coordinate to coincide at, and
+        placing one would assert a time the fixture never gave.
+        """
+        for name in ('chain_order', 'correlated', 'joint_impossibility'):
+            conflicts, placed = self.conflicts(name)
+            self.assertEqual((conflicts, placed), ([], 0), name)
+
+    def test_two_distinct_boundaries_of_one_orientation_cannot_coincide(self):
+        """C4: coincident boundaries sharing an orientation are the same boundary, so
+        two distinct start descriptors at one coordinate is not a near miss.
+        """
+        _, sulo, interface, _ = load('ordered')
+        moved = json.loads(json.dumps(interface))
+        set_coordinate(moved, sulo, 'Bs', 0)
+        conflicts, placed = self.conflicts('ordered', data=moved)
+        self.assertEqual(placed, 4)
+        self.assertTrue(any(c.startswith('BTC_C4_DISTINCT_START') for c in conflicts), conflicts)
+
+    def test_a_coincidence_class_cannot_exceed_two_members(self):
+        """A22, and the configuration the specification's lemma isolates: OWL accepts
+        it and an integer assignment giving all three the same coordinate satisfies the
+        network, so only the joint theory rejects it.
+        """
+        _, sulo, interface, _ = load('ordered')
+        crowded = json.loads(json.dumps(interface))
+        for variable in ('Ae', 'Bs'):
+            set_coordinate(crowded, sulo, variable, 0)
+        conflicts, _ = self.conflicts('ordered', data=crowded)
+        self.assertTrue(any(c.startswith('BTC_A22_') for c in conflicts), conflicts)
+
+    def test_an_uncertain_boundary_is_never_placed_at_a_coordinate(self):
+        _, sulo, interface, _ = load('ordered')
+        loosened = json.loads(json.dumps(interface))
+        row = next(v for v in loosened['variables'] if v['id'] == 'As')
+        row['upper_us'] = row['lower_us'] + 5
+        conflicts, placed = self.conflicts('ordered', data=loosened)
+        self.assertEqual((conflicts, placed), ([], 3), 'the loosened boundary must drop out')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -147,6 +147,53 @@ def sulo_view(graph):
     return {'view': view(snapshot.source), 'entities': entities}, snapshot
 
 
+def boundary_conflicts(entities, interface):
+    """Configurations BT_C forbids, found in a fixture's own descriptors.
+
+    The OWL side cannot see these. `three-boundaries.ofn` in the specification is
+    consistent as OWL and its coordinates are satisfiable as integers, yet it is
+    impossible under the time theory: A22 makes coincidence an equivalence relation
+    with exactly two members per class, and C4 identifies coincident boundaries that
+    share an orientation. Running the profile check and the integer check side by side
+    does not amount to checking the pair of them, which is the point the specification's
+    `three_coincident_boundaries_impossible` lemma makes and the reason this reads the
+    data rather than the ontology.
+
+    Only variables pinned to a single coordinate are considered. An uncertain boundary
+    has no coordinate to coincide at, so saying anything about it here would be an
+    assertion about time the fixture has not made.
+
+    Returns the conflicts and how many boundaries were actually placed, because a
+    checker that matched nothing reports no conflict and looks identical to a clean
+    fixture. The caller is expected to require the second number.
+    """
+    exact = {v['id']: v['lower_us'] for v in interface['variables']
+             if v['lower_us'] == v['upper_us']}
+    placed, matched = {}, 0
+    for event, evidence in sorted(entities.items()):
+        for side in ('start', 'end'):
+            # The evidence names a variable by IRI and the interface by its short id.
+            # Comparing the two forms directly silently matches nothing, which reads as
+            # a clean fixture, so the tail is taken and the match count is returned.
+            variable = str(evidence[side + '_variable']).rsplit('/', 1)[-1]
+            if variable in exact:
+                matched += 1
+                placed.setdefault(exact[variable], []).append(
+                    (str(evidence[side + '_descriptor']), side))
+    conflicts = []
+    for coordinate, members in sorted(placed.items()):
+        names = sorted(name for name, _ in members)
+        if len(members) > 2:
+            conflicts.append(f'BTC_A22_COINCIDENCE_CLASS_EXCEEDS_TWO at {coordinate}: '
+                             f'{names}')
+        for side in ('start', 'end'):
+            same = sorted(name for name, kind in members if kind == side)
+            if len(same) > 1:
+                conflicts.append(f'BTC_C4_DISTINCT_{side.upper()}_BOUNDARIES_COINCIDE '
+                                 f'at {coordinate}: {same}')
+    return conflicts, matched
+
+
 def formal_answers(source, query):
     """Finite-world reference; never calls STN closure or the production query compiler."""
     bt.validate(query, query=True)

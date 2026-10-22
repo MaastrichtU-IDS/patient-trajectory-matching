@@ -87,6 +87,15 @@ INCOMPARABLE still means missing clock comparability; it is never silently upgra
 
 **The semantics are now specified.** [Formal definition v2](temporal-kg/) §8 gives the separated baseline — `Supported(mu)` from source eligibility and OWL entailment, then `Certain(mu)` as `UNSAT(Gamma and not C[mu])` and `Possible(mu)` as `SAT(Gamma and C[mu])` — plus the fixed-witness policy `exists mu forall theta`, evaluated before projecting the patient identifier. §8.1 gives the worked reason for that policy: for two candidate times that can be `(12,36)` or `(36,12)`, a 24-hour query has a qualifying candidate in every assignment, yet neither fixed candidate is certain. The bounded profile now implements the discrete temporal checks. Full OWL support, rational strict inequalities, broader RDF mappings, and the bridge/interface requirements remain open under v2 Q8.
 
+### T2c. BT_C boundary configurations are now checked in the fixtures **[partial]**
+*Source: [formal specification](temporal-kg/specification/gfo-time-and-integration.md), [A.8](temporal-kg/specification/formal-semantics.md)*
+
+The specification's `three-boundaries.ofn` is consistent as OWL and its coordinates are satisfiable as integers, yet impossible under BT_C: A22 caps a coincidence class at two members and C4 identifies coincident boundaries sharing an orientation. Running the profile check and the integer check side by side is therefore not the same as checking the pair of them, and nothing read the committed fixtures for the configurations the theory rules out.
+
+`temporal_interface.boundary_conflicts` now does, over every paired fixture. All eight are clean; five place boundaries at pinned coordinates and three carry only uncertain bounds, which have no coordinate to coincide at. The function returns how many boundaries it placed alongside the conflicts, because a walk that matches nothing reports a clean fixture and looks identical to a correct one — the first version of this check did exactly that, comparing variable IRIs against short ids, and reported every fixture clean while examining none.
+
+What this does **not** do: the rule reads fixture data, not a runtime ingestion path. The adapters do not mint boundary individuals today, so the defect class is not reachable from them; the value is that an adapter that starts to — one deriving boundaries per source row from minute-granular timestamps, where ties are the common case — has a rule to call and a test that fails without it. Boundary realizability under BT_C, and the remaining A.9 obligations, are unchanged.
+
 ### T3. No time normalizer **[gap]**
 *Source: `v21-additions-report.json`*
 
