@@ -1,7 +1,7 @@
 {
   "schema": "integrated-recorded-workflow-evaluation-1",
   "status": "TECHNICALLY_VERIFIED",
-  "executed_at_utc": "2026-10-20T19:12:09.772779+00:00",
+  "executed_at_utc": "2026-10-22T12:01:17.900391+00:00",
   "python_version": "3.12.15",
   "dataset_id": "mimic-iv-demo-2.2",
   "strata": [
@@ -76,7 +76,7 @@
         "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
         "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
         "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
-        "tools/evaluate_integrated_recorded.py": "8a1bc1f884c20c6acd91a8db776fb98559cca870844baddd2c51d7f1f5128022"
+        "tools/evaluate_integrated_recorded.py": "2786344020b9b1a0314daec149da38ce72b07c998271b1608c7f1ce0d3e358e7"
       },
       "source_sha256": {
         "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560",
@@ -85,12 +85,12 @@
         "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a"
       },
       "timings": {
-        "cold_query_and_durable_save_seconds": 98.372414,
-        "custom_pattern_and_durable_save_seconds": 2.102486,
-        "weighted_comparison_seconds": 0.238166,
-        "export_seconds": 0.574911,
-        "restart_and_exact_readback_seconds": 1.229967,
-        "cold_source_replay_seconds": 101.810221
+        "cold_query_and_durable_save_seconds": 52.063041,
+        "custom_pattern_and_durable_save_seconds": 1.422303,
+        "weighted_comparison_seconds": 0.191719,
+        "export_seconds": 0.529297,
+        "restart_and_exact_readback_seconds": 1.068789,
+        "cold_source_replay_seconds": 62.646961
       },
       "original": {
         "anchors_verified": 944,
@@ -161,25 +161,25 @@
       "durable_restart_exact_readback": true,
       "source_backed_replay_verified": true,
       "process_measurement": {
-        "elapsed_seconds": 206.649718,
+        "elapsed_seconds": 119.671182,
         "timed_out": false,
         "sampling_failure": null,
         "child_exit_code": 0,
         "memory": {
           "method": "linux_proc_sequential_process_tree_rss_samples",
           "sample_interval_requested_seconds": 0.05,
-          "samples": 2657,
-          "samples_with_processes": 2657,
-          "samples_with_resident_memory": 2656,
-          "samples_with_root": 2657,
-          "maximum_sampled_aggregate_rss_bytes": 652795904,
+          "samples": 1974,
+          "samples_with_processes": 1974,
+          "samples_with_resident_memory": 1973,
+          "samples_with_root": 1974,
+          "maximum_sampled_aggregate_rss_bytes": 623349760,
           "maximum_processes_observed_together": 2,
-          "distinct_process_instances_observed": 126,
-          "first_sample_offset_seconds": 1.0930000087228109e-06,
-          "last_sample_offset_seconds": 206.603124398,
-          "maximum_sample_gap_seconds": 0.1120507300000213,
-          "maximum_scan_seconds": 0.057816419000005226,
-          "unreadable_or_exited_process_records": 151,
+          "distinct_process_instances_observed": 125,
+          "first_sample_offset_seconds": 8.420000199294009e-07,
+          "last_sample_offset_seconds": 119.66146757500002,
+          "maximum_sample_gap_seconds": 0.07975683099999742,
+          "maximum_scan_seconds": 0.02780646799999431,
+          "unreadable_or_exited_process_records": 57,
           "coverage_complete": false,
           "limitations": [
             "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
@@ -264,7 +264,7 @@
         "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
         "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
         "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
-        "tools/evaluate_integrated_recorded.py": "8a1bc1f884c20c6acd91a8db776fb98559cca870844baddd2c51d7f1f5128022"
+        "tools/evaluate_integrated_recorded.py": "2786344020b9b1a0314daec149da38ce72b07c998271b1608c7f1ce0d3e358e7"
       },
       "source_sha256": {
         "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560",
@@ -273,12 +273,12 @@
         "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a"
       },
       "timings": {
-        "cold_query_and_durable_save_seconds": 547.124895,
-        "custom_pattern_and_durable_save_seconds": 5.613171,
-        "weighted_comparison_seconds": 0.331239,
-        "export_seconds": 0.846225,
-        "restart_and_exact_readback_seconds": 1.733312,
-        "cold_source_replay_seconds": 520.909749
+        "cold_query_and_durable_save_seconds": 355.145866,
+        "custom_pattern_and_durable_save_seconds": 3.249942,
+        "weighted_comparison_seconds": 0.588365,
+        "export_seconds": 0.552258,
+        "restart_and_exact_readback_seconds": 1.997326,
+        "cold_source_replay_seconds": 348.361667
       },
       "original": {
         "anchors_verified": 944,
@@ -349,25 +349,25 @@
       "durable_restart_exact_readback": true,
       "source_backed_replay_verified": true,
       "process_measurement": {
-        "elapsed_seconds": 1079.752662,
+        "elapsed_seconds": 712.505924,
         "timed_out": false,
         "sampling_failure": null,
         "child_exit_code": 0,
         "memory": {
           "method": "linux_proc_sequential_process_tree_rss_samples",
           "sample_interval_requested_seconds": 0.05,
-          "samples": 15461,
-          "samples_with_processes": 15461,
-          "samples_with_resident_memory": 15459,
-          "samples_with_root": 15461,
-          "maximum_sampled_aggregate_rss_bytes": 780201984,
+          "samples": 11765,
+          "samples_with_processes": 11765,
+          "samples_with_resident_memory": 11763,
+          "samples_with_root": 11765,
+          "maximum_sampled_aggregate_rss_bytes": 790519808,
           "maximum_processes_observed_together": 2,
-          "distinct_process_instances_observed": 966,
-          "first_sample_offset_seconds": 1.0920000192982116e-06,
-          "last_sample_offset_seconds": 1079.7444695630002,
-          "maximum_sample_gap_seconds": 0.12350973700000623,
-          "maximum_scan_seconds": 0.07318328499997051,
-          "unreadable_or_exited_process_records": 475,
+          "distinct_process_instances_observed": 796,
+          "first_sample_offset_seconds": 5.310000119607139e-07,
+          "last_sample_offset_seconds": 712.4999060959999,
+          "maximum_sample_gap_seconds": 0.07809107799999992,
+          "maximum_scan_seconds": 0.02801169800000025,
+          "unreadable_or_exited_process_records": 315,
           "coverage_complete": false,
           "limitations": [
             "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
@@ -452,7 +452,7 @@
         "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
         "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
         "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
-        "tools/evaluate_integrated_recorded.py": "8a1bc1f884c20c6acd91a8db776fb98559cca870844baddd2c51d7f1f5128022"
+        "tools/evaluate_integrated_recorded.py": "2786344020b9b1a0314daec149da38ce72b07c998271b1608c7f1ce0d3e358e7"
       },
       "source_sha256": {
         "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560",
@@ -461,12 +461,12 @@
         "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a"
       },
       "timings": {
-        "cold_query_and_durable_save_seconds": 601.689847,
-        "custom_pattern_and_durable_save_seconds": 6.061544,
-        "weighted_comparison_seconds": 0.368051,
-        "export_seconds": 0.990358,
-        "restart_and_exact_readback_seconds": 1.858746,
-        "cold_source_replay_seconds": 564.185713
+        "cold_query_and_durable_save_seconds": 386.029239,
+        "custom_pattern_and_durable_save_seconds": 3.470088,
+        "weighted_comparison_seconds": 0.261241,
+        "export_seconds": 0.800307,
+        "restart_and_exact_readback_seconds": 1.533935,
+        "cold_source_replay_seconds": 373.783946
       },
       "original": {
         "anchors_verified": 944,
@@ -537,25 +537,25 @@
       "durable_restart_exact_readback": true,
       "source_backed_replay_verified": true,
       "process_measurement": {
-        "elapsed_seconds": 1178.175995,
+        "elapsed_seconds": 768.687168,
         "timed_out": false,
         "sampling_failure": null,
         "child_exit_code": 0,
         "memory": {
           "method": "linux_proc_sequential_process_tree_rss_samples",
           "sample_interval_requested_seconds": 0.05,
-          "samples": 17131,
-          "samples_with_processes": 17131,
-          "samples_with_resident_memory": 17130,
-          "samples_with_root": 17131,
-          "maximum_sampled_aggregate_rss_bytes": 796614656,
+          "samples": 12804,
+          "samples_with_processes": 12804,
+          "samples_with_resident_memory": 12803,
+          "samples_with_root": 12804,
+          "maximum_sampled_aggregate_rss_bytes": 787185664,
           "maximum_processes_observed_together": 2,
-          "distinct_process_instances_observed": 1047,
-          "first_sample_offset_seconds": 1.0420000080557656e-06,
-          "last_sample_offset_seconds": 1178.167999135,
-          "maximum_sample_gap_seconds": 0.1234809529999552,
-          "maximum_scan_seconds": 0.07306840899997269,
-          "unreadable_or_exited_process_records": 505,
+          "distinct_process_instances_observed": 868,
+          "first_sample_offset_seconds": 8.110000067063083e-07,
+          "last_sample_offset_seconds": 768.683502627,
+          "maximum_sample_gap_seconds": 0.07930926100004854,
+          "maximum_scan_seconds": 0.02777505200003816,
+          "unreadable_or_exited_process_records": 328,
           "coverage_complete": false,
           "limitations": [
             "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
@@ -571,6 +571,15 @@
     }
   ],
   "concurrent_isolated_workers": 3,
+  "recorded_execution_options": {
+    "workers": 3,
+    "strata": [
+      "art",
+      "noninvasive",
+      "arterial"
+    ]
+  },
+  "reproduce_recorded_execution": "python -m tools.evaluate_integrated_recorded --mimic-dir /path/to/mimic-demo/icu --strata art noninvasive arterial --workers 3 --output verification/integrated-recorded-evaluation.json",
   "patient_rows_or_identifiers_included": false,
   "clinical_mapping_verified": false,
   "clinical_retrieval_relevance_evaluated": false,
@@ -582,15 +591,5 @@
     "Overlapping stratum populations must not be summed as distinct patients.",
     "Three features describe the same reviewed pressure stream; independent clinical variables are not evaluated here.",
     "No reviewer relevance labels, full credentialed MIMIC cohort, clinical validity or production-scale claim."
-  ],
-  "recorded_execution_options": {
-    "workers": 3,
-    "strata": [
-      "art",
-      "noninvasive",
-      "arterial"
-    ]
-  },
-  "reproduce_recorded_execution": "python -m tools.evaluate_integrated_recorded --mimic-dir /path/to/mimic-demo/icu --strata art noninvasive arterial --workers 3 --output verification/integrated-recorded-evaluation.json",
-  "execution_metadata_note": "Recorded invocation added after the aggregate run; generic reproduce command uses the default sequential schedule. No measurement or implementation hashes changed."
+  ]
 }
