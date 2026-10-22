@@ -23,11 +23,17 @@ vocabulary and are not SULO graphs; merging them with the SULO stack reports eve
 their classes as undeclared and proves nothing. Checking only the SULO half would leave the
 conformance pairing gated on one side.
 
-ROBOT is given one merged document per target. Passing the files as separate `--input`
-documents is not equivalent and must not be used: the instance graphs do not declare the
-SULO properties they use, so OWLAPI parses those triples as annotation assertions. That both
-reports spurious punning violations and makes the consistency check vacuous, because
-annotations carry no semantics for the reasoner.
+ROBOT is given one merged document per target, and the merge is what makes the check mean
+anything. An instance graph does not declare the SULO properties it uses, so read on its own
+it is not a SULO graph at all: OWLAPI applies the RDF-to-OWL mapping rules to a document
+where `sulo:hasValue` has no declaration and parses those triples as annotation assertions.
+Annotations carry no semantics, so `reason` over that document reports it consistent however
+contradictory its content is -- an individual typed as two disjoint SULO classes passes
+silently. `validate-profile` is louder but no more useful there, reporting the vocabulary as
+undeclared rather than reporting the contradiction.
+
+ROBOT 1.9.5 refuses more than one `--input` on both commands, so the mistake this guards
+against is not passing two files; it is checking a data file by itself.
 
 Every target carries negative controls that must all be detected, or the run fails. For a
 target that has instance data the controls are **built out of the document's own content** --
