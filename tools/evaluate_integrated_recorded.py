@@ -243,6 +243,24 @@ def evaluate_stratum(folder, stratum):
                 'source_backed_replay_verified': True}
 
 
+def execution_options(strata, workers):
+    """The options this run was actually given, for the report to carry.
+
+    `reproduce` is the generic default-schedule command and cannot describe a run that
+    chose otherwise. Without these, a regeneration with different flags dropped that
+    difference silently: a three-worker measurement could be replaced by a one-worker
+    one under the same filename with every provenance check still passing, because a
+    digest proves which files produced a report and not how it was invoked. These were
+    previously attached by hand after the run, which meant every regeneration lost them.
+    """
+    return {'recorded_execution_options': {'workers': workers, 'strata': list(strata)},
+            'reproduce_recorded_execution': (
+                'python -m tools.evaluate_integrated_recorded '
+                '--mimic-dir /path/to/mimic-demo/icu '
+                f'--strata {" ".join(strata)} --workers {workers} '
+                '--output verification/integrated-recorded-evaluation.json')}
+
+
 def evaluate(folder, strata, workers=1):
     from demo.profile_pressure_workload import monitor
     require(platform.system() == 'Linux', 'Linux process-tree memory measurement required')
@@ -265,6 +283,7 @@ def evaluate(folder, strata, workers=1):
     return {'schema': SCHEMA, 'status': 'TECHNICALLY_VERIFIED', 'executed_at_utc': datetime.now(timezone.utc).isoformat(),
             'python_version': platform.python_version(), 'dataset_id': 'mimic-iv-demo-2.2', 'strata': trials,
             'concurrent_isolated_workers': min(workers, len(strata)),
+            **execution_options(strata, workers),
             'patient_rows_or_identifiers_included': False, 'clinical_mapping_verified': False,
             'clinical_retrieval_relevance_evaluated': False, 'full_mimic_evaluated': False,
             'reproduce': 'python -m tools.evaluate_integrated_recorded --mimic-dir /path/to/mimic-demo/icu --output verification/integrated-recorded-evaluation.json',
