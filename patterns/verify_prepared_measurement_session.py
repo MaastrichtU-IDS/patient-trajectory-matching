@@ -1,5 +1,6 @@
 """Check prepared measurement query equivalence and eliminated preparation operations."""
 from copy import deepcopy
+import hashlib
 import json
 from unittest.mock import patch
 from . import prepared_measurement_session as p, source_mixed_query as source
@@ -71,7 +72,12 @@ def verify():
             'synthetic_only': True, 'clinical_mapping_verified': False, 'public_demo_mapping_executed': False,
             'artifacts': {f: p.ei.digest((p.ei.ROOT / f).read_text()) for f in sorted(set(p.FILES + source.FILES +
                          ('patterns/verify_prepared_measurement_session.py',)))},
-            'fixture_sha256': {str(path.relative_to(p.ei.ROOT)): p.ei.digest(path.read_text()) for path in paths},
+            # Bytes, not `read_text()`: two of these fixtures use CRLF, which text mode
+            # normalizes, so the recorded value was the digest of a decoding rather than
+            # of the file this field names. It also made the value depend on the runner's
+            # locale for any non-ASCII fixture.
+            'fixture_sha256': {str(path.relative_to(p.ei.ROOT)):
+                               hashlib.sha256(path.read_bytes()).hexdigest() for path in paths},
             'warm_queries': len(evidence), 'warm_operation_counts': warm_counts,
             'source_byte_digests_checked_per_query': True, 'all_source_query_results_equal': True,
             'all_raw_csv_sql_bindings_equal': True, 'synthetic_memberships_by_query': [sorted(x) for x in memberships],
