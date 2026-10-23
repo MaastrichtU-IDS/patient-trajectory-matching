@@ -218,6 +218,16 @@ The fix separates identity from evidence. [`reviewed_pressure_session.identity`]
 
 The rule has to hold at every point an id is computed or recomputed, and it did not: four sites needed it — the reviewed session, the mapped session, the configured service's recomputation after adding its configuration, and the export validator's independent check. The last two were found only after the first fix appeared to work, because a half-applied rule turns a loud mismatch into a silent `retention_failed`. `patterns/test_session_identity.py` covers the rule itself; the pressure and recorded-export suites between them kill a revert at each of the four sites.
 
+### R5. Provenance digests decode text where they should read bytes **[partial]**
+
+`digest(path.read_text())` decodes with the runner's preferred encoding and re-encodes as UTF-8, so the same file hashes differently wherever that locale is not UTF-8, and differently again for a file with CRLF line endings, which text mode silently normalizes. Around twenty producers still do this.
+
+**What it costs in practice is much smaller than it first appears.** Of the 192 repository files bound by committed reports, 190 digest identically either way; only `examples/prepared-measurement-session/chartevents.csv` and `d_items.csv` differ, because they use CRLF. Those two were recorded in a field named `fixture_sha256` that was not the sha256 of the fixture, and that is fixed: the prepared-measurement verifier now reads bytes, and both values match their files.
+
+The remainder is a locale risk rather than an observed one. CI reports `UTF-8`, verified directly, so every other binding is currently correct where it is computed. A non-UTF-8 runner would change them all at once.
+
+A blanket sweep was attempted and reverted. Rewriting all 84 call sites edits 54 files, and because those files sit inside the contexts they digest, the result was **289 stale bindings and 40 failures across 17 suites**, requiring eight review documents to be re-pinned and roughly twenty reports regenerated, several of which need Linux or the public demo files. That is a large churn of the verification record to correct two digests that are already corrected and a risk the project does not currently run. It remains available, is best done with [the provenance gate](../tools/check_report_provenance.py) measuring each step, and should be one planned change rather than a side effect of another.
+
 ### R2. Legacy ontology drafts are loadable **[risk]**
 *Source: [2.4 §8](../addenda/specification-2.4.md)*
 
