@@ -1,0 +1,17 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix toy:  <https://example.org/toy/> .
+
+<https://example.org/toy> a owl:Ontology ;
+    rdfs:comment "A deliberately flawed extension, for demonstrating validation." .
+
+# Fine: sulo:Process exists.
+toy:Admission a owl:Class ; rdfs:subClassOf sulo:Process .
+
+# Not fine: sulo:isLocatedIn was removed from SULO at 0.2.8.
+# Nothing about this file is syntactically wrong, and no reasoner will object.
+toy:Ward a owl:Class ;
+    rdfs:subClassOf [ a owl:Restriction ;
+                      owl:onProperty sulo:isLocatedIn ;
+                      owl:someValuesFrom sulo:Object ] .
