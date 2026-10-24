@@ -210,10 +210,10 @@ function renderEvidence(p, f, r) {
   const bound = !!r?.binding;
   const evidence = p.evidence.bindings[f.b.event_id];
   const source = p.source_rows.find(row => row.event_id === f.b.event_id);
-  const role = short(evidence.patient_role), person = short(evidence.patient_bearer), process = short(evidence.process);
+  const role = short(evidence.patient_role), person = short(evidence.patient_bearer), claim = short(evidence.claim);
   $('evidence').innerHTML = `<details class="evidence-block" ${step === 4 ? 'open' : ''}><summary>${bound ? 'Inspect the matched evidence' : 'Inspect the available source records'}</summary>
     <div class="normalization">${esc(evidence.original_value)} ${esc(evidence.original_unit)} → <b>${Number(evidence.normalized_value).toFixed(2)} ${esc(evidence.normalized_unit)}</b><span>Original baseline value retained · normalization factor ${esc(evidence.unit_factor)}</span></div>
-    <h3>PRO · who participated, and in what role?</h3><div class="binding"><code>${esc(process)}</code> <b>hasParticipant</b> <code>${esc(role)}</code><br><code>${esc(role)}</code> <b>isFeatureOf</b> <code>${esc(person)}</code></div><p>Each process has its own patient-role instance. The roles share the same person as bearer.</p>
+    <h3>PRO · who is claimed to have participated, and in what role?</h3><div class="binding"><code>${esc(claim)}</code> <b>refersTo</b> <code>${esc(role)}</code><br><code>${esc(role)}</code> <b>isFeatureOf</b> <code>${esc(person)}</code></div><p>Each claim has its own patient-role instance, and the roles share the same person as bearer. The claim refers to the role rather than participating with it: <code>hasParticipant</code> has domain <code>sulo:Process</code>, so using it here would assert that the process occurred.</p>
     <h3>SOLID · what does the recorded literal mean?</h3><div class="binding"><code>${esc(short(evidence.result_datum))}</code> <b>hasValue</b> <code>${esc(evidence.original_value)}</code><br>Typed creatinine result · unit <code>${esc(short(evidence.unit_resource))}</code> · source <code>${esc(short(evidence.source_record))}</code></div>
     <details><summary>Source row, graph bindings &amp; fingerprints</summary><pre>${esc(JSON.stringify({source_row:source,matcher_binding:r?.binding ?? null,source_graph_sha256:p.evidence.source_graph_sha256,graph_bindings:p.evidence.bindings},null,2))}</pre></details><p>Graphs validated and projected at dataset build time. Live requests evaluate the projected records with the Python matcher.</p></details>`;
 }

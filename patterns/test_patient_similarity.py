@@ -29,7 +29,9 @@ class PatientSimilarityTests(unittest.TestCase):
         self.assertEqual(evidence['value']['hasValue'], '0.80')
         self.assertEqual(evidence['source']['original_unit'], 'mg/L')
         self.assertEqual(evidence['source']['binding']['normalized_value'], '0.80')
-        self.assertEqual(evidence['process']['hasParticipant'], evidence['role']['id'])
+        self.assertEqual(evidence['claim']['refersTo'], evidence['role']['id'])
+        # sulo:hasParticipant would assert the process the overlay only reports on.
+        self.assertNotIn('process', evidence)
         self.assertEqual(evidence['role']['isFeatureOf'], 'https://example.org/trajectory/data/person-P03')
 
     def test_builder_reproduces_committed_inputs(self):

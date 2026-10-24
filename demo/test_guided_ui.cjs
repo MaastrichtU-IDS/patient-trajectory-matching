@@ -76,7 +76,8 @@ function harness(protocol) {
     h.run("selectPatient('P03')");
     assert(h.nodes.get('evidence').innerHTML.includes('8.0 mg/L'));
     assert(h.nodes.get('evidence').innerHTML.includes('0.80 mg/dL'));
-    assert(h.nodes.get('evidence').innerHTML.includes('hasParticipant'));
+    assert(h.nodes.get('evidence').innerHTML.includes('refersTo'));
+    assert(!h.nodes.get('evidence').innerHTML.includes('hasParticipant</b>'));
     await h.run('exportCurrent()');
     assert.deepEqual(h.downloads,['trajectory-cohort-budget-2.json']);
     await h.run("enterStep(2, '0')");
