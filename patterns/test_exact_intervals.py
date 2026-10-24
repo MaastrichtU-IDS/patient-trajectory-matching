@@ -74,14 +74,86 @@ class IntervalTests(unittest.TestCase):
         self.assertFalse(list(self.good_graph.triples((None, OWL.sameAs, None))))
 
     def test_pro_witness_and_source_binding_preserved(self):
+        """The role chain survives the move off sulo:hasParticipant."""
         self.assertEqual(len({r.patient_bearer for r in self.records}), 1)
         self.assertEqual(len({r.patient_role for r in self.records}), 4)
+        self.assertEqual(len(list(self.good_graph.triples((None, S.hasParticipant, None)))), 0)
         for r in self.records:
             binding = self.evidence['bindings'][r.evidence_id]
-            self.assertIn((URIRef(r.process), S.hasParticipant, URIRef(r.patient_role)), self.good_graph)
+            self.assertIn((URIRef(r.claim), S.refersTo, URIRef(r.patient_role)), self.good_graph)
             self.assertIn((URIRef(r.patient_role), S.isFeatureOf, URIRef(r.patient_bearer)), self.good_graph)
             self.assertEqual(binding['source_metadata']['event_id'], r.event_id)
-            self.assertIn((URIRef(binding['source_record']), S.refersTo, URIRef(r.process)), self.good_graph)
+            self.assertIn((URIRef(binding['source_record']), S.refersTo, URIRef(r.claim)), self.good_graph)
+
+    def test_participation_in_a_source_graph_is_refused(self):
+        """The guard that makes the migration real, checked by breaking it."""
+        g = self.graph(); g.add((D['events/A'], S.hasParticipant, D['events/A/patient-role']))
+        self.bad_graph(g, 'PROCESS_ASSERTED_BY_PARTICIPATION')
+
+    def accepted(self):
+        """The graph acceptance would produce for the events/A claim.
+
+        Acceptance mints the process: it adds the member that makes the reference
+        collection non-empty, and attaches the participant and the interval the claim
+        only referred to. Built here so ei:ProcessShape is checked against something,
+        and so the accepted form is written down rather than described.
+        """
+        g = self.graph()
+        process = D['events/A/process']
+        g.add((process, RDF.type, EI.Infusion))
+        g.add((process, S.isItemIn, EI.Infusion))
+        g.add((process, S.hasParticipant, D['events/A/patient-role']))
+        g.add((process, S.atTime, D['events/A/interval']))
+        return g, process
+
+    def conforms(self, graph):
+        import rdflib
+        from pyshacl import validate as shacl_validate
+        ont = base.ontology() + Graph().parse(ei.PROFILE)
+        before = rdflib.NORMALIZE_LITERALS
+        try:
+            return shacl_validate(ei.closure(graph, ont), shacl_graph=Graph().parse(ei.SHAPES),
+                                  inference='none', do_owl_imports=False)[0]
+        finally:
+            # pySHACL mutates this process-global flag; restore it or a later test that
+            # depends on literal spelling fails for an unrelated reason.
+            rdflib.NORMALIZE_LITERALS = before
+
+    def test_accepted_claim_shapes_are_enforced(self):
+        graph, process = self.accepted()
+        self.assertTrue(self.conforms(graph))
+        graph.remove((process, S.hasParticipant, D['events/A/patient-role']))
+        self.assertFalse(self.conforms(graph))
+
+    def test_accepted_process_still_needs_its_interval(self):
+        graph, process = self.accepted()
+        graph.remove((process, S.atTime, D['events/A/interval']))
+        self.assertFalse(self.conforms(graph))
+
+    def test_source_graph_types_nothing_as_a_process(self):
+        """The source graph alone has no process; the accepted graph does."""
+        self.assertEqual(set(self.good_graph.subjects(RDF.type, EI.IntervalProcess)), set())
+        graph, process = self.accepted()
+        self.assertIn((process, RDF.type, EI.Infusion), graph)
+
+    def test_directly_typed_process_in_a_source_graph_is_refused(self):
+        """The other route to asserting an occurrence, with no participation triple."""
+        g = self.graph(); g.add((D['events/A/asserted'], RDF.type, ei.EI.Infusion))
+        self.bad_graph(g, 'PROCESS_ASSERTED_BY_TYPE')
+
+    def test_claim_names_exactly_one_reference_object(self):
+        """Caught by ei:ClaimShape, not by the Python accessor.
+
+        `one(...)` in project() reads the kind and would raise on a second reference
+        object, but SHACL refuses the graph first, so that branch is unreachable. The
+        shape is the live gate and is what this asserts.
+        """
+        g = self.graph(); g.add((D['events/A'], S.refersTo, ei.EI.SpecimenCollection))
+        self.bad_graph(g, 'SHACL')
+
+    def test_claim_without_a_reference_object_is_refused(self):
+        g = self.graph(); g.remove((D['events/A'], S.refersTo, ei.EI.Infusion))
+        self.bad_graph(g, 'SHACL')
 
     def test_optional_duration_is_computed_without_fabricating_datum(self):
         binding = self.evidence['bindings'][self.by_id['D'].evidence_id]
@@ -251,9 +323,9 @@ class IntervalTests(unittest.TestCase):
             self.assertEqual(result['status'], 'INCOMPARABLE')
             self.assertIn('TRAJECTORY_SCOPE_MISMATCH', result['reason_codes'])
 
-    def test_generic_participation_is_not_patient_role_evidence(self):
-        g = self.graph(); g.remove((D['events/A'], S.hasParticipant, D['events/A/patient-role']))
-        g.add((D['events/A'], S.hasParticipant, D['persons/P1']))
+    def test_generic_reference_is_not_patient_role_evidence(self):
+        g = self.graph(); g.remove((D['events/A'], S.refersTo, D['events/A/patient-role']))
+        g.add((D['events/A'], S.refersTo, D['persons/P1']))
         self.bad_graph(g, 'SHACL')
 
     def test_care_provider_is_not_patient(self):
@@ -268,7 +340,10 @@ class IntervalTests(unittest.TestCase):
         self.assertEqual(next(r for r in records if r.event_id == 'A').patient_bearer, str(D['persons/P1']))
 
     def test_shared_patient_role_rejected(self):
-        g = self.graph(); g.set((D['events/B'], S.hasParticipant, D['events/A/patient-role']))
+        # A set() here would also drop the reference object, failing for another reason.
+        g = self.graph()
+        g.remove((D['events/B'], S.refersTo, D['events/B/patient-role']))
+        g.add((D['events/B'], S.refersTo, D['events/A/patient-role']))
         self.bad_graph(g, 'ROLE_REUSED')
 
     def test_ambiguous_patient_bearer_rejected(self):
@@ -294,7 +369,9 @@ class IntervalTests(unittest.TestCase):
         self.bad_graph(g, 'INVALID_SOURCE_HASH')
 
     def test_reused_interval_rejected(self):
-        g = self.graph(); g.set((D['events/B'], S.atTime, D['events/A/interval']))
+        g = self.graph()
+        g.remove((D['events/B'], S.hasDirectPart, D['events/B/interval']))
+        g.add((D['events/B'], S.hasDirectPart, D['events/A/interval']))
         self.bad_graph(g, 'REUSED_TEMPORAL_DESCRIPTOR')
 
     def test_prohibited_predicates_and_blank_nodes_rejected(self):
@@ -321,7 +398,7 @@ class IntervalTests(unittest.TestCase):
 
     def test_old_point_profile_is_not_silently_accepted(self):
         old = Graph().parse(ROOT / 'examples/pro-solid/graph.ttl')
-        self.bad_graph(old, 'UNSUPPORTED_OBJECT_PROPERTY|EMPTY_OR_MIXED_PROFILE')
+        self.bad_graph(old, 'UNSUPPORTED_OBJECT_PROPERTY|UNSUPPORTED_INSTANCE_CLASS|EMPTY_PROJECTION')
         with self.assertRaises(base.ContractError):
             base.project(self.good_graph, json.loads((ROOT / 'examples/pro-solid/manifest.json').read_text()))
 

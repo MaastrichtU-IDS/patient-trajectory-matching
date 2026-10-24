@@ -14,6 +14,7 @@ from rdflib import Graph, Literal, RDF, URIRef, XSD
 
 from . import exact_intervals as ei
 from . import interval_cohort_reference as reference
+from . import pro_solid as base
 
 PROFILE_ID = 'interval-cohort-1.0'
 SCHEMA = ei.ROOT / 'schemas/interval-cohort.schema.json'
@@ -56,10 +57,22 @@ class PreparedSnapshot:
 
 
 def prepare(graph, manifest):
+    """Index each claim by the process kinds a slot may select it with.
+
+    A claim is typed ei:IntervalClaim; the kind it reports is carried by the reference
+    object it refers to, not by rdf:type, so the selectable classes are that reference
+    object's named ancestors in the loaded ontology. A broad slot asking for
+    sulo:Process and a refined slot asking for ei:Infusion both still match, but neither
+    is an entailment about the claim: no process is asserted, and the ancestor walk is
+    over the class hierarchy the reference object is punned from.
+    """
     intervals, evidence = ei.project(graph, manifest)
-    view = ei.validate_graph(graph)
-    types = {r.process: frozenset(str(c) for c in view.objects(URIRef(r.process), RDF.type)
-                                 if str(c) in SELECTORS) for r in intervals}
+    ont = base.ontology() + Graph().parse(ei.PROFILE)
+    types = {}
+    for r in intervals:
+        kind = URIRef(evidence['bindings'][r.evidence_id]['claimed_kind'])
+        types[r.claim] = frozenset(str(c) for c in base.named_ancestors(ont, kind)
+                                   if str(c) in SELECTORS)
     return PreparedSnapshot(intervals, evidence, types)
 
 
@@ -119,14 +132,14 @@ def indexed_search(candidates, constraints):
             return
         name = order[len(binding)]
         for record in eligible(name, binding):
-            if record.process in used:
+            if record.claim in used:
                 continue
             stats['candidate_extensions'] += 1
             binding[name] = record
             statuses = [compare(binding, c)['status'] for c in constraints
                         if name in (c['left'], c['right']) and c['left'] in binding and c['right'] in binding]
             if 'NOT_SATISFIED' not in statuses:
-                visit(binding, used | {record.process}, unknown or 'INCOMPARABLE' in statuses)
+                visit(binding, used | {record.claim}, unknown or 'INCOMPARABLE' in statuses)
             del binding[name]
 
     visit({}, set(), False)
@@ -148,7 +161,7 @@ def execute(snapshot, query, *, engine='indexed'):
             clocks[record.clock].extend((record.start_us, record.end_us))
         for coordinates in clocks.values():
             ei.checked_us(max(coordinates) - min(coordinates))
-        candidates = {slot['id']: [r for r in records if slot['class_iri'] in snapshot.types[r.process]]
+        candidates = {slot['id']: [r for r in records if slot['class_iri'] in snapshot.types[r.claim]]
                       for slot in query['slots']}
         search = indexed_search if engine == 'indexed' else reference.search
         found, stats = search(candidates, query['constraints'])
@@ -156,7 +169,7 @@ def execute(snapshot, query, *, engine='indexed'):
             totals[name] += value
         matches, unresolved = [], []
         for binding, status in found:
-            slots = {name: {'event_id': r.event_id, 'process': r.process, 'patient_role': r.patient_role,
+            slots = {name: {'event_id': r.event_id, 'claim': r.claim, 'patient_role': r.patient_role,
                             'patient_bearer': r.patient_bearer, 'evidence_id': r.evidence_id,
                             'selected_class_iri': next(s['class_iri'] for s in query['slots'] if s['id'] == name)}
                      for name, r in sorted(binding.items())}

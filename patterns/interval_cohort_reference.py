@@ -33,7 +33,7 @@ def search(candidates, constraints):
     found = []
     examined = 0
     for values in product(*(candidates[name] for name in names)):
-        if len({value.process for value in values}) != len(values):
+        if len({value.claim for value in values}) != len(values):
             continue
         examined += 1
         binding = dict(zip(names, values))

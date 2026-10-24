@@ -8,8 +8,8 @@
   "existing_oracle_property_checks": 7,
   "scope": "synthetic PRO/SOLID adapter and three-slot exemplar only",
   "files": {
-    "patterns/pro_solid.py": "fe6e907809dd0193675d6fa7c4ad17cc511fe3d46854765e7ee0365905d90df5",
-    "patterns/test_pro_solid.py": "99dab4bc0fc834bb7f756b77e7e590d3f7a8eca0fb367990d65f97cb87608660",
+    "patterns/pro_solid.py": "65ef241757dacfe7238f88953c1d7bb2602afefae5744f0c4d2cda4a8e349c75",
+    "patterns/test_pro_solid.py": "6d8daa5685a3c83230ed9fcc54bfb56c94c0e88ea8b86edfbcecfe79c4dd83c8",
     "ontology/pro-solid-profile.ttl": "f526e94dbdda7d28a472cf8cc8f14f1424f2feec02be58e35bb956fc5d95f387",
     "ontology/pro-solid-shapes.ttl": "20c2a92f543c0fd2b169271872e64a9f390ec101b5cd9f8c08e9062c53076c32",
     "ontology/sulo-pin.json": "bd9665681d5210ee3df6cb14814e8b68251db263a02f17262baf07380132e04c",

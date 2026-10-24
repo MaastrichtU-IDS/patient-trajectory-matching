@@ -79,7 +79,7 @@ class UseCaseConformanceTests(unittest.TestCase):
             for trajectory in result["trajectories"]:
                 for match in trajectory["matches"] + trajectory["unresolved_bindings"]:
                     for slot in match["slots"].values():
-                        for key in ("process", "patient_role", "patient_bearer", "evidence_id"):
+                        for key in ("claim", "patient_role", "patient_bearer", "evidence_id"):
                             self.assertIn(key, slot)
                         evidence = result["evidence"]["bindings"][slot["evidence_id"]]
                         self.assertIn("source_record", evidence)

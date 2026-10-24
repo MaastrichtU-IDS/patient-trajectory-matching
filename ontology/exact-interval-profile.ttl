@@ -10,6 +10,30 @@ ei:Profile a owl:Ontology ;
 ei:IntervalProcess a owl:Class ; rdfs:subClassOf sulo:Process .
 ei:Infusion a owl:Class ; rdfs:subClassOf ei:IntervalProcess .
 ei:SpecimenCollection a owl:Class ; rdfs:subClassOf ei:IntervalProcess .
+
+# What a source row asserts, held apart from whether it is so. The same reference-object
+# pattern as the PRO/SOLID profile: each process class IRI is punned as a sulo:Collection
+# individual, and a claim says which kind of process it reports by referring to that
+# individual. The collection is empty, so no process is entailed; acceptance adds the
+# member, and the equivalence makes that member an instance of the class.
+#
+# sulo:hasParticipant is absent from a claim by design. Its rdfs:domain is sulo:Process,
+# so a single participation triple would assert the occurrence whatever the claim is
+# typed as, and no arrangement of class axioms prevents that.
+ei:IntervalClaim a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+
+ei:Infusion a owl:NamedIndividual, sulo:Collection ;
+  owl:equivalentClass [ a owl:Restriction ; owl:onProperty sulo:isItemIn ; owl:hasValue ei:Infusion ] .
+ei:SpecimenCollection a owl:NamedIndividual, sulo:Collection ;
+  owl:equivalentClass [ a owl:Restriction ; owl:onProperty sulo:isItemIn ; owl:hasValue ei:SpecimenCollection ] .
+
+ei:InfusionClaim a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf
+    ( ei:IntervalClaim [ a owl:Restriction ; owl:onProperty sulo:refersTo ; owl:hasValue ei:Infusion ] ) ] .
+ei:SpecimenCollectionClaim a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf
+    ( ei:IntervalClaim [ a owl:Restriction ; owl:onProperty sulo:refersTo ; owl:hasValue ei:SpecimenCollection ] ) ] .
+ei:InfusionClaim owl:disjointWith ei:SpecimenCollectionClaim .
 ei:ExactStartTime a owl:Class ; rdfs:subClassOf sulo:StartTime .
 ei:ExactEndTime a owl:Class ; rdfs:subClassOf sulo:EndTime .
 ei:ElapsedDuration a owl:Class ; rdfs:subClassOf sulo:Duration .

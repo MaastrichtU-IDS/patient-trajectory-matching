@@ -256,6 +256,29 @@ def implied_types(ont, g):
     return implied
 
 
+def process_classes(ont):
+    """Named classes whose ancestors include sulo:Process, including sulo:Process."""
+    # named_ancestors includes the class itself, and SULO declares sulo:Process an
+    # owl:Class, so the root is covered without being added separately.
+    return {c for c in ont.subjects(RDF.type, OWL.Class)
+            if isinstance(c, URIRef) and S.Process in named_ancestors(ont, c)}
+
+
+def refuse_asserted_process(source, ont):
+    """A source graph records claims. Neither route to asserting an occurrence is allowed.
+
+    Two distinct routes, so two codes. sulo:hasParticipant has rdfs:domain sulo:Process,
+    so a participation triple asserts the occurrence whatever its subject is typed as.
+    Typing an individual into a process class asserts it directly. Both are checked on
+    the source, before closure and SHACL, so each reports what is actually wrong rather
+    than surfacing as a missing-participant shape violation.
+    """
+    require(not list(source.triples((None, S.hasParticipant, None))),
+            'PROCESS_ASSERTED_BY_PARTICIPATION')
+    require(not (set(source.objects(None, RDF.type)) & process_classes(ont)),
+            'PROCESS_ASSERTED_BY_TYPE')
+
+
 def disjoint_groups(ont):
     """Named disjoint class groups declared by the loaded ontology.
 
@@ -280,14 +303,9 @@ def disjoint_groups(ont):
 
 
 def validate_graph(source):
-    # sulo:hasParticipant is declared with rdfs:domain sulo:Process, so a single
-    # participation triple asserts that the process occurred no matter how its subject is
-    # typed. A source graph records claims and must not contain one; the process is
-    # asserted only when a claim is accepted. Verified by negative control.
-    require(not list(source.triples((None, S.hasParticipant, None))),
-            'PROCESS_ASSERTED_BY_PARTICIPATION')
-    g = materialize(source)
     ont = ontology()
+    refuse_asserted_process(source, ont)
+    g = materialize(source)
     groups = disjoint_groups(ont)
     for subject in set(g.subjects(RDF.type, None)):
         types = set(g.objects(subject, RDF.type))
