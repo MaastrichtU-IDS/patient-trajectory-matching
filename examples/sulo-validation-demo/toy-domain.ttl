@@ -1,0 +1,15 @@
+@prefix toy:  <https://example.org/sulo-demo/> .
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<https://example.org/sulo-demo/toy-domain> a owl:Ontology ;
+  rdfs:comment "A contradiction that only a property axiom can find: the infusion pump is a sulo:Object, and sulo:hasParticipant has domain sulo:Process, which SULO declares disjoint with sulo:Object." .
+
+toy:InfusionPump a owl:Class ; rdfs:subClassOf sulo:Object .
+toy:Nurse a owl:Class ; rdfs:subClassOf sulo:Object .
+
+toy:pump-7 a owl:NamedIndividual, toy:InfusionPump ;
+  sulo:hasParticipant toy:nurse-3 .
+
+toy:nurse-3 a owl:NamedIndividual, toy:Nurse .
