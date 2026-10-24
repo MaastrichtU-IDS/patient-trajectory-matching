@@ -17,6 +17,30 @@ ex:RoleShape a sh:NodeShape ; sh:targetClass sulo:Role ;
 ex:PatientRoleShape a sh:NodeShape ; sh:targetClass ex:PatientRole ;
   sh:property [ sh:path sulo:isFeatureOf ; sh:class ex:Person ] .
 
+# What a source row asserts. The claim carries the structure the process used to carry:
+# one patient role, one anchor time, and the role specific to its kind. It reaches them
+# through sulo:refersTo and sulo:hasPart, never sulo:hasParticipant, whose domain would
+# assert the process.
+ex:ProcessClaimShape a sh:NodeShape ; sh:targetClass ex:ProcessClaim ;
+  sh:property [ sh:path sulo:refersTo ;
+                sh:qualifiedValueShape [ sh:in ( ex:Measurement ex:DrugAdministration ) ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:refersTo ; sh:qualifiedValueShape [ sh:class ex:PatientRole ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:hasPart ; sh:qualifiedValueShape [ sh:class ex:RecordedAnchorTime ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:xone (
+    [ sh:property [ sh:path sulo:refersTo ; sh:hasValue ex:Measurement ] ;
+      sh:property [ sh:path sulo:refersTo ; sh:qualifiedValueShape [ sh:class ex:MeasurementResultRole ] ;
+                    sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ]
+    [ sh:property [ sh:path sulo:refersTo ; sh:hasValue ex:DrugAdministration ] ;
+      sh:property [ sh:path sulo:refersTo ; sh:qualifiedValueShape [ sh:class ex:AdministeredDrugRole ] ;
+                    sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ] ) .
+
+# The obligations an accepted claim's process must meet. No source graph contains a
+# process, so these three shapes never fire during a normal run. They are exercised
+# directly against a constructed accepted graph by test_accepted_claim_shapes_are_enforced,
+# which is what keeps them from being three shapes that check nothing.
 ex:ProcessShape a sh:NodeShape ; sh:targetClass ex:RecordedClinicalProcess ;
   sh:xone ( [ sh:class ex:Measurement ] [ sh:class ex:DrugAdministration ] ) ;
   sh:property [ sh:path sulo:hasParticipant ; sh:qualifiedValueShape [ sh:class ex:PatientRole ] ;
@@ -45,4 +69,4 @@ ex:TimeShape a sh:NodeShape ; sh:targetClass ex:RecordedAnchorTime ;
                 sh:or ( [ sh:datatype xsd:dateTime ] [ sh:datatype xsd:dateTimeStamp ] ) ] .
 
 ex:SourceRecordShape a sh:NodeShape ; sh:targetClass ex:SourceRecord ;
-  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:RecordedClinicalProcess ] .
+  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:ProcessClaim ] .

@@ -41,7 +41,7 @@ def build():
                     'source_record_sha256':event['provenance']['source_record_sha256'],
                     'original_value':event['original_value'],'original_unit':event['original_unit'],
                     'availability_policy':POLICY,'binding':binding},
-                'process':{'id':binding['process'],'hasParticipant':binding['patient_role']},
+                'claim':{'id':binding['claim'],'refersTo':binding['patient_role']},
                 'role':{'id':binding['patient_role'],'isFeatureOf':binding['patient_bearer']}}
             if event['event_kind']=='measurement':record['unit']=event['unit']
             # Derived from the case's own coverage warrant rather than copied from an
@@ -53,7 +53,7 @@ def build():
         patient['records'].append({'id':aid,'component':'age_band','value':age_band,'occurrence_us':-HOUR,
             'available_at_us':-HOUR,'clock':clock,
             'source':{'document':'demo/cohort-data.json','row':f'{pid}/manifest/age','availability_policy':POLICY},
-            'process':{'id':aid+'-process','hasParticipant':aid+'-role'},
+            'claim':{'id':aid+'-claim','refersTo':aid+'-role'},
             'role':{'id':aid+'-role','isFeatureOf':patient['bearer_id']}})
         patients.append(patient)
     dataset={'dataset_id':'guided-cohort-authored-history-overlay-1.0',

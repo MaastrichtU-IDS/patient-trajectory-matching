@@ -61,7 +61,7 @@
               "source_record_sha256": "02432e698a4eeac59943a232113efed32d91d69451a6e91379a698a4e3de35c1",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:227c59f1f1cd465e88c32421c2c64ce530acbe2d8ef22342eaff534d8e6423b6"
+                "pro-solid:d9e5f0ba38115c71fd6119a452ad62335c75d7925224bd8ab3189d9e44f43bcd"
               ]
             },
             "record_version": 1,
@@ -103,7 +103,7 @@
               "source_record_sha256": "045832a1e5e95e8020693e64545ba061f48642ddff3f350be8dbb9436c0e8dcd",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:3773b53e79c92d84e5505895e9ee38ffce407e97a6bbb83509ce53099a1264cd"
+                "pro-solid:029ad251391e64969a88692caacf7e81637d0f8a84933153e6cf5488493f5e69"
               ]
             },
             "record_version": 1,
@@ -145,7 +145,7 @@
               "source_record_sha256": "57987a8168fba95d22fbcdd2de7fb2210964b3e771de342c7adafb68801f3c1b",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:b8f836a971942c009586675006fc228e24b696a326732547bb8ffbe54edb4854"
+                "pro-solid:0567c63ab8c9d4b13ee9781e7168742413f879b132b5e01de7566cf940a76b80"
               ]
             },
             "record_version": 1,
@@ -156,11 +156,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "eae64d6dcf633340fff9edf7eaa5cc234077b380822b9880805620ef472c898a",
+        "source_graph_sha256": "52c9a4b8fbf65c92abb53a50b0a730fedcaf001f5575c5ddd55459ef40f0aeeb",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P00-B": {
-            "process": "https://example.org/trajectory/data/event-P00-B",
+            "claim": "https://example.org/trajectory/data/event-P00-B",
             "patient_role": "https://example.org/trajectory/data/P00-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P00",
             "source_record": "https://example.org/trajectory/data/record-P00-B",
@@ -177,10 +177,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:227c59f1f1cd465e88c32421c2c64ce530acbe2d8ef22342eaff534d8e6423b6"
+            "assertion_id": "pro-solid:d9e5f0ba38115c71fd6119a452ad62335c75d7925224bd8ab3189d9e44f43bcd"
           },
           "P00-E": {
-            "process": "https://example.org/trajectory/data/event-P00-E",
+            "claim": "https://example.org/trajectory/data/event-P00-E",
             "patient_role": "https://example.org/trajectory/data/P00-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P00",
             "source_record": "https://example.org/trajectory/data/record-P00-E",
@@ -194,10 +194,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:3773b53e79c92d84e5505895e9ee38ffce407e97a6bbb83509ce53099a1264cd"
+            "assertion_id": "pro-solid:029ad251391e64969a88692caacf7e81637d0f8a84933153e6cf5488493f5e69"
           },
           "P00-F": {
-            "process": "https://example.org/trajectory/data/event-P00-F",
+            "claim": "https://example.org/trajectory/data/event-P00-F",
             "patient_role": "https://example.org/trajectory/data/P00-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P00",
             "source_record": "https://example.org/trajectory/data/record-P00-F",
@@ -214,7 +214,7 @@
             "normalized_value": "1.30",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:b8f836a971942c009586675006fc228e24b696a326732547bb8ffbe54edb4854"
+            "assertion_id": "pro-solid:0567c63ab8c9d4b13ee9781e7168742413f879b132b5e01de7566cf940a76b80"
           }
         }
       },
@@ -336,7 +336,7 @@
               "source_record_sha256": "b606a1e6405efc4e5edceb9a85890a395acadf1ef5183c61623f8425a60a31f5",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:94848b9615fef0eabef6867c49fde9dd9ea06a7cf9c09b2c79d550528440689f"
+                "pro-solid:9a8792af8a01a4e195a7904bbe4ca8ab0a5bd258ae5073b74fd0f575a71056aa"
               ]
             },
             "record_version": 1,
@@ -378,7 +378,7 @@
               "source_record_sha256": "a745f710a121b8524fd05f02d6e48ee6e0fb6b6817d132a43e749b770e1155c0",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:653de8c430f468c754c4c0c108bacbbb8215abdb165917de0dcd98ad2feb4a01"
+                "pro-solid:f676c5b50acd7352c830621723dd82f8c242b04f3305a55aa056906d8efe8ce4"
               ]
             },
             "record_version": 1,
@@ -420,7 +420,7 @@
               "source_record_sha256": "aa1db0f5bc56db6f9213b131574634dd39487b5e743be320986b0d849bee7479",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:0b3e215275df47c24ddd166065703265512e5495e6a857335d5b3c3fab8119de"
+                "pro-solid:a20d6d3bb3cf956d8cb6f6aee0706ac0af48878604931bbbef4f73c48d485d9f"
               ]
             },
             "record_version": 1,
@@ -431,11 +431,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "698e18ea79291f7f879ceac8bae9f4278dc4ac39e0051eaf6bc8e9cc9d6d27a6",
+        "source_graph_sha256": "c1b9eaf9ed75cd160705c37b16d821edab5056a99fd2efb8842482c72072ec27",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P01-B": {
-            "process": "https://example.org/trajectory/data/event-P01-B",
+            "claim": "https://example.org/trajectory/data/event-P01-B",
             "patient_role": "https://example.org/trajectory/data/P01-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P01",
             "source_record": "https://example.org/trajectory/data/record-P01-B",
@@ -452,10 +452,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:94848b9615fef0eabef6867c49fde9dd9ea06a7cf9c09b2c79d550528440689f"
+            "assertion_id": "pro-solid:9a8792af8a01a4e195a7904bbe4ca8ab0a5bd258ae5073b74fd0f575a71056aa"
           },
           "P01-E": {
-            "process": "https://example.org/trajectory/data/event-P01-E",
+            "claim": "https://example.org/trajectory/data/event-P01-E",
             "patient_role": "https://example.org/trajectory/data/P01-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P01",
             "source_record": "https://example.org/trajectory/data/record-P01-E",
@@ -469,10 +469,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:653de8c430f468c754c4c0c108bacbbb8215abdb165917de0dcd98ad2feb4a01"
+            "assertion_id": "pro-solid:f676c5b50acd7352c830621723dd82f8c242b04f3305a55aa056906d8efe8ce4"
           },
           "P01-F": {
-            "process": "https://example.org/trajectory/data/event-P01-F",
+            "claim": "https://example.org/trajectory/data/event-P01-F",
             "patient_role": "https://example.org/trajectory/data/P01-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P01",
             "source_record": "https://example.org/trajectory/data/record-P01-F",
@@ -489,7 +489,7 @@
             "normalized_value": "1.30",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:0b3e215275df47c24ddd166065703265512e5495e6a857335d5b3c3fab8119de"
+            "assertion_id": "pro-solid:a20d6d3bb3cf956d8cb6f6aee0706ac0af48878604931bbbef4f73c48d485d9f"
           }
         }
       },
@@ -611,7 +611,7 @@
               "source_record_sha256": "a73769d08de25713651ea918afa514db7cdb34e499c05291594e4806a042ad17",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:8cdccf196f9d6c5417781cfec8c733c425ebd534e4555e8112ef4c36b17c87b3"
+                "pro-solid:059918c52ecfb608fa2464c9d8c4ee6c460206792d4f431ddb5580f849c20b44"
               ]
             },
             "record_version": 1,
@@ -653,7 +653,7 @@
               "source_record_sha256": "a0aed718be8671dc8d7f0fed0489f0e53cc77d1c06dfcc686c30b6bddf3f69e0",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:9b1fb758dae569bf17a7cfa152309e7746d7b151024e55e171689c1a849f0bc8"
+                "pro-solid:2ded4b81bfac18426a11639590657a2b38efb8dc8e209a8c0cfaa4a1826b01ff"
               ]
             },
             "record_version": 1,
@@ -695,7 +695,7 @@
               "source_record_sha256": "89ecc1e297bc12c759b531979ee5bbde66f05d6e54768c8246b71ecec3d4bbb6",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:347ee323620b5a06f02e1590d4e5a980260ac5e67f406619f32db9a15aef71ef"
+                "pro-solid:bf4fb917c3e64fc9f5ffd437b687be92b7a62e95b9999c9ed020e836a0d57193"
               ]
             },
             "record_version": 1,
@@ -706,11 +706,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "f74946cf1e8fb3a1a114e299ef4df2a70e3eea94581e33c269fe6216d0515154",
+        "source_graph_sha256": "c0170c324865ccec929582e0fd48905f13786c2d4cdf3f7e163e9df5516fc343",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P02-B": {
-            "process": "https://example.org/trajectory/data/event-P02-B",
+            "claim": "https://example.org/trajectory/data/event-P02-B",
             "patient_role": "https://example.org/trajectory/data/P02-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P02",
             "source_record": "https://example.org/trajectory/data/record-P02-B",
@@ -727,10 +727,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:8cdccf196f9d6c5417781cfec8c733c425ebd534e4555e8112ef4c36b17c87b3"
+            "assertion_id": "pro-solid:059918c52ecfb608fa2464c9d8c4ee6c460206792d4f431ddb5580f849c20b44"
           },
           "P02-E": {
-            "process": "https://example.org/trajectory/data/event-P02-E",
+            "claim": "https://example.org/trajectory/data/event-P02-E",
             "patient_role": "https://example.org/trajectory/data/P02-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P02",
             "source_record": "https://example.org/trajectory/data/record-P02-E",
@@ -744,10 +744,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugAChild",
-            "assertion_id": "pro-solid:9b1fb758dae569bf17a7cfa152309e7746d7b151024e55e171689c1a849f0bc8"
+            "assertion_id": "pro-solid:2ded4b81bfac18426a11639590657a2b38efb8dc8e209a8c0cfaa4a1826b01ff"
           },
           "P02-F": {
-            "process": "https://example.org/trajectory/data/event-P02-F",
+            "claim": "https://example.org/trajectory/data/event-P02-F",
             "patient_role": "https://example.org/trajectory/data/P02-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P02",
             "source_record": "https://example.org/trajectory/data/record-P02-F",
@@ -764,7 +764,7 @@
             "normalized_value": "1.40",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:347ee323620b5a06f02e1590d4e5a980260ac5e67f406619f32db9a15aef71ef"
+            "assertion_id": "pro-solid:bf4fb917c3e64fc9f5ffd437b687be92b7a62e95b9999c9ed020e836a0d57193"
           }
         }
       },
@@ -886,7 +886,7 @@
               "source_record_sha256": "795583a23d4719e98aa459a7619d8a40bb60e0a65a57576822ed2391598c4837",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:3846d8e7966e25cc22ef7731a33906ce4e396ac19036f8eeca29ab663692059d"
+                "pro-solid:79c114cef744a4a50ee26ebfafafd8667c15a902fe5e864cdd041619aba18798"
               ]
             },
             "record_version": 1,
@@ -928,7 +928,7 @@
               "source_record_sha256": "3455b082f197ccfe4fb343817c1e116930124ca8633365d7a564a4f1b95bad4f",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:43595fc5526d6495e9aa70e4e70099dcc9765dca5c3abeec00782461bcfbbd84"
+                "pro-solid:96c0e30a89b2f4180d582789e6e574dd2d86ebe5b56a66241c01912cf8767bfd"
               ]
             },
             "record_version": 1,
@@ -970,7 +970,7 @@
               "source_record_sha256": "49be67ed001defff2dbdd3038fe1ae05929a8e9f65fcc14a3831022a2b812007",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:f349f6146510ad5827b017b9f160d0e247db03c428fc04785b623279ff9a1fe4"
+                "pro-solid:5f6c414df0f9925854ae0f7a672cf5fe17f66fc1d080ba42a5714024f699ac36"
               ]
             },
             "record_version": 1,
@@ -981,11 +981,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "a68a8bb2944e6bda77b363e7c5b64416df3d29ce811647406d2c72090f729dba",
+        "source_graph_sha256": "02934b5f009e2b28c9796fc223f17a9ff2430def8e13e9287ea1ac18af904290",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P03-B": {
-            "process": "https://example.org/trajectory/data/event-P03-B",
+            "claim": "https://example.org/trajectory/data/event-P03-B",
             "patient_role": "https://example.org/trajectory/data/P03-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P03",
             "source_record": "https://example.org/trajectory/data/record-P03-B",
@@ -1002,10 +1002,10 @@
             "normalized_value": "0.80",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:3846d8e7966e25cc22ef7731a33906ce4e396ac19036f8eeca29ab663692059d"
+            "assertion_id": "pro-solid:79c114cef744a4a50ee26ebfafafd8667c15a902fe5e864cdd041619aba18798"
           },
           "P03-E": {
-            "process": "https://example.org/trajectory/data/event-P03-E",
+            "claim": "https://example.org/trajectory/data/event-P03-E",
             "patient_role": "https://example.org/trajectory/data/P03-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P03",
             "source_record": "https://example.org/trajectory/data/record-P03-E",
@@ -1019,10 +1019,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:43595fc5526d6495e9aa70e4e70099dcc9765dca5c3abeec00782461bcfbbd84"
+            "assertion_id": "pro-solid:96c0e30a89b2f4180d582789e6e574dd2d86ebe5b56a66241c01912cf8767bfd"
           },
           "P03-F": {
-            "process": "https://example.org/trajectory/data/event-P03-F",
+            "claim": "https://example.org/trajectory/data/event-P03-F",
             "patient_role": "https://example.org/trajectory/data/P03-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P03",
             "source_record": "https://example.org/trajectory/data/record-P03-F",
@@ -1039,7 +1039,7 @@
             "normalized_value": "1.20",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:f349f6146510ad5827b017b9f160d0e247db03c428fc04785b623279ff9a1fe4"
+            "assertion_id": "pro-solid:5f6c414df0f9925854ae0f7a672cf5fe17f66fc1d080ba42a5714024f699ac36"
           }
         }
       },
@@ -1161,7 +1161,7 @@
               "source_record_sha256": "8a70155bd9e2f78ee6c4f379749de1242edb87fdadfd867b9c8be2ad5663b3a2",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:dea246e426dd02f184e4c3f9b690fbff5bb0c22af6f01d61eef011234e6e8d45"
+                "pro-solid:8948ebcf21cd672862a6f50c98ae1d87ccd3db547260751117d21e0aa7a0d907"
               ]
             },
             "record_version": 1,
@@ -1203,7 +1203,7 @@
               "source_record_sha256": "c84de22ff58d58c95d8fa236724fb01b0a3a252bd647c65a8935d2ab6bb8b625",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:58643ade2c60220814b278b174daf8ebe3ea32c4d1d366c154f31303174f3852"
+                "pro-solid:2a361bf52c4af41fd4ccd1061371ba280453bae922ba5a253c993cb6b580be87"
               ]
             },
             "record_version": 1,
@@ -1245,7 +1245,7 @@
               "source_record_sha256": "5589dd102d03ebf95841e221da0cffcc3c27dec87771024ec875d19f59700cbe",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:955e4b28663ed924d2f374ad814580554834a68f6f310925c048c657513aee6c"
+                "pro-solid:ffbc9ee3be63d1de617661aac2cf4f872f6582f6f2e8dd606561a33b9b09d0bf"
               ]
             },
             "record_version": 1,
@@ -1256,11 +1256,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "4c8a9d22402e4c75e7ae68a9b835707df7e6e32d0fc5780c8741719a709657b4",
+        "source_graph_sha256": "0926d58c702dd729b2c2a5f2530fcc4a1cde84c260e7f88758ed79b317ef4e8a",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P04-B": {
-            "process": "https://example.org/trajectory/data/event-P04-B",
+            "claim": "https://example.org/trajectory/data/event-P04-B",
             "patient_role": "https://example.org/trajectory/data/P04-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P04",
             "source_record": "https://example.org/trajectory/data/record-P04-B",
@@ -1277,10 +1277,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:dea246e426dd02f184e4c3f9b690fbff5bb0c22af6f01d61eef011234e6e8d45"
+            "assertion_id": "pro-solid:8948ebcf21cd672862a6f50c98ae1d87ccd3db547260751117d21e0aa7a0d907"
           },
           "P04-E": {
-            "process": "https://example.org/trajectory/data/event-P04-E",
+            "claim": "https://example.org/trajectory/data/event-P04-E",
             "patient_role": "https://example.org/trajectory/data/P04-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P04",
             "source_record": "https://example.org/trajectory/data/record-P04-E",
@@ -1294,10 +1294,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugB",
-            "assertion_id": "pro-solid:58643ade2c60220814b278b174daf8ebe3ea32c4d1d366c154f31303174f3852"
+            "assertion_id": "pro-solid:2a361bf52c4af41fd4ccd1061371ba280453bae922ba5a253c993cb6b580be87"
           },
           "P04-F": {
-            "process": "https://example.org/trajectory/data/event-P04-F",
+            "claim": "https://example.org/trajectory/data/event-P04-F",
             "patient_role": "https://example.org/trajectory/data/P04-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P04",
             "source_record": "https://example.org/trajectory/data/record-P04-F",
@@ -1314,7 +1314,7 @@
             "normalized_value": "1.30",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:955e4b28663ed924d2f374ad814580554834a68f6f310925c048c657513aee6c"
+            "assertion_id": "pro-solid:ffbc9ee3be63d1de617661aac2cf4f872f6582f6f2e8dd606561a33b9b09d0bf"
           }
         }
       },
@@ -1436,7 +1436,7 @@
               "source_record_sha256": "978cc36872af7619d2c86fc4ea83464bbb3b1711ee32cd96fce533436114397e",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:18b3ec40ec4d809a0cc4263ace61488fc53725201434e66b7d4102b3b37b6a30"
+                "pro-solid:7450508f78a4089717168904ad071a00480fd111d596590a96eec88895ce367b"
               ]
             },
             "record_version": 1,
@@ -1478,7 +1478,7 @@
               "source_record_sha256": "f04994ec988cd4905064cc7a45f090aeb06a46c83fd85ee2ed46db6cf2967115",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:4f2072fa3317f9dcdffe5ee638e1551ed0dd7238b34d6b0a435ff89f7b2ff46a"
+                "pro-solid:cb4910b5b25485454b37448d45f0e234191030e77a006d9a728299f1d40eb30e"
               ]
             },
             "record_version": 1,
@@ -1520,7 +1520,7 @@
               "source_record_sha256": "13e06e9d186b7b4d4c6a339f8b5863394476a66e5e2ca4c06473e34e8bc558ec",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:abc2c5a6b53489d8ed4b6da1b92c665faefa24cda68dda4935ae4a5b3d925b61"
+                "pro-solid:f5f6bff5c445714ddc646f3b76555f71d53b29ae891d042a54fa417947ae2eea"
               ]
             },
             "record_version": 1,
@@ -1531,11 +1531,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "3903aeb6b77999099997fc1ef37b412b992040e2312aadebf61269ede7990beb",
+        "source_graph_sha256": "1d9ec2129d92dabadb18ea8aa5995c94f09242cd8f64b00ed71b62849b9f09f7",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P05-B": {
-            "process": "https://example.org/trajectory/data/event-P05-B",
+            "claim": "https://example.org/trajectory/data/event-P05-B",
             "patient_role": "https://example.org/trajectory/data/P05-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P05",
             "source_record": "https://example.org/trajectory/data/record-P05-B",
@@ -1552,10 +1552,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:18b3ec40ec4d809a0cc4263ace61488fc53725201434e66b7d4102b3b37b6a30"
+            "assertion_id": "pro-solid:7450508f78a4089717168904ad071a00480fd111d596590a96eec88895ce367b"
           },
           "P05-E": {
-            "process": "https://example.org/trajectory/data/event-P05-E",
+            "claim": "https://example.org/trajectory/data/event-P05-E",
             "patient_role": "https://example.org/trajectory/data/P05-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P05",
             "source_record": "https://example.org/trajectory/data/record-P05-E",
@@ -1569,10 +1569,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:4f2072fa3317f9dcdffe5ee638e1551ed0dd7238b34d6b0a435ff89f7b2ff46a"
+            "assertion_id": "pro-solid:cb4910b5b25485454b37448d45f0e234191030e77a006d9a728299f1d40eb30e"
           },
           "P05-F": {
-            "process": "https://example.org/trajectory/data/event-P05-F",
+            "claim": "https://example.org/trajectory/data/event-P05-F",
             "patient_role": "https://example.org/trajectory/data/P05-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P05",
             "source_record": "https://example.org/trajectory/data/record-P05-F",
@@ -1589,7 +1589,7 @@
             "normalized_value": "1.30",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:abc2c5a6b53489d8ed4b6da1b92c665faefa24cda68dda4935ae4a5b3d925b61"
+            "assertion_id": "pro-solid:f5f6bff5c445714ddc646f3b76555f71d53b29ae891d042a54fa417947ae2eea"
           }
         }
       },
@@ -1711,7 +1711,7 @@
               "source_record_sha256": "e19ce34855b669d30d9101b5d4cb623f3d646b622ca5b74b5de35a7c5dccc9fe",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:81b90d577407ec19a6cad1331c86936ae57e9ae5ddc22270697dc49a773da539"
+                "pro-solid:b76ea3de79276be5b03dd22e2e23ae841f01a0d7436cf54b152ad97e0b4ad67c"
               ]
             },
             "record_version": 1,
@@ -1753,7 +1753,7 @@
               "source_record_sha256": "b7b64a400980022df3af59edc2b1ddc9ecc3f918f53cb97c03be07f6828070d8",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:42507252bcb8e1a94286dfb03ee7b5ed9cb37c2667d39c4d16729921c2259557"
+                "pro-solid:5116b2b485cb1493364e93d6700e202e60e56b27f0a29d9e4372c2e7c6f7a2bc"
               ]
             },
             "record_version": 1,
@@ -1795,7 +1795,7 @@
               "source_record_sha256": "2a6ccbc558e987811bd392731b6046269e3cc6556e510d521e1c23417ab2bea5",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:0d64173c87151fd0096436b73969177b32c5f416a8b00f86d4db748fcbbeb69b"
+                "pro-solid:0b6326a9569c80ea173db3b9def8555ffa91f070452caa2c3c0e4827c12b0a15"
               ]
             },
             "record_version": 1,
@@ -1806,11 +1806,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "fc05dfddd57191d573e033dbd66db10f875979b98206f57d7375d8b9a8cbc4d4",
+        "source_graph_sha256": "6c045369d38a9a65b94a81416d57d774332d9145ef574e5213bdf086d0aa3705",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P06-B": {
-            "process": "https://example.org/trajectory/data/event-P06-B",
+            "claim": "https://example.org/trajectory/data/event-P06-B",
             "patient_role": "https://example.org/trajectory/data/P06-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P06",
             "source_record": "https://example.org/trajectory/data/record-P06-B",
@@ -1827,10 +1827,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:81b90d577407ec19a6cad1331c86936ae57e9ae5ddc22270697dc49a773da539"
+            "assertion_id": "pro-solid:b76ea3de79276be5b03dd22e2e23ae841f01a0d7436cf54b152ad97e0b4ad67c"
           },
           "P06-E": {
-            "process": "https://example.org/trajectory/data/event-P06-E",
+            "claim": "https://example.org/trajectory/data/event-P06-E",
             "patient_role": "https://example.org/trajectory/data/P06-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P06",
             "source_record": "https://example.org/trajectory/data/record-P06-E",
@@ -1844,10 +1844,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugB",
-            "assertion_id": "pro-solid:42507252bcb8e1a94286dfb03ee7b5ed9cb37c2667d39c4d16729921c2259557"
+            "assertion_id": "pro-solid:5116b2b485cb1493364e93d6700e202e60e56b27f0a29d9e4372c2e7c6f7a2bc"
           },
           "P06-F": {
-            "process": "https://example.org/trajectory/data/event-P06-F",
+            "claim": "https://example.org/trajectory/data/event-P06-F",
             "patient_role": "https://example.org/trajectory/data/P06-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P06",
             "source_record": "https://example.org/trajectory/data/record-P06-F",
@@ -1864,7 +1864,7 @@
             "normalized_value": "1.40",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:0d64173c87151fd0096436b73969177b32c5f416a8b00f86d4db748fcbbeb69b"
+            "assertion_id": "pro-solid:0b6326a9569c80ea173db3b9def8555ffa91f070452caa2c3c0e4827c12b0a15"
           }
         }
       },
@@ -1986,7 +1986,7 @@
               "source_record_sha256": "69eb37269974d68ef633a55dae0118b6df3fd2f8a2c1039de91621051e707788",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:fe38fd45d3b4b432101af79b1c7c8414160af963cd5aa47499e355ba18ab6a17"
+                "pro-solid:89699d343e9ffcb361eb4c27ec6af7da0dbfbaf547f3e78f806281e75d85612d"
               ]
             },
             "record_version": 1,
@@ -2028,7 +2028,7 @@
               "source_record_sha256": "f9079b7e5c6b72911b9163efba992712750850db5dbb10d4e4eeb84b8743db12",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:fcb31e0c05429c1fd46627f6681009992b5eaee2752a03ae0472a53e15600f05"
+                "pro-solid:88f3ba3660fe72a431af0e375fc5da1c9e584d1d1364a0bfeb97e50ade3d903a"
               ]
             },
             "record_version": 1,
@@ -2070,7 +2070,7 @@
               "source_record_sha256": "fd96d707887668cdb80db26c9768e80ff551b36634b0e021690a431e14faea78",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:63af2d9cf145036c27aaf323c7b39a75992e6bdd4d2871b39790dbe904784f52"
+                "pro-solid:9447ed91e9b10121449a31ac6134247df2ec444a826a0d1b4ebabc017e96765b"
               ]
             },
             "record_version": 1,
@@ -2081,11 +2081,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "9de8e493aa117dde68b6e97a12f65d18b6ea889702f9ae1e6beb3c83a1335877",
+        "source_graph_sha256": "fa56723cf4a22bf9ccd2b7adf42767a3de40e4138d4568cc6ea1c99e543f856d",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P07-B": {
-            "process": "https://example.org/trajectory/data/event-P07-B",
+            "claim": "https://example.org/trajectory/data/event-P07-B",
             "patient_role": "https://example.org/trajectory/data/P07-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P07",
             "source_record": "https://example.org/trajectory/data/record-P07-B",
@@ -2102,10 +2102,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:fe38fd45d3b4b432101af79b1c7c8414160af963cd5aa47499e355ba18ab6a17"
+            "assertion_id": "pro-solid:89699d343e9ffcb361eb4c27ec6af7da0dbfbaf547f3e78f806281e75d85612d"
           },
           "P07-E": {
-            "process": "https://example.org/trajectory/data/event-P07-E",
+            "claim": "https://example.org/trajectory/data/event-P07-E",
             "patient_role": "https://example.org/trajectory/data/P07-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P07",
             "source_record": "https://example.org/trajectory/data/record-P07-E",
@@ -2119,10 +2119,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:fcb31e0c05429c1fd46627f6681009992b5eaee2752a03ae0472a53e15600f05"
+            "assertion_id": "pro-solid:88f3ba3660fe72a431af0e375fc5da1c9e584d1d1364a0bfeb97e50ade3d903a"
           },
           "P07-F": {
-            "process": "https://example.org/trajectory/data/event-P07-F",
+            "claim": "https://example.org/trajectory/data/event-P07-F",
             "patient_role": "https://example.org/trajectory/data/P07-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P07",
             "source_record": "https://example.org/trajectory/data/record-P07-F",
@@ -2139,7 +2139,7 @@
             "normalized_value": "1.29",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:63af2d9cf145036c27aaf323c7b39a75992e6bdd4d2871b39790dbe904784f52"
+            "assertion_id": "pro-solid:9447ed91e9b10121449a31ac6134247df2ec444a826a0d1b4ebabc017e96765b"
           }
         }
       },
@@ -2261,7 +2261,7 @@
               "source_record_sha256": "209ba58f0d6268812123f4d50f7dac0d6d5b232f4ad845c7bd82d7e95fa95ca4",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:9deb5552cfcf6cba39b0da513bee91dcf4610be90c6ad36849921a4d40e99f00"
+                "pro-solid:17ae3370a661e6bd0e7f82c67224fc08db5c5578d9d5bbe66cebd0a2111a2822"
               ]
             },
             "record_version": 1,
@@ -2303,7 +2303,7 @@
               "source_record_sha256": "d4ea0b9bcf1a16956ade3974cc9c590ee92e4188c2660ba9cdb8a8ca15762b00",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:34f067036281a83e428214b30c2491b5b9010b13d3910f07171d2051c3d10bdf"
+                "pro-solid:84c5fcaff5a33962ddcfb45cad1488a087af3e621b27e471d8c2f6d96200b823"
               ]
             },
             "record_version": 1,
@@ -2345,7 +2345,7 @@
               "source_record_sha256": "0cb252fcb1e15420e039ea9a04497446aaa6963b3ac6dabd87359c3d6d6ddf91",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:179f112a7dbf65db671e3d3d020a8b9c04aaf9b929741d5c413a3185bbc31fb4"
+                "pro-solid:82697329447c204cb8c5cf02226547d5222c83021fca95674e175bf5f755488c"
               ]
             },
             "record_version": 1,
@@ -2356,11 +2356,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "a94ee3611c882ca1fc477a2b7a788abea615977f69ef2ead3306869c984087ad",
+        "source_graph_sha256": "ae8bdccd2c2337e79364174e86b3494871419e46a490cc2c7dd18d0f9bbaa395",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P08-B": {
-            "process": "https://example.org/trajectory/data/event-P08-B",
+            "claim": "https://example.org/trajectory/data/event-P08-B",
             "patient_role": "https://example.org/trajectory/data/P08-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P08",
             "source_record": "https://example.org/trajectory/data/record-P08-B",
@@ -2377,10 +2377,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:9deb5552cfcf6cba39b0da513bee91dcf4610be90c6ad36849921a4d40e99f00"
+            "assertion_id": "pro-solid:17ae3370a661e6bd0e7f82c67224fc08db5c5578d9d5bbe66cebd0a2111a2822"
           },
           "P08-E": {
-            "process": "https://example.org/trajectory/data/event-P08-E",
+            "claim": "https://example.org/trajectory/data/event-P08-E",
             "patient_role": "https://example.org/trajectory/data/P08-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P08",
             "source_record": "https://example.org/trajectory/data/record-P08-E",
@@ -2394,10 +2394,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:34f067036281a83e428214b30c2491b5b9010b13d3910f07171d2051c3d10bdf"
+            "assertion_id": "pro-solid:84c5fcaff5a33962ddcfb45cad1488a087af3e621b27e471d8c2f6d96200b823"
           },
           "P08-F": {
-            "process": "https://example.org/trajectory/data/event-P08-F",
+            "claim": "https://example.org/trajectory/data/event-P08-F",
             "patient_role": "https://example.org/trajectory/data/P08-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P08",
             "source_record": "https://example.org/trajectory/data/record-P08-F",
@@ -2414,7 +2414,7 @@
             "normalized_value": "1.40",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:179f112a7dbf65db671e3d3d020a8b9c04aaf9b929741d5c413a3185bbc31fb4"
+            "assertion_id": "pro-solid:82697329447c204cb8c5cf02226547d5222c83021fca95674e175bf5f755488c"
           }
         }
       },
@@ -2536,7 +2536,7 @@
               "source_record_sha256": "8cf959ed224c50e4cfad38db0c961343cb493e35a9d35d6069645c1fb0f04a3b",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:f1425d00d480d036970b252ecad7036efc00c38fa9393e19f9c4995a0b5b3cb3"
+                "pro-solid:159e71f56a8dd4839b1bdfeef91b355bca82cef5654c3263500bc470e29878b0"
               ]
             },
             "record_version": 1,
@@ -2578,7 +2578,7 @@
               "source_record_sha256": "d652fa9b1a52d85ef05c3b6cc10de7b612dc3676f43ba942e34d21a8f02a937b",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:d7d133d4fda2636045d436ecc06cd1116f4589082f897c3491e7642f92f0da9d"
+                "pro-solid:7facd246724b12f47d5647965f19f18149f022acd5bfb569b46f9214cc17addd"
               ]
             },
             "record_version": 1,
@@ -2620,7 +2620,7 @@
               "source_record_sha256": "2335c8d7f433147108d8ecde194f3da69634320899b6bb94a65be3b5880db9a1",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:21d5b35ef3b10505cecf49358c6bb6dfb6302939ce9d8c84d589083cbbe64250"
+                "pro-solid:286a3e15f1a3d2c07e16168e644c755f360daf115a4eae24249083133f3405ee"
               ]
             },
             "record_version": 1,
@@ -2631,11 +2631,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "e470460d239e3aea85906233ff0c8a6c55e3bf4dd12c93f58d92fba0aa26ef9c",
+        "source_graph_sha256": "0ffd90302c82d2afe97d47d5ef255fecf140444e575d52c6279eca5ff9654dc9",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P09-B": {
-            "process": "https://example.org/trajectory/data/event-P09-B",
+            "claim": "https://example.org/trajectory/data/event-P09-B",
             "patient_role": "https://example.org/trajectory/data/P09-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P09",
             "source_record": "https://example.org/trajectory/data/record-P09-B",
@@ -2652,10 +2652,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:f1425d00d480d036970b252ecad7036efc00c38fa9393e19f9c4995a0b5b3cb3"
+            "assertion_id": "pro-solid:159e71f56a8dd4839b1bdfeef91b355bca82cef5654c3263500bc470e29878b0"
           },
           "P09-E": {
-            "process": "https://example.org/trajectory/data/event-P09-E",
+            "claim": "https://example.org/trajectory/data/event-P09-E",
             "patient_role": "https://example.org/trajectory/data/P09-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P09",
             "source_record": "https://example.org/trajectory/data/record-P09-E",
@@ -2669,10 +2669,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:d7d133d4fda2636045d436ecc06cd1116f4589082f897c3491e7642f92f0da9d"
+            "assertion_id": "pro-solid:7facd246724b12f47d5647965f19f18149f022acd5bfb569b46f9214cc17addd"
           },
           "P09-F": {
-            "process": "https://example.org/trajectory/data/event-P09-F",
+            "claim": "https://example.org/trajectory/data/event-P09-F",
             "patient_role": "https://example.org/trajectory/data/P09-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P09",
             "source_record": "https://example.org/trajectory/data/record-P09-F",
@@ -2689,7 +2689,7 @@
             "normalized_value": "1.30",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:21d5b35ef3b10505cecf49358c6bb6dfb6302939ce9d8c84d589083cbbe64250"
+            "assertion_id": "pro-solid:286a3e15f1a3d2c07e16168e644c755f360daf115a4eae24249083133f3405ee"
           }
         }
       },
@@ -2806,7 +2806,7 @@
               "source_record_sha256": "07e031a0128cb521e483afa892be6fed324ec168b8b5591a4dc9812353a8abf2",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:611fd42b6072dbbc2622c8c057ab469051ee0df2893732a5cbfee88b2d411b38"
+                "pro-solid:5a38d7af2bb12e5d725df782d27b09ab7b952f5ccea6c271af62124e53d1d7d8"
               ]
             },
             "record_version": 1,
@@ -2848,7 +2848,7 @@
               "source_record_sha256": "ecdbe4e34da81f0f5bdc4f4d584df05e7df7f3bf27c2b7de6dfc9456534b36d3",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:21c510db14ff84669790885daad226f75f9374b1ad78dff46e5e0f94d10b65f4"
+                "pro-solid:269cd0829fa0855188026c08b1eeb9c8d55a411acf60adab4dead8a18f858346"
               ]
             },
             "record_version": 1,
@@ -2890,7 +2890,7 @@
               "source_record_sha256": "615481e17f3785de006d7f8012ade12c1ac8e727621ed39b182a56b5a9cdf5f8",
               "adapter_rule": "pro-solid-2.4",
               "assertion_ids": [
-                "pro-solid:48f8d322e8a857b2b56ef24e4ee4c76d67038f84a609d830bf006281672798db"
+                "pro-solid:d8b514a0595f281ba9705f5fa1d78d5927323b2e1737cd88c3529bd6781b7e06"
               ]
             },
             "record_version": 1,
@@ -2901,11 +2901,11 @@
       },
       "evidence": {
         "profile": "pro-solid-2.4",
-        "source_graph_sha256": "338bf4686b861170b2792ac071b91401b1fe68ba97ee999136e078a769b97cd2",
+        "source_graph_sha256": "d1577c6b813a605715c3a51853ab28dda76363178b9adf6b2ec2ea35a249b2a3",
         "snapshot_id": "guided-cohort-v1",
         "bindings": {
           "P10-B": {
-            "process": "https://example.org/trajectory/data/event-P10-B",
+            "claim": "https://example.org/trajectory/data/event-P10-B",
             "patient_role": "https://example.org/trajectory/data/P10-B-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P10",
             "source_record": "https://example.org/trajectory/data/record-P10-B",
@@ -2922,10 +2922,10 @@
             "normalized_value": "1.00",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:611fd42b6072dbbc2622c8c057ab469051ee0df2893732a5cbfee88b2d411b38"
+            "assertion_id": "pro-solid:5a38d7af2bb12e5d725df782d27b09ab7b952f5ccea6c271af62124e53d1d7d8"
           },
           "P10-E": {
-            "process": "https://example.org/trajectory/data/event-P10-E",
+            "claim": "https://example.org/trajectory/data/event-P10-E",
             "patient_role": "https://example.org/trajectory/data/P10-E-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P10",
             "source_record": "https://example.org/trajectory/data/record-P10-E",
@@ -2939,10 +2939,10 @@
             "normalized_value": null,
             "normalized_unit": null,
             "concept": "ex:DrugA",
-            "assertion_id": "pro-solid:21c510db14ff84669790885daad226f75f9374b1ad78dff46e5e0f94d10b65f4"
+            "assertion_id": "pro-solid:269cd0829fa0855188026c08b1eeb9c8d55a411acf60adab4dead8a18f858346"
           },
           "P10-F": {
-            "process": "https://example.org/trajectory/data/event-P10-F",
+            "claim": "https://example.org/trajectory/data/event-P10-F",
             "patient_role": "https://example.org/trajectory/data/P10-F-patient-role",
             "patient_bearer": "https://example.org/trajectory/data/person-P10",
             "source_record": "https://example.org/trajectory/data/record-P10-F",
@@ -2959,7 +2959,7 @@
             "normalized_value": "1.30",
             "normalized_unit": "mg/dL",
             "concept": "ex:Creatinine",
-            "assertion_id": "pro-solid:48f8d322e8a857b2b56ef24e4ee4c76d67038f84a609d830bf006281672798db"
+            "assertion_id": "pro-solid:d8b514a0595f281ba9705f5fa1d78d5927323b2e1737cd88c3529bd6781b7e06"
           }
         }
       },
@@ -3020,7 +3020,7 @@
       }
     }
   ],
-  "generation_base_commit": "40f662adf3a6bb9cbbee737af0c75777a2c275ed",
-  "projection_sha256": "688fb20894ec58feb05754bd34315411a7c53817628249cdc02e133aa5cb3d9f",
+  "generation_base_commit": "c62e56ad3025407974dc3220adac6b6e8d33f944",
+  "projection_sha256": "fe6e907809dd0193675d6fa7c4ad17cc511fe3d46854765e7ee0365905d90df5",
   "availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted."
 }

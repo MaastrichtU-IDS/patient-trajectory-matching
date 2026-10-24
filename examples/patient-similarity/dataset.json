@@ -31,7 +31,7 @@
             "original_unit": "mg/L",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P00-B",
+              "claim": "https://example.org/trajectory/data/event-P00-B",
               "patient_role": "https://example.org/trajectory/data/P00-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P00",
               "source_record": "https://example.org/trajectory/data/record-P00-B",
@@ -48,12 +48,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:227c59f1f1cd465e88c32421c2c64ce530acbe2d8ef22342eaff534d8e6423b6"
+              "assertion_id": "pro-solid:d9e5f0ba38115c71fd6119a452ad62335c75d7925224bd8ab3189d9e44f43bcd"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P00-B",
-            "hasParticipant": "https://example.org/trajectory/data/P00-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P00-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P00-B-patient-role",
@@ -78,7 +78,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P00-E",
+              "claim": "https://example.org/trajectory/data/event-P00-E",
               "patient_role": "https://example.org/trajectory/data/P00-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P00",
               "source_record": "https://example.org/trajectory/data/record-P00-E",
@@ -92,12 +92,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:3773b53e79c92d84e5505895e9ee38ffce407e97a6bbb83509ce53099a1264cd"
+              "assertion_id": "pro-solid:029ad251391e64969a88692caacf7e81637d0f8a84933153e6cf5488493f5e69"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P00-E",
-            "hasParticipant": "https://example.org/trajectory/data/P00-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P00-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P00-E-patient-role",
@@ -122,7 +122,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P00-F",
+              "claim": "https://example.org/trajectory/data/event-P00-F",
               "patient_role": "https://example.org/trajectory/data/P00-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P00",
               "source_record": "https://example.org/trajectory/data/record-P00-F",
@@ -139,12 +139,12 @@
               "normalized_value": "1.30",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:b8f836a971942c009586675006fc228e24b696a326732547bb8ffbe54edb4854"
+              "assertion_id": "pro-solid:0567c63ab8c9d4b13ee9781e7168742413f879b132b5e01de7566cf940a76b80"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P00-F",
-            "hasParticipant": "https://example.org/trajectory/data/P00-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P00-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P00-F-patient-role",
@@ -164,9 +164,9 @@
             "row": "P00/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P00-age-overlay-process",
-            "hasParticipant": "P00-age-overlay-role"
+          "claim": {
+            "id": "P00-age-overlay-claim",
+            "refersTo": "P00-age-overlay-role"
           },
           "role": {
             "id": "P00-age-overlay-role",
@@ -201,7 +201,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P01-B",
+              "claim": "https://example.org/trajectory/data/event-P01-B",
               "patient_role": "https://example.org/trajectory/data/P01-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P01",
               "source_record": "https://example.org/trajectory/data/record-P01-B",
@@ -218,12 +218,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:94848b9615fef0eabef6867c49fde9dd9ea06a7cf9c09b2c79d550528440689f"
+              "assertion_id": "pro-solid:9a8792af8a01a4e195a7904bbe4ca8ab0a5bd258ae5073b74fd0f575a71056aa"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P01-B",
-            "hasParticipant": "https://example.org/trajectory/data/P01-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P01-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P01-B-patient-role",
@@ -248,7 +248,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P01-E",
+              "claim": "https://example.org/trajectory/data/event-P01-E",
               "patient_role": "https://example.org/trajectory/data/P01-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P01",
               "source_record": "https://example.org/trajectory/data/record-P01-E",
@@ -262,12 +262,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:653de8c430f468c754c4c0c108bacbbb8215abdb165917de0dcd98ad2feb4a01"
+              "assertion_id": "pro-solid:f676c5b50acd7352c830621723dd82f8c242b04f3305a55aa056906d8efe8ce4"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P01-E",
-            "hasParticipant": "https://example.org/trajectory/data/P01-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P01-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P01-E-patient-role",
@@ -292,7 +292,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P01-F",
+              "claim": "https://example.org/trajectory/data/event-P01-F",
               "patient_role": "https://example.org/trajectory/data/P01-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P01",
               "source_record": "https://example.org/trajectory/data/record-P01-F",
@@ -309,12 +309,12 @@
               "normalized_value": "1.30",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:0b3e215275df47c24ddd166065703265512e5495e6a857335d5b3c3fab8119de"
+              "assertion_id": "pro-solid:a20d6d3bb3cf956d8cb6f6aee0706ac0af48878604931bbbef4f73c48d485d9f"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P01-F",
-            "hasParticipant": "https://example.org/trajectory/data/P01-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P01-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P01-F-patient-role",
@@ -334,9 +334,9 @@
             "row": "P01/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P01-age-overlay-process",
-            "hasParticipant": "P01-age-overlay-role"
+          "claim": {
+            "id": "P01-age-overlay-claim",
+            "refersTo": "P01-age-overlay-role"
           },
           "role": {
             "id": "P01-age-overlay-role",
@@ -371,7 +371,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P02-B",
+              "claim": "https://example.org/trajectory/data/event-P02-B",
               "patient_role": "https://example.org/trajectory/data/P02-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P02",
               "source_record": "https://example.org/trajectory/data/record-P02-B",
@@ -388,12 +388,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:8cdccf196f9d6c5417781cfec8c733c425ebd534e4555e8112ef4c36b17c87b3"
+              "assertion_id": "pro-solid:059918c52ecfb608fa2464c9d8c4ee6c460206792d4f431ddb5580f849c20b44"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P02-B",
-            "hasParticipant": "https://example.org/trajectory/data/P02-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P02-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P02-B-patient-role",
@@ -418,7 +418,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P02-E",
+              "claim": "https://example.org/trajectory/data/event-P02-E",
               "patient_role": "https://example.org/trajectory/data/P02-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P02",
               "source_record": "https://example.org/trajectory/data/record-P02-E",
@@ -432,12 +432,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugAChild",
-              "assertion_id": "pro-solid:9b1fb758dae569bf17a7cfa152309e7746d7b151024e55e171689c1a849f0bc8"
+              "assertion_id": "pro-solid:2ded4b81bfac18426a11639590657a2b38efb8dc8e209a8c0cfaa4a1826b01ff"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P02-E",
-            "hasParticipant": "https://example.org/trajectory/data/P02-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P02-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P02-E-patient-role",
@@ -462,7 +462,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P02-F",
+              "claim": "https://example.org/trajectory/data/event-P02-F",
               "patient_role": "https://example.org/trajectory/data/P02-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P02",
               "source_record": "https://example.org/trajectory/data/record-P02-F",
@@ -479,12 +479,12 @@
               "normalized_value": "1.40",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:347ee323620b5a06f02e1590d4e5a980260ac5e67f406619f32db9a15aef71ef"
+              "assertion_id": "pro-solid:bf4fb917c3e64fc9f5ffd437b687be92b7a62e95b9999c9ed020e836a0d57193"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P02-F",
-            "hasParticipant": "https://example.org/trajectory/data/P02-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P02-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P02-F-patient-role",
@@ -504,9 +504,9 @@
             "row": "P02/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P02-age-overlay-process",
-            "hasParticipant": "P02-age-overlay-role"
+          "claim": {
+            "id": "P02-age-overlay-claim",
+            "refersTo": "P02-age-overlay-role"
           },
           "role": {
             "id": "P02-age-overlay-role",
@@ -541,7 +541,7 @@
             "original_unit": "mg/L",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P03-B",
+              "claim": "https://example.org/trajectory/data/event-P03-B",
               "patient_role": "https://example.org/trajectory/data/P03-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P03",
               "source_record": "https://example.org/trajectory/data/record-P03-B",
@@ -558,12 +558,12 @@
               "normalized_value": "0.80",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:3846d8e7966e25cc22ef7731a33906ce4e396ac19036f8eeca29ab663692059d"
+              "assertion_id": "pro-solid:79c114cef744a4a50ee26ebfafafd8667c15a902fe5e864cdd041619aba18798"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P03-B",
-            "hasParticipant": "https://example.org/trajectory/data/P03-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P03-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P03-B-patient-role",
@@ -588,7 +588,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P03-E",
+              "claim": "https://example.org/trajectory/data/event-P03-E",
               "patient_role": "https://example.org/trajectory/data/P03-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P03",
               "source_record": "https://example.org/trajectory/data/record-P03-E",
@@ -602,12 +602,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:43595fc5526d6495e9aa70e4e70099dcc9765dca5c3abeec00782461bcfbbd84"
+              "assertion_id": "pro-solid:96c0e30a89b2f4180d582789e6e574dd2d86ebe5b56a66241c01912cf8767bfd"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P03-E",
-            "hasParticipant": "https://example.org/trajectory/data/P03-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P03-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P03-E-patient-role",
@@ -632,7 +632,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P03-F",
+              "claim": "https://example.org/trajectory/data/event-P03-F",
               "patient_role": "https://example.org/trajectory/data/P03-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P03",
               "source_record": "https://example.org/trajectory/data/record-P03-F",
@@ -649,12 +649,12 @@
               "normalized_value": "1.20",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:f349f6146510ad5827b017b9f160d0e247db03c428fc04785b623279ff9a1fe4"
+              "assertion_id": "pro-solid:5f6c414df0f9925854ae0f7a672cf5fe17f66fc1d080ba42a5714024f699ac36"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P03-F",
-            "hasParticipant": "https://example.org/trajectory/data/P03-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P03-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P03-F-patient-role",
@@ -674,9 +674,9 @@
             "row": "P03/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P03-age-overlay-process",
-            "hasParticipant": "P03-age-overlay-role"
+          "claim": {
+            "id": "P03-age-overlay-claim",
+            "refersTo": "P03-age-overlay-role"
           },
           "role": {
             "id": "P03-age-overlay-role",
@@ -711,7 +711,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P04-B",
+              "claim": "https://example.org/trajectory/data/event-P04-B",
               "patient_role": "https://example.org/trajectory/data/P04-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P04",
               "source_record": "https://example.org/trajectory/data/record-P04-B",
@@ -728,12 +728,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:dea246e426dd02f184e4c3f9b690fbff5bb0c22af6f01d61eef011234e6e8d45"
+              "assertion_id": "pro-solid:8948ebcf21cd672862a6f50c98ae1d87ccd3db547260751117d21e0aa7a0d907"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P04-B",
-            "hasParticipant": "https://example.org/trajectory/data/P04-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P04-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P04-B-patient-role",
@@ -758,7 +758,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P04-E",
+              "claim": "https://example.org/trajectory/data/event-P04-E",
               "patient_role": "https://example.org/trajectory/data/P04-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P04",
               "source_record": "https://example.org/trajectory/data/record-P04-E",
@@ -772,12 +772,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugB",
-              "assertion_id": "pro-solid:58643ade2c60220814b278b174daf8ebe3ea32c4d1d366c154f31303174f3852"
+              "assertion_id": "pro-solid:2a361bf52c4af41fd4ccd1061371ba280453bae922ba5a253c993cb6b580be87"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P04-E",
-            "hasParticipant": "https://example.org/trajectory/data/P04-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P04-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P04-E-patient-role",
@@ -802,7 +802,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P04-F",
+              "claim": "https://example.org/trajectory/data/event-P04-F",
               "patient_role": "https://example.org/trajectory/data/P04-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P04",
               "source_record": "https://example.org/trajectory/data/record-P04-F",
@@ -819,12 +819,12 @@
               "normalized_value": "1.30",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:955e4b28663ed924d2f374ad814580554834a68f6f310925c048c657513aee6c"
+              "assertion_id": "pro-solid:ffbc9ee3be63d1de617661aac2cf4f872f6582f6f2e8dd606561a33b9b09d0bf"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P04-F",
-            "hasParticipant": "https://example.org/trajectory/data/P04-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P04-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P04-F-patient-role",
@@ -844,9 +844,9 @@
             "row": "P04/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P04-age-overlay-process",
-            "hasParticipant": "P04-age-overlay-role"
+          "claim": {
+            "id": "P04-age-overlay-claim",
+            "refersTo": "P04-age-overlay-role"
           },
           "role": {
             "id": "P04-age-overlay-role",
@@ -881,7 +881,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P05-B",
+              "claim": "https://example.org/trajectory/data/event-P05-B",
               "patient_role": "https://example.org/trajectory/data/P05-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P05",
               "source_record": "https://example.org/trajectory/data/record-P05-B",
@@ -898,12 +898,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:18b3ec40ec4d809a0cc4263ace61488fc53725201434e66b7d4102b3b37b6a30"
+              "assertion_id": "pro-solid:7450508f78a4089717168904ad071a00480fd111d596590a96eec88895ce367b"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P05-B",
-            "hasParticipant": "https://example.org/trajectory/data/P05-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P05-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P05-B-patient-role",
@@ -928,7 +928,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P05-E",
+              "claim": "https://example.org/trajectory/data/event-P05-E",
               "patient_role": "https://example.org/trajectory/data/P05-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P05",
               "source_record": "https://example.org/trajectory/data/record-P05-E",
@@ -942,12 +942,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:4f2072fa3317f9dcdffe5ee638e1551ed0dd7238b34d6b0a435ff89f7b2ff46a"
+              "assertion_id": "pro-solid:cb4910b5b25485454b37448d45f0e234191030e77a006d9a728299f1d40eb30e"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P05-E",
-            "hasParticipant": "https://example.org/trajectory/data/P05-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P05-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P05-E-patient-role",
@@ -972,7 +972,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P05-F",
+              "claim": "https://example.org/trajectory/data/event-P05-F",
               "patient_role": "https://example.org/trajectory/data/P05-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P05",
               "source_record": "https://example.org/trajectory/data/record-P05-F",
@@ -989,12 +989,12 @@
               "normalized_value": "1.30",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:abc2c5a6b53489d8ed4b6da1b92c665faefa24cda68dda4935ae4a5b3d925b61"
+              "assertion_id": "pro-solid:f5f6bff5c445714ddc646f3b76555f71d53b29ae891d042a54fa417947ae2eea"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P05-F",
-            "hasParticipant": "https://example.org/trajectory/data/P05-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P05-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P05-F-patient-role",
@@ -1014,9 +1014,9 @@
             "row": "P05/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P05-age-overlay-process",
-            "hasParticipant": "P05-age-overlay-role"
+          "claim": {
+            "id": "P05-age-overlay-claim",
+            "refersTo": "P05-age-overlay-role"
           },
           "role": {
             "id": "P05-age-overlay-role",
@@ -1051,7 +1051,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P06-B",
+              "claim": "https://example.org/trajectory/data/event-P06-B",
               "patient_role": "https://example.org/trajectory/data/P06-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P06",
               "source_record": "https://example.org/trajectory/data/record-P06-B",
@@ -1068,12 +1068,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:81b90d577407ec19a6cad1331c86936ae57e9ae5ddc22270697dc49a773da539"
+              "assertion_id": "pro-solid:b76ea3de79276be5b03dd22e2e23ae841f01a0d7436cf54b152ad97e0b4ad67c"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P06-B",
-            "hasParticipant": "https://example.org/trajectory/data/P06-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P06-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P06-B-patient-role",
@@ -1098,7 +1098,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P06-E",
+              "claim": "https://example.org/trajectory/data/event-P06-E",
               "patient_role": "https://example.org/trajectory/data/P06-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P06",
               "source_record": "https://example.org/trajectory/data/record-P06-E",
@@ -1112,12 +1112,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugB",
-              "assertion_id": "pro-solid:42507252bcb8e1a94286dfb03ee7b5ed9cb37c2667d39c4d16729921c2259557"
+              "assertion_id": "pro-solid:5116b2b485cb1493364e93d6700e202e60e56b27f0a29d9e4372c2e7c6f7a2bc"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P06-E",
-            "hasParticipant": "https://example.org/trajectory/data/P06-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P06-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P06-E-patient-role",
@@ -1142,7 +1142,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P06-F",
+              "claim": "https://example.org/trajectory/data/event-P06-F",
               "patient_role": "https://example.org/trajectory/data/P06-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P06",
               "source_record": "https://example.org/trajectory/data/record-P06-F",
@@ -1159,12 +1159,12 @@
               "normalized_value": "1.40",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:0d64173c87151fd0096436b73969177b32c5f416a8b00f86d4db748fcbbeb69b"
+              "assertion_id": "pro-solid:0b6326a9569c80ea173db3b9def8555ffa91f070452caa2c3c0e4827c12b0a15"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P06-F",
-            "hasParticipant": "https://example.org/trajectory/data/P06-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P06-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P06-F-patient-role",
@@ -1184,9 +1184,9 @@
             "row": "P06/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P06-age-overlay-process",
-            "hasParticipant": "P06-age-overlay-role"
+          "claim": {
+            "id": "P06-age-overlay-claim",
+            "refersTo": "P06-age-overlay-role"
           },
           "role": {
             "id": "P06-age-overlay-role",
@@ -1221,7 +1221,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P07-B",
+              "claim": "https://example.org/trajectory/data/event-P07-B",
               "patient_role": "https://example.org/trajectory/data/P07-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P07",
               "source_record": "https://example.org/trajectory/data/record-P07-B",
@@ -1238,12 +1238,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:fe38fd45d3b4b432101af79b1c7c8414160af963cd5aa47499e355ba18ab6a17"
+              "assertion_id": "pro-solid:89699d343e9ffcb361eb4c27ec6af7da0dbfbaf547f3e78f806281e75d85612d"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P07-B",
-            "hasParticipant": "https://example.org/trajectory/data/P07-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P07-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P07-B-patient-role",
@@ -1268,7 +1268,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P07-E",
+              "claim": "https://example.org/trajectory/data/event-P07-E",
               "patient_role": "https://example.org/trajectory/data/P07-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P07",
               "source_record": "https://example.org/trajectory/data/record-P07-E",
@@ -1282,12 +1282,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:fcb31e0c05429c1fd46627f6681009992b5eaee2752a03ae0472a53e15600f05"
+              "assertion_id": "pro-solid:88f3ba3660fe72a431af0e375fc5da1c9e584d1d1364a0bfeb97e50ade3d903a"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P07-E",
-            "hasParticipant": "https://example.org/trajectory/data/P07-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P07-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P07-E-patient-role",
@@ -1312,7 +1312,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P07-F",
+              "claim": "https://example.org/trajectory/data/event-P07-F",
               "patient_role": "https://example.org/trajectory/data/P07-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P07",
               "source_record": "https://example.org/trajectory/data/record-P07-F",
@@ -1329,12 +1329,12 @@
               "normalized_value": "1.29",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:63af2d9cf145036c27aaf323c7b39a75992e6bdd4d2871b39790dbe904784f52"
+              "assertion_id": "pro-solid:9447ed91e9b10121449a31ac6134247df2ec444a826a0d1b4ebabc017e96765b"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P07-F",
-            "hasParticipant": "https://example.org/trajectory/data/P07-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P07-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P07-F-patient-role",
@@ -1354,9 +1354,9 @@
             "row": "P07/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P07-age-overlay-process",
-            "hasParticipant": "P07-age-overlay-role"
+          "claim": {
+            "id": "P07-age-overlay-claim",
+            "refersTo": "P07-age-overlay-role"
           },
           "role": {
             "id": "P07-age-overlay-role",
@@ -1391,7 +1391,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P08-B",
+              "claim": "https://example.org/trajectory/data/event-P08-B",
               "patient_role": "https://example.org/trajectory/data/P08-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P08",
               "source_record": "https://example.org/trajectory/data/record-P08-B",
@@ -1408,12 +1408,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:9deb5552cfcf6cba39b0da513bee91dcf4610be90c6ad36849921a4d40e99f00"
+              "assertion_id": "pro-solid:17ae3370a661e6bd0e7f82c67224fc08db5c5578d9d5bbe66cebd0a2111a2822"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P08-B",
-            "hasParticipant": "https://example.org/trajectory/data/P08-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P08-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P08-B-patient-role",
@@ -1438,7 +1438,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P08-E",
+              "claim": "https://example.org/trajectory/data/event-P08-E",
               "patient_role": "https://example.org/trajectory/data/P08-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P08",
               "source_record": "https://example.org/trajectory/data/record-P08-E",
@@ -1452,12 +1452,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:34f067036281a83e428214b30c2491b5b9010b13d3910f07171d2051c3d10bdf"
+              "assertion_id": "pro-solid:84c5fcaff5a33962ddcfb45cad1488a087af3e621b27e471d8c2f6d96200b823"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P08-E",
-            "hasParticipant": "https://example.org/trajectory/data/P08-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P08-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P08-E-patient-role",
@@ -1482,7 +1482,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P08-F",
+              "claim": "https://example.org/trajectory/data/event-P08-F",
               "patient_role": "https://example.org/trajectory/data/P08-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P08",
               "source_record": "https://example.org/trajectory/data/record-P08-F",
@@ -1499,12 +1499,12 @@
               "normalized_value": "1.40",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:179f112a7dbf65db671e3d3d020a8b9c04aaf9b929741d5c413a3185bbc31fb4"
+              "assertion_id": "pro-solid:82697329447c204cb8c5cf02226547d5222c83021fca95674e175bf5f755488c"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P08-F",
-            "hasParticipant": "https://example.org/trajectory/data/P08-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P08-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P08-F-patient-role",
@@ -1524,9 +1524,9 @@
             "row": "P08/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P08-age-overlay-process",
-            "hasParticipant": "P08-age-overlay-role"
+          "claim": {
+            "id": "P08-age-overlay-claim",
+            "refersTo": "P08-age-overlay-role"
           },
           "role": {
             "id": "P08-age-overlay-role",
@@ -1561,7 +1561,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P09-B",
+              "claim": "https://example.org/trajectory/data/event-P09-B",
               "patient_role": "https://example.org/trajectory/data/P09-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P09",
               "source_record": "https://example.org/trajectory/data/record-P09-B",
@@ -1578,12 +1578,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:f1425d00d480d036970b252ecad7036efc00c38fa9393e19f9c4995a0b5b3cb3"
+              "assertion_id": "pro-solid:159e71f56a8dd4839b1bdfeef91b355bca82cef5654c3263500bc470e29878b0"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P09-B",
-            "hasParticipant": "https://example.org/trajectory/data/P09-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P09-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P09-B-patient-role",
@@ -1608,7 +1608,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P09-E",
+              "claim": "https://example.org/trajectory/data/event-P09-E",
               "patient_role": "https://example.org/trajectory/data/P09-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P09",
               "source_record": "https://example.org/trajectory/data/record-P09-E",
@@ -1622,12 +1622,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:d7d133d4fda2636045d436ecc06cd1116f4589082f897c3491e7642f92f0da9d"
+              "assertion_id": "pro-solid:7facd246724b12f47d5647965f19f18149f022acd5bfb569b46f9214cc17addd"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P09-E",
-            "hasParticipant": "https://example.org/trajectory/data/P09-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P09-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P09-E-patient-role",
@@ -1652,7 +1652,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P09-F",
+              "claim": "https://example.org/trajectory/data/event-P09-F",
               "patient_role": "https://example.org/trajectory/data/P09-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P09",
               "source_record": "https://example.org/trajectory/data/record-P09-F",
@@ -1669,12 +1669,12 @@
               "normalized_value": "1.30",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:21d5b35ef3b10505cecf49358c6bb6dfb6302939ce9d8c84d589083cbbe64250"
+              "assertion_id": "pro-solid:286a3e15f1a3d2c07e16168e644c755f360daf115a4eae24249083133f3405ee"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P09-F",
-            "hasParticipant": "https://example.org/trajectory/data/P09-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P09-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P09-F-patient-role",
@@ -1694,9 +1694,9 @@
             "row": "P09/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P09-age-overlay-process",
-            "hasParticipant": "P09-age-overlay-role"
+          "claim": {
+            "id": "P09-age-overlay-claim",
+            "refersTo": "P09-age-overlay-role"
           },
           "role": {
             "id": "P09-age-overlay-role",
@@ -1731,7 +1731,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P10-B",
+              "claim": "https://example.org/trajectory/data/event-P10-B",
               "patient_role": "https://example.org/trajectory/data/P10-B-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P10",
               "source_record": "https://example.org/trajectory/data/record-P10-B",
@@ -1748,12 +1748,12 @@
               "normalized_value": "1.00",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:611fd42b6072dbbc2622c8c057ab469051ee0df2893732a5cbfee88b2d411b38"
+              "assertion_id": "pro-solid:5a38d7af2bb12e5d725df782d27b09ab7b952f5ccea6c271af62124e53d1d7d8"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P10-B",
-            "hasParticipant": "https://example.org/trajectory/data/P10-B-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P10-B-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P10-B-patient-role",
@@ -1778,7 +1778,7 @@
             "original_unit": null,
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P10-E",
+              "claim": "https://example.org/trajectory/data/event-P10-E",
               "patient_role": "https://example.org/trajectory/data/P10-E-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P10",
               "source_record": "https://example.org/trajectory/data/record-P10-E",
@@ -1792,12 +1792,12 @@
               "normalized_value": null,
               "normalized_unit": null,
               "concept": "ex:DrugA",
-              "assertion_id": "pro-solid:21c510db14ff84669790885daad226f75f9374b1ad78dff46e5e0f94d10b65f4"
+              "assertion_id": "pro-solid:269cd0829fa0855188026c08b1eeb9c8d55a411acf60adab4dead8a18f858346"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P10-E",
-            "hasParticipant": "https://example.org/trajectory/data/P10-E-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P10-E-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P10-E-patient-role",
@@ -1822,7 +1822,7 @@
             "original_unit": "mg/dL",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
             "binding": {
-              "process": "https://example.org/trajectory/data/event-P10-F",
+              "claim": "https://example.org/trajectory/data/event-P10-F",
               "patient_role": "https://example.org/trajectory/data/P10-F-patient-role",
               "patient_bearer": "https://example.org/trajectory/data/person-P10",
               "source_record": "https://example.org/trajectory/data/record-P10-F",
@@ -1839,12 +1839,12 @@
               "normalized_value": "1.30",
               "normalized_unit": "mg/dL",
               "concept": "ex:Creatinine",
-              "assertion_id": "pro-solid:48f8d322e8a857b2b56ef24e4ee4c76d67038f84a609d830bf006281672798db"
+              "assertion_id": "pro-solid:d8b514a0595f281ba9705f5fa1d78d5927323b2e1737cd88c3529bd6781b7e06"
             }
           },
-          "process": {
+          "claim": {
             "id": "https://example.org/trajectory/data/event-P10-F",
-            "hasParticipant": "https://example.org/trajectory/data/P10-F-patient-role"
+            "refersTo": "https://example.org/trajectory/data/P10-F-patient-role"
           },
           "role": {
             "id": "https://example.org/trajectory/data/P10-F-patient-role",
@@ -1864,9 +1864,9 @@
             "row": "P10/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
-          "process": {
-            "id": "P10-age-overlay-process",
-            "hasParticipant": "P10-age-overlay-role"
+          "claim": {
+            "id": "P10-age-overlay-claim",
+            "refersTo": "P10-age-overlay-role"
           },
           "role": {
             "id": "P10-age-overlay-role",
@@ -1878,7 +1878,7 @@
   ],
   "construction_origin": {
     "path": "demo/cohort-data.json",
-    "sha256": "b69ebb6abe562969ecdf04e0c3d903965e15ba5f58ca3b69b385e4bc2d600eed",
+    "sha256": "daa34b5610bc6b09d24d094cf7eba95a8dfc15e720f6f321de09afa28a7591e4",
     "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
     "original_availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted.",
     "scope": "Same patient episodes and projected source events; added age-band and availability declarations."

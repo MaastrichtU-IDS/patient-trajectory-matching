@@ -37,3 +37,39 @@ ex:Measurement owl:disjointWith ex:AdministrationRecordProcess .
 ex:MilligramPerDecilitre a sulo:Unit .
 ex:MilligramPerLitre a sulo:Unit .
 ex:Second a sulo:Unit .
+
+# Reference objects for the two kinds of process a record can be about.
+#
+# Each process class IRI is punned as a sulo:Collection individual. A record says which
+# kind of process it reports by referring to that individual, which asserts nothing about
+# any process having occurred: the collection is empty until a claim is accepted. The
+# equivalence ties membership to instantiation, so an accepted claim that adds a member
+# makes it an instance of the class, and nothing else does.
+#
+# Punning rather than minting a separate reference individual per concept: the class IRI
+# already carries an identity policy, and a shadow namespace would need its own. The
+# restriction uses sulo:isItemIn with owl:hasValue, both of which are in OWL 2 EL, so an
+# EL consumer classifies these the same way. A proxy-class form would need owl:allValuesFrom
+# and classify nothing under ELK while still exiting 0.
+ex:Measurement a owl:NamedIndividual, sulo:Collection ;
+  owl:equivalentClass [ a owl:Restriction ; owl:onProperty sulo:isItemIn ; owl:hasValue ex:Measurement ] .
+ex:DrugAdministration a owl:NamedIndividual, sulo:Collection ;
+  owl:equivalentClass [ a owl:Restriction ; owl:onProperty sulo:isItemIn ; owl:hasValue ex:DrugAdministration ] .
+
+# What a source row asserts, held apart from whether it is so.
+#
+# ex:ProcessClaim is an information object: it records that a process of some kind is
+# claimed to have occurred, names the roles the claim is about, and carries the recorded
+# anchor time. It is not a process and entails none. sulo:hasParticipant is deliberately
+# absent, because its domain is sulo:Process and the assertion would come back through it
+# whatever the claim is typed as.
+ex:ProcessClaim a owl:Class ; rdfs:subClassOf sulo:InformationObject .
+
+# A claim classifies by which reference object it refers to, with no process in the graph.
+ex:MeasurementClaim a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf
+    ( ex:ProcessClaim [ a owl:Restriction ; owl:onProperty sulo:refersTo ; owl:hasValue ex:Measurement ] ) ] .
+ex:DrugAdministrationClaim a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf
+    ( ex:ProcessClaim [ a owl:Restriction ; owl:onProperty sulo:refersTo ; owl:hasValue ex:DrugAdministration ] ) ] .
+ex:MeasurementClaim owl:disjointWith ex:DrugAdministrationClaim .

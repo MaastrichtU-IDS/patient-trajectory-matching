@@ -1,10 +1,10 @@
 {
   "profile": "pro-solid-2.4",
-  "source_graph_sha256": "07f9ce07670e2f7e03f7812b4b6ca9fced585a4276e505c0d00e543302fba247",
+  "source_graph_sha256": "38883e3b4fb012e22ff6c4042a36e11f13151cccd53c8e059485c033f7c17047",
   "snapshot_id": "toy-pro-solid-v1",
   "bindings": {
     "B1": {
-      "process": "https://example.org/trajectory/data/event-B1",
+      "claim": "https://example.org/trajectory/data/event-B1",
       "patient_role": "https://example.org/trajectory/data/B1-patient-role",
       "patient_bearer": "https://example.org/trajectory/data/person-P1",
       "source_record": "https://example.org/trajectory/data/record-B1",
@@ -21,10 +21,10 @@
       "normalized_value": "1.00",
       "normalized_unit": "mg/dL",
       "concept": "ex:Creatinine",
-      "assertion_id": "pro-solid:962532d460cfa36601af6cdc8d4aba8c2f27ad04f50d2d0e56bb9a97ede22f52"
+      "assertion_id": "pro-solid:6cfddf970c27c67b8ec852ca16578341cbf6f2dfd363ee7d9d72670614e1c92c"
     },
     "E1": {
-      "process": "https://example.org/trajectory/data/event-E1",
+      "claim": "https://example.org/trajectory/data/event-E1",
       "patient_role": "https://example.org/trajectory/data/E1-patient-role",
       "patient_bearer": "https://example.org/trajectory/data/person-P1",
       "source_record": "https://example.org/trajectory/data/record-E1",
@@ -38,10 +38,10 @@
       "normalized_value": null,
       "normalized_unit": null,
       "concept": "ex:DrugA",
-      "assertion_id": "pro-solid:043fb189dc4b94a2d2d4eef1007e215cc01c42dd37daf82c0353562f7a4a2e3a"
+      "assertion_id": "pro-solid:d2550ccbfa2e8c772282d23831453baca840b56c6fe4f961c455fa93f8d3d20f"
     },
     "F1": {
-      "process": "https://example.org/trajectory/data/event-F1",
+      "claim": "https://example.org/trajectory/data/event-F1",
       "patient_role": "https://example.org/trajectory/data/F1-patient-role",
       "patient_bearer": "https://example.org/trajectory/data/person-P1",
       "source_record": "https://example.org/trajectory/data/record-F1",
@@ -58,7 +58,7 @@
       "normalized_value": "1.30",
       "normalized_unit": "mg/dL",
       "concept": "ex:Creatinine",
-      "assertion_id": "pro-solid:ea73043682dd71502d7d7dabb21eaf5b5c4609c5b243f0f2fc3084105bcd1be0"
+      "assertion_id": "pro-solid:f53e5beb723a121c0d02d25ef2d307071b482fc12f6de487a9d9d4ffd21bab86"
     }
   }
 }

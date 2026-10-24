@@ -1,11 +1,13 @@
 PREFIX ex: <https://example.org/trajectory/toy/>
 PREFIX sulo: <https://w3id.org/sulo/>
 
-SELECT ?process ?person ?patientRole ?result ?quality ?value ?unit ?timestamp
+# Measurement claims, not measurements. ?claim is an ex:ProcessClaim that refers to the
+# ex:Measurement reference object; nothing here asserts that a measurement occurred.
+SELECT ?claim ?person ?patientRole ?result ?quality ?value ?unit ?timestamp
 WHERE {
-  ?process a ex:Measurement ;
-    sulo:hasParticipant ?patientRole, ?resultRole ;
-    sulo:atTime ?time .
+  ?claim a ex:ProcessClaim ;
+    sulo:refersTo ex:Measurement, ?patientRole, ?resultRole ;
+    sulo:hasPart ?time .
   ?patientRole a ex:PatientRole ; sulo:isFeatureOf ?person .
   ?resultRole a ex:MeasurementResultRole ; sulo:isFeatureOf ?result .
   ?result a ex:CreatinineResult ;
@@ -13,4 +15,4 @@ WHERE {
   ?quality a ex:CreatinineConcentration ; sulo:isFeatureOf ?person .
   ?time sulo:hasValue ?timestamp .
 }
-ORDER BY ?process
+ORDER BY ?claim

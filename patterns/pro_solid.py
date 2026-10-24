@@ -1,7 +1,12 @@
 """PRO/SOLID source-row -> RDF -> matcher projection, profile 2.4.
 
 This is a closed-world adapter contract, not a complete SULO/OWL reasoner.
-Only named subclass closure, hasFeature inverse, and the PRO chain are executed.
+Only named subclass closure and the hasFeature inverse are executed.
+
+A source row becomes an ex:ProcessClaim, not a process. The claim refers to a reference
+object -- the process class IRI punned as an empty sulo:Collection -- which records what
+kind of process is claimed without asserting that one occurred. The process individual is
+minted only when the claim is accepted.
 Run from the pack root: python -m patterns.pro_solid
 """
 from __future__ import annotations
@@ -107,9 +112,6 @@ def materialize(source):
             g.add((feature, S.isFeatureOf, bearer))
         for feature, _, bearer in list(g.triples((None, S.isFeatureOf, None))):
             g.add((bearer, S.hasFeature, feature))
-        for process, _, participant in list(g.triples((None, S.hasParticipant, None))):
-            for bearer in g.objects(participant, S.isFeatureOf):
-                g.add((process, S.hasParticipant, bearer))
         changed = len(g) != before
     return g
 
@@ -119,10 +121,21 @@ def typed_objects(g, subject, predicate, cls):
 
 
 def role_binding(g, process, role_class):
+    """Role and bearer reached through sulo:hasParticipant.
+
+    Still used by the interval patterns, which assert a process and have not been moved
+    to the claim form. Do not reuse it for a claim: participation asserts the process.
+    """
     role = one(typed_objects(g, process, S.hasParticipant, role_class),
                'ROLE_CARDINALITY:' + str(role_class).split('/')[-1])
-    bearer = one(g.objects(role, S.isFeatureOf), 'ROLE_BEARER_CARDINALITY')
-    return role, bearer
+    return role, one(g.objects(role, S.isFeatureOf), 'ROLE_BEARER_CARDINALITY')
+
+
+def claim_role_binding(g, claim, role_class):
+    """Role and bearer reached through sulo:refersTo, asserting no process."""
+    role = one(typed_objects(g, claim, S.refersTo, role_class),
+               'ROLE_CARDINALITY:' + str(role_class).split('/')[-1])
+    return role, one(g.objects(role, S.isFeatureOf), 'ROLE_BEARER_CARDINALITY')
 
 
 def datum(g, parent, cls, relation=S.hasPart):
@@ -156,24 +169,27 @@ def build_graph(rows):
         seen.add(eid)
         require(row['event_kind'] in ('measurement', 'administration'), 'UNSUPPORTED_EVENT_KIND')
         require(row['status'] == 'performed', 'UNSUPPORTED_RECORD_STATUS')
-        process, patient = DATA['event-' + eid], DATA['person-' + pid]
+        claim, patient = DATA['event-' + eid], DATA['person-' + pid]
         record, pr = DATA['record-' + eid], DATA[eid + '-patient-role']
         g.add((patient, RDF.type, EX.Person))
         info(patient, EX.PatientIdentifier, pid, pid + '-identifier', S.hasFeature)
-        process_class = EX.Measurement if row['event_kind'] == 'measurement' else EX.DrugAdministration
-        g.add((process, RDF.type, process_class))
-        g.add((process, S.hasParticipant, pr))
+        # The reference object names the kind of process claimed. It is the class IRI,
+        # punned as an empty sulo:Collection, so referring to it asserts no process.
+        reference = EX.Measurement if row['event_kind'] == 'measurement' else EX.DrugAdministration
+        g.add((claim, RDF.type, EX.ProcessClaim))
+        g.add((claim, S.refersTo, reference))
+        g.add((claim, S.refersTo, pr))
         g.add((pr, RDF.type, EX.PatientRole))
         g.add((pr, S.isFeatureOf, patient))
         g.add((record, RDF.type, EX.SourceRecord))
-        g.add((record, S.refersTo, process))
+        g.add((record, S.refersTo, claim))
         meta = {**row, 'source_file': 'constructed://pro-solid/source-rows.json',
                 'source_key': eid, 'source_hash': digest(json.dumps(row, sort_keys=True, separators=(',', ':')))}
         for name, cls in METADATA.items():
             info(record, cls, meta[name], eid + '-' + name)
         t = DATA[eid + '-time']
         instant(row['datetime'])
-        g.add((process, S.atTime, t))
+        g.add((claim, S.hasPart, t))
         g.add((t, RDF.type, EX.RecordedAnchorTime))
         g.add((t, S.hasValue, Literal(row['datetime'], datatype=XSD.dateTimeStamp, normalize=False)))
         g.add((t, S.hasPart, EX.Second))
@@ -182,7 +198,7 @@ def build_graph(rows):
             require(row['source_code'] == 'ex:Creatinine', 'UNSUPPORTED_MEASUREMENT_CODE')
             require(row['unit'] in UNIT_NAMES, 'UNSUPPORTED_UNIT')
             q, quality, rr = DATA[eid + '-result'], DATA[eid + '-quality'], DATA[eid + '-result-role']
-            g.add((process, S.hasParticipant, rr))
+            g.add((claim, S.refersTo, rr))
             g.add((rr, RDF.type, EX.MeasurementResultRole))
             g.add((rr, S.isFeatureOf, q))
             g.add((q, RDF.type, EX.CreatinineResult))
@@ -196,7 +212,7 @@ def build_graph(rows):
         else:
             require(row['source_code'] in DRUGS, 'UNSUPPORTED_DRUG_CODE')
             drug, dr = DATA[eid + '-drug'], DATA[eid + '-drug-role']
-            g.add((process, S.hasParticipant, dr))
+            g.add((claim, S.refersTo, dr))
             g.add((dr, RDF.type, EX.AdministeredDrugRole))
             g.add((dr, S.isFeatureOf, drug))
             g.add((drug, RDF.type, DRUGS[row['source_code']]))
@@ -264,6 +280,12 @@ def disjoint_groups(ont):
 
 
 def validate_graph(source):
+    # sulo:hasParticipant is declared with rdfs:domain sulo:Process, so a single
+    # participation triple asserts that the process occurred no matter how its subject is
+    # typed. A source graph records claims and must not contain one; the process is
+    # asserted only when a claim is accepted. Verified by negative control.
+    require(not list(source.triples((None, S.hasParticipant, None))),
+            'PROCESS_ASSERTED_BY_PARTICIPATION')
     g = materialize(source)
     ont = ontology()
     groups = disjoint_groups(ont)
@@ -301,16 +323,16 @@ def project(source, manifest):
     g = validate_graph(source)
     require(manifest['profile'] == 'pro-solid-2.4', 'UNSUPPORTED_PROFILE')
     instant(manifest['origin'])
-    processes = set(g.subjects(RDF.type, EX.RecordedClinicalProcess))
-    require(bool(processes), 'EMPTY_PROJECTION')
+    claims = set(g.subjects(RDF.type, EX.ProcessClaim))
+    require(bool(claims), 'EMPTY_PROJECTION')
     records = set(g.subjects(RDF.type, EX.SourceRecord))
-    require(len(records) == len(processes), 'RECORD_PROCESS_CARDINALITY')
+    require(len(records) == len(claims), 'RECORD_CLAIM_CARDINALITY')
     output, evidence, identifiers, record_identifiers = [], {}, set(), set()
     used_roles, used_records = set(), set()
-    for process in sorted(processes):
-        pr, patient = role_binding(g, process, EX.PatientRole)
+    for claim in sorted(claims):
+        pr, patient = claim_role_binding(g, claim, EX.PatientRole)
         patient_id = datum(g, patient, EX.PatientIdentifier, S.hasFeature)
-        record = one((r for r in g.subjects(S.refersTo, process) if (r, RDF.type, EX.SourceRecord) in g),
+        record = one((r for r in g.subjects(S.refersTo, claim) if (r, RDF.type, EX.SourceRecord) in g),
                      'SOURCE_RECORD_CARDINALITY')
         require(record not in used_records, 'REUSED_SOURCE_RECORD')
         used_records.add(record)
@@ -320,17 +342,17 @@ def project(source, manifest):
         identifiers.add(meta['event_id']); record_identifiers.add(meta['record_id'])
         require(bool(re.fullmatch('[0-9a-f]{64}', meta['source_hash'])), 'INVALID_SOURCE_HASH')
         require(meta['status'] == 'performed', 'PROCESS_STATUS_MISMATCH')
-        t = one(g.objects(process, S.atTime), 'ANCHOR_TIME_CARDINALITY')
+        t = one(typed_objects(g, claim, S.hasPart, EX.RecordedAnchorTime), 'ANCHOR_TIME_CARDINALITY')
         tv = one(g.objects(t, S.hasValue), 'TIME_VALUE_CARDINALITY')
         require(tv.datatype in (XSD.dateTime, XSD.dateTimeStamp), 'TIME_DATATYPE')
         require(typed_objects(g, t, S.hasPart, S.Unit) == {EX.Second}, 'TIME_UNIT_PROFILE')
         us = offset_us(str(tv), manifest['origin'])
-        binding = {'process': str(process), 'patient_role': str(pr), 'patient_bearer': str(patient),
+        binding = {'claim': str(claim), 'patient_role': str(pr), 'patient_bearer': str(patient),
                    'source_record': str(record), 'time_datum': str(t), 'original_datetime': str(tv),
                    'source_record_sha256': meta['source_hash']}
         original_value = original_unit = value = unit_text = None
-        if (process, RDF.type, EX.Measurement) in g:
-            rr, q = role_binding(g, process, EX.MeasurementResultRole)
+        if (claim, S.refersTo, EX.Measurement) in g:
+            rr, q = claim_role_binding(g, claim, EX.MeasurementResultRole)
             quality = one(g.objects(q, S.refersTo), 'MEASURED_QUALITY_CARDINALITY')
             require((quality, RDF.type, EX.CreatinineConcentration) in g, 'UNSUPPORTED_MEASURED_QUALITY')
             require(set(g.objects(quality, S.isFeatureOf)) == {patient}, 'MEASUREMENT_SUBJECT_MISMATCH')
@@ -351,15 +373,15 @@ def project(source, manifest):
             binding.update(result_role=str(rr), result_datum=str(q), measured_quality=str(quality),
                            unit_resource=str(unit), unit_factor=decimal_text(factor))
         else:
-            require((process, RDF.type, EX.AdministrationRecordProcess) in g, 'UNSUPPORTED_PROCESS')
-            dr, drug = role_binding(g, process, EX.AdministeredDrugRole)
+            require((claim, S.refersTo, EX.DrugAdministration) in g, 'UNSUPPORTED_CLAIM')
+            dr, drug = claim_role_binding(g, claim, EX.AdministeredDrugRole)
             direct = {k for k, cls in DRUGS.items() if (drug, RDF.type, cls) in source}
             concept = one(direct, 'DRUG_ASSERTED_CONCEPT_CARDINALITY')
             kind = 'administration'
             binding.update(drug_role=str(dr), drug_bearer=str(drug))
         require(meta['source_code'] == concept, 'SOURCE_CONCEPT_MISMATCH')
-        explicit_roles = typed_objects(g, process, S.hasParticipant, S.Role)
-        require(not (explicit_roles & used_roles), 'ROLE_REUSED_ACROSS_PROCESSES')
+        explicit_roles = typed_objects(g, claim, S.refersTo, S.Role)
+        require(not (explicit_roles & used_roles), 'ROLE_REUSED_ACROSS_CLAIMS')
         used_roles.update(explicit_roles)
         # Evidence is linked by a deterministic assertion ID; source graph hash is recorded separately.
         binding.update(original_value=original_value, original_unit=original_unit,
@@ -369,7 +391,7 @@ def project(source, manifest):
         output.append({
             'dataset_id': manifest['dataset_id'], 'snapshot_id': manifest['snapshot_id'],
             'patient_id': patient_id, 'episode_id': meta['episode_id'], 'event_id': meta['event_id'],
-            'record_id': meta['record_id'], 'clinical_event_id': str(process), 'event_kind': kind,
+            'record_id': meta['record_id'], 'clinical_event_id': str(claim), 'event_kind': kind,
             'concept': concept, 'source_code': meta['source_code'], 'source_system': 'constructed_fixture',
             'mapping_ref': 'pro-solid-2.4', 'status': meta['status'], 'experiencer': 'patient',
             'time': {'kind': 'point', 'clock_id': manifest['clock_id'], 'start_min_us': us,

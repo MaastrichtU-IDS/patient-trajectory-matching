@@ -12,18 +12,21 @@ The application extension introduces classes and individuals. It declares **no n
 
 | Requirement | Graph representation | Executed behavior |
 |---|---|---|
-| Person participating as patient | Process → `hasParticipant` → PatientRole → `isFeatureOf` → Person | Preserve the process, role and bearer binding; project the bearer's identifier. |
-| Substance participating in administration | Administration → `hasParticipant` → AdministeredDrugRole → `isFeatureOf` → drug individual | Read the drug individual's clinical class; never type the process itself as DrugA. |
-| Measurement result | Measurement → `hasParticipant` → MeasurementResultRole → `isFeatureOf` → result information object | Bind one result to its measurement process. This role class is this project's modeling choice. |
+| Kind of process claimed | ProcessClaim → `refersTo` → reference object (`ex:Measurement` or `ex:DrugAdministration`, the class IRI punned as an empty `sulo:Collection`) | Classify the claim without asserting any process occurred. |
+| Person participating as patient | ProcessClaim → `refersTo` → PatientRole → `isFeatureOf` → Person | Preserve the claim, role and bearer binding; project the bearer's identifier. |
+| Substance participating in administration | ProcessClaim → `refersTo` → AdministeredDrugRole → `isFeatureOf` → drug individual | Read the drug individual's clinical class; never type the claim itself as DrugA. |
+| Measurement result | ProcessClaim → `refersTo` → MeasurementResultRole → `isFeatureOf` → result information object | Bind one result to its claim. This role class is this project's modeling choice. |
 | Measured property and subject | Result → `refersTo` → quality → `isFeatureOf` → person | Require the quality's bearer to be the person in the measurement's patient role. |
 | Numeric value and unit | Result → `hasValue` → decimal; result → `hasPart` → Unit | Validate and convert supported units while preserving original values and units. |
-| Recorded time anchor | Process → `atTime` → RecordedAnchorTime → `hasValue` → datetime | Normalize the explicitly zoned anchor into integer microseconds relative to the declared origin. |
-| Source metadata | SourceRecord → `refersTo` → process; record → `hasPart` → typed metadata datum → `hasValue` → literal | Preserve source key, record identifier and source-row hash. |
+| Recorded time anchor | ProcessClaim → `hasPart` → RecordedAnchorTime → `hasValue` → datetime | Normalize the explicitly zoned anchor into integer microseconds relative to the declared origin. |
+| Source metadata | SourceRecord → `refersTo` → claim; record → `hasPart` → typed metadata datum → `hasValue` → literal | Preserve source key, record identifier and source-row hash. |
 | Patient identifier | Person → `hasFeature` → PatientIdentifier → `hasValue` → string | Build the matcher join key without asserting a patient-specific relation. |
 
-A patient's role can differ between processes. The trajectory joins the **same person**, not the same role individual. This adapter requires a distinct role individual per process and exactly one patient-role binding for each projected process. Those are explicit ingestion constraints for this profile; they are not global restrictions on every SULO graph.
+A patient's role can differ between claims. The trajectory joins the **same person**, not the same role individual. This adapter requires a distinct role individual per claim and exactly one patient-role binding for each projected claim. Those are explicit ingestion constraints for this profile; they are not global restrictions on every SULO graph.
 
-The PRO chain can derive generic participation from participation through a feature. Generic participation alone does not establish which role the bearer had. Query evaluation retains the role witness, including when the graph also contains the derived direct participation triple.
+The role chain runs through `sulo:refersTo` rather than `sulo:hasParticipant`. SULO declares that property with `rdfs:domain sulo:Process`, so one participation triple asserts the process however its subject is typed; retyping the individual does not remove the claim. A source graph containing one is refused with `PROCESS_ASSERTED_BY_PARTICIPATION`. The process, its participants and its `atTime` anchor appear only when a claim is accepted, which is also what adds the member that makes the reference collection non-empty.
+
+A claim that refers to the person directly does not establish which role the bearer had. Query evaluation retains the role witness.
 
 SOLID does not mean that every information object must have a literal. A source record can be a composite information object whose parts carry its fields. `hasValue` is functional in SULO: an information object has at most one value under ontology semantics. The adapter additionally requires exactly one explicitly recorded literal for each selected scalar datum. Its RDF-term count is a validation rule, not a complete implementation of OWL datatype equality.
 
@@ -36,9 +39,9 @@ The following fragment uses the pack's synthetic namespace. The complete, parsea
 @prefix sulo: <https://w3id.org/sulo/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ex:measurement1 a ex:Measurement ;
-    sulo:hasParticipant ex:patientRole1, ex:resultRole1 ;
-    sulo:atTime ex:time1 .
+ex:claim1 a ex:ProcessClaim ;
+    sulo:refersTo ex:Measurement, ex:patientRole1, ex:resultRole1 ;
+    sulo:hasPart ex:time1 .
 
 ex:patientRole1 a ex:PatientRole ; sulo:isFeatureOf ex:person1 .
 ex:person1 a ex:Person .
@@ -59,16 +62,16 @@ ex:Second a sulo:Unit .
 
 The quality is represented at patient level for this constructed adapter. A specimen-based laboratory adapter must explicitly model the specimen, sampling process and relevant roles, rather than assuming the specimen and patient are the same bearer. That mapping is not implemented here.
 
-Equal observed values do not justify merging observations. Each record, result datum and process retains a distinct identifier in the adapter. Subsequent observations create additional data. A revision to a recorded observation requires the versioning policy specified in v2.3; this runner consumes one already selected snapshot and does not implement revision selection.
+Equal observed values do not justify merging observations. Each record, result datum and claim retains a distinct identifier in the adapter. Subsequent observations create additional data. A revision to a recorded observation requires the versioning policy specified in v2.3; this runner consumes one already selected snapshot and does not implement revision selection.
 
 ## 3. Executable slice
 
 `patterns/pro_solid.py` implements:
 
 1. **Construct:** read the supplied synthetic JSON rows and create an RDF graph. This is a concrete source-adapter example, not a raw MIMIC or FHIR importer.
-2. **Derive:** compute named subclass closure, the inverse of `hasFeature`, and the PRO participation chain in a separate graph. Asserted triples remain available separately.
+2. **Derive:** compute named subclass closure and the inverse of `hasFeature` in a separate graph. Asserted triples remain available separately. No participation chain is derived, because no participation is asserted.
 3. **Validate:** execute the supplied SHACL shapes plus procedural checks for instance predicates, supported codes, named upper-class disjointness, metadata, role context, record identity, time and units.
-4. **Project:** produce v2.0 Event DTOs and a separate evidence file linking projected rows to process, role, bearer, result, quality, unit and source-record resources.
+4. **Project:** produce v2.0 Event DTOs and a separate evidence file linking projected rows to claim, role, bearer, result, quality, unit and source-record resources.
 5. **Match:** run the existing exhaustive three-slot oracle on the projected events. No matcher semantics or relaxation prices are changed by this adapter.
 
 The Event DTO's `patient_id`, `value`, `unit` and other fields are an execution representation. They are not SULO properties. The source graph and binding evidence remain the semantic record. The evidence identifier is a deterministic identifier for an extracted binding, not a new assertion of clinical truth or a complete OWL proof.
