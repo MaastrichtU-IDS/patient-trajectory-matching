@@ -7,10 +7,11 @@ Run with a SULO core and a target:
         --target examples/sulo-validation-demo/toy-extension.ttl \
         --robot /path/to/robot.jar
 
-The two toy files are deliberately flawed in different ways. `toy-extension.ttl`
+The three toy files are deliberately flawed in different ways. `toy-extension.ttl`
 references `sulo:isLocatedIn`, which SULO removed at 0.2.8. `toy-data.ttl` asserts an
-individual into two classes SULO declares disjoint. Neither file is malformed, and each
-is accepted by the obvious way of checking it.
+individual into two classes SULO declares disjoint. `toy-domain.ttl` gives a `sulo:Object`
+a `sulo:hasParticipant`, whose domain SULO declares disjoint with `sulo:Object`. None of
+the three is malformed, and each is accepted by the obvious way of checking it.
 
 The order of the checks matters, because each later step destroys the evidence the
 earlier one needs:
@@ -22,6 +23,12 @@ earlier one needs:
 3. Consistency, on the merged document. Checking a target by itself is the trap: its
    SULO properties are undeclared there, so OWLAPI reads them as annotation assertions,
    annotations carry no semantics, and the reasoner reports a contradiction consistent.
+
+The merge in step 3 is written to a file and reasoned over separately, which is not a
+stylistic choice. Chaining `merge` into `reason` in one ROBOT command parses the target
+before the merge supplies SULO's declarations, so property assertions stay annotations
+there too. It still catches contradictions between `rdf:type` triples, which is why the
+chained form looks correct until something like `toy-domain.ttl` slips through it.
 """
 import argparse
 import pathlib
