@@ -91,17 +91,37 @@ See [issues.md](issues.md) for the gaps this model exposes but does not yet clos
 
 **Executable.** Specified in [addendum 2.4](../addenda/specification-2.4.md).
 
-### Participation through roles
+### Claims, roles and the process that is not asserted
 
-Participation is always mediated by a role:
+A source row says a process was recorded. It does not establish that the process
+occurred, and the graph must not say that it did. So a row becomes an `ex:ProcessClaim`,
+an information object, which refers to a **reference object** naming the kind of process
+claimed:
 
 ```
-Process --hasParticipant--> PatientRole --isFeatureOf--> Person
+SourceRecord --refersTo--> ProcessClaim --refersTo--> ex:DrugAdministration
+                                        --refersTo--> PatientRole --isFeatureOf--> Person
+                                        --hasPart---> RecordedAnchorTime
 ```
 
-A trajectory joins on the **same person**, never the same role individual. The profile requires a distinct role individual per process, enforced by `ROLE_REUSED_ACROSS_PROCESSES`.
+The reference object is the process class IRI punned as a `sulo:Collection` individual,
+with `ex:DrugAdministration owl:equivalentClass (sulo:isItemIn value ex:DrugAdministration)`.
+The collection is empty, so referring to it classifies the claim as an
+`ex:DrugAdministrationClaim` while entailing no process. Acceptance adds a member, and the
+equivalence makes that member an instance of the class and so a `sulo:Process`.
 
-The derived generic participation triple (`process hasParticipant person`) is explicitly **insufficient** on its own. Generic participation does not establish which role the bearer held, so query evaluation must retain the role witness even when the closure also contains the direct triple.
+The role chain is reached through `sulo:refersTo`, **not** `sulo:hasParticipant`. That
+property is declared with `rdfs:domain sulo:Process`, so a single participation triple
+asserts the process no matter how its subject is typed — which is why retyping the
+individual would not have been enough. `validate_graph` refuses any source graph
+containing one, raising `PROCESS_ASSERTED_BY_PARTICIPATION`.
+
+A trajectory joins on the **same person**, never the same role individual. The profile
+requires a distinct role individual per claim, enforced by `ROLE_REUSED_ACROSS_CLAIMS`.
+
+A claim that refers to the person directly instead of to a role is explicitly
+**insufficient**: a generic reference does not establish which role the bearer held, so
+query evaluation must retain the role witness.
 
 ### Literals through information objects
 
@@ -115,7 +135,7 @@ The application extension declares **no new object properties and no new datatyp
 - a literal on a non-`InformationObject` subject raises `SOLID_INFORMATION_OBJECT`
 - any predicate outside `rdf:type` and the six permitted SULO object properties raises `UNSUPPORTED_OBJECT_PROPERTY`
 
-The permitted object properties are `hasParticipant`, `isFeatureOf`, `hasFeature`, `hasPart`, `refersTo` and `atTime`.
+The permitted object properties are `hasParticipant`, `isFeatureOf`, `hasFeature`, `hasPart`, `refersTo` and `atTime`. `hasParticipant` and `atTime` stay permitted because an accepted claim's process uses them; a source graph containing either on a claim is refused separately.
 
 The payoff is a vocabulary that stays small and fixed while the domain grows through classes alone. The cost is verbosity: one lab value becomes a result object, a measured quality, a unit resource and an anchor time.
 

@@ -5,6 +5,8 @@ import unittest
 from decimal import Decimal
 
 from jsonschema import Draft202012Validator
+from pyshacl import validate as shacl_validate
+import rdflib
 from rdflib import Graph, Literal, OWL, RDF, URIRef, XSD
 
 from patterns.pro_solid import (ROOT, S, EX, DATA, PROFILE, ContractError, build_graph,
@@ -49,11 +51,75 @@ class PatternAcceptance(unittest.TestCase):
         for event in case['events']:
             validator.validate(event)
 
-    def test_pro_chain_is_derived_without_losing_role_binding(self):
-        self.assertNotIn((DATA['event-B1'], S.hasParticipant, DATA['person-P1']), self.graph)
+    def test_claim_reaches_its_bearer_without_asserting_participation(self):
+        """The role binding survives the move off sulo:hasParticipant.
+
+        The claim refers to the role; the role is a feature of the bearer. Nothing closes
+        a participation chain, because any sulo:hasParticipant triple would assert the
+        process through that property's domain.
+        """
         closure = materialize(self.graph)
-        self.assertIn((DATA['event-B1'], S.hasParticipant, DATA['person-P1']), closure)
+        self.assertEqual(len(list(closure.triples((None, S.hasParticipant, None)))), 0)
+        self.assertIn((DATA['event-B1'], S.refersTo, DATA['B1-patient-role']), closure)
+        self.assertIn((DATA['B1-patient-role'], S.isFeatureOf, DATA['person-P1']), closure)
         self.assertEqual(self.projected()[1]['bindings']['B1']['patient_role'], str(DATA['B1-patient-role']))
+
+    def accepted(self):
+        """The graph acceptance would produce for the B1 measurement claim.
+
+        Minting a process is what acceptance means: it adds the member that makes the
+        reference collection non-empty, and attaches the participants and the time the
+        claim only referred to. Built here so the process shapes are checked against
+        something, and so the accepted form is written down rather than described.
+        """
+        g = Graph()
+        for triple in self.graph:
+            g.add(triple)
+        process = DATA['process-B1']
+        g.add((process, RDF.type, EX.Measurement))
+        g.add((process, S.isItemIn, EX.Measurement))
+        g.add((process, S.hasParticipant, DATA['B1-patient-role']))
+        g.add((process, S.hasParticipant, DATA['B1-result-role']))
+        g.add((process, S.atTime, DATA['B1-time']))
+        return g, process
+
+    def conforms(self, graph):
+        shapes = Graph().parse(ROOT / 'ontology/pro-solid-shapes.ttl')
+        normalize_before = rdflib.NORMALIZE_LITERALS
+        try:
+            return shacl_validate(materialize(graph), shacl_graph=shapes,
+                                  inference='none', do_owl_imports=False)[0]
+        finally:
+            # pySHACL changes this process-global flag; restore the loader's setting, or
+            # a later test that depends on literal spelling fails for an unrelated reason.
+            rdflib.NORMALIZE_LITERALS = normalize_before
+
+    def test_accepted_claim_shapes_are_enforced(self):
+        graph, process = self.accepted()
+        self.assertTrue(self.conforms(graph))
+        graph.remove((process, S.hasParticipant, DATA['B1-patient-role']))
+        self.assertFalse(self.conforms(graph))
+
+    def test_accepted_claim_still_needs_its_anchor_time(self):
+        graph, process = self.accepted()
+        graph.remove((process, S.atTime, DATA['B1-time']))
+        self.assertFalse(self.conforms(graph))
+
+    def test_acceptance_is_what_puts_a_process_in_the_graph(self):
+        """The source graph alone types nothing as a process; the accepted graph does."""
+        closure = materialize(self.graph)
+        self.assertEqual(set(closure.subjects(RDF.type, EX.RecordedClinicalProcess)), set())
+        graph, process = self.accepted()
+        self.assertIn(process, set(materialize(graph).subjects(RDF.type, EX.RecordedClinicalProcess)))
+
+    def test_participation_in_a_source_graph_is_refused(self):
+        """The guard that makes the migration real, checked by breaking it.
+
+        sulo:hasParticipant has rdfs:domain sulo:Process, so one such triple asserts the
+        process however its subject is typed. Removing this guard must fail here.
+        """
+        self.graph.add((DATA['event-B1'], S.hasParticipant, DATA['B1-patient-role']))
+        self.reject('PROCESS_ASSERTED_BY_PARTICIPATION')
 
     def test_inverse_feature_encoding(self):
         self.graph.remove((DATA['B1-patient-role'], S.isFeatureOf, DATA['person-P1']))
@@ -61,16 +127,16 @@ class PatternAcceptance(unittest.TestCase):
         self.assertEqual(self.match()['accepted_as'], 'EXACT')
 
     def test_care_provider_does_not_become_patient(self):
-        for triple in [(DATA['event-B1'], S.hasParticipant, DATA.providerRole),
+        for triple in [(DATA['event-B1'], S.refersTo, DATA.providerRole),
                        (DATA.providerRole, RDF.type, EX.CareProviderRole),
                        (DATA.providerRole, S.isFeatureOf, DATA.provider),
                        (DATA.provider, RDF.type, EX.Person)]:
             self.graph.add(triple)
         self.assertEqual(self.projected()[1]['bindings']['B1']['patient_bearer'], str(DATA['person-P1']))
 
-    def test_generic_participation_is_insufficient(self):
-        self.graph.remove((DATA['event-B1'], S.hasParticipant, DATA['B1-patient-role']))
-        self.graph.add((DATA['event-B1'], S.hasParticipant, DATA['person-P1']))
+    def test_generic_reference_is_insufficient(self):
+        self.graph.remove((DATA['event-B1'], S.refersTo, DATA['B1-patient-role']))
+        self.graph.add((DATA['event-B1'], S.refersTo, DATA['person-P1']))
         self.reject('SHACL_PROFILE_FAILURE')
 
     def test_wrong_role_type(self):
@@ -78,7 +144,7 @@ class PatternAcceptance(unittest.TestCase):
         self.reject('SHACL_PROFILE_FAILURE')
 
     def test_multiple_patient_roles_even_for_same_bearer(self):
-        for triple in [(DATA['event-B1'], S.hasParticipant, DATA.otherRole),
+        for triple in [(DATA['event-B1'], S.refersTo, DATA.otherRole),
                        (DATA.otherRole, RDF.type, EX.PatientRole),
                        (DATA.otherRole, S.isFeatureOf, DATA['person-P1'])]:
             self.graph.add(triple)
@@ -89,10 +155,12 @@ class PatternAcceptance(unittest.TestCase):
         self.graph.add((DATA.otherPerson, RDF.type, EX.Person))
         self.reject('SHACL_PROFILE_FAILURE')
 
-    def test_role_reuse_across_processes(self):
-        self.graph.set((DATA['event-F1'], S.hasParticipant, DATA['B1-patient-role']))
-        self.graph.add((DATA['event-F1'], S.hasParticipant, DATA['F1-result-role']))
-        self.reject('ROLE_REUSED_ACROSS_PROCESSES')
+    def test_role_reuse_across_claims(self):
+        # Replace only F1's patient role; a set() here would also drop the reference
+        # object and the claim would fail for the wrong reason.
+        self.graph.remove((DATA['event-F1'], S.refersTo, DATA['F1-patient-role']))
+        self.graph.add((DATA['event-F1'], S.refersTo, DATA['B1-patient-role']))
+        self.reject('ROLE_REUSED_ACROSS_CLAIMS')
 
     def test_patient_shortcut_rejected(self):
         self.graph.add((DATA['event-B1'], EX.hasPatient, DATA['person-P1']))
@@ -311,13 +379,14 @@ class PatternAcceptance(unittest.TestCase):
         self.reject('DISJOINT_UPPER_CLASSES')
 
     def test_property_range_contradiction_is_checked(self):
-        """A process used as a participant contradicts the range of hasParticipant.
+        """A role used as a time contradicts the range of sulo:atTime.
 
-        Subclass closure alone cannot see this: the participant carries only Process
-        types, so the asserted-type check passes. HermiT reports the merged SULO,
-        profile and instance graph as inconsistent, and the adapter must agree.
+        Subclass closure alone cannot see this: the object carries only Role types, so
+        the asserted-type check passes. sulo:atTime has rdfs:range sulo:Time, whose named
+        ancestors include sulo:InformationObject, and SULO declares that disjoint with
+        sulo:Role. The adapter must agree with HermiT on the merged document.
         """
-        self.graph.add((DATA['event-B1'], S.hasParticipant, DATA['event-E1']))
+        self.graph.add((DATA['event-B1'], S.atTime, DATA['B1-patient-role']))
         self.reject('PROPERTY_TYPE_DISJOINT')
 
     def test_property_domain_contradiction_is_checked(self):
@@ -334,11 +403,13 @@ class PatternAcceptance(unittest.TestCase):
         before = set(materialize(self.graph))
         self.projected()
         self.assertEqual(set(materialize(self.graph)), before)
-        self.graph.add((DATA['event-B1'], S.hasParticipant, DATA['event-E1']))
+        # sulo:refersTo has rdfs:domain sulo:InformationObject, which SULO declares
+        # disjoint with sulo:Role. The role is the subject here, so the domain bites.
+        self.graph.add((DATA['B1-patient-role'], S.refersTo, DATA['event-E1']))
         self.reject('PROPERTY_TYPE_DISJOINT')
         closure = materialize(self.graph)
-        self.assertIn((DATA['event-E1'], RDF.type, S.Process), closure)
-        self.assertNotIn((DATA['event-E1'], RDF.type, S.Object), closure)
+        self.assertIn((DATA['B1-patient-role'], RDF.type, S.Role), closure)
+        self.assertNotIn((DATA['B1-patient-role'], RDF.type, S.InformationObject), closure)
 
     def test_metadata_cannot_be_mistyped_numeric_literal(self):
         self.graph.set((DATA['B1-event_id'], S.hasValue, Literal(1)))
@@ -348,6 +419,7 @@ class PatternAcceptance(unittest.TestCase):
         query = (ROOT / 'examples/pro-solid/measurement-bindings.rq').read_text()
         rows = list(self.graph.query(query))
         self.assertEqual(len(rows), 2)
+        self.assertEqual({row.claim for row in rows}, {DATA['event-B1'], DATA['event-F1']})
         self.assertEqual({row.person for row in rows}, {DATA['person-P1']})
         self.assertEqual({row.result for row in rows}, {DATA['B1-result'], DATA['F1-result']})
 

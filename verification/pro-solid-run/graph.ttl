@@ -159,20 +159,23 @@ data:F1-time a ex:RecordedAnchorTime ;
 data:P1-identifier a ex:PatientIdentifier ;
     sulo:hasValue "P1"^^xsd:string .
 
-data:event-B1 a ex:Measurement ;
-    sulo:atTime data:B1-time ;
-    sulo:hasParticipant data:B1-patient-role,
-        data:B1-result-role .
+data:event-B1 a ex:ProcessClaim ;
+    sulo:hasPart data:B1-time ;
+    sulo:refersTo data:B1-patient-role,
+        data:B1-result-role,
+        ex:Measurement .
 
-data:event-E1 a ex:DrugAdministration ;
-    sulo:atTime data:E1-time ;
-    sulo:hasParticipant data:E1-drug-role,
-        data:E1-patient-role .
+data:event-E1 a ex:ProcessClaim ;
+    sulo:hasPart data:E1-time ;
+    sulo:refersTo data:E1-drug-role,
+        data:E1-patient-role,
+        ex:DrugAdministration .
 
-data:event-F1 a ex:Measurement ;
-    sulo:atTime data:F1-time ;
-    sulo:hasParticipant data:F1-patient-role,
-        data:F1-result-role .
+data:event-F1 a ex:ProcessClaim ;
+    sulo:hasPart data:F1-time ;
+    sulo:refersTo data:F1-patient-role,
+        data:F1-result-role,
+        ex:Measurement .
 
 ex:MilligramPerDecilitre a sulo:Unit .
 

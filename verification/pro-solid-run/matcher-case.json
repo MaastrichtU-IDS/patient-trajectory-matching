@@ -53,7 +53,7 @@
         "source_record_sha256": "07d5c5b716b85c15448a9367e1919bc6e7e9b6673ce9c1d88d3079797b77a688",
         "adapter_rule": "pro-solid-2.4",
         "assertion_ids": [
-          "pro-solid:962532d460cfa36601af6cdc8d4aba8c2f27ad04f50d2d0e56bb9a97ede22f52"
+          "pro-solid:6cfddf970c27c67b8ec852ca16578341cbf6f2dfd363ee7d9d72670614e1c92c"
         ]
       },
       "record_version": 1,
@@ -95,7 +95,7 @@
         "source_record_sha256": "8de2cab77452a6ec2bb3fdd179d77eaa5a3de9a6e65782654599169b9812093f",
         "adapter_rule": "pro-solid-2.4",
         "assertion_ids": [
-          "pro-solid:043fb189dc4b94a2d2d4eef1007e215cc01c42dd37daf82c0353562f7a4a2e3a"
+          "pro-solid:d2550ccbfa2e8c772282d23831453baca840b56c6fe4f961c455fa93f8d3d20f"
         ]
       },
       "record_version": 1,
@@ -137,7 +137,7 @@
         "source_record_sha256": "b3a444314967983e68d273f3c5ef435be93d4487b71780aef62e89b7794634a8",
         "adapter_rule": "pro-solid-2.4",
         "assertion_ids": [
-          "pro-solid:ea73043682dd71502d7d7dabb21eaf5b5c4609c5b243f0f2fc3084105bcd1be0"
+          "pro-solid:f53e5beb723a121c0d02d25ef2d307071b482fc12f6de487a9d9d4ffd21bab86"
         ]
       },
       "record_version": 1,

@@ -136,7 +136,7 @@ class SimilarityEngine:
                 raise ValueError('INVALID_RECORDS')
             for record in patient['records']:
                 count += 1
-                _keys(record, ('id', 'component', 'value', 'occurrence_us', 'available_at_us', 'clock', 'source', 'process', 'role'), ('unit', 'coverage_complete'))
+                _keys(record, ('id', 'component', 'value', 'occurrence_us', 'available_at_us', 'clock', 'source', 'claim', 'role'), ('unit', 'coverage_complete'))
                 _text(record['id'])
                 if record['id'] in records:
                     raise ValueError('DUPLICATE_RECORD')
@@ -148,10 +148,10 @@ class SimilarityEngine:
                     raise ValueError('INCOMPARABLE_PATIENT_CLOCK')
                 _keys(record['source'], ('document', 'row'), ('original_value', 'original_unit', 'source_record_sha256', 'availability_policy', 'binding'))
                 _text(record['source']['document']); _text(record['source']['row'])
-                _keys(record['process'], ('id', 'hasParticipant'))
+                _keys(record['claim'], ('id', 'refersTo'))
                 _keys(record['role'], ('id', 'isFeatureOf'))
-                _text(record['process']['id']); _text(record['role']['id'])
-                if record['process']['hasParticipant'] != record['role']['id'] or record['role']['isFeatureOf'] != patient.get('bearer_id', pid):
+                _text(record['claim']['id']); _text(record['role']['id'])
+                if record['claim']['refersTo'] != record['role']['id'] or record['role']['isFeatureOf'] != patient.get('bearer_id', pid):
                     raise ValueError('INVALID_PRO_PARTICIPATION')
                 component = record['component']
                 if component == 'age_band':
