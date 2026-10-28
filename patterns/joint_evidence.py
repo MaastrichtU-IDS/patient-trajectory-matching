@@ -69,7 +69,7 @@ def compile_semantics(snapshot, selection, policy):
         eid = ref['event_id']
         ei.require(eid in snapshot.events, 'MISSING_SELECTED_SEMANTIC_EVENT')
         ei.require(bt.scope(snapshot.events[eid]) == scope, 'CROSS_SCOPE_SEMANTIC_REFERENCE')
-        return snapshot.evidence[eid]['process']
+        return snapshot.evidence[eid]['claim']
 
     module = {'profile': ss.PROFILE, 'source_sha256': ei.digest(ei.canonical(snapshot.source)),
               **{key: es.copied(policy[key]) for key in ('classes', 'rules', 'disjoint')},

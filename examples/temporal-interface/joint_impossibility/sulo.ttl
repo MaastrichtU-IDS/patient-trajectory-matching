@@ -47,9 +47,10 @@ data:snapshot a bt:Snapshot ;
 <https://example.org/trajectory/bounded-data/clocks/clock/scope> a ei:ClockScope ;
     sulo:hasValue "global"^^xsd:string .
 
-<https://example.org/trajectory/bounded-data/events/A> a bt:Infusion ;
-    sulo:atTime <https://example.org/trajectory/bounded-data/events/A/interval> ;
-    sulo:hasParticipant <https://example.org/trajectory/bounded-data/events/A/patient-role> .
+<https://example.org/trajectory/bounded-data/events/A> a bt:IntervalClaim ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/events/A/interval> ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/events/A/patient-role>,
+        bt:Infusion .
 
 <https://example.org/trajectory/bounded-data/events/A/end> a bt:EndDescriptor ;
     sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Ae> .
@@ -64,9 +65,10 @@ data:snapshot a bt:Snapshot ;
 <https://example.org/trajectory/bounded-data/events/A/start> a bt:StartDescriptor ;
     sulo:refersTo <https://example.org/trajectory/bounded-data/variables/As> .
 
-<https://example.org/trajectory/bounded-data/events/B> a bt:SpecimenCollection ;
-    sulo:atTime <https://example.org/trajectory/bounded-data/events/B/interval> ;
-    sulo:hasParticipant <https://example.org/trajectory/bounded-data/events/B/patient-role> .
+<https://example.org/trajectory/bounded-data/events/B> a bt:IntervalClaim ;
+    sulo:hasDirectPart <https://example.org/trajectory/bounded-data/events/B/interval> ;
+    sulo:refersTo <https://example.org/trajectory/bounded-data/events/B/patient-role>,
+        bt:SpecimenCollection .
 
 <https://example.org/trajectory/bounded-data/events/B/end> a bt:EndDescriptor ;
     sulo:refersTo <https://example.org/trajectory/bounded-data/variables/Be> .
@@ -307,3 +309,4 @@ ei:Second a sulo:Unit .
         <https://example.org/trajectory/bounded-data/clocks/clock/scope> .
 
 bt:Microsecond a sulo:Unit .
+

@@ -64,8 +64,8 @@ class RdfTests(unittest.TestCase):
         snapshot = br.prepare_graph(renamed)
         self.assertEqual(outcomes(cohort.execute(snapshot, self.query)), outcomes(cohort.execute(br.prepare_graph(g), self.query)))
         for item in snapshot.evidence.values():
-            self.assertTrue(item['process'].startswith('urn:independent:'))
-            self.assertIn((URIRef(item['process']), S.hasParticipant, URIRef(item['patient_role'])), renamed)
+            self.assertTrue(item['claim'].startswith('urn:independent:'))
+            self.assertIn((URIRef(item['claim']), S.refersTo, URIRef(item['patient_role'])), renamed)
             self.assertIn((URIRef(item['patient_role']), S.isFeatureOf, URIRef(item['patient_bearer'])), renamed)
         self.assertNotEqual(snapshot.context_id, br.prepare_graph(g).context_id)
 
@@ -97,9 +97,11 @@ class RdfTests(unittest.TestCase):
 
     def test_inverse_role_feature_and_explicit_named_superclasses(self):
         g = self.graph()
-        role, person, process = D['events/P1a/patient-role'], D['persons/P1'], D['events/P1a']
+        role, person, claim = D['events/P1a/patient-role'], D['persons/P1'], D['events/P1a']
         g.remove((role, S.isFeatureOf, person)); g.add((person, S.hasFeature, role))
-        g.add((process, RDF.type, bt.BT.IntervalProcess)); g.add((process, RDF.type, S.Process))
+        # The explicit superclass is now the claim's, not a process type: adding
+        # bt:IntervalProcess here would assert the occurrence the claim only reports.
+        g.add((claim, RDF.type, S.InformationObject))
         self.assertEqual(outcomes(cohort.execute(br.prepare_graph(g), self.query)),
                          outcomes(cohort.execute(br.prepare_graph(self.graph()), self.query)))
 
@@ -123,13 +125,17 @@ class RdfTests(unittest.TestCase):
         self.bad(g, 'RDF_CARDINALITY')
 
     def test_generic_participation_does_not_bind_patient(self):
-        g = self.graph(); g.set((D['events/P1a'], S.hasParticipant, D['persons/P1']))
+        g = self.graph()
+        g.remove((D['events/P1a'], S.refersTo, D['events/P1a/patient-role']))
+        g.add((D['events/P1a'], S.refersTo, D['persons/P1']))
         self.bad(g, 'UNSUPPORTED_OR_CONFLICTING_TYPES')
         g = self.graph(); g.set((D['events/P1a/patient-role'], RDF.type, ei.EX.CareProviderRole))
         self.bad(g, 'UNSUPPORTED_OR_CONFLICTING_TYPES')
 
     def test_role_and_bearer_identity_constraints(self):
-        g = self.graph(); g.set((D['events/P1b'], S.hasParticipant, D['events/P1a/patient-role']))
+        g = self.graph()
+        g.remove((D['events/P1b'], S.refersTo, D['events/P1b/patient-role']))
+        g.add((D['events/P1b'], S.refersTo, D['events/P1a/patient-role']))
         self.bad(g, 'REUSED_DESCRIPTOR_OR_WITNESS')
         g = self.graph(); g.add((D['events/P1a/patient-role'], S.isFeatureOf, D['persons/P2']))
         self.bad(g, 'PATIENT_BEARER_CARDINALITY')
@@ -137,11 +143,11 @@ class RdfTests(unittest.TestCase):
         self.bad(g, 'PATIENT_IDENTIFIER_COLLISION')
 
     def test_descriptor_and_interval_reuse_rejected(self):
-        for parent, predicate, target in [('events/P1b', S.atTime, 'events/P1a/interval'),
-                                           ('events/P1b/interval', S.hasDirectPart, 'events/P1a/start')]:
+        for parent, predicate, drop, target in [
+                ('events/P1b', S.hasDirectPart, 'events/P1b/interval', 'events/P1a/interval'),
+                ('events/P1b/interval', S.hasDirectPart, 'events/P1b/start', 'events/P1a/start')]:
             g = self.graph()
-            if predicate == S.hasDirectPart: g.remove((D[parent], predicate, D['events/P1b/start']))
-            else: g.remove((D[parent], predicate, None))
+            g.remove((D[parent], predicate, D[drop]))
             g.add((D[parent], predicate, D[target]))
             self.bad(g, 'REUSED_DESCRIPTOR_OR_WITNESS')
 
@@ -197,14 +203,16 @@ class RdfTests(unittest.TestCase):
     def test_unknown_properties_classes_blank_nodes_and_extra_data(self):
         additions = [(D['events/P1a'], URIRef('urn:hasPatient'), D['persons/P1']),
                      (D['events/P1a'], OWL.sameAs, D['events/P1b']),
-                     (D['events/P1a'], RDF.type, ei.S.Object),
+                     # sulo:Object is now an ancestor of bt:IntervalClaim, so it no longer
+                     # conflicts. sulo:Process is the type that does, and is the overclaim.
+                     (D['events/P1a'], RDF.type, ei.S.Process),
                      (URIRef('urn:orphan'), S.hasValue, Literal('extra')),
                      (BNode(), RDF.type, bt.BT.TemporalVariable),
                      (D['events/P1a'], URIRef('urn:value'), Literal('extra')),
                      (D['events/P1a/start'], S.hasValue, Literal('2026-09-02T00:00:00Z', datatype=XSD.dateTimeStamp))]
         for triple in additions:
             g = self.graph(); g.add(triple)
-            with self.subTest(triple=triple): self.bad(g, 'UNCONSUMED_RDF_TRIPLES|UNSUPPORTED_OR_CONFLICTING_TYPES|NAMED_RDF_REQUIRED|SOLID_LITERAL_PROPERTY')
+            with self.subTest(triple=triple): self.bad(g, 'UNCONSUMED_RDF_TRIPLES|UNSUPPORTED_OR_CONFLICTING_TYPES|NAMED_RDF_REQUIRED|SOLID_LITERAL_PROPERTY|PROCESS_ASSERTED_BY_TYPE')
 
     def test_snapshot_membership_is_complete(self):
         for node in ['variables/P1as', 'constraints/ae-upper']:

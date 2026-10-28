@@ -52,7 +52,7 @@ class SemanticSupportTests(unittest.TestCase):
         self.assertEqual(matching['possible_patient_ids'], ['P1', 'P2'])
         self.assertEqual([t['status'] for t in matching['trajectories']],
                          ['CERTAIN_MATCH', 'POSSIBLE_MATCH', 'NO_RECORDED_MATCH', 'INCOMPARABLE'])
-        self.assertNotIn(N + 'AntibioticAdministration', [a['class'] for a in self.module['class_assertions']])
+        self.assertNotIn(N + 'AntibioticAdministrationClaim', [a['class'] for a in self.module['class_assertions']])
         self.assertTrue(result['semantic_support']['reference']['derivations'])
 
     def test_same_answers_as_existing_profile_for_existing_selectors(self):
@@ -69,7 +69,7 @@ class SemanticSupportTests(unittest.TestCase):
                 self.assertIn('query_edges', binding)
                 for item in binding['slots'].values():
                     original = self.snapshot.evidence[item['event_id']]
-                    for key in ('process', 'patient_role', 'patient_bearer', 'evidence_id'):
+                    for key in ('claim', 'patient_role', 'patient_bearer', 'evidence_id'):
                         self.assertEqual(item[key], original[key])
                     self.assertEqual(item['semantic_support']['status'], 'ENTAILED')
         context = self.baseline['matching']['context']
@@ -172,8 +172,8 @@ class SemanticSupportTests(unittest.TestCase):
         actual = self.baseline['semantic_support']['backend_result']
         for extra in (False, True):
             broken = deepcopy(actual)
-            cls = N + 'AntibioticAdministration'
-            if extra: broken['memberships'][cls].append(self.snapshot.evidence['P3a']['process'])
+            cls = N + 'AntibioticAdministrationClaim'
+            if extra: broken['memberships'][cls].append(self.snapshot.evidence['P3a']['claim'])
             else: broken['memberships'][cls].pop()
             with self.subTest(extra=extra), patch.object(ss, 'run_backend', return_value=broken), patch.object(bc, '_execute_supported', side_effect=AssertionError('must not join')):
                 result = ss.execute(self.snapshot, self.query, self.module)
@@ -225,7 +225,7 @@ class SemanticSupportTests(unittest.TestCase):
         result = ss.execute(self.snapshot, self.query, module)
         self.assertNotEqual(result['context_id'], self.baseline['context_id'])
         self.assertEqual(result['matching']['possible_patient_ids'], [])
-        self.assertEqual(result['semantic_support']['memberships'][N + 'AntibioticAdministration'], [])
+        self.assertEqual(result['semantic_support']['memberships'][N + 'AntibioticAdministrationClaim'], [])
 
     def test_unsupported_owl_constructs_properties_and_imports_rejected(self):
         for change in ({'imports': []}, {'sameAs': []}, {'property_characteristics': []}):
@@ -262,10 +262,12 @@ class SemanticSupportTests(unittest.TestCase):
 
     def test_ofn_has_no_imports_new_properties_or_identity_axioms(self):
         ofn = self.baseline['semantic_support']['ontology_ofn']
-        self.assertIn('ObjectSomeValuesFrom(<https://w3id.org/sulo/hasParticipant>', ofn)
+        # The authored rule reaches the drug role through refersTo, like the graph it
+        # describes; hasParticipant there would assert the occurrence it reports on.
+        self.assertIn('ObjectSomeValuesFrom(<https://w3id.org/sulo/refersTo>', ofn)
         for forbidden in ('Import(', 'DatatypeProperty(', 'SameIndividual(', 'FunctionalObjectProperty('):
             self.assertNotIn(forbidden, ofn)
-        self.assertEqual(ofn.count('Declaration(ObjectProperty('), 2)
+        self.assertEqual(ofn.count('Declaration(ObjectProperty('), 3)
 
 
 if __name__ == '__main__':

@@ -1,15 +1,15 @@
 {
   "profile": "source-mixed-review-1.0",
-  "preparation_context_id": "e075fe52085a3bc6b768ef48e0fe54fc3096084ed06ee7139f2fb8d9095f8a6a",
+  "preparation_context_id": "2c124b23078e1f84f4c60d0fca56017054150f6fb538ec46c3f54be74bcbd7a6",
   "episodes": [
     {
       "patient_id": "1",
       "episode_id": "100",
       "interval_policy": {
         "profile": "claim-acceptance-policy-1.0",
-        "id": "pending_2e10e2ce3880462e1ba0f43fd1f26faef04ec1f7da1e0c67f4c724f9bf813852",
-        "store_sha256": "2e10e2ce3880462e1ba0f43fd1f26faef04ec1f7da1e0c67f4c724f9bf813852",
-        "semantic_policy_sha256": "db08f0d39a97326a78c62f992ff1d8bd85910dc71e22a56395190277a996245e",
+        "id": "pending_1bebd8ab373db6754e0ebe9aab14ce1cbd62e8838fc06744b7637114f41b38f3",
+        "store_sha256": "1bebd8ab373db6754e0ebe9aab14ce1cbd62e8838fc06744b7637114f41b38f3",
+        "semantic_policy_sha256": "bd213376c10dd9640e9d0eb6bdf099a63a7a938baa8f5aa122f76159433ef0ee",
         "decisions": [
           {
             "id": "authored_0",
@@ -23,8 +23,8 @@
       },
       "measurement_policy": {
         "profile": "claim-acceptance-policy-1.0",
-        "id": "pending_7c84639b15bc3a6aee9defeefd2d6661ad155236336a785d13234bc7d0d4d086",
-        "store_sha256": "7c84639b15bc3a6aee9defeefd2d6661ad155236336a785d13234bc7d0d4d086",
+        "id": "pending_9c119f323a81c8bb4b6cdde9a40857c1164a4489262091befe70b39f5c5bed1d",
+        "store_sha256": "9c119f323a81c8bb4b6cdde9a40857c1164a4489262091befe70b39f5c5bed1d",
         "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
         "decisions": [
           {
@@ -56,8 +56,8 @@
       "alignment": {
         "profile": "patient-local-clock-alignment-1.0",
         "id": "alignment_100",
-        "interval_store_sha256": "2e10e2ce3880462e1ba0f43fd1f26faef04ec1f7da1e0c67f4c724f9bf813852",
-        "measurement_store_sha256": "7c84639b15bc3a6aee9defeefd2d6661ad155236336a785d13234bc7d0d4d086",
+        "interval_store_sha256": "1bebd8ab373db6754e0ebe9aab14ce1cbd62e8838fc06744b7637114f41b38f3",
+        "measurement_store_sha256": "9c119f323a81c8bb4b6cdde9a40857c1164a4489262091befe70b39f5c5bed1d",
         "bindings": [
           {
             "patient_id": "1",
@@ -81,9 +81,9 @@
       "episode_id": "200",
       "interval_policy": {
         "profile": "claim-acceptance-policy-1.0",
-        "id": "pending_8cc023d320cc9b7ce6b8ca5f411ea309e2d9c6ffbc3b16a86f2170dce28b942e",
-        "store_sha256": "8cc023d320cc9b7ce6b8ca5f411ea309e2d9c6ffbc3b16a86f2170dce28b942e",
-        "semantic_policy_sha256": "db08f0d39a97326a78c62f992ff1d8bd85910dc71e22a56395190277a996245e",
+        "id": "pending_d707b2c32aaf2b47e1bc1f4878fc23a9c75e348cfe8c086b7f92d23627dd1331",
+        "store_sha256": "d707b2c32aaf2b47e1bc1f4878fc23a9c75e348cfe8c086b7f92d23627dd1331",
+        "semantic_policy_sha256": "bd213376c10dd9640e9d0eb6bdf099a63a7a938baa8f5aa122f76159433ef0ee",
         "decisions": [
           {
             "id": "authored_0",
@@ -97,8 +97,8 @@
       },
       "measurement_policy": {
         "profile": "claim-acceptance-policy-1.0",
-        "id": "pending_3738e677718286d02ca0cb0d7786c01bf89f51d3ee79962ce3775a0e8a8cdb4d",
-        "store_sha256": "3738e677718286d02ca0cb0d7786c01bf89f51d3ee79962ce3775a0e8a8cdb4d",
+        "id": "pending_bd338be23b5cc7c40f4cb6cb2c7ea022bb567e11bb35a1fb22a6ee747789ca60",
+        "store_sha256": "bd338be23b5cc7c40f4cb6cb2c7ea022bb567e11bb35a1fb22a6ee747789ca60",
         "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
         "decisions": [
           {
@@ -114,8 +114,8 @@
       "alignment": {
         "profile": "patient-local-clock-alignment-1.0",
         "id": "alignment_200",
-        "interval_store_sha256": "8cc023d320cc9b7ce6b8ca5f411ea309e2d9c6ffbc3b16a86f2170dce28b942e",
-        "measurement_store_sha256": "3738e677718286d02ca0cb0d7786c01bf89f51d3ee79962ce3775a0e8a8cdb4d",
+        "interval_store_sha256": "d707b2c32aaf2b47e1bc1f4878fc23a9c75e348cfe8c086b7f92d23627dd1331",
+        "measurement_store_sha256": "bd338be23b5cc7c40f4cb6cb2c7ea022bb567e11bb35a1fb22a6ee747789ca60",
         "bindings": [
           {
             "patient_id": "2",
@@ -132,9 +132,9 @@
       "episode_id": "300",
       "interval_policy": {
         "profile": "claim-acceptance-policy-1.0",
-        "id": "pending_21188d5f65bad2529100072553189650319009d0da0aa921e1e4f188515193b3",
-        "store_sha256": "21188d5f65bad2529100072553189650319009d0da0aa921e1e4f188515193b3",
-        "semantic_policy_sha256": "db08f0d39a97326a78c62f992ff1d8bd85910dc71e22a56395190277a996245e",
+        "id": "pending_87efef52b4078aa76b2a489f6aed33447496261be1c057686fa57b54a10b117b",
+        "store_sha256": "87efef52b4078aa76b2a489f6aed33447496261be1c057686fa57b54a10b117b",
+        "semantic_policy_sha256": "bd213376c10dd9640e9d0eb6bdf099a63a7a938baa8f5aa122f76159433ef0ee",
         "decisions": [
           {
             "id": "authored_0",
@@ -148,8 +148,8 @@
       },
       "measurement_policy": {
         "profile": "claim-acceptance-policy-1.0",
-        "id": "pending_d1d024ff0142d0ab88dac330c1ba6eee89216b083907f76f09dd45f9236ed3a7",
-        "store_sha256": "d1d024ff0142d0ab88dac330c1ba6eee89216b083907f76f09dd45f9236ed3a7",
+        "id": "pending_26021e9caf8d1b52563d9fd15c446f0d18bcd43c04c74b40384685e93c464b2d",
+        "store_sha256": "26021e9caf8d1b52563d9fd15c446f0d18bcd43c04c74b40384685e93c464b2d",
         "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
         "decisions": [
           {
@@ -173,8 +173,8 @@
       "alignment": {
         "profile": "patient-local-clock-alignment-1.0",
         "id": "alignment_300",
-        "interval_store_sha256": "21188d5f65bad2529100072553189650319009d0da0aa921e1e4f188515193b3",
-        "measurement_store_sha256": "d1d024ff0142d0ab88dac330c1ba6eee89216b083907f76f09dd45f9236ed3a7",
+        "interval_store_sha256": "87efef52b4078aa76b2a489f6aed33447496261be1c057686fa57b54a10b117b",
+        "measurement_store_sha256": "26021e9caf8d1b52563d9fd15c446f0d18bcd43c04c74b40384685e93c464b2d",
         "bindings": [
           {
             "patient_id": "3",

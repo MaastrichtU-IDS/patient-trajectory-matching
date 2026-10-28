@@ -221,27 +221,31 @@ def build_graph(source, *, origin_datatype=XSD.dateTimeStamp):
         provenance(constraint, c)
     for e in source['events']:
         path = 'events/' + e['id']
-        process = node(path, KINDS[e['event_kind']])
+        # The reference object names the kind of process claimed. It is the class IRI,
+        # punned as an empty sulo:Collection, so referring to it asserts no occurrence.
+        claim = node(path, BT.IntervalClaim)
+        g.add((claim, ei.S.refersTo, KINDS[e['event_kind']]))
         person = node('persons/' + e['patient_id'], ei.EX.Person)
         identifier = node('persons/' + e['patient_id'] + '/id', ei.EX.PatientIdentifier)
         g.add((person, ei.S.hasFeature, identifier))
         g.add((identifier, ei.S.hasValue, Literal(e['patient_id'], datatype=XSD.string)))
         role = node(path + '/patient-role', ei.EX.PatientRole)
-        g.add((process, ei.S.hasParticipant, role))
+        g.add((claim, ei.S.refersTo, role))
         g.add((role, ei.S.isFeatureOf, person))
         interval = node(path + '/interval', BT.OccurrenceInterval)
-        g.add((process, ei.S.atTime, interval))
+        g.add((claim, ei.S.hasDirectPart, interval))
         for side, cls in [('start', BT.StartDescriptor), ('end', BT.EndDescriptor)]:
             descriptor = node(path + '/' + side, cls)
             g.add((interval, ei.S.hasDirectPart, descriptor))
             g.add((descriptor, ei.S.refersTo, D['variables/' + e[side + '_var']]))
         record = node('records/' + e['record_id'], ei.EX.SourceRecord)
-        g.add((record, ei.S.refersTo, process))
+        g.add((record, ei.S.refersTo, claim))
         for field, cls in [('id', ei.EX.EventIdentifier), ('record_id', ei.EX.RecordIdentifier),
                            ('episode_id', ei.EX.EpisodeIdentifier), ('status', ei.EX.RecordStatus)]:
             scalar(record, field, cls, e[field])
         provenance(record, e)
-        evidence[e['id']] = {'process': str(process), 'patient_role': str(role), 'patient_bearer': str(person),
+        evidence[e['id']] = {'claim': str(claim), 'claimed_kind': str(KINDS[e['event_kind']]),
+                             'patient_role': str(role), 'patient_bearer': str(person),
                              'interval': str(interval), 'start_descriptor': str(D[path + '/start']),
                              'end_descriptor': str(D[path + '/end']), 'source_record': str(record),
                              'source': e, 'source_hash': ei.digest(ei.canonical(e)),

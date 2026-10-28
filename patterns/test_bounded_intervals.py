@@ -215,7 +215,9 @@ class BoundedTests(unittest.TestCase):
         extension = Graph().parse(ei.ROOT / 'ontology/bounded-interval-profile.ttl')
         self.assertFalse(list(extension.subjects(RDF.type, OWL.ObjectProperty)))
         self.assertFalse(list(extension.subjects(RDF.type, OWL.DatatypeProperty)))
-        approved = {RDF.type, ei.S.hasDirectPart, ei.S.refersTo, ei.S.hasParticipant, ei.S.isFeatureOf, ei.S.hasFeature, ei.S.atTime, ei.S.hasValue}
+        # hasParticipant and atTime are deliberately absent: a source graph records
+        # claims, and hasParticipant would assert the occurrence through its domain.
+        approved = {RDF.type, ei.S.hasDirectPart, ei.S.refersTo, ei.S.isFeatureOf, ei.S.hasFeature, ei.S.hasValue}
         for s, p, o in graph:
             self.assertIsInstance(s, URIRef)
             self.assertIn(p, approved)
@@ -223,7 +225,8 @@ class BoundedTests(unittest.TestCase):
             else: self.assertIsInstance(o, URIRef)
             if p == RDF.type: self.assertIn((o, RDF.type, OWL.Class), ontology)
         for item in self.snapshot.evidence.values():
-            self.assertIn((URIRef(item['process']), ei.S.hasParticipant, URIRef(item['patient_role'])), graph)
+            self.assertIn((URIRef(item['claim']), ei.S.refersTo, URIRef(item['patient_role'])), graph)
+            self.assertIn((URIRef(item['claim']), ei.S.refersTo, URIRef(item['claimed_kind'])), graph)
             self.assertIn((URIRef(item['patient_role']), ei.S.isFeatureOf, URIRef(item['patient_bearer'])), graph)
             for key in ('start_descriptor', 'end_descriptor', 'interval'):
                 self.assertFalse(list(graph.objects(URIRef(item[key]), ei.S.hasValue)))

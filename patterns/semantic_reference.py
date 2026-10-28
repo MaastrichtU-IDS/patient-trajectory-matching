@@ -19,6 +19,11 @@ def evaluate(model):
         if 'all' in expression:
             found = [witnesses(individual, term) for term in expression['all']]
             return None if any(w is None for w in found) else [p for w in found for p in w]
+        if 'value' in expression:
+            # ObjectHasValue: the filler is one named individual, not a class expression.
+            has = expression['value']
+            edge = individual, has['property'], has['individual']
+            return [{'property_assertion': list(edge)}] if edge in edges else None
         restriction = expression['some']
         for subject, prop, obj in sorted(edges):
             if subject == individual and prop == restriction['property']:

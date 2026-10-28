@@ -19,7 +19,7 @@
     "examples/reviewed-measurement-mappings/measurement-store.json": "1f724e63989be097216002d47ca627be1292358aba86d0433fc51d62bdb3453f",
     "examples/reviewed-measurement-mappings/query.json": "a6e27aecb28ba06b983aa2fc2d56f3874ba0fb2651aeb98a53234a8208f3eebd",
     "examples/reviewed-measurement-mappings/review.json": "02834e86904f08e10405189784770d5c13a007c43bb142609bbcae099ac693d9",
-    "examples/reviewed-measurement-mappings/selector.json": "c7d7fb9294bacddb1e7ec5de1c4cd706c2f4cebae35b81cd1f8fbb4e2c2f3acc",
+    "examples/reviewed-measurement-mappings/selector.json": "1fcaaa3bbeeadb48fe102e1d40da6adfb2fae52fb2f3310544a41e1156f98471",
     "examples/reviewed-measurement-mappings/semantic-policy.json": "b149de01563f886ca217011728d1fdf9c009c4a59cf1dba63a835b7c723e97d1",
     "examples/reviewed-measurement-mappings/terminology.json": "cd868f289a7aae5f9cc047deb4c92005e114090703c3646935db5760bab75b57"
   },
@@ -30,7 +30,7 @@
       "terminology": "004fd716ab2824f64a3fd0351a408f4f45d4294150c41e6baefcdefc88934db5",
       "mappings": "93fd113eea40fa27f9cef803e36c7dc29b3e4a6113e087570fa747a5beb3caa3",
       "review": "a6edc4ab88da2e2b1d7a957368599b60fcc5dcae52d36c5df1174d57e218bda0",
-      "selector": "c52d1389731478a7687143444c602f10888a9b41ca04eaa66e05c7de7b719cef",
+      "selector": "4cc0a4691651b9264f3665313b10dfa949fe98dfab04d4482507607b35327d5c",
       "interval-store": "7df59840d1e4827c055dbe4a5ab6883fba24c66a1187537e1a45b2509b30c530",
       "interval-policy": "14415feab6a9133128a3fab2f0dc0b264152b5b3dc737e63fa20bae4b0a8cb26",
       "semantic-policy": "4fac9d4119bb517f63046075538d5c90d59338aeab731918e7bf73188ea02937",
@@ -47,12 +47,12 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
-      "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
       "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
-      "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+      "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
       "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
       "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
       "patterns/mixed_record_query.py": "ac4a19f6a5f91559eba1585bdcf0f8bd2a7d7f5e87b121e52fabdc300d0df2f1",
@@ -62,8 +62,8 @@
       "patterns/reviewed_measurement_mappings.py": "5cff4610eb6f90e95ca32b8a1fda67b45976da981542d2477b11715a50c3f21c",
       "patterns/reviewed_record_mappings.py": "5996f9e982abccff590df0a79faad95d94d8330ea5d6f30e61642b50885c327e",
       "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
-      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
-      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+      "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
+      "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
       "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
       "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
       "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
@@ -85,10 +85,10 @@
     "cross_item_value_comparison_performed": false,
     "unit_conversion_performed": false
   },
-  "context_id": "356943fcd6d5d1b70c1b41cb07a5a32700ac79cbc8a32e52194d38d893d6c01d",
-  "mapping_context_id": "c8dea331330e90b1e17e4f1874e6d68e3709916c647a118fdfa76152a5366259",
+  "context_id": "7b57e2dd04e9bc7608e8bf11119934bc5f1875a0b506be5ec9459e2bc97de581",
+  "mapping_context_id": "9c57d890ca11b1ebb7053091c715ab4350aae862e834bfa64b6e85f68ca3079d",
   "selector_semantic_status": "READY",
-  "selector_ontology_sha256": "14266bcaae6f9448c87a0bef61eff30eb8b7b6cb19ffefc1ac6d9b17527528b0",
+  "selector_ontology_sha256": "4d52ff7053fc4d921459b5c17b67064c0332c38c44afa0349bbdcf448e63ccb1",
   "item_outcomes": [
     {
       "item_id": "pressure_a",
@@ -164,7 +164,7 @@
         "P1"
       ],
       "sql_binding_rows": 1,
-      "query_context_id": "370374e014c7427edb2ffc18955ede6161286d60222d8e42cefd4cb82c720dba"
+      "query_context_id": "03008b2e2c39aa4c62e8f5d6cdfd4c717ab9ac135a1eecf6245413b717aaa7f0"
     },
     {
       "item_id": "pressure_b",
@@ -172,7 +172,7 @@
         "P2"
       ],
       "sql_binding_rows": 1,
-      "query_context_id": "d12299c394199c1bf8e7c88032503e79b6b973687bea25d024ed6c99e828382b"
+      "query_context_id": "48d7b64db808490bc3cd7364695dc87b0735f58b4cd55279e02f68bb27aebda2"
     }
   ],
   "certain_synthetic_patient_ids": [

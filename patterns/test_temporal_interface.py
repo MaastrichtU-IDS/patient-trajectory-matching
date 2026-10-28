@@ -75,7 +75,7 @@ class MappingTests(unittest.TestCase):
     def test_unknown_complete_extent_is_unsupported(self):
         formal, sulo, interface, _ = load()
         formal.remove((ti.F.A, ti.F.exactExtent, None))
-        sulo.remove((bt.D['events/A'], ei.S.atTime, None))
+        sulo.remove((bt.D['events/A'], ei.S.hasDirectPart, bt.D['events/A/interval']))
         with self.assertRaises(ei.ContractError): ti.formal_view(formal, interface)
         with self.assertRaises(ei.ContractError): ti.sulo_view(sulo)
 
@@ -163,7 +163,8 @@ class MappingTests(unittest.TestCase):
     def test_bearer_participation_cannot_replace_the_role(self):
         formal, sulo, interface, _ = load()
         formal.set((ti.F.A, ti.F.hasParticipant, ti.F.patient))
-        sulo.set((bt.D['events/A'], ei.S.hasParticipant, bt.D['persons/P1']))
+        sulo.remove((bt.D['events/A'], ei.S.refersTo, bt.D['events/A/patient-role']))
+        sulo.add((bt.D['events/A'], ei.S.refersTo, bt.D['persons/P1']))
         with self.assertRaises(ei.ContractError): ti.formal_view(formal, interface)
         with self.assertRaises(ei.ContractError): ti.sulo_view(sulo)
 

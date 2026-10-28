@@ -3,14 +3,14 @@
   "status": "READY",
   "context": {
     "profile": "semantic-support-1.0",
-    "source_context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+    "source_context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
     "query": {
       "profile": "semantic-bounded-query-1.0",
       "id": "antibiotic_before_collection",
       "slots": [
         {
           "id": "a",
-          "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+          "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
         },
         {
           "id": "b",
@@ -30,8 +30,8 @@
       "profile": "semantic-support-1.0",
       "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
       "classes": [
-        "https://example.org/trajectory/semantic/DrugAdministration",
-        "https://example.org/trajectory/semantic/AntibioticAdministration",
+        "https://example.org/trajectory/semantic/DrugAdministrationClaim",
+        "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
         "https://example.org/trajectory/semantic/AdministeredDrugRole",
         "https://example.org/trajectory/semantic/Antibiotic",
         "https://example.org/trajectory/semantic/NonAntibiotic"
@@ -49,7 +49,7 @@
       "class_assertions": [
         {
           "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
@@ -61,7 +61,7 @@
         },
         {
           "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
@@ -73,7 +73,7 @@
         },
         {
           "individual": "https://example.org/trajectory/bounded-data/events/P3a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
@@ -85,7 +85,7 @@
         },
         {
           "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
@@ -99,7 +99,7 @@
       "property_assertions": [
         {
           "subject": "https://example.org/trajectory/bounded-data/events/P1a",
-          "property": "https://w3id.org/sulo/hasParticipant",
+          "property": "https://w3id.org/sulo/refersTo",
           "object": "https://example.org/trajectory/semantic/P1a-drug-role"
         },
         {
@@ -109,7 +109,7 @@
         },
         {
           "subject": "https://example.org/trajectory/bounded-data/events/P2a",
-          "property": "https://w3id.org/sulo/hasParticipant",
+          "property": "https://w3id.org/sulo/refersTo",
           "object": "https://example.org/trajectory/semantic/P2a-drug-role"
         },
         {
@@ -119,7 +119,7 @@
         },
         {
           "subject": "https://example.org/trajectory/bounded-data/events/P3a",
-          "property": "https://w3id.org/sulo/hasParticipant",
+          "property": "https://w3id.org/sulo/refersTo",
           "object": "https://example.org/trajectory/semantic/P3a-drug-role"
         },
         {
@@ -129,7 +129,7 @@
         },
         {
           "subject": "https://example.org/trajectory/bounded-data/events/P4a",
-          "property": "https://w3id.org/sulo/hasParticipant",
+          "property": "https://w3id.org/sulo/refersTo",
           "object": "https://example.org/trajectory/semantic/P4a-drug-role"
         },
         {
@@ -144,11 +144,11 @@
           "if": {
             "all": [
               {
-                "class": "https://example.org/trajectory/semantic/DrugAdministration"
+                "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
               },
               {
                 "some": {
-                  "property": "https://w3id.org/sulo/hasParticipant",
+                  "property": "https://w3id.org/sulo/refersTo",
                   "filler": {
                     "all": [
                       {
@@ -168,7 +168,7 @@
               }
             ]
           },
-          "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+          "then": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
         }
       ],
       "disjoint": [
@@ -181,19 +181,19 @@
         }
       ]
     },
-    "model_sha256": "ef59e80ba171be1de57813d596bbf1286ba026d4d88c11d8531fa9fd2e419f7b",
-    "ontology_sha256": "ab124ecc0eb8bee6290f9fdd9edda0775cacbc0b34d9f6e578f4976b875ba628",
+    "model_sha256": "45f7f87437127d26d31d1421bfae269620a2ffe02b101d3cbc6ded3cb4764ce8",
+    "ontology_sha256": "2a99386951c062ebf89be75e72206cea9dcbb6eafeaeaaad357ff8b4d3083657",
     "backend": {
       "status": "OK",
       "consistent": true,
       "memberships": {
-        "https://example.org/trajectory/bounded/SpecimenCollection": [
+        "https://example.org/trajectory/bounded/claim-of/SpecimenCollection": [
           "https://example.org/trajectory/bounded-data/events/P1b",
           "https://example.org/trajectory/bounded-data/events/P2b",
           "https://example.org/trajectory/bounded-data/events/P3b",
           "https://example.org/trajectory/bounded-data/events/P4b"
         ],
-        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+        "https://example.org/trajectory/semantic/AntibioticAdministrationClaim": [
           "https://example.org/trajectory/bounded-data/events/P1a",
           "https://example.org/trajectory/bounded-data/events/P2a",
           "https://example.org/trajectory/bounded-data/events/P4a"
@@ -204,34 +204,28 @@
       "backend": {
         "name": "rustdl",
         "version": "0.4.28",
-        "python": "3.12.14",
-        "native_sha256": "5ebad382865b202bb3ef38429e4f27f354171ed6d9a4b20858894c75e7b596ab",
+        "python": "3.12.13",
+        "native_sha256": "5e751c774554f7d8492658c88cf0025dcdddadebc2e012a8fca1b59150e69158",
         "wrapper_sha256": "1cce7a94c73a4f28ecb6b800a19ed8d85cd1069fe8d6a2c047c11e6b5614596b",
         "instance_api_reports_truncation": false
       }
     },
     "timeout_seconds": 20,
     "artifacts": {
-      "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
-      "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
+      "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
+      "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
       "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
       "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f"
     }
   },
-  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
   "semantic_support": {
     "reference": {
       "consistent": true,
       "clashes": [],
       "memberships": {
-        "https://example.org/trajectory/bounded/Infusion": [
-          "https://example.org/trajectory/bounded-data/events/P1a",
-          "https://example.org/trajectory/bounded-data/events/P2a",
-          "https://example.org/trajectory/bounded-data/events/P3a",
-          "https://example.org/trajectory/bounded-data/events/P4a"
-        ],
-        "https://example.org/trajectory/bounded/IntervalProcess": [
+        "https://example.org/trajectory/bounded/IntervalClaim": [
           "https://example.org/trajectory/bounded-data/events/P1a",
           "https://example.org/trajectory/bounded-data/events/P1b",
           "https://example.org/trajectory/bounded-data/events/P2a",
@@ -241,7 +235,34 @@
           "https://example.org/trajectory/bounded-data/events/P4a",
           "https://example.org/trajectory/bounded-data/events/P4b"
         ],
-        "https://example.org/trajectory/bounded/SpecimenCollection": [
+        "https://example.org/trajectory/bounded/claim-of/Infusion": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P4a"
+        ],
+        "https://example.org/trajectory/bounded/claim-of/IntervalProcess": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4a",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/bounded/claim-of/Process": [
+          "https://example.org/trajectory/bounded-data/events/P1a",
+          "https://example.org/trajectory/bounded-data/events/P1b",
+          "https://example.org/trajectory/bounded-data/events/P2a",
+          "https://example.org/trajectory/bounded-data/events/P2b",
+          "https://example.org/trajectory/bounded-data/events/P3a",
+          "https://example.org/trajectory/bounded-data/events/P3b",
+          "https://example.org/trajectory/bounded-data/events/P4a",
+          "https://example.org/trajectory/bounded-data/events/P4b"
+        ],
+        "https://example.org/trajectory/bounded/claim-of/RecordedInputSegment": [],
+        "https://example.org/trajectory/bounded/claim-of/SpecimenCollection": [
           "https://example.org/trajectory/bounded-data/events/P1b",
           "https://example.org/trajectory/bounded-data/events/P2b",
           "https://example.org/trajectory/bounded-data/events/P3b",
@@ -258,12 +279,12 @@
           "https://example.org/trajectory/semantic/P2a-drug",
           "https://example.org/trajectory/semantic/P4a-drug"
         ],
-        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+        "https://example.org/trajectory/semantic/AntibioticAdministrationClaim": [
           "https://example.org/trajectory/bounded-data/events/P1a",
           "https://example.org/trajectory/bounded-data/events/P2a",
           "https://example.org/trajectory/bounded-data/events/P4a"
         ],
-        "https://example.org/trajectory/semantic/DrugAdministration": [
+        "https://example.org/trajectory/semantic/DrugAdministrationClaim": [
           "https://example.org/trajectory/bounded-data/events/P1a",
           "https://example.org/trajectory/bounded-data/events/P2a",
           "https://example.org/trajectory/bounded-data/events/P3a",
@@ -287,16 +308,6 @@
           "https://example.org/trajectory/bounded-data/persons/P2",
           "https://example.org/trajectory/bounded-data/persons/P3",
           "https://example.org/trajectory/bounded-data/persons/P4"
-        ],
-        "https://w3id.org/sulo/Process": [
-          "https://example.org/trajectory/bounded-data/events/P1a",
-          "https://example.org/trajectory/bounded-data/events/P1b",
-          "https://example.org/trajectory/bounded-data/events/P2a",
-          "https://example.org/trajectory/bounded-data/events/P2b",
-          "https://example.org/trajectory/bounded-data/events/P3a",
-          "https://example.org/trajectory/bounded-data/events/P3b",
-          "https://example.org/trajectory/bounded-data/events/P4a",
-          "https://example.org/trajectory/bounded-data/events/P4b"
         ]
       },
       "derivations": [
@@ -304,16 +315,16 @@
           "kind": "rule",
           "rule_id": "antibiotic_administration",
           "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
           "premises": [
             [
               "https://example.org/trajectory/bounded-data/events/P1a",
-              "https://example.org/trajectory/semantic/DrugAdministration"
+              "https://example.org/trajectory/semantic/DrugAdministrationClaim"
             ],
             {
               "property_assertion": [
                 "https://example.org/trajectory/bounded-data/events/P1a",
-                "https://w3id.org/sulo/hasParticipant",
+                "https://w3id.org/sulo/refersTo",
                 "https://example.org/trajectory/semantic/P1a-drug-role"
               ]
             },
@@ -338,16 +349,16 @@
           "kind": "rule",
           "rule_id": "antibiotic_administration",
           "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
           "premises": [
             [
               "https://example.org/trajectory/bounded-data/events/P2a",
-              "https://example.org/trajectory/semantic/DrugAdministration"
+              "https://example.org/trajectory/semantic/DrugAdministrationClaim"
             ],
             {
               "property_assertion": [
                 "https://example.org/trajectory/bounded-data/events/P2a",
-                "https://w3id.org/sulo/hasParticipant",
+                "https://w3id.org/sulo/refersTo",
                 "https://example.org/trajectory/semantic/P2a-drug-role"
               ]
             },
@@ -372,16 +383,16 @@
           "kind": "rule",
           "rule_id": "antibiotic_administration",
           "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-          "class": "https://example.org/trajectory/semantic/AntibioticAdministration",
+          "class": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
           "premises": [
             [
               "https://example.org/trajectory/bounded-data/events/P4a",
-              "https://example.org/trajectory/semantic/DrugAdministration"
+              "https://example.org/trajectory/semantic/DrugAdministrationClaim"
             ],
             {
               "property_assertion": [
                 "https://example.org/trajectory/bounded-data/events/P4a",
-                "https://w3id.org/sulo/hasParticipant",
+                "https://w3id.org/sulo/refersTo",
                 "https://example.org/trajectory/semantic/P4a-drug-role"
               ]
             },
@@ -401,28 +412,474 @@
               "https://example.org/trajectory/semantic/Antibiotic"
             ]
           ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Infusion",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Infusion",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Infusion",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Infusion",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Infusion",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Infusion",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P3a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P3a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Infusion",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Infusion",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P3a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P3a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P3a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P3a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-infusion-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4a",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4a",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/Infusion"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P3b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P3b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-IntervalProcess",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/claim-of/IntervalProcess",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-SpecimenCollection",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/claim-of/SpecimenCollection",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-SpecimenCollection",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/claim-of/SpecimenCollection",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-SpecimenCollection",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/claim-of/SpecimenCollection",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P3b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P3b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-SpecimenCollection",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/claim-of/SpecimenCollection",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P1b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P1b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P2b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P2b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P3b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P3b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule_id": "claims-specimen_collection-is-Process",
+          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
+          "class": "https://example.org/trajectory/bounded/claim-of/Process",
+          "premises": [
+            [
+              "https://example.org/trajectory/bounded-data/events/P4b",
+              "https://example.org/trajectory/bounded/IntervalClaim"
+            ],
+            {
+              "property_assertion": [
+                "https://example.org/trajectory/bounded-data/events/P4b",
+                "https://w3id.org/sulo/refersTo",
+                "https://example.org/trajectory/bounded/SpecimenCollection"
+              ]
+            }
+          ]
         }
       ],
       "assertions": [
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-          "class": "https://example.org/trajectory/bounded/Infusion"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "kind": "asserted",
@@ -432,17 +889,7 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P1b",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
-          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P1b",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
@@ -452,22 +899,12 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-          "class": "https://example.org/trajectory/bounded/Infusion"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "kind": "asserted",
@@ -477,17 +914,7 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P2b",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
-          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P2b",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
@@ -497,22 +924,12 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P3a",
-          "class": "https://example.org/trajectory/bounded/Infusion"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P3a",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P3a",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "kind": "asserted",
@@ -522,17 +939,7 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P3b",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
-          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P3b",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
@@ -542,22 +949,12 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-          "class": "https://example.org/trajectory/bounded/Infusion"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-          "class": "https://example.org/trajectory/semantic/DrugAdministration"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
         },
         {
           "kind": "asserted",
@@ -567,17 +964,7 @@
         {
           "kind": "asserted",
           "individual": "https://example.org/trajectory/bounded-data/events/P4b",
-          "class": "https://example.org/trajectory/bounded/IntervalProcess"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
-          "class": "https://example.org/trajectory/bounded/SpecimenCollection"
-        },
-        {
-          "kind": "asserted",
-          "individual": "https://example.org/trajectory/bounded-data/events/P4b",
-          "class": "https://w3id.org/sulo/Process"
+          "class": "https://example.org/trajectory/bounded/IntervalClaim"
         },
         {
           "kind": "asserted",
@@ -650,13 +1037,13 @@
       "status": "OK",
       "consistent": true,
       "memberships": {
-        "https://example.org/trajectory/bounded/SpecimenCollection": [
+        "https://example.org/trajectory/bounded/claim-of/SpecimenCollection": [
           "https://example.org/trajectory/bounded-data/events/P1b",
           "https://example.org/trajectory/bounded-data/events/P2b",
           "https://example.org/trajectory/bounded-data/events/P3b",
           "https://example.org/trajectory/bounded-data/events/P4b"
         ],
-        "https://example.org/trajectory/semantic/AntibioticAdministration": [
+        "https://example.org/trajectory/semantic/AntibioticAdministrationClaim": [
           "https://example.org/trajectory/bounded-data/events/P1a",
           "https://example.org/trajectory/bounded-data/events/P2a",
           "https://example.org/trajectory/bounded-data/events/P4a"
@@ -667,22 +1054,22 @@
       "backend": {
         "name": "rustdl",
         "version": "0.4.28",
-        "python": "3.12.14",
-        "native_sha256": "5ebad382865b202bb3ef38429e4f27f354171ed6d9a4b20858894c75e7b596ab",
+        "python": "3.12.13",
+        "native_sha256": "5e751c774554f7d8492658c88cf0025dcdddadebc2e012a8fca1b59150e69158",
         "wrapper_sha256": "1cce7a94c73a4f28ecb6b800a19ed8d85cd1069fe8d6a2c047c11e6b5614596b",
         "instance_api_reports_truncation": false
       }
     },
-    "ontology_ofn": "Ontology(\nDeclaration(Class(<https://example.org/trajectory/bounded/Infusion>))\nDeclaration(Class(<https://example.org/trajectory/bounded/IntervalProcess>))\nDeclaration(Class(<https://example.org/trajectory/bounded/SpecimenCollection>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AdministeredDrugRole>))\nDeclaration(Class(<https://example.org/trajectory/semantic/Antibiotic>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AntibioticAdministration>))\nDeclaration(Class(<https://example.org/trajectory/semantic/DrugAdministration>))\nDeclaration(Class(<https://example.org/trajectory/semantic/NonAntibiotic>))\nDeclaration(Class(<https://example.org/trajectory/toy/PatientRole>))\nDeclaration(Class(<https://example.org/trajectory/toy/Person>))\nDeclaration(Class(<https://w3id.org/sulo/Process>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P1>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P2>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P3>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P4>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug-role>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/hasParticipant>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/isFeatureOf>))\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/Infusion> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalProcess> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/SpecimenCollection> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P1a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P2a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P3a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P4a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P1a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P2a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P4a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministration> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/semantic/NonAntibiotic> <https://example.org/trajectory/semantic/P3a-drug>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P1>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P2>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P3>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P4>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://w3id.org/sulo/Process> <https://example.org/trajectory/bounded-data/events/P4b>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1b> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2b> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3b> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4b> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1a/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1b/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2a/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2b/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3a/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3b/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4a/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4b/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P1a-drug-role> <https://example.org/trajectory/semantic/P1a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/semantic/P1a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P2a-drug-role> <https://example.org/trajectory/semantic/P2a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/semantic/P2a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P3a-drug-role> <https://example.org/trajectory/semantic/P3a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/semantic/P3a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P4a-drug-role> <https://example.org/trajectory/semantic/P4a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/hasParticipant> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/semantic/P4a-drug-role>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/semantic/DrugAdministration> ObjectSomeValuesFrom(<https://w3id.org/sulo/hasParticipant> ObjectIntersectionOf(<https://example.org/trajectory/semantic/AdministeredDrugRole> ObjectSomeValuesFrom(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/Antibiotic>)))) <https://example.org/trajectory/semantic/AntibioticAdministration>)\nDisjointClasses(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/NonAntibiotic>)\n)\n",
-    "ontology_sha256": "ab124ecc0eb8bee6290f9fdd9edda0775cacbc0b34d9f6e578f4976b875ba628",
+    "ontology_ofn": "Ontology(\nDeclaration(Class(<https://example.org/trajectory/bounded/IntervalClaim>))\nDeclaration(Class(<https://example.org/trajectory/bounded/claim-of/Infusion>))\nDeclaration(Class(<https://example.org/trajectory/bounded/claim-of/IntervalProcess>))\nDeclaration(Class(<https://example.org/trajectory/bounded/claim-of/Process>))\nDeclaration(Class(<https://example.org/trajectory/bounded/claim-of/RecordedInputSegment>))\nDeclaration(Class(<https://example.org/trajectory/bounded/claim-of/SpecimenCollection>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AdministeredDrugRole>))\nDeclaration(Class(<https://example.org/trajectory/semantic/Antibiotic>))\nDeclaration(Class(<https://example.org/trajectory/semantic/AntibioticAdministrationClaim>))\nDeclaration(Class(<https://example.org/trajectory/semantic/DrugAdministrationClaim>))\nDeclaration(Class(<https://example.org/trajectory/semantic/NonAntibiotic>))\nDeclaration(Class(<https://example.org/trajectory/toy/PatientRole>))\nDeclaration(Class(<https://example.org/trajectory/toy/Person>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P1b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P2b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P3b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4a/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/events/P4b/patient-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P1>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P2>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P3>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded-data/persons/P4>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded/Infusion>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded/RecordedInputSegment>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/bounded/SpecimenCollection>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P1a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P2a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P3a-drug-role>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug>))\nDeclaration(NamedIndividual(<https://example.org/trajectory/semantic/P4a-drug-role>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/hasParticipant>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/isFeatureOf>))\nDeclaration(ObjectProperty(<https://w3id.org/sulo/refersTo>))\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P1b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P2b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P3b>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/bounded/IntervalClaim> <https://example.org/trajectory/bounded-data/events/P4b>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P1a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P2a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P3a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/AdministeredDrugRole> <https://example.org/trajectory/semantic/P4a-drug-role>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P1a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P2a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/P4a-drug>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministrationClaim> <https://example.org/trajectory/bounded-data/events/P1a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministrationClaim> <https://example.org/trajectory/bounded-data/events/P2a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministrationClaim> <https://example.org/trajectory/bounded-data/events/P3a>)\nClassAssertion(<https://example.org/trajectory/semantic/DrugAdministrationClaim> <https://example.org/trajectory/bounded-data/events/P4a>)\nClassAssertion(<https://example.org/trajectory/semantic/NonAntibiotic> <https://example.org/trajectory/semantic/P3a-drug>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/PatientRole> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P1>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P2>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P3>)\nClassAssertion(<https://example.org/trajectory/toy/Person> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/bounded-data/events/P1a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P1b> <https://example.org/trajectory/bounded-data/events/P1b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/bounded-data/events/P2a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P2b> <https://example.org/trajectory/bounded-data/events/P2b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/bounded-data/events/P3a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P3b> <https://example.org/trajectory/bounded-data/events/P3b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/bounded-data/events/P4a/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P4b> <https://example.org/trajectory/bounded-data/events/P4b/patient-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1a/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P1b/patient-role> <https://example.org/trajectory/bounded-data/persons/P1>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2a/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P2b/patient-role> <https://example.org/trajectory/bounded-data/persons/P2>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3a/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P3b/patient-role> <https://example.org/trajectory/bounded-data/persons/P3>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4a/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/bounded-data/events/P4b/patient-role> <https://example.org/trajectory/bounded-data/persons/P4>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/bounded/Infusion>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/bounded/Infusion>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/bounded/Infusion>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/bounded/Infusion>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P1b> <https://example.org/trajectory/bounded/SpecimenCollection>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P2b> <https://example.org/trajectory/bounded/SpecimenCollection>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P3b> <https://example.org/trajectory/bounded/SpecimenCollection>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P4b> <https://example.org/trajectory/bounded/SpecimenCollection>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P1a-drug-role> <https://example.org/trajectory/semantic/P1a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P1a> <https://example.org/trajectory/semantic/P1a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P2a-drug-role> <https://example.org/trajectory/semantic/P2a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P2a> <https://example.org/trajectory/semantic/P2a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P3a-drug-role> <https://example.org/trajectory/semantic/P3a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P3a> <https://example.org/trajectory/semantic/P3a-drug-role>)\nObjectPropertyAssertion(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/P4a-drug-role> <https://example.org/trajectory/semantic/P4a-drug>)\nObjectPropertyAssertion(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded-data/events/P4a> <https://example.org/trajectory/semantic/P4a-drug-role>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/semantic/DrugAdministrationClaim> ObjectSomeValuesFrom(<https://w3id.org/sulo/refersTo> ObjectIntersectionOf(<https://example.org/trajectory/semantic/AdministeredDrugRole> ObjectSomeValuesFrom(<https://w3id.org/sulo/isFeatureOf> <https://example.org/trajectory/semantic/Antibiotic>)))) <https://example.org/trajectory/semantic/AntibioticAdministrationClaim>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/Infusion>)) <https://example.org/trajectory/bounded/claim-of/Infusion>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/Infusion>)) <https://example.org/trajectory/bounded/claim-of/IntervalProcess>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/Infusion>)) <https://example.org/trajectory/bounded/claim-of/Process>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/RecordedInputSegment>)) <https://example.org/trajectory/bounded/claim-of/IntervalProcess>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/RecordedInputSegment>)) <https://example.org/trajectory/bounded/claim-of/RecordedInputSegment>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/RecordedInputSegment>)) <https://example.org/trajectory/bounded/claim-of/Process>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/SpecimenCollection>)) <https://example.org/trajectory/bounded/claim-of/IntervalProcess>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/SpecimenCollection>)) <https://example.org/trajectory/bounded/claim-of/SpecimenCollection>)\nSubClassOf(ObjectIntersectionOf(<https://example.org/trajectory/bounded/IntervalClaim> ObjectHasValue(<https://w3id.org/sulo/refersTo> <https://example.org/trajectory/bounded/SpecimenCollection>)) <https://example.org/trajectory/bounded/claim-of/Process>)\nDisjointClasses(<https://example.org/trajectory/semantic/Antibiotic> <https://example.org/trajectory/semantic/NonAntibiotic>)\n)\n",
+    "ontology_sha256": "2a99386951c062ebf89be75e72206cea9dcbb6eafeaeaaad357ff8b4d3083657",
     "memberships": {
-      "https://example.org/trajectory/bounded/SpecimenCollection": [
+      "https://example.org/trajectory/bounded/claim-of/SpecimenCollection": [
         "https://example.org/trajectory/bounded-data/events/P1b",
         "https://example.org/trajectory/bounded-data/events/P2b",
         "https://example.org/trajectory/bounded-data/events/P3b",
         "https://example.org/trajectory/bounded-data/events/P4b"
       ],
-      "https://example.org/trajectory/semantic/AntibioticAdministration": [
+      "https://example.org/trajectory/semantic/AntibioticAdministrationClaim": [
         "https://example.org/trajectory/bounded-data/events/P1a",
         "https://example.org/trajectory/bounded-data/events/P2a",
         "https://example.org/trajectory/bounded-data/events/P4a"
@@ -692,17 +1079,17 @@
   },
   "matching": {
     "profile": "semantic-bounded-query-1.0",
-    "context_id": "3ce77d5975b615e1cf7d23ef8ff0414f6f29d8f8f579f56f967f4a673007d750",
+    "context_id": "eb6baffe69d3e5393806ab2fb0583fc08940786fbde3eb512f8965cd6ac0a153",
     "context": {
       "profile": "semantic-bounded-query-1.0",
-      "source_context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
+      "source_context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
       "query": {
         "profile": "semantic-bounded-query-1.0",
         "id": "antibiotic_before_collection",
         "slots": [
           {
             "id": "a",
-            "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+            "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
           },
           {
             "id": "b",
@@ -722,7 +1109,7 @@
         "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
         "patterns/bounded_reference.py": "43254f0fd2f92cc3c39c9bffe315e99a99c622204314c2f80d21415b0b365014"
       },
-      "semantic_context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2"
+      "semantic_context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493"
     },
     "search_complete": true,
     "scope": "represented_patient_episodes",
@@ -870,28 +1257,28 @@
             "slots": {
               "a": {
                 "event_id": "P1a",
-                "evidence_id": "bounded-interval-1.0:42ee3d3914962500f3701b8ef1b0f5df7e132d8001e773a9fb7a7ace7469808b",
-                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration",
-                "process": "https://example.org/trajectory/bounded-data/events/P1a",
+                "evidence_id": "bounded-interval-1.0:77075ca254529e7051a5edd745099800305f251aa0cc801ba2ef6f4c781b5b5b",
+                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
+                "claim": "https://example.org/trajectory/bounded-data/events/P1a",
                 "patient_role": "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
                 "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
                 "semantic_support": {
                   "status": "ENTAILED",
-                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
                   "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-                  "class": "https://example.org/trajectory/semantic/AntibioticAdministration"
+                  "class": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
                 }
               },
               "b": {
                 "event_id": "P1b",
-                "evidence_id": "bounded-interval-1.0:f402fcf2c862ea0d462a8aa00ddab8a96a14184002dc2a9b480fe42cbb2a13a5",
+                "evidence_id": "bounded-interval-1.0:ab2a11a97e8245a30e16bb583c6d4865f5a63c03bd4f0fb81ac7a54e4e5c8ae6",
                 "selected_class_iri": "https://example.org/trajectory/bounded/SpecimenCollection",
-                "process": "https://example.org/trajectory/bounded-data/events/P1b",
+                "claim": "https://example.org/trajectory/bounded-data/events/P1b",
                 "patient_role": "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
                 "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
                 "semantic_support": {
                   "status": "ENTAILED",
-                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
                   "individual": "https://example.org/trajectory/bounded-data/events/P1b",
                   "class": "https://example.org/trajectory/bounded/SpecimenCollection"
                 }
@@ -1002,28 +1389,28 @@
             "slots": {
               "a": {
                 "event_id": "P2a",
-                "evidence_id": "bounded-interval-1.0:6f3b8c36bb31efaf7c3b415dab8b44f045844f5cde7c96ccdc8394f55e4e146b",
-                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration",
-                "process": "https://example.org/trajectory/bounded-data/events/P2a",
+                "evidence_id": "bounded-interval-1.0:8db546f8a51aae842b849a78b4511c402001bd7e2cf4130c9c5d54221b2b0d31",
+                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
+                "claim": "https://example.org/trajectory/bounded-data/events/P2a",
                 "patient_role": "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
                 "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
                 "semantic_support": {
                   "status": "ENTAILED",
-                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
                   "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-                  "class": "https://example.org/trajectory/semantic/AntibioticAdministration"
+                  "class": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
                 }
               },
               "b": {
                 "event_id": "P2b",
-                "evidence_id": "bounded-interval-1.0:b1621d4edaef87cb0cc884b2c51c97c2f2f7335bd016eef24c212b588b861c9b",
+                "evidence_id": "bounded-interval-1.0:2355867bb6759e6899991f4e8bc257badc2c0e151378d1b9c360bb24bcfb2095",
                 "selected_class_iri": "https://example.org/trajectory/bounded/SpecimenCollection",
-                "process": "https://example.org/trajectory/bounded-data/events/P2b",
+                "claim": "https://example.org/trajectory/bounded-data/events/P2b",
                 "patient_role": "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
                 "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
                 "semantic_support": {
                   "status": "ENTAILED",
-                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
                   "individual": "https://example.org/trajectory/bounded-data/events/P2b",
                   "class": "https://example.org/trajectory/bounded/SpecimenCollection"
                 }
@@ -1187,28 +1574,28 @@
             "slots": {
               "a": {
                 "event_id": "P4a",
-                "evidence_id": "bounded-interval-1.0:13c6e14155ac93229e249930b2db416b7c6137a60bcd422e346ab2b5911453b9",
-                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration",
-                "process": "https://example.org/trajectory/bounded-data/events/P4a",
+                "evidence_id": "bounded-interval-1.0:b6b69cecde915c1100e0bf9567d38fa29a73179b98d835f9a703d9e4334c3732",
+                "selected_class_iri": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
+                "claim": "https://example.org/trajectory/bounded-data/events/P4a",
                 "patient_role": "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
                 "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
                 "semantic_support": {
                   "status": "ENTAILED",
-                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
                   "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-                  "class": "https://example.org/trajectory/semantic/AntibioticAdministration"
+                  "class": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
                 }
               },
               "b": {
                 "event_id": "P4b",
-                "evidence_id": "bounded-interval-1.0:799b4a7a4d8888bcb9e4157f72653a72f2a7e506558572d0edd8dbab9033675a",
+                "evidence_id": "bounded-interval-1.0:e354f6afe79632510dede6515506d8ec09016dd0383995fdb8313e40a30dea49",
                 "selected_class_iri": "https://example.org/trajectory/bounded/SpecimenCollection",
-                "process": "https://example.org/trajectory/bounded-data/events/P4b",
+                "claim": "https://example.org/trajectory/bounded-data/events/P4b",
                 "patient_role": "https://example.org/trajectory/bounded-data/events/P4b/patient-role",
                 "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
                 "semantic_support": {
                   "status": "ENTAILED",
-                  "context_id": "d3f0d77893670ba36e038cd5c145588eb0df357ef45054899ba5bcf9236d2da2",
+                  "context_id": "a5629429135c3c1128bc0f269f63c7cb5125f71ef31b3c521567df7388f28493",
                   "individual": "https://example.org/trajectory/bounded-data/events/P4b",
                   "class": "https://example.org/trajectory/bounded/SpecimenCollection"
                 }
@@ -1224,18 +1611,18 @@
         "dataset_id": "constructed-bounded-interval",
         "snapshot_id": "synthetic-bounded-01",
         "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
-        "graph_sha256": "99833236b8bd48a0d8449a22344316178f547eafa363876394fac30d26aa846a",
+        "graph_sha256": "09824844036f34fabe289e120ab43721ddef669bd7b33ae2e42f128214f68202",
         "time_domain": "bounded-integer-microseconds",
         "artifacts": {
-          "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
+          "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
           "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
           "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
-          "ontology/bounded-interval-profile.ttl": "b05c784671c0e1599cc015f678dd9213fc9036727afe820b3161bb591f9e62f6",
-          "ontology/exact-interval-profile.ttl": "ac6189ff68ea3bfe3dbc24aac272dc72e494d45991a0665c14eee943368fee5b",
-          "ontology/pro-solid-profile.ttl": "72a5ac88b904ac54483ae11be9d7108b4c2b6fc6f0309c9c0df0ee45a53b483d",
+          "ontology/bounded-interval-profile.ttl": "c3da9965ab88c7f9c42ed0cd75e2723ff1ecbdf9ecbe38c6c29900f0d8a4a6de",
+          "ontology/exact-interval-profile.ttl": "87200ced32bdd20a57ed3d3328853aeb1feaecb1b1bb9c748463f76da02ac0f7",
+          "ontology/pro-solid-profile.ttl": "f526e94dbdda7d28a472cf8cc8f14f1424f2feec02be58e35bb956fc5d95f387",
           "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
-          "patterns/exact_intervals.py": "4451dbda47f6e771f6d1ad9210f59195a497e84af5a9fbd03f2c9a14856cf6a7",
-          "patterns/pro_solid.py": "03de3cc75250f734527db36e3e55fa52cc5291a14081bcdd1ff678c84a41ae80",
+          "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
+          "patterns/pro_solid.py": "65ef241757dacfe7238f88953c1d7bb2602afefae5744f0c4d2cda4a8e349c75",
           "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895"
         }
       },
@@ -1540,7 +1927,8 @@
       },
       "bindings": {
         "P1a": {
-          "process": "https://example.org/trajectory/bounded-data/events/P1a",
+          "claim": "https://example.org/trajectory/bounded-data/events/P1a",
+          "claimed_kind": "https://example.org/trajectory/bounded/Infusion",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P1a/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
           "interval": "https://example.org/trajectory/bounded-data/events/P1a/interval",
@@ -1561,11 +1949,12 @@
           "source_hash": "1dae355219f0c59dddb05af38cd3402e88acaf825d04d09eecf073979e2d5d80",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P1as",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P1ae",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:42ee3d3914962500f3701b8ef1b0f5df7e132d8001e773a9fb7a7ace7469808b"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:77075ca254529e7051a5edd745099800305f251aa0cc801ba2ef6f4c781b5b5b"
         },
         "P1b": {
-          "process": "https://example.org/trajectory/bounded-data/events/P1b",
+          "claim": "https://example.org/trajectory/bounded-data/events/P1b",
+          "claimed_kind": "https://example.org/trajectory/bounded/SpecimenCollection",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P1b/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P1",
           "interval": "https://example.org/trajectory/bounded-data/events/P1b/interval",
@@ -1586,11 +1975,12 @@
           "source_hash": "40aef8ad7386ea4a8e2c2ba5208b4e44d8136bdf3054b1637a1119b2b22c3571",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P1bs",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P1be",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:f402fcf2c862ea0d462a8aa00ddab8a96a14184002dc2a9b480fe42cbb2a13a5"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:ab2a11a97e8245a30e16bb583c6d4865f5a63c03bd4f0fb81ac7a54e4e5c8ae6"
         },
         "P2a": {
-          "process": "https://example.org/trajectory/bounded-data/events/P2a",
+          "claim": "https://example.org/trajectory/bounded-data/events/P2a",
+          "claimed_kind": "https://example.org/trajectory/bounded/Infusion",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P2a/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
           "interval": "https://example.org/trajectory/bounded-data/events/P2a/interval",
@@ -1611,11 +2001,12 @@
           "source_hash": "d5b138c473b6410219c5fe3423780b892f424a734cd405e0339b8afe2d8f1698",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P2as",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P2ae",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:6f3b8c36bb31efaf7c3b415dab8b44f045844f5cde7c96ccdc8394f55e4e146b"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:8db546f8a51aae842b849a78b4511c402001bd7e2cf4130c9c5d54221b2b0d31"
         },
         "P2b": {
-          "process": "https://example.org/trajectory/bounded-data/events/P2b",
+          "claim": "https://example.org/trajectory/bounded-data/events/P2b",
+          "claimed_kind": "https://example.org/trajectory/bounded/SpecimenCollection",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P2b/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P2",
           "interval": "https://example.org/trajectory/bounded-data/events/P2b/interval",
@@ -1636,11 +2027,12 @@
           "source_hash": "3900b50b1535263cbb64e04b36aa11e90b71c559885fb2bc3e0b443a90fe5690",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P2bs",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P2be",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:b1621d4edaef87cb0cc884b2c51c97c2f2f7335bd016eef24c212b588b861c9b"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:2355867bb6759e6899991f4e8bc257badc2c0e151378d1b9c360bb24bcfb2095"
         },
         "P3a": {
-          "process": "https://example.org/trajectory/bounded-data/events/P3a",
+          "claim": "https://example.org/trajectory/bounded-data/events/P3a",
+          "claimed_kind": "https://example.org/trajectory/bounded/Infusion",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P3a/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P3",
           "interval": "https://example.org/trajectory/bounded-data/events/P3a/interval",
@@ -1661,11 +2053,12 @@
           "source_hash": "c53be3e0af105573661d7ec81c4becf9e8a6e351f4ceb56b1712928efe38bd29",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P3as",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P3ae",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:fa912305e1cc8c17d728a9115bd5caff8dd43b1eb8851dc794380fd1ddac2ef3"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:f948eda29ef46fc6ca3901832632aa0123c77dc0f6901f95461a7213652f91db"
         },
         "P3b": {
-          "process": "https://example.org/trajectory/bounded-data/events/P3b",
+          "claim": "https://example.org/trajectory/bounded-data/events/P3b",
+          "claimed_kind": "https://example.org/trajectory/bounded/SpecimenCollection",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P3b/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P3",
           "interval": "https://example.org/trajectory/bounded-data/events/P3b/interval",
@@ -1686,11 +2079,12 @@
           "source_hash": "9ce433d199e795c2449c57d43e45858dd86eb38f448616bf96b91b9f95c0f514",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P3bs",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P3be",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:09ed3691b4b7bec36464bab3e87ed5201e4ddd6cdf794fcc7f5d502573579194"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:ded632c89fa43a0a6e4884649fb6e221513e1f545688bee6fd6c2dc460ca827d"
         },
         "P4a": {
-          "process": "https://example.org/trajectory/bounded-data/events/P4a",
+          "claim": "https://example.org/trajectory/bounded-data/events/P4a",
+          "claimed_kind": "https://example.org/trajectory/bounded/Infusion",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P4a/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
           "interval": "https://example.org/trajectory/bounded-data/events/P4a/interval",
@@ -1711,11 +2105,12 @@
           "source_hash": "ff6f456ab1821686caf31d9c8d0432c95a68a5f04444dbef79af3bbf9faf7b2f",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P4as",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P4ae",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:13c6e14155ac93229e249930b2db416b7c6137a60bcd422e346ab2b5911453b9"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:b6b69cecde915c1100e0bf9567d38fa29a73179b98d835f9a703d9e4334c3732"
         },
         "P4b": {
-          "process": "https://example.org/trajectory/bounded-data/events/P4b",
+          "claim": "https://example.org/trajectory/bounded-data/events/P4b",
+          "claimed_kind": "https://example.org/trajectory/bounded/SpecimenCollection",
           "patient_role": "https://example.org/trajectory/bounded-data/events/P4b/patient-role",
           "patient_bearer": "https://example.org/trajectory/bounded-data/persons/P4",
           "interval": "https://example.org/trajectory/bounded-data/events/P4b/interval",
@@ -1736,8 +2131,8 @@
           "source_hash": "06610f8583f3dac9903fa9aa5af43318dde2d43a8a517dafc9acc7945c0395f2",
           "start_variable": "https://example.org/trajectory/bounded-data/variables/P4bs",
           "end_variable": "https://example.org/trajectory/bounded-data/variables/P4be",
-          "context_id": "e92f6136ef8d53754987aa39b01bbfd1de2ef26907fbf57525c37ec1f0bc9bea",
-          "evidence_id": "bounded-interval-1.0:799b4a7a4d8888bcb9e4157f72653a72f2a7e506558572d0edd8dbab9033675a"
+          "context_id": "a0ad6e838aa4f7ee133b5081f43cb92743f5fa9fe9eb7ce20c6b0bede226adad",
+          "evidence_id": "bounded-interval-1.0:e354f6afe79632510dede6515506d8ec09016dd0383995fdb8313e40a30dea49"
         }
       },
       "edges": {

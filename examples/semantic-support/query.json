@@ -4,7 +4,7 @@
   "slots": [
     {
       "id": "a",
-      "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministration"
+      "class_iri": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
     },
     {
       "id": "b",

@@ -2,8 +2,8 @@
   "profile": "semantic-support-1.0",
   "source_sha256": "f6d530300ad25f1e7f00dca32af07b1adea31e2138b4346036508121e2bb5af4",
   "classes": [
-    "https://example.org/trajectory/semantic/DrugAdministration",
-    "https://example.org/trajectory/semantic/AntibioticAdministration",
+    "https://example.org/trajectory/semantic/DrugAdministrationClaim",
+    "https://example.org/trajectory/semantic/AntibioticAdministrationClaim",
     "https://example.org/trajectory/semantic/AdministeredDrugRole",
     "https://example.org/trajectory/semantic/Antibiotic",
     "https://example.org/trajectory/semantic/NonAntibiotic"
@@ -21,7 +21,7 @@
   "class_assertions": [
     {
       "individual": "https://example.org/trajectory/bounded-data/events/P1a",
-      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+      "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
     },
     {
       "individual": "https://example.org/trajectory/semantic/P1a-drug-role",
@@ -33,7 +33,7 @@
     },
     {
       "individual": "https://example.org/trajectory/bounded-data/events/P2a",
-      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+      "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
     },
     {
       "individual": "https://example.org/trajectory/semantic/P2a-drug-role",
@@ -45,7 +45,7 @@
     },
     {
       "individual": "https://example.org/trajectory/bounded-data/events/P3a",
-      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+      "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
     },
     {
       "individual": "https://example.org/trajectory/semantic/P3a-drug-role",
@@ -57,7 +57,7 @@
     },
     {
       "individual": "https://example.org/trajectory/bounded-data/events/P4a",
-      "class": "https://example.org/trajectory/semantic/DrugAdministration"
+      "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
     },
     {
       "individual": "https://example.org/trajectory/semantic/P4a-drug-role",
@@ -71,7 +71,7 @@
   "property_assertions": [
     {
       "subject": "https://example.org/trajectory/bounded-data/events/P1a",
-      "property": "https://w3id.org/sulo/hasParticipant",
+      "property": "https://w3id.org/sulo/refersTo",
       "object": "https://example.org/trajectory/semantic/P1a-drug-role"
     },
     {
@@ -81,7 +81,7 @@
     },
     {
       "subject": "https://example.org/trajectory/bounded-data/events/P2a",
-      "property": "https://w3id.org/sulo/hasParticipant",
+      "property": "https://w3id.org/sulo/refersTo",
       "object": "https://example.org/trajectory/semantic/P2a-drug-role"
     },
     {
@@ -91,7 +91,7 @@
     },
     {
       "subject": "https://example.org/trajectory/bounded-data/events/P3a",
-      "property": "https://w3id.org/sulo/hasParticipant",
+      "property": "https://w3id.org/sulo/refersTo",
       "object": "https://example.org/trajectory/semantic/P3a-drug-role"
     },
     {
@@ -101,7 +101,7 @@
     },
     {
       "subject": "https://example.org/trajectory/bounded-data/events/P4a",
-      "property": "https://w3id.org/sulo/hasParticipant",
+      "property": "https://w3id.org/sulo/refersTo",
       "object": "https://example.org/trajectory/semantic/P4a-drug-role"
     },
     {
@@ -116,11 +116,11 @@
       "if": {
         "all": [
           {
-            "class": "https://example.org/trajectory/semantic/DrugAdministration"
+            "class": "https://example.org/trajectory/semantic/DrugAdministrationClaim"
           },
           {
             "some": {
-              "property": "https://w3id.org/sulo/hasParticipant",
+              "property": "https://w3id.org/sulo/refersTo",
               "filler": {
                 "all": [
                   {
@@ -140,7 +140,7 @@
           }
         ]
       },
-      "then": "https://example.org/trajectory/semantic/AntibioticAdministration"
+      "then": "https://example.org/trajectory/semantic/AntibioticAdministrationClaim"
     }
   ],
   "disjoint": [

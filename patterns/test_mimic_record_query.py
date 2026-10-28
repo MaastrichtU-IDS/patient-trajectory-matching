@@ -54,7 +54,7 @@ class RecordQueryTests(unittest.TestCase):
         for witness in binding['slots'].values():
             self.assertEqual(witness['semantic_support']['status'], 'ENTAILED')
             self.assertIn(witness['event_id'], episode['row_evidence'])
-            self.assertIn((URIRef(witness['process']), ei.S.hasParticipant, URIRef(witness['patient_role'])), graph)
+            self.assertIn((URIRef(witness['claim']), ei.S.refersTo, URIRef(witness['patient_role'])), graph)
             self.assertIn((URIRef(witness['patient_role']), ei.S.isFeatureOf, URIRef(witness['patient_bearer'])), graph)
 
     def test_recorded_source_times_never_become_verified_clinical_times(self):
@@ -216,8 +216,11 @@ class RecordQueryTests(unittest.TestCase):
         bad = deepcopy(query); bad['profile'] = semantic.QUERY_PROFILE
         with self.assertRaisesRegex(ei.ContractError, 'UNSUPPORTED_SEMANTIC_QUERY_PROFILE'): local.execute_semantic(snapshot, bad, module)
         inconsistent = deepcopy(module)
-        inconsistent['classes'].append(str(bt.BT.RecordedInputSegment))
-        inconsistent['disjoint'] = [{'id': 'clash', 'classes': [pipeline.N + 'item_1000', str(bt.BT.RecordedInputSegment)]}]
+        # The claim is no longer asserted into the process class; it is entailed into the
+        # module-local class of claims reporting one, which is what can now clash.
+        reported = semantic.claim_class(str(bt.BT.RecordedInputSegment))
+        inconsistent['classes'].append(reported)
+        inconsistent['disjoint'] = [{'id': 'clash', 'classes': [pipeline.N + 'item_1000', reported]}]
         result = local.execute_semantic(snapshot, query, inconsistent)
         self.assertEqual(result['status'], 'INCONSISTENT_ONTOLOGY'); self.assertIsNone(result['matching'])
 
@@ -225,7 +228,7 @@ class RecordQueryTests(unittest.TestCase):
         snapshot, query, module = self.episode_parts()
         target = pipeline.N + 'PatientCapacityRecord'
         module['classes'] += [target, str(ei.EX.PatientRole)]
-        module['rules'].append({'id': 'patient-capacity', 'if': {'some': {'property': str(ei.S.hasParticipant),
+        module['rules'].append({'id': 'patient-capacity', 'if': {'some': {'property': str(ei.S.refersTo),
             'filler': {'class': str(ei.EX.PatientRole)}}}, 'then': target})
         query['slots'][0]['class_iri'] = target
         result = local.execute_semantic(snapshot, query, module)
@@ -238,9 +241,12 @@ class RecordQueryTests(unittest.TestCase):
         snapshot = local.prepare(source)
         group = pipeline.N + 'SelectedInfusion'
         module = {'profile': semantic.PROFILE, 'source_sha256': ei.digest(ei.canonical(snapshot.source)),
-            'classes': [str(bt.BT.Infusion), str(bt.BT.SpecimenCollection), group],
+            # Select on the claim class, not the process class: nothing is an instance
+            # of bt:Infusion any more, so a rule keyed on it would select nothing.
+            'classes': [semantic.claim_class(str(bt.BT.Infusion)), group],
             'individuals': [], 'class_assertions': [], 'property_assertions': [], 'disjoint': [],
-            'rules': [{'id': 'select', 'if': {'class': str(bt.BT.Infusion)}, 'then': group}]}
+            'rules': [{'id': 'select', 'if': {'class': semantic.claim_class(str(bt.BT.Infusion))},
+                       'then': group}]}
         query = json.loads((ei.ROOT / 'examples/patient-local/query.json').read_text())
         query['profile'] = local.SEMANTIC_QUERY_PROFILE
         query['slots'][0]['class_iri'] = group

@@ -12,12 +12,12 @@
     "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
     "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
     "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-    "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
-    "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+    "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+    "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
     "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
     "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
-    "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+    "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
     "patterns/measurement_source_catalogue.py": "748b391bb404a305a52184af66b99311aa7fa215f77f8b6a09f398ff57737812",
@@ -33,8 +33,8 @@
     "patterns/reviewed_measurement_mappings.py": "5cff4610eb6f90e95ca32b8a1fda67b45976da981542d2477b11715a50c3f21c",
     "patterns/reviewed_record_mappings.py": "5996f9e982abccff590df0a79faad95d94d8330ea5d6f30e61642b50885c327e",
     "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
-    "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
-    "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+    "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
+    "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
     "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
     "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
@@ -64,9 +64,9 @@
     "examples/prepared-measurement-session/mappings.json": "b2eb2257dbe6c2e72171bd1355b5cc6307ff1ec15b710847b45b000848cc9f1f",
     "examples/prepared-measurement-session/request.json": "bda80ff0c74278f85598654ff5dae6be9cf0082ee9b3740c06b8e243c229a326",
     "examples/prepared-measurement-session/review.json": "fcf6eb52cad03be355224749c599ae6e4d816781a142e92c7edcd3851a42ef4d",
-    "examples/prepared-measurement-session/selector.json": "0bab7926c65fbe1db028d45a13c29b7e7a24e7783a992a2f8ab697155fa244d0",
+    "examples/prepared-measurement-session/selector.json": "e3460da691ace84501381c4169d8c179371bea5003081f638e754aec07e58024",
     "examples/prepared-measurement-session/source-request.json": "a80490a5d0f17de6c3d4117b04d6a8e2993a1eb01f472e94665ee4d0bca25dd5",
-    "examples/prepared-measurement-session/source-review.json": "06b35604c52aa7fc8bdaa502f53bbed261d3c253becee656c2faf0cb8474051b",
+    "examples/prepared-measurement-session/source-review.json": "cc865d322b194433506456569d0fcf9d17029a8378e9ef7fec4e1ce9964e8143",
     "examples/prepared-measurement-session/terminology.json": "ccc68090f2435ebe877fd86ecefc1d9ee9a0a0748af509e488184a872c0faff0"
   },
   "warm_queries": 12,
@@ -209,86 +209,86 @@
     {
       "synthetic_episode_index": 0,
       "query_index": 0,
-      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
-      "prepared_result_context_id": "aa08f0d8e9d470b1ae808ae88be5145a4e10f3e4f309de997df3701859adbb67",
-      "source_query_context_id": "b288e1dbeac53031a1abf7c436ae242a51f3db1d90ef386d6e056f4914ed5d10"
+      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
+      "prepared_result_context_id": "9dd683ad9b2b51599f8796bbf07f9405079f11e6900b2e8e3403b133b1b453d2",
+      "source_query_context_id": "5afa6f31549836d5de780ca8c85ac97af3e01983cf7b5ac03dceca1a7dd894d3"
     },
     {
       "synthetic_episode_index": 0,
       "query_index": 1,
-      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
-      "prepared_result_context_id": "cd68b298ff27c1ebe791c30b32d4a0cd5c35bb8d5de261f57b3bacf45faf9919",
-      "source_query_context_id": "dc618561d6e45080f868b531db3a9b538a7fd6d2c16caaee1d96f4c4005aa0ef"
+      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
+      "prepared_result_context_id": "8e7634d52575bcdeffe489d0709b613dd709680083fcbeaf8d04fe7daffec7dd",
+      "source_query_context_id": "bbd4f133f7f2b8fce92c25576f869b94f5e693cd650d2894663d3c40bbb5db01"
     },
     {
       "synthetic_episode_index": 0,
       "query_index": 2,
-      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
-      "prepared_result_context_id": "7a70f0e69cd3c9be9a5cbe11262b54bd547465a6e3bf2b0abdf555eb3d7069b9",
-      "source_query_context_id": "cdf7d602a22ec52ef8eae680d6bc314ed53cd054047bf95d922a209dedee0e56"
+      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
+      "prepared_result_context_id": "adf7a30d28b7d3a57de6affb6bf94877197f93cb54ca8a9354f722e48db7f2a1",
+      "source_query_context_id": "16e2346887b18e842444a3016eb8a1b1b05223ba034801603c0cf1845651a0f4"
     },
     {
       "synthetic_episode_index": 0,
       "query_index": 3,
-      "session_context_id": "2806c0090b762c7fcc4eae346d3a4529bc63b944e321697e22109b642c9080f5",
-      "prepared_result_context_id": "4cd111c6fafa4a0249c56487ee7fb7820b83f1c5fc18e6c8052af03bc63fe057",
-      "source_query_context_id": "e4362adc51960cec487d6d69efb44169525344851cacbd579e4f031c2c40b846"
+      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
+      "prepared_result_context_id": "fff4051233cbfd5d8cffc0e6e52ffb69f6b1eb71c59a9885707732b0c0d7dd36",
+      "source_query_context_id": "5ccdf586f9728197d52d6fa05e4a2ad2135b5f92d484ce0b193207373954fe01"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 0,
-      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
-      "prepared_result_context_id": "525c7e2fc597312dc981d3637ac9536b90e2561a16e704743a0278c61b212821",
-      "source_query_context_id": "ce51c339cfbe8d0401a53c83dece209c4ba9a09fbd7c8a1b9836bad54690a273"
+      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
+      "prepared_result_context_id": "52bc66bca3bdb402999b2f45bfb3de9a0fba0741bc3c3827c44c5cf2e88e616c",
+      "source_query_context_id": "7083b387343186fcde40aa86ecd9a76138c30cfcbc1d884f414e705ee1f79258"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 1,
-      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
-      "prepared_result_context_id": "0cfedf5d2c4777ae3e33ab71639951059872e62d7bf0da6f9b379ff836c53b32",
-      "source_query_context_id": "ac4ab10526fe17df16834eab777ebdf4c30ee1b71d1aab9957aea9ebe0d56e83"
+      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
+      "prepared_result_context_id": "999b1cb0b7a32c80c21e67c07d1f2098bcb9f440681db6f74de6c4e2458bbbaf",
+      "source_query_context_id": "2dfb7f9bec1d34d5841ca82d89d0f56ef908c491c0fa256f0c3d392d4c751021"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 2,
-      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
-      "prepared_result_context_id": "f8b1dd4c3c716e1809f045d0c8e3c57bf071d27fa6e83f7a8e388ed80d87d453",
-      "source_query_context_id": "c92f1c9a00f5c54b10a309708dba3c0c543331a2af9562d7b9c34887f2ce413f"
+      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
+      "prepared_result_context_id": "7f90dd8602adeb11d1925dec9c54749da0c3f2ba874e315dcc9ba79f7a7265d5",
+      "source_query_context_id": "5ab845f41feda41faf3b0888f6d9cb36bab6be096ea03e2be33600f0e61de4cf"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 3,
-      "session_context_id": "009c06af44d217520c5bd9ee3a323d9c283b52cbcc94dee60dd8288eadde4a1b",
-      "prepared_result_context_id": "e2a596e86bfd02d1bd3d40eb3fe445ab664dddfa5f23dce3b70e7f97fc4efdac",
-      "source_query_context_id": "07ed1e5afb9b64c8db5e35e69d02e732ccfefe55d2e00abfdd41fe5476b8b651"
+      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
+      "prepared_result_context_id": "e512128134f2a4fa1a227091d53f27f1560e200be6b588729e9829503d4276da",
+      "source_query_context_id": "0df58380cc9d5bc7876fb1fd4851ef53aaa6373e5b5e6dd4041c8ca295bdc795"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 0,
-      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
-      "prepared_result_context_id": "81be69b67a7909b9634921b83820b19dfa0577f8a27d3f4d8ed02225f2b84db8",
-      "source_query_context_id": "f1fb6d733ec37659b38cba4c2dbe7af340a2b8bdd355aaf409040689fcfe8979"
+      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
+      "prepared_result_context_id": "c0b15176e77376142f47cef2ea3008e4f6eff81489b41f584e521f137e553603",
+      "source_query_context_id": "82007a7d100322cf542137e38873b1431c2272885153adf79985d0e90137764e"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 1,
-      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
-      "prepared_result_context_id": "c32d60b7ece278f166948bb611f3847f0466b62fde40e3c2bd15728593659c8d",
-      "source_query_context_id": "cde3af06010ffb3b72d75e9a39594114f4115db428b74ed12fa678968d1d32b5"
+      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
+      "prepared_result_context_id": "75888a0a6d7536cf8d2c5eb71971fab898ae5acebb9e929e4c53d69953755342",
+      "source_query_context_id": "6430a3ba07172ad33864f40fe238d83b39f717e1534970bd41ea9983868b6cda"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 2,
-      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
-      "prepared_result_context_id": "3717826c3708f10207ae3eab5bfde2200f221d483dc5f6081bf91f4e2261e7a6",
-      "source_query_context_id": "0fad844cafabdcaa73a7bea15c9b59d306726448a23657f425be2cfde09fad5e"
+      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
+      "prepared_result_context_id": "842d79772510dc15c8139d937fd39b4ae11f14e6bb073ffee54cbf64bce62af8",
+      "source_query_context_id": "32a6a1ee21a035a6305012e9d028d0bc630beed518173f07e504afb25a1db5e3"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 3,
-      "session_context_id": "b2caee5a97a25ce4a4f50af7361df637a16b39f92e7ef67e6d4cceb9c4242d7b",
-      "prepared_result_context_id": "ab772d60f74ae2fb3cd1ed67bee19fd60cfd7c8a205386585dfe27ca595a9118",
-      "source_query_context_id": "7eef04dd1b1c9ffa8cd28598866610538d44a94a8487900e95b594958f963726"
+      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
+      "prepared_result_context_id": "6b027e7f6295fbfae908b074775d22fbdc5df52f2a48ee72bf7ae43ccab48c25",
+      "source_query_context_id": "c8d8d8d022580cce4af4232d4d2d29e9687d5a4a16ab7e2f9af88164def79eb9"
     }
   ],
   "scope": "Immutable supplied stores; source admission and policy selection shared with SQL control; no latency claim"

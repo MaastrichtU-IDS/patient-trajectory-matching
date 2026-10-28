@@ -92,7 +92,7 @@ def build_episode(segments, origin, context_id, request):
         'classes': sorted([*item_classes.values(), *group_classes.values()]),
         'individuals': [], 'class_assertions': [], 'property_assertions': [], 'rules': [], 'disjoint': []}
     for segment in segments:
-        module['class_assertions'].append({'individual': snapshot.evidence[event_id(segment)]['process'],
+        module['class_assertions'].append({'individual': snapshot.evidence[event_id(segment)]['claim'],
                                           'class': item_classes[segment['item']['itemid']]})
     for slot in request['slots']:
         for item in slot['itemids']:

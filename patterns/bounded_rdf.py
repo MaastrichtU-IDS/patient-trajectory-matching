@@ -132,6 +132,10 @@ def _prepare_graph(input_graph, *, profile_id=PROFILE_ID, source_profile=bt.PROF
                    time_domain='bounded-integer-microseconds'):
     graph = Graph()
     for triple in input_graph: graph.add(triple)
+    # Same two guards as the other migrated profiles, so an asserted occurrence reports
+    # what it is rather than surfacing later as an unconsumed triple.
+    ei.base.refuse_asserted_process(graph, ei.base.ontology() + Graph().parse(ei.PROFILE)
+                                    + Graph().parse(ei.ROOT / 'ontology/bounded-interval-profile.ttl'))
     r = Reader(graph, extra_ontologies)
     snapshot_node = r.claim(ei.one(r.nodes(bt.BT.Snapshot), 'SNAPSHOT_CARDINALITY'), bt.BT.Snapshot)
     ei.require(r.string(snapshot_node, BR.ProfileIdentifier) == profile_id, 'UNSUPPORTED_RDF_PROFILE')
@@ -188,10 +192,15 @@ def _prepare_graph(input_graph, *, profile_id=PROFILE_ID, source_profile=bt.PROF
     expected_members = set(r.nodes(bt.BT.TemporalVariable)) | set(r.nodes(bt.BT.DifferenceConstraint))
     ei.require(expected_members <= set(graph.objects(snapshot_node, ei.S.hasDirectPart)), 'SNAPSHOT_MEMBERSHIP')
     evidence, people, patient_ids = {}, {}, {}
-    for process in r.nodes(ei.S.Process):
-        kind = ei.one((k for k, cls in bt.KINDS.items() if r.is_type(process, cls)), 'SUPPORTED_PROCESS_KIND_REQUIRED')
-        r.claim(process, bt.KINDS[kind])
-        role = r.one(process, ei.S.hasParticipant)
+    for claim in r.nodes(bt.BT.IntervalClaim):
+        r.claim(claim, bt.BT.IntervalClaim)
+        # A claim refers to exactly one reference object, naming the kind of process it
+        # reports, and to its patient role. Neither asserts that the process occurred.
+        targets = r.objects(claim, ei.S.refersTo)
+        references = targets & set(bt.KINDS.values())
+        reference = ei.one(references, 'REFERENCE_OBJECT_CARDINALITY')
+        kind = ei.one((k for k, cls in bt.KINDS.items() if cls == reference), 'SUPPORTED_PROCESS_KIND_REQUIRED')
+        role = ei.one(targets - references, 'ROLE_CARDINALITY')
         r.claim(role, ei.EX.PatientRole)
         bearers = r.objects(role, ei.S.isFeatureOf) | set(graph.subjects(ei.S.hasFeature, role))
         person = ei.one(bearers, 'PATIENT_BEARER_CARDINALITY')
@@ -201,13 +210,12 @@ def _prepare_graph(input_graph, *, profile_id=PROFILE_ID, source_profile=bt.PROF
             pid = r.string(person, ei.EX.PatientIdentifier, ei.S.hasFeature)
             ei.require(pid not in patient_ids, 'PATIENT_IDENTIFIER_COLLISION')
             people[person], patient_ids[pid] = pid, person
-        record = ei.one(graph.subjects(ei.S.refersTo, process), 'SOURCE_RECORD_CARDINALITY')
+        record = ei.one(graph.subjects(ei.S.refersTo, claim), 'SOURCE_RECORD_CARDINALITY')
         r.claim(record, ei.EX.SourceRecord)
-        ei.require(r.one(record, ei.S.refersTo) == process, 'SOURCE_RECORD_REFERENCE')
+        ei.require(r.one(record, ei.S.refersTo) == claim, 'SOURCE_RECORD_REFERENCE')
         eid = r.string(record, ei.EX.EventIdentifier)
         ei.require(eid not in evidence, 'DUPLICATE_EVENT_IDENTIFIER')
-        interval = r.one(process, ei.S.atTime)
-        r.claim(interval, bt.BT.OccurrenceInterval)
+        interval = r.part(claim, bt.BT.OccurrenceInterval)
         endpoints, descriptors = {}, {}
         for name, cls in [('start', bt.BT.StartDescriptor), ('end', bt.BT.EndDescriptor)]:
             descriptor = r.part(interval, cls)
@@ -219,7 +227,8 @@ def _prepare_graph(input_graph, *, profile_id=PROFILE_ID, source_profile=bt.PROF
                'episode_id': r.string(record, ei.EX.EpisodeIdentifier), 'status': r.string(record, ei.EX.RecordStatus),
                'event_kind': kind, **endpoints, 'source_key': provenance['source_key']}
         source['events'].append(row)
-        evidence[eid] = {'process': str(process), 'patient_role': str(role), 'patient_bearer': str(person),
+        evidence[eid] = {'claim': str(claim), 'claimed_kind': str(reference),
+                         'patient_role': str(role), 'patient_bearer': str(person),
                          'interval': str(interval), **descriptors, 'source_record': str(record),
                          'source': row, 'source_hash': provenance['source_hash'], 'provenance': provenance,
                          'start_variable': variable_evidence[endpoints['start_var']]['variable'],
