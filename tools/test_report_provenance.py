@@ -36,6 +36,40 @@ class ReportProvenanceTests(unittest.TestCase):
                           lambda path: {'0' * 64} if path == victim else real(path)):
             self.assertEqual(gate.main(), 1)
 
+    def test_a_report_recording_its_own_failure_is_not_accepted(self):
+        """A failed run publishes a stub, and the stub's digests are freshly computed.
+
+        Several producers deliberately overwrite a stale success with a failure record,
+        so the report that is sitting there can be an account of a run that did not
+        happen. Its bindings match, so a gate that only compares digests reports it as
+        current -- and goes quiet about the very measurement that was replaced. The
+        profiler's stub carries a full artifact map of 73 bindings, so this is not a
+        report that merely escapes the walk: it is counted as healthy.
+        """
+        for stub in ({'status': 'FAILED'}, {'passed': False}, {'failure_code': 'LINUX_PROC_REQUIRED'},
+                     {'failure': {'stage': 'cold', 'code': 'WORKLOAD_JOB_INCOMPLETE'}}):
+            with self.subTest(stub=stub):
+                self.assertTrue(gate.records_failure({**stub, 'artifacts': {}}))
+
+    def test_a_successful_report_is_not_mistaken_for_a_failure(self):
+        """The predicate must not fire on healthy reports, or the gate gets switched off."""
+        for report in ({'status': 'VERIFIED'}, {'status': 'MEASURED'}, {'passed': True},
+                       {'status': 'COMPLETED_RECORDED_QUERY'}, {'failure': None}, {'failure_code': None}):
+            with self.subTest(report=report):
+                self.assertFalse(gate.records_failure(report))
+        for name in gate.tracked_reports():
+            if name in gate.HISTORICAL:
+                continue
+            report = json.loads((gate.ROOT / name).read_text())
+            self.assertFalse(gate.records_failure(report), f'{name} is committed and should be healthy')
+
+    def test_a_published_failure_makes_the_gate_fail(self):
+        real = gate.loaded
+        victim = next(name for name in gate.tracked_reports() if name not in gate.HISTORICAL)
+        with patch.object(gate, 'loaded',
+                          lambda name: {'status': 'FAILED', 'artifacts': {}} if name == victim else real(name)):
+            self.assertEqual(gate.main(), 1)
+
     def test_either_digest_convention_is_accepted(self):
         """Some producers hash bytes and some hash read_text(), which normalizes CRLF.
         Failing a report for choosing the other convention would be a false alarm, and a
