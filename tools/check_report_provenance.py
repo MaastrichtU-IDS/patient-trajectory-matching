@@ -60,6 +60,39 @@ def artifact_maps(node, found):
     return found
 
 
+def records_failure(report):
+    """Whether a report is an account of a run that did not succeed.
+
+    Several producers deliberately overwrite a stale success with a failure record, so
+    that a previous VERIFIED report cannot sit there implying the current state is good.
+    That is the right call, and it leaves this gate a problem: the stub's artifact
+    digests are computed fresh at the moment of failure, so every binding matches and a
+    digest comparison reports the report as current. The profiler's stub carries a full
+    map of 73 bindings, so it is not merely skipped -- it is counted as healthy, and the
+    gate falls silent about the measurement that was just replaced.
+
+    Recognized by shape rather than by one producer's vocabulary, like artifact_maps
+    above: a status naming a failure, an explicit `passed: False`, or a populated
+    failure field. A report that merely carries `failure: None` has not failed.
+    """
+    if not isinstance(report, dict):
+        return False
+    status = report.get('status')
+    if isinstance(status, str) and 'FAIL' in status.upper():
+        return True
+    if report.get('passed') is False:
+        return True
+    return any(report.get(key) for key in ('failure', 'failure_code'))
+
+
+def loaded(name):
+    """The parsed report, or None when it is not readable JSON."""
+    try:
+        return json.loads((ROOT / name).read_text())
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+
 def tracked_reports():
     listing = subprocess.run(['git', 'ls-files', 'verification'], cwd=ROOT,
                              capture_output=True, text=True, check=True)
@@ -71,9 +104,15 @@ def main():
     for name in tracked_reports():
         if name in HISTORICAL:
             continue
-        try:
-            report = json.loads((ROOT / name).read_text())
-        except (ValueError, UnicodeDecodeError):
+        report = loaded(name)
+        if report is None:
+            continue
+        # Checked before the digests, and independently of whether this report binds
+        # anything: a failure stub's bindings are fresh by construction, so comparing
+        # them proves only that the failure was recorded recently.
+        if records_failure(report):
+            problems.append(f'{name}: records a failed run and is not current verification')
+            checked += 1
             continue
         maps = artifact_maps(report, [])
         if not maps:
