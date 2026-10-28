@@ -112,6 +112,16 @@ class PatternAcceptance(unittest.TestCase):
         graph, process = self.accepted()
         self.assertIn(process, set(materialize(graph).subjects(RDF.type, EX.RecordedClinicalProcess)))
 
+    def test_directly_typed_process_in_a_source_graph_is_refused(self):
+        """The other route to asserting an occurrence, with no participation triple."""
+        self.graph.add((DATA['event-asserted'], RDF.type, EX.DrugAdministration))
+        self.reject('PROCESS_ASSERTED_BY_TYPE')
+
+    def test_directly_typed_sulo_process_is_refused(self):
+        """The guard derives its classes, so the root is covered, not just the leaves."""
+        self.graph.add((DATA['event-asserted'], RDF.type, S.Process))
+        self.reject('PROCESS_ASSERTED_BY_TYPE')
+
     def test_participation_in_a_source_graph_is_refused(self):
         """The guard that makes the migration real, checked by breaking it.
 

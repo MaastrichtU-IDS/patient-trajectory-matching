@@ -36,18 +36,21 @@ The [class module](../ontology/exact-interval-profile.ttl), [SHACL shapes](../on
 
 | Information | Representation and explicit-data requirement |
 |---|---|
-| Process | An `ei:IntervalProcess`, with exactly one `atTime` occurrence interval |
-| Patient participation | Process → `hasParticipant` → `ex:PatientRole` → `isFeatureOf` → `ex:Person` |
+| Claim | An `ei:IntervalClaim`, with exactly one `hasDirectPart` occurrence interval. Not a process: a source row records that one is claimed, not that it occurred |
+| Kind claimed | Claim → `refersTo` → `ei:Infusion` or `ei:SpecimenCollection`, each the class IRI punned as an empty `sulo:Collection` |
+| Patient participation | Claim → `refersTo` → `ex:PatientRole` → `isFeatureOf` → `ex:Person` |
 | Patient identity | Person → `hasFeature` → `ex:PatientIdentifier` → `hasValue` string |
 | Occurrence interval | `ei:ExactOccurrenceInterval`, with distinct typed start/end direct parts and no scalar `hasValue` |
 | Boundaries | `ei:ExactStartTime` / `ei:ExactEndTime`, each with one `xsd:dateTimeStamp` value and a direct Second unit |
 | Optional elapsed duration | A direct `ei:ElapsedDuration` part with one decimal value and one supported direct unit |
 | Clock | Interval → `hasDirectPart` → `ei:ClockBinding` → `refersTo` → `ei:TemporalReferenceSystem` |
-| Source record | `ex:SourceRecord` → `refersTo` → process, with typed direct parts for event/record/episode identifiers, source key/location/hash, and performed status |
+| Source record | `ex:SourceRecord` → `refersTo` → claim, with typed direct parts for event/record/episode identifiers, source key/location/hash, and performed status |
 
 All application instance literals occur through `sulo:hasValue`. The `ei:` namespace is `https://example.org/trajectory/interval/`; the reused `ex:` classes are from `https://example.org/trajectory/toy/`. JSON keys are execution/source fields, not new RDF predicates.
 
-Validation applies to a separate graph containing named subclass consequences, feature inverses, and the existing PRO participation derivation. It performs no general OWL consistency check or existential witness generation. SHACL runs without additional inference. The adapter admits only named individuals, declared classes, and its documented set of SULO predicates. It rejects mixed point/interval process inputs and requires explicit, unambiguous selected fields. The input should not contain a separately expanded transitive `hasPart` view.
+The role chain runs through `sulo:refersTo`, not `sulo:hasParticipant`. SULO declares that property with `rdfs:domain sulo:Process`, so one participation triple asserts the occurrence however its subject is typed — retyping the individual does not remove the claim. Both routes to asserting an occurrence are refused on the source graph, with distinct codes: `PROCESS_ASSERTED_BY_PARTICIPATION` for a participation triple, and `PROCESS_ASSERTED_BY_TYPE` for an individual typed into any class derived to be under `sulo:Process`. The process, its participant and its `atTime` interval appear only when a claim is accepted, which is also what adds the member that makes the reference collection non-empty. `ei:ProcessShape` states those obligations and is checked against a constructed accepted graph.
+
+Validation applies to a separate graph containing named subclass consequences and feature inverses. It performs no general OWL consistency check or existential witness generation. SHACL runs without additional inference. The adapter admits only named individuals, declared classes, and its documented set of SULO predicates. It rejects mixed point/interval process inputs and requires explicit, unambiguous selected fields. The input should not contain a separately expanded transitive `hasPart` view.
 
 Each projected process needs a distinct patient role, source record, interval, and boundary descriptors. Generic participation alone does not establish the patient role. Different people cannot share the same patient identifier in one projection. Temporal contact compares normalized positions while retaining distinct boundary identities. Direct unit lookup on the selected scalar avoids confusing endpoint seconds with duration minutes.
 

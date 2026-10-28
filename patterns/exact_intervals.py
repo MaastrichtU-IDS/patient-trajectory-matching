@@ -19,7 +19,9 @@ from rdflib import Graph, Literal, Namespace, OWL, RDF, RDFS, URIRef, XSD
 from pyshacl import validate as shacl_validate
 
 from . import pro_solid as base
-from .pro_solid import ContractError, EX, ROOT, S, datum, digest, one, require, role_binding, typed_objects
+from .pro_solid import (ContractError, EX, ROOT, S, claim_role_binding, datum, digest, one,
+                        require, typed_objects)
+
 
 EI = Namespace('https://example.org/trajectory/interval/')
 DATA = Namespace('https://example.org/trajectory/interval-data/')
@@ -135,21 +137,24 @@ def build_graph(source):
         require(row['status'] == 'performed', 'UNSUPPORTED_RECORD_STATUS')
         require(cid in clocks, 'UNKNOWN_CLOCK')
         path = 'events/' + eid
-        process, patient = DATA[path], DATA['persons/' + pid]
+        claim, patient = DATA[path], DATA['persons/' + pid]
         role, record, interval = DATA[path + '/patient-role'], DATA['records/' + rid], DATA[path + '/interval']
         g.add((patient, RDF.type, EX.Person))
         info(patient, EX.PatientIdentifier, pid, 'persons/' + pid + '/identifier', relation=S.hasFeature)
-        g.add((process, RDF.type, KINDS[row['event_kind']]))
-        g.add((process, S.hasParticipant, role))
+        # The reference object names the kind of process claimed. It is the class IRI,
+        # punned as an empty sulo:Collection, so referring to it asserts no occurrence.
+        g.add((claim, RDF.type, EI.IntervalClaim))
+        g.add((claim, S.refersTo, KINDS[row['event_kind']]))
+        g.add((claim, S.refersTo, role))
         g.add((role, RDF.type, EX.PatientRole))
         g.add((role, S.isFeatureOf, patient))
         g.add((record, RDF.type, EX.SourceRecord))
-        g.add((record, S.refersTo, process))
+        g.add((record, S.refersTo, claim))
         meta = {**row, 'source_hash': digest(canonical(row)),
                 'source_file': 'constructed://exact-interval/source-rows.json'}
         for key, cls in META.items():
             info(record, cls, text(meta[key]), 'records/' + rid + '/' + key)
-        g.add((process, S.atTime, interval))
+        g.add((claim, S.hasDirectPart, interval))
         g.add((interval, RDF.type, EI.ExactOccurrenceInterval))
         instant(interval, EI.ExactStartTime, text(row['start']), path + '/start')
         instant(interval, EI.ExactEndTime, text(row['end']), path + '/end')
@@ -168,19 +173,13 @@ def build_graph(source):
     return g
 
 
-def validate_graph(source):
-    """Named subclass closure plus existing PRO derivation; explicit-data validation."""
-    ont = base.ontology() + Graph().parse(PROFILE)
-    classes = set(ont.subjects(RDF.type, OWL.Class))
-    for subject, predicate, obj in source:
-        require(isinstance(subject, URIRef), 'NAMED_INSTANCE_REQUIRED')
-        if isinstance(obj, Literal):
-            require(predicate == S.hasValue, 'SOLID_LITERAL_PROPERTY')
-        else:
-            require(isinstance(obj, URIRef), 'NAMED_INSTANCE_REQUIRED')
-            require(predicate == RDF.type or predicate in OBJECT_PROPERTIES, 'UNSUPPORTED_OBJECT_PROPERTY')
-            if predicate == RDF.type:
-                require(obj in classes, 'UNSUPPORTED_INSTANCE_CLASS')
+def closure(source, ont):
+    """Named subclass closure over the source, then the shared PRO/SOLID derivation.
+
+    Separated from validate_graph so the SHACL shapes can be checked against a graph
+    this module did not itself build -- an accepted claim's process, for instance --
+    without a test re-implementing the closure it is supposed to be testing against.
+    """
     g = Graph()
     for triple in source:
         g.add(triple)
@@ -192,7 +191,28 @@ def validate_graph(source):
                 if isinstance(parent, URIRef):
                     g.add((node, RDF.type, parent))
         changed = size != len(g)
-    g = base.materialize(g)
+    return base.materialize(g)
+
+
+def validate_graph(source):
+    """Named subclass closure plus explicit-data validation.
+
+    A source graph records claims; a process appears only when a claim is accepted, so
+    both routes to asserting one are refused on the source before anything else runs.
+    """
+    ont = base.ontology() + Graph().parse(PROFILE)
+    base.refuse_asserted_process(source, ont)
+    classes = set(ont.subjects(RDF.type, OWL.Class))
+    for subject, predicate, obj in source:
+        require(isinstance(subject, URIRef), 'NAMED_INSTANCE_REQUIRED')
+        if isinstance(obj, Literal):
+            require(predicate == S.hasValue, 'SOLID_LITERAL_PROPERTY')
+        else:
+            require(isinstance(obj, URIRef), 'NAMED_INSTANCE_REQUIRED')
+            require(predicate == RDF.type or predicate in OBJECT_PROPERTIES, 'UNSUPPORTED_OBJECT_PROPERTY')
+            if predicate == RDF.type:
+                require(obj in classes, 'UNSUPPORTED_INSTANCE_CLASS')
+    g = closure(source, ont)
     groups = [(S.Object, S.Process), (S.SpatialObject, S.Feature),
               (S.Role, S.Quality, S.InformationObject, S.Capability),
               (S.Duration, S.TimeInstant, S.TimeInterval), (S.Time, S.Unit),
@@ -232,7 +252,7 @@ class Clock:
 @dataclass(frozen=True)
 class ExactInterval:
     event_id: str
-    process: str
+    claim: str
     patient_role: str
     patient_bearer: str
     patient_id: str
@@ -254,8 +274,8 @@ def project(source, manifest):
     require(manifest['profile'] == PROFILE_ID, 'UNSUPPORTED_PROFILE')
     text(manifest['dataset_id']); text(manifest['snapshot_id'])
     g = validate_graph(source)
-    processes = set(g.subjects(RDF.type, EI.IntervalProcess))
-    require(processes and processes == set(g.subjects(RDF.type, S.Process)), 'EMPTY_OR_MIXED_PROFILE')
+    claims = set(g.subjects(RDF.type, EI.IntervalClaim))
+    require(bool(claims), 'EMPTY_PROJECTION')
     files = ('patterns/pro_solid.py', 'patterns/exact_intervals.py', 'patterns/requirements.lock.txt', 'ontology/pro-solid-profile.ttl',
              'ontology/exact-interval-profile.ttl', 'ontology/exact-interval-shapes.ttl',
              'ontology/vendor/sulo-0.2.14.ttl')
@@ -279,14 +299,15 @@ def project(source, manifest):
     output, bindings = [], {}
     used_roles, used_records, used_descriptors, event_ids, record_ids = (set() for _ in range(5))
     patients = {}
-    for process in sorted(processes):
-        role, patient = role_binding(g, process, EX.PatientRole)
-        require(role not in used_roles, 'ROLE_REUSED_ACROSS_PROCESSES')
+    for claim in sorted(claims):
+        kind = one(set(g.objects(claim, S.refersTo)) & set(KINDS.values()), 'REFERENCE_OBJECT_CARDINALITY')
+        role, patient = claim_role_binding(g, claim, EX.PatientRole)
+        require(role not in used_roles, 'ROLE_REUSED_ACROSS_CLAIMS')
         used_roles.add(role)
         pid = identifier(datum(g, patient, EX.PatientIdentifier, S.hasFeature))
         require(pid not in patients or patients[pid] == patient, 'PATIENT_IDENTIFIER_COLLISION')
         patients[pid] = patient
-        record = one((r for r in g.subjects(S.refersTo, process) if (r, RDF.type, EX.SourceRecord) in g),
+        record = one((r for r in g.subjects(S.refersTo, claim) if (r, RDF.type, EX.SourceRecord) in g),
                      'SOURCE_RECORD_CARDINALITY')
         require(record not in used_records, 'REUSED_SOURCE_RECORD')
         used_records.add(record)
@@ -297,7 +318,8 @@ def project(source, manifest):
         event_ids.add(meta['event_id']); record_ids.add(meta['record_id'])
         require(meta['status'] == 'performed', 'UNSUPPORTED_RECORD_STATUS')
         require(bool(re.fullmatch('[0-9a-f]{64}', meta['source_hash'])), 'INVALID_SOURCE_HASH')
-        interval = one(g.objects(process, S.atTime), 'INTERVAL_CARDINALITY')
+        interval = one(typed_objects(g, claim, S.hasDirectPart, EI.ExactOccurrenceInterval),
+                       'INTERVAL_CARDINALITY')
         start, end = part(g, interval, S.StartTime), part(g, interval, S.EndTime)
         descriptors = {interval, start, end}
         require(len(descriptors) == 3 and not descriptors & used_descriptors, 'REUSED_TEMPORAL_DESCRIPTOR')
@@ -319,7 +341,8 @@ def project(source, manifest):
             value = str(scalar(g, node))
             require(duration_us(value, unit_name) == elapsed, 'DURATION_DISAGREEMENT')
             duration = {'datum': str(node), 'value': value, 'unit': str(unit), 'normalized_us': elapsed}
-        evidence = {'context_id': context_id, 'process': str(process), 'patient_role': str(role),
+        evidence = {'context_id': context_id, 'claim': str(claim), 'claimed_kind': str(kind),
+                    'patient_role': str(role),
                     'patient_bearer': str(patient), 'patient_id': pid, 'source_record': str(record),
                     'source_metadata': meta, 'interval': str(interval), 'clock_binding': str(clock_binding),
                     'clock': asdict(clock), 'duration_us': elapsed, 'recorded_duration': duration,
@@ -327,7 +350,7 @@ def project(source, manifest):
                     'end': {'datum': str(end), 'value': end_text, 'unit': str(EI.Second), 'normalized_us': e}}
         evidence_id = PROFILE_ID + ':' + digest(canonical(evidence))
         bindings[evidence_id] = evidence
-        output.append(ExactInterval(meta['event_id'], str(process), str(role), str(patient), pid,
+        output.append(ExactInterval(meta['event_id'], str(claim), str(role), str(patient), pid,
                                     meta['episode_id'], s, e, clock, context_id, evidence_id))
     require(used_records == set(g.subjects(RDF.type, EX.SourceRecord)), 'UNUSED_SOURCE_RECORD')
     return output, {'context_id': context_id, 'context': context, 'bindings': bindings}

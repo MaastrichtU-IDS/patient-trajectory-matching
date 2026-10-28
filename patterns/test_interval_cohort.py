@@ -59,7 +59,7 @@ class CohortTests(unittest.TestCase):
             for match in trajectory['matches'] + trajectory['unresolved_bindings']:
                 for slot in match['slots'].values():
                     evidence = result['evidence']['bindings'][slot['evidence_id']]
-                    for key in ('process', 'patient_role', 'patient_bearer'):
+                    for key in ('claim', 'patient_role', 'patient_bearer'):
                         self.assertEqual(slot[key], evidence[key])
                     self.assertTrue(evidence['source_record'])
                     self.assertEqual(evidence['source_metadata']['status'], 'performed')
@@ -129,7 +129,7 @@ class CohortTests(unittest.TestCase):
         self.assertEqual(result['trajectories'][0]['status'], 'NO_RECORDED_MATCH')
         # Exercise false AND unknown with a third record under a separate clock.
         a, b = self.snapshot.intervals[:2]
-        c = replace(a, event_id='third', process='urn:third', clock=replace(a.clock, clock_id='elsewhere'))
+        c = replace(a, event_id='third', claim='urn:third', clock=replace(a.clock, clock_id='elsewhere'))
         candidates = {'a': [a], 'b': [b], 'c': [c]}
         constraints = [{'id': 'unknown', 'left': 'a', 'right': 'c', 'operator': 'before'},
                        {'id': 'false', 'left': 'b', 'right': 'a', 'operator': 'before'}]
@@ -200,7 +200,7 @@ class CohortTests(unittest.TestCase):
             records = []
             for i in range(8):
                 start = rng.randrange(-8, 9)
-                records.append(replace(template, event_id=str(i), process='urn:event:' + str(i),
+                records.append(replace(template, event_id=str(i), claim='urn:event:' + str(i),
                                        start_us=start, end_us=start + rng.randrange(1, 8),
                                        clock=replace(template.clock, clock_id=str(rng.randrange(2)))))
             candidates = {name: [r for r in records if rng.random() < .7] for name in ('a', 'b', 'c')}
@@ -217,7 +217,7 @@ class CohortTests(unittest.TestCase):
 
     def test_range_index_reduces_search(self):
         template = self.snapshot.intervals[0]
-        candidates = {name: [replace(template, event_id=name + str(i), process='urn:' + name + str(i),
+        candidates = {name: [replace(template, event_id=name + str(i), claim='urn:' + name + str(i),
                                      start_us=i * 10 + offset, end_us=i * 10 + offset + 1)
                              for i in range(100)] for name, offset in [('a', 0), ('b', 1)]}
         constraints = [{'id': 'touch', 'left': 'a', 'right': 'b', 'operator': 'meets'}]

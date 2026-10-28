@@ -1,6 +1,6 @@
 {
   "profile": "pro-solid-2.4",
-  "tests_run": 55,
+  "tests_run": 57,
   "failures": 0,
   "errors": 0,
   "passed": true,
@@ -15,6 +15,8 @@
     "test_care_provider_does_not_become_patient",
     "test_changed_value_changes_evidence_identifier",
     "test_claim_reaches_its_bearer_without_asserting_participation",
+    "test_directly_typed_process_in_a_source_graph_is_refused",
+    "test_directly_typed_sulo_process_is_refused",
     "test_disjoint_groups_are_derived_from_the_ontology_not_listed",
     "test_disjointness_the_previous_fixed_list_missed_is_rejected",
     "test_duplicate_event_ids_rejected",

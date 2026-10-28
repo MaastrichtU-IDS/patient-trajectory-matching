@@ -62,7 +62,7 @@ and `P3`. For the refined query, P2 is `NO_RECORDED_MATCH` and P3 is
 reference engines agree on every semantic result for both queries; only their
 `execution` counters may differ.
 
-Every returned match or unresolved binding retains each slot's `process`,
+Every returned match or unresolved binding retains each slot's `claim`,
 `patient_role`, `patient_bearer`, and `evidence_id`. The corresponding entry in
 `evidence.bindings` retains its `source_record` and `context_id`. Thus membership
 can be reviewed against the constructed source record and snapshot context rather
@@ -88,7 +88,7 @@ The [JSON Schema](../schemas/interval-cohort.schema.json) and semantic checks in
 ```
 
 There are one to eight required slots, with unique names. Each slot binds one
-distinct process; different slots cannot reuse a process even if their selectors
+distinct claim; different slots cannot reuse a claim even if their selectors
 overlap. All slots share the patient bearer, patient identifier, and episode.
 All constraints are conjunctive. An empty constraint array permits all injective
 class-selected bindings within that scope, without asserting a temporal relation.
@@ -107,10 +107,12 @@ microseconds with `0 <= min <= max <= 2^63-1`. Booleans, floats, rounding, unkno
 operators/selectors, extra fields, optional slots, and result limits are rejected.
 The eight-slot bound limits recursion depth, not execution cost.
 
-Class selection uses the existing named subclass derivation on the pinned local
-ontology modules. For example, an explicitly typed Infusion can satisfy
-IntervalProcess or Process. The original process/role/bearer and source evidence
-remain attached. This is a finite capability profile; it does not accept arbitrary
+Class selection walks the named ancestors of the reference object a claim refers
+to, on the pinned local ontology modules. A claim reporting an Infusion therefore
+still satisfies a slot asking for IntervalProcess or Process. That is a statement
+about the class hierarchy the reference object is punned from, not an entailment
+about the claim: no process is asserted, and none is inferred. The original
+claim/role/bearer and source evidence remain attached. This is a finite capability profile; it does not accept arbitrary
 OWL expressions or treat unsupported entailment as a failed match. It generates
 no existential witnesses and makes no full OWL consistency claim.
 
@@ -158,7 +160,7 @@ an internal trusted projection; modifying its fields or loading arbitrary
 serialized records bypasses the contract and is not a supported ingestion route.
 Preparation retains the exact adapter's validated type view and evidence bundle.
 
-Each binding identifies the selected class, event, process, PatientRole, bearer,
+Each binding identifies the selected class, event, claim, PatientRole, bearer,
 and interval evidence ID. Each constraint includes the pair evaluator's exact
 endpoints, arithmetic rule, relation or incomparability reasons, and evidence
 references. The embedded evidence preserves source records, original lexical
@@ -181,7 +183,7 @@ precedence closure is materialized. Indexes are rebuilt for each query; persiste
 indexes, plan optimization, streaming, and result pagination remain future work.
 
 The [reference matcher](../patterns/interval_cohort_reference.py) enumerates the
-Cartesian product of slot candidates, removes repeated processes, and evaluates
+Cartesian product of slot candidates, removes repeated claims, and evaluates
 the endpoint inequalities independently. It shares validated projection and result
 rendering with the optimized engine, but does not use its search, indexes, or
 predicate evaluator to decide membership. Differential checks therefore cover

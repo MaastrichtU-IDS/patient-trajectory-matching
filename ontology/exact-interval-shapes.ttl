@@ -9,6 +9,20 @@ ei:LiteralShape a sh:NodeShape ; sh:targetSubjectsOf sulo:hasValue ;
   sh:class sulo:InformationObject ;
   sh:property [ sh:path sulo:hasValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:Literal ] .
 
+# What a source row asserts. The claim carries the structure the process used to carry:
+# one reference object naming its kind, one patient role, one occurrence interval.
+ei:ClaimShape a sh:NodeShape ; sh:targetClass ei:IntervalClaim ;
+  sh:property [ sh:path sulo:refersTo ;
+                sh:qualifiedValueShape [ sh:in ( ei:Infusion ei:SpecimenCollection ) ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:refersTo ; sh:qualifiedValueShape [ sh:class ex:PatientRole ] ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] ;
+  sh:property [ sh:path sulo:hasDirectPart ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:class ei:ExactOccurrenceInterval ] .
+
+# The obligations an accepted claim's process must meet. No source graph contains a
+# process, so this shape never fires during a normal run; it is exercised directly
+# against a constructed accepted graph by test_accepted_claim_shapes_are_enforced.
 ei:ProcessShape a sh:NodeShape ; sh:targetClass ei:IntervalProcess ;
   sh:property [ sh:path sulo:atTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ei:ExactOccurrenceInterval ] ;
   sh:property [ sh:path sulo:hasParticipant ; sh:qualifiedValueShape [ sh:class ex:PatientRole ] ;
@@ -18,7 +32,7 @@ ei:PatientRoleShape a sh:NodeShape ; sh:targetClass ex:PatientRole ;
   sh:property [ sh:path sulo:isFeatureOf ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ex:Person ] .
 
 ei:RecordShape a sh:NodeShape ; sh:targetClass ex:SourceRecord ;
-  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ei:IntervalProcess ] .
+  sh:property [ sh:path sulo:refersTo ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ei:IntervalClaim ] .
 
 ei:IntervalShape a sh:NodeShape ; sh:targetClass ei:ExactOccurrenceInterval ;
   sh:property [ sh:path sulo:hasValue ; sh:maxCount 0 ] ;
