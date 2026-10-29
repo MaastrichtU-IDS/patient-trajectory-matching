@@ -221,33 +221,79 @@ def build_graph(source, *, origin_datatype=XSD.dateTimeStamp):
         provenance(constraint, c)
     for e in source['events']:
         path = 'events/' + e['id']
-        process = node(path, KINDS[e['event_kind']])
+        # The reference object names the kind of process claimed. It is the class IRI,
+        # punned as an empty sulo:Collection, so referring to it asserts no occurrence.
+        claim = node(path, BT.IntervalClaim)
+        g.add((claim, ei.S.refersTo, KINDS[e['event_kind']]))
         person = node('persons/' + e['patient_id'], ei.EX.Person)
         identifier = node('persons/' + e['patient_id'] + '/id', ei.EX.PatientIdentifier)
         g.add((person, ei.S.hasFeature, identifier))
         g.add((identifier, ei.S.hasValue, Literal(e['patient_id'], datatype=XSD.string)))
         role = node(path + '/patient-role', ei.EX.PatientRole)
-        g.add((process, ei.S.hasParticipant, role))
+        g.add((claim, ei.S.refersTo, role))
         g.add((role, ei.S.isFeatureOf, person))
         interval = node(path + '/interval', BT.OccurrenceInterval)
-        g.add((process, ei.S.atTime, interval))
+        g.add((claim, ei.S.hasDirectPart, interval))
         for side, cls in [('start', BT.StartDescriptor), ('end', BT.EndDescriptor)]:
             descriptor = node(path + '/' + side, cls)
             g.add((interval, ei.S.hasDirectPart, descriptor))
             g.add((descriptor, ei.S.refersTo, D['variables/' + e[side + '_var']]))
         record = node('records/' + e['record_id'], ei.EX.SourceRecord)
-        g.add((record, ei.S.refersTo, process))
+        g.add((record, ei.S.refersTo, claim))
         for field, cls in [('id', ei.EX.EventIdentifier), ('record_id', ei.EX.RecordIdentifier),
                            ('episode_id', ei.EX.EpisodeIdentifier), ('status', ei.EX.RecordStatus)]:
             scalar(record, field, cls, e[field])
         provenance(record, e)
-        evidence[e['id']] = {'process': str(process), 'patient_role': str(role), 'patient_bearer': str(person),
+        evidence[e['id']] = {'claim': str(claim), 'claimed_kind': str(KINDS[e['event_kind']]),
+                             'patient_role': str(role), 'patient_bearer': str(person),
                              'interval': str(interval), 'start_descriptor': str(D[path + '/start']),
                              'end_descriptor': str(D[path + '/end']), 'source_record': str(record),
                              'source': e, 'source_hash': ei.digest(ei.canonical(e)),
                              'start_variable': str(D['variables/' + e['start_var']]),
                              'end_variable': str(D['variables/' + e['end_var']])}
     return g, evidence
+
+
+def accept_claims(graph):
+    """Rewrite accepted claims into the occurrences they claim, in place.
+
+    A source graph records claims: an ei/bt claim refers to a reference object naming the
+    kind of process it reports, reaches its role through sulo:refersTo and carries the
+    interval as a direct part, and entails no occurrence. An *accepted* view is a
+    different graph describing a different world -- one where the claims under it have
+    been accepted -- so there the subject is the process, and saying so is the point.
+
+    Leaving a claim typed bt:IntervalClaim while accepted content attaches
+    sulo:hasParticipant to it is not merely untidy: hasParticipant has rdfs:domain
+    sulo:Process, bt:IntervalClaim is under sulo:InformationObject and so under
+    sulo:Object, and SULO declares Object and Process disjoint. Such a graph is
+    inconsistent under HermiT, which is what this prevents.
+
+    Membership is added explicitly. The reference collection is empty until acceptance
+    puts something in it, and that member is what makes the class non-empty.
+    """
+    references = set(KINDS.values())
+    for claim in list(graph.subjects(RDF.type, BT.IntervalClaim)):
+        targets = set(graph.objects(claim, ei.S.refersTo))
+        reference = targets & references
+        if len(reference) != 1:
+            continue
+        kind = reference.pop()
+        graph.remove((claim, RDF.type, BT.IntervalClaim))
+        graph.remove((claim, ei.S.refersTo, kind))
+        graph.add((claim, RDF.type, kind))
+        graph.add((claim, ei.S.isItemIn, kind))
+        for role in targets - {kind}:
+            # A role is what the rest of this profile treats as one: the bearer link is
+            # how role_binding identifies it, so the same test is used here.
+            if next(graph.objects(role, ei.S.isFeatureOf), None) is not None:
+                graph.remove((claim, ei.S.refersTo, role))
+                graph.add((claim, ei.S.hasParticipant, role))
+        for interval in list(graph.objects(claim, ei.S.hasDirectPart)):
+            if (interval, RDF.type, BT.OccurrenceInterval) in graph:
+                graph.remove((claim, ei.S.hasDirectPart, interval))
+                graph.add((claim, ei.S.atTime, interval))
+    return graph
 
 
 def selected_classes(event):

@@ -141,7 +141,7 @@ def formal_view(graph, interface):
 
 def sulo_view(graph):
     snapshot = rdf.prepare_graph(graph)
-    entities = {eid: {name: evidence[name] for name in ('process', 'patient_role', 'patient_bearer',
+    entities = {eid: {name: evidence[name] for name in ('claim', 'patient_role', 'patient_bearer',
                  'interval', 'start_descriptor', 'end_descriptor', 'start_variable', 'end_variable')}
                 for eid, evidence in snapshot.evidence.items()}
     return {'view': view(snapshot.source), 'entities': entities}, snapshot

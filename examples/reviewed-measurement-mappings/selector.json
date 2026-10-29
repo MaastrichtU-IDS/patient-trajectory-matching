@@ -1,6 +1,6 @@
 {
   "profile": "reviewed-measurement-selector-1.0",
-  "mapping_context_id": "c8dea331330e90b1e17e4f1874e6d68e3709916c647a118fdfa76152a5366259",
+  "mapping_context_id": "1000e48cbe5f948de007be97c74da565818d6df416f96bf7481017af5fbf3eb3",
   "class_iri": "https://example.org/trajectory/measurement-record-query/pressure-family",
   "source_item_ids": [
     "pressure_a",

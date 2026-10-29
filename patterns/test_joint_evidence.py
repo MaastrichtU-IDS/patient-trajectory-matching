@@ -90,7 +90,7 @@ class JointEvidenceTests(unittest.TestCase):
         self.assertNotIn(N + 'Antibiotic', [a['class'] for a in result['semantic_module']['class_assertions']])
         old_slot = old['matching']['trajectories'][0]['bindings'][0]['slots']['a']
         new_witness = result['semantic_run']['matching']['evidence']['bindings']['A']
-        for key in ('process', 'patient_role', 'patient_bearer'):
+        for key in ('claim', 'patient_role', 'patient_bearer'):
             self.assertEqual(old_slot[key], new_witness[key])
 
     def test_withdrawal_does_not_resurrect_ancestor(self):

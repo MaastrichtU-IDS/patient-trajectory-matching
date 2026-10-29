@@ -243,10 +243,12 @@ class PatientLocalTests(unittest.TestCase):
         snapshot = local.prepare_graph(renamed)
         self.assertEqual(local.execute(snapshot, self.query)['certain_patient_ids'], ['P1'])
         for evidence in snapshot.evidence.values():
-            self.assertIn((URIRef(evidence['process']), ei.S.hasParticipant, URIRef(evidence['patient_role'])), renamed)
+            self.assertIn((URIRef(evidence['claim']), ei.S.refersTo, URIRef(evidence['patient_role'])), renamed)
             self.assertIn((URIRef(evidence['patient_role']), ei.S.isFeatureOf, URIRef(evidence['patient_bearer'])), renamed)
         graph = local.export_source(self.source)
-        graph.set((bt.D['events/P1a'], ei.S.hasParticipant, bt.D['persons/P1']))
+        # A participation triple asserts the occurrence through its domain, so a source
+        # graph carrying one is refused however its subject is typed.
+        graph.add((bt.D['events/P1a'], ei.S.hasParticipant, bt.D['persons/P1']))
         with self.assertRaises(ei.ContractError): local.prepare_graph(graph)
 
     def test_rdf_inconsistency_keeps_negative_cycle_and_source_evidence(self):

@@ -20,7 +20,12 @@ from . import semantic_reference as reference
 
 PROFILE = 'semantic-support-1.0'
 QUERY_PROFILE = 'semantic-bounded-query-1.0'
-PROPERTIES = {str(ei.S.hasParticipant), str(ei.S.isFeatureOf)}
+# sulo:hasParticipant stays permitted for authored modules: this document never loads
+# SULO, so the property carries no domain here and an authored rule using it over its own
+# vocabulary entails nothing about sulo:Process. The assertions this module *generates*
+# use sulo:refersTo regardless, because they must describe the graph as it actually is,
+# and no bounded graph contains a participation triple any more.
+PROPERTIES = {str(ei.S.hasParticipant), str(ei.S.isFeatureOf), str(ei.S.refersTo)}
 FILES = ('patterns/semantic_support.py', 'patterns/semantic_reference.py', 'patterns/rustdl_worker.py',
          'patterns/bounded_cohort.py', 'patterns/requirements-semantic.lock.txt')
 
@@ -43,6 +48,33 @@ def rows(value, maximum, name):
 
 def fields(value, names):
     ei.require(type(value) is dict and set(value) == set(names.split()), 'UNSUPPORTED_SEMANTIC_FIELDS')
+
+
+def selectable_classes():
+    """Process class a query may name -> the module-local class of claims reporting it.
+
+    Queries keep naming process classes, the same IRIs the cohort surface uses. Letting
+    the two surfaces diverge would mean `bt:Infusion` selected one thing here and another
+    there, which is worse than the indirection. The mapping is applied when the entailed
+    memberships are read.
+    """
+    mapping = {}
+    for kind in sorted(bt.KINDS):
+        for cls in sorted(bt.selected_classes({'event_kind': kind})):
+            target = claim_class(cls)
+            ei.require(mapping.setdefault(cls, target) == target, 'CLAIM_CLASS_IRI_COLLISION')
+    return mapping
+
+
+def claim_class(process_class):
+    """The module-local class of claims reporting a process of this kind.
+
+    Selection cannot target the process class itself any more: no instance of it exists,
+    because nothing asserts the occurrence. It targets the claims that refer to a
+    reference object under that class instead. The class is generated into the reasoner
+    module and is not part of any committed profile, so no parallel taxonomy is shipped.
+    """
+    return str(bt.BT['claim-of/' + str(process_class).rsplit('/', 1)[-1].rsplit('#', 1)[-1]])
 
 
 def validate_model(model):
@@ -82,6 +114,12 @@ def validate_model(model):
             fields(value['some'], 'property filler')
             prop(value['some']['property'])
             expression(value['some']['filler'], depth + 1)
+        elif 'value' in value:
+            # ObjectHasValue, not a multi-member nominal: it stays in OWL 2 EL, and it is
+            # the construct the reference-object pattern already uses elsewhere.
+            fields(value['value'], 'property individual')
+            prop(value['value']['property'])
+            ind(value['value']['individual'])
         else:
             raise ei.ContractError('UNSUPPORTED_RULE_EXPRESSION')
 
@@ -131,17 +169,33 @@ def build_model(snapshot, module):
                                            'property_assertions', 'rules', 'disjoint')})
     classes, individuals = set(model['classes']), set(model['individuals'])
     kinds = {kind: bt.selected_classes({'event_kind': kind}) for kind in bt.KINDS}
+    # One defined class per selectable process class, entailed from the reference object
+    # a claim refers to. Collisions would silently merge two selectors, so they raise.
+    targets = {}
+    for kind in sorted(bt.KINDS):
+        reference = str(bt.KINDS[kind])
+        individuals.add(reference)
+        for cls in sorted(kinds[kind]):
+            target = claim_class(cls)
+            ei.require(targets.setdefault(target, cls) == cls, 'CLAIM_CLASS_IRI_COLLISION')
+            classes.add(target)
+            model['rules'].append({
+                'id': 'claims-' + kind + '-is-' + str(cls).rsplit('/', 1)[-1].rsplit('#', 1)[-1],
+                'if': {'all': [{'class': str(bt.BT.IntervalClaim)},
+                               {'value': {'property': str(ei.S.refersTo), 'individual': reference}}]},
+                'then': target})
+    classes.add(str(bt.BT.IntervalClaim))
     for eid, event in sorted(snapshot.events.items()):
         witness = snapshot.evidence[eid]
-        process, role, bearer = (witness[k] for k in ('process', 'patient_role', 'patient_bearer'))
-        individuals.update((process, role, bearer))
-        types = [(process, cls) for cls in sorted(kinds[event['event_kind']])]
-        types.extend([(role, str(ei.EX.PatientRole)), (bearer, str(ei.EX.Person))])
-        for individual, cls in types:
+        claim, role, bearer = (witness[k] for k in ('claim', 'patient_role', 'patient_bearer'))
+        individuals.update((claim, role, bearer))
+        for individual, cls in [(claim, str(bt.BT.IntervalClaim)), (role, str(ei.EX.PatientRole)),
+                                (bearer, str(ei.EX.Person))]:
             classes.add(cls)
             model['class_assertions'].append({'individual': individual, 'class': cls})
         model['property_assertions'].extend([
-            {'subject': process, 'property': str(ei.S.hasParticipant), 'object': role},
+            {'subject': claim, 'property': str(ei.S.refersTo), 'object': witness['claimed_kind']},
+            {'subject': claim, 'property': str(ei.S.refersTo), 'object': role},
             {'subject': role, 'property': str(ei.S.isFeatureOf), 'object': bearer}])
     model['classes'], model['individuals'] = sorted(classes), sorted(individuals)
     # RDF/OWL assertions are sets. Retain all original source rows in the outer
@@ -177,6 +231,9 @@ def ofn(model):
             return '<' + expression['class'] + '>'
         if 'all' in expression:
             return 'ObjectIntersectionOf(' + ' '.join(term(e) for e in expression['all']) + ')'
+        if 'value' in expression:
+            has = expression['value']
+            return 'ObjectHasValue(<' + has['property'] + '> <' + has['individual'] + '>)'
         some = expression['some']
         return 'ObjectSomeValuesFrom(<' + some['property'] + '> ' + term(some['filler']) + ')'
     lines = ['Ontology(']
@@ -266,9 +323,12 @@ def _execute_checked(snapshot, query, module, *, timeout_seconds=20, profile=PRO
     interpretation = interpretation or {}
     query, module = deepcopy(query), deepcopy(module)
     model = build_model(snapshot, module)
-    _validate_query(query, model['classes'], profile=query_profile)
+    # A query may name a process class or a module class; the first is mapped to its
+    # claim class when memberships are read.
+    _validate_query(query, set(model['classes']) | set(selectable_classes()), profile=query_profile)
     selectors = sorted({s['class_iri'] for s in query['slots']})
-    support = check(model, selectors, timeout_seconds=timeout_seconds)
+    targets = selectable_classes()
+    support = check(model, sorted({targets.get(c, c) for c in selectors}), timeout_seconds=timeout_seconds)
     context = {'profile': profile, 'source_context_id': snapshot.context_id, 'query': deepcopy(query),
                'module': deepcopy(module), 'model_sha256': ei.digest(ei.canonical(model)),
                'ontology_sha256': support['ontology_sha256'],
@@ -283,7 +343,8 @@ def _execute_checked(snapshot, query, module, *, timeout_seconds=20, profile=PRO
     result.update(interpretation)
     if support['status'] != 'READY':
         return result
-    types = {eid: {cls for cls in selectors if witness['process'] in support['memberships'][cls]}
+    types = {eid: {cls for cls in selectors
+                   if witness['claim'] in support['memberships'][targets.get(cls, cls)]}
              for eid, witness in snapshot.evidence.items()}
     matching = cohort._execute_supported(snapshot, query, types)
     matching['profile'] = query_profile
@@ -293,9 +354,9 @@ def _execute_checked(snapshot, query, module, *, timeout_seconds=20, profile=PRO
         for binding in trajectory['bindings']:
             for slot in binding['slots'].values():
                 witness = snapshot.evidence[slot['event_id']]
-                slot.update({key: witness[key] for key in ('process', 'patient_role', 'patient_bearer')})
+                slot.update({key: witness[key] for key in ('claim', 'patient_role', 'patient_bearer')})
                 slot['semantic_support'] = {'status': 'ENTAILED', 'context_id': context_id,
-                                            'individual': witness['process'], 'class': slot['selected_class_iri']}
+                                            'individual': witness['claim'], 'class': slot['selected_class_iri']}
     matching.update(interpretation)
     matching['semantic_scope'] = result['scope']
     result['matching'] = matching
