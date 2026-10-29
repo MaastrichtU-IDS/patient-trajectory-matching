@@ -77,10 +77,18 @@ jobs:
 
       # Each writes its report only on success. A failed run prints the failure and exits
       # non-zero without publishing, so a red step never leaves a stub to be committed.
+      # --strata and --workers are load-bearing and the CLI defaults are not what the
+      # committed report records. `workers` becomes concurrent_isolated_workers, the
+      # report's evidence that the three strata ran in genuinely concurrent isolated
+      # workers; the default of 1 silently downgrades that attestation to "no concurrency
+      # was exercised". The stratum order is the order the report lists its trials in, so
+      # the default order reorders strata[] and makes an unchanged report look rewritten.
       - name: Integrated recorded evaluation
         run: |
           python -m tools.evaluate_integrated_recorded \
             --mimic-dir /tmp/mimic-demo \
+            --strata art noninvasive arterial \
+            --workers 3 \
             --output verification/integrated-recorded-evaluation.json
 
       - name: Recorded workflow evaluation
@@ -98,6 +106,30 @@ jobs:
             --interval 0.02 \
             --timeout '${{ inputs.timeout_seconds }}' \
             --output verification/pressure-workload-memory-report.json
+
+      # The step above is what caught the --workers default: a regenerated report that
+      # describes a weaker run than the one it replaces is a silent downgrade, because
+      # nothing else in the repository compares the two invocations. Fail here instead.
+      - name: Refuse a regenerated report that records a different invocation
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess, sys
+          FIELDS = ('reproduce', 'reproduce_recorded_execution', 'recorded_execution_options')
+          bad = []
+          for path in sorted(pathlib.Path('verification').glob('*.json')):
+              if not path.name.endswith(('-evaluation.json', '-memory-report.json')):
+                  continue
+              committed = subprocess.run(['git', 'show', f'HEAD:{path}'],
+                                         capture_output=True, text=True)
+              if committed.returncode:
+                  continue
+              was, now = json.loads(committed.stdout), json.loads(path.read_text())
+              drift = [f'{path}:{f}\n  was: {was.get(f)}\n  now: {now.get(f)}'
+                       for f in FIELDS if was.get(f) != now.get(f)]
+              print(f'{path.name:44} {"INVOCATION CHANGED" if drift else "invocation unchanged"}')
+              bad += drift
+          sys.exit('\n'.join(bad) if bad else 0)
+          PY
 
       - name: Refuse to publish a report that records its own failure
         run: python tools/check_report_provenance.py
