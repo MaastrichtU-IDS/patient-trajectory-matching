@@ -1,7 +1,7 @@
 {
   "profile": "source-fidelity-review-declaration-1.0",
-  "package_context_id": "e76cb4214ae343eb306fbe20a9d0a7d330b1595e911168deae6f0c0194997cd3",
-  "audit_context_id": "efc4d3abaa0f01eb658eac5f5bcc65f49c26958c9cdf83caf38c8e3e4de125d9",
+  "package_context_id": "8d780849594c08f60fe555979a1cf55d16b008fb6dfb6353b76b0c04b8ab42bc",
+  "audit_context_id": "9008f6ac7b61bbdbbf2bfd31c6441843c6d1d5685629ffe0c8e4b59a3e80fd0f",
   "unique_claims": 4,
   "calendar_reviews": 1,
   "reviewer": "Explicit authored fixture review for configured item 2001",

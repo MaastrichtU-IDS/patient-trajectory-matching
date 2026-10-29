@@ -98,9 +98,9 @@
         "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
         "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
         "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-        "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+        "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
         "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
         "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
         "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
         "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
@@ -121,7 +121,7 @@
         "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
       }
     },
-    "context_id": "182e6170248a0a98b263f99105572fbc40512e1223f59581a9741e62c58d5ad8",
+    "context_id": "cf5e9fd06d00af985d9c513fa3d2150399d968c6a0c4ef8609039a471458789a",
     "status": "COMPLETED_PENDING_IMPORT",
     "input_rows": 6,
     "reconciliation_complete": true,
@@ -150,11 +150,11 @@
   "pending_status": "EMPTY_SELECTED_RECORDS",
   "selection_context": {
     "profile": "measurement-claim-selection-1.0",
-    "store_sha256": "cddcc45ef28716e5724a8acb325bad3dff75adba7df0e6aef70c7e0a83dc45fb",
+    "store_sha256": "5287ea3541c5f214e8a59ff2a5f436320c36428047917107f42a81d3e6e21944",
     "policy": {
       "profile": "claim-acceptance-policy-1.0",
-      "id": "pending_cddcc45ef28716e5724a8acb325bad3dff75adba7df0e6aef70c7e0a83dc45fb",
-      "store_sha256": "cddcc45ef28716e5724a8acb325bad3dff75adba7df0e6aef70c7e0a83dc45fb",
+      "id": "pending_5287ea3541c5f214e8a59ff2a5f436320c36428047917107f42a81d3e6e21944",
+      "store_sha256": "5287ea3541c5f214e8a59ff2a5f436320c36428047917107f42a81d3e6e21944",
       "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
       "decisions": [
         {
@@ -200,9 +200,9 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
       "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
       "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
@@ -220,7 +220,7 @@
       "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
     }
   },
-  "selection_context_id": "3ff8cd5b59193d7ba5fe964d7a251c1480f0b60b887eea5ee7f49bf7caa1921e",
+  "selection_context_id": "0cc9489cbac97a345e57c6b89ef8830035e38b3c98e427e8183082575c0a9daf",
   "selected_status": "SELECTED_MEASUREMENT_RECORDS",
   "selected_synthetic_records": 3,
   "selected_synthetic_values": [

@@ -23,10 +23,10 @@
     "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
     "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
     "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-    "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+    "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
     "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
     "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-    "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+    "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
     "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -76,9 +76,9 @@
     "d_items": "96bd5284a8c8de4736bf5e7361345fbbe10c8ef530dd3b13337b3a3e85ac625f",
     "chartevents": "a5ee4197f1f9d6362ffa3f790cb838fbb8291afc85161691b87e3d9fb9161c90"
   },
-  "session_context_id": "cddfe532344fd79fedae5cfc1f5e5b4f1ae95d0a78bb97c9fe934d27c5dac641",
-  "query_context_id": "7d4cce442e1831dcddaeb51c41a8c40b99710240cefc2e3aebb8d7fd5ac6d694",
-  "review_sha256": "dc01b7d48cddc9c480ad2fa5cc4caa8cbeeafa73b1c22e8c1da8ac4bf41f56d8",
+  "session_context_id": "3285aa382593cfecda5799bb284fe8ed0b79002301ba01d0b69999bf3f36e9d5",
+  "query_context_id": "292e27b11b9b968bc5ca4a0428aa2cf19f54a804f619d87571560731b3c5a705",
+  "review_sha256": "57c5605b3829f98146fb842fde66fcaf64703091fecbd702ba6a8c0630fd2194",
   "metrics": {
     "patients": 3,
     "stays": 3,
@@ -94,12 +94,12 @@
       "label": "cold_preparation_and_query",
       "mode": "fresh_query",
       "timing": {
-        "prepare_seconds": 0.017305,
-        "execute_seconds": 0.756367,
-        "final_validation_seconds": 0.001134,
-        "cache_seconds": 0.00035,
-        "total_seconds": 0.775157,
-        "original_execution_seconds": 0.755
+        "prepare_seconds": 0.01776,
+        "execute_seconds": 0.789761,
+        "final_validation_seconds": 0.001228,
+        "cache_seconds": 0.000329,
+        "total_seconds": 0.809078,
+        "original_execution_seconds": 0.789
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -112,12 +112,12 @@
       "label": "warm_preparation_fresh_query",
       "mode": "fresh_query",
       "timing": {
-        "prepare_seconds": 0.002673,
-        "execute_seconds": 0.807658,
-        "final_validation_seconds": 0.001263,
-        "cache_seconds": 0.000528,
-        "total_seconds": 0.812122,
-        "original_execution_seconds": 0.805
+        "prepare_seconds": 0.001581,
+        "execute_seconds": 0.802332,
+        "final_validation_seconds": 0.001254,
+        "cache_seconds": 0.000415,
+        "total_seconds": 0.805583,
+        "original_execution_seconds": 0.801
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -130,12 +130,12 @@
       "label": "repeated_query_1",
       "mode": "cached_complete_result",
       "timing": {
-        "prepare_seconds": 0.001462,
+        "prepare_seconds": 0.001701,
         "execute_seconds": 0,
-        "final_validation_seconds": 0.001185,
-        "cache_seconds": 0.000341,
-        "total_seconds": 0.00299,
-        "original_execution_seconds": 0.805
+        "final_validation_seconds": 0.001311,
+        "cache_seconds": 0.000353,
+        "total_seconds": 0.003367,
+        "original_execution_seconds": 0.801
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -148,12 +148,12 @@
       "label": "repeated_query_2",
       "mode": "cached_complete_result",
       "timing": {
-        "prepare_seconds": 0.002742,
+        "prepare_seconds": 0.001661,
         "execute_seconds": 0,
-        "final_validation_seconds": 0.001732,
-        "cache_seconds": 0.000474,
-        "total_seconds": 0.004948,
-        "original_execution_seconds": 0.805
+        "final_validation_seconds": 0.001336,
+        "cache_seconds": 0.000327,
+        "total_seconds": 0.003326,
+        "original_execution_seconds": 0.801
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -166,12 +166,12 @@
       "label": "repeated_query_3",
       "mode": "cached_complete_result",
       "timing": {
-        "prepare_seconds": 0.003275,
+        "prepare_seconds": 0.00167,
         "execute_seconds": 0,
-        "final_validation_seconds": 0.003638,
-        "cache_seconds": 0.000677,
-        "total_seconds": 0.007593,
-        "original_execution_seconds": 0.805
+        "final_validation_seconds": 0.001189,
+        "cache_seconds": 0.000301,
+        "total_seconds": 0.003161,
+        "original_execution_seconds": 0.801
       },
       "full_result_equal": true,
       "all_inspections_equal": true,

@@ -10,7 +10,7 @@
     "examples/reviewed-record-mappings/catalogue.json": "7ed60ec8eef508d72f49524104b42ffe3d855420163d4b7f6f41b2d1c51ceb8c",
     "examples/reviewed-record-mappings/control-interval-policy.json": "57e718703442cd933ab9faa65bc62cce3c22920a335523540c7ed82fa2bb0c66",
     "examples/reviewed-record-mappings/control-semantic-policy.json": "29897b50033a0abfebebec1f3ccaee515fe5f5221051b7e6f0b1818c0abe8ee1",
-    "examples/reviewed-record-mappings/interval-policy.json": "0add1e1a07c47ebe27132f364b6651a3d82e9e7a5b335007d019f7a8e4f6b9b1",
+    "examples/reviewed-record-mappings/interval-policy.json": "663811e63914620644c470538076828e1779e93d36560fd6999e23596de0b046",
     "examples/reviewed-record-mappings/interval-store.json": "c421d2d268103b35cf28060a0dec2225158168f15988a975d2e4809ec01725d7",
     "examples/reviewed-record-mappings/mappings.json": "9ac0864f2e5a4efbc6acc47bbfa09f5190888126a20a402ea3eff49d9095f4a9",
     "examples/reviewed-record-mappings/measurement-policy.json": "c5dd8a3ba28b02aabe2b0b6d3335c8f39299e6fbc8c18c2b184d6a57ee8e645c",
@@ -35,10 +35,10 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
       "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
       "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
       "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
@@ -69,7 +69,7 @@
     "catalogue_source_fidelity_verified": false,
     "historical_replay_verified": false
   },
-  "mapping_context_id": "a9f97918d9d90edb336f80eb1ec4c059827b1fa0cccef30060a303742be013f8",
+  "mapping_context_id": "4d0a41b5420c53af49a27fa11e84660c25cb5eab3f9d0765e8b472cb982c882a",
   "rule_evidence": [
     {
       "rule_id": "mapping_map-a",
@@ -162,8 +162,8 @@
         }
       ]
     },
-    "interval_context_id": "977429dc7d65c66accf35690723b77776969bf48eb52ad40717aa3d48604e896",
-    "measurement_context_id": "43b4953d6b56b65e1235bdf5242f471e8eea1057f21bc50611d583a32ac59b18",
+    "interval_context_id": "b81eae382493a76684f39b091613f442979980ceea007a8955467c8b329be447",
+    "measurement_context_id": "6e808b25971c5215fda5ac127dcbd716e1ca3232e1c52b065f997c36b0b6ed57",
     "coordinate_origin": "0001-01-01T00:00:00",
     "time_domain": "bounded-patient-local-calendar-microseconds",
     "clock_alignment_basis": "explicit_caller_declaration_not_independent_source_verification",
@@ -182,10 +182,10 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
       "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
       "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
       "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
@@ -209,7 +209,7 @@
       "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
     }
   },
-  "query_context_id": "8eb2897ffabf2f97a90c9e302d71fc9c1390d7403de358aae3b754d6c680cfc3",
+  "query_context_id": "1a8f0836801a37de8abbc45cfcd8c0404463a725e4b7cbd349867ed6abbab6fd",
   "certain_synthetic_patient_ids": [
     "P1",
     "P2",

@@ -19,7 +19,7 @@
     "examples/reviewed-measurement-mappings/measurement-store.json": "1f724e63989be097216002d47ca627be1292358aba86d0433fc51d62bdb3453f",
     "examples/reviewed-measurement-mappings/query.json": "a6e27aecb28ba06b983aa2fc2d56f3874ba0fb2651aeb98a53234a8208f3eebd",
     "examples/reviewed-measurement-mappings/review.json": "02834e86904f08e10405189784770d5c13a007c43bb142609bbcae099ac693d9",
-    "examples/reviewed-measurement-mappings/selector.json": "1fcaaa3bbeeadb48fe102e1d40da6adfb2fae52fb2f3310544a41e1156f98471",
+    "examples/reviewed-measurement-mappings/selector.json": "bda735c67011875a0cd5944b8a44e53ecea8604500b326a0915ef5e5480e06a8",
     "examples/reviewed-measurement-mappings/semantic-policy.json": "b149de01563f886ca217011728d1fdf9c009c4a59cf1dba63a835b7c723e97d1",
     "examples/reviewed-measurement-mappings/terminology.json": "cd868f289a7aae5f9cc047deb4c92005e114090703c3646935db5760bab75b57"
   },
@@ -30,7 +30,7 @@
       "terminology": "004fd716ab2824f64a3fd0351a408f4f45d4294150c41e6baefcdefc88934db5",
       "mappings": "93fd113eea40fa27f9cef803e36c7dc29b3e4a6113e087570fa747a5beb3caa3",
       "review": "a6edc4ab88da2e2b1d7a957368599b60fcc5dcae52d36c5df1174d57e218bda0",
-      "selector": "4cc0a4691651b9264f3665313b10dfa949fe98dfab04d4482507607b35327d5c",
+      "selector": "77d7b75a7830f553c93fcde5f9f56b8c5d7e16891d068dcd32f9b3910e4651a5",
       "interval-store": "7df59840d1e4827c055dbe4a5ab6883fba24c66a1187537e1a45b2509b30c530",
       "interval-policy": "14415feab6a9133128a3fab2f0dc0b264152b5b3dc737e63fa20bae4b0a8cb26",
       "semantic-policy": "4fac9d4119bb517f63046075538d5c90d59338aeab731918e7bf73188ea02937",
@@ -47,10 +47,10 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
       "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
       "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
       "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
@@ -85,8 +85,8 @@
     "cross_item_value_comparison_performed": false,
     "unit_conversion_performed": false
   },
-  "context_id": "7b57e2dd04e9bc7608e8bf11119934bc5f1875a0b506be5ec9459e2bc97de581",
-  "mapping_context_id": "9c57d890ca11b1ebb7053091c715ab4350aae862e834bfa64b6e85f68ca3079d",
+  "context_id": "a0c5c4f2b13e54958bcd1a0586abd3208101f99bfc14ad2b7099a6209c21f80b",
+  "mapping_context_id": "1000e48cbe5f948de007be97c74da565818d6df416f96bf7481017af5fbf3eb3",
   "selector_semantic_status": "READY",
   "selector_ontology_sha256": "4d52ff7053fc4d921459b5c17b67064c0332c38c44afa0349bbdcf448e63ccb1",
   "item_outcomes": [
@@ -164,7 +164,7 @@
         "P1"
       ],
       "sql_binding_rows": 1,
-      "query_context_id": "03008b2e2c39aa4c62e8f5d6cdfd4c717ab9ac135a1eecf6245413b717aaa7f0"
+      "query_context_id": "36042a8c3cc7a8bf446010dd5de12c794ca7b53dad9eb7ec0fa9615b0036cf98"
     },
     {
       "item_id": "pressure_b",
@@ -172,7 +172,7 @@
         "P2"
       ],
       "sql_binding_rows": 1,
-      "query_context_id": "48d7b64db808490bc3cd7364695dc87b0735f58b4cd55279e02f68bb27aebda2"
+      "query_context_id": "2cbda80de99b1733db9303435c6351f830e374afe0e93935057b5ce6e3d16445"
     }
   ],
   "certain_synthetic_patient_ids": [

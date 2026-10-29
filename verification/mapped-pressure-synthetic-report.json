@@ -9,7 +9,7 @@
     "demo/benchmark_mapped_pressure.py": "c9dbbb8583d9c76a124336f2ec21d51a0abe9903129cb6f71d7b3666fa7d2f07",
     "demo/configured_pressure.js": "6ef9ae414cd14a1b4b7bf7e6876b5611223f3b3d442d127573f1fe9fce11cec1",
     "demo/mapped_pressure.py": "02ab332e0351757d0116a81d7f7f53096f60b63cff344a156916034a118d51d2",
-    "demo/pressure-synthetic-review.json": "19eab13168f50f46221c4a6278fbea7518aefd21ee842ed903a91b3ead66d0c0",
+    "demo/pressure-synthetic-review.json": "a791d639c7d5eaa7d1950c135d51ef9710f685ec4cc6ba019b00d6df59f223e0",
     "demo/pressure.js": "3030688aa8ede992426af8afe0b05d672dcb7614ed25c7fa5c11c23340b8c2b2",
     "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
     "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
@@ -22,10 +22,10 @@
     "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
     "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
     "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-    "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+    "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
     "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
     "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-    "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+    "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
     "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -81,14 +81,14 @@
   },
   "python": "3.12.13",
   "platform": "macOS-27.0.1-arm64-arm-64bit",
-  "session_context_id": "767c5f3eabfde0e6950b23939a75fde3a5381467bc9fceda38f77f50ac2c2890",
+  "session_context_id": "955789e7f3f8dd7378c5aa5d1f627b819f3cade130ca6a467fbc84d3b65fa57e",
   "mapping_files": {
     "request": "352f1846670cb6f03196b4bc3ce1a496949ed9bfab6d1aa0b1489c7678679db7",
     "catalogue": "47d46b44facc090072c5ff787011bec858988c8afa422935a3eedc2eae9b3286",
     "terminology": "ccc68090f2435ebe877fd86ecefc1d9ee9a0a0748af509e488184a872c0faff0",
     "mappings": "74967261241c8ed4c6ca3d9095add716d052ff2bf201f826c975ab2c1855288d",
     "review": "dd6a9e3546ccdf0aecf10b396f8a51426ffc4b5111eb4812c82b2a0ff885b8a6",
-    "selector": "e8885cfd38f4f62e146a98e70455df60555404068445bcb8396f8655bbd3b22f"
+    "selector": "2253fee5c77770c1c32f51ba08da7b932867c71c1b16dc6a59d15be04e6dbd76"
   },
   "original_controls": {
     "threshold": "65",
@@ -127,47 +127,47 @@
     "anchor_sql_checks": 3
   },
   "cold_timing": {
-    "prepare_seconds": 0.059604,
-    "execute_seconds": 0.913397,
-    "final_validation_seconds": 0.001625,
-    "cache_seconds": 0.000346,
-    "total_seconds": 0.974973,
-    "original_execution_seconds": 0.912
+    "prepare_seconds": 0.060781,
+    "execute_seconds": 0.945849,
+    "final_validation_seconds": 0.001694,
+    "cache_seconds": 0.000366,
+    "total_seconds": 1.00869,
+    "original_execution_seconds": 0.944
   },
   "changed_timing": {
-    "prepare_seconds": 0.004799,
-    "execute_seconds": 0.024784,
-    "final_validation_seconds": 0.002328,
-    "cache_seconds": 0.000619,
-    "total_seconds": 0.032531,
-    "original_execution_seconds": 0.021
+    "prepare_seconds": 0.001687,
+    "execute_seconds": 0.014233,
+    "final_validation_seconds": 0.001527,
+    "cache_seconds": 0.000275,
+    "total_seconds": 0.017721,
+    "original_execution_seconds": 0.013
   },
   "repeated_timing": {
-    "prepare_seconds": 0.004321,
+    "prepare_seconds": 0.002086,
     "execute_seconds": 0,
-    "final_validation_seconds": 0.002944,
-    "cache_seconds": 0.000513,
-    "total_seconds": 0.007813,
-    "original_execution_seconds": 0.021
+    "final_validation_seconds": 0.00176,
+    "cache_seconds": 0.000286,
+    "total_seconds": 0.004152,
+    "original_execution_seconds": 0.013
   },
-  "fresh_mapped_session_execution_seconds": 0.919073,
+  "fresh_mapped_session_execution_seconds": 0.941522,
   "cold_preparation": {
     "reused_batches": 0,
     "fresh_batches": 3,
-    "fresh_seconds": 0.907431,
+    "fresh_seconds": 0.939628,
     "reevaluation_seconds": 0.0,
     "cache": {
       "hits": 0,
       "misses": 3,
       "admitted": 3,
       "evicted": 0,
-      "fresh_seconds": 0.9074309170246124,
+      "fresh_seconds": 0.939627833024133,
       "reevaluation_seconds": 0.0,
       "entries": 3,
-      "serialized_bytes": 600908,
+      "serialized_bytes": 600956,
       "max_entries": 1024,
       "max_serialized_bytes": 134217728,
-      "implementation_context_id": "9194765c3cd3053e9b7862e3c946d5a2ed8343c9b04925644b4425a41c12900f",
+      "implementation_context_id": "3b52deeff5b15bcfd3688da21cf382d6b49712db1a28c4523643f04a53429514",
       "profile": "mapped-pressure-session-1.0"
     }
   },
@@ -175,19 +175,19 @@
     "reused_batches": 3,
     "fresh_batches": 0,
     "fresh_seconds": 0.0,
-    "reevaluation_seconds": 0.014255,
+    "reevaluation_seconds": 0.008602,
     "cache": {
       "hits": 3,
       "misses": 3,
       "admitted": 3,
       "evicted": 0,
-      "fresh_seconds": 0.9074309170246124,
-      "reevaluation_seconds": 0.014254707988584414,
+      "fresh_seconds": 0.939627833024133,
+      "reevaluation_seconds": 0.008602374058682472,
       "entries": 3,
-      "serialized_bytes": 600908,
+      "serialized_bytes": 600956,
       "max_entries": 1024,
       "max_serialized_bytes": 134217728,
-      "implementation_context_id": "9194765c3cd3053e9b7862e3c946d5a2ed8343c9b04925644b4425a41c12900f",
+      "implementation_context_id": "3b52deeff5b15bcfd3688da21cf382d6b49712db1a28c4523643f04a53429514",
       "profile": "mapped-pressure-session-1.0"
     }
   },

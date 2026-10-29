@@ -232,6 +232,12 @@ def _execute(store, policy, semantic_policy, query, *, route, timeout_seconds=20
     if run['status'] != 'READY': return result
     accepted = Graph()
     for triple in snapshot.graph: accepted.add(triple)
+    # The source graph records claims and asserts no occurrence. This view describes the
+    # world in which the selected claims hold, so each one becomes the process it claims
+    # and joins the reference collection. Without this the accepted content's
+    # sulo:hasParticipant lands on a bt:IntervalClaim, whose sulo:Object ancestry SULO
+    # declares disjoint with sulo:Process, and the merged view is inconsistent.
+    bt.accept_claims(accepted)
     for fact in module['class_assertions']:
         accepted.add((URIRef(fact['individual']), RDF.type, URIRef(fact['class'])))
     for fact in module['property_assertions']:

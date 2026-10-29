@@ -126,18 +126,18 @@
     ],
     "strata": {
       "arterial": {
-        "query_report_sha256": "5e8b0cbe466595bf02abd997d204b1440b535bd44eb8adaf252359209aef7e1e",
-        "execution_context_id": "68d0d44fdc8198d1aa164fa8a0db5209a3529dce7f7d2bf4c2a691c2ea41fffd",
+        "query_report_sha256": "35e5a99e7464661d54f3da7fe330432a0806840ad9ba4ff3ffbeaca6999114bd",
+        "execution_context_id": "2239067fbd557e1f8506fc466da79db7ee0dbebc87b7fad074a7c132698b942b",
         "membership_snapshot_sha256": "30e6c44ee43d0334a9ec10fd9071481ad2350f8b641ff2424c08146cc02ec82a"
       },
       "noninvasive": {
-        "query_report_sha256": "c7313469301a6182a80c784f6be2a3e881c6b3aa438ea3f9ec7d9963d5f0b36d",
-        "execution_context_id": "fd2b21cf92e41ddaea2dc81298d85d36ad168dfb78691fcd50db55c2b21a4222",
+        "query_report_sha256": "298bb59287e5ad99236f1eb306fc3de04bdb2968bb42d4cc0fb62372847eec75",
+        "execution_context_id": "9c30bd16240bc02f50fd22ff0ac5408ff7833c20e3bb2289f7e83ee111c61128",
         "membership_snapshot_sha256": "57cb64a629aefd6d884c889b5e305b466956281c3ae3e1d375956ee6298a17c4"
       },
       "art": {
-        "query_report_sha256": "e33691eac7296556a80c40fcdf7cfb19a0f95d0ef3ce9419c627b5a5cf06e14e",
-        "execution_context_id": "ff2d099d580b9632ccbadaedfef05186ddb2fa7fd63447c61625981580281aa1",
+        "query_report_sha256": "480cc2c49fa9a6eeae6ab353eaed36edd037957cbca793ed2a2038b57e2528fe",
+        "execution_context_id": "fb66dd70c6eb45e0e97f22eb0f3ed9fa3eb42d43e7785fd660b7a865b9a2bb94",
         "membership_snapshot_sha256": "512b3df6e3248184bbc648c31b5f6c8eb92f9c317e79a87365e302275460ee4b"
       }
     },
@@ -413,10 +413,10 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
       "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
       "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
       "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -461,7 +461,7 @@
       "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9"
     }
   },
-  "context_id": "0d5634d5dec2d5287faa459b69cd32c267f98b32496329a5385a4ea5e5cb3779",
+  "context_id": "bf71dc22b7c0dfe372a7791c9edc184703068f45d3251cc0da3f56e090fb637d",
   "status": "VERIFIED_SEPARATE_COHORT_OVERLAP",
   "all_three_queries_reproduced": true,
   "pool_measurements": false,

@@ -12,10 +12,10 @@
     "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
     "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
     "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-    "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+    "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
     "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
     "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-    "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+    "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
@@ -64,9 +64,9 @@
     "examples/prepared-measurement-session/mappings.json": "b2eb2257dbe6c2e72171bd1355b5cc6307ff1ec15b710847b45b000848cc9f1f",
     "examples/prepared-measurement-session/request.json": "bda80ff0c74278f85598654ff5dae6be9cf0082ee9b3740c06b8e243c229a326",
     "examples/prepared-measurement-session/review.json": "fcf6eb52cad03be355224749c599ae6e4d816781a142e92c7edcd3851a42ef4d",
-    "examples/prepared-measurement-session/selector.json": "e3460da691ace84501381c4169d8c179371bea5003081f638e754aec07e58024",
+    "examples/prepared-measurement-session/selector.json": "e7d5b9bf7fbab4095096a4c41abdb34504d3b2b46c78b5376de2fea500768675",
     "examples/prepared-measurement-session/source-request.json": "a80490a5d0f17de6c3d4117b04d6a8e2993a1eb01f472e94665ee4d0bca25dd5",
-    "examples/prepared-measurement-session/source-review.json": "cc865d322b194433506456569d0fcf9d17029a8378e9ef7fec4e1ce9964e8143",
+    "examples/prepared-measurement-session/source-review.json": "83adf895a65395f5ae1b8e923249aa5cd99c8e92e4f08d6711e6612da8baf63d",
     "examples/prepared-measurement-session/terminology.json": "ccc68090f2435ebe877fd86ecefc1d9ee9a0a0748af509e488184a872c0faff0"
   },
   "warm_queries": 12,
@@ -209,86 +209,86 @@
     {
       "synthetic_episode_index": 0,
       "query_index": 0,
-      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
-      "prepared_result_context_id": "9dd683ad9b2b51599f8796bbf07f9405079f11e6900b2e8e3403b133b1b453d2",
-      "source_query_context_id": "5afa6f31549836d5de780ca8c85ac97af3e01983cf7b5ac03dceca1a7dd894d3"
+      "session_context_id": "0b9a881dd52e75ebf912a45420ccf079cedec5cf961bf9c89805daf24c2782e9",
+      "prepared_result_context_id": "fed5a0dd77bd969935a7bf63d9e722ad52fbbb27b886dd5fc7cfe55cca98e7ca",
+      "source_query_context_id": "74d38a54e605076eee14c169a11c20beab37502a7f8c0cfde9bf7048222bdd0a"
     },
     {
       "synthetic_episode_index": 0,
       "query_index": 1,
-      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
-      "prepared_result_context_id": "8e7634d52575bcdeffe489d0709b613dd709680083fcbeaf8d04fe7daffec7dd",
-      "source_query_context_id": "bbd4f133f7f2b8fce92c25576f869b94f5e693cd650d2894663d3c40bbb5db01"
+      "session_context_id": "0b9a881dd52e75ebf912a45420ccf079cedec5cf961bf9c89805daf24c2782e9",
+      "prepared_result_context_id": "c96feb994ba095ad5f7aa3fa039c76343184e7b580d3503d5825ed33d235e091",
+      "source_query_context_id": "81fb50cade74777c78c2605930983740bc839863e0de8ed08c89f821f94b14eb"
     },
     {
       "synthetic_episode_index": 0,
       "query_index": 2,
-      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
-      "prepared_result_context_id": "adf7a30d28b7d3a57de6affb6bf94877197f93cb54ca8a9354f722e48db7f2a1",
-      "source_query_context_id": "16e2346887b18e842444a3016eb8a1b1b05223ba034801603c0cf1845651a0f4"
+      "session_context_id": "0b9a881dd52e75ebf912a45420ccf079cedec5cf961bf9c89805daf24c2782e9",
+      "prepared_result_context_id": "82425199fc9d0aa90f5a575e0269071f346661bba547372c5c9d672c66f5dd56",
+      "source_query_context_id": "accc0de2e7f179f94e4cbef1f7a20b9bd47dfc6e0254c54ab1a7ee0dcb0c36c7"
     },
     {
       "synthetic_episode_index": 0,
       "query_index": 3,
-      "session_context_id": "b933f5680a332252a7a289b6053c3fdc9a713d8a137f7bcce415b7981649ae19",
-      "prepared_result_context_id": "fff4051233cbfd5d8cffc0e6e52ffb69f6b1eb71c59a9885707732b0c0d7dd36",
-      "source_query_context_id": "5ccdf586f9728197d52d6fa05e4a2ad2135b5f92d484ce0b193207373954fe01"
+      "session_context_id": "0b9a881dd52e75ebf912a45420ccf079cedec5cf961bf9c89805daf24c2782e9",
+      "prepared_result_context_id": "847b7493aa7027f339ca6a44943d484db8a706f03a822dd4ad65388d9b0dddb3",
+      "source_query_context_id": "005de11c20fd706a0709d0ac7c4b9f2c772bea85f8d27f30b54906fdb420aa0a"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 0,
-      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
-      "prepared_result_context_id": "52bc66bca3bdb402999b2f45bfb3de9a0fba0741bc3c3827c44c5cf2e88e616c",
-      "source_query_context_id": "7083b387343186fcde40aa86ecd9a76138c30cfcbc1d884f414e705ee1f79258"
+      "session_context_id": "72433b3dc3469954a951d50a8d3eb99320ebab249112247645aed465a68b7ef9",
+      "prepared_result_context_id": "9553aeea8318b08f31ae4144d393168381d259f025000eb40e3dda6a3ec99352",
+      "source_query_context_id": "5ebdc6eabe5a03eab1798ddf0098eead859918cc32041ec944d349dee1caec12"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 1,
-      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
-      "prepared_result_context_id": "999b1cb0b7a32c80c21e67c07d1f2098bcb9f440681db6f74de6c4e2458bbbaf",
-      "source_query_context_id": "2dfb7f9bec1d34d5841ca82d89d0f56ef908c491c0fa256f0c3d392d4c751021"
+      "session_context_id": "72433b3dc3469954a951d50a8d3eb99320ebab249112247645aed465a68b7ef9",
+      "prepared_result_context_id": "41a1b238857bdaeaef081e053a1e845d8afe6fb5b063659d0a26b411e96fe61a",
+      "source_query_context_id": "64b1da056b968084d7934f68801f0f7552dd7288c585860044bb611e3ac4d0c8"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 2,
-      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
-      "prepared_result_context_id": "7f90dd8602adeb11d1925dec9c54749da0c3f2ba874e315dcc9ba79f7a7265d5",
-      "source_query_context_id": "5ab845f41feda41faf3b0888f6d9cb36bab6be096ea03e2be33600f0e61de4cf"
+      "session_context_id": "72433b3dc3469954a951d50a8d3eb99320ebab249112247645aed465a68b7ef9",
+      "prepared_result_context_id": "c423744091dd2ec832decfe619b1b51c98a60b9656e6c603ae48b073d099836d",
+      "source_query_context_id": "75870d7ebc38f10b2ec8f14d31296dea4811b920c8b63e6482dbb14731f69289"
     },
     {
       "synthetic_episode_index": 2,
       "query_index": 3,
-      "session_context_id": "6dc80859f56b4306aba7ffcea9ad381d2d168b6464342231414fb6336fd2e9d9",
-      "prepared_result_context_id": "e512128134f2a4fa1a227091d53f27f1560e200be6b588729e9829503d4276da",
-      "source_query_context_id": "0df58380cc9d5bc7876fb1fd4851ef53aaa6373e5b5e6dd4041c8ca295bdc795"
+      "session_context_id": "72433b3dc3469954a951d50a8d3eb99320ebab249112247645aed465a68b7ef9",
+      "prepared_result_context_id": "3c0a25f06b1134cb558b8c783b2fea7ae2bd786eee8eac0848588d4feaac6bc0",
+      "source_query_context_id": "ec4193be2c95f0c49cc4b3e99b93babe09e53c330e1ea6bb5f7b3703df37baea"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 0,
-      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
-      "prepared_result_context_id": "c0b15176e77376142f47cef2ea3008e4f6eff81489b41f584e521f137e553603",
-      "source_query_context_id": "82007a7d100322cf542137e38873b1431c2272885153adf79985d0e90137764e"
+      "session_context_id": "8b3462657f795e928fd4ecc2b57fec733cf967ecf1f989ee46ca3147d7a7e575",
+      "prepared_result_context_id": "bc7434390a38c6736cacc7b780dda88401cd3bc2f2cb34efb9e62b2e345768e6",
+      "source_query_context_id": "29ce74c71909787df273077240c428672af5604f6b74241fa59f7482545c1d1c"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 1,
-      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
-      "prepared_result_context_id": "75888a0a6d7536cf8d2c5eb71971fab898ae5acebb9e929e4c53d69953755342",
-      "source_query_context_id": "6430a3ba07172ad33864f40fe238d83b39f717e1534970bd41ea9983868b6cda"
+      "session_context_id": "8b3462657f795e928fd4ecc2b57fec733cf967ecf1f989ee46ca3147d7a7e575",
+      "prepared_result_context_id": "38eee0e283c6e7b33a2e861428123d9269353b7c50dba97e60ef409b92de76a3",
+      "source_query_context_id": "b47e0fbf9c4523f269eb6fc708b0d2547fe8251883fad59fece9e039ff8820ef"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 2,
-      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
-      "prepared_result_context_id": "842d79772510dc15c8139d937fd39b4ae11f14e6bb073ffee54cbf64bce62af8",
-      "source_query_context_id": "32a6a1ee21a035a6305012e9d028d0bc630beed518173f07e504afb25a1db5e3"
+      "session_context_id": "8b3462657f795e928fd4ecc2b57fec733cf967ecf1f989ee46ca3147d7a7e575",
+      "prepared_result_context_id": "32db364c9d3932a9cb5e11b03fc370155847beeeae915b0bc4149ec7021ee16a",
+      "source_query_context_id": "34e05e775bac03a894637fae090c00685817157feafcafba01a7cbfe3f7653e9"
     },
     {
       "synthetic_episode_index": 3,
       "query_index": 3,
-      "session_context_id": "e244a0922a5a3a42d3e63073d2c7a49982ccf62c3274e1397dd5b62bb78a6228",
-      "prepared_result_context_id": "6b027e7f6295fbfae908b074775d22fbdc5df52f2a48ee72bf7ae43ccab48c25",
-      "source_query_context_id": "c8d8d8d022580cce4af4232d4d2d29e9687d5a4a16ab7e2f9af88164def79eb9"
+      "session_context_id": "8b3462657f795e928fd4ecc2b57fec733cf967ecf1f989ee46ca3147d7a7e575",
+      "prepared_result_context_id": "d41c065901ff4c70a76127f57f55f638d8db7fd5066d9986089605d50e60fd9a",
+      "source_query_context_id": "c18e84e7485b7690ce6d5273e5294f6cc82c02633c7dbe6a190c819c91fdeea5"
     }
   ],
   "scope": "Immutable supplied stores; source admission and policy selection shared with SQL control; no latency claim"

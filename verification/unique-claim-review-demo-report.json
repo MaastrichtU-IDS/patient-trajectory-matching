@@ -10,10 +10,10 @@
     "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
     "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
     "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-    "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+    "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
     "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
     "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-    "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+    "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
     "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -220,10 +220,10 @@
           "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
           "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
           "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-          "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+          "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
           "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
           "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-          "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+          "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
           "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
           "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
           "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -256,10 +256,10 @@
           "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
         }
       },
-      "selection_context_id": "833a48eafb496e47a93f5cc94ba7cf973dbb9ba922204d7527aae2cd6b7e09b4",
-      "plan_context_id": "5de1dc7a591479c573441ebb0744ea5c61ecdfe15c2e886e3798461768e429d9",
-      "package_context_id": "6a0054aca3a63bb55333c7f6ff1e74adab0aaab62682614bfeb52427a507b0bc",
-      "compiled_review_sha256": "4fed00513647c511134efd8052c9710b463dde88d4a124232161ef3a086154a1",
+      "selection_context_id": "72d0ded6549b41ad4414d6a5f9b0dda54a79b7d6815b2c8c75652295ef0f8117",
+      "plan_context_id": "91c94efc1be690dda9b0a777e22ffc747db949592be14f7b55a79deb04944e31",
+      "package_context_id": "f6bdc93c988bce86a764b08357017c2f918f2ded89074063b6387d2fe6d91275",
+      "compiled_review_sha256": "5abb10a6538023c966165bfa51580c5b71d68a0313f0c27a295832466fa07e9d",
       "package_summary": {
         "unique_claims": 2022,
         "unique_claims_by_kind": {
@@ -456,10 +456,10 @@
           "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
           "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
           "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-          "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+          "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
           "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
           "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-          "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+          "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
           "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
           "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
           "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -492,10 +492,10 @@
           "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
         }
       },
-      "selection_context_id": "821dfbb25d2b794255532761f77ee7947a1a7d316101c6c208ee1f462eb4c584",
-      "plan_context_id": "cec195b583057c43957fc3aa1d9518da50a739773bb4d03de2a9e5a89061d9fd",
-      "package_context_id": "934a877b1e356e1ba11f5fa7f1be2d4bc8fc9d3c0fd2cd3356f4c11a795f295d",
-      "compiled_review_sha256": "db01a8429f05709a71b917569065a09855401e03cf6f17aee3f7382ca9c6be7e",
+      "selection_context_id": "08c949a706f224868605a17286ae891320145344823c266c227512ac0f86950a",
+      "plan_context_id": "e17b07ff25d2403dfbab44599f4b0095c2abc05b9ceb6890baa04f00873afdb4",
+      "package_context_id": "26abe664d4f3c0514153dab3a50f0f78b6ddfcdaa51f3ea6d4f0f192e40efb33",
+      "compiled_review_sha256": "97fa86cc5723aea0dfc019102400e72569ea25f7d0d265a9224d1c9da9c7908b",
       "package_summary": {
         "unique_claims": 1784,
         "unique_claims_by_kind": {
@@ -692,10 +692,10 @@
           "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
           "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
           "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-          "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+          "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
           "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
           "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-          "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+          "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
           "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
           "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
           "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
@@ -728,10 +728,10 @@
           "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
         }
       },
-      "selection_context_id": "c92060909598d5585ad38c3bfdeae358f156bc7dfdb431efd3aa7ac02497acc6",
-      "plan_context_id": "a71ee552857b613662b10296fccae31eee773eb7f8313989cad421394435559c",
-      "package_context_id": "e99063b81853134138a55cf950b1e14c26eeb79958d5ca60f91eeb4b0f13077d",
-      "compiled_review_sha256": "09cda6bbd35830ea69e60a70971395b9721d0e3b6eb20c0b81a3aa90d9f1e306",
+      "selection_context_id": "0a33b9d428de7b99deecbea5b02dfac5dac5d78ff3717420e039b902ece7554f",
+      "plan_context_id": "980c45bd0acb8a535ddda3da68c99a26270e4b9409ba7b1d6bd1db49017cd102",
+      "package_context_id": "4c8ddfe54fa548c1df582fca4339fc35c08970dfc519a1d9f49f2bc5d30c0355",
+      "compiled_review_sha256": "49c570f3ff36a8590a594d6f8eb15164ae48f897284f41dde8487f2d571d5c02",
       "package_summary": {
         "unique_claims": 1042,
         "unique_claims_by_kind": {

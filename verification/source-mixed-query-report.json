@@ -10,7 +10,7 @@
     "examples/source-mixed-query/icustays.csv": "add9e84050e9b5da0d5a2ca9bddc30084dc770e3ba647853bfdf0970fc8e5c6a",
     "examples/source-mixed-query/inputevents.csv": "1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884",
     "examples/source-mixed-query/request.json": "e5bc3ebae380d8dc0d866abeace989ff4e7cd3ec35534409e3197612b7110e4f",
-    "examples/source-mixed-query/synthetic-review.json": "01b97d93aae87070d8cd3145f326947968da70afa6c880c170453c46d5ed291f"
+    "examples/source-mixed-query/synthetic-review.json": "85e8ce428ed84cb77cfe6d2aa87d1a4ea18fde2c4d96b4aecfbdd0b6cf483184"
   },
   "context": {
     "profile": "source-mixed-query-1.0",
@@ -67,8 +67,8 @@
           }
         }
       },
-      "interval_import_context_id": "8f0b37b283cbf35fea3c4e4c948659bea17ffab8a9d03972d0ecb126872b6311",
-      "measurement_import_context_id": "466d0137fb491bcf46d7c726d2e6c0736d74dababf239015bfbebefa1b1cda4c",
+      "interval_import_context_id": "9e8fdaa39dace136070ef390e2e511f5c9a2edfa9717e89a7e19940837515126",
+      "measurement_import_context_id": "0c69caea013b2d2f1b58ceab371075e5cc19b711a07097f6ea211880c9ed6986",
       "scope": "explicitly_selected_exact_source_labels_within_icu_stay",
       "reference_scope": "independent_sql_temporal_and_scalar_joins_shared_admission_and_policy_selection",
       "artifacts": {
@@ -79,10 +79,10 @@
         "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
         "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
         "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-        "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+        "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
         "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
         "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
         "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
         "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
         "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
@@ -114,18 +114,18 @@
         "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e"
       }
     },
-    "preparation_context_id": "2c124b23078e1f84f4c60d0fca56017054150f6fb538ec46c3f54be74bcbd7a6",
+    "preparation_context_id": "76051663dbbd9062ce756092e2de68c97a245861569775432ebfecac8d545fb3",
     "review": {
       "profile": "source-mixed-review-1.0",
-      "preparation_context_id": "2c124b23078e1f84f4c60d0fca56017054150f6fb538ec46c3f54be74bcbd7a6",
+      "preparation_context_id": "76051663dbbd9062ce756092e2de68c97a245861569775432ebfecac8d545fb3",
       "episodes": [
         {
           "patient_id": "1",
           "episode_id": "100",
           "interval_policy": {
             "profile": "claim-acceptance-policy-1.0",
-            "id": "pending_1bebd8ab373db6754e0ebe9aab14ce1cbd62e8838fc06744b7637114f41b38f3",
-            "store_sha256": "1bebd8ab373db6754e0ebe9aab14ce1cbd62e8838fc06744b7637114f41b38f3",
+            "id": "pending_5747a4ff2435c314dd08392af714f0f4755dd7909294bb9fa53aa36535d0cc11",
+            "store_sha256": "5747a4ff2435c314dd08392af714f0f4755dd7909294bb9fa53aa36535d0cc11",
             "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
             "decisions": [
               {
@@ -140,8 +140,8 @@
           },
           "measurement_policy": {
             "profile": "claim-acceptance-policy-1.0",
-            "id": "pending_9c119f323a81c8bb4b6cdde9a40857c1164a4489262091befe70b39f5c5bed1d",
-            "store_sha256": "9c119f323a81c8bb4b6cdde9a40857c1164a4489262091befe70b39f5c5bed1d",
+            "id": "pending_c3e972e1830cb9d4c8c85765d9412f89b562d947304638a4558d7d96ceae6287",
+            "store_sha256": "c3e972e1830cb9d4c8c85765d9412f89b562d947304638a4558d7d96ceae6287",
             "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
             "decisions": [
               {
@@ -173,8 +173,8 @@
           "alignment": {
             "profile": "patient-local-clock-alignment-1.0",
             "id": "alignment_100",
-            "interval_store_sha256": "1bebd8ab373db6754e0ebe9aab14ce1cbd62e8838fc06744b7637114f41b38f3",
-            "measurement_store_sha256": "9c119f323a81c8bb4b6cdde9a40857c1164a4489262091befe70b39f5c5bed1d",
+            "interval_store_sha256": "5747a4ff2435c314dd08392af714f0f4755dd7909294bb9fa53aa36535d0cc11",
+            "measurement_store_sha256": "c3e972e1830cb9d4c8c85765d9412f89b562d947304638a4558d7d96ceae6287",
             "bindings": [
               {
                 "patient_id": "1",
@@ -198,8 +198,8 @@
           "episode_id": "200",
           "interval_policy": {
             "profile": "claim-acceptance-policy-1.0",
-            "id": "pending_d707b2c32aaf2b47e1bc1f4878fc23a9c75e348cfe8c086b7f92d23627dd1331",
-            "store_sha256": "d707b2c32aaf2b47e1bc1f4878fc23a9c75e348cfe8c086b7f92d23627dd1331",
+            "id": "pending_744cf7b11262257bab6cbcf54ec5c0fc933ab6672740baf1d5a90ddaa832943a",
+            "store_sha256": "744cf7b11262257bab6cbcf54ec5c0fc933ab6672740baf1d5a90ddaa832943a",
             "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
             "decisions": [
               {
@@ -214,8 +214,8 @@
           },
           "measurement_policy": {
             "profile": "claim-acceptance-policy-1.0",
-            "id": "pending_bd338be23b5cc7c40f4cb6cb2c7ea022bb567e11bb35a1fb22a6ee747789ca60",
-            "store_sha256": "bd338be23b5cc7c40f4cb6cb2c7ea022bb567e11bb35a1fb22a6ee747789ca60",
+            "id": "pending_442ed400dd875829a505aef8c5f1fc20835979c5ac45d0ce333fdfa0e539f645",
+            "store_sha256": "442ed400dd875829a505aef8c5f1fc20835979c5ac45d0ce333fdfa0e539f645",
             "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
             "decisions": [
               {
@@ -231,8 +231,8 @@
           "alignment": {
             "profile": "patient-local-clock-alignment-1.0",
             "id": "alignment_200",
-            "interval_store_sha256": "d707b2c32aaf2b47e1bc1f4878fc23a9c75e348cfe8c086b7f92d23627dd1331",
-            "measurement_store_sha256": "bd338be23b5cc7c40f4cb6cb2c7ea022bb567e11bb35a1fb22a6ee747789ca60",
+            "interval_store_sha256": "744cf7b11262257bab6cbcf54ec5c0fc933ab6672740baf1d5a90ddaa832943a",
+            "measurement_store_sha256": "442ed400dd875829a505aef8c5f1fc20835979c5ac45d0ce333fdfa0e539f645",
             "bindings": [
               {
                 "patient_id": "2",
@@ -249,8 +249,8 @@
           "episode_id": "300",
           "interval_policy": {
             "profile": "claim-acceptance-policy-1.0",
-            "id": "pending_87efef52b4078aa76b2a489f6aed33447496261be1c057686fa57b54a10b117b",
-            "store_sha256": "87efef52b4078aa76b2a489f6aed33447496261be1c057686fa57b54a10b117b",
+            "id": "pending_6fb7d66d9b5e80e536dc50155cc3dac3f8f756f9fb97d668ac0c475097fea8f5",
+            "store_sha256": "6fb7d66d9b5e80e536dc50155cc3dac3f8f756f9fb97d668ac0c475097fea8f5",
             "semantic_policy_sha256": "d8a5cda26bc9ac826a08c6d901180b8bec2527873815e1deaa7ee6bfb5e86880",
             "decisions": [
               {
@@ -265,8 +265,8 @@
           },
           "measurement_policy": {
             "profile": "claim-acceptance-policy-1.0",
-            "id": "pending_26021e9caf8d1b52563d9fd15c446f0d18bcd43c04c74b40384685e93c464b2d",
-            "store_sha256": "26021e9caf8d1b52563d9fd15c446f0d18bcd43c04c74b40384685e93c464b2d",
+            "id": "pending_b220e2bb1d03dec0887120fbae27167d66f7bb47abb8349048359aa66b02c607",
+            "store_sha256": "b220e2bb1d03dec0887120fbae27167d66f7bb47abb8349048359aa66b02c607",
             "semantic_policy_sha256": "01002e53b00db9b052e0c2bf18ed7e70dd8cda2f7ace05e44649f5ee096378fc",
             "decisions": [
               {
@@ -290,8 +290,8 @@
           "alignment": {
             "profile": "patient-local-clock-alignment-1.0",
             "id": "alignment_300",
-            "interval_store_sha256": "87efef52b4078aa76b2a489f6aed33447496261be1c057686fa57b54a10b117b",
-            "measurement_store_sha256": "26021e9caf8d1b52563d9fd15c446f0d18bcd43c04c74b40384685e93c464b2d",
+            "interval_store_sha256": "6fb7d66d9b5e80e536dc50155cc3dac3f8f756f9fb97d668ac0c475097fea8f5",
+            "measurement_store_sha256": "b220e2bb1d03dec0887120fbae27167d66f7bb47abb8349048359aa66b02c607",
             "bindings": [
               {
                 "patient_id": "3",
@@ -314,7 +314,7 @@
     },
     "timeout_seconds": 20
   },
-  "context_id": "354a6c769734c0bdd392e2cfd0ccddcfd040b4c65b3d2e0a85069c5c710d7cd5",
+  "context_id": "802e8807f8f17398d05377a4674cbf829711ab348de4db6bc6a6479fd31a39f7",
   "status": "COMPLETED_VERIFIED_SOURCE_QUERY",
   "certain_synthetic_patient_ids": [
     "1",

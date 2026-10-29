@@ -70,8 +70,8 @@
         }
       ]
     },
-    "interval_context_id": "fc461e18592f9c11195e88442dbec59ab8d6aac59d8985806c57f5d09a7cf1f2",
-    "measurement_context_id": "43b4953d6b56b65e1235bdf5242f471e8eea1057f21bc50611d583a32ac59b18",
+    "interval_context_id": "ca423d0061c82bfa5f06a76557226cab4dc112dc461757da61f40dcaf6f02e73",
+    "measurement_context_id": "6e808b25971c5215fda5ac127dcbd716e1ca3232e1c52b065f997c36b0b6ed57",
     "coordinate_origin": "0001-01-01T00:00:00",
     "time_domain": "bounded-patient-local-calendar-microseconds",
     "clock_alignment_basis": "explicit_caller_declaration_not_independent_source_verification",
@@ -90,10 +90,10 @@
       "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
       "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
       "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-      "patterns/bounded_intervals.py": "c19a0190dd742dfa74142ae98b5901dca43a5219767fc82376d1d097a3d0d795",
+      "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
       "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
       "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-      "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+      "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
       "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
       "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
       "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
@@ -117,7 +117,7 @@
       "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
     }
   },
-  "context_id": "0107e07c9046b9559b94b19966c1480fcf8bc6b0faefa8539012102a04aa6ec4",
+  "context_id": "ee679649dbfa25e4ab25866fea2333b142f5f9d8ebb6ebdf668f595ea81d7507",
   "certain_synthetic_patient_ids": [
     "P1",
     "P2",

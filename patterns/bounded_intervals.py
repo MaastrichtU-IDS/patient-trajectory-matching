@@ -254,6 +254,48 @@ def build_graph(source, *, origin_datatype=XSD.dateTimeStamp):
     return g, evidence
 
 
+def accept_claims(graph):
+    """Rewrite accepted claims into the occurrences they claim, in place.
+
+    A source graph records claims: an ei/bt claim refers to a reference object naming the
+    kind of process it reports, reaches its role through sulo:refersTo and carries the
+    interval as a direct part, and entails no occurrence. An *accepted* view is a
+    different graph describing a different world -- one where the claims under it have
+    been accepted -- so there the subject is the process, and saying so is the point.
+
+    Leaving a claim typed bt:IntervalClaim while accepted content attaches
+    sulo:hasParticipant to it is not merely untidy: hasParticipant has rdfs:domain
+    sulo:Process, bt:IntervalClaim is under sulo:InformationObject and so under
+    sulo:Object, and SULO declares Object and Process disjoint. Such a graph is
+    inconsistent under HermiT, which is what this prevents.
+
+    Membership is added explicitly. The reference collection is empty until acceptance
+    puts something in it, and that member is what makes the class non-empty.
+    """
+    references = set(KINDS.values())
+    for claim in list(graph.subjects(RDF.type, BT.IntervalClaim)):
+        targets = set(graph.objects(claim, ei.S.refersTo))
+        reference = targets & references
+        if len(reference) != 1:
+            continue
+        kind = reference.pop()
+        graph.remove((claim, RDF.type, BT.IntervalClaim))
+        graph.remove((claim, ei.S.refersTo, kind))
+        graph.add((claim, RDF.type, kind))
+        graph.add((claim, ei.S.isItemIn, kind))
+        for role in targets - {kind}:
+            # A role is what the rest of this profile treats as one: the bearer link is
+            # how role_binding identifies it, so the same test is used here.
+            if next(graph.objects(role, ei.S.isFeatureOf), None) is not None:
+                graph.remove((claim, ei.S.refersTo, role))
+                graph.add((claim, ei.S.hasParticipant, role))
+        for interval in list(graph.objects(claim, ei.S.hasDirectPart)):
+            if (interval, RDF.type, BT.OccurrenceInterval) in graph:
+                graph.remove((claim, ei.S.hasDirectPart, interval))
+                graph.add((claim, ei.S.atTime, interval))
+    return graph
+
+
 def selected_classes(event):
     """Named subclass closure from pinned modules, limited to process selectors."""
     ontology = ei.base.ontology() + Graph().parse(ei.PROFILE) + Graph().parse(ei.ROOT / 'ontology/bounded-interval-profile.ttl')
