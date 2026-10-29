@@ -1,7 +1,7 @@
 {
   "profile": "recorded-workflow-evaluation-1.0",
   "status": "TECHNICALLY_VERIFIED",
-  "executed_at_utc": "2026-10-18T20:38:04.222656+00:00",
+  "executed_at_utc": "2026-10-29T18:05:23.873116+00:00",
   "python_version": "3.12.15",
   "dataset_id": "mimic-iv-demo-2.2",
   "source_mode": "pinned_public_demo",
@@ -20,7 +20,7 @@
         "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
         "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
       },
-      "declaration_sha256": "42052d27857f6581c7ae01490b43aa415221e4cd2e903ef586643383b7029374",
+      "declaration_sha256": "c897ec9968a16344b43670b2ed687975ed5095eea4c38d234ed2bd1a18f34eff",
       "artifacts": {
         "data/clinical-candidate-plan.json": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3",
         "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
@@ -34,14 +34,14 @@
         "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
         "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
         "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
-        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
+        "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
         "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
         "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
         "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
         "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
-        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
         "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
         "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
         "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
@@ -56,8 +56,8 @@
         "patterns/reviewed_pressure_session.py": "2c0455a101d48f15c528f20291b6286a3c5d2775d6ca714da13ab183f288eb66",
         "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
         "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
-        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
-        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
+        "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
         "patterns/source_fidelity_audit.py": "2508b00b7c09b4d56f59bc0aa9f4a3f3c3ecb6e53aecb7d1fa24cea7a6c20172",
         "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
         "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
@@ -91,32 +91,32 @@
             "followup_minutes": 120
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 418.381039,
+          "wall_seconds_including_polling": 506.342685,
           "job_timing": {
-            "prepare_seconds": 16.259631,
-            "execute_seconds": 402.065074,
-            "final_validation_seconds": 0.007669,
-            "cache_seconds": 0.02679,
-            "total_seconds": 418.359164,
-            "original_execution_seconds": 402.057
+            "prepare_seconds": 11.945979,
+            "execute_seconds": 494.318523,
+            "final_validation_seconds": 0.006211,
+            "cache_seconds": 0.022541,
+            "total_seconds": 506.293254,
+            "original_execution_seconds": 494.312
           },
           "batch_preparation": {
             "reused_batches": 0,
             "fresh_batches": 557,
-            "fresh_seconds": 399.508387,
+            "fresh_seconds": 492.563787,
             "reevaluation_seconds": 0.0,
             "cache": {
               "hits": 0,
               "misses": 557,
               "admitted": 557,
               "evicted": 0,
-              "fresh_seconds": 399.50838749899964,
+              "fresh_seconds": 492.56378685600225,
               "reevaluation_seconds": 0.0,
               "entries": 557,
-              "serialized_bytes": 104819911,
+              "serialized_bytes": 107792454,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -151,32 +151,32 @@
             "followup_minutes": 120
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 4.141329,
+          "wall_seconds_including_polling": 2.825115,
           "job_timing": {
-            "prepare_seconds": 0.00817,
-            "execute_seconds": 4.052735,
-            "final_validation_seconds": 0.007742,
-            "cache_seconds": 0.027727,
-            "total_seconds": 4.096374,
-            "original_execution_seconds": 4.045
+            "prepare_seconds": 0.006536,
+            "execute_seconds": 2.771384,
+            "final_validation_seconds": 0.006187,
+            "cache_seconds": 0.022452,
+            "total_seconds": 2.806558,
+            "original_execution_seconds": 2.765
           },
           "batch_preparation": {
             "reused_batches": 557,
             "fresh_batches": 0,
             "fresh_seconds": 0.0,
-            "reevaluation_seconds": 1.645335,
+            "reevaluation_seconds": 1.125556,
             "cache": {
               "hits": 557,
               "misses": 557,
               "admitted": 557,
               "evicted": 0,
-              "fresh_seconds": 399.50838749899964,
-              "reevaluation_seconds": 1.645334902999025,
+              "fresh_seconds": 492.56378685600225,
+              "reevaluation_seconds": 1.1255557519978083,
               "entries": 557,
-              "serialized_bytes": 104819911,
+              "serialized_bytes": 107792454,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -211,32 +211,32 @@
             "followup_minutes": 60
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 3.93341,
+          "wall_seconds_including_polling": 2.960796,
           "job_timing": {
-            "prepare_seconds": 0.007934,
-            "execute_seconds": 3.855627,
-            "final_validation_seconds": 0.0077,
-            "cache_seconds": 0.023712,
-            "total_seconds": 3.894973,
-            "original_execution_seconds": 3.848
+            "prepare_seconds": 0.006555,
+            "execute_seconds": 2.879334,
+            "final_validation_seconds": 0.006146,
+            "cache_seconds": 0.019831,
+            "total_seconds": 2.911865,
+            "original_execution_seconds": 2.873
           },
           "batch_preparation": {
             "reused_batches": 557,
             "fresh_batches": 0,
             "fresh_seconds": 0.0,
-            "reevaluation_seconds": 1.451981,
+            "reevaluation_seconds": 1.261743,
             "cache": {
               "hits": 1114,
               "misses": 557,
               "admitted": 557,
               "evicted": 0,
-              "fresh_seconds": 399.50838749899964,
-              "reevaluation_seconds": 3.0973159689992826,
+              "fresh_seconds": 492.56378685600225,
+              "reevaluation_seconds": 2.387299032997589,
               "entries": 557,
-              "serialized_bytes": 104819911,
+              "serialized_bytes": 107792454,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -271,14 +271,14 @@
             "followup_minutes": 60
           },
           "mode": "cached_complete_result",
-          "wall_seconds_including_polling": 0.055934,
+          "wall_seconds_including_polling": 0.055128,
           "job_timing": {
-            "prepare_seconds": 0.008044,
+            "prepare_seconds": 0.006503,
             "execute_seconds": 0,
-            "final_validation_seconds": 0.007719,
-            "cache_seconds": 0.017518,
-            "total_seconds": 0.033333,
-            "original_execution_seconds": 3.848
+            "final_validation_seconds": 0.00611,
+            "cache_seconds": 0.014189,
+            "total_seconds": 0.026857,
+            "original_execution_seconds": 2.873
           },
           "batch_preparation": {
             "reused_batches": 0,
@@ -290,13 +290,13 @@
               "misses": 557,
               "admitted": 557,
               "evicted": 0,
-              "fresh_seconds": 399.50838749899964,
-              "reevaluation_seconds": 3.0973159689992826,
+              "fresh_seconds": 492.56378685600225,
+              "reevaluation_seconds": 2.387299032997589,
               "entries": 557,
-              "serialized_bytes": 104819911,
+              "serialized_bytes": 107792454,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -327,25 +327,25 @@
       "warm_full_evidence_equal": true,
       "cached_full_evidence_equal": true,
       "process_measurement": {
-        "elapsed_seconds": 427.792436,
+        "elapsed_seconds": 513.078803,
         "timed_out": false,
         "sampling_failure": null,
         "child_exit_code": 0,
         "memory": {
           "method": "linux_proc_sequential_process_tree_rss_samples",
           "sample_interval_requested_seconds": 0.05,
-          "samples": 7421,
-          "samples_with_processes": 7421,
-          "samples_with_resident_memory": 7420,
-          "samples_with_root": 7421,
-          "maximum_sampled_aggregate_rss_bytes": 572043264,
+          "samples": 9254,
+          "samples_with_processes": 9254,
+          "samples_with_resident_memory": 9253,
+          "samples_with_root": 9254,
+          "maximum_sampled_aggregate_rss_bytes": 513687552,
           "maximum_processes_observed_together": 2,
-          "distinct_process_instances_observed": 558,
-          "first_sample_offset_seconds": 6.819999782692321e-07,
-          "last_sample_offset_seconds": 427.785126195,
-          "maximum_sample_gap_seconds": 0.0650777660000017,
-          "maximum_scan_seconds": 0.014965428000010661,
-          "unreadable_or_exited_process_records": 73,
+          "distinct_process_instances_observed": 544,
+          "first_sample_offset_seconds": 5.910001164011192e-07,
+          "last_sample_offset_seconds": 513.073979061,
+          "maximum_sample_gap_seconds": 0.06244873900004677,
+          "maximum_scan_seconds": 0.012361574000124165,
+          "unreadable_or_exited_process_records": 29,
           "coverage_complete": false,
           "limitations": [
             "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
@@ -367,7 +367,7 @@
         "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
         "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
       },
-      "declaration_sha256": "3695f19121770c76c27e0b79edc33290c363ed5d1a69fe08db3ef26d74f912af",
+      "declaration_sha256": "fab0f70d4816eb880b37d7e9f2b6f1a5676cd085a61c8915b6699de8db0fd3c9",
       "artifacts": {
         "data/clinical-candidate-plan.json": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3",
         "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
@@ -381,14 +381,14 @@
         "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
         "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
         "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
-        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
+        "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
         "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
         "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
         "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
         "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
-        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
         "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
         "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
         "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
@@ -403,8 +403,8 @@
         "patterns/reviewed_pressure_session.py": "2c0455a101d48f15c528f20291b6286a3c5d2775d6ca714da13ab183f288eb66",
         "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
         "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
-        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
-        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
+        "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
         "patterns/source_fidelity_audit.py": "2508b00b7c09b4d56f59bc0aa9f4a3f3c3ecb6e53aecb7d1fa24cea7a6c20172",
         "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
         "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
@@ -438,32 +438,32 @@
             "followup_minutes": 120
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 390.525985,
+          "wall_seconds_including_polling": 463.626235,
           "job_timing": {
-            "prepare_seconds": 15.63314,
-            "execute_seconds": 374.839869,
-            "final_validation_seconds": 0.007644,
-            "cache_seconds": 0.03384,
-            "total_seconds": 390.514494,
-            "original_execution_seconds": 374.831
+            "prepare_seconds": 11.818464,
+            "execute_seconds": 451.731164,
+            "final_validation_seconds": 0.006324,
+            "cache_seconds": 0.030534,
+            "total_seconds": 463.586486,
+            "original_execution_seconds": 451.723
           },
           "batch_preparation": {
             "reused_batches": 0,
             "fresh_batches": 517,
-            "fresh_seconds": 372.401548,
+            "fresh_seconds": 450.057687,
             "reevaluation_seconds": 0.0,
             "cache": {
               "hits": 0,
               "misses": 517,
               "admitted": 517,
               "evicted": 0,
-              "fresh_seconds": 372.40154844499955,
+              "fresh_seconds": 450.05768658299485,
               "reevaluation_seconds": 0.0,
               "entries": 517,
-              "serialized_bytes": 95616484,
+              "serialized_bytes": 98375919,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -498,32 +498,32 @@
             "followup_minutes": 120
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 3.783181,
+          "wall_seconds_including_polling": 2.877002,
           "job_timing": {
-            "prepare_seconds": 0.007904,
-            "execute_seconds": 3.713071,
-            "final_validation_seconds": 0.007852,
-            "cache_seconds": 0.032059,
-            "total_seconds": 3.760886,
-            "original_execution_seconds": 3.705
+            "prepare_seconds": 0.00649,
+            "execute_seconds": 2.815789,
+            "final_validation_seconds": 0.006487,
+            "cache_seconds": 0.032101,
+            "total_seconds": 2.860867,
+            "original_execution_seconds": 2.809
           },
           "batch_preparation": {
             "reused_batches": 517,
             "fresh_batches": 0,
             "fresh_seconds": 0.0,
-            "reevaluation_seconds": 1.434273,
+            "reevaluation_seconds": 1.143054,
             "cache": {
               "hits": 517,
               "misses": 517,
               "admitted": 517,
               "evicted": 0,
-              "fresh_seconds": 372.40154844499955,
-              "reevaluation_seconds": 1.4342733360001603,
+              "fresh_seconds": 450.05768658299485,
+              "reevaluation_seconds": 1.1430537649980579,
               "entries": 517,
-              "serialized_bytes": 95616484,
+              "serialized_bytes": 98375919,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -558,32 +558,32 @@
             "followup_minutes": 60
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 3.687492,
+          "wall_seconds_including_polling": 2.82157,
           "job_timing": {
-            "prepare_seconds": 0.008028,
-            "execute_seconds": 3.604394,
-            "final_validation_seconds": 0.007728,
-            "cache_seconds": 0.027017,
-            "total_seconds": 3.647167,
-            "original_execution_seconds": 3.596
+            "prepare_seconds": 0.006597,
+            "execute_seconds": 2.739271,
+            "final_validation_seconds": 0.00772,
+            "cache_seconds": 0.023346,
+            "total_seconds": 2.776934,
+            "original_execution_seconds": 2.732
           },
           "batch_preparation": {
             "reused_batches": 517,
             "fresh_batches": 0,
             "fresh_seconds": 0.0,
-            "reevaluation_seconds": 1.351204,
+            "reevaluation_seconds": 1.087314,
             "cache": {
               "hits": 1034,
               "misses": 517,
               "admitted": 517,
               "evicted": 0,
-              "fresh_seconds": 372.40154844499955,
-              "reevaluation_seconds": 2.7854774500028725,
+              "fresh_seconds": 450.05768658299485,
+              "reevaluation_seconds": 2.2303674139980103,
               "entries": 517,
-              "serialized_bytes": 95616484,
+              "serialized_bytes": 98375919,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -618,14 +618,14 @@
             "followup_minutes": 60
           },
           "mode": "cached_complete_result",
-          "wall_seconds_including_polling": 0.0563,
+          "wall_seconds_including_polling": 0.055599,
           "job_timing": {
-            "prepare_seconds": 0.008181,
+            "prepare_seconds": 0.007861,
             "execute_seconds": 0,
-            "final_validation_seconds": 0.008485,
-            "cache_seconds": 0.023232,
-            "total_seconds": 0.039981,
-            "original_execution_seconds": 3.596
+            "final_validation_seconds": 0.006486,
+            "cache_seconds": 0.01607,
+            "total_seconds": 0.030479,
+            "original_execution_seconds": 2.732
           },
           "batch_preparation": {
             "reused_batches": 0,
@@ -637,13 +637,13 @@
               "misses": 517,
               "admitted": 517,
               "evicted": 0,
-              "fresh_seconds": 372.40154844499955,
-              "reevaluation_seconds": 2.7854774500028725,
+              "fresh_seconds": 450.05768658299485,
+              "reevaluation_seconds": 2.2303674139980103,
               "entries": 517,
-              "serialized_bytes": 95616484,
+              "serialized_bytes": 98375919,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -674,25 +674,25 @@
       "warm_full_evidence_equal": true,
       "cached_full_evidence_equal": true,
       "process_measurement": {
-        "elapsed_seconds": 399.263865,
+        "elapsed_seconds": 470.543917,
         "timed_out": false,
         "sampling_failure": null,
         "child_exit_code": 0,
         "memory": {
           "method": "linux_proc_sequential_process_tree_rss_samples",
           "sample_interval_requested_seconds": 0.05,
-          "samples": 6921,
-          "samples_with_processes": 6921,
-          "samples_with_resident_memory": 6920,
-          "samples_with_root": 6921,
-          "maximum_sampled_aggregate_rss_bytes": 519606272,
+          "samples": 8465,
+          "samples_with_processes": 8465,
+          "samples_with_resident_memory": 8463,
+          "samples_with_root": 8465,
+          "maximum_sampled_aggregate_rss_bytes": 538206208,
           "maximum_processes_observed_together": 2,
-          "distinct_process_instances_observed": 518,
-          "first_sample_offset_seconds": 9.719999525259482e-07,
-          "last_sample_offset_seconds": 399.256395355,
-          "maximum_sample_gap_seconds": 0.0651504060000434,
-          "maximum_scan_seconds": 0.01506135300007827,
-          "unreadable_or_exited_process_records": 65,
+          "distinct_process_instances_observed": 511,
+          "first_sample_offset_seconds": 8.110000635497272e-07,
+          "last_sample_offset_seconds": 470.53890881899997,
+          "maximum_sample_gap_seconds": 0.06258667799966133,
+          "maximum_scan_seconds": 0.01243228299972543,
+          "unreadable_or_exited_process_records": 40,
           "coverage_complete": false,
           "limitations": [
             "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
@@ -714,7 +714,7 @@
         "d_items": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
         "chartevents": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560"
       },
-      "declaration_sha256": "098b60ce4fe90f2bc530dc8d2f354c586dda263011238e78640b7ca0e862b651",
+      "declaration_sha256": "38b90b26529b669891b610cb55e58379d4394b0d512b045bb587da6657d880c3",
       "artifacts": {
         "data/clinical-candidate-plan.json": "0b5ce00e02dfdee29738370c5330441c09d046442073138460e49b6807b4b0b3",
         "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
@@ -728,14 +728,14 @@
         "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
         "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
         "patterns/bounded_cohort.py": "4c8c270061f2e08a4bce369614f07dc6150c7ebfdceacafdda68823d373405ef",
-        "patterns/bounded_intervals.py": "df6b90a6ccb98b6ccb3ec50360de3c64adb7d4d2c5d3eaea90ba085484ea0ed0",
-        "patterns/bounded_rdf.py": "f5387b4952d86b1c17a68ec49cf5bba3f5855d5832ff6e5840f9590e6b2bfd98",
+        "patterns/bounded_intervals.py": "20b336e307fd5500575ac1b931ab84c6682904f26a4775647028149392860c43",
+        "patterns/bounded_rdf.py": "7226d99e30c54e6036906bbdf4df893d9e1de484bd183eeab53f9f74ab8797ad",
         "patterns/claim_isolation.py": "6e005d16847f7f1ce9c48b1b42a90fabf7fada9d3b285d48b7e361e4285bf631",
-        "patterns/claim_projection.py": "9dab78524f391cd131f55ecfe06f56a18e504be2c62e41d881e1a6f89e03f1fa",
+        "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
         "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
         "patterns/clinical_source_preflight.py": "802061b3cfde2fc42aeb9e1117e298982f0e4e91ac7bfaba1622800b76a2c0df",
         "patterns/indexed_source_windows.py": "af5472843b6d143caa27fa42db1f029255b6d6a03c69380622c19a17a7dac81a",
-        "patterns/joint_evidence.py": "20eb23fd3731a533e6a4dcaa15ac024cf4ad75e3dec2a1efd1b188123602df44",
+        "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
         "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
         "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
         "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
@@ -750,8 +750,8 @@
         "patterns/reviewed_pressure_session.py": "2c0455a101d48f15c528f20291b6286a3c5d2775d6ca714da13ab183f288eb66",
         "patterns/reviewed_source_query.py": "30ddba3a08a4be3406102e48417a6feb902b2ae29e0abbc9b3767432ec65b223",
         "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
-        "patterns/semantic_reference.py": "5bd50d5bec5c48d355e7eb46eb07a69ea7b2f7fdfd7423c92940f342987185a5",
-        "patterns/semantic_support.py": "a93c1fffdc05911a31fa6b73effa7776535be524433fd0e1be2b03dc91224e0f",
+        "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
+        "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
         "patterns/source_fidelity_audit.py": "2508b00b7c09b4d56f59bc0aa9f4a3f3c3ecb6e53aecb7d1fa24cea7a6c20172",
         "patterns/source_mixed_query.py": "ab06e4844e248e3931840349525faaf8a8cf6fe996c3d379c154f20e5fb85c6c",
         "patterns/source_mixed_reference.py": "d6b043b935226fac74944cc564462355434c633ce5694bed1f863384c5d733ff",
@@ -785,32 +785,32 @@
             "followup_minutes": 120
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 56.061917,
+          "wall_seconds_including_polling": 60.536345,
           "job_timing": {
-            "prepare_seconds": 10.85577,
-            "execute_seconds": 45.12422,
-            "final_validation_seconds": 0.007889,
-            "cache_seconds": 0.020386,
-            "total_seconds": 56.008265,
-            "original_execution_seconds": 45.116
+            "prepare_seconds": 8.08698,
+            "execute_seconds": 52.377541,
+            "final_validation_seconds": 0.006443,
+            "cache_seconds": 0.017853,
+            "total_seconds": 60.488817,
+            "original_execution_seconds": 52.371
           },
           "batch_preparation": {
             "reused_batches": 0,
             "fresh_batches": 67,
-            "fresh_seconds": 44.390684,
+            "fresh_seconds": 51.867627,
             "reevaluation_seconds": 0.0,
             "cache": {
               "hits": 0,
               "misses": 67,
               "admitted": 67,
               "evicted": 0,
-              "fresh_seconds": 44.390683843999795,
+              "fresh_seconds": 51.86762730499959,
               "reevaluation_seconds": 0.0,
               "entries": 67,
-              "serialized_bytes": 12011063,
+              "serialized_bytes": 12368637,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -845,32 +845,32 @@
             "followup_minutes": 120
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 0.913476,
+          "wall_seconds_including_polling": 0.660752,
           "job_timing": {
-            "prepare_seconds": 0.00796,
-            "execute_seconds": 0.856248,
-            "final_validation_seconds": 0.00746,
-            "cache_seconds": 0.01967,
-            "total_seconds": 0.891339,
-            "original_execution_seconds": 0.848
+            "prepare_seconds": 0.006657,
+            "execute_seconds": 0.607894,
+            "final_validation_seconds": 0.006491,
+            "cache_seconds": 0.017659,
+            "total_seconds": 0.6387,
+            "original_execution_seconds": 0.601
           },
           "batch_preparation": {
             "reused_batches": 67,
             "fresh_batches": 0,
             "fresh_seconds": 0.0,
-            "reevaluation_seconds": 0.163786,
+            "reevaluation_seconds": 0.120137,
             "cache": {
               "hits": 67,
               "misses": 67,
               "admitted": 67,
               "evicted": 0,
-              "fresh_seconds": 44.390683843999795,
-              "reevaluation_seconds": 0.16378649000102996,
+              "fresh_seconds": 51.86762730499959,
+              "reevaluation_seconds": 0.12013703900174733,
               "entries": 67,
-              "serialized_bytes": 12011063,
+              "serialized_bytes": 12368637,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -905,32 +905,32 @@
             "followup_minutes": 60
           },
           "mode": "fresh_query",
-          "wall_seconds_including_polling": 0.913703,
+          "wall_seconds_including_polling": 0.72777,
           "job_timing": {
-            "prepare_seconds": 0.007771,
-            "execute_seconds": 0.852459,
-            "final_validation_seconds": 0.007482,
-            "cache_seconds": 0.01967,
-            "total_seconds": 0.887382,
-            "original_execution_seconds": 0.845
+            "prepare_seconds": 0.006557,
+            "execute_seconds": 0.683389,
+            "final_validation_seconds": 0.006385,
+            "cache_seconds": 0.018229,
+            "total_seconds": 0.714559,
+            "original_execution_seconds": 0.677
           },
           "batch_preparation": {
             "reused_batches": 67,
             "fresh_batches": 0,
             "fresh_seconds": 0.0,
-            "reevaluation_seconds": 0.16061,
+            "reevaluation_seconds": 0.118578,
             "cache": {
               "hits": 134,
               "misses": 67,
               "admitted": 67,
               "evicted": 0,
-              "fresh_seconds": 44.390683843999795,
-              "reevaluation_seconds": 0.3243961400014541,
+              "fresh_seconds": 51.86762730499959,
+              "reevaluation_seconds": 0.2387149940004747,
               "entries": 67,
-              "serialized_bytes": 12011063,
+              "serialized_bytes": 12368637,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -965,14 +965,14 @@
             "followup_minutes": 60
           },
           "mode": "cached_complete_result",
-          "wall_seconds_including_polling": 0.055467,
+          "wall_seconds_including_polling": 0.05499,
           "job_timing": {
-            "prepare_seconds": 0.007741,
+            "prepare_seconds": 0.006584,
             "execute_seconds": 0,
-            "final_validation_seconds": 0.007452,
-            "cache_seconds": 0.0149,
-            "total_seconds": 0.03014,
-            "original_execution_seconds": 0.845
+            "final_validation_seconds": 0.006419,
+            "cache_seconds": 0.013446,
+            "total_seconds": 0.026521,
+            "original_execution_seconds": 0.677
           },
           "batch_preparation": {
             "reused_batches": 0,
@@ -984,13 +984,13 @@
               "misses": 67,
               "admitted": 67,
               "evicted": 0,
-              "fresh_seconds": 44.390683843999795,
-              "reevaluation_seconds": 0.3243961400014541,
+              "fresh_seconds": 51.86762730499959,
+              "reevaluation_seconds": 0.2387149940004747,
               "entries": 67,
-              "serialized_bytes": 12011063,
+              "serialized_bytes": 12368637,
               "max_entries": 1024,
               "max_serialized_bytes": 134217728,
-              "implementation_context_id": "fd90f72f7d26c8e6b54b5e2c283d839972838b1c3ee3d4846a53dad36e5e9eb2"
+              "implementation_context_id": "dccc3c06ba01747af15d87883e0f68248ec7188c5c09052bd4978ab60115f8ab"
             }
           },
           "metrics": {
@@ -1021,25 +1021,25 @@
       "warm_full_evidence_equal": true,
       "cached_full_evidence_equal": true,
       "process_measurement": {
-        "elapsed_seconds": 58.718021,
+        "elapsed_seconds": 62.562255,
         "timed_out": false,
         "sampling_failure": null,
         "child_exit_code": 0,
         "memory": {
           "method": "linux_proc_sequential_process_tree_rss_samples",
           "sample_interval_requested_seconds": 0.05,
-          "samples": 1015,
-          "samples_with_processes": 1015,
-          "samples_with_resident_memory": 1014,
-          "samples_with_root": 1015,
-          "maximum_sampled_aggregate_rss_bytes": 504094720,
+          "samples": 1123,
+          "samples_with_processes": 1123,
+          "samples_with_resident_memory": 1122,
+          "samples_with_root": 1123,
+          "maximum_sampled_aggregate_rss_bytes": 503832576,
           "maximum_processes_observed_together": 2,
           "distinct_process_instances_observed": 68,
-          "first_sample_offset_seconds": 7.420001111313468e-07,
-          "last_sample_offset_seconds": 58.71062290200007,
-          "maximum_sample_gap_seconds": 0.06431242400003612,
-          "maximum_scan_seconds": 0.014184105000140335,
-          "unreadable_or_exited_process_records": 9,
+          "first_sample_offset_seconds": 7.210001058410853e-07,
+          "last_sample_offset_seconds": 62.55723745799969,
+          "maximum_sample_gap_seconds": 0.06105911099984951,
+          "maximum_scan_seconds": 0.010948872999961168,
+          "unreadable_or_exited_process_records": 4,
           "coverage_complete": false,
           "limitations": [
             "Sequential /proc reads are not an atomic snapshot or an exact simultaneous memory peak.",
