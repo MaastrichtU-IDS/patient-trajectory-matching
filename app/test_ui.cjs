@@ -119,6 +119,30 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   assert.equal(el('status').className,'error');
   assert.match(el('status').textContent,/Prefer similar/);
   change('baseline_creatinine','mode','prefer');
+  // A required value reaches the server only for a feature set to Must match. The page
+  // states which requirements Apply will send, so a value typed beside a Prefer similar
+  // feature is visibly unused instead of silently discarded -- an operator who is not told
+  // reads the unchanged eligible count as the filter having found nothing to remove.
+  change('clinical_concepts','mode','prefer');
+  el('concept').value='ex:DrugB';
+  el('concept').oninput();
+  assert.match(el('requirement').textContent,/No feature is set to Must match/);
+  assert.match(el('requirement').textContent,/Clinical concepts/,'the unused value names its own feature');
+  change('clinical_concepts','mode','must');
+  assert.match(el('requirement').textContent,/Clinical concepts = ex:DrugB/);
+  // The mirror case: Must match with nothing to match on. The engine refuses this with
+  // INVALID_TEXT; the page must refuse it first, naming the feature the operator must fix.
+  el('concept').value='';
+  el('concept').oninput();
+  assert.match(el('requirement').textContent,/no value entered/);
+  const beforeEmpty=calls.length;
+  await el('apply').onclick();
+  assert.equal(calls.length,beforeEmpty,'a Must match feature with no value must not be sent');
+  assert.equal(el('status').className,'error');
+  assert.match(el('status').textContent,/Clinical concepts/,'the refusal names the feature to fix');
+  change('clinical_concepts','mode','ignore');
+  el('concept').value='ex:DrugA';
+  el('concept').oninput();
   el('budget').value='2';
   await el('compare').onclick();
   assert.equal(calls.at(-1).body.revision_id,payload.refined.revision_id);

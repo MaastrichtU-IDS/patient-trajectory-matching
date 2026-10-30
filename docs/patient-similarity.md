@@ -114,7 +114,11 @@ non-finite numbers and unsupported operations fail admission or validation.
 
 Each revision records its parent, dataset/profile/implementation hashes, reference
 patient and episode, immutable full base pool, index rule and history window,
-query and result hashes, operation and result. The replay manifest embeds the full
+query and result hashes, operation and result. Its `scope` is derived from the
+admitted dataset -- `bounded_authored_synthetic_exhaustive_ranking` or
+`bounded_recorded_public_demo_exhaustive_ranking` -- because a revision is read away
+from the server that produced it, and a fixed string there would describe pinned
+recorded stays as authored synthetic to every later reader of the export. The replay manifest embeds the full
 dataset, including each patient's clock/index/episode, profile and complete ancestor
 revision chain. Replaying recomputes every revision and rejects altered context,
 parents, queries or results. Changing implementation requires the recorded version;
