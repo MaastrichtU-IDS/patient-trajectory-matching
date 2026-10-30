@@ -2,7 +2,7 @@
 
 What executes, what is specified, and what has been verified. Status labels are defined in [architecture.md](architecture.md).
 
-**Summary: <!-- test-counts:total -->935<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
+**Summary: <!-- test-counts:total -->936<!-- /test-counts:total --> contract checks and an integrated synthetic research journey. The current completion audit records 10 supported, 64 partial, 4 blocked and 26 specification-only requirements. Full-product completion remains false.**
 
 The original `requirements.csv` remains byte-preserved as the historical authority. The [current completion register](completion.md) maps every original row to evidence and remaining clauses and separately tracks 16 additional profiles, including the interval work. The family table below reports the original CSV statuses; it is not the current implementation assessment.
 
@@ -106,8 +106,8 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Reviewed measurement selector tests | 18 passed |
 | Measurement source catalogue and audit tests | 20 passed |
 | Prepared measurement session tests | 20 passed |
-| Pre-index similarity and immutable refinement tests | 35 passed |
-| **Total** | **935 contract checks** |
+| Pre-index similarity and immutable refinement tests | 36 passed |
+| **Total** | **936 contract checks** |
 | Release manifest digests | 9 verified |
 | OWL 2 DL profile and HermiT consistency | 20 merged documents verified, 73 negative controls detected |
 | Point-anchor fixture outcome | `EXACT`, cost 0 |
@@ -117,7 +117,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Bounded example | P1 `CERTAIN_MATCH`, P2 `POSSIBLE_MATCH`, P3 `NO_RECORDED_MATCH`, P4 `INCOMPARABLE` |
 | Oracle on Python 3.10 / 3.11 / 3.13 | 16 cases passed on each |
 
-The total is 910 suite tests plus 16 oracle cases and nine oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 106 tests, the research HTTP suite has 20, and the completion checker has 13. Eight Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
+The total is 911 suite tests plus 16 oracle cases and nine oracle properties; nested differential scenarios and manifest checks are not added again. Separately, the demo suite has 106 tests, the research HTTP suite has 20, and the completion checker has 13. Eight Node DOM-state suites cover the three existing demos and the research workspace. Browser visual review and target-cluster validation remain unperformed.
 
 <!-- test-counts:end -->
 
