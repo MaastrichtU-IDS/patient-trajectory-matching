@@ -39,13 +39,30 @@ def identifier(value):
 
 
 class Workspace:
-    def __init__(self, recorded_config=None, state_dir=None, access=None, public_demo_dir=None, clinical_features_path=None):
-        self.engine = SimilarityEngine()
-        source_bytes = (ROOT.parent / 'demo/cohort-data.json').read_bytes()
-        self.dataset = json.loads(source_bytes)
-        self.source_hash = hashlib.sha256(source_bytes).hexdigest()
-        if self.engine.metadata().get('source_dataset_sha256') != self.source_hash:
-            raise ValueError('Similarity and trajectory source fingerprints differ')
+    def __init__(self, recorded_config=None, state_dir=None, access=None, public_demo_dir=None,
+                 clinical_features_path=None, public_demo_cohort=None):
+        # The authored cohort backs two surfaces at once: the similarity engine ranks it
+        # and `compare()` runs the fixed kidney trajectory over the same projections, which
+        # is why their fingerprints must agree. A derived public-demo cohort carries the
+        # ranking records only -- it holds no PRO/SOLID projection for the trajectory to
+        # run over -- so that surface is withdrawn rather than quietly served authored
+        # patients while the rest of the workspace shows demo stays.
+        self.cohort = None
+        if public_demo_cohort is not None:
+            cohort_dir = Path(public_demo_cohort)
+            self.cohort = json.loads((cohort_dir / 'dataset.json').read_bytes())
+            self.engine = SimilarityEngine(self.cohort,
+                                           json.loads((cohort_dir / 'profile.json').read_bytes()))
+            if self.engine.metadata()['scope'] != 'recorded_public_demo':
+                raise ValueError('A public-demo cohort must be admitted in the recorded_public_demo scope')
+            self.dataset, self.source_hash = None, None
+        else:
+            self.engine = SimilarityEngine()
+            source_bytes = (ROOT.parent / 'demo/cohort-data.json').read_bytes()
+            self.dataset = json.loads(source_bytes)
+            self.source_hash = hashlib.sha256(source_bytes).hexdigest()
+            if self.engine.metadata().get('source_dataset_sha256') != self.source_hash:
+                raise ValueError('Similarity and trajectory source fingerprints differ')
         self.comparisons = OrderedDict()
         self.temporal = TemporalWorkspace()
         self.interval_editor = IntervalEditor()
@@ -58,11 +75,21 @@ class Workspace:
 
     def capabilities(self):
         return {'status': 'ready' if self.ready else 'not-ready',
+                # `scope` names the recorded source this server was started with. It says
+                # nothing about the cohort the similarity, refinement and trajectory
+                # surfaces rank, which is the authored dataset in every mode -- so
+                # `public-demo-research-prototype` alone reads as a wider claim than it is.
+                # `source_modes` names each surface's source so neither can be misread.
                 'scope': ('research-prototype-with-configured-recorded-sources' if self.recorded.config is not None
                           else 'public-demo-research-prototype' if self.recorded.public_demo_dir is not None
                           else 'authored-synthetic-research-prototype'),
-                'supported': ['pre-index-similarity', 'bounded-refinements',
-                              'exact-and-declared-relaxed-trajectories', 'source-evidence', 'replay-export',
+                'source_modes': {'cohort': 'authored-synthetic' if self.dataset is not None else 'public-demo',
+                                 'recorded_journey': ('configured-records' if self.recorded.config is not None
+                                                      else 'public-demo' if self.recorded.public_demo_dir is not None
+                                                      else 'unconfigured')},
+                'supported': ['pre-index-similarity', 'bounded-refinements'] +
+                             (['exact-and-declared-relaxed-trajectories'] if self.dataset is not None else []) +
+                             ['source-evidence', 'replay-export',
                               'bounded-temporal-demonstration', 'bounded-interval-query-editor',
                               'guided-patient-temporal-journey', 'configurable-three-event-patterns',
                               'custom-relaxation-catalogues', 'guided-recorded-treatment-evidence',
@@ -74,11 +101,16 @@ class Workspace:
                 'unsupported': ['clinical-validation', 'clinical-mapping-approval', 'uploads',
                                 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'] +
+                               ([] if self.dataset is not None else
+                                ['exact-and-declared-relaxed-trajectories', 'derived-age-band']) +
                                (['authentication'] if self.access is None else []),
                 'max_request_bytes': MAX_BODY, 'max_saved_comparisons': MAX_COMPARISONS,
                 'metadata': self.engine.metadata()}
 
     def compare(self, revision_id, budget):
+        if self.dataset is None:
+            raise ValueError('The fixed kidney trajectory runs over the authored cohort only; '
+                             'this workspace ranks the public demo cohort')
         if isinstance(budget, bool) or budget not in ('0', '1', '2'):
             raise ValueError('Budget must be the string 0, 1 or 2')
         revision = self.engine.get_revision(identifier(revision_id))
@@ -121,6 +153,20 @@ class Workspace:
     def evidence(self, revision_id, patient_id):
         revision_id, patient_id = identifier(revision_id), identifier(patient_id)
         evidence = self.engine.inspect(revision_id, patient_id)
+        if self.dataset is None:
+            # The derived public-demo cohort carries no separate PRO/SOLID projection, so
+            # the source view is the admitted records' own bindings: each names the pinned
+            # file it was read from, its row, and the untouched original value.
+            source = next((p for p in self.cohort['patients'] if p['patient_id'] == patient_id), None)
+            if source is None:
+                raise KeyError(patient_id)
+            rows = [{'record_id': record['id'], 'component': record['component'],
+                     'occurrence_us': record['occurrence_us'], **copy.deepcopy(record['source'])}
+                    for record in source['records']]
+            return {'similarity': evidence, 'source_rows': rows, 'pro_solid': None,
+                    'notice': 'Similarity uses eligible pre-index features only. Each row names the '
+                              'pinned source file, its row number and the value as released. No '
+                              'trajectory follow-up is derived for this cohort.'}
         source = next((p for p in self.dataset['patients'] if p['patient_id'] == patient_id), None)
         if source is None:
             raise KeyError(patient_id)
@@ -373,14 +419,16 @@ class ResearchServer(ThreadingHTTPServer):
 
 
 def make_server(host='127.0.0.1', port=8080, *, recorded_config=None, state_dir=None, auth_file=None,
-                public_demo_dir=None, clinical_features_path=None):
-    if (recorded_config is not None or public_demo_dir is not None or clinical_features_path is not None) and host not in ('127.0.0.1', 'localhost'):
+                public_demo_dir=None, clinical_features_path=None, public_demo_cohort=None):
+    if (recorded_config is not None or public_demo_dir is not None or clinical_features_path is not None
+            or public_demo_cohort is not None) and host not in ('127.0.0.1', 'localhost'):
         raise ValueError('Configured recorded sources require a loopback host')
     if auth_file is not None and host not in ('127.0.0.1', 'localhost'):
         raise ValueError('Owner authentication requires a loopback host')
     access = OwnerAccess(auth_file) if auth_file is not None else None
     workspace = Workspace(recorded_config=recorded_config, state_dir=state_dir, access=access,
-                          public_demo_dir=public_demo_dir, clinical_features_path=clinical_features_path)
+                          public_demo_dir=public_demo_dir, clinical_features_path=clinical_features_path,
+                          public_demo_cohort=public_demo_cohort)
     try:
         server = ResearchServer((host, port), Handler)
     except Exception:
@@ -399,9 +447,13 @@ def main():
     parser.add_argument('--auth-file', type=Path, help='Private owner:<secret> credential file; loopback only')
     parser.add_argument('--public-demo-dir', type=Path, help='Pinned public MIMIC-IV demo source directory; literal strata only')
     parser.add_argument('--clinical-features', type=Path, help='Startup-only reviewed supplemental feature pack')
+    parser.add_argument('--public-demo-cohort', type=Path,
+                        help='Directory holding dataset.json and profile.json from tools/build_demo_cohort.py; '
+                             'ranks pinned demo ICU stays instead of the authored cohort')
     args = parser.parse_args()
     server = make_server(args.host, args.port, recorded_config=args.recorded_config, state_dir=args.state_dir, auth_file=args.auth_file,
-                         public_demo_dir=args.public_demo_dir, clinical_features_path=args.clinical_features)
+                         public_demo_dir=args.public_demo_dir, clinical_features_path=args.clinical_features,
+                         public_demo_cohort=args.public_demo_cohort)
     print(f'Research workspace: http://{args.host}:{server.server_port}', flush=True)
     try:
         server.serve_forever()

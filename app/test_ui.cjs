@@ -15,11 +15,22 @@ c=w.engine.refine(b['revision_id'],{'type':'add_filter','predicate':{'component'
 print(json.dumps({'capabilities':w.capabilities(),'initial':a,'weighted':b,'refined':c,'comparison':w.compare(c['revision_id'],'2'),'evidence':w.evidence(c['revision_id'],'P03')}))
 `], {cwd:root, encoding:'utf8'}));
 class Element {
-  constructor(){this.value='';this.innerHTML='';this.textContent='';this.className='';this.disabled=false;this.href='';}
+  constructor(){this.value='';this.innerHTML='';this.textContent='';this.className='';this.disabled=false;this.href='';this.hidden=false;this.placeholder='';this.style={};this.children=[];}
   removeAttribute(name){delete this[name];}
+  append(node){this.children.push(node);}
+  querySelector(selector){return selected(this,selector);}
+  querySelectorAll(){return[];}
 }
-const elements=new Map();
-const document={getElementById(id){if(!elements.has(id))elements.set(id,new Element());return elements.get(id);}};
+const elements=new Map(), selectors=new Map();
+// The script addresses the page by CSS selector as well as by id -- the badge, the intro
+// copy and the evidence hint all state which cohort is admitted. Selectors resolve to
+// their own stable stubs so those writes are observable here.
+const selected=(scope,selector)=>{const key=selector;if(!selectors.has(key))selectors.set(key,new Element());return selectors.get(key);};
+const document={
+  getElementById(id){if(!elements.has(id))elements.set(id,new Element());return elements.get(id);},
+  querySelector(selector){return selected(null,selector);},
+  querySelectorAll(){return[];},
+  createElement(){return new Element();}};
 const calls=[]; let refinements=0, failNext=false;
 const fetch=async(url, options={})=>{
   const body=options.body?JSON.parse(options.body):undefined; calls.push({url,body});
@@ -52,6 +63,10 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   assert.match(el('components').innerHTML,/Ignore/);
   assert.match(el('components').innerHTML,/Hide from view/);
   assert.match(el('effect-age_band').textContent,/ranking only/);
+  // The page states its own cohort. With the authored dataset admitted it must keep
+  // saying so: the badge is no longer fixed markup, it follows /api/capabilities.
+  assert.equal(selectors.get('header .badge').textContent,'Authored synthetic records');
+  assert.match(el('profile').textContent,/pre-index history/);
   const change=(component,kind,value)=>el('components').onchange(
     {target:{dataset:{component,kind},value,checked:value===true}});
   change('baseline_creatinine','mode','must');

@@ -279,3 +279,62 @@ class PatientSimilarityTests(unittest.TestCase):
         self.assertFalse(self.revision()['outcomes_used_for_matching'])
 
 if __name__=='__main__':unittest.main()
+
+
+class RecordedPublicDemoScopeTests(unittest.TestCase):
+    """The engine admits one non-authored scope, and only one.
+
+    `docs/patient-similarity.md` states the constructor is not an arbitrary clinical
+    data loader. `recorded_public_demo` keeps that true by construction: the dataset
+    must carry the digests of the committed open-access demo pin, and they must equal
+    it exactly, so the only non-authored data admitted is the pinned public release.
+    """
+    def setUp(self):
+        self.dataset = json.loads((p.EXAMPLE / 'dataset.json').read_text())
+        self.profile = json.loads((p.EXAMPLE / 'profile.json').read_text())
+        pin = json.loads((p.ROOT / 'data/clinical-source-demo-pin.json').read_bytes())
+        self.pin = {name: meta['file_sha256'] for name, meta in pin['files'].items()}
+
+    def recorded(self, **overrides):
+        dataset = dict(self.dataset, scope='recorded_public_demo', source_pin=dict(self.pin))
+        dataset.update(overrides)
+        return dataset
+
+    def profile_for(self, **overrides):
+        return dict(self.profile, mapping_review='pinned_public_demo_source_fidelity', **overrides)
+
+    def test_pinned_demo_dataset_is_admitted(self):
+        engine = p.SimilarityEngine(self.recorded(), self.profile_for())
+        self.assertEqual(engine.metadata()['scope'], 'recorded_public_demo')
+
+    def test_unpinned_source_is_refused(self):
+        wrong = dict(self.pin, chartevents='0' * 64)
+        with self.assertRaisesRegex(ValueError, 'SOURCE_PIN_DIFFERS_FROM_COMMITTED_DEMO'):
+            p.SimilarityEngine(self.recorded(source_pin=wrong), self.profile_for())
+
+    def test_recorded_scope_without_a_pin_is_refused(self):
+        dataset = self.recorded()
+        del dataset['source_pin']
+        with self.assertRaisesRegex(ValueError, 'RECORDED_DEMO_REQUIRES_SOURCE_PIN'):
+            p.SimilarityEngine(dataset, self.profile_for())
+
+    def test_authored_dataset_may_not_carry_a_pin(self):
+        with self.assertRaisesRegex(ValueError, 'SOURCE_PIN_LIMITED_TO_RECORDED_DEMO'):
+            p.SimilarityEngine(dict(self.dataset, source_pin=dict(self.pin)), self.profile)
+
+    def test_each_scope_requires_its_own_mapping_review(self):
+        with self.assertRaisesRegex(ValueError, 'MAPPING_REVIEW_MUST_MATCH_SCOPE'):
+            p.SimilarityEngine(self.recorded(), self.profile)
+        with self.assertRaisesRegex(ValueError, 'MAPPING_REVIEW_MUST_MATCH_SCOPE'):
+            p.SimilarityEngine(self.dataset, self.profile_for())
+
+    def test_other_scopes_are_still_refused(self):
+        for scope in ('recorded_clinical', 'production', 'mimic_iv_full'):
+            with self.subTest(scope=scope), self.assertRaisesRegex(ValueError, 'UNPERMITTED_DATASET_SCOPE'):
+                p.SimilarityEngine(dict(self.dataset, scope=scope), self.profile)
+
+    def test_a_clinical_validity_claim_is_refused_in_either_scope(self):
+        for dataset in (dict(self.dataset, clinical_validity_claim=True),
+                        self.recorded(clinical_validity_claim=True)):
+            with self.subTest(scope=dataset['scope']), self.assertRaisesRegex(ValueError, 'UNPERMITTED_DATASET_SCOPE'):
+                p.SimilarityEngine(dataset, self.profile)

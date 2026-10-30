@@ -82,3 +82,104 @@ class ResearchReleaseTests(unittest.TestCase):
                 self.request(url, BASE + '/jobs', {'profile': 'reviewed', 'stratum': 'synthetic',
                              'controls': {'threshold': '65', 'baseline_minutes': 30, 'followup_minutes': 120}})
             self.assertEqual(caught.exception.code, 400)
+
+    def test_capabilities_name_each_surface_source_separately(self):
+        """`scope` names the server's recorded configuration, not the cohort the
+        workspace ranks. A reader who sees `public-demo-research-prototype` would
+        otherwise conclude the similarity surface ranks demo patients; it ranks the
+        authored cohort in every mode."""
+        with self.running() as (_, url):
+            modes = self.request(url, '/api/capabilities')['source_modes']
+            self.assertEqual(modes, {'cohort': 'authored-synthetic',
+                                     'recorded_journey': 'unconfigured'})
+        with self.running(public_demo_dir=ROOT / 'examples/source-mixed-query') as (_, url):
+            capabilities = self.request(url, '/api/capabilities')
+            self.assertEqual(capabilities['scope'], 'public-demo-research-prototype')
+            self.assertEqual(capabilities['source_modes'],
+                             {'cohort': 'authored-synthetic', 'recorded_journey': 'public-demo'})
+
+    def demo_cohort(self, folder):
+        """A minimal admissible public-demo cohort.
+
+        The records are small and invented; what is under test is the server wiring, not
+        the derivation. `tools/build_demo_cohort.py` is what ties rows to the release, by
+        digesting every pinned file before reading one.
+        """
+        pin = json.loads((ROOT / 'data/clinical-source-demo-pin.json').read_bytes())
+        rule = 'ICU intime plus 24 hours; every record strictly before it.'
+        patients = []
+        for index, (stay, value) in enumerate((('100', '1.1'), ('101', '2.4')), start=1):
+            record = {'id': f'creatinine-{stay}', 'component': 'baseline_creatinine',
+                      'value': {'hasValue': value}, 'unit': 'mg/dL',
+                      'occurrence_us': -3600000000 * index, 'available_at_us': -3600000000 * index,
+                      'clock': f'stay-{stay}-relative',
+                      'source': {'document': 'chartevents.csv.gz', 'row': str(index)},
+                      'claim': {'id': f'creatinine-{stay}-claim', 'refersTo': f'creatinine-{stay}-role'},
+                      'role': {'id': f'creatinine-{stay}-role', 'isFeatureOf': f'stay-{stay}'}}
+            patients.append({'patient_id': f'stay-{stay}', 'label': f'ICU stay {stay}',
+                             'episode_id': f'stay-{stay}-icu', 'clock': f'stay-{stay}-relative',
+                             'index_us': 0, 'index_rule': rule, 'records': [record]})
+        dataset = {'dataset_id': 'demo-cohort-test', 'label': 'Two pinned demo stays',
+                   'scope': 'recorded_public_demo', 'clinical_validity_claim': False,
+                   'index_rule': rule, 'patients': patients,
+                   'source_pin': {name: meta['file_sha256'] for name, meta in pin['files'].items()}}
+        profile = {'profile_id': 'demo-cohort-test-1.0', 'clinical_validity_claim': False,
+                   'mapping_review': 'pinned_public_demo_source_fidelity',
+                   'weights': {'age_band': '0', 'baseline_creatinine': '1', 'clinical_concepts': '1'},
+                   'minimum_coverage': '0.5', 'history_us': 24 * 3600000000,
+                   'creatinine_window_us': 24 * 3600000000, 'creatinine_scale': '1',
+                   'creatinine_unit': 'mg/dL', 'concept_ancestors': {}}
+        cohort = Path(folder) / 'cohort'
+        cohort.mkdir(parents=True)
+        (cohort / 'dataset.json').write_text(json.dumps(dataset))
+        (cohort / 'profile.json').write_text(json.dumps(profile))
+        return cohort
+
+    def test_public_demo_cohort_replaces_the_authored_pool(self):
+        with tempfile.TemporaryDirectory() as folder:
+            cohort = self.demo_cohort(folder)
+            with self.running(public_demo_cohort=cohort, state_dir=Path(folder) / 'state') as (_, url):
+                capabilities = self.request(url, '/api/capabilities')
+                self.assertEqual(capabilities['source_modes']['cohort'], 'public-demo')
+                self.assertEqual([p['patient_id'] for p in capabilities['metadata']['patients']],
+                                 ['stay-100', 'stay-101'])
+                self.assertEqual(capabilities['metadata']['scope'], 'recorded_public_demo')
+                initial = self.request(url, '/api/initial', {'patient_id': 'stay-100', 'top_k': 5})
+                self.assertEqual(initial['results']['eligible_patient_ids'], ['stay-101'])
+
+    def test_the_authored_trajectory_is_withdrawn_not_served_authored_patients(self):
+        """The fixed kidney trajectory runs over the authored PRO/SOLID projections. The
+        derived cohort has none, so the step must be refused rather than quietly compare
+        authored patients while every other surface shows demo stays."""
+        with tempfile.TemporaryDirectory() as folder:
+            cohort = self.demo_cohort(folder)
+            with self.running(public_demo_cohort=cohort, state_dir=Path(folder) / 'state') as (_, url):
+                capabilities = self.request(url, '/api/capabilities')
+                self.assertNotIn('exact-and-declared-relaxed-trajectories', capabilities['supported'])
+                self.assertIn('exact-and-declared-relaxed-trajectories', capabilities['unsupported'])
+                self.assertIn('derived-age-band', capabilities['unsupported'])
+                initial = self.request(url, '/api/initial', {'patient_id': 'stay-100', 'top_k': 5})
+                with self.assertRaises(HTTPError) as caught:
+                    self.request(url, '/api/trajectory',
+                                 {'revision_id': initial['revision_id'], 'budget': '0'})
+                self.assertEqual(caught.exception.code, 400)
+
+    def test_demo_cohort_evidence_names_its_pinned_rows(self):
+        with tempfile.TemporaryDirectory() as folder:
+            cohort = self.demo_cohort(folder)
+            with self.running(public_demo_cohort=cohort, state_dir=Path(folder) / 'state') as (_, url):
+                initial = self.request(url, '/api/initial', {'patient_id': 'stay-100', 'top_k': 5})
+                evidence = self.request(
+                    url, f'/api/evidence?revision_id={initial["revision_id"]}&patient_id=stay-101')
+                self.assertIsNone(evidence['pro_solid'])
+                self.assertEqual([row['document'] for row in evidence['source_rows']],
+                                 ['chartevents.csv.gz'])
+
+    def test_a_cohort_outside_the_recorded_demo_scope_is_refused_at_startup(self):
+        with tempfile.TemporaryDirectory() as folder:
+            cohort = Path(folder) / 'cohort'
+            cohort.mkdir()
+            for name in ('dataset.json', 'profile.json'):
+                (cohort / name).write_text(((ROOT / 'examples/patient-similarity') / name).read_text())
+            with self.assertRaises(ValueError):
+                server.make_server(port=0, public_demo_cohort=cohort)

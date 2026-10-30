@@ -169,6 +169,21 @@ Not-given, planned, refused and prescription records are rejected. They need a d
 
 The OpenAPI document describes the pre-PRO/SOLID event model and contains no role or bearer vocabulary. The projection bridges them, but a reader who opens `openapi.json` first will not find the current architecture there. Whether the API surface should expose the graph model directly is unresolved.
 
+### A6. The workspace can now rank pinned demo stays **[partial]**
+*Source: `tools/build_demo_cohort.py`, [delivery guide](recorded-workflow-delivery.md#ranking-the-pinned-demo-stays)*
+
+`--public-demo-dir` reached the recorded journey only; the similarity, refinement and
+evidence surfaces ranked the eleven authored patients in every mode. `SimilarityEngine`
+now admits a second scope, `recorded_public_demo`, bound to the committed source pin,
+and `--public-demo-cohort` serves a cohort derived from it: 138 stays, 136 carrying
+charted creatinine, concepts from `inputevents`. Age band is not derivable from the
+pinned files ([S3](#s3-age-derivation-not-implemented-gap)) and the authored kidney
+trajectory does not apply to the derived cohort; both are withdrawn in the interface
+rather than left failing. Full MIMIC-IV, clinical mapping approval and the trajectory
+over recorded projections remain open.
+
+---
+
 ### A3. Production workspace remains unimplemented **[gap]**
 *Source: [2.2](../addenda/specification-2.2.md), 14 UI requirements*
 
