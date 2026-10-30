@@ -8,7 +8,7 @@ let current = null, busy = false, lastEvidence = null;
 const LABELS = {age_band:'Age band', baseline_creatinine:'Baseline creatinine', clinical_concepts:'Clinical concepts'};
 const MODES = {must:'Must match', prefer:'Prefer similar', ignore:'Ignore'};
 const EFFECT = {must:'eligibility', prefer:'ranking only', ignore:'neither'};
-let components = [], baseWeights = {};
+let components = [], baseWeights = {}, admitted = {}, sourceModes = {};
 const modes = {}, hidden = {};
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, body) {
@@ -70,10 +70,11 @@ function renderProfile(revision) {
   const shown = components.filter(component => !hidden[component]);
   const weights = shown.map(component => `${LABELS[component] || component} ${revision.query.weights[component]}`).join(', ');
   const withheld = components.length - shown.length;
-  $('profile').textContent = 'Authored defaults: 14-day pre-index history; minimum creatinine in the preceding 48 hours;'
-    + ` occurrence and authored availability strictly before index. Current weights: ${weights || 'none shown'}.`
+  $('profile').textContent = `${days(admitted.history_us)} pre-index history; minimum creatinine in the preceding `
+    + `${days(admitted.creatinine_window_us)}; occurrence and availability strictly before index.`
+    + ` Index: ${(admitted.index_rule || 'declared per patient').replace(/\.\s*$/, '')}. Current weights: ${weights || 'none shown'}.`
     + (withheld ? ` ${withheld} feature${withheld > 1 ? 's are' : ' is'} hidden from this view; the analysis used all ${components.length}.` : '')
-    + ' This availability overlay is constructed, not a historical clinical replay.';
+    + ` ${admitted.availability_policy || ''}`;
 }
 function requirement(component) {
   if (component === 'age_band') return {component, operator:'eq', value:$('band').value};
@@ -121,7 +122,7 @@ function renderRevision(revision) {
   $('scope').textContent = `Reference ${revision.reference_patient_id} · ${r.eligible_patient_ids.length} eligible patients · showing ${r.displayed.length}. Ranking uses only pre-index history; the trajectory uses the entire eligible pool.`;
   renderProfile(revision);
   const changes = revision.changes || {};
-  $('changes').textContent = revision.parent_revision_id ? `Eligibility: added ${(changes.added || []).join(', ') || 'none'}; removed ${(changes.removed || []).join(', ') || 'none'}. Ranking may change without changing eligibility.` : 'Defaults are explicit and authored for this demonstration; they are not clinically validated.';
+  $('changes').textContent = revision.parent_revision_id ? `Eligibility: added ${(changes.added || []).join(', ') || 'none'}; removed ${(changes.removed || []).join(', ') || 'none'}. Ranking may change without changing eligibility.` : `Defaults are explicit and declared for this ${sourceModes.cohort === 'public-demo' ? 'pinned public demo' : 'demonstration'}; they are not clinically validated.`;
   $('rankings').innerHTML = r.displayed.map(row => `<tr><td>${esc(row.patient_id)}</td><td>${esc(row.ranking_distance)}</td><td>${esc(row.coverage)}</td><td><button class="inspect" data-patient="${esc(row.patient_id)}">Inspect</button></td></tr>`).join('') || '<tr><td colspan="4">No rankable candidates under this revision.</td></tr>';
   $('missing').textContent = `Unresolved eligibility: ${(r.unresolved || []).map(x=>x.patient_id).join(', ') || 'none'}. Insufficient ranking evidence: ${(r.unrankable || []).map(x=>x.patient_id).join(', ') || 'none'}. Missing observations are not treated as a perfect match.`;
   controls();
@@ -179,7 +180,26 @@ function renderEvidence(patient, data) {
   const withheld = components.filter(component => hidden[component]);
   const similarity = withhold(data.similarity);
   const notice = withheld.length ? `<p class="hint">Hidden from this view: ${esc(withheld.map(c => LABELS[c] || c).join(', '))}. The scores below were computed with every feature.</p>` : '';
-  $('evidence').innerHTML = `<h3>${esc(patient)}</h3><p class="hint">${esc(data.notice)}</p>${notice}<h4>Original authored records</h4><div class="table-scroll"><table><thead><tr><th>Record</th><th>Concept</th><th>Recorded time</th><th>Original value</th></tr></thead><tbody>${data.source_rows.map(row=>`<tr><td>${esc(row.record_id)}</td><td>${esc(row.source_code)}</td><td>${esc(row.datetime)}</td><td>${esc(row.value)} ${esc(row.unit)}</td></tr>`).join('')}</tbody></table></div><details open><summary>Similarity components and eligibility</summary><pre>${esc(JSON.stringify(similarity,null,2))}</pre></details><details><summary>PRO / SOLID source bindings</summary><pre>${esc(JSON.stringify(data.pro_solid,null,2))}</pre></details>`;
+  // The two cohorts carry different source bindings, so the table shows what each one
+  // actually has rather than printing blank cells under authored column headings. The
+  // derived cohort has no wall clock of its own: its records are offsets from the index,
+  // which is what the engine ranks on, so that is the column it gets.
+  const demo = sourceModes.cohort === 'public-demo';
+  const heading = demo ? 'Original recorded rows' : 'Original authored records';
+  const columns = demo ? ['Record', 'Component', 'Pinned source', 'Before index', 'Original value']
+                       : ['Record', 'Concept', 'Recorded time', 'Original value'];
+  const cells = row => demo
+    ? [row.record_id, row.component, `${(row.document || '').split(':')[0]} row ${row.row}`,
+       offset(row.occurrence_us), `${row.original_value || ''} ${row.original_unit || ''}`.trim() || '--']
+    : [row.record_id, row.source_code, row.datetime, `${row.value} ${row.unit}`];
+  const bindings = data.pro_solid
+    ? `<details><summary>PRO / SOLID source bindings</summary><pre>${esc(JSON.stringify(data.pro_solid,null,2))}</pre></details>`
+    : '';
+  $('evidence').innerHTML = `<h3>${esc(patient)}</h3><p class="hint">${esc(data.notice)}</p>${notice}`
+    + `<h4>${esc(heading)}</h4><div class="table-scroll"><table><thead><tr>${columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>`
+    + `<tbody>${data.source_rows.map(row=>`<tr>${cells(row).map(cell=>`<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+    + `<details open><summary>Similarity components and eligibility</summary><pre>${esc(JSON.stringify(similarity,null,2))}</pre></details>`
+    + bindings;
 }
 $('start').onclick = () => action(async()=>renderRevision(await api('/api/initial',{patient_id:$('patient').value,top_k:5})));
 $('components').onchange = event => {
@@ -202,6 +222,63 @@ $('apply').onclick = () => action(async()=>{
 $('undo').onclick = () => action(async()=>renderRevision(await api('/api/revisions/'+encodeURIComponent(current.parent_revision_id))));
 $('compare').onclick = () => action(async()=>{ clearComparison(); renderComparison(await api('/api/trajectory',{revision_id:current.revision_id,budget:$('budget').value})); });
 for (const id of ['rankings','cohorts']) $(id).onclick = event => {const button=event.target.closest('[data-patient]'); if(button && current) action(()=>inspect(button.dataset.patient));};
+function offset(microseconds) {
+  if (microseconds === undefined || microseconds === null) return '--';
+  const hours = -microseconds / 3600000000;
+  return `${hours.toFixed(1)} h`;
+}
+function days(microseconds) {
+  if (!microseconds) return 'the declared window';
+  const hours = microseconds / 3600000000;
+  if (hours % 24 || hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const count = hours / 24;
+  return `${count} day${count === 1 ? '' : 's'}`;
+}
+// Every claim the page makes about its own data comes from the server. The markup used to
+// assert an authored cohort in three places, which silently became false the moment a
+// public-demo cohort could be admitted.
+function describeCohort(capabilities, meta) {
+  const demo = sourceModes.cohort === 'public-demo';
+  const badge = document.querySelector('header .badge');
+  if (badge) badge.textContent = demo ? 'Pinned public demo records' : 'Authored synthetic records';
+  const hint = document.querySelector('#evidence');
+  const evidenceHint = hint && hint.parentElement && hint.parentElement.querySelector('.hint');
+  if (evidenceHint) evidenceHint.textContent = demo
+    ? 'Open a patient to review feature eligibility and the original recorded rows. Graph bindings preserve the patient role and measured value.'
+    : 'Open a patient to review feature eligibility and the original authored rows. Graph bindings preserve the patient role and measured value.';
+  // The form's placeholder values are authored examples. In a demo cohort they match
+  // nothing, so a required value typed from them silently empties the population.
+  const concept = $('concept');
+  if (concept && (meta.concept_examples || []).length) {
+    concept.value = meta.concept_examples[0];
+    concept.placeholder = meta.concept_examples[0];
+  }
+  const ageObserved = (meta.default_weights || {}).age_band !== '0';
+  const band = $('band');
+  if (band && !ageObserved) {
+    band.value = '';
+    band.disabled = true;
+    band.placeholder = 'not derivable from the pinned files';
+  }
+  const intro = document.querySelector('.intro p:last-of-type');
+  if (intro && demo) intro.textContent = `Explore pre-index similarity and refine the eligible population over ${meta.patients.length} pinned public-demo ICU stays. `
+    + 'Source fidelity only: no clinical mapping approval, no clinical validity claim.';
+  // The fixed kidney trajectory runs over the authored projections only. Say so where the
+  // step was, and hide the controls rather than leave a button the server will refuse.
+  // The nodes stay in the document: `controls()` addresses them by id on every render.
+  if (!(capabilities.supported || []).includes('exact-and-declared-relaxed-trajectories')) {
+    for (const card of document.querySelectorAll('.card')) {
+      if (!/DEFINE THE TRAJECTORY|TRAJECTORY COMPARISON/.test(card.textContent || '')) continue;
+      for (const node of card.querySelectorAll('p, label, select, button, div')) node.style.display = 'none';
+      for (const node of card.querySelectorAll('button, select, input')) node.disabled = true;
+      const note = document.createElement('p');
+      note.className = 'hint';
+      note.textContent = 'Not available for this cohort. The fixed kidney trajectory runs over the '
+        + 'authored PRO/SOLID projections, which the derived public-demo cohort does not carry.';
+      card.append(note);
+    }
+  }
+}
 async function initialize() {
   busy = true; controls();
   try {
@@ -211,6 +288,9 @@ async function initialize() {
     $('patient').value = meta.default_reference_patient_id;
     components = meta.components || [];
     baseWeights = meta.default_weights || {};
+    admitted = meta;
+    sourceModes = capabilities.source_modes || {};
+    describeCohort(capabilities, meta);
     for (const component of components) {
       const declared = baseWeights[component];
       modes[component] = declared && declared !== '0' ? 'prefer' : 'ignore';

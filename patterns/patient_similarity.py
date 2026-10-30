@@ -12,6 +12,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / 'examples/patient-similarity'
+SOURCE_PIN = ROOT / 'data/clinical-source-demo-pin.json'
+# Each admitted scope and the mapping review it requires. `recorded_public_demo` is the
+# only non-authored scope. A dataset in it must declare the digests of the committed
+# open-access demo pin and they must equal it exactly, so a cohort cannot name some
+# other extract as its source. That is a check on the declaration, not proof of
+# derivation: what actually ties the rows to the release is `tools/build_demo_cohort.py`
+# digesting every file before it reads one.
+PERMITTED_SCOPES = {'authored_synthetic': 'authored_synthetic_review',
+                    'recorded_public_demo': 'pinned_public_demo_source_fidelity'}
 COMPONENTS = ('age_band', 'baseline_creatinine', 'clinical_concepts')
 HOUR = 3_600_000_000
 MAX_PATIENTS = 1000
@@ -83,17 +92,38 @@ class SimilarityEngine:
         self._implementation_hash = sha256(Path(__file__).read_bytes()).hexdigest()
         self._revisions = {}
 
+    def _source_pin(self, d):
+        """Bind a recorded dataset to the committed open-access demo release.
+
+        The digests are compared against `data/clinical-source-demo-pin.json` rather
+        than against anything the dataset supplies about itself, so a dataset derived
+        from some other extract cannot declare itself admissible. An authored dataset
+        carries no pin at all: there is no source for it to be bound to.
+        """
+        declared = d.get('source_pin')
+        if d['scope'] != 'recorded_public_demo':
+            if declared is not None:
+                raise ValueError('SOURCE_PIN_LIMITED_TO_RECORDED_DEMO')
+            return
+        if not isinstance(declared, dict):
+            raise ValueError('RECORDED_DEMO_REQUIRES_SOURCE_PIN')
+        committed = json.loads(SOURCE_PIN.read_bytes())['files']
+        if declared != {name: meta['file_sha256'] for name, meta in committed.items()}:
+            raise ValueError('SOURCE_PIN_DIFFERS_FROM_COMMITTED_DEMO')
+
     def _validate(self):
         d, p = self._dataset, self._profile
-        _keys(d, ('dataset_id', 'label', 'scope', 'clinical_validity_claim', 'index_rule', 'patients'), ('construction_origin',))
+        _keys(d, ('dataset_id', 'label', 'scope', 'clinical_validity_claim', 'index_rule', 'patients'),
+              ('construction_origin', 'source_pin'))
         for key in ('dataset_id', 'label', 'index_rule'):
             _text(d[key])
-        if d['scope'] != 'authored_synthetic' or d['clinical_validity_claim'] is not False:
-            raise ValueError('AUTHORED_SYNTHETIC_PROFILE_ONLY')
+        if d['scope'] not in PERMITTED_SCOPES or d['clinical_validity_claim'] is not False:
+            raise ValueError('UNPERMITTED_DATASET_SCOPE')
+        self._source_pin(d)
         _keys(p, ('profile_id', 'clinical_validity_claim', 'weights', 'minimum_coverage', 'history_us', 'creatinine_window_us', 'creatinine_scale', 'creatinine_unit', 'concept_ancestors', 'mapping_review'))
         _text(p['profile_id'])
-        if p['clinical_validity_claim'] is not False or p['mapping_review'] != 'authored_synthetic_review':
-            raise ValueError('AUTHORED_MAPPING_REVIEW_REQUIRED')
+        if p['clinical_validity_claim'] is not False or p['mapping_review'] != PERMITTED_SCOPES[d['scope']]:
+            raise ValueError('MAPPING_REVIEW_MUST_MATCH_SCOPE')
         self._weights(p['weights'])
         if not 0 < decimal(p['minimum_coverage']) <= 1:
             raise ValueError('INVALID_MINIMUM_COVERAGE')
@@ -190,7 +220,20 @@ class SimilarityEngine:
                 'source_dataset_sha256': self._dataset.get('construction_origin', {}).get('sha256'),
                 'availability_policy': self._dataset.get('construction_origin', {}).get('availability_policy', 'Explicit per-record authored availability'),
                 'components': list(COMPONENTS), 'default_weights': deepcopy(self._profile['weights']),
-                'scope': 'exhaustive_authored_synthetic_pool',
+                # The interface used to state the windows as fixed prose ("14-day pre-index
+                # history; minimum creatinine in the preceding 48 hours"), which is wrong for
+                # any profile but the authored one. It reads them from here instead.
+                'index_rule': self._dataset['index_rule'],
+                # A handful of real concept identifiers, so the refinement form can offer a
+                # value that exists in the admitted cohort instead of an authored example.
+                'concept_examples': list(self._profile['concept_ancestors'])[:5],
+                'history_us': self._profile['history_us'],
+                'creatinine_window_us': self._profile['creatinine_window_us'],
+                # Was the single value `exhaustive_authored_synthetic_pool`, which carried
+                # both the search strategy and the data scope. The data half now follows
+                # the admitted dataset so a recorded pool cannot report itself authored.
+                'scope': self._dataset['scope'],
+                'search': 'exhaustive_pool',
                 'limits': {'patients': MAX_PATIENTS, 'records': MAX_RECORDS, 'revisions': MAX_REVISIONS}}
 
     def _extract(self, patient):

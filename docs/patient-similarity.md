@@ -86,10 +86,26 @@ assert replayed.get_revision(filtered['revision_id']) == filtered
 ```
 
 `metadata()` returns the patient list, component names, default weights, limits,
-source SHA and availability policy. `get_revision(id)` retrieves a defensive copy.
-A constructor may receive dictionaries or local JSON paths; the scope remains
-explicitly authored synthetic. This constructor is not an arbitrary clinical data
-import endpoint.
+source SHA, availability policy, the admitted index rule and history windows, and a
+few example concepts. `get_revision(id)` retrieves a defensive copy.
+
+A constructor may receive dictionaries or local JSON paths, and admits two scopes:
+
+| `scope` | required `mapping_review` | what it admits |
+|---|---|---|
+| `authored_synthetic` | `authored_synthetic_review` | the authored cohort |
+| `recorded_public_demo` | `pinned_public_demo_source_fidelity` | the pinned open-access MIMIC-IV demo |
+
+This is still not an arbitrary clinical data import endpoint. A `recorded_public_demo`
+dataset must carry a `source_pin` whose digests equal
+`data/clinical-source-demo-pin.json` exactly, compared against that file rather than
+against anything the dataset says about itself, so a cohort cannot name some other
+extract as its source. That checks the declaration, not the derivation: what ties the
+rows to the release is `tools/build_demo_cohort.py`, which digests all four files before
+reading any of them and refuses on a mismatch. Both scopes must declare
+`clinical_validity_claim: false`; a dataset that claims clinical validity is refused in
+either. `tools/build_demo_cohort.py` derives an admissible demo cohort, and
+`age_band` is not derivable from the pinned files -- see issue S3.
 
 Supported hard predicates are age-band `eq`, creatinine inclusive `between` with
 `min`/`max` decimal strings, and reviewed concept `contains`. Unknown concepts,

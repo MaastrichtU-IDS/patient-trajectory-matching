@@ -87,6 +87,39 @@ The [clinical-variable pack guide](../examples/clinical-features/README.md) docu
 source extraction and the reviewed input contract. Keep generated source rows and
 packs outside the repository.
 
+## Ranking the pinned demo stays
+
+`--public-demo-dir` configures the recorded treatment-evidence journey. It does not
+change the cohort the workspace ranks: similarity, refinement and source evidence run
+over the authored patients unless a derived cohort is supplied as well.
+
+```sh
+python tools/build_demo_cohort.py \
+  --mimic-dir /path/to/demo/icu --output-dir "$HOME/.ptm-demo-cohort"
+python -m app.server --host 127.0.0.1 --port 8080 \
+  --state-dir "$HOME/.ptm-state" \
+  --public-demo-dir /path/to/demo/icu \
+  --public-demo-cohort "$HOME/.ptm-demo-cohort"
+```
+
+The builder verifies all four files against `data/clinical-source-demo-pin.json` before
+reading any of them, and the engine admits the result only in the `recorded_public_demo`
+scope. On the pinned release this yields 138 rankable stays, 136 of them carrying
+charted creatinine. Keep the derived cohort outside the repository.
+
+Two surfaces change in this mode, and the interface says so rather than leaving a
+control that fails:
+
+- **Age band is never observed.** `anchor_age` is in `hosp/patients.csv.gz`, which this
+  repository does not pin, and no chartevents item carries it. The feature is reported
+  unobserved for every stay and the "require" control is disabled. This is issue S3.
+- **The fixed kidney trajectory is withdrawn.** It runs over the authored PRO/SOLID
+  projections, which the derived cohort does not carry.
+
+`/api/capabilities` names each surface's source in `source_modes`, so the cohort and the
+recorded journey can be read separately; `scope` describes only the recorded source the
+server was started with.
+
 The [research release guide](research-release.md) provides optional private Compose
 and Helm modes, owner credentials, consistent backups and restoration checks.
 A release tag remains conditional on the stated environment acceptance gates.
