@@ -95,7 +95,8 @@ over the authored patients unless a derived cohort is supplied as well.
 
 ```sh
 python tools/build_demo_cohort.py \
-  --mimic-dir /path/to/demo/icu --output-dir "$HOME/.ptm-demo-cohort"
+  --mimic-dir /path/to/demo/icu --hosp-dir /path/to/demo/hosp \
+  --output-dir "$HOME/.ptm-demo-cohort"
 python -m app.server --host 127.0.0.1 --port 8080 \
   --state-dir "$HOME/.ptm-state" \
   --public-demo-dir /path/to/demo/icu \
@@ -107,14 +108,23 @@ reading any of them, and the engine admits the result only in the `recorded_publ
 scope. On the pinned release this yields 138 rankable stays, 136 of them carrying
 charted creatinine. Keep the derived cohort outside the repository.
 
-Two surfaces change in this mode, and the interface says so rather than leaving a
-control that fails:
+**Age band depends on `--hosp-dir`.** `anchor_age` is in `hosp/patients.csv.gz`, pinned
+separately in `data/clinical-demographics-demo-pin.json`. Supplying the directory derives
+the band by decade from `anchor_age` plus the elapsed shifted years, claimed available at
+ICU admission rather than at the index. Ages MIMIC releases as 91 cannot be told apart
+from genuine nonagenarians, so 90 and over share a `90+` band. On the pinned release this
+yields all 140 stays banded, and raises the rankable pool from 138 to 140 because two
+stays whose only pre-index record is demographic now carry one. Omit `--hosp-dir` and the
+feature is reported unobserved for every stay with its "require" control disabled, exactly
+as before; `/api/capabilities` lists `derived-age-band` as unsupported only in that case,
+because the capability follows what the admitted cohort carries rather than which cohort
+it is.
 
-- **Age band is never observed.** `anchor_age` is in `hosp/patients.csv.gz`, which this
-  repository does not pin, and no chartevents item carries it. The feature is reported
-  unobserved for every stay and the "require" control is disabled. This is issue S3.
-- **The fixed kidney trajectory is withdrawn.** It runs over the authored PRO/SOLID
-  projections, which the derived cohort does not carry.
+One surface is still withdrawn, and the interface says so rather than leaving a control
+that fails:
+
+- **The fixed kidney trajectory.** It runs over the authored PRO/SOLID projections, which
+  the derived cohort does not carry.
 
 `/api/capabilities` names each surface's source in `source_modes`, so the cohort and the
 recorded journey can be read separately; `scope` describes only the recorded source the

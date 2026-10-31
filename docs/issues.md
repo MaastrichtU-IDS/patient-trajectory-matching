@@ -140,10 +140,19 @@ Fixing it surfaced a defect this entry had not recorded: completeness is a relat
 
 What remains open is one level down: declaring a window does not establish that the search of that window was exhaustive. The [source preflight](clinical-source-preflight.md) establishes that for the pinned public demo; no other source has it. The interval profiles are unaffected and carry their own coverage treatment — see [T1](#t1-the-four-profiles-are-not-unified).
 
-### S3. Age derivation not implemented **[gap]**
-*Source: [2.4 §5](../addenda/specification-2.4.md)*
+### S3. Age derivation from graph data remains unimplemented **[partial]**
+*Source: [2.4 §5](../addenda/specification-2.4.md), `tools/build_demo_cohort.py`*
 
-Age arrives from the manifest. Deriving it from graph data is unimplemented.
+Age arrives from the manifest. Deriving it from graph data is still unimplemented.
+Derivation from a pinned tabular source now exists: `--hosp-dir` reads
+`hosp/patients.csv.gz`, pinned in `data/clinical-demographics-demo-pin.json`, and emits
+a decade band per stay from `anchor_age` plus the elapsed shifted years. Demographics
+are pinned separately because `data/clinical-source-demo-pin.json` is the ICU source
+preflight manifest: `verify_clinical_source_preflight` asserts its table set equals the
+preflight's own source set and reconciles rows table by table, and the pressure
+benchmarks bind its digest, so a `hosp/` table added there would redefine what those
+verifiers assert. `SimilarityEngine` accepts a declared pin of the ICU set, or that set
+plus demographics, and nothing else.
 
 ### S4. Narrow ingestion profile **[gap]**
 *Source: [2.4 §6](../addenda/specification-2.4.md)*

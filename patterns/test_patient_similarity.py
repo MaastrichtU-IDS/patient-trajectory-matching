@@ -293,6 +293,8 @@ class RecordedPublicDemoScopeTests(unittest.TestCase):
         self.profile = json.loads((p.EXAMPLE / 'profile.json').read_text())
         pin = json.loads((p.ROOT / 'data/clinical-source-demo-pin.json').read_bytes())
         self.pin = {name: meta['file_sha256'] for name, meta in pin['files'].items()}
+        demographics = json.loads((p.ROOT / 'data/clinical-demographics-demo-pin.json').read_bytes())
+        self.demographics = {name: meta['file_sha256'] for name, meta in demographics['files'].items()}
 
     def recorded(self, **overrides):
         dataset = dict(self.dataset, scope='recorded_public_demo', source_pin=dict(self.pin))
@@ -305,6 +307,27 @@ class RecordedPublicDemoScopeTests(unittest.TestCase):
     def test_pinned_demo_dataset_is_admitted(self):
         engine = p.SimilarityEngine(self.recorded(), self.profile_for())
         self.assertEqual(engine.metadata()['scope'], 'recorded_public_demo')
+
+    def test_a_cohort_carrying_demographics_is_admitted(self):
+        """Deriving age needs hosp/patients.csv.gz, which the ICU pin may not name.
+
+        `data/clinical-source-demo-pin.json` is the ICU source preflight manifest: the
+        preflight verifier asserts its table set equals the preflight's source set, and
+        the pressure benchmarks bind its digest. Demographics therefore carry their own
+        pin, and a recorded dataset may declare the ICU set alone or the ICU set plus
+        demographics -- those two, and nothing else.
+        """
+        engine = p.SimilarityEngine(self.recorded(source_pin=dict(self.pin, **self.demographics)),
+                                    self.profile_for())
+        self.assertEqual(engine.metadata()['scope'], 'recorded_public_demo')
+
+    def test_a_partial_demographic_pin_is_refused(self):
+        for broken in (dict(self.pin, patients='0' * 64),
+                       dict(self.demographics),
+                       {name: value for name, value in self.pin.items() if name != 'chartevents'}):
+            with self.subTest(declared=sorted(broken)), \
+                    self.assertRaisesRegex(ValueError, 'SOURCE_PIN_DIFFERS_FROM_COMMITTED_DEMO'):
+                p.SimilarityEngine(self.recorded(source_pin=broken), self.profile_for())
 
     def test_unpinned_source_is_refused(self):
         wrong = dict(self.pin, chartevents='0' * 64)

@@ -73,6 +73,19 @@ class Workspace:
         self.lock = threading.RLock()
         self.ready = True
 
+    def _observes(self, component):
+        """Whether the admitted cohort carries any observation of a component.
+
+        The authored cohort always does. A derived public-demo cohort carries age_band
+        only when it was built with the demographics pin, so this is read from the
+        records rather than assumed from the mode.
+        """
+        source = self.cohort if self.cohort is not None else None
+        if source is None:
+            return True
+        return any(record['component'] == component
+                   for patient in source['patients'] for record in patient['records'])
+
     def capabilities(self):
         return {'status': 'ready' if self.ready else 'not-ready',
                 # `scope` names the recorded source this server was started with. It says
@@ -102,7 +115,12 @@ class Workspace:
                                 'multi-user-isolation', 'restricted-patient-data',
                                 'all-pairs-search', 'production-deployment'] +
                                ([] if self.dataset is not None else
-                                ['exact-and-declared-relaxed-trajectories', 'derived-age-band']) +
+                                ['exact-and-declared-relaxed-trajectories']) +
+                               # Keyed on what the admitted cohort carries, not on which
+                               # cohort it is: a demo cohort built with the demographics
+                               # pin does derive the band, and saying otherwise would
+                               # withdraw a control that works.
+                               ([] if self._observes('age_band') else ['derived-age-band']) +
                                (['authentication'] if self.access is None else []),
                 'max_request_bytes': MAX_BODY, 'max_saved_comparisons': MAX_COMPARISONS,
                 'metadata': self.engine.metadata()}

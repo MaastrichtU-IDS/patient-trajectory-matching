@@ -1,0 +1,13 @@
+{
+  "dataset_id": "mimic-iv-demo-2.2",
+  "source_url": "https://physionet.org/content/mimic-iv-demo/2.2/",
+  "checksum_url": "https://physionet.org/files/mimic-iv-demo/2.2/SHA256SUMS.txt",
+  "scope": "Demographic attributes used only to derive a ranking cohort. This is a separate pin because data/clinical-source-demo-pin.json is the ICU source preflight manifest: its table set and per-table row accounting are asserted by the preflight and pressure verifiers, which have no reason to read a hosp/ table.",
+  "files": {
+    "patients": {
+      "file_sha256": "59dcc6cd8450ddf03ad32cc7d76e41caa4c9633541715987f590c74835cf6fae",
+      "rows": 100,
+      "released_path": "hosp/patients.csv.gz"
+    }
+  }
+}
