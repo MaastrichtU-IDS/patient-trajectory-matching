@@ -13,6 +13,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / 'examples/patient-similarity'
 SOURCE_PIN = ROOT / 'data/clinical-source-demo-pin.json'
+# Demographics are pinned separately because SOURCE_PIN is the ICU source preflight
+# manifest: `verify_clinical_source_preflight` asserts its table set equals the
+# preflight's own source set and reconciles rows table by table, and the pressure
+# benchmarks bind its digest. A hosp/ table added there would redefine what those
+# verifiers assert, so it gets its own file instead.
+DEMOGRAPHICS_PIN = ROOT / 'data/clinical-demographics-demo-pin.json'
 # Each admitted scope and the mapping review it requires. `recorded_public_demo` is the
 # only non-authored scope. A dataset in it must declare the digests of the committed
 # open-access demo pin and they must equal it exactly, so a cohort cannot name some
@@ -21,6 +27,10 @@ SOURCE_PIN = ROOT / 'data/clinical-source-demo-pin.json'
 # digesting every file before it reads one.
 PERMITTED_SCOPES = {'authored_synthetic': 'authored_synthetic_review',
                     'recorded_public_demo': 'pinned_public_demo_source_fidelity'}
+# A revision is read away from the server that produced it, so the scope it reports has to
+# come from the dataset actually admitted. Spelling one of these in place would describe
+# pinned recorded stays as authored synthetic to every later reader of the export.
+RANKING_SCOPES = {scope: f'bounded_{scope}_exhaustive_ranking' for scope in PERMITTED_SCOPES}
 COMPONENTS = ('age_band', 'baseline_creatinine', 'clinical_concepts')
 HOUR = 3_600_000_000
 MAX_PATIENTS = 1000
@@ -52,6 +62,20 @@ def lexical(value):
 def _keys(value, required, optional=()):
     if not isinstance(value, dict) or set(value) - set(required) - set(optional) or set(required) - set(value):
         raise ValueError('INVALID_FIELDS')
+
+
+def _pinned(path):
+    return {name: meta['file_sha256'] for name, meta in json.loads(Path(path).read_bytes())['files'].items()}
+
+
+def _committed_pins():
+    """The two permitted declarations: the ICU set, or that set plus demographics.
+
+    Listed rather than treated as "any subset", so a cohort cannot drop a table it
+    found inconvenient and still be admitted.
+    """
+    icu = _pinned(SOURCE_PIN)
+    return [icu, {**icu, **_pinned(DEMOGRAPHICS_PIN)}]
 
 
 def _text(value):
@@ -107,8 +131,7 @@ class SimilarityEngine:
             return
         if not isinstance(declared, dict):
             raise ValueError('RECORDED_DEMO_REQUIRES_SOURCE_PIN')
-        committed = json.loads(SOURCE_PIN.read_bytes())['files']
-        if declared != {name: meta['file_sha256'] for name, meta in committed.items()}:
+        if declared not in _committed_pins():
             raise ValueError('SOURCE_PIN_DIFFERS_FROM_COMMITTED_DEMO')
 
     def _validate(self):
@@ -424,7 +447,7 @@ class SimilarityEngine:
                         'displayed_removed': sorted(({x['patient_id'] for x in parent['results']['displayed']} if parent else set()) - {x['patient_id'] for x in results['displayed']})},
             'clinical_validity_claim': False, 'outcomes_used_for_matching': False,
             'outcome_window': None, 'outcomes_status': 'not_implemented',
-            'scope': 'bounded_authored_synthetic_exhaustive_ranking'}
+            'scope': RANKING_SCOPES[self._dataset['scope']]}
         revision['revision_id'] = digest(revision)
         if revision['revision_id'] not in self._revisions and len(self._revisions) >= MAX_REVISIONS:
             raise ValueError('REVISION_LIMIT')

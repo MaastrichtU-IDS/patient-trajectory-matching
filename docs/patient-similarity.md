@@ -102,10 +102,14 @@ dataset must carry a `source_pin` whose digests equal
 against anything the dataset says about itself, so a cohort cannot name some other
 extract as its source. That checks the declaration, not the derivation: what ties the
 rows to the release is `tools/build_demo_cohort.py`, which digests all four files before
-reading any of them and refuses on a mismatch. Both scopes must declare
+reading any of them and refuses on a mismatch. A recorded dataset may declare the four
+ICU digests, or those plus `hosp/patients.csv.gz` from
+`data/clinical-demographics-demo-pin.json` when the cohort derives `age_band` -- those
+two sets and no other, so a cohort cannot drop a table it found inconvenient. Both scopes
+must declare
 `clinical_validity_claim: false`; a dataset that claims clinical validity is refused in
 either. `tools/build_demo_cohort.py` derives an admissible demo cohort, and
-`age_band` is not derivable from the pinned files -- see issue S3.
+`age_band` is derived only when the builder is given `--hosp-dir` -- see issue S3.
 
 Supported hard predicates are age-band `eq`, creatinine inclusive `between` with
 `min`/`max` decimal strings, and reviewed concept `contains`. Unknown concepts,
@@ -114,7 +118,11 @@ non-finite numbers and unsupported operations fail admission or validation.
 
 Each revision records its parent, dataset/profile/implementation hashes, reference
 patient and episode, immutable full base pool, index rule and history window,
-query and result hashes, operation and result. The replay manifest embeds the full
+query and result hashes, operation and result. Its `scope` is derived from the
+admitted dataset -- `bounded_authored_synthetic_exhaustive_ranking` or
+`bounded_recorded_public_demo_exhaustive_ranking` -- because a revision is read away
+from the server that produced it, and a fixed string there would describe pinned
+recorded stays as authored synthetic to every later reader of the export. The replay manifest embeds the full
 dataset, including each patient's clock/index/episode, profile and complete ancestor
 revision chain. Replaying recomputes every revision and rejects altered context,
 parents, queries or results. Changing implementation requires the recorded version;

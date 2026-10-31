@@ -58,6 +58,7 @@ function refreshEffects() {
     const effect = $('effect-' + component);
     if (effect) effect.textContent = featureEffect(component);
   }
+  renderRequirement();
 }
 // Hiding never reaches the server: it re-renders what is already in hand. A request here
 // would create a revision, and a revision is exactly what must not change.
@@ -76,11 +77,34 @@ function renderProfile(revision) {
     + (withheld ? ` ${withheld} feature${withheld > 1 ? 's are' : ' is'} hidden from this view; the analysis used all ${components.length}.` : '')
     + ` ${admitted.availability_policy || ''}`;
 }
+const REQUIREMENT_INPUT = {age_band:'band', baseline_creatinine:'maximum', clinical_concepts:'concept'};
+function requirementValue(component) {
+  const input = REQUIREMENT_INPUT[component];
+  return input ? String($(input).value ?? '').trim() : '';
+}
 function requirement(component) {
-  if (component === 'age_band') return {component, operator:'eq', value:$('band').value};
-  if (component === 'baseline_creatinine') return {component, operator:'between', value:{min:'0', max:$('maximum').value}};
-  if (component === 'clinical_concepts') return {component, operator:'contains', value:$('concept').value};
+  const value = requirementValue(component);
+  if (component === 'age_band') return {component, operator:'eq', value};
+  if (component === 'baseline_creatinine') return {component, operator:'between', value:{min:'0', max:value}};
+  if (component === 'clinical_concepts') return {component, operator:'contains', value};
   return null;
+}
+// The inputs below the dispositions are read only for a feature set to Must match, and the
+// two ways of getting that wrong fail in opposite directions: a value with no Must match is
+// dropped in silence, and a Must match with no value is refused by the engine in its own
+// vocabulary. Stating what Apply will send makes the first visible; plan() refuses the
+// second here, where the feature still has a name the operator recognises.
+function renderRequirement() {
+  const required = components.filter(component => modes[component] === 'must' && REQUIREMENT_INPUT[component]);
+  const unused = components.filter(component => modes[component] !== 'must' && requirementValue(component));
+  const names = list => list.map(component => LABELS[component] || component).join(' and ');
+  const idle = unused.length
+    ? ` Values entered for ${names(unused)} are not used, because ${unused.length > 1 ? 'those features are' : 'that feature is'} not set to Must match.`
+    : '';
+  $('requirement').textContent = (required.length
+    ? `Apply will require: ${required.map(component =>
+        `${LABELS[component] || component} ${requirementValue(component) ? '= ' + requirementValue(component) : '(no value entered)'}`).join('; ')}.`
+    : 'No feature is set to Must match, so no value below is used; Apply will change ranking weights only.') + idle;
 }
 function plan() {
   const weights = {};
@@ -98,7 +122,12 @@ function plan() {
   for (const component of components) {
     if (modes[component] !== 'must') continue;
     const predicate = requirement(component);
-    if (predicate) operations.push({type:'add_filter', predicate});
+    if (!predicate) continue;
+    if (!requirementValue(component)) {
+      throw new Error(`${LABELS[component] || component} is set to Must match but has no value to match on. `
+        + 'Enter the value to require, or set that feature to Prefer similar or Ignore.');
+    }
+    operations.push({type:'add_filter', predicate});
   }
   return operations;
 }
@@ -209,6 +238,7 @@ $('components').onchange = event => {
   else modes[component] = event.target.value;
   renderHidden();
 };
+for (const input of Object.values(REQUIREMENT_INPUT)) $(input).oninput = () => renderRequirement();
 $('apply').onclick = () => action(async()=>{
   const operations = plan();
   if (!operations) throw new Error('At least one feature must be set to Prefer similar; a ranking needs something to rank on.');

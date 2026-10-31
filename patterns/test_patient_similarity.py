@@ -278,7 +278,6 @@ class PatientSimilarityTests(unittest.TestCase):
         self.assertFalse(self.revision()['clinical_validity_claim'])
         self.assertFalse(self.revision()['outcomes_used_for_matching'])
 
-if __name__=='__main__':unittest.main()
 
 
 class RecordedPublicDemoScopeTests(unittest.TestCase):
@@ -294,6 +293,8 @@ class RecordedPublicDemoScopeTests(unittest.TestCase):
         self.profile = json.loads((p.EXAMPLE / 'profile.json').read_text())
         pin = json.loads((p.ROOT / 'data/clinical-source-demo-pin.json').read_bytes())
         self.pin = {name: meta['file_sha256'] for name, meta in pin['files'].items()}
+        demographics = json.loads((p.ROOT / 'data/clinical-demographics-demo-pin.json').read_bytes())
+        self.demographics = {name: meta['file_sha256'] for name, meta in demographics['files'].items()}
 
     def recorded(self, **overrides):
         dataset = dict(self.dataset, scope='recorded_public_demo', source_pin=dict(self.pin))
@@ -306,6 +307,27 @@ class RecordedPublicDemoScopeTests(unittest.TestCase):
     def test_pinned_demo_dataset_is_admitted(self):
         engine = p.SimilarityEngine(self.recorded(), self.profile_for())
         self.assertEqual(engine.metadata()['scope'], 'recorded_public_demo')
+
+    def test_a_cohort_carrying_demographics_is_admitted(self):
+        """Deriving age needs hosp/patients.csv.gz, which the ICU pin may not name.
+
+        `data/clinical-source-demo-pin.json` is the ICU source preflight manifest: the
+        preflight verifier asserts its table set equals the preflight's source set, and
+        the pressure benchmarks bind its digest. Demographics therefore carry their own
+        pin, and a recorded dataset may declare the ICU set alone or the ICU set plus
+        demographics -- those two, and nothing else.
+        """
+        engine = p.SimilarityEngine(self.recorded(source_pin=dict(self.pin, **self.demographics)),
+                                    self.profile_for())
+        self.assertEqual(engine.metadata()['scope'], 'recorded_public_demo')
+
+    def test_a_partial_demographic_pin_is_refused(self):
+        for broken in (dict(self.pin, patients='0' * 64),
+                       dict(self.demographics),
+                       {name: value for name, value in self.pin.items() if name != 'chartevents'}):
+            with self.subTest(declared=sorted(broken)), \
+                    self.assertRaisesRegex(ValueError, 'SOURCE_PIN_DIFFERS_FROM_COMMITTED_DEMO'):
+                p.SimilarityEngine(self.recorded(source_pin=broken), self.profile_for())
 
     def test_unpinned_source_is_refused(self):
         wrong = dict(self.pin, chartevents='0' * 64)
@@ -333,8 +355,26 @@ class RecordedPublicDemoScopeTests(unittest.TestCase):
             with self.subTest(scope=scope), self.assertRaisesRegex(ValueError, 'UNPERMITTED_DATASET_SCOPE'):
                 p.SimilarityEngine(dict(self.dataset, scope=scope), self.profile)
 
+    def test_the_revision_record_names_the_scope_it_ranked(self):
+        """The revision is the exported, replayable record of a ranking.
+
+        It is read away from the running server, so a fixed authored string in it
+        describes pinned recorded stays as synthetic to every later reader. The
+        scope is derived from the admitted dataset so the two cannot disagree.
+        """
+        authored = p.SimilarityEngine(self.dataset, self.profile)
+        recorded = p.SimilarityEngine(self.recorded(), self.profile_for())
+        for engine, expected in ((authored, 'bounded_authored_synthetic_exhaustive_ranking'),
+                                 (recorded, 'bounded_recorded_public_demo_exhaustive_ranking')):
+            revision = engine.initial(engine.metadata()['patients'][0]['patient_id'], 5)
+            with self.subTest(scope=engine.metadata()['scope']):
+                self.assertEqual(revision['scope'], expected)
+                self.assertIn(engine.metadata()['scope'], revision['scope'])
+
     def test_a_clinical_validity_claim_is_refused_in_either_scope(self):
         for dataset in (dict(self.dataset, clinical_validity_claim=True),
                         self.recorded(clinical_validity_claim=True)):
             with self.subTest(scope=dataset['scope']), self.assertRaisesRegex(ValueError, 'UNPERMITTED_DATASET_SCOPE'):
                 p.SimilarityEngine(dataset, self.profile)
+
+if __name__=='__main__':unittest.main()

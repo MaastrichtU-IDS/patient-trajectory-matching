@@ -14,11 +14,20 @@ What is and is not derived, measured on the pinned release:
                        `mimic:item/<itemid>`, each with its dictionary category as its
                        one ancestor -- the same shape as the authored ancestor
                        expansion, taken from the source dictionary rather than invented.
-  age_band             NOT DERIVED. `anchor_age` lives in `hosp/patients.csv.gz`, which
-                       this repository does not pin, and no chartevents item carries it.
-                       Every patient reports age_band unobserved, which the engine
-                       already handles as missingness and the interface already explains.
-                       This is issue S3; do not synthesise a value to fill the column.
+  age_band             Derived only when --hosp-dir supplies the separately pinned
+                       `hosp/patients.csv.gz`; banded by decade, and `90+` for the ages
+                       MIMIC releases as 91 and cannot be distinguished from genuine nonagenarians. Age at admission is `anchor_age` plus the
+                       elapsed shifted years, and is claimed available at ICU admission
+                       rather than at the index. Without --hosp-dir every patient
+                       reports age_band unobserved, which the engine handles as
+                       missingness and the interface explains. Never synthesise a value
+                       to fill the column.
+
+Demographics are pinned in `data/clinical-demographics-demo-pin.json`, not in the ICU
+pin: that file is the source preflight manifest, and its table set and per-table row
+accounting are asserted by the preflight and pressure verifiers, which have no reason to
+read a hosp/ table. The engine accepts a declared pin of the ICU set, or that set plus
+demographics, and nothing else.
 
 The index is `intime + --index-hours` (24 by default), the standard first-day ICU
 landmark. 24 hours reaches 136 of 140 stays with at least one pre-index creatinine, and
@@ -45,6 +54,7 @@ sys.path.insert(0, str(ROOT))
 from patterns import patient_similarity as similarity
 
 PIN = ROOT / 'data/clinical-source-demo-pin.json'
+DEMOGRAPHICS_PIN = ROOT / 'data/clinical-demographics-demo-pin.json'
 CREATININE_ITEMS = {'220615': 'Creatinine (serum)', '229761': 'Creatinine (whole blood)'}
 CHART_TIME = '%Y-%m-%d %H:%M:%S'
 VERSION = 'public-demo-ranking-cohort-1.0'
@@ -184,11 +194,69 @@ def concept_records(folder, stays, admitted, digest):
     return found
 
 
-def patients(stays, creatinine, concepts, index_rule):
+def read_demographics(folder, digest):
+    """Age at ICU admission, banded by decade, from the separately pinned hosp table.
+
+    MIMIC shifts each subject's dates by a per-subject offset but publishes `anchor_age`
+    as the age in `anchor_year`, so age at admission is that plus the elapsed shifted
+    years. Ages over 89 are released as 91, so anything computed at 90 or more may be a
+    censored elder or a genuine one; they share a `90+` band rather than being spread
+    across decades that were never recorded.
+    """
+    ages = {}
+    for index, row in enumerate(rows(folder, 'patients'), start=1):
+        ages[row['subject_id']] = {'anchor_age': int(row['anchor_age']),
+                                   'anchor_year': int(row['anchor_year']),
+                                   'row': str(index), 'document': f'patients.csv.gz:{digest}'}
+    return ages
+
+
+def band_for(age):
+    # MIMIC releases ages over 89 as 91, so a computed 90 or more may be a censored
+    # elder or a genuine one and the two cannot be told apart. They share a band, and
+    # 89 stays in 80-89 because an 89 in the release is a real 89.
+    if age >= 90:
+        return '90+'
+    floor = (age // 10) * 10
+    return f'{floor}-{floor + 9}'
+
+
+def age_band_records(stays, ages):
+    """One banded observation per stay, available at ICU admission.
+
+    Age is a demographic attribute rather than an event: it is knowable before the
+    stay begins. Admission is the first moment this cohort can source it, so that is
+    the availability claimed -- never the index, which would assert knowledge the
+    pre-index window is built to exclude.
+    """
+    found = defaultdict(list)
+    for stay_id, stay in stays.items():
+        record = ages.get(stay['subject_id'])
+        if record is None:
+            continue
+        age = record['anchor_age'] + (stay['intime'].year - record['anchor_year'])
+        if age < 0:
+            continue
+        offset = micros(stay['intime'] - stay['index'])
+        found[stay_id].append({
+            'id': f'age-{stay_id}',
+            'component': 'age_band',
+            'value': band_for(age),
+            'occurrence_us': offset,
+            'available_at_us': offset,
+            'source': {'document': record['document'],
+                       'row': record['row'],
+                       'availability_policy': 'Demographic attribute available at ICU admission; '
+                                              'age at admission is anchor_age plus elapsed shifted years.'}})
+    return found
+
+
+def patients(stays, creatinine, concepts, index_rule, age_bands=None):
     result = []
     for stay_id in sorted(stays, key=int):
         stay = stays[stay_id]
-        records = creatinine.get(stay_id, []) + concepts.get(stay_id, [])
+        records = (creatinine.get(stay_id, []) + concepts.get(stay_id, [])
+                   + ((age_bands or {}).get(stay_id, [])))
         if not records:
             continue
         clock = f'stay-{stay_id}-relative'
@@ -206,15 +274,21 @@ def patients(stays, creatinine, concepts, index_rule):
     return result
 
 
-def build(folder, *, index_hours, concept_limit, pin_path=PIN):
+def build(folder, *, index_hours, concept_limit, pin_path=PIN, hosp_folder=None):
     pin, digests = verify_sources(folder, pin_path)
     stays = read_stays(folder, index_hours)
     ancestors, admitted, available = concept_vocabulary(folder, stays, index_hours, concept_limit)
     creatinine = creatinine_records(folder, stays, digests['chartevents'])
     concepts = concept_records(folder, stays, admitted, digests['inputevents'])
+    age_bands = None
+    if hosp_folder is not None:
+        _, demographic_digests = verify_sources(Path(hosp_folder), DEMOGRAPHICS_PIN)
+        digests = {**digests, **demographic_digests}
+        age_bands = age_band_records(stays, read_demographics(Path(hosp_folder),
+                                                              demographic_digests['patients']))
     index_rule = (f'ICU intime plus {index_hours} hours; every record strictly before it. '
                   'Modelling landmark only -- no clinical review.')
-    pool = patients(stays, creatinine, concepts, index_rule)
+    pool = patients(stays, creatinine, concepts, index_rule, age_bands)
     require(len(pool) >= 2, 'Pinned demo yielded fewer than two rankable stays')
 
     dataset = {
@@ -234,16 +308,18 @@ def build(folder, *, index_hours, concept_limit, pin_path=PIN):
             # Every construction_origin value is capped at 200 characters by the engine,
             # so this states the two facts a reader must not miss and the module
             # docstring carries the rest.
-            'scope': f'{VERSION}; age_band not derivable from the pinned files, unobserved '
-                     f'for every stay; concepts cut to {len(ancestors)} of {available} by '
-                     'stay coverage; source fidelity only, no clinical approval.'},
+            'scope': f'{VERSION}; age_band ' + ('banded by decade from the pinned hosp table, '
+                     '90+ censored' if age_bands else 'not derivable, unobserved for every stay')
+                     + f'; concepts cut to {len(ancestors)} of {available} by stay coverage; '
+                     'source fidelity only, no clinical approval.'},
         'patients': pool}
 
     profile = {
         'profile_id': f'public-demo-first-{index_hours}h-ranking-1.0',
         'clinical_validity_claim': False,
         'mapping_review': 'pinned_public_demo_source_fidelity',
-        'weights': {'age_band': '0', 'baseline_creatinine': '1', 'clinical_concepts': '1'},
+        'weights': {'age_band': '1' if age_bands else '0',
+                    'baseline_creatinine': '1', 'clinical_concepts': '1'},
         'minimum_coverage': '0.5',
         'history_us': index_hours * similarity.HOUR,
         'creatinine_window_us': index_hours * similarity.HOUR,
@@ -264,12 +340,15 @@ def main():
                         help='Index landmark as hours after ICU intime (default 24)')
     parser.add_argument('--concept-limit', type=int, default=80,
                         help='Reviewed concepts retained, by stay coverage (default 80, profile ceiling 100)')
+    parser.add_argument('--hosp-dir', type=Path, default=None,
+                        help='Directory holding the pinned hosp/patients.csv.gz; supplying it derives '
+                             'age_band. Omit it and age_band stays unobserved for every stay.')
     args = parser.parse_args()
     require(0 < args.index_hours <= 24 * 365, 'index-hours must be a positive window within a year')
     require(0 < args.concept_limit <= 100, 'concept-limit must be between 1 and the profile ceiling of 100')
 
     dataset, profile, _ = build(args.mimic_dir, index_hours=args.index_hours,
-                                concept_limit=args.concept_limit)
+                                concept_limit=args.concept_limit, hosp_folder=args.hosp_dir)
     # Admit through the engine before writing: a cohort the workspace would refuse to
     # load is not worth leaving on disk looking usable.
     engine = similarity.SimilarityEngine(dataset, profile)
