@@ -278,7 +278,6 @@ class PatientSimilarityTests(unittest.TestCase):
         self.assertFalse(self.revision()['clinical_validity_claim'])
         self.assertFalse(self.revision()['outcomes_used_for_matching'])
 
-if __name__=='__main__':unittest.main()
 
 
 class RecordedPublicDemoScopeTests(unittest.TestCase):
@@ -333,8 +332,26 @@ class RecordedPublicDemoScopeTests(unittest.TestCase):
             with self.subTest(scope=scope), self.assertRaisesRegex(ValueError, 'UNPERMITTED_DATASET_SCOPE'):
                 p.SimilarityEngine(dict(self.dataset, scope=scope), self.profile)
 
+    def test_the_revision_record_names_the_scope_it_ranked(self):
+        """The revision is the exported, replayable record of a ranking.
+
+        It is read away from the running server, so a fixed authored string in it
+        describes pinned recorded stays as synthetic to every later reader. The
+        scope is derived from the admitted dataset so the two cannot disagree.
+        """
+        authored = p.SimilarityEngine(self.dataset, self.profile)
+        recorded = p.SimilarityEngine(self.recorded(), self.profile_for())
+        for engine, expected in ((authored, 'bounded_authored_synthetic_exhaustive_ranking'),
+                                 (recorded, 'bounded_recorded_public_demo_exhaustive_ranking')):
+            revision = engine.initial(engine.metadata()['patients'][0]['patient_id'], 5)
+            with self.subTest(scope=engine.metadata()['scope']):
+                self.assertEqual(revision['scope'], expected)
+                self.assertIn(engine.metadata()['scope'], revision['scope'])
+
     def test_a_clinical_validity_claim_is_refused_in_either_scope(self):
         for dataset in (dict(self.dataset, clinical_validity_claim=True),
                         self.recorded(clinical_validity_claim=True)):
             with self.subTest(scope=dataset['scope']), self.assertRaisesRegex(ValueError, 'UNPERMITTED_DATASET_SCOPE'):
                 p.SimilarityEngine(dataset, self.profile)
+
+if __name__=='__main__':unittest.main()

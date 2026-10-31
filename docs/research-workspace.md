@@ -30,6 +30,15 @@ The verifier checks the outer fingerprint, the complete similarity revision chai
 4. Choose relaxation budget **2**, then **Run trajectory comparison**. The full hard-filter-eligible population is evaluated, including patients outside the displayed top five. Exact members are **P01, P02 and P03**. The authored permitted relaxations add **P04, P05 and P06**. P10 remains unresolved because its source search is incomplete. The result names the cost model that priced it — `point-anchor-relaxation-1.0` — because the repository has two and they are not comparable. This budget bounds the **sum** of component costs across relaxed targets; the temporal uncertainty workflow's number bounds the single option it applies and is never summed. The two numbers must not be read against each other ([decision](decisions/relaxation-cost-models.md)).
 5. Inspect **P03**. The original baseline is **8.0 mg/L**, with its existing PRO/SOLID binding preserving normalized **0.80 mg/dL**, patient role, source record and provenance. Then download the reproducible analysis.
 
+The value boxes below the roles are read only for a feature set to Must match, and the
+line beneath them states which requirements **Apply feature settings** will send. It is
+there because the two ways of getting this wrong fail in opposite directions. A value
+typed beside a feature left on Prefer similar is not sent at all, so the eligible count
+does not move and an unwarned operator reads that as the criterion having excluded
+nobody. A feature set to Must match with an empty box is refused by the engine in its own
+vocabulary (`INVALID_TEXT`, `INVALID_DECIMAL`); the page refuses it first, naming the
+feature to fix, so no such request is made.
+
 **Hide from view** is the fourth disposition and is not one of the three roles. It changes what this page shows and nothing else: it is never sent to the server, so it creates no revision and cannot move a patient into or out of the cohort or change the order. A hidden feature is withheld from the weights line and from the evidence panel wherever the evidence names it, and the weights line says how many features are hidden and that the analysis used all of them. Unhiding restores the withheld rows from the response already in hand, without another request.
 
 Returning to a parent revision restores its saved query and results. Starting or changing a revision clears the earlier trajectory comparison, its cost-model line and the export link, so a result is never displayed as belonging to a newly selected revision. A failed trajectory run has no successful export link.

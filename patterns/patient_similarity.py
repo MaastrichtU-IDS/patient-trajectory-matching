@@ -21,6 +21,10 @@ SOURCE_PIN = ROOT / 'data/clinical-source-demo-pin.json'
 # digesting every file before it reads one.
 PERMITTED_SCOPES = {'authored_synthetic': 'authored_synthetic_review',
                     'recorded_public_demo': 'pinned_public_demo_source_fidelity'}
+# A revision is read away from the server that produced it, so the scope it reports has to
+# come from the dataset actually admitted. Spelling one of these in place would describe
+# pinned recorded stays as authored synthetic to every later reader of the export.
+RANKING_SCOPES = {scope: f'bounded_{scope}_exhaustive_ranking' for scope in PERMITTED_SCOPES}
 COMPONENTS = ('age_band', 'baseline_creatinine', 'clinical_concepts')
 HOUR = 3_600_000_000
 MAX_PATIENTS = 1000
@@ -424,7 +428,7 @@ class SimilarityEngine:
                         'displayed_removed': sorted(({x['patient_id'] for x in parent['results']['displayed']} if parent else set()) - {x['patient_id'] for x in results['displayed']})},
             'clinical_validity_claim': False, 'outcomes_used_for_matching': False,
             'outcome_window': None, 'outcomes_status': 'not_implemented',
-            'scope': 'bounded_authored_synthetic_exhaustive_ranking'}
+            'scope': RANKING_SCOPES[self._dataset['scope']]}
         revision['revision_id'] = digest(revision)
         if revision['revision_id'] not in self._revisions and len(self._revisions) >= MAX_REVISIONS:
             raise ValueError('REVISION_LIMIT')
