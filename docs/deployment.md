@@ -96,6 +96,45 @@ readiness; it does not certify clinical mappings or dataset validity. Startup,
 liveness and readiness probes keep these concerns separate. Remove an installation
 with `helm uninstall research --namespace trajectory-research`.
 
+## Cloud Run with an owner password
+
+The hosted demonstration runs the same image on Cloud Run, protected by the workspace's own single-owner login (username `owner`, a random secret of 32 to 256 characters) instead of Google sign-in.
+
+The workspace refuses owner authentication on anything but a loopback address, so its Basic credential never crosses a network in the clear. Cloud Run terminates TLS at Google's front end and delivers requests to `0.0.0.0:$PORT`. [`deploy/cloud_run.py`](../deploy/cloud_run.py) keeps the workspace on `127.0.0.1` and relays the platform's connections to it byte for byte; it parses no HTTP, so authentication, routing and errors stay with the workspace. The secret is mounted from Secret Manager and copied into an owner-private file before the workspace starts, as in the local release. `/healthz` and `/readyz` stay open for the platform; every other route needs the login.
+
+What this trades away, compared with IAP:
+
+- one shared credential: anyone who has it is the owner, and revoking one person means rotating it for everyone
+- no record of who signed in, only that the owner did
+- the URL is public; only the secret stands between it and the workspace
+- state lives on the instance's in-memory filesystem and ends with it
+
+Deploy with exactly one instance. The workspace is single-owner and single-process, and keeps a session's revisions in that process; several instances would spread one session across processes that do not share it.
+
+Create the secret without printing it, keep a private local copy for yourself, and let the service read it:
+
+```sh
+umask 077
+python3 -c "import secrets; print('owner:' + secrets.token_urlsafe(48))" > ~/.ptm-demo-owner
+gcloud secrets create ptm-demo-owner --data-file="$HOME/.ptm-demo-owner" --project dumontier-charm
+gcloud secrets add-iam-policy-binding ptm-demo-owner --project dumontier-charm \
+  --member="serviceAccount:$(gcloud run services describe ptm-demo --region us-central1 --project dumontier-charm --format='value(spec.template.spec.serviceAccountName)')" \
+  --role=roles/secretmanager.secretAccessor
+```
+
+Deploy from the repository root:
+
+```sh
+gcloud run deploy ptm-demo --source . --region us-central1 --project dumontier-charm \
+  --command python --args=-m,deploy.cloud_run \
+  --set-secrets=/run/secrets/ptm-owner/owner=ptm-demo-owner:latest \
+  --max-instances 1 --no-iap --no-invoker-iam-check
+```
+
+`--no-invoker-iam-check` makes the service reachable without granting `allUsers` the invoker role. `--allow-unauthenticated` would grant it, and this organisation's domain-restricted sharing policy (`iam.allowedPolicyMemberDomains`) rejects `allUsers` bindings.
+
+Sign in with username `owner` and the part of `~/.ptm-demo-owner` after `owner:`. To rotate, write a new file the same way, add it with `gcloud secrets versions add ptm-demo-owner --data-file=...`, and redeploy so a new instance reads it.
+
 ## Validation gates and evidence limits
 
 Before accepting a deployment, run the application and engine tests documented in

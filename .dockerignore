@@ -15,5 +15,6 @@ evaluation
 deploy/*
 !deploy/local_runtime.py
 !deploy/state_archive.py
+!deploy/cloud_run.py
 node_modules
 **/.DS_Store
