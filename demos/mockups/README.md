@@ -65,10 +65,10 @@ Terminology codes are illustrative and were written from memory to make coding v
 
 ## Deployment
 
-The `Dockerfile` serves these pages with nginx and regenerates the dataset during the build, so the generated file is never uploaded. The deployed copy is the Cloud Run service `ptm-mockups` in `dumontier-charm`, behind IAP with the same access list as `ptm-demo`:
+The `Dockerfile` serves these pages with nginx and regenerates the dataset during the build, so the generated file is never uploaded. No hosted copy is currently running; the Cloud Run service `ptm-mockups` was removed on 4 November 2026. To host it again behind IAP:
 
 ```sh
-gcloud run deploy ptm-mockups --source demos/mockups --region us-central1 --project dumontier-charm
+gcloud run deploy ptm-mockups --source demos/mockups --region us-central1 --project dumontier-charm --iap --no-allow-unauthenticated
 ```
 
-Access settings carry over to new revisions.
+Then grant `roles/iap.httpsResourceAccessor` to the people who should see it.

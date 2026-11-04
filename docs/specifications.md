@@ -185,7 +185,7 @@ Defines what "temporal knowledge graph" means for this product: a knowledge grap
 
 The two cannot be silently interchanged. Replay coverage is `COMPLETE`, `PARTIAL` or `UNAVAILABLE`, independent of `computation_status`. Replay evidence does not establish what a clinician actually read or knew.
 
-Contributes 11 TRP requirements and gates AC17/AC18. Assets: `ui/temporal-replay-2.3.json`, `examples/temporal-replay-cases-2.3.json` (8 case families), `evaluation/graphiti-comparison-2.3.json`.
+Contributes 11 TRP requirements and gates AC17/AC18. Assets: `docs/specification/ui/temporal-replay-2.3.json`, `examples/temporal-replay-cases-2.3.json` (8 case families), `docs/specification/evaluation/graphiti-comparison-2.3.json`.
 
 **No Graphiti measurements exist in this repository.** The comparison is a protocol.
 

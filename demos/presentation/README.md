@@ -156,7 +156,7 @@ node demos/presentation/test_guided_ui.cjs
 
 `build_demo.py` rebuilds the technical replay and requires a successful semantic gate. `build_guided.py` constructs eleven independent graphs, validates and projects each with `patterns.pro_solid`, computes every guided result with `reference_oracle.py`, and bundles the CSS, JavaScript, data and `story.json` into `Guided_Cohort_Demo.html`. Rebuilding requires the pinned graph dependencies; serving the committed guided artifacts does not.
 
-The builders record source fingerprints and their generation-base commit. Generated examples are committed so the core server and replay work immediately after cloning. The evidence reports identify the native build used to generate them; they are recorded results, not a claim about the visitor's runtime. The complete product UI remains specified in `ui/`; this demonstration exposes only the existing bounded examples.
+The builders record source fingerprints and their generation-base commit. Generated examples are committed so the core server and replay work immediately after cloning. The evidence reports identify the native build used to generate them; they are recorded results, not a claim about the visitor's runtime. The complete product UI remains specified in `docs/specification/ui/`; this demonstration exposes only the existing bounded examples.
 
 ## Live mapped pressure example
 
