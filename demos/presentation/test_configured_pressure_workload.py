@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parent))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import benchmark_configured_pressure as workload
 
 ROOT = workload.ROOT
@@ -85,7 +86,7 @@ class ConfiguredWorkloadTests(unittest.TestCase):
     def test_prepared_cache_eviction_reports_real_readmission(self):
         self.edit(self.config,lambda value:value.update(source_dir=str(ROOT/'examples/source-mixed-query'),
             pressure_request=str(ROOT/'examples/indexed-source-windows/synthetic-request.json'),
-            source_review=str(ROOT/'demo/pressure-synthetic-review.json'),
+            source_review=str(ROOT/'services/pressure-synthetic-review.json'),
             mapping_dir=str(ROOT/'examples/measurement-source-catalogue')))
         self.edit(self.queries,lambda value:value.update(queries=value['queries'][:1]))
         factory = workload.mapped.BatchExecutor

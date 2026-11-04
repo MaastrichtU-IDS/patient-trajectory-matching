@@ -26,13 +26,13 @@ For the integrated research prototype, after installing the pinned semantic depe
 python -m pip install -r patterns/requirements-semantic.lock.txt
 python -m unittest discover -s patterns -t . -p 'test_*.py'
 python reference_oracle.py
-python -m unittest discover -s demo -p 'test_*.py'
+python -m unittest discover -s demos/presentation -p 'test_*.py'
 python -m unittest discover -s app -p 'test_*.py'
 python -m unittest discover -s tools -p 'test_*.py'
 node app/test_ui.cjs
-node demo/test_guided_ui.cjs
-node demo/test_pressure_ui.cjs
-node demo/test_configured_pressure_ui.cjs
+node demos/presentation/test_guided_ui.cjs
+node demos/presentation/test_pressure_ui.cjs
+node demos/presentation/test_configured_pressure_ui.cjs
 python tools/check_completion.py --output verification/research-prototype-run/completion.json
 ```
 
@@ -641,9 +641,9 @@ Fourteen tests check actual synthetic item strata, all 4,096 membership combinat
 ## Local pressure-query UI and API
 
 ```sh
-python -m unittest discover -s demo -p 'test_*.py'
-node demo/test_guided_ui.cjs
-node demo/test_pressure_ui.cjs
+python -m unittest discover -s demos/presentation -p 'test_*.py'
+node demos/presentation/test_guided_ui.cjs
+node demos/presentation/test_pressure_ui.cjs
 ```
 
 The initial pressure UI/API added 15 Python tests; the current demo suite has 40 tests including the cache increment below, separate from the 687 contract checks. Pressure tests cover altered-window execution and SQL equivalence, source/review changes, exact evidence, complete-result gates, local HTTP controls and the committed public-demo aggregate. DOM-state checks include failed and stale requests. The [runbook](live-pressure-inspector.md) documents source setup, live arterial verification and the remaining browser rehearsal.
@@ -653,7 +653,7 @@ The initial pressure UI/API added 15 Python tests; the current demo suite has 40
 
 The [pressure cache contract](pressure-query-cache.md) adds 11 Python tests to the 29-test demo suite (40 total), separate from the 687 contract checks. It checks exact result/evidence reuse, fresh execution for changed controls, pre- and post-lookup source/review/implementation invalidation, failure suppression, bounded eviction, preparation switches and inspector response isolation. The pressure DOM test checks the reuse label and zero fresh-execution time.
 
-`demo/benchmark_pressure_cache.py` reproduces cold preparation, a second fresh graph/SQL query over the prepared source, and three cache hits. It compares all result fields except elapsed time and all anchor inspections exactly. The committed synthetic and public arterial reports contain aggregate evidence and timing samples. CI checks their current implementation hashes and public-source pin without downloading source records or asserting a speed threshold. No additional ontology or temporal-core contract is introduced.
+`demos/presentation/benchmark_pressure_cache.py` reproduces cold preparation, a second fresh graph/SQL query over the prepared source, and three cache hits. It compares all result fields except elapsed time and all anchor inspections exactly. The committed synthetic and public arterial reports contain aggregate evidence and timing samples. CI checks their current implementation hashes and public-source pin without downloading source records or asserting a speed threshold. No additional ontology or temporal-core contract is introduced.
 
 
 ## Prepared pressure queries
@@ -713,8 +713,8 @@ Twenty tests cover cold admission, eliminated repeated work, defensive copies, s
 ## Live mapped pressure jobs and cache lifecycle
 
 ```bash
-python -m unittest discover -s demo -p 'test_mapped_pressure.py'
-python demo/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
+python -m unittest discover -s demos/presentation -p 'test_mapped_pressure.py'
+python demos/presentation/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
 ```
 
 Sixteen tests cover reviewed mapping gates, live/fresh query and inspection equality, cache invalidation on review/source/implementation changes, SQL disagreement, query envelopes, malformed input, budgets, eviction and defensive copies. Demo CI uploads the aggregate result of the real HTTP test. The demo suite totals 67 tests; the contract total was 781 at this increment. [The runbook](mapped-pressure-service.md) distinguishes local timing observations from a performance guarantee.
@@ -723,8 +723,8 @@ Sixteen tests cover reviewed mapping gates, live/fresh query and inspection equa
 ## Configured mapped pressure service
 
 ```sh
-python -m unittest discover -s demo -p 'test_configured_pressure.py'
-node demo/test_configured_pressure_ui.cjs
+python -m unittest discover -s demos/presentation -p 'test_configured_pressure.py'
+node demos/presentation/test_configured_pressure_ui.cjs
 ```
 
 Thirteen additional integration tests bring the demo suite to 80; the contract suite was 781 checks at this increment. Configured HTTP evidence is written to `verification/configured-pressure-run/report.json` and uploaded by CI. Tests cover alternate source/item operation, exact fresh-result and inspection equality, request boundaries, immutable reviews and failure during cached or active work. The [runbook](configured-pressure-service.md) documents the supported pressure shape and review requirements.
@@ -733,7 +733,7 @@ Thirteen additional integration tests bring the demo suite to 80; the contract s
 ## Configured pressure workloads
 
 ```sh
-python -m unittest discover -s demo -p 'test_configured_pressure_workload.py'
+python -m unittest discover -s demos/presentation -p 'test_configured_pressure_workload.py'
 ```
 
 Twelve additional tests bring the demo suite to 92; the contract suite was 781 checks at this increment. The [workload runbook](configured-pressure-workload.md) documents the CLI, aggregate committed evidence and failure behavior. Demo CI uploads a fresh one-repetition HTTP workload report; elapsed times are observations, not pass/fail thresholds.

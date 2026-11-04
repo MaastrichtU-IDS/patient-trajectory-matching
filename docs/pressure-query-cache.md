@@ -46,10 +46,10 @@ These are server-job durations from the committed reports, including source/revi
 Use the same pinned dependencies as the [live pressure inspector](live-pressure-inspector.md):
 
 ```sh
-python demo/benchmark_pressure_cache.py --output verification/pressure-cache-synthetic-report.json
-python demo/benchmark_pressure_cache.py --mimic-dir /path/to/public-demo/icu --output verification/pressure-cache-arterial-report.json
-python -m unittest discover -s demo -p 'test_*.py'
-node demo/test_pressure_ui.cjs
+python demos/presentation/benchmark_pressure_cache.py --output verification/pressure-cache-synthetic-report.json
+python demos/presentation/benchmark_pressure_cache.py --mimic-dir /path/to/public-demo/icu --output verification/pressure-cache-arterial-report.json
+python -m unittest discover -s demos/presentation -p 'test_*.py'
+node demos/presentation/test_pressure_ui.cjs
 ```
 
 The benchmark runs one cold preparation/query, deliberately clears the result cache for a second fresh query over the prepared source, then repeats the request three times. It compares every result field except execution duration and every anchor inspection exactly, including source decisions and PRO/temporal witnesses. It also retrieves representative evidence through HTTP. Only aggregate counts, timings and provenance hashes are exported; source identifiers and binding rows remain local.

@@ -9,9 +9,9 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'demo'))
-from pressure import PressureService
-from mapped_pressure import MappedPressureService
+sys.path.insert(0, str(ROOT))
+from services.pressure import PressureService
+from services.mapped_pressure import MappedPressureService
 from app import recorded_selectors as selectors
 
 

@@ -262,7 +262,7 @@ def execution_options(strata, workers):
 
 
 def evaluate(folder, strata, workers=1):
-    from demo.profile_pressure_workload import monitor
+    from tools.profile_pressure_workload import monitor
     require(platform.system() == 'Linux', 'Linux process-tree memory measurement required')
     require(workers in (1, 3), 'Use one or three isolated workers')
     with tempfile.TemporaryDirectory(prefix='integrated-recorded-evaluation-') as temporary:

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FILES = ('demo/pressure.py', 'demo/pressure_cache.py', 'data/clinical-source-demo-pin.json',
+FILES = ('services/pressure.py', 'services/pressure_cache.py', 'data/clinical-source-demo-pin.json',
          'patterns/prepared_mixed_query.py')
 
 

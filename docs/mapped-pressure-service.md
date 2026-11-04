@@ -9,7 +9,7 @@ The pressure service can now execute reviewed measurement-class selection throug
 From the repository root, with the pinned graph/Rust dependencies installed:
 
 ```bash
-python demo/serve_mapped_pressure.py --port 8765
+python demos/presentation/serve_mapped_pressure.py --port 8765
 ```
 
 Open `http://127.0.0.1:8765/pressure`. The source mode and stratum label identify the authored synthetic example. Run the default query, then change the threshold to 59, baseline window to 25 minutes and follow-up window to 60 minutes. The changed query reuses three prepared batches and still checks all three anchors against SQL. Inspect an anchor through the page or API; its response includes the checked measurement selector and catalogue evidence.
@@ -20,7 +20,7 @@ The default mapping pack is [`examples/measurement-source-catalogue`](../example
 
 [`mapped_pressure_session.Session`](../patterns/mapped_pressure_session.py) first checks the pinned measurement catalogue and reviewed selector. The selector must support exactly the pressure request's one source item and literal unit. The original pressure-session constructor then performs its existing source-fidelity audit and applies the explicit source review declaration. The session context binds both the original pressure preparation and the mapping files, catalogue and checked selector evidence.
 
-[`MappedPressureService`](../demo/mapped_pressure.py) passes a bounded cache of prepared measurement sessions into the existing pressure batch interface. Each nonempty batch is admitted through a successful source-audited mapped query. Changed numeric/temporal controls reuse that preparation; the original pressure-session controls still enforce 1–30 baseline minutes, 0–120 follow-up minutes, and the reviewed parent envelope. Baseline/follow-up comparisons remain within the same item and unit. Follow-up is optional for eligibility.
+[`MappedPressureService`](../services/mapped_pressure.py) passes a bounded cache of prepared measurement sessions into the existing pressure batch interface. Each nonempty batch is admitted through a successful source-audited mapped query. Changed numeric/temporal controls reuse that preparation; the original pressure-session controls still enforce 1–30 baseline minutes, 0–120 follow-up minutes, and the reviewed parent envelope. Baseline/follow-up comparisons remain within the same item and unit. Follow-up is optional for eligibility.
 
 | Condition | Result |
 |---|---|
@@ -54,8 +54,8 @@ The changed prepared query performs zero source audits, mapping plans or network
 Sixteen new demo tests cover live/fresh equivalence, pending/withdrawn review, mapping changes before/during cached work, source-review and source changes, SQL corruption, window/item scope, malformed packs, cache budgets, eviction, response isolation and implementation changes. The real HTTP test writes a fresh aggregate report to `verification/mapped-pressure-run/report.json`, uploaded by demo CI. CI compares behavior and provenance without timing thresholds.
 
 ```bash
-python -m unittest discover -s demo -p 'test_mapped_pressure.py'
-python demo/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
+python -m unittest discover -s demos/presentation -p 'test_mapped_pressure.py'
+python demos/presentation/benchmark_mapped_pressure.py --output verification/mapped-pressure-run/local-report.json
 ```
 
 With the configured route, the demo suite now has 80 tests; the contract suite was 781 checks at this increment (758 suite tests and 23 oracle checks). The existing literal pressure route and its public-demo evidence remain separately available. The [configured route](configured-pressure-service.md) now accepts supplied sources and frozen review inputs. Next steps are explicit adoption of clinical reviews and representative workload measurements under the existing batch-coverage requirements.

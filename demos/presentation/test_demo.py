@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import serve
 
 

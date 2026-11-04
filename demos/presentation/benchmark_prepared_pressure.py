@@ -10,17 +10,18 @@ import threading
 import time
 from urllib.request import Request, urlopen
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-import pressure
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from services import pressure
 import serve
 from patterns import reviewed_pressure_session as engine, prepared_mixed_query as prepared
 
 DEFAULT = {'threshold': '65', 'baseline_minutes': 30, 'followup_minutes': 120}
 CHANGED = {'threshold': '60', 'baseline_minutes': 25, 'followup_minutes': 60}
 FILES = tuple(sorted(set(engine.FILES + prepared.ARTIFACTS + (
-    'demo/pressure.py', 'demo/pressure_cache.py', 'demo/pressure.js', 'demo/serve.py',
-    'demo/benchmark_prepared_pressure.py', 'data/clinical-source-demo-pin.json'))))
+    'services/pressure.py', 'services/pressure_cache.py', 'demos/presentation/pressure.js', 'demos/presentation/serve.py',
+    'demos/presentation/benchmark_prepared_pressure.py', 'data/clinical-source-demo-pin.json'))))
 
 
 def artifacts():

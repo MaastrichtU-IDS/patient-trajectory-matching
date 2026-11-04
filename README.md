@@ -120,23 +120,23 @@ adds private persistent Compose/Helm modes and backup/restore acceptance.
 
 Open `http://127.0.0.1:8080` after the dependency setup above. [Docker/Compose and Helm instructions](docs/deployment.md) package this bounded prototype. The [completion register](docs/completion.md) preserves all 104 original requirements and records partial implementation and remaining dependencies; the full product is unfinished.
 
-The [guided cohort demo](demo/README.md) is a 2–3 minute investigation: start with a
+The [guided cohort demo](demos/presentation/README.md) is a 2–3 minute investigation: start with a
 patient, find exact matches, broaden the query, inspect the boundaries, and export
 the evidence. Ten distinct synthetic candidates form a cohort that grows **3 → 5 → 6**.
-The [timed presenter narrative](demo/NARRATIVE.md) includes the clicks and expected results.
+The [timed presenter narrative](demos/presentation/NARRATIVE.md) includes the clicks and expected results.
 From the repository root, with Python 3.10+:
 
 ```sh
-python3 demo/serve.py
+python3 demos/presentation/serve.py
 ```
 
 Open `http://127.0.0.1:8765`. The guided matcher needs no extra packages. Its inputs
 were validated and projected through PRO/SOLID; each live query executes the Python
-matcher. The standalone [guided replay](demo/Guided_Cohort_Demo.html) works offline
+matcher. The standalone [guided replay](demos/presentation/Guided_Cohort_Demo.html) works offline
 after downloading, with an explicit replay label.
 
 The original technical examples remain at `/lab`. To install and check the optional
-graph and Rust pipelines, run `python3.12 demo/start_demo.py`. This is a bounded
+graph and Rust pipelines, run `python3.12 demos/presentation/start_demo.py`. This is a bounded
 demonstration; the broader product workspace in `ui/` remains a specification.
 
 ## Four temporal profiles
@@ -340,10 +340,10 @@ Pack contents are MIT licensed; see [LICENSE](LICENSE). The vendored SULO ontolo
 
 [Prepared measurement sessions](docs/prepared-measurement-session.md) now reuse verified source and semantic preparation across changed numeric/temporal queries. Twelve synthetic prepared queries reproduce fresh results and raw-CSV SQL with no repeated audit, mapping planning, fresh mixed-query execution or network compilation.
 
-The [live mapped pressure route](docs/mapped-pressure-service.md) now integrates reviewed measurement selection and prepared batches with the existing local HTTP interface. Run `python demo/serve_mapped_pressure.py` for the authored example. The changed-query benchmark preserves fresh results and anchor SQL checks; public clinical mappings remain pending.
+The [live mapped pressure route](docs/mapped-pressure-service.md) now integrates reviewed measurement selection and prepared batches with the existing local HTTP interface. Run `python demos/presentation/serve_mapped_pressure.py` for the authored example. The changed-query benchmark preserves fresh results and anchor SQL checks; public clinical mappings remain pending.
 
 
-The [configured mapped route](docs/configured-pressure-service.md) now accepts a local source/request/review configuration. Run `python demo/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json` for the alternate item-2001 fixture with 15/60-minute windows. Configuration and review changes require a restart; no clinical mapping is accepted automatically.
+The [configured mapped route](docs/configured-pressure-service.md) now accepts a local source/request/review configuration. Run `python demos/presentation/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json` for the alternate item-2001 fixture with 15/60-minute windows. Configuration and review changes require a restart; no clinical mapping is accepted automatically.
 
 
 The [configured workload runner](docs/configured-pressure-workload.md) now measures repeated prepared/cached queries against fresh mapped execution and every HTTP anchor inspection. It reports actual cache behavior and aggregate provenance for supplied configurations; the committed authored workload verifies six trials and 36 inspections.

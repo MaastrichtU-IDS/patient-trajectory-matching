@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent
-SOURCE = ROOT.parent
+SOURCE = ROOT.parents[1]
 sys.path.insert(0, str(SOURCE))
 from reference_oracle import evaluate, without_source_search
 

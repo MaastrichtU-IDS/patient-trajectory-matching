@@ -45,7 +45,7 @@ Returning to a parent revision restores its saved query and results. Starting or
 
 ## The connection between similarity and trajectory matching
 
-Both stages use the same P00–P10 authored patients and the same source snapshot. The similarity fixture pins the raw SHA-256 of `demo/cohort-data.json`; the server checks that pin during startup before becoming ready. The selected index patient is excluded in both stages, including when it is not P00.
+Both stages use the same P00–P10 authored patients and the same source snapshot. The similarity fixture pins the raw SHA-256 of `examples/guided-cohort/cohort-data.json`; the server checks that pin during startup before becoming ready. The selected index patient is excluded in both stages, including when it is not P00.
 
 Similarity uses only records whose occurrence **and authored availability** precede each patient's own index. The fixed profile uses a fourteen-day pre-index history, the minimum eligible creatinine in the preceding 48 hours, an age band, and a concept set derived from earlier toy medication records. The similarity fixture adds an explicit authored availability overlay. The older guided snapshot itself makes no source-availability or historical-replay claim. This overlay and the fourteen-day window are demonstration assumptions; they are not the seven-day clinical-study extraction protocol.
 

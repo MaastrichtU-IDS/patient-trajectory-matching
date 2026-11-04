@@ -2,7 +2,7 @@
 import argparse
 import json
 from pathlib import Path
-from demo import cohort
+from services import cohort
 from patterns.patient_similarity import SimilarityEngine
 from app.server import Workspace, exact_keys
 

@@ -39,8 +39,8 @@ As with the previous cache, these checks operate at validation boundaries rather
 The existing commands enable prepared reuse by default:
 
 ```sh
-python demo/serve.py --pressure-synthetic
-python demo/serve.py --mimic-dir /path/to/public-demo/icu
+python demos/presentation/serve.py --pressure-synthetic
+python demos/presentation/serve.py --mimic-dir /path/to/public-demo/icu
 ```
 
 Run a query, then change the threshold or narrow a window. The page labels a fresh query over prepared records and shows the number of reused batches. The API reports fresh/reused batch counts, preparation and reevaluation durations, retained entry/payload counts, evictions and the prepared implementation context. A complete-result cache hit reports zero batch work.
@@ -58,10 +58,10 @@ The initial public query and preparation took 339.961 seconds. Preparation there
 Eleven new demo tests cover exact differential results, uncertain finite-world cases, scope and precision, all preparation-key inputs, invalidation, bounded eviction, response isolation, fresh SQL execution and corruption detection. They bring the demo suite to 51 Python tests, separate from the 687 contract checks. Existing mixed-query fixtures also check their results against an independent finite-world oracle within the differential test.
 
 ```sh
-python demo/benchmark_prepared_pressure.py --output verification/prepared-pressure-synthetic-report.json
-python demo/benchmark_prepared_pressure.py --mimic-dir /path/to/public-demo/icu --output verification/prepared-pressure-arterial-report.json --live-report verification/live-pressure-demo-report.json
-python -m unittest discover -s demo -p 'test_*.py'
-node demo/test_pressure_ui.cjs
+python demos/presentation/benchmark_prepared_pressure.py --output verification/prepared-pressure-synthetic-report.json
+python demos/presentation/benchmark_prepared_pressure.py --mimic-dir /path/to/public-demo/icu --output verification/prepared-pressure-arterial-report.json --live-report verification/live-pressure-demo-report.json
+python -m unittest discover -s demos/presentation -p 'test_*.py'
+node demos/presentation/test_pressure_ui.cjs
 ```
 
 The benchmark first executes the default query, then changes all three controls to threshold 60, baseline 25 minutes and follow-up 60 minutes. It compares that changed query with a full execution of the original graph/semantic/SQL path and compares every anchor inspection. Reports include only aggregate counts, timings and provenance hashes. The live and complete-result reports are regenerated because the session's implementation hash changed; the original source reviews and declarations remain the same.

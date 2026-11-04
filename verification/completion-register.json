@@ -370,7 +370,7 @@
       "scope": "Snapshot and dependency hashes invalidate affected prepared sessions and results.",
       "evidence": [
         "patterns/prepared_measurement_session.py",
-        "demo/mapped_pressure.py"
+        "services/mapped_pressure.py"
       ],
       "acceptance_checks": [
         "prepared",
@@ -1048,8 +1048,8 @@
       "status": "partial",
       "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
       "evidence": [
-        "demo/pressure.js",
-        "demo/test_pressure_ui.cjs",
+        "demos/presentation/pressure.js",
+        "demos/presentation/test_pressure_ui.cjs",
         "docs/live-pressure-inspector.md",
         "app/app.js",
         "app/test_ui.cjs",
@@ -1294,7 +1294,7 @@
       "status": "partial",
       "scope": "Configured workloads verify fresh/prepared/cache agreement and report process-isolated aggregate RSS samples; samples do not establish an exact peak.",
       "evidence": [
-        "demo/benchmark_configured_pressure.py",
+        "demos/presentation/benchmark_configured_pressure.py",
         "verification/configured-pressure-workload-report.json",
         "docs/pressure-workload-memory.md",
         "verification/pressure-workload-memory-report.json"
@@ -1390,7 +1390,7 @@
       "status": "partial",
       "scope": "Configured workloads verify fresh/prepared/cache agreement and report process-isolated aggregate RSS samples; samples do not establish an exact peak.",
       "evidence": [
-        "demo/benchmark_configured_pressure.py",
+        "demos/presentation/benchmark_configured_pressure.py",
         "verification/configured-pressure-workload-report.json",
         "docs/pressure-workload-memory.md",
         "verification/pressure-workload-memory-report.json"
@@ -1421,7 +1421,7 @@
       "scope": "Public committed pressure reports contain aggregates; detailed source runs stay local.",
       "evidence": [
         "docs/configured-pressure-workload.md",
-        "demo/serve.py"
+        "demos/presentation/serve.py"
       ],
       "acceptance_checks": [
         "configured"
@@ -1474,8 +1474,8 @@
       "status": "partial",
       "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
       "evidence": [
-        "demo/pressure.js",
-        "demo/test_pressure_ui.cjs",
+        "demos/presentation/pressure.js",
+        "demos/presentation/test_pressure_ui.cjs",
         "docs/live-pressure-inspector.md",
         "app/app.js",
         "app/test_ui.cjs",
@@ -2257,8 +2257,8 @@
       "status": "partial",
       "scope": "Local demos display named toy alternatives/evidence and protect asynchronous result presentation.",
       "evidence": [
-        "demo/pressure.js",
-        "demo/guided.js",
+        "demos/presentation/pressure.js",
+        "demos/presentation/guided.js",
         "docs/live-pressure-inspector.md"
       ],
       "acceptance_checks": [],
@@ -2303,8 +2303,8 @@
       "status": "partial",
       "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
       "evidence": [
-        "demo/pressure.js",
-        "demo/guided.js",
+        "demos/presentation/pressure.js",
+        "demos/presentation/guided.js",
         "docs/live-pressure-inspector.md",
         "app/app.js",
         "app/test_ui.cjs",
@@ -2361,8 +2361,8 @@
       "status": "partial",
       "scope": "Research UI binds displayed comparison/export state to the selected revision and provides form controls and textual evidence; DOM tests cover stale/failed interactions.",
       "evidence": [
-        "demo/pressure.js",
-        "demo/guided.js",
+        "demos/presentation/pressure.js",
+        "demos/presentation/guided.js",
         "docs/live-pressure-inspector.md",
         "app/app.js",
         "app/test_ui.cjs",
@@ -3146,7 +3146,7 @@
     {
       "id": "configured-pressure-service",
       "evidence": [
-        "demo/mapped_pressure.py"
+        "services/mapped_pressure.py"
       ],
       "acceptance_checks": [
         "configured"
@@ -3157,7 +3157,7 @@
     {
       "id": "configured-pressure-workload",
       "evidence": [
-        "demo/benchmark_configured_pressure.py"
+        "demos/presentation/benchmark_configured_pressure.py"
       ],
       "acceptance_checks": [
         "workload"

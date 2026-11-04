@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from app import server
 from app.replay import verify
 from patterns.patient_similarity import SimilarityEngine
-from demo import cohort
+from services import cohort
 from patterns import robust_relaxation
 from app import interval_editor
 
@@ -72,7 +72,7 @@ class ResearchHTTPTests(unittest.TestCase):
         artifact_paths = ['app/server.py', 'app/replay.py', 'app/index.html', 'app/app.js',
                           'app/style.css', 'app/test_server.py', 'app/test_ui.cjs',
                           'patterns/patient_similarity.py', 'patterns/pro_solid.py',
-                          'demo/cohort.py', 'demo/cohort-data.json', 'reference_oracle.py',
+                          'services/cohort.py', 'examples/guided-cohort/cohort-data.json', 'reference_oracle.py',
                           'examples/exemplar.pattern.json', 'ontology/toy-taxonomy.json']
         artifact_paths.extend(str(path.relative_to(root)) for path in sorted((root / 'examples/patient-similarity').glob('*.json')))
         report = {
@@ -386,7 +386,7 @@ class ResearchHTTPTests(unittest.TestCase):
                 self.request(path)
             self.assertEqual(caught.exception.code, 400)
         with self.assertRaises(HTTPError) as caught:
-            self.request('/../demo/cohort-data.json')
+            self.request('/../examples/guided-cohort/cohort-data.json')
         self.assertEqual(caught.exception.code, 404)
 
     def test_liveness_and_readiness_are_cheap_and_independent(self):

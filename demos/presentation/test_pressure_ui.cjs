@@ -1,14 +1,13 @@
 // DOM-state verification with actual synthetic session responses; not browser/layout verification.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path'),{spawnSync}=require('node:child_process');
-const root=path.resolve(__dirname,'..');
+const root=path.resolve(__dirname,'..','..');
 const python=spawnSync(process.env.PYTHON||'python',['-c',`
 import json,sys
 from pathlib import Path
-sys.path.insert(0,'demo')
-import pressure
+from services import pressure
 from patterns.reviewed_pressure_session import Session
 request=json.loads(Path('examples/indexed-source-windows/synthetic-request.json').read_text())
-declaration=json.loads(Path('demo/pressure-synthetic-review.json').read_text())
+declaration=json.loads(Path('services/pressure-synthetic-review.json').read_text())
 s=Session(Path('examples/source-mixed-query'),request,declaration)
 service=pressure.PressureService(synthetic=True)
 payload={'config':service.metadata(),'jobs':{},'details':{}}

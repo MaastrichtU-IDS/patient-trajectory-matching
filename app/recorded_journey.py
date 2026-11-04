@@ -62,8 +62,8 @@ class RecordedJourneyWorkspace:
                 raise RuntimeError('Recorded journey workspace is closed')
             if self._services is None:
                 # Authored mode keeps optional reasoning dependencies out of startup.
-                from demo.pressure import PressureService
-                from demo.mapped_pressure import MappedPressureService
+                from services.pressure import PressureService
+                from services.mapped_pressure import MappedPressureService
                 if self.config is not None:
                     self._services = {'reviewed': MappedPressureService(config=self.config)}
                 elif self.public_demo_dir is not None:

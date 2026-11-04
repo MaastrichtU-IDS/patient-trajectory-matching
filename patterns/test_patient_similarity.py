@@ -21,9 +21,9 @@ class PatientSimilarityTests(unittest.TestCase):
         return self.engine.initial('P00', top_k=2)
 
     def test_default_population_and_provenance_match_guided_source(self):
-        original = json.loads((p.ROOT/'demo/cohort-data.json').read_text())
+        original = json.loads((p.ROOT/'examples/guided-cohort/cohort-data.json').read_text())
         self.assertEqual([x['patient_id'] for x in self.dataset['patients']], [x['patient_id'] for x in original['patients']])
-        self.assertEqual(self.engine.metadata()['source_dataset_sha256'], sha256((p.ROOT/'demo/cohort-data.json').read_bytes()).hexdigest())
+        self.assertEqual(self.engine.metadata()['source_dataset_sha256'], sha256((p.ROOT/'examples/guided-cohort/cohort-data.json').read_bytes()).hexdigest())
         inspected = self.engine.inspect(self.revision()['revision_id'], 'P03')
         evidence = inspected['candidate']['features']['baseline_creatinine']['evidence'][0]
         self.assertEqual(evidence['value']['hasValue'], '0.80')

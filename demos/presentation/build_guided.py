@@ -1,15 +1,17 @@
 """Validate the guided cohort graphs and package a portable, labeled replay."""
 from pathlib import Path
 import json
+import sys
 
-from cohort import build_dataset, run_cohort
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from services.cohort import build_dataset, run_cohort
 
 ROOT = Path(__file__).resolve().parent
 
 
 def main():
     data = build_dataset()
-    (ROOT / 'cohort-data.json').write_text(json.dumps(data, indent=2) + '\n')
+    (ROOT.parents[1] / 'examples/guided-cohort/cohort-data.json').write_text(json.dumps(data, indent=2) + '\n')
     replays = {}
     for budget in ('0', '1', '2'):
         replays[budget] = run_cohort(data, budget)

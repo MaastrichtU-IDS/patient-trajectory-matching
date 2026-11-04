@@ -11,8 +11,9 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import benchmark_configured_pressure as workload
-import profile_pressure_workload as profiler
+from tools import profile_pressure_workload as profiler
 
 ROOT = profiler.ROOT
 EXAMPLE = ROOT/'examples/configured-pressure-service'

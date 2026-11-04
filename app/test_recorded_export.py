@@ -146,7 +146,7 @@ class RecordedExportTests(unittest.TestCase):
                 verify_recorded(self.rehash(changed))
 
     def test_retained_export_does_not_read_changed_source_or_live_metadata(self):
-        from demo.pressure import PressureService
+        from services.pressure import PressureService
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / 'records'
             shutil.copytree(ROOT / 'examples/source-mixed-query', folder)

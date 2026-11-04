@@ -12,9 +12,10 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 sys.path.insert(0,str(Path(__file__).resolve().parent))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 import serve
 from serve_mapped_pressure import Handler
-from mapped_pressure import MappedPressureService, stamp
+from services.mapped_pressure import MappedPressureService, stamp
 from benchmark_mapped_pressure import comparable
 from patterns import pressure_service_config as config, mapped_pressure_session as mapped
 
@@ -205,7 +206,7 @@ class ConfiguredPressureTests(unittest.TestCase):
                 'metrics':reference['metrics'], 'stays_retained':len(reference['roster']),
                 'http_anchor_inspections_equal':len(reference['details']), 'all_result_fields_except_duration_equal':True,
                 'artifacts':{**stamp(),**{f:mapped.ei.digest((mapped.ei.ROOT/f).read_text()) for f in
-                    ('demo/test_configured_pressure.py','demo/test_configured_pressure_ui.cjs')}},
+                    ('demos/presentation/test_configured_pressure.py','demos/presentation/test_configured_pressure_ui.cjs')}},
                 'visual_browser_inspection_verified':False}
             output = mapped.ei.ROOT/'verification/configured-pressure-run/report.json'
             output.parent.mkdir(parents=True,exist_ok=True); output.write_text(json.dumps(report,indent=2)+'\n')

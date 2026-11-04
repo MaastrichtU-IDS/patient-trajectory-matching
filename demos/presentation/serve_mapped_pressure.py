@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 from urllib.parse import urlparse
 import serve
-from mapped_pressure import MappedPressureService
+from services.mapped_pressure import MappedPressureService
 
 
 class Handler(serve.Handler):

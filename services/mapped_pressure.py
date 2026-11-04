@@ -1,17 +1,14 @@
 """Opt-in reviewed mapping integration using the existing local pressure job interface."""
 from copy import deepcopy
 from pathlib import Path
-if __package__:
-    from .pressure import PressureService, SOURCE
-    from .pressure_cache import implementation_stamp
-else:
-    import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from pressure import PressureService, SOURCE
-    from pressure_cache import implementation_stamp
+from .pressure import PressureService, SOURCE
+from .pressure_cache import implementation_stamp
 from patterns import mapped_pressure_session as mapped, pressure_service_config as configuration
 
-FILES = ('demo/mapped_pressure.py', 'demo/serve_mapped_pressure.py', 'demo/configured_pressure.js') + configuration.FILES
+# The served implementation is part of the service's identity, so the HTTP layer and the
+# page script it sends are stamped with it even though they live with the presentation.
+FILES = ('services/mapped_pressure.py', 'demos/presentation/serve_mapped_pressure.py',
+         'demos/presentation/configured_pressure.js') + configuration.FILES
 
 
 def stamp():

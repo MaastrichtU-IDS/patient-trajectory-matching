@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 
-from demo import cohort
+from services import cohort
 from patterns.patient_similarity import SimilarityEngine
 from app.temporal import TemporalWorkspace
 from app.interval_editor import IntervalEditor
@@ -58,7 +58,7 @@ class Workspace:
             self.dataset, self.source_hash = None, None
         else:
             self.engine = SimilarityEngine()
-            source_bytes = (ROOT.parent / 'demo/cohort-data.json').read_bytes()
+            source_bytes = (ROOT.parent / 'examples/guided-cohort/cohort-data.json').read_bytes()
             self.dataset = json.loads(source_bytes)
             self.source_hash = hashlib.sha256(source_bytes).hexdigest()
             if self.engine.metadata().get('source_dataset_sha256') != self.source_hash:
