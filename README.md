@@ -79,7 +79,7 @@ addenda/         product specification addenda 2.1–2.4
 
 ## Documentation
 
-Start with the [documentation guide](docs/README.md). The most used pages are [architecture](docs/architecture.md), [components](docs/components.md), [status](docs/status.md), [validation](docs/validation.md), [issues](docs/issues.md) and [deployment](docs/deployment.md).
+Start with the [documentation guide](docs/README.md), or the [design document](docs/design.md) for the project as it stands and what remains. The most used pages are [architecture](docs/architecture.md), [components](docs/components.md), [status](docs/status.md), [validation](docs/validation.md), [issues](docs/issues.md) and [deployment](docs/deployment.md).
 
 ## Contributing
 
