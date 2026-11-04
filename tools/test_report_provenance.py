@@ -103,8 +103,8 @@ class ReportProvenanceTests(unittest.TestCase):
         real = 'patterns/pro_solid.py'
         found = gate.artifact_maps({'oddly_named_block': {real: digest}}, [])
         self.assertEqual(found, [{real: digest}])
-        self.assertEqual(gate.artifact_maps({'not_a_map': {'nope.py': digest}}, []), [],
-                         'a path that is not a file must not be read as a binding')
+        self.assertEqual(gate.artifact_maps({'not_a_map': {'nope': digest}}, []), [],
+                         'a key without a file suffix is not a path')
 
     def test_a_map_naming_a_missing_file_is_still_a_map(self):
         """A moved file must not make its map invisible: that is how a gate passes with
@@ -129,6 +129,19 @@ class ReportProvenanceTests(unittest.TestCase):
         lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
         self.assertIn(f'{target} is bound but no longer in the repository', lines)
         self.assertIn(f'{before} bindings', lines, 'a moved file must not shrink the walk')
+
+    def test_a_folder_that_no_longer_exists_still_binds(self):
+        """Moving a whole top-level folder removes its name from the tree. Its bindings
+        must still be read, and fail, rather than stop looking like repository paths."""
+        digest = hashlib.sha256(b'x').hexdigest()
+        gone = {'demo.old/README.md': digest, 'no_such_folder/module.py': digest}
+        self.assertEqual(gate.artifact_maps({'artifacts': gone}, []), [gone])
+        with patch.object(gate, 'tracked_reports', return_value=['verification/fake.json']), \
+             patch.object(gate, 'loaded', return_value={'artifacts': gone}), \
+             patch('builtins.print') as printed:
+            self.assertEqual(gate.main(), 1)
+        lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
+        self.assertIn('no_such_folder/module.py is bound but no longer in the repository', lines)
 
     def test_nested_maps_inside_lists_are_found(self):
         digest = hashlib.sha256(b'x').hexdigest()

@@ -48,27 +48,25 @@ def digests(path):
 
 HEX = set('0123456789abcdef')
 
-
-def tracked_roots():
-    """The top-level names git tracks: where a repository-relative path can begin."""
-    if not hasattr(tracked_roots, 'cache'):
-        listing = subprocess.run(['git', 'ls-files'], cwd=ROOT, capture_output=True, text=True, check=True)
-        tracked_roots.cache = {name.split('/', 1)[0] for name in listing.stdout.split()}
-    return tracked_roots.cache
+# Roots of files that live outside this repository but are bound by digest: the pinned
+# MIMIC-IV demo layout. Listing them, rather than inferring repository paths from what
+# git tracks today, is deliberate. Inferring failed exactly when it mattered: once a
+# whole top-level folder moved, its old name was no longer tracked, so every binding
+# under it stopped looking like a repository path and was skipped again. An unknown
+# external root now fails the gate loudly instead, and belongs on this list.
+EXTERNAL_ROOTS = {'icu', 'hosp'}
 
 
 def repository_path(key):
     """Whether a key names a file in this repository, present or not.
 
-    It must be relative, stay inside the tree, carry a file suffix, and begin at a
-    tracked top-level name. That keeps out digests of external sources -- the pinned
-    MIMIC files are keyed `icu/...` and `hosp/...` -- and identifiers that happen to be
-    mapped to digests.
+    Decided by shape: relative, inside the tree, with a file suffix, and not under a
+    known external root.
     """
     if not isinstance(key, str) or not key or key.startswith('/') or '://' in key:
         return False
-    parts = pathlib.PurePosixPath(key).parts
-    return '..' not in parts and bool(pathlib.PurePosixPath(key).suffix) and parts[0] in tracked_roots()
+    path = pathlib.PurePosixPath(key)
+    return '..' not in path.parts and bool(path.suffix) and path.parts[0] not in EXTERNAL_ROOTS
 
 
 def is_digest(value):
