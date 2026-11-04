@@ -128,8 +128,10 @@ Deploy from the repository root:
 gcloud run deploy ptm-demo --source . --region us-central1 --project dumontier-charm \
   --command python --args=-m,deploy.cloud_run \
   --set-secrets=/run/secrets/ptm-owner/owner=ptm-demo-owner:latest \
-  --max-instances 1 --no-iap --allow-unauthenticated
+  --max-instances 1 --no-iap --no-invoker-iam-check
 ```
+
+`--no-invoker-iam-check` makes the service reachable without granting `allUsers` the invoker role. `--allow-unauthenticated` would grant it, and this organisation's domain-restricted sharing policy (`iam.allowedPolicyMemberDomains`) rejects `allUsers` bindings.
 
 Sign in with username `owner` and the part of `~/.ptm-demo-owner` after `owner:`. To rotate, write a new file the same way, add it with `gcloud secrets versions add ptm-demo-owner --data-file=...`, and redeploy so a new instance reads it.
 
