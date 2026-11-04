@@ -1,3 +1,0 @@
-itemid,label,abbreviation,linksto,category,unitname,param_type,lownormalvalue,highnormalvalue
-1000,Synthetic input A,,inputevents,,,,,
-2000,Synthetic pressure,,chartevents,,mmHg,,,

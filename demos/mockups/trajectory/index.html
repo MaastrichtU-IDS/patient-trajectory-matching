@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Define a trajectory · trajectory matching mockup</title>
+<link rel="stylesheet" href="../shared/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand-block">
+    <div class="brand">PATIENT TRAJECTORY MATCHING</div>
+    <span class="mock-badge">Mockup · synthetic patients · not clinical data</span>
+  </div>
+  <dl class="context" id="context" aria-label="Question summary"></dl>
+  <div class="lens" role="radiogroup" aria-label="Show the synthetic truth">
+    <button role="radio" aria-checked="true" data-action="lens" data-lens="recorded">As recorded</button>
+    <button role="radio" aria-checked="false" data-action="lens" data-lens="truth">Synthetic truth</button>
+  </div>
+</header>
+
+<main class="tj-workspace" id="workspace">
+  <section class="region" id="define" aria-label="Define the question">
+    <div class="region-head"><h2><span class="step">1</span> Index period</h2><a class="hint" href="../patient-first/">Record view →</a></div>
+    <div id="period"></div>
+    <div class="region-head tj-gap"><h2><span class="step">2</span> Trajectory</h2><span id="shape"></span></div>
+    <div id="templates" class="actions"></div>
+    <div id="diagram" class="tj-diagram" aria-label="Trajectory diagram"></div>
+    <div id="reading"></div>
+    <h3>Steps</h3>
+    <div id="nodes"></div>
+    <h3>Timing constraints</h3>
+    <div id="edges"></div>
+    <h3>Evidence</h3>
+    <div id="evidence-options"></div>
+  </section>
+
+  <section class="region" id="matches" aria-labelledby="h-matches">
+    <div class="region-head"><h2 id="h-matches"><span class="step">3</span> Matching patients</h2></div>
+    <div id="summary"></div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<section class="compare" id="detail" hidden role="dialog" aria-labelledby="h-detail">
+  <div class="compare-head">
+    <h2 id="h-detail">Match</h2>
+    <div class="compare-tools"><button class="secondary" data-action="close-detail">Close</button></div>
+  </div>
+  <div id="detail-body"></div>
+</section>
+
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script src="../shared/core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

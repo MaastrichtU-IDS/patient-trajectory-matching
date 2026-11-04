@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start from a patient · trajectory matching mockup</title>
+<link rel="stylesheet" href="../shared/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand-block">
+    <div class="brand">PATIENT TRAJECTORY MATCHING</div>
+    <span class="mock-badge">Mockup · synthetic patients · not clinical data</span>
+  </div>
+  <dl class="context" id="context" aria-label="Analysis context"></dl>
+  <div class="lens" role="radiogroup" aria-label="What the history shows">
+    <button role="radio" aria-checked="true" data-action="lens" data-lens="recorded">As recorded</button>
+    <button role="radio" aria-checked="false" data-action="lens" data-lens="truth">Synthetic truth</button>
+  </div>
+</header>
+
+<main class="workspace" id="workspace">
+  <section class="region" id="history" aria-labelledby="h-history">
+    <div class="region-head">
+      <h2 id="h-history"><span class="step">1</span> Reference patient</h2>
+      <label class="inline">Patient
+        <select id="reference" aria-label="Reference patient"></select>
+      </label>
+    </div>
+    <p class="hint" id="reference-summary"></p>
+    <div id="timeline" class="timeline" aria-describedby="timeline-help"></div>
+    <p class="hint" id="timeline-help">Select an event to see every record behind it. Filled shapes are coded records; hollow shapes come only from letters; a dashed outline is hedged. A corner dot marks a known data-quality case.</p>
+    <details class="event-list">
+      <summary>Event list (text alternative to the timeline)</summary>
+      <div id="event-list"></div>
+    </details>
+    <div id="inspector" class="inspector" aria-live="polite"></div>
+  </section>
+
+  <section class="region" id="criteria" aria-labelledby="h-criteria">
+    <div class="region-head"><h2 id="h-criteria"><span class="step">2</span> Comparison</h2></div>
+    <div id="criteria-body"></div>
+  </section>
+
+  <section class="region" id="results" aria-labelledby="h-results">
+    <div class="region-head"><h2 id="h-results"><span class="step">3</span> Similar patients</h2></div>
+    <div id="results-body"></div>
+  </section>
+</main>
+
+<footer class="revisions" id="revisions" aria-label="Revision history"></footer>
+
+<section class="compare" id="compare" hidden aria-labelledby="h-compare" role="dialog">
+  <div class="compare-head">
+    <h2 id="h-compare">Pairwise evidence</h2>
+    <div class="compare-tools">
+      <label class="inline">Align by
+        <select id="align" data-action="align">
+          <option value="age">Age</option>
+          <option value="start">Each patient's window start</option>
+          <option value="end">Each patient's window end</option>
+        </select>
+      </label>
+      <button class="secondary" data-action="close-compare">Close</button>
+    </div>
+  </div>
+  <div id="compare-body"></div>
+</section>
+
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script src="../shared/core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

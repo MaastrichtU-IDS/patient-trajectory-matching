@@ -1,0 +1,31 @@
+name: interface mockups
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mockups:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate the synthetic cohort and confirm a second run reproduces it
+        run: |
+          python demos/mockups/synthetic/generate.py
+          python demos/mockups/synthetic/generate.py --check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Parse every page script
+        run: |
+          for script in demos/mockups/shared/core.js demos/mockups/patient-first/app.js demos/mockups/trajectory/app.js; do
+            node --check "$script"
+          done
