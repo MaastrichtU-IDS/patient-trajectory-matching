@@ -7,7 +7,13 @@ through several releases without a single test noticing. A binding that cannot f
 decoration.
 
 This walks every tracked report, finds the maps from repository-relative paths to
-sha256 digests, and requires each one to still match its file.
+sha256 digests, and requires each one to still match its file -- and to still exist.
+
+A map is recognized by the shape of its keys, not by whether the files are present.
+An earlier version only accepted a map when every key was an existing file, so moving
+one file made its whole map invisible and the gate passed with fewer bindings: moving
+`demo/` would have dropped 863 of them in silence. A path that a report names and the
+tree no longer has is now a failure like any stale digest.
 
 Two digest conventions are in use across the repository -- some producers hash the
 file's bytes, others hash `read_text()`, which normalizes CRLF -- so a digest matching
@@ -40,8 +46,38 @@ def digests(path):
     return answers
 
 
+HEX = set('0123456789abcdef')
+
+
+def tracked_roots():
+    """The top-level names git tracks: where a repository-relative path can begin."""
+    if not hasattr(tracked_roots, 'cache'):
+        listing = subprocess.run(['git', 'ls-files'], cwd=ROOT, capture_output=True, text=True, check=True)
+        tracked_roots.cache = {name.split('/', 1)[0] for name in listing.stdout.split()}
+    return tracked_roots.cache
+
+
+def repository_path(key):
+    """Whether a key names a file in this repository, present or not.
+
+    It must be relative, stay inside the tree, carry a file suffix, and begin at a
+    tracked top-level name. That keeps out digests of external sources -- the pinned
+    MIMIC files are keyed `icu/...` and `hosp/...` -- and identifiers that happen to be
+    mapped to digests.
+    """
+    if not isinstance(key, str) or not key or key.startswith('/') or '://' in key:
+        return False
+    parts = pathlib.PurePosixPath(key).parts
+    return '..' not in parts and bool(pathlib.PurePosixPath(key).suffix) and parts[0] in tracked_roots()
+
+
+def is_digest(value):
+    return isinstance(value, str) and len(value) == 64 and set(value) <= HEX
+
+
 def artifact_maps(node, found):
-    """Every dict that maps existing repository paths to 64-hex digests.
+    """Every dict that maps repository paths to 64-hex digests, whether or not each
+    path still exists.
 
     Recognized by shape rather than by key name, because producers call these
     `artifacts`, `mapping_files`, `fixture_sha256` and more; keying off a name would
@@ -49,8 +85,7 @@ def artifact_maps(node, found):
     """
     if isinstance(node, dict):
         keys = list(node)
-        if keys and all(isinstance(k, str) and isinstance(node[k], str)
-                        and len(node[k]) == 64 and (ROOT / k).is_file() for k in keys):
+        if keys and all(repository_path(k) and is_digest(node[k]) for k in keys):
             found.append(node)
         for value in node.values():
             artifact_maps(value, found)
@@ -121,7 +156,9 @@ def main():
         for mapping in maps:
             for path, recorded in mapping.items():
                 bound += 1
-                if recorded not in digests(path):
+                if not (ROOT / path).is_file():
+                    problems.append(f'{name}: {path} is bound but no longer in the repository')
+                elif recorded not in digests(path):
                     problems.append(f'{name}: {path} no longer matches its recorded digest')
     for problem in sorted(set(problems)):
         print(f'::error::{problem}')
