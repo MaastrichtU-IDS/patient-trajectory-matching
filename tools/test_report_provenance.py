@@ -106,6 +106,30 @@ class ReportProvenanceTests(unittest.TestCase):
         self.assertEqual(gate.artifact_maps({'not_a_map': {'nope.py': digest}}, []), [],
                          'a path that is not a file must not be read as a binding')
 
+    def test_a_map_naming_a_missing_file_is_still_a_map(self):
+        """A moved file must not make its map invisible: that is how a gate passes with
+        fewer bindings and nobody notices."""
+        digest = hashlib.sha256(b'x').hexdigest()
+        mapping = {'patterns/pro_solid.py': digest, 'patterns/moved_away.py': digest}
+        self.assertEqual(gate.artifact_maps({'artifacts': mapping}, []), [mapping])
+        self.assertEqual(gate.artifact_maps({'pins': {'icu/inputevents.csv.gz': digest}}, []), [],
+                         'an external source keyed outside the tree is not a repository binding')
+
+    def test_moving_a_bound_file_fails_the_gate(self):
+        """Simulate moving one bound file: the gate must fail and name it, and the count
+        of bindings it read must not drop."""
+        reports = gate.tracked_reports()
+        before = sum(len(m) for name in reports if name not in gate.HISTORICAL
+                     for m in gate.artifact_maps(gate.loaded(name) or {}, []))
+        target = 'demo/pressure.py'
+        real = Path.is_file
+        with patch.object(Path, 'is_file', lambda self: False if str(self).endswith(target) else real(self)), \
+             patch('builtins.print') as printed:
+            self.assertEqual(gate.main(), 1)
+        lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
+        self.assertIn(f'{target} is bound but no longer in the repository', lines)
+        self.assertIn(f'{before} bindings', lines, 'a moved file must not shrink the walk')
+
     def test_nested_maps_inside_lists_are_found(self):
         digest = hashlib.sha256(b'x').hexdigest()
         real = 'patterns/pro_solid.py'
