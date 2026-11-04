@@ -340,7 +340,7 @@ Specified in [addendum 2.2](../addenda/specification-2.2.md) and [2.3](../addend
 
 ## Evaluation plan
 
-**Path:** `evaluation/graphiti-comparison-2.3.json` · **Status:** Specified. No results measured.
+**Path:** `docs/specification/evaluation/graphiti-comparison-2.3.json` · **Status:** Specified. No results measured.
 
 A planned six-hour synthetic comparison protocol against Zep/Graphiti. This is an experimental design, not a benchmark result. No Graphiti numbers exist in this repository.
 

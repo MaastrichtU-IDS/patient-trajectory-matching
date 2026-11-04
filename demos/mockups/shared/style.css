@@ -1,4 +1,4 @@
-/* Tokens follow ui/design-tokens-2.2.json; every colour is paired with a text label or a shape. */
+/* Tokens follow docs/specification/ui/design-tokens-2.2.json; every colour is paired with a text label or a shape. */
 :root {
   --text: #172B3A; --muted: #475569; --faint: #6B7A89; --line: #D9E1E8; --surface: #FFFFFF; --bg: #F4F7F9;
   --select: #174EA6; --select-soft: #E8EFFB; --exact: #126B5D; --exact-soft: #E3F2EF; --relaxed: #805400;
