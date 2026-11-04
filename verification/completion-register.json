@@ -2469,7 +2469,7 @@
       "scope": "Eight-state interaction and formative targets are specified, not measured.",
       "evidence": [
         "addenda/specification-2.2.md",
-        "ui/storyboard-2.2.json"
+        "docs/specification/ui/storyboard-2.2.json"
       ],
       "acceptance_checks": [],
       "remaining": [

@@ -27,7 +27,7 @@ H0 implements the journey with a notebook, a fixed similarity profile and the bo
 [[PAGEBREAK]]
 ### Workspace layout and initial patient comparison
 
-[[FIGURE:ui/wireframe-overview.png|Figure 1 Proposed patient comparison workspace using constructed data and illustrative rankings|Three coordinated regions show the reference patient history, explicit comparison criteria and twenty displayed ranked candidates from an eligible population of one hundred twenty. The index and pre-index feature boundary are visible.]]
+[[FIGURE:docs/specification/ui/wireframe-overview.png|Figure 1 Proposed patient comparison workspace using constructed data and illustrative rankings|Three coordinated regions show the reference patient history, explicit comparison criteria and twenty displayed ranked candidates from an eligible population of one hundred twenty. The index and pre-index feature boundary are visible.]]
 
 The history region provides the reference context. The criteria region explains what the system will compare. The results region answers who was retrieved and how much relevant information is available. Selecting a result opens pairwise evidence without replacing the reference patient. Persistent context prevents a researcher from mistaking the selected candidate for a new query source.
 
@@ -102,7 +102,7 @@ Saved counts bind to the result manifest. A change in preference ranking can cha
 [[PAGEBREAK]]
 ### Cohort changes and near match explanations
 
-[[FIGURE:ui/wireframe-refinement.png|Figure 2 Proposed refinement and evidence view with illustrative totals and the constructed C05 case|The completed illustrative cohort contains fourteen exact and eight relaxed matches from one hundred twenty patients, with three unresolved and ninety-five excluded. C05 uses DrugB and a nine-day exposure gap, costing one for semantic relaxation and one for time relaxation.]]
+[[FIGURE:docs/specification/ui/wireframe-refinement.png|Figure 2 Proposed refinement and evidence view with illustrative totals and the constructed C05 case|The completed illustrative cohort contains fourteen exact and eight relaxed matches from one hundred twenty patients, with three unresolved and ninety-five excluded. C05 uses DrugB and a nine-day exposure gap, costing one for semantic relaxation and one for time relaxation.]]
 
 The illustration partitions 120 patients into 14 exact, eight relaxed, three unresolved and 95 excluded. The eight additions comprise three semantic-only, four time-only and one combined case. Categories follow the deterministic selected minimum-cost alignment; alternative valid alignments remain inspectable. These are design numbers, not measured cohort yields. The C05 alignment is grounded in the supplied toy contract.
 

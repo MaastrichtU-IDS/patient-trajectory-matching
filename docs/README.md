@@ -1,94 +1,149 @@
 # Documentation guide
 
-The repository contains executable contract packs and specifications for a broader patient trajectory matching product. Read each document's status before treating a described capability as implemented.
+The repository holds executable research profiles and the specifications of a broader patient trajectory matching product. Read each page's status line before treating a described capability as implemented. Current test counts and requirement coverage live in [status](status.md) and [completion](completion.md), which are checked; this index carries no counts.
 
-## Project documentation
-
-Start here for the overall design and current state.
+## Start here
 
 | Page | Purpose |
 |---|---|
-| [Architecture](architecture.md) | Design, pipelines, constraint model, PRO/SOLID encoding, temporal semantics |
+| [Architecture](architecture.md) | Design, pipelines, constraint model, PRO/SOLID encoding, temporal semantics, matching costs |
 | [Components](components.md) | What each part does, how to use it, what it depends on |
-| [Specifications](specifications.md) | Every contract and design document, what each covers, reading order |
-| [Status](status.md) | Executable versus specified, by family and component |
-| [Completion register](completion.md) | All 104 legacy requirements, implementation evidence and remaining dependencies |
-| [Research workspace](research-workspace.md) | Integrated synthetic similarity, refinement, cohort comparison and evidence journey |
-| [Patient similarity](patient-similarity.md) | Pre-index selection, exact ranking, coverage, filters and replay |
-| [Deployment](deployment.md) | Docker, Compose, Helm and bounded operational scope |
-| [Workload memory](pressure-workload-memory.md) | Measured process-tree RSS with explicit sampling limitations |
-| [Outstanding issues](issues.md) | Known gaps and open questions, each citing its source |
-| [Running and validating](validation.md) | Every command, expected output, troubleshooting |
+| [Status](status.md) | What executes, what is specified, and what has been verified |
+| [Validation](validation.md) | Every executable component, how to run it, and what correct output looks like |
+| [Specifications](specifications.md) | Every contract and design document, what each covers, and a reading order |
+| [Completion](completion.md) | The 104 original requirements mapped to evidence and remaining clauses |
+| [Issues](issues.md) | Known gaps and open questions, each tied to the section that identifies it |
 
-## Contracts and design documents
+## Core temporal profiles
 
-| Document | Purpose | Status |
-|---|---|---|
-| [Repository README](../README.md) | Setup, scope, and runnable examples | Current entry point |
-| [PRO/SOLID addendum v2.4](../addenda/specification-2.4.md) | Canonical graph, validation, projection, and exemplar matching | Current executable contract within its declared profile |
-| [Exact-interval profile](exact-interval-profile.md) | Source/RDF adapter, explicit clocks, endpoint comparisons, and evidence | Executable `exact-interval-1.0`; separate from the point-anchor oracle |
-| [Interval cohort matching](interval-cohort-matching.md) | Versioned slot queries, indexed joins, exhaustive reference, and evidence | Executable `interval-cohort-1.0`; exact recorded intervals |
-| [Extended interval queries](extended-interval-query.md) | All basic Allen relations, duration bounds and minimum overlap | Executable bounded-source query profile; fixed-witness possible/certain semantics |
-| [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | Shared-variable constraints, possible/certain bindings, and certificates | Executable `bounded-interval-1.0`; discrete microsecond source profile |
-| [Bounded RDF ingestion](bounded-rdf-ingestion.md) | Closed RDF validation, explicit identities, and source evidence | Executable `bounded-rdf-1.0` input route to the bounded matcher |
-| [Evidence selection](evidence-selection.md) | Explicit support revisions, cutoff selection and bounded matcher integration | Executable bounded subset; broader replay remains open |
-| [Temporal KG formal definition](temporal-kg/) | Formal semantics of the graph, matching and entailment; v2 fixes representation to OWL 2 DL and adds a register of eleven open decisions | Formal specification; full OWL/rational-time query engine remains unimplemented |
-| [End-to-end recorded-source query](mimic-record-query.md) | Source admission through checked semantic/temporal matching with full accounting | Executable; 24 tests and a pinned public-demo reproduction |
-| [Patient-local clocks](patient-local-clocks.md) | Local calendar normalization, RDF evidence and fixed-witness queries | Executable; 27 tests, clinical source mapping and replay remain open |
-| [MIMIC inputevents staging](mimic-inputevents-staging.md) | CSV admission, source reconciliation and demo verification | Executable; 28 tests, no clinical graph or replay export |
-| [Joint evidence selection](joint-evidence-selection.md) | Common availability/revision selection for temporal and semantic facts | Executable; 28 tests, historical ontology replay remains open |
-| [Checked Rust semantic support](semantic-support.md) | Restricted class entailment and consistency gate before bounded matching | Executable; 22 Rust/reference tests, full SULO/import reasoning remains open |
-| [SULO temporal interface](temporal-kg/sulo-interface.md) | Executable mapping contract, paired fixtures and conformance register | Verified bounded query fragment; full OWL mapping remains open |
-| [Response to formal definition v2](temporal-kg/revision-response.md) | Recommendations for Q1–Q11, SULO interface mapping, conformance evidence and delivery order | Proposed decisions for review; no profile or ontology change |
-| [Reviewed measurement selectors](reviewed-measurement-mappings.md) | Checked item-class selection and separate same-item/unit queries | Executable synthetic integration; 18 tests; clinical review pending |
-| [Measurement source catalogue and audit](measurement-source-catalogue.md) | Pinned dictionary, claim and clock correspondence before measurement selection | Executable synthetic integration; 20 tests; clinical review pending |
-| [Prepared measurement sessions](prepared-measurement-session.md) | Reuse checked source/mapping views across changed queries | Executable synthetic integration; 20 tests; live batch integration pending |
-| [Live mapped pressure service](mapped-pressure-service.md) | Reviewed mapping and prepared batches through the local HTTP interface | Authored live integration; 16 demo tests; public clinical mappings pending |
-| [Configured mapped pressure service](configured-pressure-service.md) | Startup source/request/review configuration and request-derived page settings | 13 integration tests and configured UI check; authored alternate-item evidence |
-| [Configured pressure workloads](configured-pressure-workload.md) | Repeated HTTP queries, fresh-reference/inspection equivalence and aggregate measurements | 12 tests; six authored trials and 36 inspections; workload-scale evaluation pending |
-| [Clinical terminology candidates](clinical-terminology-candidates.md) | Concrete RxNorm/LOINC targets, source evidence and review decisions | Proposed; complete norepinephrine pack remains blocked pending review |
-| [Source-verified record catalogues](source-record-catalogue.md) | Pinned CSV/dictionary reproduction before mapped execution | Executable; 18 tests; public catalogue and synthetic SQL comparison |
-| [Reviewed record mappings](reviewed-record-mappings.md) | Versioned mapping review, bounded compiler and mixed-query evidence | Executable synthetic integration; 18 tests; clinical worksheet pending |
-| [Prepared pressure queries](prepared-pressure-queries.md) | Reuse checked views across changed controls; fresh temporal/SQL evaluation | Local executable demo with differential verification |
-| [Pressure result reuse](pressure-query-cache.md) | Bounded complete-result cache, invalidation and reproducible query timings | Local executable demo; fresh graph/SQL execution for new controls |
-| [Live pressure inspector](live-pressure-inspector.md) | Bounded real-source query controls, background jobs and source/role inspection | Local executable demo; 15 new Python tests plus DOM-state checks |
-| [Pressure-cohort overlap](pressure-cohort-overlap.md) | Patient, stay and segment intersections with disjoint aggregate accounting | Executable; 14 tests and fresh reproduction of all three source queries |
-| [Three reviewed pressure strata](reviewed-pressure-strata.md) | Separate item coverage, complete SQL reconciliation and aggregate results | Executable; three additional provenance/comparability tests, all three strata completed |
-| [Reviewed arterial demonstration](reviewed-arterial-demo.md) | Independent source-fidelity audit, explicit review declaration and complete real-source execution | Executable; 15 tests, aggregate arterial query evidence |
-| [Unique-claim review](unique-claim-review.md) | Inspect each claim once, propagate explicit decisions, validate all batches and execute resolved reviews | Executable; 28 tests, synthetic execution and aggregate demo packages verified |
-| [Partitioned window execution](partitioned-window-query.md) | Pair-covering batches, explicit review and complete execution accounting | Executable exact-record integration; 27 tests, aggregate demo plans verified |
-| [Indexed source windows](indexed-source-windows.md) | Complete indexed anchor windows, source identities and pending batches | Executable exact-record selector; 24 tests, three separate public-demo strata |
-| [Clinical source preflight](clinical-source-preflight.md) | Proposed item strata, pinned public-demo coverage and measured capacity barriers | Executable aggregate scan; 20 tests; clinical review and mixed evaluation pending |
-| [Source mixed-query pipeline](source-mixed-query.md) | Both CSV importers, explicit review, complete stay roster and independent SQL comparison | Executable exact-source profile; 28 tests, synthetic evaluation |
-| [Robust temporal relaxation](robust-temporal-relaxation.md) | Costed catalogue search with fixed modifications and fixed witnesses | Executable bounded and mixed-query wrapper; deployment policies remain open |
-| [Mixed record queries](mixed-record-query.md) | Interval treatments and point measurements, with separate eligibility/follow-up | Executable bounded record profile; 34 tests, synthetic evaluation |
-| [Measurement point claims](measurement-claims.md) | Scalar/point claims and bounded chartevents import | Executable; 35 tests; separate mixed record-query integration |
-| [MIMIC pending claim import](mimic-claim-import.md) | Source records to bounded claim descriptions and empty acceptance policies | Executable; 25 tests and aggregate public-demo verification |
-| [Patient-local claim projection](local-claim-projection.md) | Local-clock claims, acceptance and checked matching | Executable; 32 tests, recorded and occurrence variants |
-| [State validity and coverage](state-validity-coverage.md) | Explicit state intervals, continuous support, refutation and unknown gaps | Executable exact reference profile with RDF descriptions; clinical admission and sample inference remain open |
-| [Structured claims and controlled projection](claim-projection.md) | Information-object claims and explicit acceptance into bounded reasoning | Executable prototype; 45 tests, pinned-SULO claim-isolation model check |
-| [SULO development proposal](sulo-development/) | Lessons, candidate pattern catalogue, record/occurrence distinction and temporal interoperability | Proposed work programme and evaluation gates; no ontology or executable-profile changes |
-| [SULO and OWL-Time review](sulo-owl-time-review.md) | Detailed comparison and recommendations for temporal representation and reasoning | Design guidance; implemented subsets are specified in the profiles above |
-| [Temporal precedence](decisions/temporal-precedence.md) | Strict precedence, direct succession, and temporal contact | Proposed decision; no SULO core change adopted |
-| [Relaxation cost models](decisions/relaxation-cost-models.md) | Why the point-anchor oracle and `robust-temporal-relaxation-1.0` price relaxation differently, and the options for reconciling them | Proposed decision; nothing adopted, no reported cost changed |
-| [Replay addendum v2.3](../addenda/specification-2.3.md) | Observation/correction semantics and Graphiti comparison | Specified |
-| [Workspace addendum v2.2](../addenda/specification-2.2.md) | Patient workspace and interaction design | Specified |
-| [Clinical workflow addendum v2.1](../addenda/specification-2.1.md) | Query by example, normalization cases, and MIMIC-IV study plan | Specified |
+The engine in `patterns/`, one profile per page.
 
-## Recommended implementation path
+| Page | Covers |
+|---|---|
+| [Exact occurrence intervals](exact-interval-profile.md) | `exact-interval-1.0`: pairwise temporal operators over recorded intervals |
+| [Exact interval cohort matching](interval-cohort-matching.md) | `interval-cohort-1.0`: conjunctive slot queries across patient episodes |
+| [Extended interval queries](extended-interval-query.md) | Operators beyond before, meets, overlaps and bounded gap |
+| [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | `bounded-interval-1.0`: possible and certain matches over bounded times |
+| [Bounded RDF ingestion](bounded-rdf-ingestion.md) | `bounded-rdf-1.0`: validated graph input for the bounded matcher |
+| [Evidence selection](evidence-selection.md) | `evidence-selection-1.0`: which records a bounded query may use |
+| [Joint temporal and semantic selection](joint-evidence-selection.md) | Temporal records and semantic assertions selected over the same revision chains |
+| [Checked semantic support](semantic-support.md) | rustDL-derived class membership feeding the bounded matcher |
+| [State validity and coverage](state-validity-coverage.md) | When repeated measurements do and do not establish a continuous state |
+| [Patient-local clocks](patient-local-clocks.md) | Source, RDF and query profiles on each patient's own clock |
+| [Robust temporal relaxation](robust-temporal-relaxation.md) | Relaxations that hold in every feasible timeline |
+| [Explicit metric relaxation](extended-relaxation.md) | Priced metric changes for extended interval queries |
+| [Custom relaxation catalogue](custom-relaxation-catalogue.md) | Explicitly permitted metric changes in the journey builder |
 
-1. Reproduce the existing PRO/SOLID adapter and reference oracle using the repository README.
-2. Run the exact-interval adapter and its conformance suite, which preserve explicit start/end descriptors, clock scope, PRO role witnesses, and SOLID values.
-3. Run the interval cohort matcher and its differential suite: versioned required/distinct slots, exact conjunctive constraints, and patient-episode joins with retained evidence.
-4. Run the bounded uncertainty and RDF ingestion profiles with their finite-world, certificate, and graph-validation checks.
-5. Review the [v2 response](temporal-kg/revision-response.md), the supplied [standalone validation evidence](temporal-kg/validation/README.md), and the executable [SULO interface conformance](temporal-kg/sulo-interface.md). Run the [evidence-selection profile](evidence-selection.md); source-specific mappings, history coverage and full OWL support remain open.
-6. Run [MIMIC inputevents staging](mimic-inputevents-staging.md) and review its reconciliation and blocked handoff. The [recorded-source query pipeline](mimic-record-query.md) now completes the retrospective record-evidence path, including local-clock Rust support and public-demo verification. Clinically interpreted occurrence and source-as-known replay require additional evidence and reviewed policies.
-7. Extend and benchmark the admitted fragment on representative clinical data, preserving differential checks against the reference implementation.
+## Claims and the record model
 
-The detailed acceptance gates are in section 15 of the review. The Rust/Python stack now includes [checked rustDL integration](semantic-support.md) with its horned-owl parser for a restricted generated module. Broader integration, including py-horned-owl, still needs operation-specific capability checks. Passing the current fixture suite does not establish full OWL or temporal reasoning support.
+| Page | Covers |
+|---|---|
+| [Structured claims and projection](claim-projection.md) | `claim-projection-1.0`: claims, acceptance policies and controlled assertion projection |
+| [Patient-local claim projection](local-claim-projection.md) | The same projection on patient-local clocks |
+| [Recorded measurement claims](measurement-claims.md) | A bounded `chartevents` importer and scalar/point claim store |
+| [Mixed record queries](mixed-record-query.md) | Treatment intervals and measurement points in one trajectory |
+
+## MIMIC and source pipeline
+
+| Page | Covers |
+|---|---|
+| [MIMIC-IV inputevents staging](mimic-inputevents-staging.md) | Admission and reconciliation of recorded input components |
+| [Staging to matcher handoff](mimic-matcher-handoff.md) | From staged records to matcher input |
+| [MIMIC records as pending claims](mimic-claim-import.md) | Staged records imported as claims awaiting review |
+| [End-to-end recorded queries](mimic-record-query.md) | Admission through RDF ingestion to checked query results |
+| [Source mixed queries](source-mixed-query.md) | Source imports, explicit review and SQL-checked mixed queries |
+| [Source record catalogues](source-record-catalogue.md) | Source-verified catalogues of what a source holds |
+| [Clinical source preflight](clinical-source-preflight.md) | Candidate sources and coverage checks before querying |
+| [Indexed source windows](indexed-source-windows.md) | Source selection and pending anchor batches |
+| [Partitioned window execution](partitioned-window-query.md) | Exact-record windows executed by verified partition plans |
+| [Review each claim once](unique-claim-review.md) | A review package of unique source claims |
+
+## Terminology and mapping review
+
+| Page | Covers |
+|---|---|
+| [Clinical terminology candidates](clinical-terminology-candidates.md) | Proposed mappings for domain review; none accepted |
+| [Reviewed record mappings](reviewed-record-mappings.md) | Compiled record mappings with synthetic verification |
+| [Reviewed measurement selectors](reviewed-measurement-mappings.md) | Measurement mappings verified through Rust, literal and SQL paths |
+| [Measurement source catalogue](measurement-source-catalogue.md) | Catalogue and claim audit for measurement sources |
+| [Clinical review workflow](clinical-review-workflow.md) | How a review package is recorded and validated |
+
+## Pressure and measurement services
+
+The reviewed blood-pressure query service in `services/`, presented by `demos/presentation/`.
+
+| Page | Covers |
+|---|---|
+| [Reviewed arterial-pressure demonstration](reviewed-arterial-demo.md) | A complete exact-record query on the pinned MIMIC-IV demo stratum |
+| [Three reviewed pressure strata](reviewed-pressure-strata.md) | The same query on each separately reviewed measurement item |
+| [Pressure cohort overlap](pressure-cohort-overlap.md) | How the three strata's cohorts overlap |
+| [Prepared measurement sessions](prepared-measurement-session.md) | Source-audited sessions prepared once and queried many times |
+| [Reusing batch preparation](prepared-pressure-queries.md) | Checked batch views kept across changed queries |
+| [Reusing completed queries](pressure-query-cache.md) | A bounded result cache for repeated controls |
+| [Live pressure inspector](live-pressure-inspector.md) | Background jobs and the interactive pressure page |
+| [Live mapped pressure service](mapped-pressure-service.md) | The opt-in HTTP service over reviewed mappings |
+| [Configured mapped pressure service](configured-pressure-service.md) | Startup configuration for supplied records and reviews |
+| [Configured workload verification](configured-pressure-workload.md) | Sequential workloads comparing prepared, cached and fresh execution |
+| [Workload memory measurement](pressure-workload-memory.md) | Peak memory across the service's process tree (Linux) |
+
+## Research workspace
+
+The product surface in `app/`.
+
+| Page | Covers |
+|---|---|
+| [Research workspace](research-workspace.md) | The authored patient-to-cohort journey: rank, refine, compare, inspect, replay |
+| [Patient similarity](patient-similarity.md) | Bounded similarity and immutable refinement |
+| [Guided patient journey](guided-patient-journey.md) | The `/journey` route from reference patient to explained cohort |
+| [Configurable trajectory builder](configurable-trajectory-builder.md) | Two- and three-event temporal questions in `/journey` |
+| [Temporal workspace](temporal-workspace.md) | Temporal uncertainty in the workspace |
+| [Interval query editor](interval-query-editor.md) | Editable Allen, gap, duration and overlap constraints |
+| [Recorded evidence in the journey](guided-recorded-evidence.md) | Recorded treatment and measurement evidence connected to `/journey` |
+| [Recorded query by example](recorded-query-by-example.md) | Ranking and replay from a recorded reference segment |
+| [Durable recorded workspace](durable-recorded-workspace.md) | Keeping completed jobs and accepted intents across restarts |
+| [Recorded workflow interface](recorded-workflow-ui.md) | The recorded section of `/journey`, verified end to end |
+
+## Evaluation
+
+| Page | Covers |
+|---|---|
+| [Recorded workflow evaluation](recorded-workflow-evaluation.md) | One recorded question evaluated, with its clinical-review limits |
+| [Integrated recorded evaluation](integrated-recorded-evaluation.md) | The whole recorded workflow evaluated on the pinned demo |
+| [Distinct-variable evaluation](clinical-feature-source-evaluation.md) | Supplemental clinical variables extracted and verified against source |
+| [Retrieval evaluation](retrieval-evaluation.md) | Held-out retrieval mechanics and authored scaling |
+| [Integrated workflow review](completion-review.md) | Technical review of the recorded-pattern, feature, durable-job and owner-access additions |
+
+## Deployment and release
+
+| Page | Covers |
+|---|---|
+| [Deployment](deployment.md) | The container, Compose and Helm for the authored research prototype |
+| [Reproducible local release](research-release.md) | Single-owner private release: credentials, backups, restoration |
+| [Recorded workflow delivery](recorded-workflow-delivery.md) | Delivery and acceptance of the recorded workflow, including the demo cohort |
+
+## Specifications, decisions and ontology work
+
+| Page | Covers |
+|---|---|
+| [Specification addenda 2.1–2.4](../addenda/) | The product specification text the requirements cite |
+| [Design assets](specification/ui/) | Specified wireframes, tokens, storyboard and interaction contracts; no implementation |
+| [Evaluation protocol](specification/evaluation/) | The planned Graphiti comparison; no measurements |
+| [Decision: relaxation cost models](decisions/relaxation-cost-models.md) | Accepted: one reported contract, two evaluators |
+| [Decision: source completeness](decisions/source-completeness.md) | Accepted: completeness derived from declared coverage |
+| [Proposed decision: temporal precedence](decisions/temporal-precedence.md) | Precedence and direct succession, not adopted |
+| [SULO temporal representation review](sulo-owl-time-review.md) | Developer review and recommendations |
+| [SULO development proposal](sulo-development/README.md) | Pattern catalogue, records and occurrence, temporal interoperability |
+| [Temporal knowledge graph definitions](temporal-kg/README.md) | Formal definitions, their validation, the revision response and the SULO interface |
+
+## Demonstrations
+
+| Folder | What it is |
+|---|---|
+| [`demos/presentation/`](../demos/presentation/README.md) | The guided cohort demo and the live pressure inspector, served on `:8765` |
+| [`demos/mockups/`](../demos/mockups/README.md) | Exploratory interfaces for defining and matching trajectories, on a synthetic cohort |
 
 ## Decision and release boundaries
 
 The v2.4 application extension adds classes and individuals, with no new object or datatype properties. Proposed changes to SULO itself are a separate upstream release decision. The precedence document records that proposal without activating its names or axioms in the application profile.
 
-The formal temporal knowledge graph definitions are now included under [temporal-kg/](temporal-kg/). The separately prepared product specification v2.3 remains outside this snapshot. The executable profiles establish only their documented subsets; in particular, the bounded discrete profile does not implement the full OWL/rational-time formal definition.
+The formal temporal knowledge graph definitions are included under [temporal-kg/](temporal-kg/). The separately prepared product specification v2.3 remains outside this snapshot. The executable profiles establish only their documented subsets; in particular, the bounded discrete profile does not implement the full OWL/rational-time formal definition.

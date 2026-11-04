@@ -213,7 +213,7 @@ The [bounded patient similarity engine](patient-similarity.md) and [research wor
 ## Evaluation
 
 ### E1. No Graphiti measurements **[risk]**
-*Source: [2.3](../addenda/specification-2.3.md), `evaluation/graphiti-comparison-2.3.json`*
+*Source: [2.3](../addenda/specification-2.3.md), `docs/specification/evaluation/graphiti-comparison-2.3.json`*
 
 The comparison is a planned protocol. No Graphiti results exist in this repository. The file should not be read as a benchmark.
 
