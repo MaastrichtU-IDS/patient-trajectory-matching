@@ -1,0 +1,5 @@
+# Upload only what the image needs; the dataset is regenerated during the build.
+.gcloudignore
+.gitignore
+data/
+__pycache__/
