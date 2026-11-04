@@ -17,14 +17,14 @@ The guided path uses the existing point-anchor exemplar and named-class taxonomy
 From the repository root:
 
 ```sh
-python3 demo/serve.py
+python3 demos/presentation/serve.py
 ```
 
 Open **http://127.0.0.1:8765**. This guided path requires Python 3.10+ and no optional packages. Matching runs in Python on each query; the PRO/SOLID graphs were validated and projected when the dataset was built.
 
 Use a desktop browser and keep the terminal running. Click **Restart**, then start the **Presenter timer** when you begin speaking. The bottom guide keeps the next action available on desktop. Its **Presenter narrative** disclosure contains the current script; leave it closed when projecting and use these notes separately. Rehearse once in the presentation browser.
 
-Keep `demo/Guided_Cohort_Demo.html` available as the offline backup. Opening it directly uses a visibly labeled replay of recorded results. If the live server fails, the live page preserves the previous view and reports the failure; switch explicitly to the backup if needed.
+Keep `demos/presentation/Guided_Cohort_Demo.html` available as the offline backup. Opening it directly uses a visibly labeled replay of recorded results. If the live server fails, the live page preserves the previous view and reports the failure; switch explicitly to the backup if needed.
 
 ## Run of show
 
@@ -97,7 +97,7 @@ The maximum cost is a budget over explicit query modifications, not a similarity
 To reproduce a downloaded result:
 
 ```sh
-python3 demo/cohort.py --verify-export /path/to/trajectory-cohort-budget-2.json
+python3 services/cohort.py --verify-export /path/to/trajectory-cohort-budget-2.json
 ```
 
 This checks the query and dataset fingerprints, requires the same oracle implementation, re-evaluates all ten candidates and compares the complete results. The same command verifies an explicitly labeled offline replay export.

@@ -10,8 +10,9 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import pressure
-from pressure_cache import ResultCache
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from services import pressure
+from services.pressure_cache import ResultCache
 from patterns import reviewed_pressure_session as engine
 
 DEFAULT = {'threshold': '65', 'baseline_minutes': 30, 'followup_minutes': 120}

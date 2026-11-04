@@ -66,7 +66,7 @@ F = 'https://example.org/temporal-kg/v2#'
 PROFILES = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'ontology').glob('*.ttl')
                   if 'shapes' not in p.name)
 PAIRS = sorted((ROOT / 'examples/temporal-interface').glob('*/sulo.ttl'))
-SULO_GRAPHS = ['examples/pro-solid/graph.ttl', 'demo/evidence/pro-solid/graph.ttl',
+SULO_GRAPHS = ['examples/pro-solid/graph.ttl', 'demos/presentation/evidence/pro-solid/graph.ttl',
                'examples/exact-interval/graph.ttl'] + \
               [str(p.relative_to(ROOT)) for p in PAIRS]
 CORE_GRAPHS = [str(p.relative_to(ROOT)).replace('sulo.ttl', 'formal.ttl') for p in PAIRS]

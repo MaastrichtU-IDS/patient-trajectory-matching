@@ -189,7 +189,7 @@ class RecordedStoreTests(unittest.TestCase):
 class DurableJourneyTests(unittest.TestCase):
     def test_pattern_source_drift_blocks_revision_but_retained_evidence_remains(self):
         from app.recorded_journey import RecordedJourneyWorkspace
-        from demo.pressure import PressureService
+        from services.pressure import PressureService
         import shutil
         import time
         with tempfile.TemporaryDirectory() as directory:

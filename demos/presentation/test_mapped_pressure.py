@@ -10,8 +10,9 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-import mapped_pressure as service_module
-from mapped_pressure import MappedPressureService
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
+from services import mapped_pressure as service_module
+from services.mapped_pressure import MappedPressureService
 from benchmark_mapped_pressure import benchmark, artifacts, comparable, DEFAULT, CHANGED
 from patterns import mapped_pressure_session as mapped
 

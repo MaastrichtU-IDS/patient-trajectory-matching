@@ -9,7 +9,7 @@ The mapped pressure launcher now accepts a source directory, pressure request, s
 Install the pinned dependencies described in [validation](validation.md), then run from the repository root:
 
 ```sh
-python demo/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json --port 8765
+python demos/presentation/serve_mapped_pressure.py --config examples/configured-pressure-service/config.json --port 8765
 ```
 
 Open `http://127.0.0.1:8765/pressure`. The page identifies the authored supplied records, recorded input item 1000 and reviewed measurement item 2001. Its defaults are threshold 65 mmHg, baseline 15 minutes and follow-up 60 minutes. The default query has one eligible synthetic patient; all five stays remain represented. The fixture's eligible baseline lies exactly 15 minutes before its recorded segment start. No selected follow-up is required for eligibility.
@@ -60,8 +60,8 @@ The service retains one worker, existing local-origin restrictions and bounded p
 ## Verification
 
 ```sh
-python -m unittest discover -s demo -p 'test_configured_pressure.py'
-node demo/test_configured_pressure_ui.cjs
+python -m unittest discover -s demos/presentation -p 'test_configured_pressure.py'
+node demos/presentation/test_configured_pressure_ui.cjs
 ```
 
 Thirteen integration tests cover input structure/limits, alternate source and item, immutable configuration, prepared/fresh equivalence, startup and mid-job review changes, cache invalidation, pending/stale reviews, actual HTTP inspections, local-origin checks and request envelope enforcement. The JavaScript test runs the exact concatenated page script with actual service metadata and checks one initialization, labels, escaping, defaults, limits and submitted controls. It is a DOM-state test, not visual browser verification.

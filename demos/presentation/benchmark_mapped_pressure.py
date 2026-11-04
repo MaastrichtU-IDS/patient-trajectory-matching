@@ -11,16 +11,17 @@ import time
 from unittest.mock import patch
 from urllib.request import Request, urlopen
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import serve
-from mapped_pressure import MappedPressureService, stamp
+from services.mapped_pressure import MappedPressureService, stamp
 from patterns import mapped_pressure_session as mapped
 
 DEFAULT = {'threshold':'65', 'baseline_minutes':30, 'followup_minutes':120}
 CHANGED = {'threshold':'59', 'baseline_minutes':25, 'followup_minutes':60}
-FILES = tuple(sorted(set(mapped.FILES + tuple(stamp()) + ('demo/benchmark_mapped_pressure.py',
-    'demo/serve.py', 'demo/pressure.js', 'demo/pressure-synthetic-review.json'))))
+FILES = tuple(sorted(set(mapped.FILES + tuple(stamp()) + ('demos/presentation/benchmark_mapped_pressure.py',
+    'demos/presentation/serve.py', 'demos/presentation/pressure.js', 'services/pressure-synthetic-review.json'))))
 
 
 def artifacts(): return {f:mapped.ei.digest((ROOT/f).read_text()) for f in FILES}

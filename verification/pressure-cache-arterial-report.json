@@ -8,14 +8,12 @@
     "baseline_minutes": 30,
     "followup_minutes": 120
   },
-  "python_version": "3.12.13",
+  "python_version": "3.12.15",
   "artifacts": {
     "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
-    "demo/benchmark_pressure_cache.py": "54688ea3c386493cf648fb5411279d66d625aae05309a4d2e1a3b2899ab0f44e",
-    "demo/pressure.js": "3030688aa8ede992426af8afe0b05d672dcb7614ed25c7fa5c11c23340b8c2b2",
-    "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
-    "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
-    "demo/serve.py": "20cff0bb3da48aee8d9b6603662c3dd75da7a2e43a99bb98ff86318120aeb39c",
+    "demos/presentation/benchmark_pressure_cache.py": "d1b34873a34273ba62e6a3803816fde49fd7b196461cbc65df6221f0bc5974e7",
+    "demos/presentation/pressure.js": "3030688aa8ede992426af8afe0b05d672dcb7614ed25c7fa5c11c23340b8c2b2",
+    "demos/presentation/serve.py": "7d53fac634660fe23db4714738c6ab1baf6ffafd860a0ef046100bf2eed90724",
     "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
     "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
     "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
@@ -68,7 +66,9 @@
     "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a",
     "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
     "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
-    "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9"
+    "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
+    "services/pressure.py": "a04ed6553d65618f5f8d4c7804d792b37fb0d1dcc53d02133834f811d7cb87b5",
+    "services/pressure_cache.py": "de831b89a5f55802af01ff4a30f83a609f931a93ae006bf492449f5e9ee2bfa3"
   },
   "source_files": {
     "inputevents": "69597dca47e554e16645ca505167e9f39b07c1724e915ba54ccfb40f5fa0078a",
@@ -94,12 +94,12 @@
       "label": "cold_preparation_and_query",
       "mode": "fresh_query",
       "timing": {
-        "prepare_seconds": 4.804908,
-        "execute_seconds": 185.748138,
-        "final_validation_seconds": 0.004821,
-        "cache_seconds": 0.011681,
-        "total_seconds": 190.569548,
-        "original_execution_seconds": 185.744
+        "prepare_seconds": 5.744823,
+        "execute_seconds": 240.080104,
+        "final_validation_seconds": 0.004274,
+        "cache_seconds": 0.014309,
+        "total_seconds": 245.843511,
+        "original_execution_seconds": 240.075
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -113,12 +113,12 @@
       "label": "warm_preparation_fresh_query",
       "mode": "fresh_query",
       "timing": {
-        "prepare_seconds": 0.004166,
-        "execute_seconds": 201.367169,
-        "final_validation_seconds": 0.003718,
-        "cache_seconds": 0.010466,
-        "total_seconds": 201.38552,
-        "original_execution_seconds": 201.363
+        "prepare_seconds": 0.004395,
+        "execute_seconds": 223.983549,
+        "final_validation_seconds": 0.003543,
+        "cache_seconds": 0.042906,
+        "total_seconds": 224.034393,
+        "original_execution_seconds": 223.979
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -132,12 +132,12 @@
       "label": "repeated_query_1",
       "mode": "cached_complete_result",
       "timing": {
-        "prepare_seconds": 0.003624,
+        "prepare_seconds": 0.004056,
         "execute_seconds": 0,
-        "final_validation_seconds": 0.003362,
-        "cache_seconds": 0.006572,
-        "total_seconds": 0.013559,
-        "original_execution_seconds": 201.363
+        "final_validation_seconds": 0.004143,
+        "cache_seconds": 0.007966,
+        "total_seconds": 0.016167,
+        "original_execution_seconds": 223.979
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -151,12 +151,12 @@
       "label": "repeated_query_2",
       "mode": "cached_complete_result",
       "timing": {
-        "prepare_seconds": 0.003696,
+        "prepare_seconds": 0.003885,
         "execute_seconds": 0,
-        "final_validation_seconds": 0.003317,
-        "cache_seconds": 0.00674,
-        "total_seconds": 0.013757,
-        "original_execution_seconds": 201.363
+        "final_validation_seconds": 0.003471,
+        "cache_seconds": 0.007589,
+        "total_seconds": 0.014947,
+        "original_execution_seconds": 223.979
       },
       "full_result_equal": true,
       "all_inspections_equal": true,
@@ -170,12 +170,12 @@
       "label": "repeated_query_3",
       "mode": "cached_complete_result",
       "timing": {
-        "prepare_seconds": 0.003951,
+        "prepare_seconds": 0.003641,
         "execute_seconds": 0,
-        "final_validation_seconds": 0.003549,
-        "cache_seconds": 0.006977,
-        "total_seconds": 0.014479,
-        "original_execution_seconds": 201.363
+        "final_validation_seconds": 0.00349,
+        "cache_seconds": 0.007631,
+        "total_seconds": 0.014763,
+        "original_execution_seconds": 223.979
       },
       "full_result_equal": true,
       "all_inspections_equal": true,

@@ -121,7 +121,7 @@ class ReportProvenanceTests(unittest.TestCase):
         reports = gate.tracked_reports()
         before = sum(len(m) for name in reports if name not in gate.HISTORICAL
                      for m in gate.artifact_maps(gate.loaded(name) or {}, []))
-        target = 'demo/pressure.py'
+        target = 'services/pressure.py'
         real = Path.is_file
         with patch.object(Path, 'is_file', lambda self: False if str(self).endswith(target) else real(self)), \
              patch('builtins.print') as printed:

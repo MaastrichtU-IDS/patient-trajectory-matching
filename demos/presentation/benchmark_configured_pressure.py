@@ -14,16 +14,17 @@ from unittest.mock import patch
 from urllib.request import Request, urlopen
 from jsonschema import Draft202012Validator
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
+sys.path.insert(0,str(Path(__file__).resolve().parent))
 import serve
 from serve_mapped_pressure import Handler
-from mapped_pressure import MappedPressureService, stamp
+from services.mapped_pressure import MappedPressureService, stamp
 from patterns import pressure_service_config as configuration, mapped_pressure_session as mapped
 
 PROFILE = 'configured-pressure-workload-verification-1.0'
 FILES = tuple(sorted(set(mapped.FILES + tuple(stamp()) +
-    ('demo/benchmark_configured_pressure.py','demo/serve.py','schemas/pressure-workload.schema.json'))))
+    ('demos/presentation/benchmark_configured_pressure.py','demos/presentation/serve.py','schemas/pressure-workload.schema.json'))))
 JOB_TIMEOUT = 600
 
 

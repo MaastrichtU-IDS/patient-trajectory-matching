@@ -13,7 +13,8 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-import pressure
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
+from services import pressure
 import serve
 from patterns import reviewed_pressure_session as engine
 

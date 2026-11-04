@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 HOUR = 3600000000
-SOURCE = ROOT / 'demo/cohort-data.json'
+SOURCE = ROOT / 'examples/guided-cohort/cohort-data.json'
 POLICY = 'Authored overlay: event available at occurrence; age band known one hour before origin.'
 sys.path.insert(0, str(ROOT))
 from reference_oracle import uncovered_demands
@@ -37,7 +37,7 @@ def build():
             record = {'id':eid,'component':'baseline_creatinine' if event['event_kind']=='measurement' else 'clinical_concepts',
                 'value':{'hasValue':event['value']} if event['event_kind']=='measurement' else [event['concept']],
                 'occurrence_us':event['time']['start_min_us'],'available_at_us':event['time']['start_min_us'],
-                'clock':clock,'source':{'document':'demo/cohort-data.json','row':eid,
+                'clock':clock,'source':{'document':'examples/guided-cohort/cohort-data.json','row':eid,
                     'source_record_sha256':event['provenance']['source_record_sha256'],
                     'original_value':event['original_value'],'original_unit':event['original_unit'],
                     'availability_policy':POLICY,'binding':binding},
@@ -52,7 +52,7 @@ def build():
         age = case['age']; age_band=f'{age//10*10}-{age//10*10+9}'; aid=f'{pid}-age-overlay'
         patient['records'].append({'id':aid,'component':'age_band','value':age_band,'occurrence_us':-HOUR,
             'available_at_us':-HOUR,'clock':clock,
-            'source':{'document':'demo/cohort-data.json','row':f'{pid}/manifest/age','availability_policy':POLICY},
+            'source':{'document':'examples/guided-cohort/cohort-data.json','row':f'{pid}/manifest/age','availability_policy':POLICY},
             'claim':{'id':aid+'-claim','refersTo':aid+'-role'},
             'role':{'id':aid+'-role','isFeatureOf':patient['bearer_id']}})
         patients.append(patient)
@@ -60,7 +60,7 @@ def build():
         'label':'Eleven guided authored histories with explicit synthetic availability',
         'scope':'authored_synthetic','clinical_validity_claim':False,
         'index_rule':patients[0]['index_rule'], 'patients':patients,
-        'construction_origin':{'path':'demo/cohort-data.json','sha256':sha256(SOURCE.read_bytes()).hexdigest(),
+        'construction_origin':{'path':'examples/guided-cohort/cohort-data.json','sha256':sha256(SOURCE.read_bytes()).hexdigest(),
             'availability_policy':POLICY,'original_availability_policy':data['availability_policy'],
             'scope':'Same patient episodes and projected source events; added age-band and availability declarations.'}}
     return dataset, profile

@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse, subprocess, sys, tempfile, venv
 
 ROOT = Path(__file__).resolve().parent
-SOURCE = ROOT.parent
+SOURCE = ROOT.parents[1]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -11,8 +11,8 @@ def main():
     parser.add_argument('--setup-only', action='store_true')
     args = parser.parse_args()
     if sys.version_info[:2] != (3, 12):
-        print('Full-demo setup uses Python 3.12. Run: python3.12 demo/start_demo.py')
-        print('On Windows: py -3.12 demo/start_demo.py')
+        print('Full-demo setup uses Python 3.12. Run: python3.12 demos/presentation/start_demo.py')
+        print('On Windows: py -3.12 demos/presentation/start_demo.py')
         print(f'Current interpreter: {sys.executable} ({sys.version.split()[0]})')
         return 2
     env = ROOT / '.venv'

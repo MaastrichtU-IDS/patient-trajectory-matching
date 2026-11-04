@@ -8,7 +8,7 @@ Start the application after the [dependency setup](../README.md) and open <http:
 python -m app.server --host 127.0.0.1 --port 8080
 ```
 
-Use the [2–3-minute presenter script](../demo/GUIDED_JOURNEY.md). Docker/Compose and Helm packaging are described in [deployment.md](deployment.md); this route uses the existing application server.
+Use the [2–3-minute presenter script](../demos/presentation/GUIDED_JOURNEY.md). Docker/Compose and Helm packaging are described in [deployment.md](deployment.md); this route uses the existing application server.
 
 ## What this journey demonstrates
 

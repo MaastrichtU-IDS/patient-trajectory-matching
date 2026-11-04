@@ -9,7 +9,7 @@ PR #42 made the source and review inputs configurable. This increment makes the 
 From the repository root, with the pinned Python/Rust dependencies installed:
 
 ```sh
-python demo/benchmark_configured_pressure.py \
+python demos/presentation/benchmark_configured_pressure.py \
   --config examples/configured-pressure-service/config.json \
   --workload examples/configured-pressure-service/workload.json \
   --repetitions 3 \
@@ -62,7 +62,7 @@ The fixture is tiny and authored. Its timings establish a reproducible measureme
 ## Tests and CI
 
 ```sh
-python -m unittest discover -s demo -p 'test_configured_pressure_workload.py'
+python -m unittest discover -s demos/presentation -p 'test_configured_pressure_workload.py'
 ```
 
 Twelve tests cover workload/envelope bounds, actual HTTP/fresh-result/inspection equivalence, cache non-retention and eviction, changed inputs, deliberate result/evidence differences, pending reviews, safe atomic report publication, and committed provenance. CI runs a new one-repetition workload and uploads `verification/configured-pressure-workload-run/report.json` as `configured-pressure-workload-evidence`. Timing values are not CI acceptance thresholds. The demo suite totals 92 tests; the contract suite was 781 checks at this increment.

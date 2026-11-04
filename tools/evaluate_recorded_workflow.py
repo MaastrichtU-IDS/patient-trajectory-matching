@@ -96,14 +96,14 @@ def comparable(result):
 def artifact_hashes():
     from patterns.reviewed_pressure_session import FILES
     from patterns.prepared_mixed_query import ARTIFACTS
-    files = sorted(set(FILES + ARTIFACTS + ('demo/pressure.py', 'demo/pressure_cache.py',
-        'demo/profile_pressure_workload.py', 'tools/evaluate_recorded_workflow.py',
+    files = sorted(set(FILES + ARTIFACTS + ('services/pressure.py', 'services/pressure_cache.py',
+        'tools/profile_pressure_workload.py', 'tools/evaluate_recorded_workflow.py',
         'data/clinical-source-demo-pin.json', 'data/clinical-candidate-plan.json')))
     return {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in files}
 
 
 def evaluate_stratum(folder, stratum):
-    from demo.pressure import PressureService
+    from services.pressure import PressureService
     before = artifact_hashes()
     service = PressureService(folder=folder, synthetic=False)
     def run(label, controls):
@@ -142,7 +142,7 @@ def evaluate_stratum(folder, stratum):
 
 
 def evaluate(folder, strata):
-    from demo.profile_pressure_workload import monitor
+    from tools.profile_pressure_workload import monitor
     require(platform.system() == 'Linux', 'Linux process-tree memory measurement required')
     trials = []
     with tempfile.TemporaryDirectory(prefix='recorded-evaluation-') as temporary:

@@ -29,9 +29,9 @@ def fixture_root(tmp, *, alpha=2, beta=3, cases=2, properties=3, extra_module=No
             'import unittest\nclass T(unittest.TestCase):\n    def test_x(self): pass\n')
     if broken:
         (root / 'patterns/test_alpha.py').write_text('import no_such_module_anywhere\n')
-    for pkg, modules, cjs in (('demo', {'test_d1': 3, 'test_d2': 4}, 2), ('app', {'test_server': 5}, 3),
+    for pkg, modules, cjs in (('demos/presentation', {'test_d1': 3, 'test_d2': 4}, 2), ('app', {'test_server': 5}, 3),
                               ('tools', {'test_check_completion': 6}, 0)):
-        (root / pkg).mkdir(); (root / pkg / '__init__.py').write_text('')
+        (root / pkg).mkdir(parents=True); (root / pkg / '__init__.py').write_text('')
         for name, n in modules.items():
             body = '\n'.join(f'    def test_{i}(self): pass' for i in range(n))
             (root / pkg / f'{name}.py').write_text(f'import unittest\nclass T(unittest.TestCase):\n{body}\n')
@@ -110,7 +110,7 @@ class CountTests(unittest.TestCase):
             self.assertEqual(a['demo_suite'], 7)            # 3 + 4 across two demo modules
             self.assertEqual(a['research_http_suite'], 5)   # app/test_server.py
             self.assertEqual(a['completion_checker'], 6)    # tools/test_check_completion.py
-            self.assertEqual(a['node_dom_suites'], 5)       # 2 under demo/ + 3 under app/
+            self.assertEqual(a['node_dom_suites'], 5)       # 2 under demos/presentation/ + 3 under app/
             self.assertEqual(len(a['node_suite_files']), 5)
             self.assertTrue(all(f.endswith('.cjs') for f in a['node_suite_files']))
 

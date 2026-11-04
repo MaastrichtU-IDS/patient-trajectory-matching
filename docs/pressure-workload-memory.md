@@ -1,11 +1,11 @@
 # Memory measurement for configured pressure workloads
 
-The configured workload verifier establishes agreement between prepared, cached and fresh execution. Its serialized cache sizes do not measure process memory. `demo/profile_pressure_workload.py` adds a separate Linux parent process that samples the resident memory of the fixed verifier and its visible descendants through `/proc`.
+The configured workload verifier establishes agreement between prepared, cached and fresh execution. Its serialized cache sizes do not measure process memory. `tools/profile_pressure_workload.py` adds a separate Linux parent process that samples the resident memory of the fixed verifier and its visible descendants through `/proc`.
 
 Run it from the repository root, with the same Python environment required by the [configured workload verifier](configured-pressure-workload.md):
 
 ```bash
-python demo/profile_pressure_workload.py \
+python tools/profile_pressure_workload.py \
   --config examples/configured-pressure-service/config.json \
   --workload examples/configured-pressure-service/workload.json \
   --repetitions 3 \
@@ -14,7 +14,7 @@ python demo/profile_pressure_workload.py \
   --output verification/pressure-workload-memory-report.json
 ```
 
-The profiler launches only `demo/benchmark_configured_pressure.py`, using the current Python executable and a new process session. It provides no arbitrary command option. The existing workload limits remain: one to eight query variants and one to ten repetitions. Sampling intervals must be 5–1,000 ms; the wall-time limit is 1–86,400 seconds. The deadline is checked between scans, so a scan or operating-system scheduling delay can extend it slightly.
+The profiler launches only `demos/presentation/benchmark_configured_pressure.py`, using the current Python executable and a new process session. It provides no arbitrary command option. The existing workload limits remain: one to eight query variants and one to ten repetitions. Sampling intervals must be 5–1,000 ms; the wall-time limit is 1–86,400 seconds. The deadline is checked between scans, so a scan or operating-system scheduling delay can extend it slightly.
 
 ## What is measured
 
@@ -41,5 +41,5 @@ These values demonstrate an executable measurement method and are machine-specif
 Targeted checks:
 
 ```bash
-python -m unittest discover -s demo -p 'test_pressure_workload_profile.py' -v
+python -m unittest discover -s demos/presentation -p 'test_pressure_workload_profile.py' -v
 ```

@@ -13,7 +13,11 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT/'demo/benchmark_configured_pressure.py'
+# The workload is the presentation's configured-pressure benchmark; it imports that
+# folder's servers by module name, so the folder goes on the path before it is loaded.
+RUNNER = ROOT/'demos/presentation/benchmark_configured_pressure.py'
+if str(RUNNER.parent) not in sys.path:
+    sys.path.insert(0, str(RUNNER.parent))
 PROFILE = 'configured-pressure-workload-memory-1.0'
 MAX_REPORT_BYTES = 4*1024*1024
 
@@ -147,7 +151,7 @@ def run(inputs, interval=.02, timeout=3600):
         'configuration_context_id':inputs['context']['configuration_context_id'],
         'workload_sha256':inputs['context']['workload_sha256'],
         'repetitions':inputs['context']['repetitions'],
-        'artifacts':{**inputs['context']['artifacts'],'demo/profile_pressure_workload.py':own_hash},
+        'artifacts':{**inputs['context']['artifacts'],'tools/profile_pressure_workload.py':own_hash},
         'python':platform.python_version(),'platform':platform.system(),
         'source_scope':'supplied_records_not_publisher_authenticated',
         'clinical_mapping_verified':False,'representative_clinical_scale_established':False,

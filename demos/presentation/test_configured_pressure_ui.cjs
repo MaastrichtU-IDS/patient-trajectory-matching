@@ -1,10 +1,9 @@
 // Verify the exact concatenated script used by the configured HTTP page.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path'),{spawnSync}=require('node:child_process');
-const root=path.resolve(__dirname,'..');
+const root=path.resolve(__dirname,'..','..');
 const python=spawnSync(process.env.PYTHON||'python',['-c',`
 import json,sys
-sys.path.insert(0,'demo')
-from mapped_pressure import MappedPressureService
+from services.mapped_pressure import MappedPressureService
 s=MappedPressureService(config='examples/configured-pressure-service/config.json')
 try: print(json.dumps(s.metadata()))
 finally: s.close()

@@ -2,7 +2,7 @@
 
 The local demo now exposes the reviewed mixed interval/measurement engine through background HTTP jobs and an interactive pressure page. Select one measurement stratum, change the pressure threshold or narrow the recorded-time windows, inspect the resulting patient/stay/segment membership, and open the exact source and review evidence behind an anchor.
 
-The [existing guided journey](../demo/NARRATIVE.md) remains the short synthetic demonstration of exact matching and priced relaxation. The pressure page uses the separate reviewed-record profile. The first query prepares and executes the reviewed source and can take several minutes. Changed controls can reuse checked batch views while recomputing temporal eligibility and SQL reconciliation. Repeating identical controls can reuse a completed result after fresh source/review checks; the page labels this reuse. It has no offline replay or implicit fallback.
+The [existing guided journey](../demos/presentation/NARRATIVE.md) remains the short synthetic demonstration of exact matching and priced relaxation. The pressure page uses the separate reviewed-record profile. The first query prepares and executes the reviewed source and can take several minutes. Changed controls can reuse checked batch views while recomputing temporal eligibility and SQL reconciliation. Repeating identical controls can reuse a completed result after fresh source/review checks; the page labels this reuse. It has no offline replay or implicit fallback.
 
 ## Start
 
@@ -10,7 +10,7 @@ From the repository root, use Python 3.12 with the existing pinned graph/Rust de
 
 ```sh
 python -m pip install -r patterns/requirements-semantic.lock.txt
-python demo/serve.py --mimic-dir /path/to/mimic-demo/icu
+python demos/presentation/serve.py --mimic-dir /path/to/mimic-demo/icu
 ```
 
 Open [the local pressure page](http://127.0.0.1:8765/pressure), or choose **Live pressure queries** in the guided demo header. Supply the original `inputevents.csv.gz`, `chartevents.csv.gz`, `icustays.csv.gz` and `d_items.csv.gz` files from the [public MIMIC-IV demo 2.2 release](https://physionet.org/content/mimic-iv-demo/2.2/), matching the [repository pin](../data/clinical-source-demo-pin.json). Unpinned sources are refused before review preparation. Full MIMIC and other datasets are outside this route.
@@ -18,10 +18,10 @@ Open [the local pressure page](http://127.0.0.1:8765/pressure), or choose **Live
 For a fast, entirely authored example, explicitly select:
 
 ```sh
-python demo/serve.py --pressure-synthetic
+python demos/presentation/serve.py --pressure-synthetic
 ```
 
-This uses the existing synthetic source fixture and a [separate explicit declaration](../demo/pressure-synthetic-review.json). It is visibly labeled synthetic and returns three eligible patients under the default controls. Without either startup flag, the pressure page provides setup instructions. The original guided demo remains usable without the optional graph/Rust packages.
+This uses the existing synthetic source fixture and a [separate explicit declaration](../services/pressure-synthetic-review.json). It is visibly labeled synthetic and returns three eligible patients under the default controls. Without either startup flag, the pressure page provides setup instructions. The original guided demo remains usable without the optional graph/Rust packages.
 
 ## Supported controls and review scope
 
@@ -59,7 +59,7 @@ Patient/stay identifiers and record evidence are returned only by the configured
 
 [`reviewed_pressure_session.py`](../patterns/reviewed_pressure_session.py) uses the existing reviewed stores and explicit alignment, with [reusable checked batch preparation](prepared-pressure-queries.md) for the mixed matcher, merges complete bindings and checks each anchor against the independent unpartitioned SQL query using the actual current controls. Counts become available only when every anchor succeeds. A failed anchor suppresses all cohort metrics and inspection results for that run.
 
-[`demo/pressure.py`](../demo/pressure.py) supports one active job, one current preparation cache, a [bounded completed-result cache](pressure-query-cache.md), and the three most recent jobs. Completed jobs retain their session evidence while available; old jobs expire. Jobs and evidence are in memory and are lost when the server stops. There is no cancellation, restart/resume, multi-user access control or production deployment service in this increment.
+[`services/pressure.py`](../services/pressure.py) supports one active job, one current preparation cache, a [bounded completed-result cache](pressure-query-cache.md), and the three most recent jobs. Completed jobs retain their session evidence while available; old jobs expire. Jobs and evidence are in memory and are lost when the server stops. There is no cancellation, restart/resume, multi-user access control or production deployment service in this increment.
 
 The browser polls progress without showing partial cohort counts. A failed or incomplete query retains the previous completed view with an error; it never relabels the old results as the new query. Stale query/evidence responses cannot replace a newer selection. The server binds to loopback, checks the pressure routes' Host/Origin, accepts bounded JSON controls and never accepts source filesystem paths through HTTP.
 
@@ -79,9 +79,9 @@ The [live HTTP verification report](../verification/live-pressure-demo-report.js
 Fifteen additional Python tests cover differential default execution, altered controls, immutable reviews, source/review invalidation, SQL corruption detection, incomplete-run suppression, exact source/role inspection, bounded job retention, live HTTP behavior and provenance. Those initial additions brought the demo suite to 29 tests, separate from the 687 contract checks; the [cache increment](pressure-query-cache.md) adds invalidation and equivalence tests. Node DOM-state tests exercise actual synthetic engine responses, selections, missing follow-up, non-matches, empty stays, progress, failures and stale responses. CI runs both the original guided and new pressure-page checks.
 
 ```sh
-python -m unittest discover -s demo -p 'test_*.py'
-node demo/test_guided_ui.cjs
-node demo/test_pressure_ui.cjs
+python -m unittest discover -s demos/presentation -p 'test_*.py'
+node demos/presentation/test_guided_ui.cjs
+node demos/presentation/test_pressure_ui.cjs
 ```
 
 Visual browser/layout inspection remains unverified in the authoring environment. Rehearse the page in the presentation browser: run the authored default query, inspect patient 2's missing follow-up, reduce the threshold to 59, inspect an excluded baseline, then select patient 4's stay without an admitted anchor. For real-source use, allow the source query to finish before presenting its result.

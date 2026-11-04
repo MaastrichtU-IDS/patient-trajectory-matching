@@ -6,15 +6,15 @@ import argparse, copy, json, platform, re, shlex, subprocess, sys, tempfile
 from importlib.metadata import PackageNotFoundError, version
 
 ROOT = Path(__file__).resolve().parent
-SOURCE = ROOT.parent
+SOURCE = ROOT.parents[1]
 sys.path.insert(0, str(SOURCE))
 from reference_oracle import evaluate, without_source_search
-from cohort import export_cohort, run_cohort
-from pressure import PressureService
+from services.cohort import export_cohort, run_cohort
+from services.pressure import PressureService
 PRESSURE = PressureService()
 
 DATA = json.loads((ROOT / 'demo-data.json').read_text())
-COHORT = json.loads((ROOT / 'cohort-data.json').read_text())
+COHORT = json.loads((SOURCE / 'examples/guided-cohort/cohort-data.json').read_text())
 
 def environment():
     packages = {}

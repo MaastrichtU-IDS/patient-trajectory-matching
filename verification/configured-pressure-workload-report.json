@@ -21,13 +21,10 @@
     "repetitions": 3,
     "artifacts": {
       "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
-      "demo/benchmark_configured_pressure.py": "dca137247093f3e644f188981e618edd28a777f9af4c5ee6d1c2647c6b297cc2",
-      "demo/configured_pressure.js": "6ef9ae414cd14a1b4b7bf7e6876b5611223f3b3d442d127573f1fe9fce11cec1",
-      "demo/mapped_pressure.py": "02ab332e0351757d0116a81d7f7f53096f60b63cff344a156916034a118d51d2",
-      "demo/pressure.py": "dd69922b7352e77ef2446bda54ab986275d2ebc671197e3e110013c4bb4d8ab4",
-      "demo/pressure_cache.py": "9f7f7e98633428557adab22dc840d49ea4db9c755fbe92efb4c84e3c321dbc86",
-      "demo/serve.py": "20cff0bb3da48aee8d9b6603662c3dd75da7a2e43a99bb98ff86318120aeb39c",
-      "demo/serve_mapped_pressure.py": "2c3dcde229eb577034e6e683e9b0690ae953b5b4e2354ee3722170cb8d39e032",
+      "demos/presentation/benchmark_configured_pressure.py": "e8f82ab9fb1241e5efaeffdb14002c1e3beba31ebefd50357306942bc78659c3",
+      "demos/presentation/configured_pressure.js": "6ef9ae414cd14a1b4b7bf7e6876b5611223f3b3d442d127573f1fe9fce11cec1",
+      "demos/presentation/serve.py": "7d53fac634660fe23db4714738c6ab1baf6ffafd860a0ef046100bf2eed90724",
+      "demos/presentation/serve_mapped_pressure.py": "bd9bed5e3f0841df0706bf23673ef65fd703a666201633b26900b572ff8c47d2",
       "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
       "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
       "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
@@ -91,10 +88,13 @@
       "schemas/reviewed-record-mappings.schema.json": "c37bd5d85aefacd21c78316598b7f570513ef5475b95abe32a4d94f29500ef63",
       "schemas/source-fidelity-review-declaration.schema.json": "b508d66991b3427f8dc0ef158f30180e6922398f65363e1391d04b3e8bfb158a",
       "schemas/source-mixed-query.schema.json": "72815f9dc76e1024d6eaafeef8271dbb6154dcfe7596752f5054c82770bb853e",
-      "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9"
+      "schemas/unique-claim-review.schema.json": "f32f7d44c3fa682ec293361eed651ed204d71ab37e7e7b07ff7962e1fd4ccbf9",
+      "services/mapped_pressure.py": "0ce191166164c547ed545ee07602252fcb7c1be795c7e61bc8f4c901c1a5bcd2",
+      "services/pressure.py": "a04ed6553d65618f5f8d4c7804d792b37fb0d1dcc53d02133834f811d7cb87b5",
+      "services/pressure_cache.py": "de831b89a5f55802af01ff4a30f83a609f931a93ae006bf492449f5e9ee2bfa3"
     }
   },
-  "context_id": "0e38ef5e124e1d52026cc5eb17056ccfa04f7b2cc1e53e3afcbf3bde8f3ed15c",
+  "context_id": "f57e9c9229370efcc23f07af2bfa7b65b0293f3d940142c6ca0eea874a339b9d",
   "session_context_id": "91bc6cb64b48da6298e229086f982ff4a39981ac2894b8c7f928172d5b960786",
   "source_sha256": {
     "inputevents": "1da03f5affbd0cfa3cb105dba6d128683fe6dd4be5f9cc91ef0f60a896551884",
@@ -105,15 +105,15 @@
   "source_scope": "supplied_records_not_publisher_authenticated",
   "clinical_mapping_verified": false,
   "patient_rows_or_identifiers_included": false,
-  "python": "3.12.13",
-  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "python": "3.12.15",
+  "platform": "macOS-26.4-arm64-arm-64bit",
   "stays_retained": 5,
   "anchors": 3,
   "batches": 3,
   "nonempty_measurement_batches": 1,
   "cold": {
-    "service_seconds": 0.370029,
-    "http_seconds": 0.412789,
+    "service_seconds": 0.487178,
+    "http_seconds": 0.527405,
     "operation_counts": {
       "source_audits": 1,
       "mapping_plans": 2,
@@ -149,11 +149,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.012271,
-      "prepared_http_seconds": 0.051449,
-      "repeat_service_seconds": 0.004743,
-      "repeat_http_seconds": 0.030955,
-      "fresh_mapped_execution_seconds": 0.312193,
+      "prepared_service_seconds": 0.014999,
+      "prepared_http_seconds": 0.0465,
+      "repeat_service_seconds": 0.005055,
+      "repeat_http_seconds": 0.091772,
+      "fresh_mapped_execution_seconds": 0.369696,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -197,11 +197,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.010676,
-      "prepared_http_seconds": 0.021888,
-      "repeat_service_seconds": 0.003614,
-      "repeat_http_seconds": 0.033933,
-      "fresh_mapped_execution_seconds": 0.312392,
+      "prepared_service_seconds": 0.013881,
+      "prepared_http_seconds": 0.075956,
+      "repeat_service_seconds": 0.005013,
+      "repeat_http_seconds": 0.04662,
+      "fresh_mapped_execution_seconds": 0.377994,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -245,11 +245,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.011291,
-      "prepared_http_seconds": 0.020681,
-      "repeat_service_seconds": 0.004003,
-      "repeat_http_seconds": 0.049721,
-      "fresh_mapped_execution_seconds": 0.3082,
+      "prepared_service_seconds": 0.013718,
+      "prepared_http_seconds": 0.046302,
+      "repeat_service_seconds": 0.004799,
+      "repeat_http_seconds": 0.053379,
+      "fresh_mapped_execution_seconds": 0.378658,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -293,11 +293,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.010697,
-      "prepared_http_seconds": 0.027858,
-      "repeat_service_seconds": 0.00377,
-      "repeat_http_seconds": 0.019828,
-      "fresh_mapped_execution_seconds": 0.309335,
+      "prepared_service_seconds": 0.013632,
+      "prepared_http_seconds": 0.034003,
+      "repeat_service_seconds": 0.004959,
+      "repeat_http_seconds": 0.046254,
+      "fresh_mapped_execution_seconds": 0.374317,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -341,11 +341,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.011053,
-      "prepared_http_seconds": 0.015311,
-      "repeat_service_seconds": 0.003705,
-      "repeat_http_seconds": 0.049938,
-      "fresh_mapped_execution_seconds": 0.311811,
+      "prepared_service_seconds": 0.013857,
+      "prepared_http_seconds": 0.033481,
+      "repeat_service_seconds": 0.005423,
+      "repeat_http_seconds": 0.044833,
+      "fresh_mapped_execution_seconds": 0.380547,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -389,11 +389,11 @@
       "anchors_verified": 3,
       "http_inspections_equal": 6,
       "all_result_fields_except_duration_equal": true,
-      "prepared_service_seconds": 0.010888,
-      "prepared_http_seconds": 0.022715,
-      "repeat_service_seconds": 0.003762,
-      "repeat_http_seconds": 0.046577,
-      "fresh_mapped_execution_seconds": 0.324508,
+      "prepared_service_seconds": 0.013868,
+      "prepared_http_seconds": 0.019379,
+      "repeat_service_seconds": 0.004771,
+      "repeat_http_seconds": 0.044966,
+      "fresh_mapped_execution_seconds": 0.378016,
       "repeat_execution_mode": "cached_complete_result",
       "prepared_operation_counts": {
         "source_audits": 0,
@@ -424,33 +424,33 @@
       "query_index": 0,
       "prepared_service": {
         "samples": 3,
-        "minimum_seconds": 0.011053,
-        "median_seconds": 0.011291,
-        "maximum_seconds": 0.012271
+        "minimum_seconds": 0.013718,
+        "median_seconds": 0.013857,
+        "maximum_seconds": 0.014999
       },
       "prepared_http": {
         "samples": 3,
-        "minimum_seconds": 0.015311,
-        "median_seconds": 0.020681,
-        "maximum_seconds": 0.051449
+        "minimum_seconds": 0.033481,
+        "median_seconds": 0.046302,
+        "maximum_seconds": 0.0465
       },
       "cached_service": {
         "samples": 3,
-        "minimum_seconds": 0.003705,
-        "median_seconds": 0.004003,
-        "maximum_seconds": 0.004743
+        "minimum_seconds": 0.004799,
+        "median_seconds": 0.005055,
+        "maximum_seconds": 0.005423
       },
       "cached_http": {
         "samples": 3,
-        "minimum_seconds": 0.030955,
-        "median_seconds": 0.049721,
-        "maximum_seconds": 0.049938
+        "minimum_seconds": 0.044833,
+        "median_seconds": 0.053379,
+        "maximum_seconds": 0.091772
       },
       "fresh_mapped_execution": {
         "samples": 3,
-        "minimum_seconds": 0.3082,
-        "median_seconds": 0.311811,
-        "maximum_seconds": 0.312193
+        "minimum_seconds": 0.369696,
+        "median_seconds": 0.378658,
+        "maximum_seconds": 0.380547
       },
       "repeat_recomputations": 0
     },
@@ -458,33 +458,33 @@
       "query_index": 1,
       "prepared_service": {
         "samples": 3,
-        "minimum_seconds": 0.010676,
-        "median_seconds": 0.010697,
-        "maximum_seconds": 0.010888
+        "minimum_seconds": 0.013632,
+        "median_seconds": 0.013868,
+        "maximum_seconds": 0.013881
       },
       "prepared_http": {
         "samples": 3,
-        "minimum_seconds": 0.021888,
-        "median_seconds": 0.022715,
-        "maximum_seconds": 0.027858
+        "minimum_seconds": 0.019379,
+        "median_seconds": 0.034003,
+        "maximum_seconds": 0.075956
       },
       "cached_service": {
         "samples": 3,
-        "minimum_seconds": 0.003614,
-        "median_seconds": 0.003762,
-        "maximum_seconds": 0.00377
+        "minimum_seconds": 0.004771,
+        "median_seconds": 0.004959,
+        "maximum_seconds": 0.005013
       },
       "cached_http": {
         "samples": 3,
-        "minimum_seconds": 0.019828,
-        "median_seconds": 0.033933,
-        "maximum_seconds": 0.046577
+        "minimum_seconds": 0.044966,
+        "median_seconds": 0.046254,
+        "maximum_seconds": 0.04662
       },
       "fresh_mapped_execution": {
         "samples": 3,
-        "minimum_seconds": 0.309335,
-        "median_seconds": 0.312392,
-        "maximum_seconds": 0.324508
+        "minimum_seconds": 0.374317,
+        "median_seconds": 0.377994,
+        "maximum_seconds": 0.378016
       },
       "repeat_recomputations": 0
     }

@@ -11,9 +11,9 @@ from urllib.request import urlopen
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import cohort
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from services import cohort
 import serve
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from patterns import robust_relaxation as robust
 
 
@@ -107,9 +107,9 @@ class GuidedCohortTests(unittest.TestCase):
 
     def test_no_graph_packages_needed_to_match_the_committed_projection(self):
         completed = subprocess.run([sys.executable, '-S', '-c',
-            "import json, cohort; data=json.load(open('cohort-data.json')); "
+            "import json; from services import cohort; data=json.load(open('examples/guided-cohort/cohort-data.json')); "
             "print(cohort.run_cohort(data,'2')['membership']['included'])"],
-            cwd=serve.ROOT, capture_output=True, text=True)
+            cwd=serve.SOURCE, capture_output=True, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("'P06'", completed.stdout)
 

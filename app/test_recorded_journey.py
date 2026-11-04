@@ -123,7 +123,7 @@ class RecordedJourneyTests(unittest.TestCase):
             self.workspace(config=ROOT / 'does-not-exist.json')
 
     def test_changed_source_blocks_new_query_and_retains_historical_inspection(self):
-        from demo.pressure import PressureService
+        from services.pressure import PressureService
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / 'records'
             shutil.copytree(ROOT / 'examples/source-mixed-query', folder)

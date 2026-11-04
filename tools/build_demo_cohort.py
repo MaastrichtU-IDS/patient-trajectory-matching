@@ -1,7 +1,7 @@
 """Derive a ranking cohort from the pinned open-access MIMIC-IV demo, outside the repo.
 
 The research workspace ranks pre-index histories. Until now its only cohort was the
-eleven authored patients in `demo/cohort-data.json`, so `--public-demo-dir` reached the
+eleven authored patients in `examples/guided-cohort/cohort-data.json`, so `--public-demo-dir` reached the
 recorded treatment-evidence journey and nothing else. This builds the same cohort shape
 from the pinned demo release, so the similarity, refinement and trajectory surfaces can
 rank real ICU stays.

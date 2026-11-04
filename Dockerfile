@@ -19,7 +19,9 @@ COPY patterns/ ./patterns/
 COPY schemas/ ./schemas/
 COPY ontology/ ./ontology/
 COPY examples/ ./examples/
-COPY demo/ ./demo/
+COPY services/ ./services/
+# The mapped pressure service stamps its HTTP layer and page script, which live here.
+COPY demos/presentation/ ./demos/presentation/
 COPY ui/ ./ui/
 COPY data/terminology/ ./data/terminology/
 COPY data/clinical-source-demo-pin.json ./data/clinical-source-demo-pin.json

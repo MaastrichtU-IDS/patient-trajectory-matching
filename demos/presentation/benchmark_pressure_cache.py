@@ -10,15 +10,16 @@ import threading
 import time
 from urllib.request import Request, urlopen
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-import pressure
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from services import pressure
 import serve
 from patterns import reviewed_pressure_session as engine
 
 FILES = tuple(sorted(set(engine.FILES + (
-    'demo/pressure.py', 'demo/pressure_cache.py', 'demo/serve.py',
-    'demo/pressure.js', 'demo/benchmark_pressure_cache.py', 'patterns/prepared_mixed_query.py', 'data/clinical-source-demo-pin.json'))))
+    'services/pressure.py', 'services/pressure_cache.py', 'demos/presentation/serve.py',
+    'demos/presentation/pressure.js', 'demos/presentation/benchmark_pressure_cache.py', 'patterns/prepared_mixed_query.py', 'data/clinical-source-demo-pin.json'))))
 DEFAULT = {'threshold': '65', 'baseline_minutes': 30, 'followup_minutes': 120}
 
 

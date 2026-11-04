@@ -84,7 +84,7 @@ def count_suites(root=ROOT, labels=LABELS, package='patterns', exhaustive=True):
     fails the check until it is recorded. Pass False to count named modules only.
     """
     root = Path(root)
-    modules = sorted(p.stem for p in (root / package).glob('test_*.py'))
+    modules = sorted(p.stem for p in (root / package.replace('.', '/')).glob('test_*.py'))
     if exhaustive:
         unlabelled = [m for m in modules if m not in labels]
         if unlabelled:
@@ -126,13 +126,13 @@ def adjacent_counts(root=ROOT):
     and drifted, so they are derived here too. Node suites are counted as files because
     they are driven by `node`, not the unittest loader.
     """
-    demo_modules = {p.stem: p.stem for p in sorted((Path(root) / 'demo').glob('test_*.py'))}
-    demo = sum(count_suites(root, demo_modules, package='demo').values())
+    demo_modules = {p.stem: p.stem for p in sorted((Path(root) / 'demos/presentation').glob('test_*.py'))}
+    demo = sum(count_suites(root, demo_modules, package='demos.presentation').values())
     server = count_suites(root, {'test_server': 'test_server'}, package='app',
                           exhaustive=False)['test_server']
     completion = count_suites(root, {'test_check_completion': 'test_check_completion'},
                               package='tools', exhaustive=False)['test_check_completion']
-    node = sorted(str(q.relative_to(root)) for d in ('app', 'demo')
+    node = sorted(str(q.relative_to(root)) for d in ('app', 'demos/presentation')
                   for q in (Path(root) / d).glob('test_*.cjs'))
     return {'demo_suite': demo, 'research_http_suite': server,
             'completion_checker': completion, 'node_dom_suites': len(node), 'node_suite_files': node}

@@ -24,7 +24,7 @@
           "available_at_us": -86400000000,
           "clock": "P00-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P00-B",
             "source_record_sha256": "02432e698a4eeac59943a232113efed32d91d69451a6e91379a698a4e3de35c1",
             "original_value": "10.0",
@@ -71,7 +71,7 @@
           "available_at_us": -604800000000,
           "clock": "P00-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P00-E",
             "source_record_sha256": "045832a1e5e95e8020693e64545ba061f48642ddff3f350be8dbb9436c0e8dcd",
             "original_value": null,
@@ -115,7 +115,7 @@
           "available_at_us": 0,
           "clock": "P00-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P00-F",
             "source_record_sha256": "57987a8168fba95d22fbcdd2de7fb2210964b3e771de342c7adafb68801f3c1b",
             "original_value": "1.30",
@@ -160,7 +160,7 @@
           "available_at_us": -3600000000,
           "clock": "P00-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P00/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -194,7 +194,7 @@
           "available_at_us": -86400000000,
           "clock": "P01-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P01-B",
             "source_record_sha256": "b606a1e6405efc4e5edceb9a85890a395acadf1ef5183c61623f8425a60a31f5",
             "original_value": "1.00",
@@ -241,7 +241,7 @@
           "available_at_us": -604800000000,
           "clock": "P01-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P01-E",
             "source_record_sha256": "a745f710a121b8524fd05f02d6e48ee6e0fb6b6817d132a43e749b770e1155c0",
             "original_value": null,
@@ -285,7 +285,7 @@
           "available_at_us": 0,
           "clock": "P01-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P01-F",
             "source_record_sha256": "aa1db0f5bc56db6f9213b131574634dd39487b5e743be320986b0d849bee7479",
             "original_value": "1.30",
@@ -330,7 +330,7 @@
           "available_at_us": -3600000000,
           "clock": "P01-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P01/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -364,7 +364,7 @@
           "available_at_us": -172800000000,
           "clock": "P02-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P02-B",
             "source_record_sha256": "a73769d08de25713651ea918afa514db7cdb34e499c05291594e4806a042ad17",
             "original_value": "1.00",
@@ -411,7 +411,7 @@
           "available_at_us": -432000000000,
           "clock": "P02-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P02-E",
             "source_record_sha256": "a0aed718be8671dc8d7f0fed0489f0e53cc77d1c06dfcc686c30b6bddf3f69e0",
             "original_value": null,
@@ -455,7 +455,7 @@
           "available_at_us": 0,
           "clock": "P02-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P02-F",
             "source_record_sha256": "89ecc1e297bc12c759b531979ee5bbde66f05d6e54768c8246b71ecec3d4bbb6",
             "original_value": "1.40",
@@ -500,7 +500,7 @@
           "available_at_us": -3600000000,
           "clock": "P02-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P02/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -534,7 +534,7 @@
           "available_at_us": -43200000000,
           "clock": "P03-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P03-B",
             "source_record_sha256": "795583a23d4719e98aa459a7619d8a40bb60e0a65a57576822ed2391598c4837",
             "original_value": "8.0",
@@ -581,7 +581,7 @@
           "available_at_us": -172800000000,
           "clock": "P03-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P03-E",
             "source_record_sha256": "3455b082f197ccfe4fb343817c1e116930124ca8633365d7a564a4f1b95bad4f",
             "original_value": null,
@@ -625,7 +625,7 @@
           "available_at_us": 0,
           "clock": "P03-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P03-F",
             "source_record_sha256": "49be67ed001defff2dbdd3038fe1ae05929a8e9f65fcc14a3831022a2b812007",
             "original_value": "1.20",
@@ -670,7 +670,7 @@
           "available_at_us": -3600000000,
           "clock": "P03-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P03/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -704,7 +704,7 @@
           "available_at_us": -86400000000,
           "clock": "P04-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P04-B",
             "source_record_sha256": "8a70155bd9e2f78ee6c4f379749de1242edb87fdadfd867b9c8be2ad5663b3a2",
             "original_value": "1.00",
@@ -751,7 +751,7 @@
           "available_at_us": -518400000000,
           "clock": "P04-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P04-E",
             "source_record_sha256": "c84de22ff58d58c95d8fa236724fb01b0a3a252bd647c65a8935d2ab6bb8b625",
             "original_value": null,
@@ -795,7 +795,7 @@
           "available_at_us": 0,
           "clock": "P04-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P04-F",
             "source_record_sha256": "5589dd102d03ebf95841e221da0cffcc3c27dec87771024ec875d19f59700cbe",
             "original_value": "1.30",
@@ -840,7 +840,7 @@
           "available_at_us": -3600000000,
           "clock": "P04-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P04/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -874,7 +874,7 @@
           "available_at_us": -86400000000,
           "clock": "P05-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P05-B",
             "source_record_sha256": "978cc36872af7619d2c86fc4ea83464bbb3b1711ee32cd96fce533436114397e",
             "original_value": "1.00",
@@ -921,7 +921,7 @@
           "available_at_us": -777600000000,
           "clock": "P05-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P05-E",
             "source_record_sha256": "f04994ec988cd4905064cc7a45f090aeb06a46c83fd85ee2ed46db6cf2967115",
             "original_value": null,
@@ -965,7 +965,7 @@
           "available_at_us": 0,
           "clock": "P05-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P05-F",
             "source_record_sha256": "13e06e9d186b7b4d4c6a339f8b5863394476a66e5e2ca4c06473e34e8bc558ec",
             "original_value": "1.30",
@@ -1010,7 +1010,7 @@
           "available_at_us": -3600000000,
           "clock": "P05-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P05/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -1044,7 +1044,7 @@
           "available_at_us": -86400000000,
           "clock": "P06-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P06-B",
             "source_record_sha256": "e19ce34855b669d30d9101b5d4cb623f3d646b622ca5b74b5de35a7c5dccc9fe",
             "original_value": "1.00",
@@ -1091,7 +1091,7 @@
           "available_at_us": -777600000000,
           "clock": "P06-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P06-E",
             "source_record_sha256": "b7b64a400980022df3af59edc2b1ddc9ecc3f918f53cb97c03be07f6828070d8",
             "original_value": null,
@@ -1135,7 +1135,7 @@
           "available_at_us": 0,
           "clock": "P06-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P06-F",
             "source_record_sha256": "2a6ccbc558e987811bd392731b6046269e3cc6556e510d521e1c23417ab2bea5",
             "original_value": "1.40",
@@ -1180,7 +1180,7 @@
           "available_at_us": -3600000000,
           "clock": "P06-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P06/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -1214,7 +1214,7 @@
           "available_at_us": -86400000000,
           "clock": "P07-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P07-B",
             "source_record_sha256": "69eb37269974d68ef633a55dae0118b6df3fd2f8a2c1039de91621051e707788",
             "original_value": "1.00",
@@ -1261,7 +1261,7 @@
           "available_at_us": -518400000000,
           "clock": "P07-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P07-E",
             "source_record_sha256": "f9079b7e5c6b72911b9163efba992712750850db5dbb10d4e4eeb84b8743db12",
             "original_value": null,
@@ -1305,7 +1305,7 @@
           "available_at_us": 0,
           "clock": "P07-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P07-F",
             "source_record_sha256": "fd96d707887668cdb80db26c9768e80ff551b36634b0e021690a431e14faea78",
             "original_value": "1.29",
@@ -1350,7 +1350,7 @@
           "available_at_us": -3600000000,
           "clock": "P07-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P07/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -1384,7 +1384,7 @@
           "available_at_us": -216000000000,
           "clock": "P08-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P08-B",
             "source_record_sha256": "209ba58f0d6268812123f4d50f7dac0d6d5b232f4ad845c7bd82d7e95fa95ca4",
             "original_value": "1.00",
@@ -1431,7 +1431,7 @@
           "available_at_us": -345600000000,
           "clock": "P08-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P08-E",
             "source_record_sha256": "d4ea0b9bcf1a16956ade3974cc9c590ee92e4188c2660ba9cdb8a8ca15762b00",
             "original_value": null,
@@ -1475,7 +1475,7 @@
           "available_at_us": 0,
           "clock": "P08-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P08-F",
             "source_record_sha256": "0cb252fcb1e15420e039ea9a04497446aaa6963b3ac6dabd87359c3d6d6ddf91",
             "original_value": "1.40",
@@ -1520,7 +1520,7 @@
           "available_at_us": -3600000000,
           "clock": "P08-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P08/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -1554,7 +1554,7 @@
           "available_at_us": -86400000000,
           "clock": "P09-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P09-B",
             "source_record_sha256": "8cf959ed224c50e4cfad38db0c961343cb493e35a9d35d6069645c1fb0f04a3b",
             "original_value": "1.00",
@@ -1601,7 +1601,7 @@
           "available_at_us": -864000000000,
           "clock": "P09-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P09-E",
             "source_record_sha256": "d652fa9b1a52d85ef05c3b6cc10de7b612dc3676f43ba942e34d21a8f02a937b",
             "original_value": null,
@@ -1645,7 +1645,7 @@
           "available_at_us": 0,
           "clock": "P09-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P09-F",
             "source_record_sha256": "2335c8d7f433147108d8ecde194f3da69634320899b6bb94a65be3b5880db9a1",
             "original_value": "1.30",
@@ -1690,7 +1690,7 @@
           "available_at_us": -3600000000,
           "clock": "P09-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P09/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -1724,7 +1724,7 @@
           "available_at_us": -86400000000,
           "clock": "P10-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P10-B",
             "source_record_sha256": "07e031a0128cb521e483afa892be6fed324ec168b8b5591a4dc9812353a8abf2",
             "original_value": "1.00",
@@ -1771,7 +1771,7 @@
           "available_at_us": -604800000000,
           "clock": "P10-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P10-E",
             "source_record_sha256": "ecdbe4e34da81f0f5bdc4f4d584df05e7df7f3bf27c2b7de6dfc9456534b36d3",
             "original_value": null,
@@ -1815,7 +1815,7 @@
           "available_at_us": 0,
           "clock": "P10-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P10-F",
             "source_record_sha256": "615481e17f3785de006d7f8012ade12c1ac8e727621ed39b182a56b5a9cdf5f8",
             "original_value": "1.30",
@@ -1860,7 +1860,7 @@
           "available_at_us": -3600000000,
           "clock": "P10-relative",
           "source": {
-            "document": "demo/cohort-data.json",
+            "document": "examples/guided-cohort/cohort-data.json",
             "row": "P10/manifest/age",
             "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin."
           },
@@ -1877,7 +1877,7 @@
     }
   ],
   "construction_origin": {
-    "path": "demo/cohort-data.json",
+    "path": "examples/guided-cohort/cohort-data.json",
     "sha256": "b75f4d31f4a7584adee42da10a835b84d06c0f563bb4f4412c61803111d0fd99",
     "availability_policy": "Authored overlay: event available at occurrence; age band known one hour before origin.",
     "original_availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted.",

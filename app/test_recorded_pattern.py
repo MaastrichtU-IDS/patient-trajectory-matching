@@ -22,7 +22,7 @@ class RecordedPatternTests(unittest.TestCase):
         cls.folder = Path(cls.temp.name) / 'source'
         shutil.copytree(ROOT / 'examples/source-mixed-query', cls.folder)
         request = json.loads((ROOT / 'examples/indexed-source-windows/synthetic-request.json').read_text())
-        declaration = json.loads((ROOT / 'demo/pressure-synthetic-review.json').read_text())
+        declaration = json.loads((ROOT / 'services/pressure-synthetic-review.json').read_text())
         cls.session = pressure.Session(cls.folder, request, declaration)
         cls.parent = request['query']
         cls.original = cls.session.execute(CONTROLS)

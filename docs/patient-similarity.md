@@ -9,7 +9,7 @@ explicit demonstration parameters, not a clinically validated similarity model.
 ## Shared authored cases and the index
 
 The default input in `examples/patient-similarity/` uses the same P00–P10 episodes
-and projected events as `demo/cohort-data.json`. Its `construction_origin` records
+and projected events as `examples/guided-cohort/cohort-data.json`. Its `construction_origin` records
 the original file's SHA-256. The builder copies normalized measurement values,
 original values and units, source-row hashes, and PRO/SOLID bindings. It adds an
 **authored availability overlay**: an event is available at its occurrence time;

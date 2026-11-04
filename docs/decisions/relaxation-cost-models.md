@@ -13,7 +13,7 @@ The word **budget** appears in both. It does not mean the same thing. A budget o
 | | Point-anchor oracle | `robust-temporal-relaxation-1.0` |
 |---|---|---|
 | Evaluator | [`reference_oracle.py`](../../reference_oracle.py) | [`patterns/robust_relaxation.py`](../../patterns/robust_relaxation.py) |
-| Reached from | `patterns/pro_solid.py`, `demo/cohort.py`, the five-stop guided demo | `app/journey.py`, `app/temporal.py`, `app/interval_editor.py`, `app/relaxation_catalogue.py` |
+| Reached from | `patterns/pro_solid.py`, `services/cohort.py`, the five-stop guided demo | `app/journey.py`, `app/temporal.py`, `app/interval_editor.py`, `app/relaxation_catalogue.py` |
 | Relaxation vocabulary | Two fixed ops: `concept_alternative`, `extend_max_gap` | A finite authored catalogue, up to 16 options |
 | Cost shape | Semantic cost is a fixed policy value; temporal cost is **continuous**, proportional to the overrun | Every option carries one **fixed** exact decimal cost |
 | Composition | Costs **sum across targets**: `total = sum(components.values())` | Options are **never implicitly combined**; no cost is summed across options |
@@ -73,16 +73,16 @@ A limit of 2 therefore admits a compositional sum in the oracle and one option p
 
 ## Implementation cost of the identifier
 
-Stamping the oracle path is done. The field itself is one line in `demo/cohort.py`, but the change propagates, and the order below is the order it must be carried out in:
+Stamping the oracle path is done. The field itself is one line in `services/cohort.py`, but the change propagates, and the order below is the order it must be carried out in:
 
-1. `run_cohort()` output is embedded in `demo/Guided_Cohort_Demo.html`, so the standalone demo must be rebuilt.
-2. `demo/build_guided.py` rewrites `demo/cohort-data.json` as a side effect, giving it a new generation commit.
+1. `run_cohort()` output is embedded in `demos/presentation/Guided_Cohort_Demo.html`, so the standalone demo must be rebuilt.
+2. `demos/presentation/build_guided.py` rewrites `examples/guided-cohort/cohort-data.json` as a side effect, giving it a new generation commit.
 3. Those bytes are pinned at `construction_origin.sha256` in `examples/patient-similarity/dataset.json`, which `patterns/patient_similarity.py` surfaces as `source_dataset_sha256` and `app/server.py` compares against the file it reads. The application refuses to start otherwise, with `Similarity and trajectory source fingerprints differ`.
 4. `examples/patient-similarity/dataset.json` is itself pinned in `verification/research-prototype-journey.json`.
 
 So a reporting field on that path requires regenerating a fixture and its evidence, in that order. Regenerating the evidence before the fixture captures a digest that is about to change, and the failure surfaces two steps away as a refusal to start rather than as a stale pin.
 
-The oracle and its exemplar pattern are separately pinned in the release manifest (v2.5, carried over unchanged from v2.4) and did not change: the identifier is stamped by `demo/cohort.py`, which calls the oracle, not by the oracle itself. That is what kept this a fixture regeneration rather than a release change.
+The oracle and its exemplar pattern are separately pinned in the release manifest (v2.5, carried over unchanged from v2.4) and did not change: the identifier is stamped by `services/cohort.py`, which calls the oracle, not by the oracle itself. That is what kept this a fixture regeneration rather than a release change.
 
 ## What adoption still requires
 

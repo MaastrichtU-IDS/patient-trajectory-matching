@@ -31,8 +31,8 @@ ARTIFACTS = (
     'app/recorded_export.py', 'app/recorded_journey.py',
     'app/recorded_similarity.py', 'app/recorded_selectors.py',
     'app/feature_profiles.py', 'app/clinical_features.py', 'app/recorded_pattern.py',
-    'app/temporal_replay.py', 'demo/pressure.py', 'demo/mapped_pressure.py',
-    'demo/pressure_cache.py', 'patterns/pressure_service_config.py',
+    'app/temporal_replay.py', 'services/pressure.py', 'services/mapped_pressure.py',
+    'services/pressure_cache.py', 'patterns/pressure_service_config.py',
 )
 INTERPRETATION = (
     'Exact recomputation on the same admitted local sources, reviews and implementation; '

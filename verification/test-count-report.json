@@ -13,9 +13,9 @@
     "app/test_recorded_journey_ui.cjs",
     "app/test_temporal_ui.cjs",
     "app/test_ui.cjs",
-    "demo/test_configured_pressure_ui.cjs",
-    "demo/test_guided_ui.cjs",
-    "demo/test_pressure_ui.cjs"
+    "demos/presentation/test_configured_pressure_ui.cjs",
+    "demos/presentation/test_guided_ui.cjs",
+    "demos/presentation/test_pressure_ui.cjs"
   ],
   "oracle_cases": 16,
   "oracle_properties": 9,
