@@ -7,6 +7,7 @@ The repository holds executable research profiles and the specifications of a br
 | Page | Purpose |
 |---|---|
 | [Design document](design.md) | The project as it stands — layers, semantics, data, integrity, deployment — and what remains |
+| [Engine design](engine-design.md) | How results are generated today, matching at scale, similarity on coded terms, embeddings, query complexity |
 | [Architecture](architecture.md) | Design, pipelines, constraint model, PRO/SOLID encoding, temporal semantics, matching costs |
 | [Components](components.md) | What each part does, how to use it, what it depends on |
 | [Status](status.md) | What executes, what is specified, and what has been verified |
