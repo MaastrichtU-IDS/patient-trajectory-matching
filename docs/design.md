@@ -201,6 +201,8 @@ From [issues](issues.md): the four temporal profiles are not unified behind one 
 
 ### 10.4 Engineering work identified in this round
 
+The [engine design](engine-design.md) analyses the items below in depth: how results are generated today, the server-side design for millions of patients, similarity on coded terms, embeddings, and the complexity of trajectory queries.
+
 1. **An engine library.** The engine is already cleanly layered: `patterns/` imports nothing above it and depends only on `rdflib`, `jsonschema`, `pyshacl` and optionally `rustdl`. Proposed in three stages:
    - *Package in place.* A `pyproject.toml` that builds `patterns` and the oracle as an installable distribution, with the contracts it reads (`schemas/`, `ontology/`) shipped as package data behind one resource locator, and a CI job that installs the wheel into a clean environment and runs the oracle and one profile outside the repository. Replacing direct `ROOT / 'schemas/...'` reads changes engine files, so this is the moment to regenerate the reports that bind them, once.
    - *A public API.* A small, versioned facade — load a pattern, run a query, read results and evidence — with the rest marked internal and a changelog.
