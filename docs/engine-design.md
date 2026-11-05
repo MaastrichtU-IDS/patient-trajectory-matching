@@ -133,29 +133,71 @@ Partitioned by patient so that one patient's history sits on one worker; sorted 
 
 Codes are mapped to concepts at ingestion, with the mapping version recorded; a query concept expands through the closure table, so search never re-reads source codes.
 
-### 4.3 A query's life
+### 4.3 Postings and coverage
+
+Two of these tables carry most of the design. **Postings** say where something was recorded, so the search knows which patients to look at. **Coverage** says where something *could have been* recorded, so that the absence of a record can be read correctly.
+
+**Postings: who has what.** A posting list is an inverted index, like a search engine's index from a word to the documents containing it: for each concept, the patients with at least one admitted assertion of it (present, about the patient, performed, and available under the selection mode in use).
+
+```
+febrile seizure        → C001 C004 C015 C017 C021 C023 …
+sodium-channel blocker → C001 C004 C015 C021 C023 C036 C044 …
+Dravet syndrome        → C001 C004 C015 C017 C020 …
+```
+
+- **Bitmaps.** Patients are numbered 0 to N−1 and each concept stores one bit per patient, compressed (Roaring bitmaps, for example): about 125 KB per concept for a million patients before compression, far less after. Intersecting two lists takes milliseconds.
+- **Ancestors.** Lists are kept for ancestor concepts too, or ancestors are unioned at query time, so a query for "seizure", or a relaxation from "febrile seizure" to "seizure", uses the broader list.
+- **Per-patient summaries** beside each bit — first time, last time, count — allow coarse time pruning without reading events: a patient whose last blocker start precedes their first seizure cannot satisfy "blocker after seizure". Pruning uses the widest recorded ranges, so possible matches survive.
+
+Postings drive **candidate filtering**: intersect the lists for the steps any match must contain, rarest first, and only the survivors get the per-patient check. A posting gives a necessary condition, never a sufficient one; appearing in every list means a patient might match, not that they do.
+
+**Coverage: where absence means something.** Coverage records, for each patient and each source or kind of observation, the periods in which the source would have recorded something had it happened:
+
+| Patient | Source | Covered periods |
+|---|---|---|
+| C015 | Parent seizure diary | 11 months to 7 years |
+| C015 | Hospital follow-up | 6 months to last contact |
+| C004 | Parent seizure diary | none |
+| C047 | Hospital follow-up | birth to 3 years 10 months; a gap; 5 years 1 month to last contact |
+
+A missing record is not evidence that nothing happened: no seizures recorded in a month may mean none occurred or that nobody was recording. Coverage separates the two:
+
+| Situation | Without coverage | With coverage |
+|---|---|---|
+| The diary covers the months after the blocker and shows no rise | No match | **No recorded match**: searched where it would have shown, found nothing |
+| No diary at all (C004), other steps match | No match — wrong | **Not comparable**: these records cannot answer the question |
+| The diary starts after the blocker started (C015 in the mockup run) | No match, or possible | **Not comparable**: no baseline before the exposure |
+| The relaxed question needs a wider window than the source covers | Silently incomplete | **Unresolved**: the search was not complete for this question |
+
+The repository already applies this at small scale. Each oracle case carries a `source_search` declaration — basis `coverage`, the clock, the searched period and the concepts — and a question that needs a window or concept outside it, including the wider window a relaxation needs, is `UNRESOLVED` with the uncovered demands listed. The [source completeness decision](decisions/source-completeness.md) makes completeness derived from declared coverage, never assumed. The mockups report "not comparable" when the diary does not cover the months around an exposure.
+
+**Together.** Postings narrow millions of patients to the few who might match. Coverage is consulted for every candidate, and for patients filtered out only because a required source is missing, so each patient receives the right kind of "no" — no match, not comparable or unresolved. The per-patient check then decides exact, possible or relaxed for the rest.
+
+**Where coverage comes from** is the hard part. Some can be inferred: an ICU stay bounds charted vitals; a diary's uploaded months; first visit to last contact. Some must be declared by the source owner — which concepts a source records and whether completely — which is external dependency D-HISTORY. Results should label inferred coverage as inferred.
+
+### 4.4 A query's life
 
 Example: *first febrile seizure → any sodium-channel blocker within 12 months → seizures double within 60 days*, from the first seizure onward.
 
 1. **Compile.** Validate the definition and canonicalize it with a stable hash. Derive a necessary condition from the most relaxed version the budget allows, so that filtering can never drop a relaxed match.
-2. **Candidate filter.** Intersect concept bitmaps (febrile seizure or, relaxed, any seizure; sodium-channel blocker; diary coverage), rarest first. Prune coarsely on per-patient summaries using the widest recorded ranges, so that possible matches survive. Patients who fail only on missing coverage are counted as not comparable, not discarded.
+2. **Candidate filter.** Intersect concept postings (§4.3) (febrile seizure or, relaxed, any seizure; sodium-channel blocker; diary coverage), rarest first. Prune coarsely on per-patient summaries using the widest recorded ranges, so that possible matches survive. Patients who fail only on missing coverage (§4.3) are counted as not comparable, not discarded.
 3. **Exact check per candidate,** in parallel by partition: load only the candidate's events for the query's concepts and run the trajectory-graph matcher (§7.5). Measurement conditions and event counts are computed here over that patient's series.
 4. **Relax only where needed:** patients failing exactly but passing the relaxed filter are re-checked with declared relaxations, cheapest first, within the budget.
 5. **Classify and aggregate:** exact, possible, relaxed with cost, no match, not comparable, unresolved, or no index period, with bindings and per-constraint verdicts. Results stream as partitions finish — counts by status, exclusions by reason, then pages — and full evidence is loaded only when one patient is opened.
 
 *Planning estimate, not a measurement:* 100,000 candidates at about 2 ms each is about 200 CPU-seconds, a few seconds on 64 cores and less in Rust. Counts can be interactive; full results are an asynchronous job with progress and cancellation.
 
-### 4.4 Correctness, time and reproducibility
+### 4.5 Correctness, time and reproducibility
 
 - **Sound filtering:** differential tests on sampled partitions compare the indexed pipeline with an exhaustive reference over every patient, as the interval cohort profile already does.
 - **Bitemporal records:** versions keep occurrence time and recording or availability time; source-as-known at the index filters on `available_at` and takes the version valid at that cutoff; retrospective selection takes the latest correction under its label. These are the evidence-selection modes applied to tables.
 - **Reproducible results:** each result records the snapshot, engine code digests, query hash and mapping versions, which also makes result caching safe.
 
-### 4.5 Operations and governance
+### 4.6 Operations and governance
 
 A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); results cached by query hash, snapshot and engine version; new records append to a partition and recompute only the affected patients' postings, anchors and cached results (FR-042); purpose-bound access, minimum cell sizes on counts, field-level restrictions and audit of every query and export (FR-060, FR-061) before any non-synthetic use.
 
-### 4.6 What exists and what is missing
+### 4.7 What exists and what is missing
 
 | Piece | Today |
 |---|---|
