@@ -135,6 +135,7 @@ The product surface in `app/`.
 | [Proposed decision: temporal precedence](decisions/temporal-precedence.md) | Precedence and direct succession, not adopted |
 | [SULO temporal representation review](sulo-owl-time-review.md) | Developer review and recommendations |
 | [SULO development proposal](sulo-development/README.md) | Pattern catalogue, records and occurrence, temporal interoperability |
+| [SULO temporal semantics](temporal-kg/sulo-temporal-semantics.md) | A formal interpretation of SULO's time classes and relations in the BT_C time structure, with consequences and their status |
 | [Temporal knowledge graph definitions](temporal-kg/README.md) | Formal definitions, their validation, the revision response and the SULO interface |
 
 ## Demonstrations
