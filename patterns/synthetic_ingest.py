@@ -15,8 +15,8 @@ adapter would (docs/execution-store.md, "Synthetic converter"):
 - A clinic, referral or discharge letter contributes one point event per mention asserted
   `present` of the `patient`. Negated, hypothetical, possible and family-history mentions
   are skipped. A mention is timed by its letter, the only time the record states.
-- Event identifiers are `source/record_id`, with `#m<i>` for a letter's i-th mention: record
-  identifiers alone collide once in the cohort, and the store refuses duplicate event ids.
+- Event identifiers are `source/record_id`, with `#m<i>` for a letter's i-th mention: the source is
+  kept in the key as a safeguard, and the store refuses duplicate event ids.
 - Times are the record's `occurred` earliest and latest, read as patient-local wall-clock
   times and counted in microseconds from 0001-01-01T00:00.
 - A medication order is an exposure from the order. A later `stopped` order for the same
@@ -79,8 +79,8 @@ def ancestor_closure(concepts):
 
 
 def _key(record):
-    """Event identifier: source and record identifier. Record identifiers alone are not unique in the
-    cohort (C029-R0271 is both a discharge summary and a clinic letter); with the source they are."""
+    """Event identifier: source and record identifier. The generator makes record identifiers unique, but
+    the source is kept in the key as a safeguard (an earlier generator reused C029-R0271)."""
     return f"{record['source']}/{record['record_id']}"
 
 

@@ -246,6 +246,7 @@ class Child:
         self.pid, self.key, self.archetype, self.rng = pid, key, archetype, rng
         self.sex, self.birth, self.ga, self.scripted = sex, birth, ga_weeks, scripted
         self.truth, self.records, self.quality = [], [], []
+        self.record_seq = 0  # never decremented: records are removed later, and ids must not be reused
         self.visits, self.encounters = [], {}
         self.snapshot_day = (SNAPSHOT - birth).days
         self.last_contact = self.snapshot_day - rng.randint(5, 70)
@@ -275,7 +276,8 @@ class Child:
 
     # Records
     def record(self, source, kind, truth=None, **kw):
-        rec = {'record_id': f'{self.pid}-R{len(self.records) + 1:04d}', 'source': source, 'kind': kind,
+        self.record_seq += 1
+        rec = {'record_id': f'{self.pid}-R{self.record_seq:04d}', 'source': source, 'kind': kind,
                'truth_event_id': truth['event_id'] if truth else None}
         rec.update({k: v for k, v in kw.items() if v is not None})
         self.records.append(rec)
@@ -1258,7 +1260,18 @@ def build(seed=SEED):
     return children
 
 
+def check_record_ids(children):
+    """Record ids must be unique across the dataset; the converter keys on source/record_id."""
+    seen = {}
+    for c in children:
+        for r in c.records:
+            rid = r['record_id']
+            assert rid not in seen, f'duplicate record_id {rid}: {seen[rid]} and {c.pid} {r["source"]}/{r["kind"]}'
+            seen[rid] = f'{c.pid} {r["source"]}/{r["kind"]}'
+
+
 def serialise(children, seed):
+    check_record_ids(children)
     patients = []
     for c in sorted(children, key=lambda c: c.pid):
         c.records.sort(key=lambda r: (r['occurred']['earliest'], r['record_id']))
