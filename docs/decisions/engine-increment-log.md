@@ -22,6 +22,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D10 | Sequencing, ownership and merge order | Decided |
 | D11 | MIMIC-IV demo files are fetched locally and verified, never committed | Decided |
 | D12 | Merges wait for a settled, complete, green check run | Decided |
+| D13 | One event has one time: engine variables are keyed by source variable | Decided |
 
 ## D1 Package with hatchling, in place
 
@@ -155,3 +156,23 @@ The open-access MIMIC-IV demo 2.2 files are downloaded from PhysioNet into the g
 ## D12 Merges wait for a settled, complete, green check run
 
 On 2026-11-06 a watcher merged #116 while one check was still pending, because GitHub had not yet registered it after a push. The check later passed. Since then a pull request merges only when at least the expected number of checks are registered, none are pending, every one passed, and that holds on two polls a minute apart.
+
+## D13 One event has one time: engine variables are keyed by source variable
+
+The SULO adapter found that the trajectory-graph engine gave each step its own time variables. So one event bound to two steps could take two different times, and the engine could report a false "possible". Its exhaustive reference and the trajectory page shared the same modelling, so their comparisons never caught it. The adapter's source-network check kept wrong answers out of its own results.
+
+**Fix.** Engine events carry optional `start_var` and `end_var` (defaulting to the event's own), and events naming the same variable share it.
+- **One network per patient.** Each patient's record is one simple temporal network over its variables: every range that names a variable, and every event's end at or after its start. Tightened ranges and distances within linked groups are computed once.
+- **Certainty** uses those distances, so it remains a binary relation over event choices, and arc consistency plus forest assignment stays complete.
+- **Possibility.** The joint check is the patient network restricted to the binding's variables, which is an exact projection.
+- **Point-forest method.** It verifies any binding whose steps are linked, and falls back to bounded search when the check fails.
+- **The reference** was rewritten independently, and **the trajectory page** keys its variables by event identity.
+
+**Consequence: exactness changed.** An exposure's own end at or after its start, and the zero difference between two terms on one variable, now count toward certainty. On the page, one heavy trajectory moves four patients from possible to relaxed exact, because they were possible only through one event taking two times.
+
+**Found along the way, and fixed:**
+- Two contradictory relations on one pair of steps crashed the point-forest method, a bug already on `main`. It now returns no match.
+- Linked groups beyond a combined size are refused (`SHARED_VARIABLE_COMPONENT_LIMIT`), so a request cannot occupy the server.
+
+The adapter keeps its refusal of shared source variables for now, and its source-network check permanently. Passing source variable ids through is a follow-up.
+
