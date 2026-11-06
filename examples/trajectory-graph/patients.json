@@ -1,0 +1,18 @@
+[
+  {"patient_id": "P1", "window": {"start": 0, "end": 730}, "events": [
+    {"id": "P1-fs", "concepts": ["febrile_seizure", "seizure"], "start": [150, 150]},
+    {"id": "P1-cbz", "concepts": ["sodium_channel_blocker"], "start": [200, 200], "end": [320, 320]},
+    {"id": "P1-rise", "concepts": ["seizure_frequency_rise"], "start": [240, 240]}]},
+  {"patient_id": "P2", "window": {"start": 0, "end": 730}, "events": [
+    {"id": "P2-fs", "concepts": ["febrile_seizure", "seizure"], "start": [140, 170]},
+    {"id": "P2-ltg", "concepts": ["sodium_channel_blocker"], "start": [210, 210], "end": [300, 300]},
+    {"id": "P2-rise", "concepts": ["seizure_frequency_rise"], "start": [300, 360]}]},
+  {"patient_id": "P3", "window": {"start": 0, "end": 730}, "events": [
+    {"id": "P3-sz", "concepts": ["seizure"], "start": [120, 120]},
+    {"id": "P3-cbz", "concepts": ["sodium_channel_blocker"], "start": [180, 180], "end": [260, 260]},
+    {"id": "P3-rise", "concepts": ["seizure_frequency_rise"], "start": [300, 300]}]},
+  {"patient_id": "P4", "window": {"start": 0, "end": 730}, "events": [
+    {"id": "P4-fs", "concepts": ["febrile_seizure", "seizure"], "start": [100, 100]},
+    {"id": "P4-rise", "concepts": ["seizure_frequency_rise"], "start": [400, 400]}]},
+  {"patient_id": "P5", "window": null, "events": []}
+]

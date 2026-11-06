@@ -28,6 +28,7 @@ records ─► build graph ─► validate ─► select evidence ─► candida
 | Robust relaxation | `robust_relaxation.py` | A finite catalogue of declared modifications with constant costs; a relaxed binding is accepted only if it holds in every feasible timeline |
 | Mixed record query | `mixed_record_query.py` and the source pipeline | On recorded data: baseline and treatment eligibility, then follow-up inspection, with every anchor cross-checked against SQL |
 | Similarity | `patient_similarity.py` | Query by example over pre-index features, with coverage beside the score |
+| Trajectory graph | `trajectory_graph.py` | Sequence, tree and graph trajectories over uncertain event times: arc consistency and interval propagation where polynomial, bounded search otherwise, checked against an exhaustive reference ([profile](trajectory-graph-profile.md)) |
 
 **The bounded engine.** Every interval endpoint is an integer variable on a discrete grid. Recorded bounds and query constraints become difference edges (`a − b ≤ k`) of a simple temporal network: *before* is end(A) < start(B); *meets* is end(A) = start(B); *overlaps* is the three Allen inequalities; a bounded gap is min ≤ start(B) − end(A) ≤ max. Shortest paths in exact integers, with replayable path certificates, decide:
 
@@ -38,7 +39,7 @@ records ─► build graph ─► validate ─► select evidence ─► candida
 | Certain | Every query edge is entailed by the source alone, never by the source narrowed by the query | The entailing paths |
 | Incomparable | The events are on different clocks | The comparable part's witness |
 
-Each fast engine has an independent reference implementation compared differentially (interval cohort, bounded, semantic, source mixed query), 950 contract checks cover the profiles, and every committed report is bound by digest to the files that produced it.
+Each fast engine has an independent reference implementation compared differentially (interval cohort, bounded, semantic, source mixed query, trajectory graph), 969 contract checks cover the profiles, and every committed report is bound by digest to the files that produced it.
 
 Limits: the temporal profiles answer different query formats ([issue T1](issues.md#t1-the-four-profiles-are-not-unified-open)); the oracle's pattern is fixed; the interval and bounded profiles cover four operators, not the full Allen catalogue; there is no absence ("no X between A and B") and no disjunction between steps; bounded times are discrete; it is not an OWL reasoner and makes no clinical or causal claim.
 
@@ -91,7 +92,7 @@ Proposed tightening, cheapest first: add the bounded example graph to the CI OWL
 | Candidates, temporal network, possible versus exact | `trajectory/app.js`: `candidates`, `compile`, `consistent`, `search` |
 | Relaxation, not comparable | `trajectory/app.js`: `relaxOptions`, `matchPatient` |
 
-None of the engine, workspace, oracle or SULO graphs is involved; the browser matcher re-implements the idea in `temporal_stn.py` and is covered by no engine test or provenance binding. Connecting it means a trajectory-graph profile in `patterns/` (§7.5), an endpoint in `app/` accepting the page's definition as JSON, and the page posting to it.
+None of the engine, workspace, oracle or SULO graphs is involved; the browser matcher re-implements the idea in `temporal_stn.py` and is covered by no engine test or provenance binding. The trajectory-graph profile in `patterns/` (§7.5) now implements its semantics in the engine. Connecting the page still needs an endpoint in `app/` accepting the page's definition as JSON, a translation of the page's events and derived measurement events into the profile's input, and the page posting to it.
 
 ## 4. Server-side design for millions of patients
 
@@ -206,7 +207,7 @@ A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); re
 | Indexed engine checked against an exhaustive reference | Implemented (interval cohort) |
 | Source windows, partition plans, prepared sessions, result cache | Implemented at single-machine scale on the MIMIC-IV demo |
 | Availability modes and revision chains | Implemented on small bundles (evidence selection) |
-| Trajectory-graph matcher for sequences, trees and graphs | Browser mockup only |
+| Trajectory-graph matcher for sequences, trees and graphs | Implemented as a profile over projected JSON (`trajectory_graph`), checked against an exhaustive reference; no SULO adapter or endpoint yet |
 | Partitioned event store, concept postings, coverage tables | Not implemented |
 | Compiler with relaxation-sound filters | Not implemented |
 | Distributed workers, job queue, streaming results | Not implemented |
@@ -303,9 +304,10 @@ Such constraints are **max-closed**: if two assignments satisfy one, so does the
 
 | Query features | Per-patient complexity |
 |---|---|
-| Sequence, tree or general graph; "after" and gap constraints; uncertain event times; index-period scope | Polynomial: arc consistency on sorted domains, O(*m* · *n*²) naively, near O(*m* · *n* log *n*) with two-pointer revisions |
+| Sequence or tree; "after" and gap constraints; uncertain point-event times; index-period scope | Polynomial: arc consistency, then interval propagation from leaves to root (implemented, `trajectory_graph`) |
+| The same over a graph with a cycle | Max-closed, so arc consistency on time domains decides it, but in time polynomial in the number of grid points, not events: propagation around a cycle can shave a domain one grid point at a time. The profile prunes by arc consistency on events and then searches under a budget |
 | Event-count steps, measurement conditions | Derived events first, O(*n* log *n*) per series; then as above |
-| *Exact* (holds for every recorded time) | A constraint between event choices — min(*Y*) − max(*X*) ≥ lo and max(*Y*) − min(*X*) ≤ hi — polynomial in the same way when events' ranges are not nested; trees are polynomial regardless, by dynamic programming |
+| *Exact* (holds for every recorded time) | A binary constraint between event choices — min(*Y*) − max(*X*) ≥ lo and max(*Y*) − min(*X*) ≤ hi. On a tree, arc consistency then a backtrack-free assignment decides it for every step kind (implemented); on a cycle, polynomial when events' ranges are not nested, and searched under a budget in the profile |
 
 ### 7.3 Features that make it NP-hard
 
@@ -325,11 +327,15 @@ The candidate filter costs roughly the size of the posting lists intersected, su
 
 ### 7.5 A trajectory-graph profile for the engine
 
-1. Decide *possible* by arc consistency over sorted candidate domains; take the maxima as the binding. Polynomial for sequences, trees and graphs, justified by max-closure.
-2. Decide *exact* the same way with the range relations; certify a chosen binding, and produce the failing counterexample, with the shortest-path machinery of `temporal_stn.py`.
-3. Use bounded backtracking only for the hard features (distinctness, disjunction, nested "while taking", absence), with an explicit step budget, reporting `UNRESOLVED` when it is exhausted.
-4. Make relaxation a cost-ordered search over the bounded combinations, stopping at the first success.
-5. Check the decision procedure against an exhaustive reference implementation, as the interval cohort profile does.
+Implemented as `trajectory-graph-1.0` ([profile](trajectory-graph-profile.md)):
+
+1. *Exact* is decided by arc consistency on the pairwise certainty relation and, on a tree, a backtrack-free assignment, for every step kind.
+2. *Possible* on a tree of point events is decided by arc consistency and interval propagation from leaves to root, with a witness time per step. As planned, max-closure would cover graphs with cycles too, but only in time polynomial in grid points (§7.2), and exposures break it (§7.3). Those cases are pruned by arc consistency and then searched with the temporal network of `temporal_stn.py`.
+3. Bounded backtracking has an explicit step budget and reports `unresolved` when it is exhausted, never a non-match.
+4. Relaxation is a cost-ordered search over declared combinations, stopping at the first success.
+5. The engine is checked against an exhaustive, independently written reference on 1,500 seeded trajectories.
+
+Not yet: certificates and counterexamples for exact and failed bindings, distinctness, disjunction and absence, a SULO adapter, and the mockup's endpoint.
 
 ## 8. Decisions and next steps
 
@@ -342,7 +348,7 @@ The candidate filter costs roughly the size of the posting lists intersected, su
 | Similarity | simGIC as default and best-match Resnik as the reference-to-candidate option; IC population per snapshot. Implemented: simGIC is the default for new queries, each query records its measure, and queries recorded without one keep ancestor-Jaccard |
 | Embeddings | Baseline first; OWL2Vec* only if the baseline's recall falls short |
 
-Proposed first increment, within the repository's discipline and on one machine: the trajectory-graph profile with its reference implementation (§7.5); an execution store built from the MIMIC-IV demo with concept postings and coverage tables; a relaxation-sound compiler tested against the exhaustive reference; a recall benchmark for IC-weighted similarity, whose measures now exist as options (§5.1); and the mockup's exhausted-search status corrected to unresolved.
+Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. Remaining: an execution store built from the MIMIC-IV demo with concept postings and coverage tables; a relaxation-sound compiler tested against the exhaustive reference; a recall benchmark for IC-weighted similarity; and connecting the trajectory mockup to the profile.
 
 ## References
 

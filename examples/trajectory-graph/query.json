@@ -1,0 +1,19 @@
+{
+  "profile": "trajectory-graph-1.0",
+  "scope": "from_start",
+  "steps": [
+    {"id": "A", "concept": "febrile_seizure", "occurrence": "first"},
+    {"id": "B", "concept": "sodium_channel_blocker", "occurrence": "first"},
+    {"id": "C", "concept": "seizure_frequency_rise"}
+  ],
+  "relations": [
+    {"id": "A-then-B", "kind": "after", "from": "A", "to": "B", "min": 0, "max": 365},
+    {"id": "C-while-on-B", "kind": "during", "from": "B", "to": "C", "grace": 30}
+  ],
+  "relaxations": [
+    {"id": "A-as-any-seizure", "kind": "widen_concept", "cost": "0.5", "step": "A", "concept": "seizure"},
+    {"id": "60-days-after-stopping", "kind": "extend_grace", "cost": "0.25", "relation": "C-while-on-B", "grace": 60}
+  ],
+  "budget": "1",
+  "search_budget": 40000
+}

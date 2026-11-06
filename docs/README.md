@@ -26,6 +26,7 @@ The engine in `patterns/`, one profile per page.
 | [Exact interval cohort matching](interval-cohort-matching.md) | `interval-cohort-1.0`: conjunctive slot queries across patient episodes |
 | [Extended interval queries](extended-interval-query.md) | Operators beyond before, meets, overlaps and bounded gap |
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | `bounded-interval-1.0`: possible and certain matches over bounded times |
+| [Trajectory-graph profile](trajectory-graph-profile.md) | `trajectory-graph-1.0`: sequence, tree and graph trajectories over uncertain times, with an exhaustive reference |
 | [Bounded RDF ingestion](bounded-rdf-ingestion.md) | `bounded-rdf-1.0`: validated graph input for the bounded matcher |
 | [Evidence selection](evidence-selection.md) | `evidence-selection-1.0`: which records a bounded query may use |
 | [Joint temporal and semantic selection](joint-evidence-selection.md) | Temporal records and semantic assertions selected over the same revision chains |
