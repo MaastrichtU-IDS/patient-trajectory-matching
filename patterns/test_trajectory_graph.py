@@ -247,6 +247,16 @@ class DecisionMethodTests(unittest.TestCase):
         decision = tg.decide(q, tg.Times(tg.events_of(p), p['window']), (), 1)
         self.assertEqual(decision['possible']['method'], 'arc_consistency')
 
+    def test_two_relations_that_leave_a_pair_no_gap_are_no_match(self):
+        # C during the point A (so 0 to 0 after it) and at least 3 days after it: each is
+        # plausible alone, together impossible. The interval programme used to crash here.
+        q = query([{'id': 'A', 'concept': 'x'}, {'id': 'C', 'concept': 'y'}],
+                  [{'id': 'd', 'kind': 'during', 'from': 'A', 'to': 'C', 'grace': 0},
+                   {'id': 'a', 'kind': 'after', 'from': 'A', 'to': 'C', 'min': 3}])
+        p = patient([event('e', 'x', (0, 50)), event('f', 'y', (0, 50))])
+        self.assertEqual(tg.match(q, p), {'patient_id': 'P1', 'status': 'none', 'complete': True})
+        self.assertIsNone(ref.classify(q, p))
+
 
 class ValidationTests(unittest.TestCase):
     def test_queries_outside_the_profile_are_refused_by_name(self):
@@ -301,6 +311,23 @@ class ValidationTests(unittest.TestCase):
         times = tg.Times(tg.events_of(patient([exposure, {**event('b', 'x', (6, 9)), 'start_var': 'm.f'}])), None)
         self.assertEqual((times.dom['m.f'], times.dom['m.s'], times.gap('m.s', 'm.f')), ((6, 9), (0, 9), 9))
 
+    def test_linked_variables_are_capped_before_any_is_solved(self):
+        # Back-to-back exposures, each starting when the one before ends, link every
+        # variable. The patient's network is solved in time cubic in that component, so
+        # components built by sharing may together cost no more than one of the limit.
+        def chain(n, tag='v'):
+            return [{**event(f'{tag}{i}', 'x', (10 * i, 10 * i + 15), (10 * i + 10, 10 * i + 25)),
+                     'start_var': f'{tag}{i}', 'end_var': f'{tag}{i + 1}'} for i in range(n - 1)]
+        limit = tg.MAX_LINKED_VARIABLES
+        started = time.perf_counter()
+        tg.validate_patient(patient(chain(limit)))
+        self.assertLess(time.perf_counter() - started, 10)
+        for events in (chain(limit + 1), chain(limit, 'v') + chain(limit // 2, 'w')):
+            with self.assertRaisesRegex(tg.TrajectoryError, 'SHARED_VARIABLE_COMPONENT_LIMIT'):
+                tg.validate_patient(patient(events))
+        # Unshared exposures link only their own two variables and are not counted.
+        tg.validate_patient(patient([event(f'e{i}', 'x', (i, i + 1), (i + 2, i + 3)) for i in range(2 * limit)]))
+
 
 def random_case(rng, shape, intervals):
     n = rng.randint(2, 4)
@@ -323,6 +350,19 @@ def random_case(rng, shape, intervals):
                               **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
     if rng.random() < 0.3:
         relations.append({'id': 'anchor', 'kind': 'after', 'from': 'START', 'to': names[0], 'min': 0, 'max': 40})
+    if rng.random() < 0.25:
+        # A second relation on a pair already related, either way round; together the two
+        # may leave the pair no gap at all.
+        a, b = rng.choice(pairs)
+        if rng.random() < 0.5:
+            a, b = b, a
+        if rng.random() < 0.5:
+            relations.append({'id': 'twin', 'kind': 'during', 'from': a, 'to': b, 'grace': rng.choice([0, 0, 4])})
+        else:
+            lo = rng.choice([None, -10, 0, 3, 12])
+            hi = rng.choice([None, *[v for v in (0, 5, 20) if lo is None or v >= lo]])
+            relations.append({'id': 'twin', 'kind': 'after', 'from': a, 'to': b,
+                              **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
     relaxations = []
     if rng.random() < 0.6:
         relaxations.append({'id': 'widen', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),

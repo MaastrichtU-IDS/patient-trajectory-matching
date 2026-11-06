@@ -213,14 +213,18 @@ function candidates(view, n, relax, win) {
 
    Variables belong to events, not steps: one event bound to two steps has one time. Each
    step's candidates are rebuilt for that step, so an event is recognised by what it is --
-   the recorded item (or measurement record), as a point or a span, with its recorded range
-   -- not by object identity. The same key names the event's variables in engine requests. */
+   the recorded item (or measurement record), as a point or a span -- not by object
+   identity. The same key names the event's variables in engine requests. If two steps ever
+   see one event with different ranges, its time lies in both, as in the engine. */
 
-const eventKey = c => [c.item ? `item:${c.item.id}` : `measure:${c.source}`, c.point ? 'point' : 'span', c.e, c.l, c.fe, c.fl].join('|');
+const eventKey = c => `${c.item ? `item:${c.item.id}` : `measure:${c.record_id}`}|${c.point ? 'point' : 'span'}`;
 
 function compile(def, win, bind, relax) {
   const vars = [], at = {}, cons = [], term = {};
-  const add = (key, lo, hi) => { if (!(key in at)) { at[key] = vars.length; vars.push({lo, hi}); } };
+  const add = (key, lo, hi) => {
+    if (key in at) { const v = vars[at[key]]; v.lo = Math.max(v.lo, lo); v.hi = Math.min(v.hi, hi); }
+    else { at[key] = vars.length; vars.push({lo, hi}); }
+  };
   add('START', win.start, win.start);
   add('END', win.end, win.end);
   for (const [id, c] of bind) {

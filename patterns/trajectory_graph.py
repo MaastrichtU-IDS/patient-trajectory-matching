@@ -50,6 +50,7 @@ SCOPES = ('any', 'from_start', 'within', 'after')
 OCCURRENCES = ('any', 'first', 'last')
 RELAXATION_KINDS = {'widen_concept': 'step', 'extend_max': 'after', 'extend_grace': 'during'}
 MAX_SEARCH_BUDGET = 10_000_000
+MAX_LINKED_VARIABLES = 300  # one linked component of 300 variables solves in under a second
 INF = math.inf
 
 
@@ -137,6 +138,12 @@ def validate_query(query):
 
 
 def validate_patient(patient):
+    patient_times(patient)
+    return patient
+
+
+def patient_times(patient):
+    """Validate a patient record and return its `Times`, the network `match` decides over."""
     require(isinstance(patient, dict) and set(patient) <= {'patient_id', 'window', 'events'}, 'INVALID_PATIENT')
     require(type(patient.get('patient_id')) is str and patient['patient_id'], 'INVALID_PATIENT_ID')
     window = patient.get('window')
@@ -161,8 +168,8 @@ def validate_patient(patient):
         require('end_var' not in event or 'end' in event, 'INVALID_EVENT_VARIABLE')
         ids.append(event['id'])
     require(len(ids) == len(set(ids)), 'DUPLICATE_EVENT')
-    Times(events_of(patient), None)  # refuses a shared variable that no time satisfies
-    return patient
+    # Refuses a shared variable no time satisfies, or a linked component too large to solve.
+    return Times(events_of(patient), window)
 
 
 @dataclass(frozen=True)
@@ -221,6 +228,11 @@ class Times:
             groups.setdefault(find(v), []).append(v)
         for sv, fv in orders:
             ordered.setdefault(find(sv), []).append((sv, fv))
+        # All-pairs shortest paths are cubic in a component. A lone exposure (two variables)
+        # costs nothing; components that sharing builds may together cost no more than one
+        # of MAX_LINKED_VARIABLES, checked before any is solved.
+        require(sum(len(m) ** 3 for m in groups.values() if len(m) > 2) <= MAX_LINKED_VARIABLES ** 3,
+                'SHARED_VARIABLE_COMPONENT_LIMIT')
         self.component, self.distance, self.dom = {}, {}, {}
         for root, members in groups.items():
             for v in members:
@@ -228,25 +240,25 @@ class Times:
             if len(members) == 1:
                 self.dom[members[0]] = bounds[members[0]]
                 continue
-            # d[u, v] bounds value(v) - value(u); the node None is time zero.
-            nodes = [None, *members]
-            d = {(u, v): 0 if u == v else INF for u in nodes for v in nodes}
-            for v in members:
+            # d[i][j] bounds value(j) - value(i); node 0 is time zero, member k is node k + 1.
+            index = {v: k + 1 for k, v in enumerate(members)}
+            n = len(members) + 1
+            d = [[0 if i == j else INF for j in range(n)] for i in range(n)]
+            for v, k in index.items():
                 lo, hi = bounds[v]
-                d[None, v], d[v, None] = hi, -lo
+                d[0][k], d[k][0] = hi, -lo
             for sv, fv in ordered[root]:
-                d[fv, sv] = min(d[fv, sv], 0)  # start - end <= 0
-            for k in nodes:
-                for u in nodes:
-                    if d[u, k] == INF:
-                        continue
-                    for v in nodes:
-                        if d[u, k] + d[k, v] < d[u, v]:
-                            d[u, v] = d[u, k] + d[k, v]
-            require(all(d[v, v] >= 0 for v in nodes), 'EMPTY_SHARED_VARIABLE')
-            for v in members:
-                self.dom[v] = (-d[v, None], d[None, v])
-            self.distance[root] = {(u, v): d[u, v] for u in members for v in members}
+                d[index[fv]][index[sv]] = min(d[index[fv]][index[sv]], 0)  # start - end <= 0
+            for k in range(n):
+                dk = d[k]
+                for i in range(n):
+                    dik = d[i][k]
+                    if dik != INF:
+                        d[i] = [a if a <= dik + b else dik + b for a, b in zip(d[i], dk)]
+            require(all(d[i][i] >= 0 for i in range(n)), 'EMPTY_SHARED_VARIABLE')
+            for v, k in index.items():
+                self.dom[v] = (-d[k][0], d[0][k])
+            self.distance[root] = (index, d)
         if window is not None:
             for a in ANCHORS:
                 key = ('anchor', a)
@@ -262,7 +274,8 @@ class Times:
         if x == y:
             return 0
         if self.linked(x, y):
-            return self.distance[self.component[x]][x, y]
+            index, d = self.distance[self.component[x]]
+            return d[index[x]][index[y]]
         return self.dom[y][1] - self.dom[x][0]
 
 
@@ -551,6 +564,10 @@ def _point_forest(step_ids, adjacency, domains, unary, binary, times):
         p = parent[c]
         if p is not None:
             lo, hi = gap(p, c)
+            if lo > hi:
+                # The pair's constraints contradict each other: t_c - t_p has no value,
+                # whatever events are bound.
+                return None
             tagged[p] = _intersect(tagged[p], _shift([(a, b) for a, b, _ in tagged[c]], lo, hi))
     at, binding = {}, {}
     for s in order:
@@ -656,11 +673,10 @@ def _binding_ids(binding):
 def match(query, patient):
     """One patient's result. Statuses: exact, possible, relaxed, unresolved, none, excluded."""
     validate_query(query)
-    validate_patient(patient)
+    times = patient_times(patient)
     pid, window = patient['patient_id'], patient.get('window')
     if window is None:
         return {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}
-    times = Times(events_of(patient), window)
     budget = query.get('search_budget', 40_000)
     first = decide(query, times, (), budget)
     if first['exact']['found']:
