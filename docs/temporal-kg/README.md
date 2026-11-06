@@ -6,6 +6,7 @@
 - [Revised formal definition v2](Temporal_Knowledge_Graph_Formal_Definition_v2.pdf), working specification of 15 September 2026
 - [v2 ontology artifacts and validation evidence](validation/README.md): exact standalone ontologies, original checker/logs, all 18 identified checks and reproduction commands
 - [Response to the revision](revision-response.md): proposed decisions and acceptance obligations
+- [SULO temporal semantics](sulo-temporal-semantics.md): a formal interpretation of SULO 0.2.14's time classes and relations in BT_C, with consequences, proofs and the status of each statement
 - [SULO query-interface conformance](sulo-interface.md): executable paired fixtures and explicit mapping limits
 - [Machine-readable conformance register](sulo-conformance.json): classification of all 18 original checks
 
