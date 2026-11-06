@@ -51,6 +51,8 @@ an unobserved DrugB is unresolved for P10.
 
 ## Information-content measures
 
+The IC table and the three distances are module-level functions, `information_content_table` and `concept_distance`, which the engine calls for its snapshot and `tools/evaluate_concept_measures.py` calls for the retrieval benchmark ([engine design §5.3](engine-design.md#53-measured-comparison)).
+
 The concept-set component is scored by one of three measures, chosen per query. Every
 new query names its measure in `query.concept_measure`, and `simgic` is the default.
 A query without the key was recorded before measures were named, when

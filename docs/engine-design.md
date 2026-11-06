@@ -211,7 +211,7 @@ A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); re
 | Partitioned event store, concept postings, coverage tables | Not implemented |
 | Compiler with relaxation-sound filters | Not implemented |
 | Distributed workers, job queue, streaming results | Not implemented |
-| IC-weighted similarity (simGIC, best-match Resnik) | Implemented over the admitted snapshot, scored exhaustively; simGIC is the default for new queries, with a measure selector in the workspace |
+| IC-weighted similarity (simGIC, best-match Resnik) | Implemented over the admitted snapshot, scored exhaustively; simGIC is the default for new queries, with a measure selector in the workspace; benchmarked on the synthetic cohort (§5.3) |
 | Similarity retrieval at scale, per-axis weights, governance, audit | Specified only |
 
 ## 5. Similarity on coded terms
@@ -239,24 +239,37 @@ Plain ancestor-Jaccard counts every shared ancestor equally: sharing "Seizure" c
 
 ### 5.3 Measured comparison
 
-On the synthetic paediatric cohort (48 patients), with IC computed from that cohort and each patient's recorded coded findings and diagnoses, reference patient C001 (ataxia, Dravet syndrome, febrile seizure, generalised epilepsy syndrome, myoclonic seizure, seizure, status epilepticus):
+`tools/evaluate_concept_measures.py` benchmarks the three measures, computed by the engine's own functions (`information_content_table` and `concept_distance` in `patterns/patient_similarity.py`), on the 48-patient synthetic paediatric cohort. Each patient is a query in turn:
+- **Profile.** What the record states, not the generator's truth: coded problems, registry entries, interpretations, dispensings and orders, and letter mentions asserted present of the patient.
+- **Hidden.** Diagnoses and genetic results, since they would nearly name the answer.
+- **Ranking.** Every other patient, by each measure, with IC from the cohort.
+- **Relevance.** Sharing the query's condition group in the generator's ground truth.
 
-| Concept | IC in this cohort |
-|---|---:|
-| Seizure | 0.13 |
-| Epilepsy | 0.61 |
-| Febrile seizure | 0.69 |
-| Generalised epilepsy syndrome | 1.47 |
-| Dravet syndrome | 1.47 |
-| Status epilepticus | 1.79 |
+The report, [`verification/concept-measure-benchmark.json`](../verification/concept-measure-benchmark.json), is bound by digest to the script, the engine module and the generator. A test reproduces it, regenerating the cohort when it is absent.
 
-| Measure | Top three (score) | Dravet in top eight |
-|---|---|---:|
-| Ancestor Jaccard (today) | C027 0.90, C047 0.90, C036 0.80 | 8 |
-| simGIC | C047 0.92, C027 0.78, C036 0.73 | 8 |
-| Best-match Resnik, reference to candidate | C027 1.39, C047 1.39, C036 1.07 | 8 |
+Clinical findings only:
 
-All three rank the same patients first because this cohort is enriched for Dravet syndrome and cleanly separated. The difference is in what drives the scores: under IC weighting C027 drops from 0.90 to 0.78, because much of what it shares with C001 is generic. Dravet syndrome's IC of 1.47 reflects a quarter of this cohort having it; in a general population of a million patients it would be about 10.
+| Measure | MAP | P@5 | R@10 | MRR | AP vs Jaccard: better / worse / tied |
+|---|---:|---:|---:|---:|---:|
+| Ancestor Jaccard | 0.8874 | 0.7333 | 0.9504 | 0.9052 | — |
+| simGIC (default) | 0.8789 | 0.7333 | 0.9523 | 0.9052 | 5 / 2 / 41 |
+| Best-match Resnik | 0.7994 | 0.6958 | 0.8295 | 0.8291 | 7 / 20 / 21 |
+| Random ranking | — | 0.1268 | 0.2128 | — | — |
+
+Findings and medications, with drug classes as ancestors:
+
+| Measure | MAP | P@5 | R@10 | MRR | AP vs Jaccard: better / worse / tied |
+|---|---:|---:|---:|---:|---:|
+| Ancestor Jaccard | 0.9267 | 0.7625 | 0.9606 | 0.9688 | — |
+| simGIC (default) | 0.9342 | 0.7792 | 0.9689 | 0.9583 | 9 / 4 / 35 |
+| Best-match Resnik | 0.8463 | 0.7167 | 0.8398 | 0.8832 | 1 / 13 / 34 |
+| Random ranking | — | 0.1268 | 0.2128 | — | — |
+
+What this shows, and what it does not:
+- **All three measures are far above chance**, because the cohort is built to separate its groups.
+- **simGIC and ancestor-Jaccard are close.** They tie on most queries. On findings alone simGIC improves 5 and worsens 2, by enough to leave its mean average precision slightly lower. With medications it is ahead on every measure but reciprocal rank, improving 9 queries and worsening 4.
+- **Best-match Resnik is clearly worse** at this task, since it scores how much of the query a candidate explains, not shared rarity.
+- **On 48 invented patients these differences are not evidence of clinical value.** They support simGIC as a reasonable default and do not show it is better. A larger, less separable cohort, and then recorded data with reviewed labels, are needed for that.
 
 ### 5.4 At scale
 
@@ -348,7 +361,7 @@ The trajectory mockup now matches through it (§3). Not yet: certificates and co
 | Similarity | simGIC as default and best-match Resnik as the reference-to-candidate option; IC population per snapshot. Implemented: simGIC is the default for new queries, each query records its measure, and queries recorded without one keep ancestor-Jaccard |
 | Embeddings | Baseline first; OWL2Vec* only if the baseline's recall falls short |
 
-Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. The trajectory mockup is connected to the profile. Remaining: an execution store built from the MIMIC-IV demo with concept postings and coverage tables; a relaxation-sound compiler tested against the exhaustive reference; and a recall benchmark for IC-weighted similarity.
+Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. The trajectory mockup is connected to the profile. A retrieval benchmark for the concept measures is in §5.3. Remaining: an execution store built from the MIMIC-IV demo with concept postings and coverage tables, and a relaxation-sound compiler tested against the exhaustive reference.
 
 ## References
 

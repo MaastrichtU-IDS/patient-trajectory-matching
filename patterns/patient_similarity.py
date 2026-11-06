@@ -114,6 +114,75 @@ def _read(value, default):
     return copied
 
 
+def information_content_table(catalogue, observed):
+    """IC(c) = -ln((count(c)+1)/(patients+1)) over ancestor-expanded concept sets.
+
+    `catalogue` maps each reviewed concept to its ancestors; `observed` is the expanded set
+    of every patient in the population. Returns the IC of every catalogued term as an
+    exact decimal rounded half-even to 12 places, the counts, and the roots (terms every
+    reviewed concept entails), which are IC 0 regardless of counts.
+    """
+    counts = {c: 0 for c in set(catalogue) | {a for v in catalogue.values() for a in v}}
+    for concepts in observed:
+        for concept in concepts:
+            counts[concept] += 1
+    roots = set.intersection(*({c, *a} for c, a in catalogue.items())) if catalogue else set()
+    with localcontext() as context:
+        context.prec = 28
+        context.rounding = ROUND_HALF_EVEN
+        n = Decimal(len(observed) + 1)
+        by_count = {k: (-(Decimal(k + 1) / n).ln()).quantize(IC_PLACES) for k in set(counts.values())}
+        ic = {c: Decimal(0) if c in roots else by_count[k] for c, k in counts.items()}
+    return ic, counts, roots
+
+
+def concept_distance(ic, ancestors, reference, candidate, measure, display=str):
+    """Distance between two observed concept sets under one measure, with an explanation.
+
+    `reference` and `candidate` are `(expanded, recorded)` pairs: the ancestor-expanded
+    set the set measures compare, and the recorded concepts best-match Resnik matches.
+    `ic` maps every term to an exact Fraction. Returns `(distance, explanation)`; the
+    distance is a Fraction in [0, 1], or None when the measure leaves the pair undefined.
+
+    `simgic` is ancestor-Jaccard with each expanded term weighted by its IC. `resnik_bma`
+    averages, over the reference's recorded concepts, the IC of the most informative
+    ancestor each shares with any candidate concept, and divides by the same average of
+    the reference against itself, so it lies in [0, 1] and asks how much of the
+    reference the candidate explains: it is asymmetric by design.
+
+    A declared empty reference set leaves `resnik_bma` nothing to explain, so it would
+    score every candidate 0, a perfect match. The distance is None instead: the component
+    is missing for that comparison, with the reason in the explanation, and the
+    missing-data rules apply to it, equally for every candidate. Any other zero
+    denominator means nothing informative is at stake -- every term is IC 0 in this
+    population, which every observed candidate then carries too -- and scores 0, as an
+    empty union does under Jaccard.
+    """
+    (expanded_a, recorded_a), (expanded_b, recorded_b) = reference, candidate
+    aa, bb = set(expanded_a), set(expanded_b)
+    if measure == 'ancestor_jaccard':
+        return (Fraction(1) - Fraction(len(aa & bb), len(aa | bb)) if aa | bb else Fraction(0)), None
+    if measure == 'simgic':
+        shared, union = sum(ic[c] for c in aa & bb), sum(ic[c] for c in aa | bb)
+        terms = [{'concept': c, 'ic': display(ic[c]), 'in': 'both' if c in aa and c in bb else 'reference' if c in aa else 'candidate'}
+                 for c in sorted(aa | bb)]
+        explanation = {'shared_ic': display(shared), 'union_ic': display(union), 'terms': terms}
+        return (Fraction(1) - shared / union if union else Fraction(0)), explanation
+    reference_terms = sorted(set(recorded_a))
+    if not reference_terms:
+        return None, {'undefined': 'EMPTY_REFERENCE_SET', 'terms': []}
+    candidates, matched, possible, terms = sorted(set(recorded_b)), Fraction(0), Fraction(0), []
+    for term in reference_terms:
+        own = {term, *ancestors[term]}
+        best = min(((-ic[x], x, other) for other in candidates for x in own & {other, *ancestors[other]}), default=None)
+        score, limit = (-best[0] if best else Fraction(0)), max(ic[x] for x in own)
+        matched, possible = matched + score, possible + limit
+        terms.append({'reference_concept': term, 'candidate_concept': best[2] if best else None,
+                      'shared_ancestor': best[1] if best else None, 'ic': display(score), 'reference_ic': display(limit)})
+    explanation = {'matched_ic': display(matched), 'reference_ic': display(possible), 'terms': terms}
+    return (Fraction(1) - matched / possible if possible else Fraction(0)), explanation
+
+
 class SimilarityEngine:
     """An immutable admitted dataset and content-addressed revision repository."""
     def __init__(self, dataset=None, profile=None):
@@ -342,20 +411,9 @@ class SimilarityEngine:
         entails -- is IC 0 regardless, so a patient with a declared empty set cannot make
         the root look informative.
         """
-        catalogue = self._profile['concept_ancestors']
-        counts = {c: 0 for c in set(catalogue) | {a for v in catalogue.values() for a in v}}
         observed = [f['features']['clinical_concepts'] for f in self._features.values()]
         observed = [f['value'] for f in observed if f['observed']]
-        for concepts in observed:
-            for concept in concepts:
-                counts[concept] += 1
-        roots = set.intersection(*({c, *a} for c, a in catalogue.items())) if catalogue else set()
-        with localcontext() as context:
-            context.prec = 28
-            context.rounding = ROUND_HALF_EVEN
-            n = Decimal(len(observed) + 1)
-            by_count = {k: (-(Decimal(k + 1) / n).ln()).quantize(IC_PLACES) for k in set(counts.values())}
-            ic = {c: Decimal(0) if c in roots else by_count[k] for c, k in counts.items()}
+        ic, counts, roots = information_content_table(self._profile['concept_ancestors'], observed)
         population = {'basis': 'observed_concept_sets_in_admitted_snapshot',
                       'dataset_sha256': self._dataset_hash, 'profile_sha256': self._profile_hash,
                       'patients': len(observed), 'unobserved_patients': len(self._features) - len(observed),
@@ -369,46 +427,11 @@ class SimilarityEngine:
                 'concepts': {c: {'count': count, 'ic': lexical(value)} for c, (count, value) in sorted(self._ic.items())}}
 
     def _concept_distance(self, a, b, measure, display):
-        """IC-weighted distance between two observed concept sets, explained term by term.
-
-        `simgic` is ancestor-Jaccard with each expanded term weighted by its IC. `resnik_bma`
-        averages, over the reference's recorded concepts, the IC of the most informative
-        ancestor each shares with any candidate concept, and divides by the same average of
-        the reference against itself, so it lies in [0, 1] and asks how much of the
-        reference the candidate explains: it is asymmetric by design.
-
-        A declared empty reference set leaves `resnik_bma` nothing to explain, so it would
-        score every candidate 0, a perfect match. The distance is None instead: the
-        component is missing for that comparison, with the reason in the explanation, and
-        the missing-data rules apply to it, equally for every candidate. Any other zero
-        denominator means nothing informative is at stake -- every term is IC 0 in this
-        population, which every observed candidate then carries too -- and scores 0, as an
-        empty union does under Jaccard.
-        """
-        ic = self._ic_weight
-        if measure == 'simgic':
-            aa, bb = set(a['value']), set(b['value'])
-            shared, union = sum(ic[c] for c in aa & bb), sum(ic[c] for c in aa | bb)
-            terms = [{'concept': c, 'ic': display(ic[c]), 'in': 'both' if c in aa and c in bb else 'reference' if c in aa else 'candidate'}
-                     for c in sorted(aa | bb)]
-            explanation = {'shared_ic': display(shared), 'union_ic': display(union), 'terms': terms}
-            return (Fraction(1) - shared / union if union else Fraction(0)), explanation
-        ancestors = self._profile['concept_ancestors']
+        """`concept_distance` over two observed features of this snapshot."""
         def recorded(feature):
-            return sorted({c for r in feature['evidence'] for c in r['value']})
-        reference_terms = recorded(a)
-        if not reference_terms:
-            return None, {'undefined': 'EMPTY_REFERENCE_SET', 'terms': []}
-        candidates, matched, possible, terms = recorded(b), Fraction(0), Fraction(0), []
-        for term in reference_terms:
-            own = {term, *ancestors[term]}
-            best = min(((-ic[x], x, other) for other in candidates for x in own & {other, *ancestors[other]}), default=None)
-            score, limit = (-best[0] if best else Fraction(0)), max(ic[x] for x in own)
-            matched, possible = matched + score, possible + limit
-            terms.append({'reference_concept': term, 'candidate_concept': best[2] if best else None,
-                          'shared_ancestor': best[1] if best else None, 'ic': display(score), 'reference_ic': display(limit)})
-        explanation = {'matched_ic': display(matched), 'reference_ic': display(possible), 'terms': terms}
-        return (Fraction(1) - matched / possible if possible else Fraction(0)), explanation
+            return [c for r in feature['evidence'] for c in r['value']]
+        return concept_distance(self._ic_weight, self._profile['concept_ancestors'],
+                                (a['value'], recorded(a)), (b['value'], recorded(b)), measure, display)
 
     def _score(self, reference, candidate, weights, measure=LEGACY_CONCEPT_MEASURE):
         with localcontext() as context:
