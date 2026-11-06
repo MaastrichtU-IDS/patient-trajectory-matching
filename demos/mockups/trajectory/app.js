@@ -11,7 +11,7 @@
    the recorded ranges satisfies every constraint jointly (checked exactly with shortest paths),
    and *exact* when every choice does. */
 
-const ORDER = ['exact', 'possible', 'relaxed', 'incomparable', 'none', 'excluded'];
+const ORDER = ['exact', 'possible', 'relaxed', 'incomparable', 'unresolved', 'none', 'excluded'];
 const HIDDEN_BY_DEFAULT = ['none', 'excluded'];
 const DEFAULT_FILTER = ORDER.filter(s => !HIDDEN_BY_DEFAULT.includes(s));
 Object.assign(state, {lens: 'recorded', selected: null, def: null, results: [], filter: new Set(DEFAULT_FILTER), freeText: 'present'});
@@ -25,9 +25,14 @@ const SCOPES = {any: 'anywhere in the record', from_start: 'from the start of th
   within: 'inside the index period', after: 'after the index period ends'};
 const STATUS = {
   exact: ['■', 'Exact match'], possible: ['◧', 'Possible · times uncertain'], relaxed: ['▲', 'Relaxed'],
-  incomparable: ['?', 'Not comparable'], none: ['○', 'No recorded match'], excluded: ['–', 'No index period'],
+  incomparable: ['?', 'Not comparable'], unresolved: ['◌', 'Unresolved · search stopped'], none: ['○', 'No recorded match'],
+  excluded: ['–', 'No index period'],
 };
 const SEARCH_BUDGET = 40000;
+const STOPPED = `the search stopped after ${SEARCH_BUDGET.toLocaleString('en')} attempts without finding or ruling out a match`;
+// What a search that stopped early leaves open, for results it did not decide.
+const STOPPED_NOTE = {possible: 'an exact binding may exist', relaxed: 'a cheaper or more certain relaxed match may exist',
+  none: 'a relaxed match may exist'};
 
 const TEMPLATES = {
   sequence: {
@@ -277,7 +282,7 @@ function search(view, def, a, win, relax) {
       calls += 1;
       if (consistent(compile(def, win, bind, relax))) walk(k + 1);
       bind.delete(id);
-      if (best?.status === 'exact') return;
+      if (best?.status === 'exact' || calls > SEARCH_BUDGET) return;
     }
   };
   walk(0);
@@ -310,7 +315,8 @@ function matchPatient(pid, def, a) {
     const ids = new Set(riseNodes.map(n => n.id));
     const rest = {...def, nodes: def.nodes.filter(n => !ids.has(n.id)), edges: def.edges.filter(e => !ids.has(e.from) && !ids.has(e.to))};
     const partial = rest.nodes.length ? search(view, rest, analyse(rest), win, new Set()) : {best: true};
-    return partial.best ? {pid, win, status: 'incomparable', reason: `the other steps match, but there are no ${riseNodes.map(n => label(n.concept).toLowerCase()).join(' or ')} measurements for ${[...ids].join(', ')}`}
+    if (partial.best) return {pid, win, status: 'incomparable', reason: `the other steps match, but there are no ${riseNodes.map(n => label(n.concept).toLowerCase()).join(' or ')} measurements for ${[...ids].join(', ')}`};
+    return partial.truncated ? {pid, win, status: 'unresolved', reason: `${STOPPED} on the steps that can be measured`}
       : {pid, win, status: 'none', reason: 'the steps that can be measured do not match'};
   }
   const first = search(view, def, a, win, new Set());
@@ -320,15 +326,28 @@ function matchPatient(pid, def, a) {
   opts.forEach((o, i) => { subsets.push([o]); opts.slice(i + 1).forEach(p => subsets.push([o, p])); });
   const ranked = subsets.map(s => ({s, cost: s.reduce((t, o) => t + o.cost, 0)})).filter(x => x.cost <= 1 && new Set(x.s.map(o => o.key)).size === x.s.length)
     .sort((x, y) => x.cost - y.cost || x.s.length - y.s.length);
+  // A relaxed match counts only once the unrelaxed search has ruled out a match; a stopped
+  // search ruled nothing out, so the patient is unresolved, not relaxed and not a non-match.
+  let relaxed = null, skipped = false;
   for (const {s, cost} of ranked) {
     const r = search(view, def, a, win, new Set(s.map(o => o.key)));
-    if (r.best) return {pid, win, status: 'relaxed', certainty: r.best.status, best: r.best, cost, relaxations: s.map(o => o.text), relaxKeys: new Set(s.map(o => o.key))};
+    if (r.best) {
+      relaxed = {certainty: r.best.status, best: r.best, cost, relaxations: s.map(o => o.text), relaxKeys: new Set(s.map(o => o.key)), truncated: skipped || r.truncated};
+      break;
+    }
+    skipped ||= r.truncated;
   }
+  if (first.truncated) {
+    return relaxed ? {pid, win, status: 'unresolved', best: relaxed.best, relaxKeys: relaxed.relaxKeys,
+      reason: `${STOPPED}; relaxing ${relaxed.relaxations.join('; ')} gives one at cost ${relaxed.cost}`}
+      : {pid, win, status: 'unresolved', reason: STOPPED};
+  }
+  if (relaxed) return {pid, win, status: 'relaxed', ...relaxed};
   if (first.blind.length) {
     const b = first.blind[0];
     return {pid, win, status: 'incomparable', reason: `the measurements do not cover the time around ${b.after} (${b.p.what}, ${ageText(b.p.e)}), so ${b.id} cannot be judged`};
   }
-  return {pid, win, status: 'none', truncated: first.truncated};
+  return {pid, win, status: 'none', truncated: skipped};
 }
 
 function run() {
@@ -506,7 +525,7 @@ function renderMatches() {
   const c = count();
   $('#summary').innerHTML = `<p class="hint">Every patient is searched; there is no reference patient here. Each step is bound to one of the patient's events, and the constraints are checked jointly over the recorded time ranges.</p>
     <div class="tj-filters" role="group" aria-label="Show results">${ORDER.map(st => `<button class="tj-filter${HIDDEN_BY_DEFAULT.includes(st) ? ' tj-filter-none' : ''}" aria-pressed="${state.filter.has(st)}" data-action="filter" data-s="${st}">${STATUS[st][0]} ${STATUS[st][1]} · ${c[st] || 0}</button>`).join('')}</div>
-    <p class="hint">Select several result types to see them together. <em>No recorded match</em> and <em>No index period</em> are hidden until selected; <em>No recorded match</em> is shown only on its own.</p>`;
+    <p class="hint">Select several result types to see them together. <em>No recorded match</em> and <em>No index period</em> are hidden until selected; <em>No recorded match</em> is shown only on its own. <em>Unresolved</em> patients were not fully searched and may still match.</p>`;
   const rows = state.results.filter(r => state.filter.has(r.status));
   $('#list').innerHTML = rows.map(r => {
     const p = state.patients.get(r.pid);
@@ -514,7 +533,7 @@ function renderMatches() {
       <div class="rank">${STATUS[r.status][0]}</div>
       <div><div class="who">${r.pid} <small>· ${p.sex === 'F' ? 'female' : 'male'}${r.win && !r.win.reason ? ` · period ${esc(spanText(r.win))}` : ''}</small></div>
         ${chip(r.status, r.cost)}${state.lens === 'truth' ? ` <span class="hint">truth: ${esc(GROUP_LABEL[p.truth.condition_group])}</span>` : ''}
-        ${r.relaxations?.length ? `<div class="hint">relaxed: ${esc(r.relaxations.join('; '))}</div>` : ''}${r.reason ? `<div class="hint">${esc(r.reason)}</div>` : ''}${r.truncated ? '<div class="hint">search stopped early; the result may be incomplete</div>' : ''}
+        ${r.relaxations?.length ? `<div class="hint">relaxed: ${esc(r.relaxations.join('; '))}</div>` : ''}${r.reason ? `<div class="hint">${esc(r.reason)}</div>` : ''}${r.truncated ? `<div class="hint">search stopped early; ${STOPPED_NOTE[r.status]}</div>` : ''}
         ${bindingChips(r)}</div>
       <div class="right"></div></div>`;
   }).join('') || `<p class="hint">${state.filter.size ? 'No patients with the selected results.' : 'Select at least one result type.'}</p>`;
