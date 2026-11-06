@@ -47,11 +47,11 @@ class ConfiguredPressureTests(unittest.TestCase):
 
     def test_relative_paths_and_request_defaults(self):
         value = config.load(self.path)
-        self.assertEqual(value['paths']['source_dir'],self.root/'source')
+        self.assertEqual(value['paths']['source_dir'],(self.root/'source').resolve())
         self.assertEqual(value['defaults'],DEFAULT); self.assertEqual(value['measurement_item'],'2001')
         self.assertEqual(value['treatment_item'],'1000')
         self.edit(self.path,lambda v:v.update(source_dir=str(self.root/'source')))
-        self.assertEqual(config.load(self.path)['paths']['source_dir'],self.root/'source')
+        self.assertEqual(config.load(self.path)['paths']['source_dir'],(self.root/'source').resolve())
 
     def test_closed_configuration_schema_and_size_limit(self):
         original = self.path.read_bytes()

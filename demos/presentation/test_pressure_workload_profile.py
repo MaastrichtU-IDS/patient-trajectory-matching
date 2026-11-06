@@ -109,7 +109,11 @@ class MemoryProfileTests(unittest.TestCase):
         self.assertFalse(result['memory']['coverage_complete'])
 
     def test_fixed_runner_only_and_spawn_failure_is_sanitized(self):
-        with patch.object(profiler.subprocess,'Popen',side_effect=OSError('sensitive path')) as launch:
+        # run() refuses non-Linux hosts before spawning, so simulate the Linux /proc gate to reach the spawn.
+        real_is_file = profiler.Path.is_file
+        def is_file(path): return str(path)=='/proc/self/stat' or real_is_file(path)
+        with patch.object(profiler.platform,'system',return_value='Linux'),patch.object(profiler.Path,'is_file',is_file),\
+                patch.object(profiler.subprocess,'Popen',side_effect=OSError('sensitive path')) as launch:
             report = profiler.run(inputs())
         command = launch.call_args.args[0]
         self.assertEqual(command[:2],[sys.executable,str(profiler.RUNNER)])
