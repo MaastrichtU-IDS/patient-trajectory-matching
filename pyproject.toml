@@ -20,6 +20,8 @@ dependencies = [
 [project.optional-dependencies]
 # patterns/requirements-semantic.lock.txt adds only rustdl on top of the base lock.
 semantic = ["rustdl==0.4.28"]
+# patterns/requirements-store.lock.txt adds only duckdb on top of the base lock.
+store = ["duckdb==2.0.0"]
 
 [tool.hatch.build.targets.wheel]
 include = ["patterns/**", "reference_oracle.py"]

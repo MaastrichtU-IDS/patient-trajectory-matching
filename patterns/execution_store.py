@@ -37,7 +37,7 @@ import tempfile
 from jsonschema import Draft202012Validator
 
 from . import trajectory_graph as tg
-from .pro_solid import ROOT
+from ._resources import ROOT
 
 PROFILE = 'execution-store-1.0'
 INGEST_PROFILE = 'execution-store-ingest-1.0'
