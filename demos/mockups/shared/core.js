@@ -410,9 +410,9 @@ function measureEvents(series, cond, param) {
       if (!prior.length) return;
       const base = Math.max(1e-9, prior.reduce((t, s) => t + s.value, 0) / prior.length);
       const hit = cond === 'rise' ? c.value >= param * Math.max(1, base) : c.value <= base / param;
-      if (hit) out.push({e: c.day, l: c.end ?? c.day, what: `${show} on ${when} (before: ${prior.map(s => s.value).join(', ')})`});
+      if (hit) out.push({e: c.day, l: c.end ?? c.day, source: c.record.record_id, what: `${show} on ${when} (before: ${prior.map(s => s.value).join(', ')})`});
     } else if (cond === 'above' ? c.value >= param : c.value <= param) {
-      out.push({e: c.day, l: c.end ?? c.day, what: `${show} on ${when}`});
+      out.push({e: c.day, l: c.end ?? c.day, source: c.record.record_id, what: `${show} on ${when}`});
     }
   });
   return out;

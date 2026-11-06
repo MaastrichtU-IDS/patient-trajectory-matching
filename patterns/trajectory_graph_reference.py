@@ -1,10 +1,11 @@
 """Exhaustive reference for trajectory-graph matching. No engine code is reused.
 
 Every binding of steps to candidate events is enumerated. Candidate selection, the
-constraint semantics and the joint feasibility test (Bellman-Ford over the binding's
-difference constraints) are written here again from docs/trajectory-graph-profile.md,
-so a defect in the engine's arc consistency, interval propagation or search does not
-reappear in the oracle it is compared with.
+constraint semantics and the time model are written here again from
+docs/trajectory-graph-profile.md, so a defect in the engine's arc consistency, interval
+propagation, search or variable sharing does not reappear in the oracle it is compared
+with. Each test runs Bellman-Ford over the whole patient's times: one node per named
+variable, so events and steps that name one variable share it.
 """
 from decimal import Decimal
 from fractions import Fraction
@@ -15,15 +16,53 @@ INF = math.inf
 
 
 def _events(patient):
+    """Each event with its ranges and the variables its start and end name."""
     out = []
     for e in patient.get('events', []):
-        s = (e['start'][0], e['start'][1])
+        start = (e['start'][0], e['start'][1])
+        s_name = e.get('start_var', e['id'] + '.s')
         if 'end' in e:
-            out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': s, 'point': False,
-                        'f': (e['end'][0], INF if e['end'][1] is None else e['end'][1])})
+            end = (e['end'][0], INF if e['end'][1] is None else e['end'][1])
+            names = {'s': s_name, 'f': e.get('end_var', e['id'] + '.f')}
+            out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': start, 'f': end, 'point': False, 'var': names})
         else:
-            out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': s, 'f': s, 'point': True})
+            out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': start, 'f': start, 'point': True,
+                        'var': {'s': s_name, 'f': s_name}})
     return out
+
+
+def _facts(events, window):
+    """What every choice of the patient's times satisfies, as (u, v, w): value(v) - value(u) <= w.
+    Every range naming a variable bounds it; every event ends at or after it starts."""
+    out = []
+    for anchor, value in (('START', window['start']), ('END', window['end'])):
+        out += [('ZERO', anchor, value), (anchor, 'ZERO', -value)]
+    for e in events:
+        for part in 'sf':
+            node = ('time', e['var'][part])
+            lo, hi = e[part]
+            out.append((node, 'ZERO', -lo))
+            if hi != INF:
+                out.append(('ZERO', node, hi))
+        if not e['point']:
+            out.append((('time', e['var']['f']), ('time', e['var']['s']), 0))
+    return out
+
+
+def _satisfiable(edges):
+    """Bellman-Ford from a virtual source; a negative cycle means no choice of times."""
+    distance = {}
+    for u, v, _ in edges:
+        distance[u] = distance[v] = 0
+    for _ in range(len(distance) + 1):
+        changed = False
+        for u, v, w in edges:
+            if distance[u] + w < distance[v]:
+                distance[v] = distance[u] + w
+                changed = True
+        if not changed:
+            return True
+    return False
 
 
 def _candidates(step, concept, events):
@@ -63,66 +102,52 @@ def _constraints(query, relaxations):
     return concept, out
 
 
-def _span(term, binding, window):
+def _node(term, binding):
     if term in ('START', 'END'):
-        v = window['start'] if term == 'START' else window['end']
-        return v, v
-    event = binding[term[0]]
-    return event[term[1]]
+        return term
+    return ('time', binding[term[0]]['var'][term[1]])
 
 
-def is_exact(binding, constraints, window):
+def is_exact(binding, constraints, facts, memo=None):
+    """No choice of the patient's times violates any constraint. On an integer grid, value(y)
+    - value(x) > hi is value(x) - value(y) <= -(hi + 1), and < lo is value(y) - value(x) <= lo - 1."""
+    memo = {} if memo is None else memo
     for x, y, lo, hi in constraints:
-        (xl, xh), (yl, yh) = _span(x, binding, window), _span(y, binding, window)
-        if yl - xh < lo or yh - xl > hi:
+        key = (_node(x, binding), _node(y, binding), lo, hi)
+        if key not in memo:
+            u, v = key[:2]
+            memo[key] = not ((hi != INF and _satisfiable(facts + [(v, u, -(hi + 1))]))
+                             or (lo != -INF and _satisfiable(facts + [(u, v, lo - 1)])))
+        if not memo[key]:
             return False
     return True
 
 
-def is_possible(binding, constraints, window):
-    """Bellman-Ford from a virtual source; a negative cycle means no joint choice of times."""
-    names = ['ZERO', 'START', 'END'] + [f'{s}.{p}' for s in binding for p in 'sf']
-    edges = []  # (u, v, w): value(v) - value(u) <= w
-    def bound(u, v, w):
-        if w != INF:
-            edges.append((u, v, w))
-    for anchor, value in (('START', window['start']), ('END', window['end'])):
-        bound('ZERO', anchor, value); bound(anchor, 'ZERO', -value)
-    for s, e in binding.items():
-        for p in 'sf':
-            bound('ZERO', f'{s}.{p}', e[p][1]); bound(f'{s}.{p}', 'ZERO', -e[p][0])
-        bound(f'{s}.f', f'{s}.s', 0)
-        if e['point']:
-            bound(f'{s}.s', f'{s}.f', 0)
-    name = lambda t: t if t in ('START', 'END') else f'{t[0]}.{t[1]}'
+def is_possible(binding, constraints, facts):
+    """Some choice of the patient's times satisfies every constraint at once."""
+    edges = list(facts)
     for x, y, lo, hi in constraints:
-        bound(name(x), name(y), hi)
-        bound(name(y), name(x), -lo)
-    distance = {n: 0 for n in names}
-    for _ in range(len(names)):
-        changed = False
-        for u, v, w in edges:
-            if distance[u] + w < distance[v]:
-                distance[v] = distance[u] + w
-                changed = True
-        if not changed:
-            return True
-    return False
+        u, v = _node(x, binding), _node(y, binding)
+        if hi != INF:
+            edges.append((u, v, hi))
+        if lo != -INF:
+            edges.append((v, u, -lo))
+    return _satisfiable(edges)
 
 
 def classify(query, patient, relaxations=()):
     """The best certainty any binding reaches under a relaxation set: 'exact', 'possible' or None."""
-    window = patient['window']
     concept, constraints = _constraints(query, relaxations)
     events = _events(patient)
+    facts = _facts(events, patient['window'])
     names = [s['id'] for s in query['steps']]
     pools = [_candidates(s, concept[s['id']], events) for s in query['steps']]
-    best = None
+    best, memo = None, {}
     for chosen in product(*pools):
         binding = dict(zip(names, chosen))
-        if is_exact(binding, constraints, window):
+        if is_exact(binding, constraints, facts, memo):
             return 'exact'
-        if best is None and is_possible(binding, constraints, window):
+        if best is None and is_possible(binding, constraints, facts):
             best = 'possible'
     return best
 
@@ -130,13 +155,14 @@ def classify(query, patient, relaxations=()):
 def binding_reaches(query, patient, relaxations, binding_ids, certainty):
     """Whether a reported binding really has the reported certainty."""
     concept, constraints = _constraints(query, relaxations)
-    events = {e['id']: e for e in _events(patient)}
-    binding = {s: events[e] for s, e in binding_ids.items()}
+    events = _events(patient)
+    by_id = {e['id']: e for e in events}
+    binding = {s: by_id[e] for s, e in binding_ids.items()}
     for step in query['steps']:
-        if binding[step['id']] not in _candidates(step, concept[step['id']], list(events.values())):
+        if binding[step['id']] not in _candidates(step, concept[step['id']], events):
             return False
     check = is_exact if certainty == 'exact' else is_possible
-    return check(binding, constraints, patient['window'])
+    return check(binding, constraints, _facts(events, patient['window']))
 
 
 def relaxation_sets(query):
