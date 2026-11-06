@@ -292,7 +292,7 @@ Per patient: *k* steps, *m* constraints, *n* candidate events per step, *V* = 2*
 
 The mockup binds steps in topological order and, after each choice, rebuilds the network and checks consistency with shortest paths (O(*V*³)). Worst case per patient O(*n*ᵏ · *V*³); relaxation multiplies by the number of relaxation sets tried (pairs, O(*r*²)); in total O(*P* · *r*² · *n*ᵏ · *k*³). The engine's bounded cohort profile likewise takes the product of candidate sets. A patient with 40 seizures and a four-step query is 40⁴ ≈ 2.6 million checks; the mockup caps the search at 40,000.
 
-**Defect:** when the cap is reached the mockup reports *no recorded match* with a "possibly incomplete" note. An exhausted search is unresolved, not a non-match; any engine version must report `UNRESOLVED`.
+An exhausted search is unresolved, not a non-match. The mockup reports it as *Unresolved*: it is never reported as *no recorded match*, nor as *relaxed*, which would imply that no unrelaxed match exists. Any engine version must report `UNRESOLVED` likewise.
 
 ### 7.2 Inherent complexity
 
