@@ -86,23 +86,24 @@ def decision_fields(result):
     return out
 
 
-ROUTE_FIELDS = ('context', 'context_id')
 EVIDENCE_ROUTE_FIELDS = ('evidence_id', 'context_id', 'provenance')
+ROW_ROUTE_FIELDS = ('snapshot_context_id', 'evidence_id', 'evidence_context_id')
 
 
 def route_invariant(result):
     """The adapter output without its route identity: contexts, evidence identifiers and
     the RDF reader's provenance descriptors, which name the route by design."""
-    out = {k: deepcopy(v) for k, v in result.items() if k not in ROUTE_FIELDS}
+    out = {k: deepcopy(v) for k, v in result.items() if k not in ('context', 'context_id')}
     for row in out['results']:
         for key in ('bound_evidence', 'relaxed_bound_evidence'):
             for item in row.get(key, {}).values():
                 for f in EVIDENCE_ROUTE_FIELDS:
                     item['evidence'].pop(f, None)
-    for row in out['events']:
-        for f in ('snapshot_context_id', 'evidence_id', 'evidence_context_id'):
-            row.pop(f)
     return out
+
+
+def rows_invariant(rows):
+    return [{k: v for k, v in r.items() if k not in ROW_ROUTE_FIELDS} for r in rows]
 
 
 def bound_evidence(result):
@@ -112,11 +113,11 @@ def bound_evidence(result):
 
 
 def source_for(events, constraints=(), clocks=None):
-    """A small bounded source: events as (id, patient, kind, start bounds, end bounds[, shared start var])."""
+    """A small bounded source: events as (id, patient, kind, start bounds, end bounds[, start var[, clock]])."""
     variables, rows = {}, []
-    for eid, pid, kind, start, end, *shared in events:
-        svar = shared[0] if shared else eid + '-start'
-        clock = 'clinical' if len(shared) < 2 else shared[1]
+    for eid, pid, kind, start, end, *extra in events:
+        svar = extra[0] if extra else eid + '-start'
+        clock = 'clinical' if len(extra) < 2 else extra[1]
         for vid, (lo, hi) in ((svar, start), (eid + '-end', end)):
             variables.setdefault(vid, {'id': vid, 'patient_id': pid, 'episode_id': 'E1', 'clock_id': clock,
                                        'lower_us': lo, 'upper_us': hi, 'source_key': vid})
@@ -132,6 +133,21 @@ def request_for(steps, relations=(), unit='day', window=(0, 30), **extra):
     query.update(extra)
     return {'profile': tgs.REQUEST_PROFILE, 'query': query, 'unit': unit,
             'window': {'start': window[0], 'end': window[1]}}
+
+
+def after(lo=None, hi=None, a='a', b='b'):
+    r = {'id': a + '-' + b, 'kind': 'after', 'from': a, 'to': b}
+    if lo is not None:
+        r['min'] = lo
+    if hi is not None:
+        r['max'] = hi
+    return r
+
+
+def offset_clocks(days_apart):
+    return [{'clock_id': 'c1', 'origin': ORIGIN, 'scope': 'global', 'policy': tgs.OFFSET_POLICY},
+            {'clock_id': 'c2', 'origin': '2026-01-%02dT00:00:00Z' % (1 + days_apart) if days_apart < 31 else
+             '2026-04-11T00:00:00Z', 'scope': 'global', 'policy': tgs.OFFSET_POLICY}]
 
 
 class ExampleParityTests(unittest.TestCase):
@@ -161,10 +177,18 @@ class ExampleParityTests(unittest.TestCase):
     def test_json_and_rdf_routes_give_identical_adapter_output(self):
         self.assertNotEqual(self.json['context']['route'], self.rdf['context']['route'])
         self.assertEqual(route_invariant(self.json), route_invariant(self.rdf))
+        self.assertEqual(rows_invariant(tgs.ingest_rows(self.json_view)), rows_invariant(tgs.ingest_rows(self.rdf_view)))
 
     def test_canonical_graph_route_equals_the_rdf_route(self):
         canonical = tgs.match_snapshot(tgs.from_bounded_source(self.source, self.facts), self.request)
         self.assertEqual(canonical, self.rdf)
+
+    def test_route_modules_are_bound_in_the_context(self):
+        json_files, rdf_files = self.json['context']['artifacts'], self.rdf['context']['artifacts']
+        self.assertNotIn('patterns/bounded_rdf.py', json_files)
+        self.assertIn('patterns/bounded_rdf.py', rdf_files)
+        self.assertIn('patterns/joint_evidence.py', json_files)  # the facts document's vocabulary
+        self.assertIsNone(self.json['context']['semantic_run'])
 
     def test_possible_witness_is_checked_against_the_source_network(self):
         p2 = next(r for r in self.json['results'] if r['patient_id'] == 'P2')
@@ -172,11 +196,11 @@ class ExampleParityTests(unittest.TestCase):
         self.assertTrue(check['feasible'])
         self.assertFalse(check['entailed'])
         self.assertTrue(check['engine_witness_confirmed'])
-        # The witness lies inside the original example's ranges (in days, on the clock).
+        self.assertEqual(p2['projection'], 'intervals')  # the query has a `during` relation
         self.assertTrue(140 * DAY <= p2['witness']['A'] <= 170 * DAY)
         self.assertTrue(300 * DAY <= p2['witness']['C'] <= 330 * DAY)
 
-    def test_every_bound_step_carries_its_graph_evidence(self):
+    def test_every_bound_step_carries_its_graph_evidence_and_concept_basis(self):
         for view, result in ((self.json_view, self.json), (self.rdf_view, self.rdf)):
             snapshot = view.snapshot
             items = list(bound_evidence(result))
@@ -190,19 +214,9 @@ class ExampleParityTests(unittest.TestCase):
                 self.assertIn((URIRef(evidence['claim']), RDF.type, bt.BT.IntervalClaim), snapshot.graph)
                 self.assertIn((URIRef(evidence['patient_role']), ei.S.isFeatureOf, URIRef(evidence['patient_bearer'])), snapshot.graph)
                 self.assertIn((URIRef(evidence['source_record']), ei.S.refersTo, URIRef(evidence['claim'])), snapshot.graph)
-
-    def test_event_rows_are_the_store_ingest_rows(self):
-        rows = {r['event_id']: r for r in self.json['events']}
-        self.assertEqual(set(rows), set(self.json_view.snapshot.events))
-        fs = rows['P2-fs']
-        self.assertEqual(fs['start_us'], [140 * DAY, 170 * DAY])
-        self.assertEqual(fs['end_us'], [140 * DAY + 1, 170 * DAY + 1])
-        self.assertEqual(fs['comparability'], 'comparable')
-        self.assertEqual(fs['selection_state'], 'declared_source')
-        bases = {c['concept']: c['basis'] for c in fs['concepts']}
-        self.assertEqual(bases[NS + 'febrile_seizure'][0]['kind'], 'semantic_fact')
-        self.assertEqual(bases[SPECIMEN][0]['kind'], 'event_kind_closure')
-        self.assertTrue(all(c['basis'] for r in rows.values() for c in r['concepts']))
+                self.assertTrue(item['concept']['basis'])
+        p3 = next(r for r in self.json['results'] if r['patient_id'] == 'P3')
+        self.assertEqual(p3['bound_evidence']['A']['concept']['concept'], NS + 'seizure')  # the widened concept
 
     def test_result_context_binds_the_snapshot_query_and_artifacts(self):
         context = self.json['context']
@@ -212,6 +226,11 @@ class ExampleParityTests(unittest.TestCase):
         self.assertIn('patterns/trajectory_graph_sulo.py', context['artifacts'])
         self.assertEqual(self.json['context_id'], ei.digest(ei.canonical(context)))
         self.assertIsNotNone(self.rdf['context']['graph_sha256'])
+        self.assertNotIn('events', self.json)
+
+    def test_summary_counts_statuses_and_adapter_codes(self):
+        self.assertEqual(self.json['summary'], {'patients': 5, 'decided_by_adapter': 0, 'adapter_codes': {},
+                                                'statuses': {'excluded': 1, 'exact': 1, 'none': 1, 'possible': 1, 'relaxed': 1}})
 
     def test_rustdl_entailed_concepts_reproduce_the_explicit_ancestors(self):
         facts = deepcopy(self.facts)
@@ -226,9 +245,59 @@ class ExampleParityTests(unittest.TestCase):
         result = tgs.match_snapshot(view, dict(self.request, semantic_policy=facts['vocabulary']))
         self.assertEqual([decision_fields(r) for r in result['results']], [decision_fields(r) for r in self.engine])
         self.assertEqual(result['semantic']['status'], 'READY')
-        bases = {c['concept']: c['basis'] for r in result['events'] if r['event_id'] == 'P1-fs' for c in r['concepts']}
-        self.assertEqual([b['kind'] for b in bases[NS + 'seizure']], ['rustdl_entailed'])
-        self.assertTrue(bases[NS + 'seizure'][0]['asserted_supports'])
+        basis = result['request_entailed_concepts']['P1-fs'][NS + 'seizure']
+        self.assertEqual(basis['kind'], 'rustdl_entailed')
+        self.assertTrue(basis['asserted_supports'])
+        run = result['context']['semantic_run']
+        self.assertEqual((run['status'], run['ontology_sha256']), ('READY', result['semantic']['ontology_sha256']))
+        self.assertEqual(run['backend']['name'], 'rustdl')
+        # Entailment is request-specific: the ingest rows hold asserted concepts only.
+        row = next(r for r in tgs.ingest_rows(view) if r['event_id'] == 'P1-fs')
+        self.assertNotIn(NS + 'seizure', {c['concept'] for c in row['concepts']})
+        self.assertEqual(row['entailment'], 'not_materialized')
+
+    def test_declared_disjointness_needs_the_semantic_run(self):
+        facts = deepcopy(self.facts)
+        facts['vocabulary']['disjoint'] = [{'id': 'drug-not-seizure', 'classes': [NS + 'sodium_channel_blocker', NS + 'seizure']}]
+        view = tgs.from_bounded_json(self.source, facts)
+        with self.assertRaisesRegex(tgs.AdapterError, 'SEMANTIC_RUN_REQUIRED_FOR_DISJOINTNESS'):
+            tgs.match_snapshot(view, self.request)
+        result = tgs.match_snapshot(view, dict(self.request, semantic_policy=facts['vocabulary']))
+        self.assertEqual(result['statuses'], self.json['statuses'])
+        self.assertEqual({r['vocabulary_disjointness'] for r in tgs.ingest_rows(view)}, {'not_checked'})
+
+
+class IngestRowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        source, cls.facts, cls.request = convert(load(EXAMPLE / 'query.json'), load(EXAMPLE / 'patients.json'))
+        cls.view = tgs.from_bounded_json(source, cls.facts)
+
+    def test_rows_are_the_same_with_and_without_a_request(self):
+        before = tgs.ingest_rows(self.view)
+        tgs.match_snapshot(self.view, self.request)
+        hours = deepcopy(self.request)
+        hours['windows'] = {'P1': {'start': 0, 'end': 10}}
+        hours['unit'] = 'hour'
+        tgs.match_snapshot(self.view, hours)
+        self.assertEqual(tgs.ingest_rows(self.view), before)
+        self.assertEqual(tgs.ingest_rows(self.view.snapshot), tgs.ingest_rows(tgs.SourceView(self.view.snapshot, 'snapshot')))
+
+    def test_rows_hold_own_clock_bounds_box_verdict_and_asserted_concepts(self):
+        rows = {r['event_id']: r for r in tgs.ingest_rows(self.view)}
+        self.assertEqual(set(rows), set(self.view.snapshot.events))
+        fs = rows['P2-fs']
+        self.assertEqual((fs['clock_id'], fs['clock_origin']), ('clinical', ORIGIN))
+        self.assertEqual(fs['start_us'], [140 * DAY, 170 * DAY])
+        self.assertEqual(fs['end_us'], [140 * DAY + 1, 170 * DAY + 1])
+        self.assertEqual((fs['start_var'], fs['end_var']), ('P2-fs-start', 'P2-fs-end'))
+        self.assertEqual((fs['box_representable'], fs['non_box_constraints'], fs['shared_variables']), (True, [], []))
+        self.assertEqual(fs['selection_state'], 'declared_source')
+        bases = {c['concept']: c['basis'] for c in fs['concepts']}
+        self.assertEqual(bases[NS + 'febrile_seizure'][0]['kind'], 'semantic_fact')
+        self.assertEqual(bases[SPECIMEN][0]['kind'], 'event_kind_closure')
+        self.assertTrue(all(c['basis'] for r in rows.values() for c in r['concepts']))
+        self.assertTrue(all('reference_clock' not in r and 'comparability' not in r for r in rows.values()))
 
 
 class ConceptTests(unittest.TestCase):
@@ -243,18 +312,18 @@ class ConceptTests(unittest.TestCase):
         for kind, cls in bt.KINDS.items():
             self.assertEqual(vocabulary.ancestors(str(cls)), bt.selected_classes({'event_kind': kind}))
 
-    def test_selected_classes_is_called_at_most_once_per_kind(self):
+    def test_selected_classes_is_never_called_per_event(self):
         # Ancestors come from one parse of the ontology, not one call per event.
         with patch.object(bt, 'selected_classes', side_effect=AssertionError('reparse')):
             result = tgs.match_snapshot(self.view, request_for([('a', PROCESS)]))
+            tgs.ingest_rows(self.view)
         self.assertEqual(result['statuses'], {'P1': 'exact'})
 
     def test_named_ancestors_close_upward(self):
-        r = tgs.match_snapshot(self.view, request_for([('a', str(bt.BT.IntervalProcess)), ('b', SPECIMEN)],
-                                                      [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 1}]))
+        r = tgs.match_snapshot(self.view, request_for([('a', str(bt.BT.IntervalProcess)), ('b', SPECIMEN)], [after(1)]))
         self.assertEqual(r['statuses'], {'P1': 'exact'})
         self.assertEqual(r['results'][0]['binding'], {'a': 'X', 'b': 'Y'})
-        x = next(row for row in r['events'] if row['event_id'] == 'X')
+        x = next(row for row in tgs.ingest_rows(self.view) if row['event_id'] == 'X')
         self.assertEqual({c['concept'] for c in x['concepts']}, bt.selected_classes({'event_kind': 'infusion'}))
 
     def test_unknown_step_concept_is_refused(self):
@@ -267,21 +336,23 @@ class ConceptTests(unittest.TestCase):
         with self.assertRaisesRegex(tgs.AdapterError, 'UNKNOWN_CONCEPT:https://example.org/nowhere'):
             tgs.match_snapshot(self.view, request)
 
-    def test_fact_class_must_be_declared(self):
-        facts = {'profile': tgs.FACTS_PROFILE, 'facts': [
-            {'id': 'f', 'patient_id': 'P1', 'episode_id': 'E1', 'kind': 'class', 'subject': {'event_id': 'X'},
-             'class_iri': 'https://example.org/undeclared'}],
+    def facts(self, event, iri):
+        return {'profile': tgs.FACTS_PROFILE, 'facts': [
+            {'id': 'f', 'patient_id': 'P1', 'episode_id': 'E1', 'kind': 'class', 'subject': {'event_id': event},
+             'class_iri': iri}],
             'vocabulary': {'profile': 'joint-semantic-policy-1.0', 'id': 'v', 'classes': [], 'rules': [], 'disjoint': []}}
+
+    def test_fact_class_must_be_declared(self):
+        view = tgs.from_bounded_json(self.source, self.facts('X', 'https://example.org/undeclared'))
         with self.assertRaisesRegex(tgs.AdapterError, 'UNDECLARED_FACT_CLASS'):
-            tgs.match_snapshot(tgs.from_bounded_json(self.source, facts), request_for([('a', INFUSION)]))
+            tgs.match_snapshot(view, request_for([('a', INFUSION)]))
+        with self.assertRaisesRegex(tgs.AdapterError, 'UNDECLARED_FACT_CLASS'):
+            tgs.ingest_rows(view)
 
     def test_fact_on_an_ontology_class_brings_its_ancestors_with_basis(self):
-        facts = {'profile': tgs.FACTS_PROFILE, 'facts': [
-            {'id': 'f', 'patient_id': 'P1', 'episode_id': 'E1', 'kind': 'class', 'subject': {'event_id': 'Y'},
-             'class_iri': INFUSION}],
-            'vocabulary': {'profile': 'joint-semantic-policy-1.0', 'id': 'v', 'classes': [], 'rules': [], 'disjoint': []}}
-        r = tgs.match_snapshot(tgs.from_bounded_json(self.source, facts), request_for([('a', INFUSION)]))
-        y = {c['concept']: [b['kind'] for b in c['basis']] for row in r['events'] if row['event_id'] == 'Y' for c in row['concepts']}
+        view = tgs.from_bounded_json(self.source, self.facts('Y', INFUSION))
+        y = {c['concept']: [b['kind'] for b in c['basis']]
+             for row in tgs.ingest_rows(view) if row['event_id'] == 'Y' for c in row['concepts']}
         self.assertEqual(y[INFUSION], ['semantic_fact'])
         self.assertEqual(y[PROCESS], ['event_kind_closure', 'semantic_fact_closure'])
 
@@ -294,28 +365,45 @@ class TimeAndClockTests(unittest.TestCase):
                              ('B2', 'P2', 'specimen_collection', (0, 10 * DAY), (11 * DAY, 11 * DAY))],
                             [{'id': 'b-after-a', 'left_var': 'A1-start', 'right_var': 'B1-start',
                               'upper_us': -5 * DAY, 'source_key': 'declared'}])
-        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 1}])
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request)
+        view = tgs.from_bounded_json(source)
+        r = tgs.match_snapshot(view, request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1)]))
         p1, p2 = r['results']
         self.assertEqual((p1['status'], p1['decided_by'], p1['adapter']['code']),
                          ('refused', 'adapter', 'SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE'))
         self.assertEqual(p1['adapter']['constraints'][0]['edge'], 'source:b-after-a')
         self.assertEqual(p2['status'], 'possible')
-        self.assertEqual({row['comparability'] for row in r['events'] if row['patient_id'] == 'P1'}, {'refused'})
+        self.assertEqual(r['summary']['adapter_codes'], {'SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE': 1})
+        verdicts = {(row['patient_id'], row['box_representable'], tuple(row['non_box_constraints'])) for row in tgs.ingest_rows(view)}
+        self.assertEqual(verdicts, {('P1', False, ('source:b-after-a',)), ('P2', True, ())})
 
     def test_source_constraint_the_box_implies_is_accepted(self):
         source = source_for([('A', 'P1', 'infusion', (0, DAY), (2 * DAY, 2 * DAY)),
                              ('B', 'P1', 'specimen_collection', (5 * DAY, 6 * DAY), (7 * DAY, 7 * DAY))],
                             [{'id': 'redundant', 'left_var': 'A-start', 'right_var': 'B-start',
                               'upper_us': -DAY, 'source_key': 'declared'}])
-        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 4, 'max': 6}])
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(4, 6)])
         self.assertEqual(tgs.match_snapshot(tgs.from_bounded_json(source), request)['statuses'], {'P1': 'exact'})
+
+    def test_a_variable_shared_by_two_events_is_refused(self):
+        # The reviewer's probe: X and Y share a start, so `after` with min 0 and max 0 holds
+        # in every source timeline. Box projection would understate that as possible.
+        source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY), 'shared-start'),
+                             ('Y', 'P1', 'specimen_collection', (0, 10 * DAY), (12 * DAY, 12 * DAY), 'shared-start'),
+                             ('Z', 'P2', 'infusion', (0, 0), (1, 1)), ('W', 'P2', 'specimen_collection', (0, 0), (1, 1))])
+        view = tgs.from_bounded_json(source)
+        r = tgs.match_snapshot(view, request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)]))
+        p1, p2 = r['results']
+        self.assertEqual((p1['status'], p1['adapter']['code']), ('refused', 'SHARED_SOURCE_VARIABLE'))
+        self.assertEqual(p1['adapter']['shared_variables'], [{'variable': 'shared-start', 'events': ['X', 'Y']}])
+        self.assertEqual(p2['status'], 'exact')
+        rows = {row['event_id']: row for row in tgs.ingest_rows(view)}
+        self.assertEqual((rows['X']['box_representable'], rows['X']['shared_variables']), (False, ['shared-start']))
+        self.assertTrue(rows['Z']['box_representable'])
 
     def test_variables_are_tightened_to_their_minimal_bounds(self):
         # The proper-interval edge alone tightens: end >= start + 1 lifts the end's floor.
         source = source_for([('A', 'P1', 'infusion', (5 * DAY, 9 * DAY), (0, 20 * DAY))])
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request_for([('a', INFUSION)]))
-        row = r['events'][0]
+        row = tgs.ingest_rows(tgs.from_bounded_json(source))[0]
         self.assertEqual(row['declared_end_us'], [0, 20 * DAY])
         self.assertEqual(row['end_us'], [5 * DAY + 1, 20 * DAY])
 
@@ -324,19 +412,48 @@ class TimeAndClockTests(unittest.TestCase):
                   {'clock_id': 'c2', 'origin': '2026-01-02T00:00:00+01:00', 'scope': 'global', 'policy': tgs.OFFSET_POLICY}]
         source = source_for([('X', 'P1', 'infusion', (0, 0), (1, 1), 'X-start', 'c1'),
                              ('Y', 'P1', 'specimen_collection', (0, 0), (1, 1), 'Y-start', 'c2')], clocks=clocks)
-        request = request_for([('a', INFUSION), ('b', SPECIMEN)],
-                              [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 23, 'max': 23}],
-                              unit='hour', window=(0, 48))
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request)
+        view = tgs.from_bounded_json(source)
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(23, 23)], unit='hour', window=(0, 48))
+        with self.assertRaisesRegex(tgs.AdapterError, 'SHARED_WINDOW_CLOCK_REQUIRED'):
+            tgs.match_snapshot(view, request)
+        request['window']['clock_id'] = 'c1'
+        r = tgs.match_snapshot(view, request)
+        hour = 3_600_000_000
         self.assertEqual(r['statuses'], {'P1': 'exact'})
-        self.assertEqual(r['results'][0]['clock']['rebase_offsets_us'], {'c1': 0, 'c2': 23 * 3_600_000_000})
-        y = next(row for row in r['events'] if row['event_id'] == 'Y')
-        self.assertEqual((y['start_us'], y['rebase_offset_us']), ([23 * 3_600_000_000] * 2, 23 * 3_600_000_000))
+        self.assertEqual(r['results'][0]['clock']['rebase_offsets_us'], {'c1': 0, 'c2': 23 * hour})
+        y = next(e for e in r['results'][0]['engine_events'] if e['id'] == 'Y')
+        self.assertEqual(y['start'], [23 * hour] * 2)
+        # The ingest row keeps Y on its own clock.
+        self.assertEqual(next(row for row in tgs.ingest_rows(view) if row['event_id'] == 'Y')['start_us'], [0, 0])
+
+    def test_a_shared_window_across_clocks_needs_a_clock(self):
+        # The reviewer's probe: two offset clocks 100 days apart and a shared `within` window.
+        source = source_for([('X', 'P1', 'infusion', (DAY, DAY), (DAY + 1, DAY + 1), 'X-start', 'c1'),
+                             ('Y', 'P2', 'infusion', (DAY, DAY), (DAY + 1, DAY + 1), 'Y-start', 'c2')],
+                            clocks=offset_clocks(100))
+        view = tgs.from_bounded_json(source)
+        request = request_for([('a', INFUSION)], window=(0, 10), scope='within')
+        with self.assertRaisesRegex(tgs.AdapterError, 'SHARED_WINDOW_CLOCK_REQUIRED'):
+            tgs.match_snapshot(view, request)
+        request['window']['clock_id'] = 'c1'
+        self.assertEqual(tgs.match_snapshot(view, request)['statuses'], {'P1': 'exact', 'P2': 'none'})
+        # Per-patient windows on each patient's own clock are explicit, so they are allowed.
+        request = request_for([('a', INFUSION)], scope='within')
+        del request['window']
+        request['windows'] = {'P1': {'start': 0, 'end': 10}, 'P2': {'start': 0, 'end': 10}}
+        self.assertEqual(tgs.match_snapshot(view, request)['statuses'], {'P1': 'exact', 'P2': 'exact'})
+
+    def test_a_patient_window_without_a_clock_over_two_clocks_is_refused(self):
+        source = source_for([('X', 'P1', 'infusion', (0, 0), (1, 1), 'X-start', 'c1'),
+                             ('Y', 'P1', 'specimen_collection', (0, 0), (1, 1), 'Y-start', 'c2')], clocks=offset_clocks(1))
+        request = request_for([('a', INFUSION)])
+        del request['window']
+        request['windows'] = {'P1': {'start': 0, 'end': 10}}
+        r = tgs.match_snapshot(tgs.from_bounded_json(source), request)['results'][0]
+        self.assertEqual((r['status'], r['adapter']['code']), ('refused', 'WINDOW_CLOCK_REQUIRED'))
 
     def test_window_clock_chooses_the_reference_clock(self):
-        clocks = [{'clock_id': 'c1', 'origin': ORIGIN, 'scope': 'global', 'policy': tgs.OFFSET_POLICY},
-                  {'clock_id': 'c2', 'origin': '2026-01-02T00:00:00Z', 'scope': 'global', 'policy': tgs.OFFSET_POLICY}]
-        source = source_for([('X', 'P1', 'infusion', (0, 0), (1, 1), 'X-start', 'c1')], clocks=clocks)
+        source = source_for([('X', 'P1', 'infusion', (0, 0), (1, 1), 'X-start', 'c1')], clocks=offset_clocks(1))
         request = request_for([('a', INFUSION)], unit='day', window=(-1, -1), scope='within')
         request['window']['clock_id'] = 'c2'
         r = tgs.match_snapshot(tgs.from_bounded_json(source), request)
@@ -345,17 +462,21 @@ class TimeAndClockTests(unittest.TestCase):
 
     def test_patient_local_clocks_that_cannot_be_rebased_make_the_patient_incomparable(self):
         view = tgs.from_patient_local(load(ei.ROOT / 'examples/patient-local/source.json'))
-        r = tgs.match_snapshot(view, request_for([('a', PROCESS)], window=(-3650, 3650)))
+        request = request_for([('a', PROCESS)])
+        del request['window']
+        request['windows'] = {p: {'start': -3650, 'end': 3650} for p in ('P1', 'P2', 'P3')}
+        request['windows']['P4'] = {'start': -3650, 'end': 3650, 'clock_id': 'P4_common'}
+        r = tgs.match_snapshot(view, request)
         p4 = next(x for x in r['results'] if x['patient_id'] == 'P4')
         self.assertEqual((p4['status'], p4['adapter']['code']), ('incomparable', 'CLOCKS_NOT_REBASABLE'))
-        self.assertEqual(p4['adapter']['clocks'], ['P4_other'])
-        excluded = {row['event_id'] for row in r['events'] if row['comparability'] == 'incomparable_clock'}
-        self.assertEqual(excluded, set(p4['adapter']['excluded_events']))
-        self.assertTrue(excluded)
+        self.assertEqual((p4['adapter']['clocks'], p4['adapter']['excluded_events']), (['P4_other'], ['P4b']))
         # P1 relates its endpoints to a shared uncertain anchor: no box holds that.
-        statuses = {x['patient_id']: x['status'] for x in r['results']}
-        self.assertEqual(statuses, {'P1': 'refused', 'P2': 'exact', 'P3': 'exact', 'P4': 'incomparable'})
+        self.assertEqual(r['statuses'], {'P1': 'refused', 'P2': 'exact', 'P3': 'exact', 'P4': 'incomparable'})
         self.assertEqual(r['context']['time_domain'], 'bounded-patient-local-calendar-microseconds')
+        self.assertIn('patterns/patient_local.py', r['context']['artifacts'])
+        # A shared window over the patients' own local clocks is ambiguous.
+        with self.assertRaisesRegex(tgs.AdapterError, 'SHARED_WINDOW_CLOCK_REQUIRED'):
+            tgs.match_snapshot(view, request_for([('a', PROCESS)], window=(-3650, 3650)))
 
     def test_a_windowed_patient_absent_from_the_snapshot_is_incomparable_not_none(self):
         source = source_for([('X', 'P1', 'infusion', (0, 0), (1, 1))])
@@ -388,38 +509,75 @@ class TimeAndClockTests(unittest.TestCase):
         self.assertEqual(tgs.match_snapshot(view, hours)['statuses'], tgs.match_snapshot(view, request)['statuses'])
 
 
+class ProjectionTests(unittest.TestCase):
+    def test_without_a_during_relation_events_go_to_the_engine_as_points(self):
+        # A three-step chain with uncertain starts: polynomial point-forest method with points,
+        # budgeted backtracking with intervals, same decisions.
+        events, steps = [], []
+        for p, shift in (('P1', 0), ('P2', 3), ('P3', 40)):
+            events += [(p + 'x', p, 'infusion', ((1 + shift) * DAY, (4 + shift) * DAY), (50 * DAY, 50 * DAY)),
+                       (p + 'y', p, 'specimen_collection', (6 * DAY, 9 * DAY), (51 * DAY, 51 * DAY)),
+                       (p + 'z', p, 'specimen_collection', (12 * DAY, 13 * DAY), (52 * DAY, 52 * DAY))]
+        view = tgs.from_bounded_json(source_for(events))
+        request = request_for([('a', INFUSION), ('b', SPECIMEN), ('c', SPECIMEN)],
+                              [after(4, 5, 'a', 'b'), after(6, 6, 'b', 'c')], window=(0, 60))
+        points = tgs.match_snapshot(view, request)
+        intervals = tgs.match_snapshot(view, request, point_projection=False)
+        self.assertEqual(points['statuses'], intervals['statuses'])
+        self.assertEqual([decision_fields(r) for r in points['results']], [decision_fields(r) for r in intervals['results']])
+        possible = [r for r in points['results'] if r['status'] == 'possible']
+        self.assertTrue(possible)
+        for r in possible:
+            self.assertEqual((r['projection'], r['method']), ('points', 'point_forest_intervals'))
+            self.assertTrue(r['source_check']['feasible'])
+        for r in intervals['results']:
+            if r['status'] == 'possible':
+                self.assertEqual((r['projection'], r['method']), ('intervals', 'bounded_backtracking'))
+        self.assertIn('none', points['statuses'].values())
+
+
 class WitnessCheckTests(unittest.TestCase):
     def test_one_event_bound_to_two_steps_is_not_reported_possible(self):
         # The engine gives each step its own time variables, so the box admits A and B at
         # different times of the same event. The event has one start.
         source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY))])
-        request = request_for([('a', INFUSION), ('b', INFUSION)], [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 5}])
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request)['results'][0]
+        request = request_for([('a', INFUSION), ('b', INFUSION)], [after(5)])
+        r = tgs.match_snapshot(tgs.from_bounded_json(source), request, point_projection=False)
+        r = r['results'][0]
         self.assertEqual(r['engine_result']['status'], 'possible')
         self.assertEqual((r['status'], r['decided_by'], r['reason']),
                          ('unresolved', 'adapter', 'POSSIBLE_BINDING_REFUTED_BY_SOURCE_NETWORK'))
         self.assertFalse(r['source_check']['feasible'])
         self.assertTrue(any(e.startswith('query:') for e in r['source_check']['refutation']))
-
-    def test_events_sharing_a_variable_are_not_reported_possible(self):
-        source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY), 'shared-start'),
-                             ('Y', 'P1', 'specimen_collection', (0, 10 * DAY), (12 * DAY, 12 * DAY), 'shared-start')])
-        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 5}])
-        engine_input_alone = tg.match(tgs.engine_query(request['query'], DAY), {
-            'patient_id': 'P1', 'window': {'start': 0, 'end': 30 * DAY}, 'events': [
-                {'id': 'X', 'concepts': [INFUSION], 'start': [0, 10 * DAY], 'end': [11 * DAY, 11 * DAY]},
-                {'id': 'Y', 'concepts': [SPECIMEN], 'start': [0, 10 * DAY], 'end': [12 * DAY, 12 * DAY]}]})
-        self.assertEqual(engine_input_alone['status'], 'possible')  # box projection alone
         r = tgs.match_snapshot(tgs.from_bounded_json(source), request)['results'][0]
-        self.assertEqual((r['status'], r['adapter']['code']), ('unresolved', 'POSSIBLE_BINDING_REFUTED_BY_SOURCE_NETWORK'))
+        self.assertEqual((r['projection'], r['status']), ('points', 'unresolved'))
 
-    def test_shared_variable_that_still_admits_the_binding_stays_possible(self):
-        source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY), 'shared-start'),
-                             ('Y', 'P1', 'specimen_collection', (0, 10 * DAY), (12 * DAY, 12 * DAY), 'shared-start')])
-        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 0, 'max': 0}])
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request)['results'][0]
-        self.assertEqual(r['status'], 'possible')
-        self.assertTrue(r['source_check']['feasible'])
+    def test_bound_event_check_equals_the_full_network_check(self):
+        source, facts, request = convert(load(EXAMPLE / 'query.json'), load(EXAMPLE / 'patients.json'))
+        one = source_for([('X', 'Q1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY))])
+        cases = [(tgs.from_bounded_json(source, facts), request),
+                 (tgs.from_bounded_json(one), request_for([('a', INFUSION), ('b', INFUSION)], [after(5)]))]
+        compared = 0
+        for view, req in cases:
+            result = tgs.match_snapshot(view, req)
+            query = result['engine_query']
+            by_id = {x['id']: x for x in query.get('relaxations', [])}
+            windows = tgs._window(req.get('window'), DAY)
+            for r in result['results']:
+                if 'source_check' not in r:
+                    continue
+                pid = r['patient_id']
+                window = tgs._window(req['windows'][pid], DAY) if 'windows' in req else windows
+                check = r['source_check']
+                relaxations = [by_id[i] for i in check['relaxations']]
+                engine = r.get('engine_result', r)
+                full = tgs.full_network_check(view.snapshot, pid, {'clinical': 0}, query, relaxations,
+                                              check['binding'], window, check['certainty_claimed'], engine.get('witness'))
+                for key in ('feasible', 'entailed', 'engine_witness_confirmed'):
+                    self.assertEqual(full[key], check[key], (pid, key))
+                self.assertEqual(full['refutation'] is None, check['refutation'] is None)
+                compared += 1
+        self.assertEqual(compared, 4)  # P1, P2, P3 and the refuted possible
 
     def _patched(self, fake):
         source, facts, request = convert(load(EXAMPLE / 'query.json'), load(EXAMPLE / 'patients.json'))
@@ -463,9 +621,7 @@ ANTIBIOTIC = 'https://example.org/trajectory/semantic/AntibioticAdministration'
 class ClaimRouteTests(unittest.TestCase):
     def setUp(self):
         self.store, self.policy, self.semantic, self.query = claim_fixture()
-        self.request = request_for([('a', ANTIBIOTIC), ('b', SPECIMEN)],
-                                   [{'id': 'order', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 1}],
-                                   unit='microsecond', window=(0, 10))
+        self.request = request_for([('a', ANTIBIOTIC), ('b', SPECIMEN)], [after(1)], unit='microsecond', window=(0, 10))
 
     def test_source_equals_what_the_projection_produces(self):
         view = tgs.from_claims(self.store, self.policy, self.semantic)
@@ -493,11 +649,14 @@ class ClaimRouteTests(unittest.TestCase):
         a = r['results'][0]['bound_evidence']['a']
         self.assertEqual(a['claim_supports'][0]['assertion_id'], 'admin_classified')
         self.assertEqual(a['claim_supports'][0]['support_ids'], ['accept_admin_classified'])
-        row = next(x for x in r['events'] if x['event_id'] == 'A')
-        bases = {c['concept']: c['basis'] for c in row['concepts']}
-        self.assertEqual(bases[ANTIBIOTIC][0]['kind'], 'rustdl_entailed')
+        self.assertEqual((a['concept']['concept'], a['concept']['basis'][0]['kind']), (ANTIBIOTIC, 'rustdl_entailed'))
+        row = next(x for x in tgs.ingest_rows(view) if x['event_id'] == 'A')
         self.assertEqual(row['selection_state'], 'accepted')
         self.assertEqual(r['context']['route_provenance']['acceptance_policy_id'], self.policy['id'])
+        for name in ('patterns/claim_projection.py', 'patterns/claim_rdf.py', 'patterns/bounded_rdf.py',
+                     'patterns/joint_evidence.py', 'patterns/semantic_support.py'):
+            self.assertIn(name, r['context']['artifacts'])
+        self.assertEqual(r['context']['semantic_run']['model_sha256'], r['semantic']['model_sha256'])
         for item in bound_evidence(r):
             evidence = dict(item['evidence'])
             claimed = evidence.pop('evidence_id')
@@ -546,22 +705,23 @@ class MimicFixtureTests(unittest.TestCase):
         view = tgs.from_claims(store, policy, semantic)
         self.assertEqual(view.route, 'local-claim-selection-rdf')
         item = mimic.ITEM_NS + '1000'
-        request = request_for([('first', item), ('next', item)],
-                              [{'id': 'later', 'kind': 'after', 'from': 'first', 'to': 'next', 'min': 1}],
+        request = request_for([('first', item), ('next', item)], [after(1, None, 'first', 'next')],
                               unit='minute', window=(0, 7 * 24 * 60))
         r = tgs.match_snapshot(view, request)
         self.assertFalse(r['context']['clinical_mapping_verified'])
         self.assertFalse(r['clinical_mapping_verified'])
         self.assertEqual(r['context']['route_provenance']['acceptance_policy_id'], 'caller_declared_accept_all')
         self.assertEqual(r['context']['time_domain'], 'bounded-patient-local-calendar-microseconds')
+        self.assertIn('patterns/local_claim_projection.py', r['context']['artifacts'])
         self.assertEqual(r['statuses'], {episode['patient_id']: 'exact'})
-        rows = r['events']
+        rows = tgs.ingest_rows(view)
         self.assertEqual(len(rows), len(store['claims']))
         for row in rows:
             bases = {c['concept']: c['basis'] for c in row['concepts']}
             self.assertEqual(bases[item][0]['kind'], 'semantic_fact')
             self.assertEqual(bases[item][0]['supports'][0]['support_ids'], ['accept_claim_' + row['event_id']])
             self.assertEqual(row['clock_policy'], 'patient-local-calendar-microseconds-v1')
+            self.assertTrue(row['box_representable'])
         for evidence in bound_evidence(r):
             self.assertIn((URIRef(evidence['evidence']['claim']), RDF.type, bt.BT.IntervalClaim), view.snapshot.graph)
 
