@@ -56,7 +56,8 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
 const results = vm.runInContext('parity()', context);
 let matched = 0, patients = 0;
 for (const {name, tally, diffs} of results) {
-  assert.deepEqual(diffs, [], `${name}: the engine and the page disagree`);
+  // The arrays come from the sandbox's realm, so compare their contents, not their prototypes.
+  assert.equal(diffs.length, 0, `${name}: the engine and the page disagree:\n${[...diffs].join('\n')}`);
   patients += Object.values(tally).reduce((a, b) => a + b, 0);
   matched += Object.entries(tally).filter(([k]) => /^(exact|possible|relaxed)/.test(k)).reduce((a, [, v]) => a + v, 0);
 }
