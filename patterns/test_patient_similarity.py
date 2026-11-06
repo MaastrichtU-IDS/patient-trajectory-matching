@@ -1,6 +1,7 @@
 """H0 cutoff, coverage, immutable refinement and replay guarantees."""
 from copy import deepcopy
 from decimal import Decimal, localcontext
+from fractions import Fraction
 from hashlib import sha256
 import importlib.util
 import json
@@ -278,6 +279,168 @@ class PatientSimilarityTests(unittest.TestCase):
         self.assertFalse(self.revision()['clinical_validity_claim'])
         self.assertFalse(self.revision()['outcomes_used_for_matching'])
 
+
+class InformationContentTests(unittest.TestCase):
+    """IC-weighted concept measures are an explicit option; the default is unchanged.
+
+    In the authored snapshot P00-P09 have complete concept sets and P10 does not, so the
+    IC population is ten patients: eight carry ex:DrugA (P02 through its ancestor), one
+    ex:DrugAChild and two ex:DrugB. With p = (count+1)/11 the values below follow.
+    """
+    IC = {'ex:DrugA': '0.200670695462', 'ex:DrugAChild': '1.704748092238', 'ex:DrugB': '1.29928298413'}
+
+    def setUp(self):
+        self.dataset = json.loads((p.EXAMPLE/'dataset.json').read_text())
+        self.profile = json.loads((p.EXAMPLE/'profile.json').read_text())
+        self.engine = p.SimilarityEngine(self.dataset, self.profile)
+
+    def concepts(self, pid, dataset=None):
+        patient = next(x for x in (dataset or self.dataset)['patients'] if x['patient_id'] == pid)
+        return next(r for r in patient['records'] if r['component'] == 'clinical_concepts')
+
+    def component(self, engine, reference, candidate, measure):
+        revision = engine.initial(reference, 2, measure)
+        return engine.inspect(revision['revision_id'], candidate)['comparison']['components'][2]
+
+    @staticmethod
+    def exact(value):
+        with localcontext() as context:
+            context.prec = 28
+            return p.lexical(Decimal(value.numerator) / Decimal(value.denominator))
+
+    def test_ic_values_on_the_hand_computed_population(self):
+        table = self.engine.information_content()
+        self.assertEqual({c: v['ic'] for c, v in table['concepts'].items()}, self.IC)
+        self.assertEqual({c: v['count'] for c, v in table['concepts'].items()},
+                         {'ex:DrugA': 8, 'ex:DrugAChild': 1, 'ex:DrugB': 2})
+        population = table['population']
+        self.assertEqual((population['patients'], population['unobserved_patients'], population['roots']), (10, 1, []))
+        self.assertEqual(population['counts_sha256'], p.digest({'ex:DrugA': 8, 'ex:DrugAChild': 1, 'ex:DrugB': 2}))
+        self.assertEqual(population['dataset_sha256'], self.engine.metadata()['dataset_sha256'])
+        self.assertEqual(population['smoothing'], '(count+1)/(patients+1)')
+
+    def test_simgic_weights_the_same_sets_jaccard_counts(self):
+        """P00 {DrugA} against P02 {DrugA, DrugAChild}: Jaccard 0.5, simGIC far less similar."""
+        self.assertEqual(self.component(self.engine, 'P00', 'P02', 'ancestor_jaccard')['distance'], '0.5')
+        component = self.component(self.engine, 'P00', 'P02', 'simgic')
+        shared, union = Fraction(self.IC['ex:DrugA']), Fraction(self.IC['ex:DrugA']) + Fraction(self.IC['ex:DrugAChild'])
+        self.assertEqual(component['distance'], self.exact(1 - shared/union))
+        self.assertEqual(component['measure'], 'simgic')
+        self.assertEqual(component['explanation']['terms'],
+                         [{'concept': 'ex:DrugA', 'ic': self.IC['ex:DrugA'], 'in': 'both'},
+                          {'concept': 'ex:DrugAChild', 'ic': self.IC['ex:DrugAChild'], 'in': 'candidate'}])
+        # simGIC is symmetric: the same union and intersection from either side.
+        self.assertEqual(self.component(self.engine, 'P02', 'P00', 'simgic')['distance'], component['distance'])
+
+    def test_an_uninformative_shared_root_counts_for_jaccard_but_not_simgic(self):
+        self.profile['concept_ancestors'] = {'ex:DrugA': ['ex:Medication'], 'ex:DrugAChild': ['ex:DrugA', 'ex:Medication'],
+                                             'ex:DrugB': ['ex:Medication']}
+        engine = p.SimilarityEngine(self.dataset, self.profile)
+        self.assertEqual(self.component(engine, 'P00', 'P04', 'ancestor_jaccard')['distance'], '0.6666666666666666666666666667')
+        self.assertEqual(self.component(engine, 'P00', 'P04', 'simgic')['distance'], '1')
+
+    def test_best_match_resnik_is_reference_to_candidate(self):
+        forward = self.component(self.engine, 'P00', 'P02', 'resnik_bma')
+        backward = self.component(self.engine, 'P02', 'P00', 'resnik_bma')
+        # P02's DrugAChild explains all of P00's DrugA; P00's DrugA explains little of DrugAChild.
+        self.assertEqual(forward['distance'], '0')
+        self.assertEqual(backward['distance'], self.exact(1 - Fraction(self.IC['ex:DrugA'])/Fraction(self.IC['ex:DrugAChild'])))
+        self.assertEqual(backward['explanation']['terms'],
+                         [{'reference_concept': 'ex:DrugAChild', 'candidate_concept': 'ex:DrugA', 'shared_ancestor': 'ex:DrugA',
+                           'ic': self.IC['ex:DrugA'], 'reference_ic': self.IC['ex:DrugAChild']}])
+        unrelated = self.component(self.engine, 'P00', 'P04', 'resnik_bma')
+        self.assertEqual(unrelated['distance'], '1')
+        self.assertEqual(unrelated['explanation']['terms'][0]['shared_ancestor'], None)
+
+    def test_smoothing_bounds_unseen_terms_and_the_root_is_zero(self):
+        """An unseen concept gets ln(N+1); the root is IC 0 even when a declared empty set lacks it."""
+        self.profile['concept_ancestors'] = {'ex:DrugA': ['ex:Medication'], 'ex:DrugAChild': ['ex:DrugA', 'ex:Medication'],
+                                             'ex:DrugB': ['ex:Medication'], 'ex:DrugC': ['ex:Medication']}
+        record = self.concepts('P01'); record['value'] = []
+        table = p.SimilarityEngine(self.dataset, self.profile).information_content()
+        self.assertEqual(table['population']['patients'], 10)
+        self.assertEqual(table['population']['roots'], ['ex:Medication'])
+        self.assertEqual(table['concepts']['ex:DrugC'], {'count': 0, 'ic': '2.397895272798'})
+        # Nine of ten observed patients carry the root; unforced it would be ln(11/10).
+        self.assertEqual(table['concepts']['ex:Medication'], {'count': 9, 'ic': '0'})
+        self.assertTrue(all(Decimal(v['ic']) <= Decimal('2.397895272798') for v in table['concepts'].values()))
+
+    def test_empty_population_and_ic_zero_union_are_defined(self):
+        empty = deepcopy(self.dataset)
+        for patient in empty['patients']:
+            self.concepts(patient['patient_id'], empty)['coverage_complete'] = False
+        engine = p.SimilarityEngine(empty, self.profile)
+        table = engine.information_content()
+        self.assertEqual((table['population']['patients'], table['population']['unobserved_patients']), (0, 11))
+        self.assertEqual({v['ic'] for v in table['concepts'].values()}, {'0'})
+        self.assertIsNone(self.component(engine, 'P00', 'P01', 'simgic')['distance'])
+        # Everyone carries DrugA, so it is IC 0 and the union carries no information.
+        for patient in self.dataset['patients']:
+            record = self.concepts(patient['patient_id']); record['value'] = ['ex:DrugA']; record['coverage_complete'] = True
+        engine = p.SimilarityEngine(self.dataset, self.profile)
+        self.assertEqual(engine.information_content()['concepts']['ex:DrugA']['ic'], '0')
+        for measure in ('simgic', 'resnik_bma'):
+            with self.subTest(measure=measure):
+                self.assertEqual(self.component(engine, 'P00', 'P01', measure)['distance'], '0')
+        self.assertEqual(self.component(engine, 'P00', 'P01', 'simgic')['explanation']['union_ic'], '0')
+
+    def test_the_default_measure_is_byte_identical_to_before(self):
+        """Digests taken from the engine before the IC measures existed."""
+        ids = [x['patient_id'] for x in self.engine.metadata()['patients']]
+        revisions = {pid: self.engine.initial(pid, 10) for pid in ids}
+        self.assertEqual(p.digest([revisions[pid]['results'] for pid in ids]),
+                         '29fd2e45f3dac2c942a724da3a2e354171e7b0b6f61d495b9f6dcd4e1200b191')
+        self.assertEqual(p.digest([self.engine.inspect(revisions[pid]['revision_id'], c)['comparison'] for pid in ids for c in ids if c != pid]),
+                         'a40fc5a0a5ffe82d261310cd645abf9565c058ccb9c52eac182fa14d0996a91d')
+        # Everything in the revision but the module digest, which any edit changes.
+        self.assertEqual(p.digest({k: v for k, v in revisions['P00'].items() if k not in ('implementation_sha256', 'revision_id')}),
+                         'e52fde9bbe8fa3c69eb8a9bde2db46267a3076ca75e82f778fffc37cb8fe7534')
+        self.assertEqual(self.engine.initial('P00', 10, 'ancestor_jaccard'), revisions['P00'])
+        weighted = self.engine.refine(revisions['P00']['revision_id'], {'type': 'set_concept_measure', 'concept_measure': 'simgic'})
+        back = self.engine.refine(weighted['revision_id'], {'type': 'set_concept_measure', 'concept_measure': 'ancestor_jaccard'})
+        self.assertNotIn('concept_measure', back['query'])
+        self.assertEqual(back['results'], revisions['P00']['results'])
+
+    def test_the_concept_measure_option_is_validated(self):
+        for measure in ('jaccard', 'SIMGIC', None, ['simgic'], 1):
+            with self.subTest(measure=measure), self.assertRaisesRegex(ValueError, 'UNSUPPORTED_CONCEPT_MEASURE'):
+                self.engine.initial('P00', 2, measure)
+        revision = self.engine.initial('P00', 2)
+        for operation in ({'type': 'set_concept_measure', 'concept_measure': 'cosine'},
+                          {'type': 'set_concept_measure'},
+                          {'type': 'set_concept_measure', 'concept_measure': 'simgic', 'population': 'other'}):
+            with self.subTest(operation=operation), self.assertRaises(ValueError):
+                self.engine.refine(revision['revision_id'], operation)
+        manifest = self.engine.manifest(self.engine.initial('P00', 2, 'simgic')['revision_id'])
+        manifest['revisions'][0]['query']['concept_measure'] = 'cosine'
+        with self.assertRaisesRegex(ValueError, 'UNSUPPORTED_CONCEPT_MEASURE'):
+            p.SimilarityEngine.replay(manifest)
+
+    def test_an_ic_ranking_records_its_population_and_replays(self):
+        initial = self.engine.initial('P00', 2, 'simgic')
+        self.assertEqual(initial['query']['concept_measure'], 'simgic')
+        recorded = initial['results']['concept_measure']
+        self.assertEqual(recorded, {'measure': 'simgic', 'ic_population': self.engine.information_content()['population']})
+        self.assertEqual(initial['result_sha256'], p.digest(initial['results']))
+        inspected = self.engine.inspect(initial['revision_id'], 'P10')
+        self.assertEqual(inspected['concept_measure'], recorded)
+        # A partial concept set is still missing, not scored.
+        self.assertIsNone(inspected['comparison']['components'][2]['distance'])
+        self.assertIsNone(inspected['comparison']['components'][2]['explanation'])
+        resnik = self.engine.refine(initial['revision_id'], {'type': 'set_concept_measure', 'concept_measure': 'resnik_bma'})
+        filtered = self.engine.refine(resnik['revision_id'], {'type': 'add_filter', 'predicate': {'component': 'clinical_concepts', 'operator': 'contains', 'value': 'ex:DrugA'}})
+        # The population is the snapshot, not the filtered pool or the reference's neighbours.
+        self.assertEqual(filtered['results']['concept_measure']['ic_population'], recorded['ic_population'])
+        self.assertEqual(filtered['changes']['removed'], ['P04', 'P06'])
+        replayed = p.SimilarityEngine.replay(self.engine.manifest(filtered['revision_id']))
+        self.assertEqual(replayed.get_revision(filtered['revision_id']), filtered)
+
+    def test_decimal_context_cannot_change_information_content(self):
+        expected = self.engine.information_content(), self.engine.initial('P02', 5, 'resnik_bma')['results']
+        with localcontext() as context:
+            context.prec = 7
+            engine = p.SimilarityEngine(self.dataset, self.profile)
+            self.assertEqual((engine.information_content(), engine.initial('P02', 5, 'resnik_bma')['results']), expected)
 
 
 class RecordedPublicDemoScopeTests(unittest.TestCase):

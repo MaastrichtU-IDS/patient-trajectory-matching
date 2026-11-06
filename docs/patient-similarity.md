@@ -36,7 +36,7 @@ eligibility, real historical availability, or clinical-scale performance.
 |---|---|---|
 | Age band | Latest eligible declaration; 0 for equal declared bands, otherwise 1 | A band remains a band, not an exact age. Conflicting equally recent declarations are missing. |
 | Baseline creatinine | Minimum eligible normalized value in the preceding 48 hours; `min(1, abs(candidate-reference)/1 mg/dL)` | Units must already be mg/dL. Original mg/L values and the existing conversion bindings remain inspectable. |
-| Selected concepts | 1 minus Jaccard similarity after the pinned toy ancestor expansion | Uses recorded pre-index administration concepts in this fixture. A partial concept set is missing for distance calculation; a known positive concept can still satisfy a hard predicate. |
+| Selected concepts | By default 1 minus Jaccard similarity after the pinned toy ancestor expansion; optionally an IC-weighted measure (below) | Uses recorded pre-index administration concepts in this fixture. A partial concept set is missing for distance calculation under every measure; a known positive concept can still satisfy a hard predicate. |
 
 The pinned toy expansion adds `ex:DrugA` to `ex:DrugAChild`. `ex:DrugB` is not an
 entailed `ex:DrugA`. This small reviewed authored expansion is not a general OWL
@@ -48,6 +48,72 @@ Absent records never establish a negative clinical fact. P10 has an incomplete
 source search: its concept-set component reduces similarity coverage, while its
 known DrugA record can still satisfy a positive DrugA filter. A filter requiring
 an unobserved DrugB is unresolved for P10.
+
+## Information-content measures
+
+The concept-set component can instead be scored by one of two measures weighted by
+information content, chosen per query. `ancestor_jaccard` remains the default: a
+query that names no measure scores exactly as it did before these measures existed,
+so committed revisions, the journey report and replay manifests keep their results.
+The module has no versioned scoring method that would let a new default coexist with
+those results, so simGIC is not the default.
+
+| `concept_measure` | Distance | Symmetric |
+|---|---|---|
+| `ancestor_jaccard` (default) | 1 − \|A ∩ B\| / \|A ∪ B\| over ancestor-expanded sets | Yes |
+| `simgic` | 1 − Σ IC(A ∩ B) / Σ IC(A ∪ B) over the same expanded sets | Yes |
+| `resnik_bma` | 1 − Σ over the reference's recorded concepts *t* of max Resnik(*t*, *u*) over the candidate's recorded concepts *u*, divided by the same sum with the reference as its own candidate | No: reference to candidate |
+
+Resnik(*t*, *u*) is the IC of the most informative term in both *t*'s and *u*'s
+ancestor-or-self sets, and 0 when they share none. Dividing by the reference's
+self-match keeps `resnik_bma` in [0, 1]; it measures how much of the reference the
+candidate explains, so a candidate with more recorded concepts is not penalized for
+them. Ties pick the term with the highest IC, then the lexicographically first
+ancestor, then the first candidate concept.
+
+IC(*c*) = −ln *p*(*c*), with *p*(*c*) = (count(*c*) + 1) / (*N* + 1):
+
+- The population is the admitted snapshot: every patient whose concept set is
+  observed, expanded as for distance. *N* is their number, and count(*c*) is how many
+  carry *c*. A patient whose set is partial or has no eligible record is left out of
+  both, because an absent record is not evidence of absence. The population does not
+  depend on the reference patient, the base pool or hard filters.
+- Add-one smoothing keeps IC finite and bounded. A reviewed concept that no observed
+  patient carries has IC ln(*N* + 1), the largest possible value. A concept every
+  observed patient carries has IC 0. An empty population (*N* = 0) gives IC 0 for every
+  concept.
+- A root, meaning a term in the ancestor-or-self set of every reviewed concept, has
+  IC 0 regardless of counts. The authored profile has no root.
+- IC is a natural logarithm, computed with `Decimal.ln` at 28 significant digits and
+  rounded half-even to 12 decimal places. That exact decimal is used in the measures,
+  so the table does not depend on the platform or the caller's decimal context.
+- If the denominator is 0 (every term involved has IC 0, or the set is a declared
+  empty one), the distance is 0, as an empty union is under Jaccard. Because the
+  reference and candidate are both in the population, an IC-0 union implies equal
+  sets.
+
+In the authored snapshot *N* = 10 (P10's set is incomplete). Eight patients carry
+`ex:DrugA`, one `ex:DrugAChild` and two `ex:DrugB`, giving IC 0.200670695462,
+1.704748092238 and 1.29928298413. P00 {DrugA} against P02 {DrugA, DrugAChild} is 0.5
+under Jaccard and 0.8947 under simGIC. Under `resnik_bma` it is 0 from P00 to P02,
+and 0.8823 from P02 to P00.
+
+A result under an IC measure records the measure and its population. The query
+carries `concept_measure`. `results.concept_measure` carries the measure and
+`ic_population`, which gives the basis, dataset and profile digests, *N*, the number
+of unobserved patients, a digest of the per-concept counts, the roots, the smoothing
+rule, the logarithm and the rounding. Because these sit inside `results`,
+`result_sha256` binds them. The concept component of each comparison adds `measure`
+and a term-by-term `explanation`. For `simgic` that is each expanded term with its IC
+and whether it is shared or on one side only. For `resnik_bma` it is each reference
+concept with its best candidate concept, shared ancestor, matched IC and self IC. A
+default result carries none of these fields.
+
+Not implemented: per-axis declared weights (findings, diagnoses, medicines), IC
+from ontology postings at MIMIC scale, sparse or approximate retrieval, and a recall
+benchmark. Scoring stays exhaustive over the admitted snapshot.
+
+## Ranking
 
 For weights `w`, the observed distance averages available component distances,
 coverage is the observed weight divided by total configured weight, and ranking
@@ -79,6 +145,11 @@ filtered = engine.refine(focused['revision_id'], {
         'component': 'clinical_concepts', 'operator': 'contains', 'value': 'ex:DrugA',
     },
 })
+weighted = engine.refine(filtered['revision_id'], {
+    'type': 'set_concept_measure', 'concept_measure': 'simgic',
+})
+asymmetric = engine.initial('P00', top_k=2, concept_measure='resnik_bma')
+table = engine.information_content()  # Population and per-concept count and IC.
 evidence = engine.inspect(filtered['revision_id'], 'P02')
 manifest = engine.manifest(filtered['revision_id'])
 replayed = SimilarityEngine.replay(manifest)
@@ -87,7 +158,12 @@ assert replayed.get_revision(filtered['revision_id']) == filtered
 
 `metadata()` returns the patient list, component names, default weights, limits,
 source SHA, availability policy, the admitted index rule and history windows, and a
-few example concepts. `get_revision(id)` retrieves a defensive copy.
+few example concepts, the available concept measures and the default.
+`get_revision(id)` retrieves a defensive copy. `initial` takes an optional
+`concept_measure`; `set_concept_measure` changes it in a refinement, and setting it
+back to `ancestor_jaccard` removes the key from the query. An unknown measure raises
+`UNSUPPORTED_CONCEPT_MEASURE`. The HTTP refine endpoint passes the operation through,
+but the workspace interface has no control for it yet.
 
 A constructor may receive dictionaries or local JSON paths, and admits two scopes:
 
@@ -118,7 +194,8 @@ non-finite numbers and unsupported operations fail admission or validation.
 
 Each revision records its parent, dataset/profile/implementation hashes, reference
 patient and episode, immutable full base pool, index rule and history window,
-query and result hashes, operation and result. Its `scope` is derived from the
+query and result hashes, operation and result, and under an IC measure the IC
+population described above. Its `scope` is derived from the
 admitted dataset -- `bounded_authored_synthetic_exhaustive_ranking` or
 `bounded_recorded_public_demo_exhaustive_ranking` -- because a revision is read away
 from the server that produced it, and a fixed string there would describe pinned
@@ -174,6 +251,10 @@ The tests cover shared-source reconstruction, patient-specific cutoffs, future a
 unknown availability, baseline boundaries/minimum selection, source units and roles,
 ancestor expansion, incomplete/empty concept sets, missingness penalties, full-pool
 refinement, unknown predicates, branching, defensive copies, replay tampering,
-resource admission and extreme decimal exponents. Clinical review, source-specific
+resource admission and extreme decimal exponents. For the IC measures they cover a
+hand-computed IC table, simGIC against Jaccard, `resnik_bma` asymmetry, smoothing of
+unseen terms, the root, an empty population and an IC-0 union, option validation,
+recorded population and replay, and a default that is byte-identical to the
+results before the measures were added. Clinical review, source-specific
 availability policies, held-out retrieval relevance, outcomes, all-pairs retrieval,
-general semantic similarity, and production security remain separate work.
+per-axis similarity weights, and production security remain separate work.
