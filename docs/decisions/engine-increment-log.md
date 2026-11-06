@@ -119,6 +119,19 @@ Each patient's variables are tightened to their minimal bounds from the snapshot
 - **Units.** Declared units convert to microseconds exactly, and calendar months are refused (T3, T4).
 - **Window.** The index window is explicit in the request.
 
+**Amended after review.**
+- **Shared source variables.** A variable referenced by more than one event is an equality no box can represent. Until the engine shares variables (D13), such patients are refused (`SHARED_SOURCE_VARIABLE`).
+- **Window clocks.** A window must name its clock whenever the patients it covers use more than one clock (`SHARED_WINDOW_CLOCK_REQUIRED`, `WINDOW_CLOCK_REQUIRED`). Otherwise the same window would mean different absolute periods.
+- **The store's input is `ingest_rows(view)`.** It is query-independent: each event's own clock, declared and tightened bounds, variable ids, a per-patient `box_representable` verdict, and asserted concepts with bases. Entailment is marked `not_materialized`. `match_snapshot` no longer emits rows a store could mistake for snapshot facts.
+- **Bounded network check.** The source-network check is restricted to the bound events; the whole-network replay stays as its test reference.
+- **Context.** The route's modules and the semantic run's digests are in the result context.
+- **Disjointness.** A vocabulary that declares disjointness requires a semantic run.
+- **Points.** Without `during`, events go to the engine as points, so trees of steps use the polynomial method.
+- **Accepted departures:**
+  - a possible binding refuted by the source network becomes unresolved, as a safety net;
+  - example parity compares decisions, not witnesses;
+  - `ENTAILMENT_REQUIRED` and `PATIENT_NOT_IN_SNAPSHOT` are added.
+
 ## D10 Sequencing, ownership and merge order
 
 - Packaging and the adapter run in parallel worktrees; the adapter only adds files.

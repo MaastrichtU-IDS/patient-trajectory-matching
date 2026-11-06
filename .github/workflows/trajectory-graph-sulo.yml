@@ -1,0 +1,49 @@
+name: trajectory-graph SULO adapter
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adapter:
+    name: SULO snapshots into the trajectory-graph engine (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            patterns/requirements.lock.txt
+            patterns/requirements-semantic.lock.txt
+
+      # The semantic lock includes the base lock; rustDL backs the entailed-concept tests.
+      - name: Install pinned dependencies with the Rust integration
+        run: python -m pip install -r patterns/requirements-semantic.lock.txt
+
+      - name: Re-expressed trajectory-graph example through the canonical graph route
+        run: python -m patterns.trajectory_graph_sulo --output "$RUNNER_TEMP/trajectory-graph-sulo-run/result.json"
+
+      - name: Routes, evidence, concepts, time, clocks, witness checks and the MIMIC fixture
+        run: python -m patterns.test_trajectory_graph_sulo
+
+      - name: Engine and source suites the adapter reads
+        run: |
+          python -m patterns.test_trajectory_graph
+          python -m patterns.test_bounded_intervals
+          python -m patterns.test_bounded_rdf
+
+      - name: Upload adapter output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trajectory-graph-sulo-output
+          path: ${{ runner.temp }}/trajectory-graph-sulo-run/
+          retention-days: 14
