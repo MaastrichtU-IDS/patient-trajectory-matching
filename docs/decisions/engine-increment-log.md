@@ -49,6 +49,19 @@ Changing `pro_solid.py` invalidates the reports that bind it. They are regenerat
 
 The v25 release manifest describes a past release, so it is not rewritten. A v26 manifest is cut, and v25 joins the historical exemptions in `tools/check_report_provenance.py` and `.github/scripts/check_manifest.py`, as v24 already is.
 
+**Amended after review (#120).**
+- **v26 scope.** The v26 manifest binds the same nine files as v25, with current digests, not the packaging files. Binding packaging files would break every later branch's manifest check.
+- **A digest the provenance gate can't see.** The guided cohort records the `pro_solid.py` digest in `projection_sha256`, which a demo test checks but the gate does not. So the guided cohort and the patient-similarity fixture that pins it were rebuilt too.
+- **The installed-package check proves equality:**
+  - it derives the expected module list from the checkout, so new modules don't break it;
+  - it requires the two probes to import from site-packages and from the checkout respectively;
+  - it compares every wheel file byte for byte with its source.
+- **Checkout detection** requires named contract files.
+- **A dedicated error.** Refusals raise `RepositoryResourceUnavailable`, a `LookupError`, so command-line handlers that catch `ValueError` do not relabel them as bad input.
+- **`temporal_interface`** now imports when installed.
+- **Python version.** Python 3.12 is required, since that is what CI tests.
+- **The `store` extra** is left to the store pull request.
+
 ## D4 Execution store on embedded DuckDB with immutable Parquet snapshots
 
 The store is DuckDB, embedded and pinned in its own lock behind the `store` extra and imported lazily, writing immutable Parquet snapshots partitioned by patient bucket.

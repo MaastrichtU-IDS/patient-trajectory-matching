@@ -10,6 +10,7 @@ The repository holds executable research profiles and the specifications of a br
 | [Engine design](engine-design.md) | How results are generated today, matching at scale, similarity on coded terms, embeddings, query complexity |
 | [Architecture](architecture.md) | Design, pipelines, constraint model, PRO/SOLID encoding, temporal semantics, matching costs |
 | [Components](components.md) | What each part does, how to use it, what it depends on |
+| [Packaging](packaging.md) | Building and installing the engine as a wheel, what it contains, and what it deliberately omits |
 | [Status](status.md) | What executes, what is specified, and what has been verified |
 | [Validation](validation.md) | Every executable component, how to run it, and what correct output looks like |
 | [Specifications](specifications.md) | Every contract and design document, what each covers, and a reading order |

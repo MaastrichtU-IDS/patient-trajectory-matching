@@ -420,9 +420,12 @@ class InformationContentTests(unittest.TestCase):
                          '29fd2e45f3dac2c942a724da3a2e354171e7b0b6f61d495b9f6dcd4e1200b191')
         self.assertEqual(p.digest([self.engine.inspect(revisions[pid]['revision_id'], c)['comparison'] for pid in ids for c in ids if c != pid]),
                          'a40fc5a0a5ffe82d261310cd645abf9565c058ccb9c52eac182fa14d0996a91d')
-        # Everything in the revision but the module digest, which any edit changes.
-        self.assertEqual(p.digest({k: v for k, v in revisions['P00'].items() if k not in ('implementation_sha256', 'revision_id')}),
-                         'e52fde9bbe8fa3c69eb8a9bde2db46267a3076ca75e82f778fffc37cb8fe7534')
+        # Everything in the revision but the module digest, which any edit changes, and the
+        # dataset digest, which changes whenever the fixture's pinned source is rebuilt (as it
+        # is with every pro_solid.py change); the results digest above guards the rankings.
+        self.assertEqual(p.digest({k: v for k, v in revisions['P00'].items()
+                                   if k not in ('implementation_sha256', 'revision_id', 'dataset_sha256')}),
+                         '19bb15f44de9d4eeda3c6ec7bf124fc023099fb167cb22488275f5b75381b270')
         self.assertNotIn('concept_measure', revisions['P00']['query'])
         replayed = p.SimilarityEngine.replay(self.engine.manifest(revisions['P00']['revision_id']))
         self.assertEqual(replayed.get_revision(revisions['P00']['revision_id']), revisions['P00'])

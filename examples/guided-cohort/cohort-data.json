@@ -3020,7 +3020,7 @@
       }
     }
   ],
-  "generation_base_commit": "947ebb61e3d58110b64a27745467e6b45dfcd1d9",
-  "projection_sha256": "65ef241757dacfe7238f88953c1d7bb2602afefae5744f0c4d2cda4a8e349c75",
+  "generation_base_commit": "45540ac75676a292b08633220a7c869520d698a6",
+  "projection_sha256": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
   "availability_policy": "Constructed snapshot; no source-availability cutoff or historical replay is asserted."
 }
