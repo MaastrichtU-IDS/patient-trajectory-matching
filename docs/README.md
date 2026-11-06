@@ -134,6 +134,7 @@ The product surface in `app/`.
 | [Decision: relaxation cost models](decisions/relaxation-cost-models.md) | Accepted: one reported contract, two evaluators |
 | [Decision: source completeness](decisions/source-completeness.md) | Accepted: completeness derived from declared coverage |
 | [Proposed decision: temporal precedence](decisions/temporal-precedence.md) | Precedence and direct succession, not adopted |
+| [Engine increment decision log](decisions/engine-increment-log.md) | Packaging, execution store and SULO adapter: every decision, alternative and reason |
 | [SULO temporal representation review](sulo-owl-time-review.md) | Developer review and recommendations |
 | [SULO development proposal](sulo-development/README.md) | Pattern catalogue, records and occurrence, temporal interoperability |
 | [SULO temporal semantics](temporal-kg/sulo-temporal-semantics.md) | A formal interpretation of SULO's time classes and relations in the BT_C time structure, with consequences and their status |
