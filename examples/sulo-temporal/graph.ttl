@@ -1,0 +1,83 @@
+# Representative SULO 0.2.14 temporal descriptions for the conditions of
+# docs/temporal-kg/sulo-temporal-semantics.md. The OWL consistency check
+# (.github/scripts/check_owl_consistency.py) merges this graph with the SULO stack
+# and requires it to be OWL 2 DL and consistent. It also requires the negative
+# controls built from this content to be detected. OWL cannot state S1, S4 or S8
+# themselves; the check establishes that the shapes they constrain are consistent
+# with SULO, and that SULO's own temporal axioms are live on them.
+#
+# The graph describes occurrences directly: its processes are sulo:Process
+# individuals, as in an accepted world, not source claims about processes (the
+# application profiles keep those apart). Values are on one clock in UTC, so the
+# stated orders are comparable.
+
+@prefix sulo: <https://w3id.org/sulo/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <https://example.org/trajectory/sulo-temporal/> .
+
+ex:minute a sulo:Unit .
+
+# S1, S2, S4, P1, P6: an interval with exact start and end values and a duration
+# part that agrees with them (30 minutes).
+ex:infusion-interval a sulo:TimeInterval ;
+    sulo:hasDirectPart ex:infusion-start, ex:infusion-end ;
+    sulo:hasPart ex:infusion-length .
+ex:infusion-start a sulo:StartTime ;
+    sulo:hasValue "2026-09-02T14:00:00Z"^^xsd:dateTimeStamp .
+ex:infusion-end a sulo:EndTime ;
+    sulo:hasValue "2026-09-02T14:30:00Z"^^xsd:dateTimeStamp .
+ex:infusion-length a sulo:Duration ;
+    sulo:hasPart ex:minute ;
+    sulo:hasValue "30"^^xsd:decimal .
+
+# P2: the next interval starts where the first ends. Its start description is a
+# different individual from the first interval's end description, with the same
+# value.
+ex:sample-interval a sulo:TimeInterval ;
+    sulo:hasDirectPart ex:sample-start, ex:sample-end .
+ex:sample-start a sulo:StartTime ;
+    sulo:hasValue "2026-09-02T14:30:00Z"^^xsd:dateTimeStamp .
+ex:sample-end a sulo:EndTime ;
+    sulo:hasValue "2026-09-02T14:35:00Z"^^xsd:dateTimeStamp .
+
+# P3: two sources describe one extent with two interval descriptions. They have
+# one referent, and stay distinct individuals.
+ex:review-interval-source-1 a sulo:TimeInterval ;
+    sulo:hasDirectPart ex:review-start-source-1, ex:review-end-source-1 .
+ex:review-start-source-1 a sulo:StartTime ;
+    sulo:hasValue "2026-09-02T16:00:00Z"^^xsd:dateTimeStamp .
+ex:review-end-source-1 a sulo:EndTime ;
+    sulo:hasValue "2026-09-02T16:20:00Z"^^xsd:dateTimeStamp .
+ex:review-interval-source-2 a sulo:TimeInterval ;
+    sulo:hasDirectPart ex:review-start-source-2, ex:review-end-source-2 .
+ex:review-start-source-2 a sulo:StartTime ;
+    sulo:hasValue "2026-09-02T16:00:00Z"^^xsd:dateTimeStamp .
+ex:review-end-source-2 a sulo:EndTime ;
+    sulo:hasValue "2026-09-02T16:20:00Z"^^xsd:dateTimeStamp .
+
+# S6 with each kind of filler: an interval (complete occurrence), an instant
+# (a profile-identified boundary), and a duration (length only, P7).
+ex:infusion a sulo:Process ;
+    sulo:atTime ex:infusion-interval .
+ex:sample-collection a sulo:Process ;
+    sulo:atTime ex:sample-interval .
+ex:review a sulo:Process ;
+    sulo:atTime ex:review-interval-source-1, ex:review-interval-source-2 .
+ex:temperature-check a sulo:Process ;
+    sulo:atTime ex:temperature-check-time .
+ex:temperature-check-time a sulo:TimeInstant ;
+    sulo:hasValue "2026-09-02T15:10:00Z"^^xsd:dateTimeStamp .
+ex:fasting a sulo:Process ;
+    sulo:atTime ex:fasting-length .
+ex:fasting-length a sulo:Duration ;
+    sulo:hasPart ex:minute ;
+    sulo:hasValue "240"^^xsd:decimal .
+
+# S7: isTimeOf is the inverse of atTime.
+ex:sample-interval sulo:isTimeOf ex:sample-collection .
+
+# S8, S9: strict whole-interval precedence and its inverse. The infusion ends
+# where sample collection starts, so they meet: neither precedes the other under
+# S8, and none is asserted. Both end before the review starts.
+ex:infusion sulo:precedes ex:review .
+ex:review sulo:isPrecededBy ex:sample-collection .

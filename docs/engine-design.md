@@ -68,7 +68,7 @@ What is verified as SULO-conformant, and where:
 
 | Verified | Where |
 |---|---|
-| Nine ontology profile files and eleven instance graphs (the PRO/SOLID example, the presentation evidence graph, the exact-interval example, eight temporal-interface pairs) merged with SULO 0.2.14: OWL 2 DL profile and HermiT consistency, with 73 negative controls | CI, `.github/scripts/check_owl_consistency.py` |
+| Nine ontology profile files and twelve instance graphs (the PRO/SOLID example, the presentation evidence graph, the exact-interval example, the SULO temporal example, eight temporal-interface pairs) merged with SULO 0.2.14: OWL 2 DL profile and HermiT consistency, with 81 negative controls | CI, `.github/scripts/check_owl_consistency.py` |
 | SULO itself, by sha256 | `ontology/sulo-pin.json`, at load time |
 | Point-anchor graphs: SHACL plus procedural checks | When built: offline and in tests |
 | Bounded-interval graphs: claim, role and bearer structure, no stray `hasValue`, Turtle round trip | Unit tests only |

@@ -22,9 +22,9 @@ The implementation consists of four files:
 | File | Role |
 |---|---|
 | [OWLDirectSemantics.lean](formal/OWLDirectSemantics.lean) | OWL expression interpretation, normalized axiom satisfaction, datatype extensions and anonymous-individual models |
-| [IntegratedSemantics.lean](formal/IntegratedSemantics.lean) | Typed BT_C axioms, exact interpretation bridge and conditional projection theorems |
+| [IntegratedSemantics.lean](formal/IntegratedSemantics.lean) | Typed BT_C axioms, the boundary order they define, exact interpretation bridge and conditional projection theorems |
 | [ProposalSemantics.lean](formal/ProposalSemantics.lean) | Combined worlds, chart/source constraints, eligible bindings, query answers, relaxation and state coverage |
-| [SULOTemporal.lean](formal/SULOTemporal.lean) | SULO 0.2.14 temporal descriptions interpreted in BT_C: reference and occurrence maps, conditions S2, S6 and S8, and consequences P1–P4 of the [SULO temporal semantics](../sulo-temporal-semantics.md) |
+| [SULOTemporal.lean](formal/SULOTemporal.lean) | SULO 0.2.14 temporal descriptions interpreted in BT_C: reference and occurrence maps, a partial chart, conditions S1, S2, S4, S6 and S8, and consequences P1–P4 and P6 of the [SULO temporal semantics](../sulo-temporal-semantics.md) |
 
 The earlier abstract OWL satisfaction parameter remains useful for the general
 bridge lemmas. The proposal now instantiates OWL satisfaction through the explicit

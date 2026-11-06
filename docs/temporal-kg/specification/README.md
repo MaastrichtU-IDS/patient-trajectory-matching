@@ -59,11 +59,13 @@ checks the [SULO temporal semantics](../sulo-temporal-semantics.md):
   interpretation, normalized axiom satisfaction, datatype extensions and
   anonymous-individual models.
 - [IntegratedSemantics.lean](formal/IntegratedSemantics.lean): typed BT_C axioms,
-  shared-object bridge and conditional solver-projection results.
+  the boundary order they define, shared-object bridge and conditional
+  solver-projection results.
 - [ProposalSemantics.lean](formal/ProposalSemantics.lean): combined worlds,
   source/chart constraints, fixed-witness answers, relaxation and coverage.
 - [SULOTemporal.lean](formal/SULOTemporal.lean): SULO 0.2.14's temporal
-  descriptions interpreted in BT_C, with consequences P1–P4 of that document.
+  descriptions interpreted in BT_C with a partial chart, and consequences P1–P4
+  and P6 of that document.
 
 Run the checks from the repository root:
 

@@ -15,7 +15,9 @@ establishes that their union stays in the profile and has a model.
 
 *SULO-side graphs.* Every committed instance graph that speaks SULO, merged with the whole
 stack. That includes the eight `examples/temporal-interface/*/sulo.ttl` fixtures, which
-carry the conformance claim in docs/temporal-kg/sulo-interface.md.
+carry the conformance claim in docs/temporal-kg/sulo-interface.md, and
+`examples/sulo-temporal/graph.ttl`, which exercises the temporal conditions S2-S9 of
+docs/temporal-kg/sulo-temporal-semantics.md in SULO's own vocabulary.
 
 *Formal-core graphs.* The other half of each of those eight pairs, merged with the
 standalone core in docs/temporal-kg/ontology/temporal-core.ofn. They use the core's own
@@ -67,10 +69,10 @@ PROFILES = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'ontology').glob('*.
                   if 'shapes' not in p.name)
 PAIRS = sorted((ROOT / 'examples/temporal-interface').glob('*/sulo.ttl'))
 SULO_GRAPHS = ['examples/pro-solid/graph.ttl', 'demos/presentation/evidence/pro-solid/graph.ttl',
-               'examples/exact-interval/graph.ttl'] + \
+               'examples/exact-interval/graph.ttl', 'examples/sulo-temporal/graph.ttl'] + \
               [str(p.relative_to(ROOT)) for p in PAIRS]
 CORE_GRAPHS = [str(p.relative_to(ROOT)).replace('sulo.ttl', 'formal.ttl') for p in PAIRS]
-EXPECTED = {'profiles': 9, 'sulo graphs': 11, 'core graphs': 8}
+EXPECTED = {'profiles': 9, 'sulo graphs': 12, 'core graphs': 8}
 
 
 def robot(*arguments):
@@ -174,6 +176,32 @@ def sulo_controls(graph):
                          f'instant and a time interval',
                          [(whole, RDF.type, URIRef(S + 'TimeInstant')),
                           (whole, RDF.type, URIRef(S + 'TimeInterval'))]))
+    return controls + temporal_controls(graph)
+
+
+def temporal_controls(graph):
+    """SULO's temporal axioms, reached through the temporal vocabulary the document asserts.
+
+    Only graphs that state these SULO terms directly get these controls; a graph whose
+    descriptors are profile subclasses is covered by the stack control instead.
+    """
+    controls = []
+    parts = set(o for _, o in pairs_of(graph, S + 'hasDirectPart'))
+    ends = sorted(set(graph.subjects(RDF.type, URIRef(S + 'EndTime'))) & parts)
+    if ends:
+        # StartTime and EndTime are disjoint: one description cannot be both (P2).
+        controls.append(('an end description reached through sulo:hasDirectPart is also a '
+                         'sulo:StartTime', [(ends[0], RDF.type, URIRef(S + 'StartTime'))]))
+    timed = pairs_of(graph, S + 'atTime')
+    if timed:
+        # atTime has range sulo:Time, which is disjoint from sulo:Unit.
+        controls.append(('a filler reached through sulo:atTime is also a sulo:Unit',
+                         [(timed[0][1], RDF.type, URIRef(S + 'Unit'))]))
+    ordered = pairs_of(graph, S + 'precedes')
+    if ordered:
+        # precedes has domain sulo:Process, which is disjoint from sulo:Object.
+        controls.append(('a process reached through sulo:precedes is also a sulo:Object',
+                         [(ordered[0][0], RDF.type, URIRef(S + 'Object'))]))
     return controls
 
 
