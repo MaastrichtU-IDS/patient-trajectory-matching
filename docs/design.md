@@ -117,7 +117,7 @@ No restricted patient data is in the repository. Credentialed MIMIC-IV, ADNI and
 
 | Mechanism | What it guarantees |
 |---|---|
-| Contract suites | 950 contract checks across the engine profiles, counted and checked by `tools/check_test_counts.py` against [status](status.md) |
+| Contract suites | 969 contract checks across the engine profiles, counted and checked by `tools/check_test_counts.py` against [status](status.md) |
 | Oracle | 16 cases and 9 property checks, on Python 3.10, 3.11, 3.12 and 3.13 |
 | Provenance gate | Every committed report's file-to-digest bindings still match: 35 reports, 2,374 bindings. A bound file that moves or disappears fails the gate (#98, #100); it previously passed silently |
 | Completion register | All 104 requirements mapped to evidence, acceptance checks and remaining clauses; evidence paths must exist |
@@ -207,7 +207,7 @@ The [engine design](engine-design.md) analyses the items below in depth: how res
    - *Package in place.* A `pyproject.toml` that builds `patterns` and the oracle as an installable distribution, with the contracts it reads (`schemas/`, `ontology/`) shipped as package data behind one resource locator, and a CI job that installs the wheel into a clean environment and runs the oracle and one profile outside the repository. Replacing direct `ROOT / 'schemas/...'` reads changes engine files, so this is the moment to regenerate the reports that bind them, once.
    - *A public API.* A small, versioned facade — load a pattern, run a query, read results and evidence — with the rest marked internal and a changelog.
    - *Rename or split later.* A distinct import name, a separate folder or repository, only when the first two are stable. Splitting repositories now would break the provenance that binds engine files to reports produced by the workspace and services.
-2. **A trajectory-graph profile in the engine.** Port the mockups' constraint-graph matcher to a tested Python profile, checked against an independent reference like the interval cohort engine, so sequences, trees and graphs are first-class queries rather than a browser prototype. This also addresses part of T1.
+2. **A trajectory-graph profile in the engine.** Done as [`trajectory-graph-1.0`](trajectory-graph-profile.md): the mockups' constraint-graph semantics in a tested Python profile, polynomial on trees, budgeted search otherwise, checked against an independent reference. Remaining: a SULO adapter and an endpoint so the trajectory page uses it. This also addresses part of T1.
 3. **Workspace adoption of the mockup designs.** Two-ended index windows with units and occurrence selectors, terminology search across codes, data-quality evidence on each event, and the pairwise shared/unique view.
 4. **The remaining reorganization.** The docs index regrouping (#102), the short README, and this document.
 5. **Hosting.** Choose between an organisation exception for `run.managed.requireInvokerIam`, a public ingress on the ids3 Kubernetes cluster (the launcher works there unchanged), or IAP with named accounts; then redeploy `ptm-demo` from `main`. Add a budget alert and an image cleanup policy.
@@ -226,6 +226,6 @@ The [engine design](engine-design.md) analyses the items below in depth: how res
 
 1. **Hosting model** for the demonstration: organisation exception, ids3 Kubernetes, or IAP with named accounts.
 2. **Engine library scope and name**: confirm the staged approach and whether the eventual library is published.
-3. **Trajectory-graph profile**: confirm it as the next engine profile, and whether absence ("no X between A and B") and alternatives ("A or B") are in its first version.
+3. **Trajectory-graph profile**: its first version (`trajectory-graph-1.0`) leaves out absence ("no X between A and B"), alternatives ("A or B") and distinct events; decide which the next version adds.
 4. **Which mockup designs enter the workspace first**, and whether the synthetic paediatric cohort becomes a committed workspace fixture.
 5. **`addenda/` location**: it stays at the root because the byte-preserved `requirements.csv` cites it; moving it would mean editing that file or leaving pointers.

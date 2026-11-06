@@ -70,6 +70,7 @@ LABELS = {
     'test_measurement_source_catalogue': 'Measurement source catalogue and audit tests',
     'test_prepared_measurement_session': 'Prepared measurement session tests',
     'test_patient_similarity': 'Pre-index similarity and immutable refinement tests',
+    'test_trajectory_graph': 'Trajectory-graph profile and differential reference tests',
 }
 
 

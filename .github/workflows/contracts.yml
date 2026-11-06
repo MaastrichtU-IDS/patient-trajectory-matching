@@ -75,6 +75,12 @@ jobs:
       - name: Cohort contract and differential search checks
         run: python -m patterns.test_interval_cohort
 
+      - name: Trajectory-graph example
+        run: python -m patterns.trajectory_graph examples/trajectory-graph/query.json examples/trajectory-graph/patients.json
+
+      - name: Trajectory-graph decision methods and differential reference checks
+        run: python -m patterns.test_trajectory_graph
+
       - name: Bounded uncertainty example
         run: python -m patterns.bounded_cohort
 
