@@ -127,15 +127,15 @@ On the committed seed the 14,400 patient results are:
 
 | Status | Results |
 |---|---|
-| `exact` | 509 |
-| `possible` | 80 |
+| `exact` | 511 |
+| `possible` | 78 |
 | `relaxed` | 139 |
 | `unresolved` | 8 |
 | `none` | 10,884 |
 | `not_comparable` | 2,107 |
 | `excluded` | 673 |
 
-The filter keeps 4,173 of the 14,400 patient results for the matcher.
+The filter keeps 4,173 of the 14,400 patient results for the matcher. Two results moved from possible to exact when the engine began sharing an event's time variables between steps (decision D13).
 
 **Planted defects** show that the tests can fail. Each is monkeypatched in:
 - **Dropped closure row.** Removing `carbamazepine → sodium_channel_blocker` makes `concept_closure` and `concept_postings` differ from the reference.
