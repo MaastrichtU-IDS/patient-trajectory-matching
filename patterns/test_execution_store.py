@@ -5,10 +5,12 @@ Needs DuckDB (`patterns/requirements-store.lock.txt`); importing this module doe
 """
 from collections import Counter
 from copy import deepcopy
+import hashlib
 import json
 import os
 from pathlib import Path
 import random
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -218,6 +220,7 @@ def differential(store, ingest, reference, seeds=SEEDS):
         got = es.match(store, query, windows)['results']
         want = ref.exhaustive_match(ingest, query, windows)
         for g, w in zip(got, want, strict=True):
+            assert g['patient_id'] == w['patient_id'], (seed, g['patient_id'], w['patient_id'])
             mix[w['status']] += 1
             if w['patient_id'] not in kept:
                 filtered += 1
@@ -295,6 +298,22 @@ class MatchingTests(unittest.TestCase):
             self.assertEqual([r['status'] for r in out['results']], [r['status'] for r in want])
             self.assertEqual([r for r in out['results'] if r.get('reason') != 'FILTERED'],
                              [w for r, w in zip(out['results'], want) if r.get('reason') != 'FILTERED'])
+            # The result says what it depends on.
+            self.assertEqual((out['verified'], out['coverage_rule']), (True, es.COVERAGE_RULE))
+            context = out['context']
+            self.assertEqual(context['snapshot_id'], store.snapshot_id)
+            self.assertEqual(set(context['artifacts']), set(es.ENGINE_ARTIFACTS))
+            self.assertEqual(out['context_id'], es.match_context(store, FIXTURE_QUERY, windows)[1])
+            self.assertNotEqual(out['context_id'], es.match(store, FIXTURE_QUERY, {**windows, 'P2': windows['P1']})['context_id'])
+            # A concept no source records anywhere: not comparable for its own reason.
+            q = deepcopy(FIXTURE_QUERY)
+            q['steps'][1]['concept'] = 'unused'
+            q['relaxations'] = []
+            by = {r['patient_id']: r for r in es.match(store, q, windows)['results']}
+            self.assertEqual(by['P1'], {'patient_id': 'P1', 'status': 'not_comparable', 'reason': 'NO_SOURCE_RECORDS_CONCEPT',
+                                        'uncovered_steps': ['B'], 'unrecorded_steps': ['B']})
+            self.assertEqual([by[p] for p in sorted(by)], ref.exhaustive_match(fixture(), q, windows))
+            self.assertIn(('pharmacy', 'antiseizure', 'inferred_from_records'), store.rows('source_concepts'))
 
     def test_store_matches_exhaustive_matching_and_never_drops_a_match(self):
         started = time.perf_counter()
@@ -363,7 +382,7 @@ class PlantedDefectTests(unittest.TestCase):
         with patch.object(es, '_closure_rows', drop), tempfile.TemporaryDirectory() as tmp:
             with es.open_store(es.build(_STATE['ingest'], tmp)) as store:
                 wrong = table_mismatches(store, _STATE['reference'])
-        self.assertEqual(sorted(wrong), ['concept_closure', 'concept_postings'])
+        self.assertLessEqual({'concept_closure', 'concept_postings'}, set(wrong))
 
     def test_a_widening_ignored_by_the_filter_fails_the_differential(self):
         narrow = lambda query: {s['id']: [s['concept']] for s in query['steps']}
@@ -372,6 +391,23 @@ class PlantedDefectTests(unittest.TestCase):
         self.assertTrue(dropped, 'the planted defect went unnoticed')
         self.assertTrue(all(w['status'] == 'relaxed' for _, w in dropped))
         self.assertTrue(any(g.get('reason') == 'FILTERED' and w['status'] == 'relaxed' for _, g, w in mismatches))
+
+    def test_a_loader_that_misses_events_fails_the_differential(self):
+        """Survivors must see every event a tried relaxation set could bind. Two loader defects:
+        one loads only each step's own concept (not its widenings); one loses each candidate's
+        earliest event, which changes which event is first."""
+        original = es._load_events
+        def own_concepts_only(store, idxs, per_step):
+            return original(store, idxs, {s: cs[:1] for s, cs in per_step.items()})
+        def without_earliest(store, idxs, per_step):
+            loaded = original(store, idxs, per_step)
+            return {i: sorted(evs, key=lambda e: (e['start'], e['id']))[1:] for i, evs in loaded.items()}
+        for defect in (own_concepts_only, without_earliest):
+            with self.subTest(defect=defect.__name__), patch.object(es, '_load_events', defect):
+                mismatches, dropped, _, _ = differential(_STATE['store'], _STATE['ingest'], _STATE['reference'], seeds=40)
+                self.assertEqual(dropped, [])  # the filter itself is intact
+                self.assertTrue([m for m in mismatches if m[1].get('reason') != 'FILTERED'],
+                                'the planted defect went unnoticed')
 
 
 class ContractTests(unittest.TestCase):
@@ -392,15 +428,31 @@ class ContractTests(unittest.TestCase):
                 es.validate_manifest(broken)
             self.assertEqual(caught.exception.code, code)
 
-    def test_a_snapshot_whose_files_changed_fails_verification(self):
+    def test_a_tampered_parquet_file_is_refused_on_open_and_on_rebuild(self):
         with tempfile.TemporaryDirectory() as tmp:
             snapshot = es.build(fixture(), tmp)
             with es.open_store(snapshot) as store:
+                self.assertTrue(store.verified)
                 store.db.execute(f"COPY (SELECT patient_idx, patient_id || 'x' AS patient_id, bucket FROM patients) "
                                  f"TO '{snapshot}/patients-new.parquet' (FORMAT parquet)")
             os.replace(snapshot / 'patients-new.parquet', snapshot / 'patients.parquet')
-            with es.open_store(snapshot) as store, self.assertRaises(es.StoreError) as caught:
-                store.verify()
+            with self.assertRaises(es.StoreError) as caught:
+                es.open_store(snapshot)
+            self.assertEqual(caught.exception.code, 'SNAPSHOT_CONTENT_MISMATCH')
+            with self.assertRaises(es.StoreError) as caught:  # build must not reuse it either
+                es.build(fixture(), tmp)
+            self.assertEqual(caught.exception.code, 'SNAPSHOT_CONTENT_MISMATCH')
+            # Skipping verification is explicit, and the match result says so.
+            with es.open_store(snapshot, verify=False) as store:
+                out = es.match(store, FIXTURE_QUERY, {})
+                self.assertEqual((out['verified'], out['context']['verified']), (False, False))
+
+    def test_a_missing_partition_is_refused_on_open(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), tmp)
+            shutil.rmtree(next((snapshot / 'events').iterdir()))
+            with self.assertRaises(es.StoreError) as caught:
+                es.open_store(snapshot)
             self.assertEqual(caught.exception.code, 'SNAPSHOT_CONTENT_MISMATCH')
 
     def test_malformed_ingest_is_refused_by_name_before_anything_is_written(self):
@@ -419,6 +471,8 @@ class ContractTests(unittest.TestCase):
             'TIME_OUT_OF_RANGE': lambda g: patient(g)['events'][0].update(start=[-1, day(1)]),
             'DUPLICATE_COVERAGE': lambda g: patient(g)['coverage'].append(dict(patient(g)['coverage'][0])),
             'UNSUPPORTED_INGEST_PROFILE': lambda g: g.update(profile='other'),
+            'INGEST_PATIENT_NOT_BOX_REPRESENTABLE': lambda g: patient(g, 'P3').update(box_representable=False),
+            'INVALID_SELECTION': lambda g: g.update(provenance={'selection': {'mode': 'retrospective'}}),
         }
         for code, mutate in cases.items():
             g = fixture()
@@ -433,6 +487,9 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(es.IngestError) as caught:
             es.validate_ingest(g)
         self.assertEqual(caught.exception.code, 'INVERTED_BOUNDS')
+        g = fixture()
+        patient(g)['box_representable'] = True  # declared box-representable is accepted
+        es.validate_ingest(g)
 
 
 class SyntheticConverterTests(unittest.TestCase):
@@ -460,6 +517,27 @@ class SyntheticConverterTests(unittest.TestCase):
                 r = records[e['event_id']]
                 self.assertEqual(e['concepts'], [codes[(r['coding']['system'], r['coding']['code'])]])
                 self.assertEqual(e['start'], [si.micros(r['occurred']['earliest']), si.micros(r['occurred']['latest'])])
+
+    def test_orders_and_superseded_records_are_not_events_and_selection_is_recorded(self):
+        cohort, ingest = _STATE['cohort'], _STATE['ingest']
+        events = {e['event_id']: e for p in ingest['patients'] for e in p['events']}
+        records = [r for p in cohort['patients'] for r in p['records']]
+        ordered = [r for r in records if r.get('status') == 'ordered']
+        self.assertEqual(len(ordered), 40)  # 39 test orders and one ordered procedure
+        self.assertFalse(any(f"{r['source']}/{r['record_id']}" in events for r in ordered))
+        self.assertNotIn('test_order', {e['kind'] for e in events.values()})
+        self.assertNotIn('genetics/C001-R0077', events)  # superseded by its amendment
+        self.assertIn('genetics/C001-R0078', events)
+        skipped = ingest['provenance']['skipped']
+        self.assertEqual((skipped['status_ordered_test_order'], skipped['status_ordered_procedure'],
+                          skipped['superseded_genetic_result']), (39, 1, 1))
+        selection = ingest['provenance']['selection']
+        self.assertEqual((selection['mode'], selection['version'], selection['available_at']),
+                         ('retrospective', 'latest', 'not_applied'))
+        self.assertEqual(selection['records_available_after_occurrence'], 5612)
+        self.assertEqual(_STATE['store'].manifest['selection'], selection)
+        self.assertEqual(ingest['provenance']['converter_sha256'],
+                         hashlib.sha256((ROOT / 'patterns/synthetic_ingest.py').read_bytes()).hexdigest())
 
     def test_medications_end_where_a_stop_is_recorded_and_coverage_is_the_record_span(self):
         ingest, cohort = _STATE['ingest'], _STATE['cohort']

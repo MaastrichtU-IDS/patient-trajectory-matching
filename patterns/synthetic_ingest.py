@@ -4,6 +4,11 @@ The cohort (`demos/mockups/synthetic/generate.py`) has two layers: the generator
 the records the sources hold. This converter reads only the records, as a real source
 adapter would (docs/execution-store.md, "Synthetic converter"):
 
+- Selection is retrospective and takes the latest version: a record another record supersedes
+  is dropped, and `available_at` does not select (it stays in the evidence). The mode is
+  recorded in the ingest's `provenance.selection` and carried into the snapshot manifest.
+- A record whose status does not assert performance (`ordered` tests and procedures) is
+  skipped and counted, so a requested EEG never matches a step asking for an EEG.
 - A coded record becomes one event whose direct concept is the cohort concept carrying that
   (system, code). Codes no concept carries (the cohort's deliberate local codes) are skipped
   and counted, never guessed.
@@ -29,10 +34,18 @@ from __future__ import annotations
 from datetime import datetime
 import hashlib
 import json
+from pathlib import Path
 
 INGEST_PROFILE = 'execution-store-ingest-1.0'
 ORIGIN = datetime(1, 1, 1)
 MENTION_KINDS = ('note',)
+# Record statuses that assert the coded thing happened. `ordered` (a test or procedure requested,
+# not yet done) does not: an ordered EEG must not match a step asking for an EEG.
+PERFORMED = (None, 'active', 'final', 'amended', 'stopped')
+SELECTION = {'mode': 'retrospective', 'version': 'latest', 'available_at': 'not_applied',
+             'note': ('every record held at the cohort snapshot, superseded versions dropped; availability '
+                      'times are kept in evidence but do not select records')}
+CONVERTER = Path(__file__).resolve()
 
 
 def micros(text):
@@ -89,7 +102,14 @@ def convert_patient(patient, codes):
     def skip(reason):
         skipped[reason] = skipped.get(reason, 0) + 1
     orders, stops = [], []
+    superseded = {(r['source'], r['supersedes']) for r in patient['records'] if r.get('supersedes')}
     for record in patient['records']:
+        if (record['source'], record['record_id']) in superseded:
+            skip(f"superseded_{record['kind']}")
+            continue
+        if record.get('status') not in PERFORMED:
+            skip(f"status_{record['status']}_{record['kind']}")
+            continue
         if record['kind'] in MENTION_KINDS:
             for i, m in enumerate(record.get('mentions', [])):
                 if m['assertion'] != 'present' or m['experiencer'] != 'patient':
@@ -166,8 +186,12 @@ def synthetic_ingest(cohort):
         patients.append(converted)
         for k, v in why.items():
             skipped[k] = skipped.get(k, 0) + v
+    late = sum(1 for p in cohort['patients'] for r in p['records'] if r['available_at'] > r['occurred']['latest'])
+    selection = {**SELECTION, 'records_available_after_occurrence': late}
     return {'profile': INGEST_PROFILE, 'dataset_id': cohort['dataset_id'],
-            'provenance': {'converter': 'patterns/synthetic_ingest.py', 'generator': cohort['generator'],
+            'provenance': {'converter': 'patterns/synthetic_ingest.py',
+                           'converter_sha256': hashlib.sha256(CONVERTER.read_bytes()).hexdigest(),
+                           'generator': cohort['generator'], 'selection': selection,
                            'skipped': dict(sorted(skipped.items()))},
             'closure': {'version': version, 'ancestors': ancestors},
             'patients': patients}

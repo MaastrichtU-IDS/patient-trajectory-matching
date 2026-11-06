@@ -5,7 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["profile", "snapshot_id", "dataset_id", "input_digest", "closure_version", "time", "buckets",
-               "canonical_form", "builder", "tables"],
+               "canonical_form", "selection", "builder", "tables"],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "column": {
@@ -66,15 +66,33 @@
     "tables": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["patients", "events", "event_concepts", "concept_closure", "concept_postings", "coverage"],
+      "required": ["patients", "events", "event_concepts", "concept_closure", "concept_postings", "coverage",
+                   "source_concepts"],
       "properties": {
         "patients": {"$ref": "#/$defs/table"},
         "events": {"$ref": "#/$defs/table"},
         "event_concepts": {"$ref": "#/$defs/table"},
         "concept_closure": {"$ref": "#/$defs/table"},
         "concept_postings": {"$ref": "#/$defs/table"},
-        "coverage": {"$ref": "#/$defs/table"}
+        "coverage": {"$ref": "#/$defs/table"},
+        "source_concepts": {"$ref": "#/$defs/table"}
       }
+    },
+    "selection": {
+      "description": "How the ingest selected records (copied from its provenance.selection), or null if it did not say.",
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["mode", "version", "available_at"],
+          "properties": {
+            "mode": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "available_at": {"type": "string", "minLength": 1},
+            "records_available_after_occurrence": {"type": "integer", "minimum": 0}
+          }
+        }
+      ]
     }
   }
 }

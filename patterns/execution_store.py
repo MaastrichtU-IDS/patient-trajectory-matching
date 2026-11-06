@@ -2,11 +2,12 @@
 relaxation-sound candidate filter in front of the trajectory-graph matcher.
 
 `build(ingest, root)` validates an ingest document (docs/execution-store.md, "Ingest
-contract"), derives six tables in DuckDB and writes them as Parquet under
+contract"), derives seven tables in DuckDB and writes them as Parquet under
 `root/<snapshot_id>/`, with a `manifest.json` that `schemas/execution-store-manifest.schema.json`
 validates. The snapshot identifier is a digest of the canonical inputs and of each table's
 row count and canonical-content digest, computed over sorted canonical rows and never over
-Parquet bytes, so it does not depend on the writer or its thread count.
+Parquet bytes, so it does not depend on the writer or its thread count. Opening a snapshot,
+or reusing one in `build`, recomputes those digests from the files unless told not to.
 
 `candidates(store, query)` intersects concept postings across a trajectory-graph query's
 steps, rarest first. Each step's postings are the union over its concept and every concept a
@@ -14,7 +15,9 @@ steps, rarest first. Each step's postings are the union over its concept and eve
 engine could match under any tried relaxation set is never dropped. `match(store, query,
 windows)` runs `trajectory_graph.match` on the survivors, reports the rest as `none` with
 reason `FILTERED`, and turns `none` into `not_comparable` when, for some step, no source
-that records the step's concepts covers the patient's window.
+that records the step's concepts (table `source_concepts`) covers the patient's window. Its
+output carries a `context` (snapshot, query and window digests, engine artifact digests,
+coverage rule, verification) and that context's digest, `context_id`.
 
 `patterns/execution_store_reference.py` builds the same tables in pure Python, and
 `patterns/test_execution_store.py` compares them row for row. DuckDB is imported lazily,
@@ -60,12 +63,17 @@ TABLES = {
                          ('min_start_lo', 'BIGINT'), ('max_start_hi', 'BIGINT')),
     'coverage': (('patient_idx', 'INTEGER'), ('source', 'VARCHAR'), ('clock_id', 'VARCHAR'), ('lo', 'BIGINT'),
                  ('hi', 'BIGINT'), ('basis', 'VARCHAR')),
+    'source_concepts': (('source', 'VARCHAR'), ('concept', 'VARCHAR'), ('basis', 'VARCHAR')),
 }
 # Patient-keyed tables are written as hive-style bucket partitions; the others as one file.
 PARTITIONED = ('events', 'event_concepts', 'coverage')
 SORT = {'patients': 'patient_idx', 'events': 'patient_idx, start_lo, event_id',
         'event_concepts': 'patient_idx, concept, event_id', 'concept_closure': 'concept, ancestor',
-        'concept_postings': 'concept, patient_idx', 'coverage': 'patient_idx, source, lo'}
+        'concept_postings': 'concept, patient_idx', 'coverage': 'patient_idx, source, lo',
+        'source_concepts': 'concept, source'}
+# How `match` turns `none` into `not_comparable` (docs/execution-store.md, "Comparability").
+COVERAGE_RULE = 'window_overlap_source_concepts_v1'
+ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')
 
 
 class IngestError(ValueError):
@@ -109,6 +117,12 @@ def validate_ingest(ingest):
     _require(set(ingest) <= {'profile', 'dataset_id', 'provenance', 'closure', 'patients'}
              and {'dataset_id', 'closure', 'patients'} <= set(ingest), 'INVALID_INGEST_FIELDS')
     _require(type(ingest['dataset_id']) is str and ingest['dataset_id'], 'INVALID_DATASET_ID')
+    provenance = ingest.get('provenance', {})
+    _require(isinstance(provenance, dict), 'INVALID_PROVENANCE')
+    selection = provenance.get('selection')
+    _require(selection is None or (isinstance(selection, dict)
+                                   and all(type(selection.get(k)) is str for k in ('mode', 'version', 'available_at'))),
+             'INVALID_SELECTION')
     closure = ingest['closure']
     _require(isinstance(closure, dict) and set(closure) == {'version', 'ancestors'}, 'INVALID_CLOSURE')
     _require(type(closure['version']) is str and closure['version'], 'INVALID_CLOSURE_VERSION')
@@ -126,11 +140,16 @@ def validate_ingest(ingest):
     _require(isinstance(patients, list) and patients, 'NO_PATIENTS')
     seen = set()
     for p in patients:
-        _require(isinstance(p, dict) and set(p) == {'patient_id', 'clock_id', 'events', 'coverage'}, 'INVALID_PATIENT')
+        _require(isinstance(p, dict) and {'patient_id', 'clock_id', 'events', 'coverage'} <= set(p)
+                 and set(p) <= {'patient_id', 'clock_id', 'events', 'coverage', 'box_representable'}, 'INVALID_PATIENT')
         pid = p['patient_id']
         _require(type(pid) is str and pid, 'INVALID_PATIENT_ID')
         _require(pid not in seen, 'DUPLICATE_PATIENT_ID', pid)
         seen.add(pid)
+        # The store holds boxes (independent bounds per time). A source whose constraints go beyond
+        # them, or share variables between events, cannot be stored without losing soundness.
+        _require(type(p.get('box_representable', True)) is bool, 'INVALID_PATIENT', pid)
+        _require(p.get('box_representable', True), 'INGEST_PATIENT_NOT_BOX_REPRESENTABLE', pid)
         _require(type(p['clock_id']) is str and p['clock_id'], 'INVALID_CLOCK_ID', pid)
         _require(isinstance(p['events'], list), 'INVALID_EVENTS', pid)
         ids = set()
@@ -243,7 +262,7 @@ def _read_json(path, columns):
 
 
 def _derive(db, stage):
-    """Create the six logical tables (plus a bucket column on partitioned ones) from the staging files."""
+    """Create the seven logical tables (plus a bucket column on partitioned ones) from the staging files."""
     db.execute(f"""CREATE TABLE s_patients AS SELECT * FROM {_read_json(stage / 'patients.ndjson',
         [('patient_id', 'VARCHAR'), ('clock_id', 'VARCHAR')])}""")
     db.execute(f"""CREATE TABLE s_events AS SELECT * FROM {_read_json(stage / 'events.ndjson',
@@ -276,6 +295,12 @@ def _derive(db, stage):
         FROM expanded x JOIN events e USING (patient_idx, event_id) GROUP BY x.concept, x.patient_idx""")
     db.execute("""CREATE TABLE coverage AS SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
         FROM s_coverage c JOIN p USING (patient_id)""")
+    # Which sources record each concept (through the closure), fixed at build time so that a
+    # comparability answer never depends on which patients a query happens to see.
+    db.execute("""CREATE TABLE source_concepts AS SELECT DISTINCT e.source, cc.ancestor AS concept,
+        'inferred_from_records' AS basis
+        FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
+        JOIN concept_closure cc ON cc.concept = ec.concept""")
 
 
 def _write(db, snapshot):
@@ -379,6 +404,7 @@ def build(ingest, root, threads=1):
                     'closure_version': ingest['closure']['version'],
                     'time': {'unit': 'microsecond', 'origin': ORIGIN, 'calendar': 'patient_local'},
                     'buckets': BUCKETS, 'canonical_form': CANONICAL_FORM,
+                    'selection': ingest.get('provenance', {}).get('selection'),
                     'builder': {'artifacts': builder_artifacts(), 'engine': 'duckdb', 'engine_version': duckdb.__version__},
                     'tables': tables}
         manifest['snapshot_id'] = snapshot_identity(manifest)
@@ -386,9 +412,10 @@ def build(ingest, root, threads=1):
         (snapshot / 'manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
         target = root / manifest['snapshot_id']
         if target.exists():
-            existing = json.loads((target / 'manifest.json').read_text())
-            if existing.get('snapshot_id') != manifest['snapshot_id']:
-                raise StoreError('SNAPSHOT_DIRECTORY_CONFLICT', str(target))
+            # Reuse only a snapshot whose files still hash to its identifier.
+            with Store(target, threads) as existing:
+                if existing.snapshot_id != manifest['snapshot_id']:
+                    raise StoreError('SNAPSHOT_DIRECTORY_CONFLICT', str(target))
         else:
             os.replace(snapshot, target)
         return target
@@ -397,14 +424,34 @@ def build(ingest, root, threads=1):
 
 
 class Store:
-    """A read-only view of one snapshot."""
+    """A read-only view of one snapshot.
 
-    def __init__(self, path, threads=1):
+    Opening verifies by default: every table's count and content digest are recomputed from the
+    files and must equal the manifest's, whose identifier must equal its own digest. `verify=False`
+    skips the file check (for speed on trusted storage); `match` then reports `verified: false`.
+    """
+
+    def __init__(self, path, threads=1, verify=True):
         self.path = Path(path)
-        self.manifest = validate_manifest(json.loads((self.path / 'manifest.json').read_text()))
+        try:
+            manifest = json.loads((self.path / 'manifest.json').read_text())
+        except (OSError, ValueError) as exc:
+            raise StoreError('SNAPSHOT_UNREADABLE', str(self.path)) from exc
+        self.manifest = validate_manifest(manifest)
         self.snapshot_id = self.manifest['snapshot_id']
-        self.db = _duckdb().connect(':memory:', config={'threads': threads})
-        _attach(self.db, self.path)
+        duckdb = _duckdb()
+        self.db = duckdb.connect(':memory:', config={'threads': threads})
+        self.verified = False
+        try:
+            _attach(self.db, self.path)
+            if verify:
+                self.verify()
+        except duckdb.Error as exc:
+            self.db.close()
+            raise StoreError('SNAPSHOT_UNREADABLE', str(exc).splitlines()[0]) from exc
+        except StoreError:
+            self.db.close()
+            raise
 
     def close(self):
         self.db.close()
@@ -425,14 +472,15 @@ class Store:
             rows = _table_rows(self.db, name)
             if len(rows) != recorded['rows'] or content_digest(rows) != recorded['content_digest']:
                 raise StoreError('SNAPSHOT_CONTENT_MISMATCH', name)
+        self.verified = True
         return True
 
     def query(self, sql, params=()):
         return self.db.execute(sql, list(params)).fetchall()
 
 
-def open_store(path, threads=1):
-    return Store(path, threads)
+def open_store(path, threads=1, verify=True):
+    return Store(path, threads, verify)
 
 
 # Matching path.
@@ -483,8 +531,10 @@ def candidates(store, query):
             'plan': [{'step': s['step'], 'concepts': s['concepts'], 'patients': len(s['patients'])} for s in plan]}
 
 
-def _load_events(store, idxs, concepts):
-    """Candidates' events that carry any query concept through the closure, as engine events."""
+def _load_events(store, idxs, per_step):
+    """Candidates' events that carry any step's concept or widening through the closure, as engine
+    events listing only those concepts."""
+    concepts = sorted({c for cs in per_step.values() for c in cs})
     if not idxs:
         return {}
     rows = store.query(f"""
@@ -494,7 +544,7 @@ def _load_events(store, idxs, concepts):
         JOIN concept_closure cc ON cc.concept = ec.concept
         WHERE cc.ancestor IN {_in(concepts)} AND e.patient_idx IN {_in(idxs)}
         GROUP BY e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi
-        ORDER BY e.patient_idx, e.event_id""", list(concepts) + list(idxs))
+        ORDER BY e.patient_idx, e.event_id""", concepts + list(idxs))
     out = {}
     for idx, eid, slo, shi, elo, ehi, cs in rows:
         event = {'id': eid, 'concepts': list(cs), 'start': [slo, shi]}
@@ -504,17 +554,23 @@ def _load_events(store, idxs, concepts):
     return out
 
 
-def _uncovered(store, per_step, idxs, windows_by_idx):
-    """{patient_idx: steps no source covers}: a step is covered when some source that records any of
-    its concepts (anywhere in the snapshot) has a coverage period meeting the patient's window."""
+def _comparability(store, per_step, idxs, windows_by_idx):
+    """{patient_idx: (reason, uncovered steps, unrecorded steps)} for patients a `none` cannot stand for.
+
+    Rule COVERAGE_RULE: a step is covered for a patient when some source that records any of the
+    step's concepts (table `source_concepts`, fixed at build time) has a coverage period meeting
+    the window (lo <= end and hi >= start). A step no source records at all is unrecorded; the
+    reason is then NO_SOURCE_RECORDS_CONCEPT, otherwise NO_SOURCE_COVERAGE.
+    """
     if not idxs:
         return {}
     concepts = sorted({c for cs in per_step.values() for c in cs})
     sources = {}
-    for concept, source in store.query(f"""
-            SELECT DISTINCT cc.ancestor, e.source FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
-            JOIN concept_closure cc ON cc.concept = ec.concept WHERE cc.ancestor IN {_in(concepts)}""", concepts):
+    for source, concept in store.query(
+            f'SELECT source, concept FROM source_concepts WHERE concept IN {_in(concepts)}', concepts):
         sources.setdefault(concept, set()).add(source)
+    able = {step: set().union(*(sources.get(c, set()) for c in cs)) for step, cs in per_step.items()}
+    unrecorded = [step for step in per_step if not able[step]]
     periods = {}
     for idx, source, lo, hi in store.query(
             f'SELECT patient_idx, source, lo, hi FROM coverage WHERE patient_idx IN {_in(idxs)}', idxs):
@@ -522,14 +578,24 @@ def _uncovered(store, per_step, idxs, windows_by_idx):
     out = {}
     for idx in idxs:
         w = windows_by_idx[idx]
-        missing = []
-        for step, cs in per_step.items():
-            able = set().union(*(sources.get(c, set()) for c in cs))
-            if not any(s in able and lo <= w['end'] and hi >= w['start'] for s, lo, hi in periods.get(idx, ())):
-                missing.append(step)
+        missing = [step for step in per_step
+                   if not any(s in able[step] and lo <= w['end'] and hi >= w['start'] for s, lo, hi in periods.get(idx, ()))]
         if missing:
-            out[idx] = missing
+            out[idx] = ('NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE', missing, unrecorded)
     return out
+
+
+def _digest(value):
+    return hashlib.sha256(_json(value).encode('utf-8')).hexdigest()
+
+
+def match_context(store, query, windows):
+    """What a result depends on, and its digest: snapshot, query, windows, engine code, rule, verification."""
+    context = {'snapshot_id': store.snapshot_id, 'query_digest': _digest(query),
+               'windows_digest': _digest(dict(sorted(windows.items()))),
+               'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ENGINE_ARTIFACTS},
+               'coverage_rule': COVERAGE_RULE, 'verified': store.verified}
+    return context, _digest(context)
 
 
 def match(store, query, windows):
@@ -552,9 +618,8 @@ def match(store, query, windows):
         windows_by_idx[idx] = w
     found = candidates(store, query)
     per_step = _step_concepts(query)
-    query_concepts = sorted({c for cs in per_step.values() for c in cs})
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
-    events = _load_events(store, live, query_concepts)
+    events = _load_events(store, live, per_step)
     live = set(live)
     results = {}
     for idx, pid in patients:
@@ -565,14 +630,18 @@ def match(store, query, windows):
         else:
             results[idx] = {'patient_id': pid, 'status': 'none', 'reason': 'FILTERED', 'complete': True}
     nones = [idx for idx, r in results.items() if r['status'] == 'none']
-    for idx, steps in _uncovered(store, per_step, nones, windows_by_idx).items():
-        results[idx] = {'patient_id': results[idx]['patient_id'], 'status': 'not_comparable',
-                        'reason': 'NO_SOURCE_COVERAGE', 'uncovered_steps': steps}
+    for idx, (reason, missing, unrecorded) in _comparability(store, per_step, nones, windows_by_idx).items():
+        results[idx] = {'patient_id': results[idx]['patient_id'], 'status': 'not_comparable', 'reason': reason,
+                        'uncovered_steps': missing}
+        if unrecorded:
+            results[idx]['unrecorded_steps'] = unrecorded
     ordered = [results[idx] for idx, _ in patients]
     counts = {}
     for r in ordered:
         counts[r['status']] = counts.get(r['status'], 0) + 1
+    context, context_id = match_context(store, query, windows)
     return {'profile': MATCH_PROFILE, 'engine': tg.PROFILE_ID, 'snapshot_id': store.snapshot_id,
+            'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'context': context, 'context_id': context_id,
             'plan': found['plan'], 'candidates': len(found['patient_idx']), 'counts': dict(sorted(counts.items())),
             'results': ordered}
 

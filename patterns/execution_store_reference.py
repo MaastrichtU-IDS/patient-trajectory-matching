@@ -25,6 +25,7 @@ COLUMNS = {
     'concept_closure': ['concept', 'ancestor', 'basis', 'version'],
     'concept_postings': ['concept', 'patient_idx', 'n', 'min_start_lo', 'max_start_hi'],
     'coverage': ['patient_idx', 'source', 'clock_id', 'lo', 'hi', 'basis'],
+    'source_concepts': ['source', 'concept', 'basis'],
 }
 
 
@@ -59,6 +60,7 @@ def build_tables(ingest):
         tables['concept_closure'].append((concept, concept, 'self', version))
         for a in ancestors[concept]:
             tables['concept_closure'].append((concept, a, 'declared', version))
+    recorded = set()
     for p in ingest['patients']:
         i, clock = index[p['patient_id']], p['clock_id']
         postings = {}
@@ -75,10 +77,12 @@ def build_tables(ingest):
             for c in expanded(e['concepts'], ancestors):
                 n, first, last = postings.get(c, (0, lo, hi))
                 postings[c] = (n + 1, min(first, lo), max(last, hi))
+                recorded.add((e['source'], c))
         for c, (n, first, last) in postings.items():
             tables['concept_postings'].append((c, i, n, first, last))
         for period in p['coverage']:
             tables['coverage'].append((i, period['source'], clock, period['lo'], period['hi'], period['basis']))
+    tables['source_concepts'] = [(source, concept, 'inferred_from_records') for source, concept in recorded]
     return {name: sorted(rows, key=lambda r: json.dumps(list(r), ensure_ascii=False)) for name, rows in tables.items()}
 
 
@@ -118,17 +122,22 @@ def exhaustive_match(ingest, query, windows):
             events.append(event)
         result = tg.match(query, {'patient_id': p['patient_id'], 'window': window, 'events': events})
         if result['status'] == 'none':
-            uncovered = []
+            uncovered, unrecorded = [], []
             for step in (s['id'] for s in query['steps']):
                 able = set()
                 for c in per_step[step]:
                     able |= recorders.get(c, set())
+                if not able:
+                    unrecorded.append(step)
                 covered = any(period['source'] in able and period['lo'] <= window['end'] and period['hi'] >= window['start']
                               for period in p['coverage'])
                 if not covered:
                     uncovered.append(step)
             if uncovered:
-                result = {'patient_id': p['patient_id'], 'status': 'not_comparable', 'reason': 'NO_SOURCE_COVERAGE',
+                result = {'patient_id': p['patient_id'], 'status': 'not_comparable',
+                          'reason': 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE',
                           'uncovered_steps': uncovered}
+                if unrecorded:
+                    result['unrecorded_steps'] = unrecorded
         results.append(result)
     return results
