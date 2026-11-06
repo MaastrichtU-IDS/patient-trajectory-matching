@@ -19,7 +19,13 @@ from . import exact_intervals as ei
 
 F = Namespace('https://example.org/temporal-kg/v2#')
 PROFILE = 'temporal-interface-1.0'
-EXAMPLES = ei.ROOT / 'examples/temporal-interface'
+
+
+def __getattr__(name):
+    """`EXAMPLES` is resolved on use: it is a repository resource, absent from the installed wheel."""
+    if name == 'EXAMPLES':
+        return ei.ROOT / 'examples/temporal-interface'
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
 
 
 def view(source):
@@ -251,9 +257,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=ei.ROOT / 'verification/temporal-interface-run')
     args = parser.parse_args()
-    cases = json.loads((EXAMPLES / 'cases.json').read_text())
+    cases = json.loads((__getattr__('EXAMPLES') / 'cases.json').read_text())
     try:
-        results = [compare(EXAMPLES / case['id']) for case in cases]
+        results = [compare(__getattr__('EXAMPLES') / case['id']) for case in cases]
     except (ei.ContractError, ValueError) as error:
         parser.exit(2, json.dumps({'status': 'FAILED', 'reason': str(error)}) + '\n')
     args.output.mkdir(parents=True, exist_ok=True)

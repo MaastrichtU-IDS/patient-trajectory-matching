@@ -173,7 +173,7 @@ python .github/scripts/check_manifest.py
 manifest: checked 9 files, 0 problem(s)
 ```
 
-Verifies the nine SHA-256 digests in `verification/v25-release-manifest.json`. These cover adapter inputs — code, ontology, shapes, pin and fixtures — not generated reports. Superseded manifests stay in `verification/` as historical release records and are not re-checked, because they describe the tree at the time of that release.
+Verifies the nine SHA-256 digests in `verification/v26-release-manifest.json`. These cover adapter inputs — code, ontology, shapes, pin and fixtures — not generated reports. Superseded manifests stay in `verification/` as historical release records and are not re-checked, because they describe the tree at the time of that release.
 
 ---
 

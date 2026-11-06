@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   wheel:
     runs-on: ubuntu-latest
@@ -13,8 +16,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: patterns/requirements.lock.txt
       - name: Install the lock file
         run: python -m pip install -r patterns/requirements.lock.txt
+      - name: Test the resource locator
+        run: python -m unittest patterns.test_packaging
       - name: Build the wheel
         run: python -m pip wheel --no-deps -w dist .
       - name: Install the wheel into a fresh venv

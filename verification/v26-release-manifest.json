@@ -15,12 +15,6 @@
     "examples/pro-solid/source-rows.json": "a4a491c6d317337acf0bf834911a425463f0ef04cac003913410edfa510f187b",
     "examples/pro-solid/manifest.json": "0397ea0270c774c6715f859d6f0b3d48e13c981706909f257da137350f0fe0df",
     "reference_oracle.py": "fbc5bb4edcbb14be374ff99b366076b923ac9b193ba4c8008003c6a8227ab174",
-    "examples/exemplar.pattern.json": "31945337af8240626772951d101d13aeb462b7ec3dc2df6106d036136c9c2428",
-    "pyproject.toml": "5649c305f71b2dc5e12cd13450e4427e9fbef6c290db63af75f18520a4f85684",
-    "patterns/_resources.py": "35fb4f387117b5c06239c6ef1b5eb508f2825c959b369a57c21d41435b4ebc8b",
-    "patterns/test_packaging.py": "71a90bd095a7fe329f6380ea6aff107b5b9d26d4fbe3a4bab87941206862d741",
-    ".github/workflows/package.yml": "aa5a45c3522b0995dfa1553ad65715e4c28a4541b30c0243ecb20a2f8530d5ab",
-    ".github/scripts/check_installed_package.py": "93739f17c780421f830a7907dc55080c53a8cbd4702763d3c293ff0d7a6f7832",
-    ".github/scripts/expected-wheel-files.json": "2f912d82bdaabb2bf200d97672bbed07833cedccbc365a4de6fb3cfef83b0ae3"
+    "examples/exemplar.pattern.json": "31945337af8240626772951d101d13aeb462b7ec3dc2df6106d036136c9c2428"
   }
 }

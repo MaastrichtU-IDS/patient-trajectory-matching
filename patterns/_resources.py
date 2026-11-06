@@ -1,6 +1,7 @@
 """Locate the repository resources the engine reads, in a checkout or when installed.
 
-In a checkout (``../schemas`` and ``../ontology`` exist next to this package) ``ROOT`` is
+Installed mode applies when ``patterns/_contracts`` exists. Otherwise, in a checkout
+(``../ontology/sulo-pin.json`` and ``../schemas/...`` exist next to this package) ``ROOT`` is
 the plain repository ``Path``, so behaviour is unchanged. Installed from the wheel it is a
 small read-only locator: ``patterns/...`` is served from the package, ``schemas/...`` and
 ``ontology/...`` from ``patterns/_contracts``, and anything else is a repository resource
@@ -13,6 +14,14 @@ from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 CONTRACTS = PACKAGE_DIR / '_contracts'
+
+
+class RepositoryResourceUnavailable(LookupError):
+    """A repository resource (examples, data, reports) that is not part of the installed wheel.
+
+    Not a ValueError, so the ``except ValueError`` handlers in repository mains do not
+    relabel it as bad input.
+    """
 
 
 class InstalledRoot:
@@ -29,12 +38,12 @@ class InstalledRoot:
             return self._package.joinpath(*parts[1:])
         if first in ('schemas', 'ontology'):
             return self._contracts.joinpath(*parts)
-        raise ValueError('REPOSITORY_RESOURCE_UNAVAILABLE:' + '/'.join(parts))
+        raise RepositoryResourceUnavailable('REPOSITORY_RESOURCE_UNAVAILABLE:' + '/'.join(parts))
 
     def __truediv__(self, other):
         parts = Path(os.fspath(other)).parts
         if not parts or Path(os.fspath(other)).is_absolute() or '..' in parts:
-            raise ValueError('REPOSITORY_RESOURCE_UNAVAILABLE:' + os.fspath(other))
+            raise RepositoryResourceUnavailable('REPOSITORY_RESOURCE_UNAVAILABLE:' + os.fspath(other))
         return self._target(parts)
 
     def joinpath(self, *others):
@@ -67,19 +76,23 @@ class InstalledRoot:
     def exists(self):
         return self._base.exists()
 
-    @property
-    def parts(self):
-        return self._base.parts
+
+def is_installed(package_dir=PACKAGE_DIR):
+    return (Path(package_dir) / '_contracts').is_dir()
 
 
 def is_checkout(package_dir=PACKAGE_DIR):
+    """A checkout has the contract files next to the package and no bundled _contracts."""
     root = Path(package_dir).parent
-    return (root / 'schemas').is_dir() and (root / 'ontology').is_dir()
+    return (not is_installed(package_dir) and (root / 'ontology/sulo-pin.json').is_file()
+            and (root / 'schemas/bounded-interval.schema.json').is_file())
 
 
 def locate_root(package_dir=PACKAGE_DIR):
     package_dir = Path(package_dir).resolve()
-    return package_dir.parents[0] if is_checkout(package_dir) else InstalledRoot(package_dir)
+    if is_installed(package_dir) or not is_checkout(package_dir):
+        return InstalledRoot(package_dir)
+    return package_dir.parents[0]
 
 
 ROOT = locate_root()

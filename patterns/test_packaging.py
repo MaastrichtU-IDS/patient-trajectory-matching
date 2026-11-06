@@ -18,8 +18,9 @@ class CheckoutMode(unittest.TestCase):
         self.assertIs(type(_resources.ROOT), type(expected))
         self.assertEqual(pro_solid.ROOT, expected)
 
-    def test_checkout_is_detected_by_contract_directories(self):
+    def test_checkout_is_detected_by_contract_files(self):
         self.assertTrue(_resources.is_checkout())
+        self.assertFalse(_resources.is_installed())
         with tempfile.TemporaryDirectory() as tmp:
             package = Path(tmp) / 'patterns'
             package.mkdir()
@@ -27,8 +28,14 @@ class CheckoutMode(unittest.TestCase):
             self.assertIsInstance(_resources.locate_root(package), _resources.InstalledRoot)
             (Path(tmp) / 'schemas').mkdir()
             (Path(tmp) / 'ontology').mkdir()
+            self.assertFalse(_resources.is_checkout(package), 'empty directories are not enough')
+            (Path(tmp) / 'ontology/sulo-pin.json').write_text('{}')
+            (Path(tmp) / 'schemas/bounded-interval.schema.json').write_text('{}')
             self.assertTrue(_resources.is_checkout(package))
             self.assertEqual(_resources.locate_root(package), Path(tmp).resolve())
+            (package / '_contracts').mkdir()
+            self.assertIsInstance(_resources.locate_root(package), _resources.InstalledRoot,
+                                  'bundled contracts take precedence')
 
 
 class InstalledMode(unittest.TestCase):
@@ -59,7 +66,7 @@ class InstalledMode(unittest.TestCase):
 
     def test_other_resources_are_refused(self):
         for path in ('examples/x.json', 'data/pin.json', 'verification/r.json', 'docs/a.md', '../x', '/etc/passwd'):
-            with self.assertRaises(ValueError) as caught:
+            with self.assertRaises(_resources.RepositoryResourceUnavailable) as caught:
                 self.root / path
             self.assertEqual(str(caught.exception), 'REPOSITORY_RESOURCE_UNAVAILABLE:' + path)
 
@@ -69,10 +76,14 @@ class InstalledMode(unittest.TestCase):
         self.assertEqual(self.root.resolve(), self.root)
         self.assertEqual(Path(self.root), self.site)
 
+    def test_refusal_is_not_a_value_error(self):
+        """Repository mains catch ValueError as bad input; a missing resource must not be relabelled."""
+        self.assertFalse(issubclass(_resources.RepositoryResourceUnavailable, ValueError))
+
     def test_engine_style_use_never_writes(self):
         before = sorted(p.relative_to(self.site) for p in self.site.rglob('*'))
         (self.root / 'schemas/a.schema.json').read_text()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LookupError):
             self.root / 'verification/report.json'
         self.assertEqual(sorted(p.relative_to(self.site) for p in self.site.rglob('*')), before)
 
