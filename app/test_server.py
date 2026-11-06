@@ -364,6 +364,16 @@ class ResearchHTTPTests(unittest.TestCase):
             self.request('/api/initial', b' ' * (server.MAX_BODY + 1))
         self.assertEqual(caught.exception.code, 413)
 
+    def test_initial_names_its_concept_measure(self):
+        self.assertEqual(self.initial()['query']['concept_measure'], 'simgic')
+        chosen = self.request('/api/initial', {'patient_id': 'P00', 'top_k': 5, 'concept_measure': 'resnik_bma'})
+        self.assertEqual(chosen['results']['concept_measure']['measure'], 'resnik_bma')
+        for body in ({'patient_id': 'P00', 'top_k': 5, 'concept_measure': 'cosine'},
+                     {'patient_id': 'P00', 'top_k': 5, 'concept_measure': 'simgic', 'source_dir': '/tmp'}):
+            with self.assertRaises(HTTPError) as caught:
+                self.request('/api/initial', body)
+            self.assertEqual(caught.exception.code, 400)
+
     def test_unsupported_refinement_cannot_change_clinical_acceptance(self):
         revision = self.initial()
         with self.assertRaises(HTTPError) as caught:

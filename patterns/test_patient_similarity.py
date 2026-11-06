@@ -21,6 +21,14 @@ class PatientSimilarityTests(unittest.TestCase):
     def revision(self):
         return self.engine.initial('P00', top_k=2)
 
+    @staticmethod
+    def ranking(revision):
+        """Results without the IC population's snapshot digest. The tests that use this change
+        the dataset in ways similarity must ignore, so that digest is all that may differ."""
+        results = deepcopy(revision['results'])
+        results.get('concept_measure', {}).get('ic_population', {}).pop('dataset_sha256', None)
+        return results
+
     def test_default_population_and_provenance_match_guided_source(self):
         original = json.loads((p.ROOT/'examples/guided-cohort/cohort-data.json').read_text())
         self.assertEqual([x['patient_id'] for x in self.dataset['patients']], [x['patient_id'] for x in original['patients']])
@@ -54,7 +62,7 @@ class PatientSimilarityTests(unittest.TestCase):
             followup = next(x for x in patient['records'] if x['id'].endswith('-F'))
             followup['value']['hasValue'] = '999'
         modified = p.SimilarityEngine(self.dataset,self.profile).initial('P00',2)
-        self.assertEqual(modified['results'],self.revision()['results'])
+        self.assertEqual(self.ranking(modified),self.ranking(self.revision()))
         inspected = self.engine.inspect(self.revision()['revision_id'],'P01')
         self.assertEqual(inspected['candidate']['ignored'][0]['record_id'],'P01-F')
         self.assertIn('AT_OR_AFTER_INDEX',inspected['candidate']['ignored'][0]['reasons'])
@@ -79,7 +87,7 @@ class PatientSimilarityTests(unittest.TestCase):
                 record['occurrence_us'] += shift
                 record['available_at_us'] += shift
         actual = p.SimilarityEngine(self.dataset,self.profile).initial('P00',2)
-        self.assertEqual(actual['results'],baseline_results)
+        self.assertEqual(self.ranking(actual),self.ranking({'results': baseline_results}))
 
     def test_creatinine_minimum_and_inclusive_48_hour_boundary(self):
         inspection = self.engine.inspect(self.revision()['revision_id'],'P02')
@@ -98,7 +106,7 @@ class PatientSimilarityTests(unittest.TestCase):
         self.assertEqual(selected['value'],'1'); self.assertEqual([x['id'] for x in selected['evidence']],['P01-B'])
 
     def test_reviewed_ancestor_expansion_retains_nonzero_jaccard_distance(self):
-        pair = self.engine.inspect(self.revision()['revision_id'],'P02')
+        pair = self.engine.inspect(self.engine.initial('P00', 2, 'ancestor_jaccard')['revision_id'],'P02')
         concepts = pair['candidate']['features']['clinical_concepts']['value']
         self.assertEqual(concepts,['ex:DrugA','ex:DrugAChild'])
         component = next(x for x in pair['comparison']['components'] if x['component']=='clinical_concepts')
@@ -384,10 +392,11 @@ class InformationContentTests(unittest.TestCase):
                 self.assertEqual(self.component(engine, 'P00', 'P01', measure)['distance'], '0')
         self.assertEqual(self.component(engine, 'P00', 'P01', 'simgic')['explanation']['union_ic'], '0')
 
-    def test_the_default_measure_is_byte_identical_to_before(self):
-        """Digests taken from the engine before the IC measures existed."""
+    def test_a_query_without_a_measure_is_byte_identical_to_before(self):
+        """Digests taken from the engine before the IC measures existed. A query recorded
+        then has no measure key and must still mean ancestor-Jaccard."""
         ids = [x['patient_id'] for x in self.engine.metadata()['patients']]
-        revisions = {pid: self.engine.initial(pid, 10) for pid in ids}
+        revisions = {pid: self.engine._initial(pid, 10, None) for pid in ids}
         self.assertEqual(p.digest([revisions[pid]['results'] for pid in ids]),
                          '29fd2e45f3dac2c942a724da3a2e354171e7b0b6f61d495b9f6dcd4e1200b191')
         self.assertEqual(p.digest([self.engine.inspect(revisions[pid]['revision_id'], c)['comparison'] for pid in ids for c in ids if c != pid]),
@@ -395,11 +404,26 @@ class InformationContentTests(unittest.TestCase):
         # Everything in the revision but the module digest, which any edit changes.
         self.assertEqual(p.digest({k: v for k, v in revisions['P00'].items() if k not in ('implementation_sha256', 'revision_id')}),
                          'e52fde9bbe8fa3c69eb8a9bde2db46267a3076ca75e82f778fffc37cb8fe7534')
-        self.assertEqual(self.engine.initial('P00', 10, 'ancestor_jaccard'), revisions['P00'])
+        self.assertNotIn('concept_measure', revisions['P00']['query'])
+        replayed = p.SimilarityEngine.replay(self.engine.manifest(revisions['P00']['revision_id']))
+        self.assertEqual(replayed.get_revision(revisions['P00']['revision_id']), revisions['P00'])
+        # Naming ancestor-Jaccard explicitly ranks identically and records the measure.
+        explicit = self.engine.initial('P00', 10, 'ancestor_jaccard')
+        self.assertEqual(explicit['results'].pop('concept_measure'), {'measure': 'ancestor_jaccard'})
+        self.assertEqual(explicit['results'], revisions['P00']['results'])
         weighted = self.engine.refine(revisions['P00']['revision_id'], {'type': 'set_concept_measure', 'concept_measure': 'simgic'})
         back = self.engine.refine(weighted['revision_id'], {'type': 'set_concept_measure', 'concept_measure': 'ancestor_jaccard'})
-        self.assertNotIn('concept_measure', back['query'])
-        self.assertEqual(back['results'], revisions['P00']['results'])
+        self.assertEqual(back['query']['concept_measure'], 'ancestor_jaccard')
+        self.assertEqual(back['results']['ranked'], revisions['P00']['results']['ranked'])
+
+    def test_new_queries_default_to_simgic_and_name_it(self):
+        self.assertEqual(self.engine.metadata()['default_concept_measure'], 'simgic')
+        self.assertEqual(self.engine.metadata()['legacy_concept_measure'], 'ancestor_jaccard')
+        revision = self.engine.initial('P00', 10)
+        self.assertEqual(revision['query']['concept_measure'], 'simgic')
+        self.assertEqual(revision['results']['concept_measure']['measure'], 'simgic')
+        self.assertIn('ic_population', revision['results']['concept_measure'])
+        self.assertEqual(revision, self.engine.initial('P00', 10, 'simgic'))
 
     def test_the_concept_measure_option_is_validated(self):
         for measure in ('jaccard', 'SIMGIC', None, ['simgic'], 1):

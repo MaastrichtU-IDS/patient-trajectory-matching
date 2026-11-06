@@ -372,10 +372,13 @@ class Handler(BaseHTTPRequestHandler):
                               parse_constant=lambda _: (_ for _ in ()).throw(ValueError('Non-finite numbers are unsupported')))
             with self.workspace.lock:
                 if self.path == '/api/initial':
-                    exact_keys(data, ('patient_id', 'top_k'))
+                    # The measure is optional here; omitted, the engine's default applies and
+                    # is recorded in the query, so the revision still names its measure.
+                    exact_keys(data, ('patient_id', 'top_k', 'concept_measure') if 'concept_measure' in data else ('patient_id', 'top_k'))
                     if type(data['top_k']) is not int or not 1 <= data['top_k'] <= 20:
                         raise ValueError('top_k must be an integer from 1 through 20')
-                    result = self.workspace.engine.initial(identifier(data['patient_id']), data['top_k'])
+                    result = self.workspace.engine.initial(identifier(data['patient_id']), data['top_k'],
+                                                           *([data['concept_measure']] if 'concept_measure' in data else []))
                 elif self.path == '/api/refine':
                     exact_keys(data, ('revision_id', 'operation'))
                     result = self.workspace.engine.refine(identifier(data['revision_id']), data['operation'])
