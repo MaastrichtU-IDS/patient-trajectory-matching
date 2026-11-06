@@ -17,7 +17,7 @@ same object domain. One model must satisfy the OWL axioms, temporal axioms,
 shared-symbol equations and admitted source constraints simultaneously. Lean's
 kernel checks the definitions and the accompanying proofs.
 
-The implementation consists of four files:
+The implementation consists of five files:
 
 | File | Role |
 |---|---|
@@ -25,6 +25,7 @@ The implementation consists of four files:
 | [IntegratedSemantics.lean](formal/IntegratedSemantics.lean) | Typed BT_C axioms, the boundary order they define, exact interpretation bridge and conditional projection theorems |
 | [ProposalSemantics.lean](formal/ProposalSemantics.lean) | Combined worlds, chart/source constraints, eligible bindings, query answers, relaxation and state coverage |
 | [SULOTemporal.lean](formal/SULOTemporal.lean) | SULO 0.2.14 temporal descriptions interpreted in BT_C: reference and occurrence maps, a partial chart, conditions S1, S2, S4, S6 and S8, and consequences P1–P4 and P6 of the [SULO temporal semantics](../sulo-temporal-semantics.md) |
+| [BTCModel.lean](formal/BTCModel.lean) | A constructed BT_C model over open rational intervals, an integer chart, and SULO interpretations over it: the countermodels for P7 and P8 |
 
 The earlier abstract OWL satisfaction parameter remains useful for the general
 bridge lemmas. The proposal now instantiates OWL satisfaction through the explicit
@@ -421,7 +422,7 @@ unknown. Positive footprints [0,15) and [15,30) instead establish `Holds`.
 
 ## A.9 Verification and outstanding obligations
 
-Run all three modules with the pinned Lean v4.34.0 toolchain:
+Run every module with the pinned Lean v4.34.0 toolchain:
 
 ```sh
 sh docs/temporal-kg/specification/formal/check.sh
@@ -433,16 +434,21 @@ artifacts. CI runs the same commands, followed by the two ROBOT v1.9.5 checks
 listed in the integration note (OWL 2 DL profile of the bridge module with the
 example, and HermiT consistency of the merged three-boundary fixture), so the
 OWL-side premise of the boundary result is checked alongside the Lean side.
-There are **18 named checked theorems**: seven existing bridge/projection
-results, three OWL results and eight combined semantics/coverage results.
-Every theorem that takes a `BTC` hypothesis is conditional: no compatible BT_C
-model is constructed in the development, so the realizability of fields A3
-through A34 is an unproven assumption, and these results, including
-`three_coincident_boundaries_impossible` and `endpoint_collapse_impossible`,
-would hold vacuously if that assumption failed. The count must be read with
-this qualification. Axiom reports contain only Lean's standard
-`propext` and `Quot.sound` where required; the files have no proof placeholders
-or added global axioms. The BT_C fields and datatype-map conditions are explicit
+The three original modules have **18 named checked theorems**: seven
+bridge/projection results, three OWL results and eight combined
+semantics/coverage results. The SULO temporal modules add the theorems listed in
+§11 of the [SULO temporal semantics](../sulo-temporal-semantics.md). Every
+theorem that takes a `BTC` hypothesis is conditional on it. `BTCModel.lean`
+constructs a model of fields A3 through A34 (`BTCModel.btc`: chronoids are open
+rational intervals, boundaries are rational positions with an orientation), so
+that hypothesis is realizable and results such as
+`three_coincident_boundaries_impossible` and `endpoint_collapse_impossible` do
+not hold vacuously. No model of a full combined world, with an OWL
+interpretation, the bridge and admitted sources together, is constructed;
+results that also assume those parts remain conditional on their joint
+realizability. Axiom reports contain only Lean's standard `propext`,
+`Classical.choice` and `Quot.sound` where required; the files have no proof
+placeholders or added global axioms. The BT_C fields and datatype-map conditions are explicit
 model assumptions. Four additional finite OWL fixtures check name co-denotation,
 cardinality including an unnamed successor, the `NAMED` guard on keys and an
 explicit negative data assertion.
@@ -453,7 +459,7 @@ The following obligations remain flagged for review and operationalization:
 |---|---|---|
 | OWL transcription and normalization | Recursive Lean definitions and complete normalization contract | Independent semantic review; verified parser/normalizer and correspondence proof |
 | Standard datatypes | Explicit value-space, literal, facet and extension interface | Concrete supported datatype maps and validated lexical/unit decoders |
-| BT_C transcription and realizability | Typed source-axiom mapping and checked consequences | Independent mapping review and constructed compatible models for the admitted profile |
+| BT_C transcription and realizability | Typed source-axiom mapping, checked consequences, and a constructed BT_C model with SULO interpretations over it | Independent mapping review and constructed combined models (OWL, bridge and sources) for the admitted profile |
 | Source and query compilation | Defined source constraints and atom-lowering contract | Executable adapters with identity, scope, chart and atom-preservation proofs |
 | Solver extension | Projection direction checked; extension stated explicitly | Proof or certificate procedure for the selected ontology/bridge profile |
 | Runtime completeness | Nonvacuous mathematical answer conditions | Resource limits, timeout propagation and complete catalogue/binding enumeration checks |
