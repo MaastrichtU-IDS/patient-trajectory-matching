@@ -12,7 +12,7 @@
     "examples/patient-similarity/dataset.json": "245031614fd64cc4017eed54b6b69c6055e3900a1d7c3bbdf479bd8a177cc731",
     "examples/patient-similarity/profile.json": "4e3e471043637d50a30a803aa7bf7e2e82a9a76a976d499495270781bcc592a1",
     "ontology/toy-taxonomy.json": "8ffbe370d820bedab4e5bacac847fa4e4bfe86e6fccda89da0747252f8f577ee",
-    "patterns/patient_similarity.py": "fc30b1b2faa1f1adc5bdd69ceffb83647d38d9d683f9c8a1bc8b395e3c5af061",
+    "patterns/patient_similarity.py": "f5001658a6bed36647ffd44248221c603dc5734affeefca8c4c098406329ea36",
     "patterns/pro_solid.py": "65ef241757dacfe7238f88953c1d7bb2602afefae5744f0c4d2cda4a8e349c75",
     "reference_oracle.py": "fbc5bb4edcbb14be374ff99b366076b923ac9b193ba4c8008003c6a8227ab174",
     "services/cohort.py": "cb4cb1f915a016f926914a3b9d9591fa9d3a94ed2f54fe0dfa04bdbec3b88666"
@@ -31,7 +31,7 @@
   },
   "dataset_sha256": "5c6094a48fe91bf36267929499b8cd1f2d3f601a49546e139e9518b752e4ab1a",
   "execution": "actual-loopback-http-and-independent-export-replay",
-  "implementation_sha256": "fc30b1b2faa1f1adc5bdd69ceffb83647d38d9d683f9c8a1bc8b395e3c5af061",
+  "implementation_sha256": "f5001658a6bed36647ffd44248221c603dc5734affeefca8c4c098406329ea36",
   "passed": true,
   "profile": "research-prototype-journey-verification-1.0",
   "profile_sha256": "45e6ae5353eeac250a4fa85a4dfd6d57ae9364b2e479c684055bef4d38fea713",

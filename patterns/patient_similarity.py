@@ -375,9 +375,15 @@ class SimilarityEngine:
         averages, over the reference's recorded concepts, the IC of the most informative
         ancestor each shares with any candidate concept, and divides by the same average of
         the reference against itself, so it lies in [0, 1] and asks how much of the
-        reference the candidate explains: it is asymmetric by design. A zero denominator
-        means nothing informative is at stake -- every term is IC 0 in this population, or
-        the set is a declared empty one -- and scores 0, as an empty union does under Jaccard.
+        reference the candidate explains: it is asymmetric by design.
+
+        A declared empty reference set leaves `resnik_bma` nothing to explain, so it would
+        score every candidate 0, a perfect match. The distance is None instead: the
+        component is missing for that comparison, with the reason in the explanation, and
+        the missing-data rules apply to it, equally for every candidate. Any other zero
+        denominator means nothing informative is at stake -- every term is IC 0 in this
+        population, which every observed candidate then carries too -- and scores 0, as an
+        empty union does under Jaccard.
         """
         ic = self._ic_weight
         if measure == 'simgic':
@@ -390,8 +396,11 @@ class SimilarityEngine:
         ancestors = self._profile['concept_ancestors']
         def recorded(feature):
             return sorted({c for r in feature['evidence'] for c in r['value']})
+        reference_terms = recorded(a)
+        if not reference_terms:
+            return None, {'undefined': 'EMPTY_REFERENCE_SET', 'terms': []}
         candidates, matched, possible, terms = recorded(b), Fraction(0), Fraction(0), []
-        for term in recorded(a):
+        for term in reference_terms:
             own = {term, *ancestors[term]}
             best = min(((-ic[x], x, other) for other in candidates for x in own & {other, *ancestors[other]}), default=None)
             score, limit = (-best[0] if best else Fraction(0)), max(ic[x] for x in own)
@@ -425,8 +434,10 @@ class SimilarityEngine:
                 else:
                     aa, bb = set(a['value']), set(b['value'])
                     distance = Fraction(1) - Fraction(len(aa & bb), len(aa | bb)) if aa | bb else Fraction(0)
-                observed += weights[component]
-                numerator += weights[component] * distance
+                # A measure may leave an observed pair undefined; it then counts as missing.
+                if distance is not None:
+                    observed += weights[component]
+                    numerator += weights[component] * distance
             components.append({'component': component, 'weight': display(weights[component]),
                 'distance': None if distance is None else display(distance),
                 'reference_value': deepcopy(a['value']), 'candidate_value': deepcopy(b['value']),

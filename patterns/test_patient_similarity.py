@@ -373,6 +373,25 @@ class InformationContentTests(unittest.TestCase):
         self.assertEqual(table['concepts']['ex:Medication'], {'count': 9, 'ic': '0'})
         self.assertTrue(all(Decimal(v['ic']) <= Decimal('2.397895272798') for v in table['concepts'].values()))
 
+    def test_an_empty_reference_is_not_a_perfect_match_under_resnik_bma(self):
+        """With nothing to explain, every candidate would score 0. The component is missing
+        instead, so the reference ranks on its other components with reduced coverage, and
+        the concept axis cannot favour one candidate over another."""
+        record = self.concepts('P00'); record['value'] = []; record['coverage_complete'] = True
+        engine = p.SimilarityEngine(self.dataset, self.profile)
+        revision = engine.initial('P00', 10, 'resnik_bma')
+        for candidate in ('P01', 'P02', 'P05'):
+            with self.subTest(candidate=candidate):
+                comparison = engine.inspect(revision['revision_id'], candidate)['comparison']
+                concept = comparison['components'][2]
+                self.assertIsNone(concept['distance'])
+                self.assertTrue(concept['missing'])
+                self.assertEqual(concept['explanation'], {'undefined': 'EMPTY_REFERENCE_SET', 'terms': []})
+                self.assertLess(Decimal(comparison['coverage']), 1)
+        # The other measures still compare the empty set, and the reverse direction is defined.
+        self.assertEqual(self.component(engine, 'P00', 'P01', 'simgic')['distance'], '1')
+        self.assertEqual(self.component(engine, 'P01', 'P00', 'resnik_bma')['distance'], '1')
+
     def test_empty_population_and_ic_zero_union_are_defined(self):
         empty = deepcopy(self.dataset)
         for patient in empty['patients']:

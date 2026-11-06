@@ -88,10 +88,16 @@ IC(*c*) = −ln *p*(*c*), with *p*(*c*) = (count(*c*) + 1) / (*N* + 1):
 - IC is a natural logarithm, computed with `Decimal.ln` at 28 significant digits and
   rounded half-even to 12 decimal places. That exact decimal is used in the measures,
   so the table does not depend on the platform or the caller's decimal context.
-- If the denominator is 0 (every term involved has IC 0, or the set is a declared
-  empty one), the distance is 0, as an empty union is under Jaccard. Because the
-  reference and candidate are both in the population, an IC-0 union implies equal
-  sets.
+- If the denominator is 0 because every term involved has IC 0, the distance is 0, as
+  an empty union is under Jaccard. Because the reference and candidate are both in the
+  population, an IC-0 union implies equal sets. Two declared empty sets are at distance
+  0 under `simgic`, and an empty set against a non-empty one is at distance 1.
+- Under `resnik_bma`, a declared empty **reference** set leaves nothing to explain, so
+  every candidate would be a perfect match. The concept component is missing for that
+  comparison instead, with `explanation.undefined = 'EMPTY_REFERENCE_SET'`. It then
+  counts as worst-case distance and reduces coverage, equally for every candidate, as
+  any missing component does. A declared empty candidate set explains nothing and is
+  at distance 1.
 
 In the authored snapshot *N* = 10 (P10's set is incomplete). Eight patients carry
 `ex:DrugA`, one `ex:DrugAChild` and two `ex:DrugB`, giving IC 0.200670695462,
