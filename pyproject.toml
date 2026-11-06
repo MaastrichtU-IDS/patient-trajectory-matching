@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "patient-trajectory-matching"
+version = "0.26.0"
+description = "Patient-trajectory-matching engine: PRO/SOLID graphs, exact and bounded interval queries, and the trajectory-graph matcher."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+# Direct runtime dependencies, as lower bounds equal to patterns/requirements.lock.txt.
+# The transitive pins in that lock file remain the tested set; pip resolves them from these.
+dependencies = [
+    "rdflib>=7.6.0",
+    "pyshacl>=0.30.1",
+    "jsonschema>=4.25.1",
+]
+
+[project.optional-dependencies]
+# patterns/requirements-semantic.lock.txt adds only rustdl on top of the base lock.
+semantic = ["rustdl==0.4.28"]
+store = ["duckdb==1.5.6"]
+
+[tool.hatch.build.targets.wheel]
+include = ["patterns/**", "reference_oracle.py"]
+exclude = [
+    "patterns/test_*.py",
+    "patterns/verify_*.py",
+    "**/__pycache__",
+    "*.pyc",
+]
+
+# Contracts the engine reads at run time, served by patterns/_resources.py when installed.
+# ontology/legacy-2.3 and ontology/toy.ofn are deliberately not listed.
+[tool.hatch.build.targets.wheel.force-include]
+"schemas" = "patterns/_contracts/schemas"
+"ontology/vendor" = "patterns/_contracts/ontology/vendor"
+"ontology/sulo-pin.json" = "patterns/_contracts/ontology/sulo-pin.json"
+"ontology/toy-taxonomy.json" = "patterns/_contracts/ontology/toy-taxonomy.json"
+"ontology/bounded-interval-profile.ttl" = "patterns/_contracts/ontology/bounded-interval-profile.ttl"
+"ontology/bounded-rdf-profile.ttl" = "patterns/_contracts/ontology/bounded-rdf-profile.ttl"
+"ontology/claim-description-profile.ttl" = "patterns/_contracts/ontology/claim-description-profile.ttl"
+"ontology/exact-interval-profile.ttl" = "patterns/_contracts/ontology/exact-interval-profile.ttl"
+"ontology/exact-interval-shapes.ttl" = "patterns/_contracts/ontology/exact-interval-shapes.ttl"
+"ontology/local-claim-description-profile.ttl" = "patterns/_contracts/ontology/local-claim-description-profile.ttl"
+"ontology/measurement-claim-description-profile.ttl" = "patterns/_contracts/ontology/measurement-claim-description-profile.ttl"
+"ontology/patient-local-profile.ttl" = "patterns/_contracts/ontology/patient-local-profile.ttl"
+"ontology/pro-solid-profile.ttl" = "patterns/_contracts/ontology/pro-solid-profile.ttl"
+"ontology/pro-solid-shapes.ttl" = "patterns/_contracts/ontology/pro-solid-shapes.ttl"
+"ontology/state-validity-description-profile.ttl" = "patterns/_contracts/ontology/state-validity-description-profile.ttl"

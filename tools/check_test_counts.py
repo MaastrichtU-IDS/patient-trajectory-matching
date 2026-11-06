@@ -71,6 +71,7 @@ LABELS = {
     'test_prepared_measurement_session': 'Prepared measurement session tests',
     'test_patient_similarity': 'Pre-index similarity and immutable refinement tests',
     'test_trajectory_graph': 'Trajectory-graph profile and differential reference tests',
+    'test_packaging': 'Packaging resource-locator tests',
 }
 
 

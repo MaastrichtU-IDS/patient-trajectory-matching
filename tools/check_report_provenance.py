@@ -32,7 +32,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 # Superseded release manifests describe the tree as it stood at that release, which is
 # the point of keeping them. `check_manifest.py` makes the same exemption for the same
 # reason; this list is not a place to park a report that has merely gone stale.
-HISTORICAL = {'verification/v24-release-manifest.json'}
+HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-release-manifest.json'}
 
 
 def digests(path):

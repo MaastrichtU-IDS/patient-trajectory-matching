@@ -5,7 +5,7 @@ re-checked: they describe the tree at the time of that release, not the tree tod
 """
 import hashlib, json, pathlib, sys
 
-manifest = json.load(open('verification/v25-release-manifest.json'))
+manifest = json.load(open('verification/v26-release-manifest.json'))
 files = manifest['files']
 problems = []
 for name, expected in files.items():

@@ -1,0 +1,30 @@
+name: package
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the lock file
+        run: python -m pip install -r patterns/requirements.lock.txt
+      - name: Build the wheel
+        run: python -m pip wheel --no-deps -w dist .
+      - name: Install the wheel into a fresh venv
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install -r patterns/requirements.lock.txt
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --no-deps dist/*.whl
+      - name: Check the installed package against the checkout
+        run: |
+          checkout="$PWD"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/venv/bin/python" -I "$checkout/.github/scripts/check_installed_package.py" \
+            "$checkout" "$checkout"/dist/*.whl "$checkout/.github/scripts/expected-wheel-files.json"

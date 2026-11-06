@@ -13,7 +13,7 @@
     "examples/patient-similarity/profile.json": "4e3e471043637d50a30a803aa7bf7e2e82a9a76a976d499495270781bcc592a1",
     "ontology/toy-taxonomy.json": "8ffbe370d820bedab4e5bacac847fa4e4bfe86e6fccda89da0747252f8f577ee",
     "patterns/patient_similarity.py": "b1f4168d2314e9939fde2e9e855fff9619519eb440f6c6f984803451df94a94a",
-    "patterns/pro_solid.py": "65ef241757dacfe7238f88953c1d7bb2602afefae5744f0c4d2cda4a8e349c75",
+    "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
     "reference_oracle.py": "fbc5bb4edcbb14be374ff99b366076b923ac9b193ba4c8008003c6a8227ab174",
     "services/cohort.py": "cb4cb1f915a016f926914a3b9d9591fa9d3a94ed2f54fe0dfa04bdbec3b88666"
   },

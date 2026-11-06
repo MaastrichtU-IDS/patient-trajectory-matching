@@ -27,7 +27,7 @@ from pyshacl import validate as shacl_validate
 # In a server, isolate this loader or configure the RDF library equivalently at startup.
 rdflib.NORMALIZE_LITERALS = False
 
-ROOT = Path(__file__).resolve().parents[1]
+from ._resources import ROOT
 S = Namespace('https://w3id.org/sulo/')
 EX = Namespace('https://example.org/trajectory/toy/')
 DATA = Namespace('https://example.org/trajectory/data/')
