@@ -38,7 +38,7 @@ records ─► build graph ─► validate ─► select evidence ─► candida
 | Certain | Every query edge is entailed by the source alone, never by the source narrowed by the query | The entailing paths |
 | Incomparable | The events are on different clocks | The comparable part's witness |
 
-Each fast engine has an independent reference implementation compared differentially (interval cohort, bounded, semantic, source mixed query), 948 contract checks cover the profiles, and every committed report is bound by digest to the files that produced it.
+Each fast engine has an independent reference implementation compared differentially (interval cohort, bounded, semantic, source mixed query), 949 contract checks cover the profiles, and every committed report is bound by digest to the files that produced it.
 
 Limits: the temporal profiles answer different query formats ([issue T1](issues.md#t1-the-four-profiles-are-not-unified-open)); the oracle's pattern is fixed; the interval and bounded profiles cover four operators, not the full Allen catalogue; there is no absence ("no X between A and B") and no disjunction between steps; bounded times are discrete; it is not an OWL reasoner and makes no clinical or causal claim.
 
@@ -210,14 +210,14 @@ A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); re
 | Partitioned event store, concept postings, coverage tables | Not implemented |
 | Compiler with relaxation-sound filters | Not implemented |
 | Distributed workers, job queue, streaming results | Not implemented |
-| IC-weighted similarity (simGIC, best-match Resnik) | Implemented as an explicit option over the admitted snapshot, scored exhaustively; ancestor-Jaccard remains the default |
+| IC-weighted similarity (simGIC, best-match Resnik) | Implemented over the admitted snapshot, scored exhaustively; simGIC is the default for new queries, with a measure selector in the workspace |
 | Similarity retrieval at scale, per-axis weights, governance, audit | Specified only |
 
 ## 5. Similarity on coded terms
 
 ### 5.1 Today
 
-By default the workspace scores clinical concepts as 1 − Jaccard similarity after ancestor expansion in a pinned toy taxonomy (`patterns/patient_similarity.py`); the mockups do the same. A query may instead name `simgic` or `resnik_bma` (best-match Resnik, reference to candidate). These implement items 3 and 4 of §5.2 on the admitted snapshot. IC is computed from the patients whose concept sets are observed, with (count + 1)/(N + 1) smoothing and roots at IC 0, and the measure and IC population are recorded in each result, with a term-by-term explanation. Ancestor-Jaccard stays the default because committed results and replay manifests depend on it and the module has no versioned scoring method. Items 1, 2 and 5 (concept normalization across axes, axis filter profiles and declared per-axis weights), IC from postings at MIMIC scale and §5.4 retrieval are not implemented. Two rules are worth keeping: a partially known concept set is treated as missing, and an empty set counts only with an explicit completeness declaration ([patient similarity](patient-similarity.md)).
+The workspace scores clinical concepts by simGIC by default, after ancestor expansion in a pinned toy taxonomy (`patterns/patient_similarity.py`); a query may instead name `ancestor_jaccard` or `resnik_bma` (best-match Resnik, reference to candidate), and the workspace has a selector for it. The mockups still use plain ancestor-Jaccard. These implement items 3 and 4 of §5.2 on the admitted snapshot. IC is computed from the patients whose concept sets are observed, with (count + 1)/(N + 1) smoothing and roots at IC 0, and the measure and IC population are recorded in each result, with a term-by-term explanation. Every new query records its measure; a query recorded without one predates named measures and is scored by ancestor-Jaccard, so committed results and replay manifests reproduce exactly. Items 1, 2 and 5 (concept normalization across axes, axis filter profiles and declared per-axis weights), IC from postings at MIMIC scale and §5.4 retrieval are not implemented. Two rules are worth keeping: a partially known concept set is treated as missing, and an empty set counts only with an explicit completeness declaration ([patient similarity](patient-similarity.md)).
 
 Plain ancestor-Jaccard counts every shared ancestor equally: sharing "Seizure" counts as much as sharing "Dravet syndrome", and deep or crowded branches inflate scores.
 
@@ -339,7 +339,7 @@ The candidate filter costs roughly the size of the posting lists intersected, su
 | Source model | OMOP CDM lifted into SULO claims, or each source directly |
 | First scale target | Full MIMIC-IV (about 300,000 patients, credentialed) before millions |
 | Live graph validation | Which of the three tightenings in §2 to adopt |
-| Similarity | simGIC as default and best-match Resnik as the reference-to-candidate option; IC population per snapshot. Both measures and the per-snapshot IC population are implemented as explicit options; making simGIC the default awaits a versioned scoring method, so that it can coexist with the pinned ancestor-Jaccard results |
+| Similarity | simGIC as default and best-match Resnik as the reference-to-candidate option; IC population per snapshot. Implemented: simGIC is the default for new queries, each query records its measure, and queries recorded without one keep ancestor-Jaccard |
 | Embeddings | Baseline first; OWL2Vec* only if the baseline's recall falls short |
 
 Proposed first increment, within the repository's discipline and on one machine: the trajectory-graph profile with its reference implementation (§7.5); an execution store built from the MIMIC-IV demo with concept postings and coverage tables; a relaxation-sound compiler tested against the exhaustive reference; a recall benchmark for IC-weighted similarity, whose measures now exist as options (§5.1); and the mockup's exhausted-search status corrected to unresolved.

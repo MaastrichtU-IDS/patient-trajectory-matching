@@ -117,7 +117,7 @@ No restricted patient data is in the repository. Credentialed MIMIC-IV, ADNI and
 
 | Mechanism | What it guarantees |
 |---|---|
-| Contract suites | 948 contract checks across the engine profiles, counted and checked by `tools/check_test_counts.py` against [status](status.md) |
+| Contract suites | 949 contract checks across the engine profiles, counted and checked by `tools/check_test_counts.py` against [status](status.md) |
 | Oracle | 16 cases and 9 property checks, on Python 3.10, 3.11, 3.12 and 3.13 |
 | Provenance gate | Every committed report's file-to-digest bindings still match: 35 reports, 2,374 bindings. A bound file that moves or disappears fails the gate (#98, #100); it previously passed silently |
 | Completion register | All 104 requirements mapped to evidence, acceptance checks and remaining clauses; evidence paths must exist |

@@ -36,7 +36,7 @@ eligibility, real historical availability, or clinical-scale performance.
 |---|---|---|
 | Age band | Latest eligible declaration; 0 for equal declared bands, otherwise 1 | A band remains a band, not an exact age. Conflicting equally recent declarations are missing. |
 | Baseline creatinine | Minimum eligible normalized value in the preceding 48 hours; `min(1, abs(candidate-reference)/1 mg/dL)` | Units must already be mg/dL. Original mg/L values and the existing conversion bindings remain inspectable. |
-| Selected concepts | By default 1 minus Jaccard similarity after the pinned toy ancestor expansion; optionally an IC-weighted measure (below) | Uses recorded pre-index administration concepts in this fixture. A partial concept set is missing for distance calculation under every measure; a known positive concept can still satisfy a hard predicate. |
+| Selected concepts | By default simGIC, the IC-weighted overlap after the pinned toy ancestor expansion; ancestor-Jaccard or best-match Resnik on request (below) | Uses recorded pre-index administration concepts in this fixture. A partial concept set is missing for distance calculation under every measure; a known positive concept can still satisfy a hard predicate. |
 
 The pinned toy expansion adds `ex:DrugA` to `ex:DrugAChild`. `ex:DrugB` is not an
 entailed `ex:DrugA`. This small reviewed authored expansion is not a general OWL
@@ -51,17 +51,18 @@ an unobserved DrugB is unresolved for P10.
 
 ## Information-content measures
 
-The concept-set component can instead be scored by one of two measures weighted by
-information content, chosen per query. `ancestor_jaccard` remains the default: a
-query that names no measure scores exactly as it did before these measures existed,
-so committed revisions, the journey report and replay manifests keep their results.
-The module has no versioned scoring method that would let a new default coexist with
-those results, so simGIC is not the default.
+The concept-set component is scored by one of three measures, chosen per query. Every
+new query names its measure in `query.concept_measure`, and `simgic` is the default.
+A query without the key was recorded before measures were named, when
+ancestor-Jaccard was the only one, so it is scored by `ancestor_jaccard`
+(`metadata()['legacy_concept_measure']`). Committed revisions and replay manifests
+therefore reproduce exactly. That is the versioning: the key's presence says the
+query names its measure, and its absence fixes ancestor-Jaccard.
 
 | `concept_measure` | Distance | Symmetric |
 |---|---|---|
-| `ancestor_jaccard` (default) | 1 − \|A ∩ B\| / \|A ∪ B\| over ancestor-expanded sets | Yes |
-| `simgic` | 1 − Σ IC(A ∩ B) / Σ IC(A ∪ B) over the same expanded sets | Yes |
+| `ancestor_jaccard` | 1 − \|A ∩ B\| / \|A ∪ B\| over ancestor-expanded sets | Yes |
+| `simgic` (default) | 1 − Σ IC(A ∩ B) / Σ IC(A ∪ B) over the same expanded sets | Yes |
 | `resnik_bma` | 1 − Σ over the reference's recorded concepts *t* of max Resnik(*t*, *u*) over the candidate's recorded concepts *u*, divided by the same sum with the reference as its own candidate | No: reference to candidate |
 
 Resnik(*t*, *u*) is the IC of the most informative term in both *t*'s and *u*'s
@@ -98,16 +99,17 @@ In the authored snapshot *N* = 10 (P10's set is incomplete). Eight patients carr
 under Jaccard and 0.8947 under simGIC. Under `resnik_bma` it is 0 from P00 to P02,
 and 0.8823 from P02 to P00.
 
-A result under an IC measure records the measure and its population. The query
-carries `concept_measure`. `results.concept_measure` carries the measure and
+A result records its measure, and under an IC measure its population.
+`results.concept_measure` carries the measure and, for `simgic` and `resnik_bma`,
 `ic_population`, which gives the basis, dataset and profile digests, *N*, the number
 of unobserved patients, a digest of the per-concept counts, the roots, the smoothing
 rule, the logarithm and the rounding. Because these sit inside `results`,
 `result_sha256` binds them. The concept component of each comparison adds `measure`
 and a term-by-term `explanation`. For `simgic` that is each expanded term with its IC
 and whether it is shared or on one side only. For `resnik_bma` it is each reference
-concept with its best candidate concept, shared ancestor, matched IC and self IC. A
-default result carries none of these fields.
+concept with its best candidate concept, shared ancestor, matched IC and self IC. An
+ancestor-Jaccard comparison carries neither field, and a query recorded without a
+measure adds nothing to its results.
 
 Not implemented: per-axis declared weights (findings, diagnoses, medicines), IC
 from ontology postings at MIMIC scale, sparse or approximate retrieval, and a recall
@@ -160,10 +162,12 @@ assert replayed.get_revision(filtered['revision_id']) == filtered
 source SHA, availability policy, the admitted index rule and history windows, and a
 few example concepts, the available concept measures and the default.
 `get_revision(id)` retrieves a defensive copy. `initial` takes an optional
-`concept_measure`; `set_concept_measure` changes it in a refinement, and setting it
-back to `ancestor_jaccard` removes the key from the query. An unknown measure raises
-`UNSUPPORTED_CONCEPT_MEASURE`. The HTTP refine endpoint passes the operation through,
-but the workspace interface has no control for it yet.
+`concept_measure`, defaulting to `simgic`, and always records it;
+`set_concept_measure` changes it in a refinement. An unknown measure raises
+`UNSUPPORTED_CONCEPT_MEASURE`. Over HTTP, `/api/initial` accepts an optional
+`concept_measure` and `/api/refine` passes the operation through. The workspace
+offers a measure selector: it starts a query with the chosen measure, and changing it
+on a revision records a `set_concept_measure` refinement, which can be undone.
 
 A constructor may receive dictionaries or local JSON paths, and admits two scopes:
 
@@ -254,7 +258,7 @@ refinement, unknown predicates, branching, defensive copies, replay tampering,
 resource admission and extreme decimal exponents. For the IC measures they cover a
 hand-computed IC table, simGIC against Jaccard, `resnik_bma` asymmetry, smoothing of
 unseen terms, the root, an empty population and an IC-0 union, option validation,
-recorded population and replay, and a default that is byte-identical to the
-results before the measures were added. Clinical review, source-specific
+recorded population and replay, simGIC as the named default, and a query without a
+measure that is byte-identical to the results before the measures were added. Clinical review, source-specific
 availability policies, held-out retrieval relevance, outcomes, all-pairs retrieval,
 per-axis similarity weights, and production security remain separate work.

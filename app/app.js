@@ -17,8 +17,14 @@ async function api(path, body) {
   if (!response.ok) throw new Error(value.error || 'The request could not be completed.');
   return value;
 }
+// What each concept measure means, for the selector. The list and the default come from
+// the engine's metadata; a measure without an entry here is shown by its identifier.
+const MEASURE_TEXT = {simgic: 'simGIC: shared concepts weighted by how informative they are',
+  ancestor_jaccard: 'Ancestor Jaccard: every shared concept counts equally',
+  resnik_bma: 'Best-match Resnik: how much of the reference the candidate explains'};
 function controls() {
   $('start').disabled = busy;
+  $('measure').disabled = busy;
   for (const id of ['apply','compare']) $(id).disabled = busy || !current;
   $('undo').disabled = busy || !current?.parent_revision_id;
 }
@@ -150,6 +156,8 @@ function renderRevision(revision) {
   const r = revision.results;
   $('scope').textContent = `Reference ${revision.reference_patient_id} · ${r.eligible_patient_ids.length} eligible patients · showing ${r.displayed.length}. Ranking uses only pre-index history; the trajectory uses the entire eligible pool.`;
   renderProfile(revision);
+  // A query without a measure predates named measures and was scored by ancestor-Jaccard.
+  $('measure').value = revision.query.concept_measure || admitted.legacy_concept_measure || 'ancestor_jaccard';
   const changes = revision.changes || {};
   $('changes').textContent = revision.parent_revision_id ? `Eligibility: added ${(changes.added || []).join(', ') || 'none'}; removed ${(changes.removed || []).join(', ') || 'none'}. Ranking may change without changing eligibility.` : `Defaults are explicit and declared for this ${sourceModes.cohort === 'public-demo' ? 'pinned public demo' : 'demonstration'}; they are not clinically validated.`;
   $('rankings').innerHTML = r.displayed.map(row => `<tr><td>${esc(row.patient_id)}</td><td>${esc(row.ranking_distance)}</td><td>${esc(row.coverage)}</td><td><button class="inspect" data-patient="${esc(row.patient_id)}">Inspect</button></td></tr>`).join('') || '<tr><td colspan="4">No rankable candidates under this revision.</td></tr>';
@@ -230,7 +238,17 @@ function renderEvidence(patient, data) {
     + `<details open><summary>Similarity components and eligibility</summary><pre>${esc(JSON.stringify(similarity,null,2))}</pre></details>`
     + bindings;
 }
-$('start').onclick = () => action(async()=>renderRevision(await api('/api/initial',{patient_id:$('patient').value,top_k:5})));
+$('start').onclick = () => action(async()=>renderRevision(await api('/api/initial',{patient_id:$('patient').value,top_k:5,concept_measure:$('measure').value})));
+$('measure').onchange = () => {
+  if (!current) return;
+  return action(async()=>{
+    const before = {order: current.results.displayed.map(row => row.patient_id),
+                    eligible: current.results.eligible_patient_ids.slice()};
+    const revision = await api('/api/refine',{revision_id:current.revision_id, operation:{type:'set_concept_measure', concept_measure:$('measure').value}});
+    renderRevision(revision);
+    $('effects').textContent = describeEffects(before, revision);
+  });
+};
 $('components').onchange = event => {
   const component = event.target?.dataset?.component;
   if (!component || !components.includes(component)) return;
@@ -316,6 +334,8 @@ async function initialize() {
     const meta = capabilities.metadata;
     $('patient').innerHTML = meta.patients.map(p=>`<option value="${esc(p.patient_id)}">${esc(p.label || p.patient_id)}</option>`).join('');
     $('patient').value = meta.default_reference_patient_id;
+    $('measure').innerHTML = (meta.concept_measures || []).map(m=>`<option value="${esc(m)}">${esc(MEASURE_TEXT[m] || m)}</option>`).join('');
+    $('measure').value = meta.default_concept_measure;
     components = meta.components || [];
     baseWeights = meta.default_weights || {};
     admitted = meta;

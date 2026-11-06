@@ -32,12 +32,13 @@ PERMITTED_SCOPES = {'authored_synthetic': 'authored_synthetic_review',
 # pinned recorded stays as authored synthetic to every later reader of the export.
 RANKING_SCOPES = {scope: f'bounded_{scope}_exhaustive_ranking' for scope in PERMITTED_SCOPES}
 COMPONENTS = ('age_band', 'baseline_creatinine', 'clinical_concepts')
-# How the concept-set component is scored. `ancestor_jaccard` stays the default because
-# committed revisions, the journey report and replay manifests were produced by it, and a
-# query that omits the measure has to keep meaning what it meant when it was recorded.
-# A query names another measure explicitly; the default is never written into a query.
+# How the concept-set component is scored. A new query always names its measure, and
+# simGIC is the default for new queries. A query without the key was recorded before
+# measures were named, when ancestor-Jaccard was the only one, so it keeps meaning
+# ancestor-Jaccard: saved revisions and replay manifests reproduce exactly.
 CONCEPT_MEASURES = ('ancestor_jaccard', 'simgic', 'resnik_bma')
-DEFAULT_CONCEPT_MEASURE = 'ancestor_jaccard'
+DEFAULT_CONCEPT_MEASURE = 'simgic'
+LEGACY_CONCEPT_MEASURE = 'ancestor_jaccard'
 # Information content is a natural logarithm rounded half-even to 12 places, the finest
 # scale `decimal()` admits, and that exact decimal is what the measures then use. Python's
 # `Decimal.ln` is correctly rounded, so the table is the same on every platform.
@@ -276,6 +277,7 @@ class SimilarityEngine:
                 'scope': self._dataset['scope'],
                 'search': 'exhaustive_pool',
                 'concept_measures': list(CONCEPT_MEASURES), 'default_concept_measure': DEFAULT_CONCEPT_MEASURE,
+                'legacy_concept_measure': LEGACY_CONCEPT_MEASURE,
                 'limits': {'patients': MAX_PATIENTS, 'records': MAX_RECORDS, 'revisions': MAX_REVISIONS}}
 
     def _extract(self, patient):
@@ -399,7 +401,7 @@ class SimilarityEngine:
         explanation = {'matched_ic': display(matched), 'reference_ic': display(possible), 'terms': terms}
         return (Fraction(1) - matched / possible if possible else Fraction(0)), explanation
 
-    def _score(self, reference, candidate, weights, measure=DEFAULT_CONCEPT_MEASURE):
+    def _score(self, reference, candidate, weights, measure=LEGACY_CONCEPT_MEASURE):
         with localcontext() as context:
             context.prec = 28
             context.rounding = ROUND_HALF_EVEN
@@ -418,7 +420,7 @@ class SimilarityEngine:
                     distance = Fraction(a['value'] != b['value'])
                 elif component == 'baseline_creatinine':
                     distance = min(Fraction(1), abs(Fraction(decimal(a['value']))-Fraction(decimal(b['value']))) / Fraction(decimal(self._profile['creatinine_scale'])))
-                elif measure != DEFAULT_CONCEPT_MEASURE:
+                elif measure != LEGACY_CONCEPT_MEASURE:
                     distance, explanation = self._concept_distance(a, b, measure, display)
                 else:
                     aa, bb = set(a['value']), set(b['value'])
@@ -431,8 +433,8 @@ class SimilarityEngine:
                 'reference_record_ids': [r['id'] for r in a['evidence']],
                 'candidate_record_ids': [r['id'] for r in b['evidence']],
                 'missing': distance is None})
-            # Only an IC measure adds fields, so a default comparison keeps its exact shape.
-            if component == 'clinical_concepts' and measure != DEFAULT_CONCEPT_MEASURE:
+            # Only an IC measure adds fields, so an ancestor-Jaccard comparison keeps its exact shape.
+            if component == 'clinical_concepts' and measure != LEGACY_CONCEPT_MEASURE:
                 components[-1].update({'measure': measure, 'explanation': explanation})
         coverage = observed / total
         # Missing mass has distance one. Exact fractions determine ordering;
@@ -478,6 +480,11 @@ class SimilarityEngine:
         return ('excluded', failures) if failures else ('unresolved', unknown) if unknown else ('eligible', [])
 
     def initial(self, patient_id, top_k=5, concept_measure=DEFAULT_CONCEPT_MEASURE):
+        return self._initial(patient_id, top_k, self._measure(concept_measure))
+
+    def _initial(self, patient_id, top_k, concept_measure):
+        """`concept_measure` None builds a query without the key, as recorded before measures
+        were named; only replay of such a query asks for it."""
         if patient_id not in self._patients:
             raise ValueError('UNKNOWN_PATIENT')
         if type(top_k) is not int or not 1 <= top_k <= MAX_PATIENTS:
@@ -485,8 +492,8 @@ class SimilarityEngine:
         query = {'weights': deepcopy(self._profile['weights']), 'hard_filters': [], 'top_k': top_k,
                  'base_pool': sorted(pid for pid in self._patients if pid != patient_id),
                  'history_us': self._profile['history_us'], 'index_rule': self._dataset['index_rule']}
-        if self._measure(concept_measure) != DEFAULT_CONCEPT_MEASURE:
-            query['concept_measure'] = concept_measure
+        if concept_measure is not None:
+            query['concept_measure'] = self._measure(concept_measure)
         return self._evaluate(patient_id, query, None, {'type': 'initial'})
 
     def refine(self, parent_revision_id, operation):
@@ -509,18 +516,14 @@ class SimilarityEngine:
             query['hard_filters'].append(operation['predicate'])
         elif operation.get('type') == 'set_concept_measure':
             _keys(operation, ('type', 'concept_measure'))
-            # Returning to the default removes the key, so the query reads as a default one.
-            if self._measure(operation['concept_measure']) == DEFAULT_CONCEPT_MEASURE:
-                query.pop('concept_measure', None)
-            else:
-                query['concept_measure'] = operation['concept_measure']
+            query['concept_measure'] = self._measure(operation['concept_measure'])
         else:
             raise ValueError('UNSUPPORTED_OPERATION')
         return self._evaluate(parent['reference_patient_id'], query, parent, operation)
 
     def _evaluate(self, reference_id, query, parent, operation):
         weights = self._weights(query['weights'])
-        measure = self._measure(query.get('concept_measure', DEFAULT_CONCEPT_MEASURE))
+        measure = self._measure(query.get('concept_measure', LEGACY_CONCEPT_MEASURE))
         ranked, eligible, excluded, unresolved, unrankable = [], [], [], [], []
         for pid in query['base_pool']:
             candidate = self._features[pid]
@@ -542,9 +545,12 @@ class SimilarityEngine:
         results = {'ranked': ranked, 'displayed': ranked[:query['top_k']], 'eligible_patient_ids': eligible,
                    'excluded': excluded, 'unresolved': unresolved, 'unrankable': unrankable,
                    'base_pool_count': len(query['base_pool']), 'search_complete': True}
-        if measure != DEFAULT_CONCEPT_MEASURE:
-            # Inside `results`, so `result_sha256` binds the IC population that produced them.
-            results['concept_measure'] = {'measure': measure, 'ic_population': deepcopy(self._ic_population)}
+        if 'concept_measure' in query:
+            # Inside `results`, so `result_sha256` binds the measure and, for an IC measure,
+            # the population that produced them. A query without the key adds nothing.
+            results['concept_measure'] = {'measure': measure}
+            if measure != LEGACY_CONCEPT_MEASURE:
+                results['concept_measure']['ic_population'] = deepcopy(self._ic_population)
         reasons = {row['patient_id']: row['reasons'] for row in excluded+unresolved}
         revision = {'profile': 'patient-similarity-revision-1.0', 'parent_revision_id': parent['revision_id'] if parent else None,
             'dataset_id': self._dataset['dataset_id'], 'dataset_sha256': self._dataset_hash,
@@ -578,14 +584,14 @@ class SimilarityEngine:
             raise ValueError('PATIENT_OUTSIDE_CANDIDATE_POOL')
         candidate, reference = self._features[candidate_id], self._features[revision['reference_patient_id']]
         state, reasons = self._filter(candidate, revision['query']['hard_filters'])
-        measure = revision['query'].get('concept_measure', DEFAULT_CONCEPT_MEASURE)
+        measure = revision['query'].get('concept_measure', LEGACY_CONCEPT_MEASURE)
         inspected = {'revision_id': revision_id, 'patient_id': candidate_id,
                 'reference_patient_id': revision['reference_patient_id'], 'eligibility': state, 'reasons': reasons,
                 'candidate': deepcopy(candidate), 'reference': deepcopy(reference),
                 'comparison': self._score(reference, candidate, self._weights(revision['query']['weights']), measure),
                 'dataset_sha256': self._dataset_hash, 'profile_sha256': self._profile_hash,
                 'clinical_validity_claim': False}
-        if measure != DEFAULT_CONCEPT_MEASURE:
+        if 'concept_measure' in revision['results']:
             inspected['concept_measure'] = deepcopy(revision['results']['concept_measure'])
         return inspected
 
@@ -616,7 +622,7 @@ class SimilarityEngine:
         for saved in manifest['revisions']:
             if saved['parent_revision_id'] != previous:
                 raise ValueError('INVALID_REPLAY_PARENT')
-            actual = engine.initial(saved['reference_patient_id'], saved['query']['top_k'], saved['query'].get('concept_measure', DEFAULT_CONCEPT_MEASURE)) if previous is None else engine.refine(previous, saved['operation'])
+            actual = engine._initial(saved['reference_patient_id'], saved['query']['top_k'], saved['query'].get('concept_measure')) if previous is None else engine.refine(previous, saved['operation'])
             if actual != saved:
                 raise ValueError('REPLAY_RESULT_MISMATCH')
             previous = actual['revision_id']

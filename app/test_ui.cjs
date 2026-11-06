@@ -53,8 +53,13 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   await settle();
   assert.equal(el('patient').value,'P00');
   assert.equal(el('compare').disabled,true);
+  // The measure selector lists the engine's measures and starts on its default.
+  assert.match(el('measure').innerHTML,/simgic[\s\S]*ancestor_jaccard|ancestor_jaccard[\s\S]*simgic/);
+  assert.equal(el('measure').value,payload.capabilities.metadata.default_concept_measure);
   await el('start').onclick();
   assert.equal(calls.at(-1).body.patient_id,'P00');
+  assert.equal(calls.at(-1).body.concept_measure,payload.capabilities.metadata.default_concept_measure);
+  assert.equal(el('measure').value,payload.initial.query.concept_measure);
   assert.match(el('rankings').innerHTML,/P01/);
   assert.match(el('scope').textContent,/10 eligible/);
   // UI-002: the four dispositions. The first three are one control; hiding is its own.
@@ -176,11 +181,17 @@ const settle=()=>new Promise(resolve=>setImmediate(resolve));
   assert.match(el('export').className,/hidden/);
   assert.equal(el('cohorts').innerHTML,'');
   assert.equal(el('priced-by').textContent,'','a profile line outliving its result names a model that priced nothing on screen');
+  // Changing the measure on a revision records a refinement naming the new measure, and
+  // the selector then shows the measure of the revision on screen.
+  el('measure').value='resnik_bma';
+  await el('measure').onchange();
+  assert.deepEqual(calls.at(-1).body.operation,{type:'set_concept_measure',concept_measure:'resnik_bma'});
+  assert.equal(el('measure').value,payload.refined.query.concept_measure);
   failNext=true;
   await el('compare').onclick();
   assert.equal(el('status').className,'error');
   assert.match(el('status').textContent,/Deliberate evaluation failure/);
   assert.match(el('export').className,/hidden/);
   assert.equal(el('compare').disabled,false);
-  console.log('Research UI: four feature dispositions with display-only hiding, complete two-refinement journey, comparison, the cost model named from the payload, evidence, safe rendering, undo and failure states passed.');
+  console.log('Research UI: four feature dispositions with display-only hiding, complete two-refinement journey, the concept measure selector, comparison, the cost model named from the payload, evidence, safe rendering, undo and failure states passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
