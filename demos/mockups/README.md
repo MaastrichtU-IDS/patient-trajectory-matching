@@ -4,11 +4,13 @@ Exploratory interfaces for clinical researchers defining and matching patient tr
 
 ```sh
 python demos/mockups/synthetic/generate.py                 # writes demos/mockups/data/ (git-ignored)
-python -m http.server 8090 --bind 127.0.0.1 --directory demos/mockups
+python demos/mockups/server.py                             # pages plus the trajectory-graph engine on 127.0.0.1:8090
 # from another machine: ssh -N -L 8090:127.0.0.1:8090 <user>@<host>, then open http://localhost:8090/
 ```
 
 Opening the HTML files directly will not work; the pages fetch the dataset over HTTP.
+
+`server.py` serves the pages as `python -m http.server` would, and adds the trajectory-graph engine (`patterns/trajectory_graph.py`, [profile](../../docs/trajectory-graph-profile.md)). The trajectory page then matches with the engine: it resolves each step's candidate events, including relaxed alternatives, and the engine decides timing, relaxation and search budgets. A toggle switches to the page's own in-browser search, which is also used wherever no engine is reachable, as on static hosting. `test_engine_parity.cjs` checks that both give every patient the same status, certainty and relaxation set.
 
 ## The synthetic cohort
 
