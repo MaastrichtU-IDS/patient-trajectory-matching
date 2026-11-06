@@ -20,6 +20,7 @@
     "patterns/_contracts/schemas/clinical-source-preflight.schema.json",
     "patterns/_contracts/schemas/contracts.schema.json",
     "patterns/_contracts/schemas/evidence-selection.schema.json",
+    "patterns/_contracts/schemas/execution-store-manifest.schema.json",
     "patterns/_contracts/schemas/extended-interval-query.schema.json",
     "patterns/_contracts/schemas/indexed-source-windows.schema.json",
     "patterns/_contracts/schemas/interval-cohort.schema.json",
