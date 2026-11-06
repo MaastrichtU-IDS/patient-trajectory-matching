@@ -80,7 +80,7 @@ Proposed tightening, cheapest first: add the bounded example graph to the CI OWL
 
 ## 3. The trajectory mockup
 
-`demos/mockups/trajectory/` calls no API. Recorded in headless Chromium while loading and exercising templates, search, filters and the detail drawer, the page makes five requests on load — the page, `shared/style.css`, `shared/core.js`, `trajectory/app.js`, and the dataset `data/synthetic-paediatric-rare.json` — and none during interaction. Everything is computed in the browser:
+`demos/mockups/trajectory/` was built to compute everything in the browser. Served by `demos/mockups/server.py`, it now sends matching to the trajectory-graph engine (below); on static hosting it still matches in the browser. Recorded in headless Chromium while loading and exercising templates, search, filters and the detail drawer, the static page makes five requests on load — the page, `shared/style.css`, `shared/core.js`, `trajectory/app.js`, and the dataset `data/synthetic-paediatric-rare.json` — and none during interaction. In the browser:
 
 | Part | Code |
 |---|---|
@@ -92,7 +92,7 @@ Proposed tightening, cheapest first: add the bounded example graph to the CI OWL
 | Candidates, temporal network, possible versus exact | `trajectory/app.js`: `candidates`, `compile`, `consistent`, `search` |
 | Relaxation, not comparable | `trajectory/app.js`: `relaxOptions`, `matchPatient` |
 
-None of the engine, workspace, oracle or SULO graphs is involved; the browser matcher re-implements the idea in `temporal_stn.py` and is covered by no engine test or provenance binding. The trajectory-graph profile in `patterns/` (§7.5) now implements its semantics in the engine. Connecting the page still needs an endpoint in `app/` accepting the page's definition as JSON, a translation of the page's events and derived measurement events into the profile's input, and the page posting to it.
+None of the engine, workspace, oracle or SULO graphs is involved; the browser matcher re-implements the idea in `temporal_stn.py` and is covered by no engine test or provenance binding. The trajectory-graph profile in `patterns/` (§7.5) implements the same semantics in the engine, and the page is connected to it. `server.py` exposes `POST /api/trajectory-graph/match`. The page resolves each step's candidate events, including derived measurement events and each relaxed alternative, tags them with the step, and posts them. The engine decides possible and exact, relaxation and the search budget. Two statuses need the page's data and stay there, with the engine deciding the steps that can be measured: a measured step with no series at all, and a measurement that cannot be observed after the event it follows. On every template and three heavier trajectories, both paths give every patient of the synthetic cohort the same status, certainty and relaxation set (`demos/mockups/test_engine_parity.cjs`, in CI). The engine still reads candidates resolved by the page, not SULO graphs.
 
 ## 4. Server-side design for millions of patients
 
@@ -207,7 +207,7 @@ A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); re
 | Indexed engine checked against an exhaustive reference | Implemented (interval cohort) |
 | Source windows, partition plans, prepared sessions, result cache | Implemented at single-machine scale on the MIMIC-IV demo |
 | Availability modes and revision chains | Implemented on small bundles (evidence selection) |
-| Trajectory-graph matcher for sequences, trees and graphs | Implemented as a profile over projected JSON (`trajectory_graph`), checked against an exhaustive reference; no SULO adapter or endpoint yet |
+| Trajectory-graph matcher for sequences, trees and graphs | Implemented as a profile over projected JSON (`trajectory_graph`), checked against an exhaustive reference; the trajectory mockup matches through it; no SULO adapter yet |
 | Partitioned event store, concept postings, coverage tables | Not implemented |
 | Compiler with relaxation-sound filters | Not implemented |
 | Distributed workers, job queue, streaming results | Not implemented |
@@ -335,7 +335,7 @@ Implemented as `trajectory-graph-1.0` ([profile](trajectory-graph-profile.md)):
 4. Relaxation is a cost-ordered search over declared combinations, stopping at the first success.
 5. The engine is checked against an exhaustive, independently written reference on 1,500 seeded trajectories.
 
-Not yet: certificates and counterexamples for exact and failed bindings, distinctness, disjunction and absence, a SULO adapter, and the mockup's endpoint.
+The trajectory mockup now matches through it (§3). Not yet: certificates and counterexamples for exact and failed bindings, distinctness, disjunction and absence, and a SULO adapter.
 
 ## 8. Decisions and next steps
 
@@ -348,7 +348,7 @@ Not yet: certificates and counterexamples for exact and failed bindings, distinc
 | Similarity | simGIC as default and best-match Resnik as the reference-to-candidate option; IC population per snapshot. Implemented: simGIC is the default for new queries, each query records its measure, and queries recorded without one keep ancestor-Jaccard |
 | Embeddings | Baseline first; OWL2Vec* only if the baseline's recall falls short |
 
-Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. Remaining: an execution store built from the MIMIC-IV demo with concept postings and coverage tables; a relaxation-sound compiler tested against the exhaustive reference; a recall benchmark for IC-weighted similarity; and connecting the trajectory mockup to the profile.
+Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. The trajectory mockup is connected to the profile. Remaining: an execution store built from the MIMIC-IV demo with concept postings and coverage tables; a relaxation-sound compiler tested against the exhaustive reference; and a recall benchmark for IC-weighted similarity.
 
 ## References
 

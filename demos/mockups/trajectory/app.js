@@ -14,7 +14,8 @@
 const ORDER = ['exact', 'possible', 'relaxed', 'incomparable', 'unresolved', 'none', 'excluded'];
 const HIDDEN_BY_DEFAULT = ['none', 'excluded'];
 const DEFAULT_FILTER = ORDER.filter(s => !HIDDEN_BY_DEFAULT.includes(s));
-Object.assign(state, {lens: 'recorded', selected: null, def: null, results: [], filter: new Set(DEFAULT_FILTER), freeText: 'present'});
+Object.assign(state, {lens: 'recorded', selected: null, def: null, results: [], filter: new Set(DEFAULT_FILTER), freeText: 'present',
+  matcher: 'browser', engine: null, pending: false, engineError: null});
 
 const ANCHORS = {START: 'Index start', END: 'Index end'};
 const STEP_KINDS = ['phenotype', 'diagnosis', 'medication', 'drug_class', 'gene', 'measurement'];
@@ -350,11 +351,178 @@ function matchPatient(pid, def, a) {
   return {pid, win, status: 'none', truncated: skipped};
 }
 
+/* Engine matching. The page resolves each step's candidate events -- index window, free text,
+   counts, measurement conditions and each relaxed alternative -- exactly as above, and the
+   trajectory-graph engine (patterns/trajectory_graph.py, served by ../server.py) decides the
+   temporal matching, relaxation and search budget. Each step's candidates become events
+   tagged with that step, so concept matching stays here. Times go to the engine in minutes,
+   its integer grid. Two statuses need the page's own data and are settled as above, with
+   the engine deciding the steps that can be measured: no measurement series at all, and a
+   measurement that cannot be observed after the event it follows. */
+const ENGINE_URL = '../api/trajectory-graph/match';
+const GRID = 1440;
+const toGrid = d => Number.isFinite(d) ? Math.round(d * GRID) : (d < 0 ? -1e15 : 1e15);
+const withoutNodes = (def, ids) => ({...def, nodes: def.nodes.filter(n => !ids.has(n.id)),
+  edges: def.edges.filter(e => !ids.has(e.from) && !ids.has(e.to))});
+
+function engineRequest(def, pids, relax = true) {
+  const opts = relax ? relaxOptions(def) : [];
+  const lookup = new Map(), windows = new Map();
+  const relations = def.edges.map((e, k) => e.rel === 'after'
+    ? {id: `edge:${k}`, kind: 'after', from: e.from, to: e.to,
+       ...(finite(e.min) ? {min: toGrid(toDays(e.min, e.unit))} : {}), ...(finite(e.max) ? {max: toGrid(toDays(e.max, e.unit))} : {})}
+    : {id: `edge:${k}`, kind: 'during', from: e.from, to: e.to, grace: toGrid(toDays(+e.grace || 0, e.unit))});
+  const relaxations = opts.map(o => {
+    const [kind, target] = o.key.split(':'), cost = String(o.cost);
+    if (kind !== 'edge') return {id: o.key, kind: 'widen_concept', cost, step: target, concept: `${target}~${kind}`};
+    const e = def.edges[+target];
+    return e.rel === 'after'
+      ? {id: o.key, kind: 'extend_max', cost, relation: `edge:${target}`, max: toGrid(toDays(e.max, e.unit) * 1.5)}
+      : {id: o.key, kind: 'extend_grace', cost, relation: `edge:${target}`, grace: toGrid(toDays(+e.grace || 0, e.unit) + 30)};
+  });
+  const patients = pids.map(pid => {
+    const view = evidenceFor(pid);
+    const win = windowFor(view, {freeText: state.freeText, knownByIndex: false, window: def.window});
+    windows.set(pid, win);
+    if (win.reason) return {patient_id: pid, window: null, events: []};
+    const events = [];
+    const add = (n, keys, concept) => candidates(view, n, keys, win).forEach((c, i) => {
+      const id = `${concept}#${i}`;
+      lookup.set(`${pid}/${id}`, c);
+      events.push({id, concepts: [concept], start: [toGrid(c.e), toGrid(c.l)],
+        ...(c.point ? {} : {end: [Math.max(toGrid(c.fe), toGrid(c.e)), Number.isFinite(c.fl) ? toGrid(c.fl) : null]})});
+    });
+    for (const n of def.nodes) {
+      add(n, new Set(), n.id);
+      for (const o of opts.filter(o => !o.key.startsWith('edge:') && o.key.endsWith(`:${n.id}`))) add(n, new Set([o.key]), `${n.id}~${o.key.split(':')[0]}`);
+    }
+    return {patient_id: pid, window: {start: toGrid(win.start), end: toGrid(win.end)}, events};
+  });
+  const query = {profile: 'trajectory-graph-1.0', scope: def.scope || 'any', steps: def.nodes.map(n => ({id: n.id, concept: n.id})),
+                 relations, relaxations, budget: relax ? '1' : '0', search_budget: SEARCH_BUDGET};
+  return {body: {query, patients}, lookup, windows, opts};
+}
+
+function fromEngine(r, def, req) {
+  const pid = r.patient_id, win = req.windows.get(pid);
+  const bindOf = ids => new Map(Object.entries(ids).map(([s, id]) => [s, req.lookup.get(`${pid}/${id}`)]));
+  const textOf = key => req.opts.find(o => o.key === key).text;
+  const best = (ids, certainty, keys) => { const bind = bindOf(ids); return {status: certainty, bind, net: compile(def, win, bind, keys)}; };
+  if (r.status === 'excluded') return {pid, status: 'excluded', reason: win.reason};
+  if (r.status === 'exact' || r.status === 'possible')
+    return {pid, win, status: r.status, best: best(r.binding, r.status, new Set()), truncated: r.note === 'EXACT_SEARCH_STOPPED', cost: 0, relaxations: []};
+  if (r.status === 'relaxed') {
+    const keys = new Set(r.relaxations);
+    return {pid, win, status: 'relaxed', certainty: r.certainty, best: best(r.binding, r.certainty, keys), cost: +r.cost,
+            relaxations: r.relaxations.map(textOf), relaxKeys: keys, truncated: !!r.note};
+  }
+  if (r.status === 'unresolved') {
+    const m = r.relaxed_match;
+    if (!m) return {pid, win, status: 'unresolved', reason: STOPPED};
+    const keys = new Set(m.relaxations);
+    return {pid, win, status: 'unresolved', best: best(m.binding, m.certainty, keys), relaxKeys: keys,
+            reason: `${STOPPED}; relaxing ${m.relaxations.map(textOf).join('; ')} gives one at cost ${+m.cost}`};
+  }
+  return {pid, win, status: 'none', truncated: !!r.note};
+}
+
+// A generator: it yields each request body and resumes with the engine's answer, so the page
+// drives it with fetch and a test can drive it synchronously.
+function* engineSteps(def) {
+  const pids = [...state.patients.keys()], out = new Map();
+  function* ask(d, ids, relax) {
+    const req = engineRequest(d, ids, relax);
+    const answer = yield req.body;
+    return answer.results.map(r => [r, req]);
+  }
+  // Patients with no measurement series at all for a measured step: the other steps decide.
+  const groups = new Map();
+  for (const pid of pids) {
+    const view = evidenceFor(pid);
+    const rise = def.nodes.filter(n => stepKind(n) === 'measure' && !(view.series[n.concept] || []).some(s => typeof s.value === 'number'));
+    const key = rise.map(n => n.id).join(',');
+    if (!groups.has(key)) groups.set(key, {rise, pids: []});
+    groups.get(key).pids.push(pid);
+  }
+  for (const [key, {rise, pids: ids}] of groups) {
+    if (!key) {
+      for (const [r, req] of yield* ask(def, ids, true)) out.set(r.patient_id, fromEngine(r, def, req));
+      continue;
+    }
+    const gone = new Set(rise.map(n => n.id)), rest = withoutNodes(def, gone);
+    const answers = rest.nodes.length ? yield* ask(rest, ids, false) : ids.map(pid => [{patient_id: pid, status: 'exact'}, null]);
+    for (const [r] of answers) {
+      const win = windowFor(evidenceFor(r.patient_id), {freeText: state.freeText, knownByIndex: false, window: def.window});
+      out.set(r.patient_id, r.status === 'excluded' || win.reason ? {pid: r.patient_id, status: 'excluded', reason: win.reason}
+        : ['exact', 'possible'].includes(r.status) ? {pid: r.patient_id, win, status: 'incomparable', reason: `the other steps match, but there are no ${rise.map(n => label(n.concept).toLowerCase()).join(' or ')} measurements for ${[...gone].join(', ')}`}
+        : r.status === 'unresolved' ? {pid: r.patient_id, win, status: 'unresolved', reason: `${STOPPED} on the steps that can be measured`}
+        : {pid: r.patient_id, win, status: 'none', reason: 'the steps that can be measured do not match'});
+    }
+  }
+  // A measurement that follows a step must be observable after the event bound to that step.
+  // For patients with no match, the other steps go to the engine; if they match, the
+  // measurement is checked after the bound event, as the browser search checks it.
+  const measured = def.nodes.filter(n => stepKind(n) === 'measure' && def.edges.some(e => e.to === n.id && !isAnchor(e.from)));
+  const unmatched = [...out.values()].filter(r => r.status === 'none' && !r.reason).map(r => r.pid);
+  if (measured.length && unmatched.length) {
+    const rest = withoutNodes(def, new Set(measured.map(n => n.id)));
+    if (rest.nodes.length) for (const [r, req] of yield* ask(rest, unmatched, false)) {
+      if (!['exact', 'possible'].includes(r.status)) continue;
+      const view = evidenceFor(r.patient_id), bind = new Map(Object.entries(r.binding).map(([s, id]) => [s, req.lookup.get(`${r.patient_id}/${id}`)]));
+      for (const n of measured) for (const e of def.edges.filter(x => x.to === n.id && bind.has(x.from))) {
+        const p = bind.get(e.from);
+        const within = e.rel === 'after' ? (finite(e.max) ? toDays(e.max, e.unit) : 365) : (Number.isFinite(p.fl) ? p.fl - p.e : 365) + toDays(+e.grace || 0, e.unit);
+        if (!measureObservable(view.series[n.concept] || [], n.cond, p, within) && out.get(r.patient_id).status === 'none')
+          out.set(r.patient_id, {pid: r.patient_id, win: req.windows.get(r.patient_id), status: 'incomparable',
+            reason: `the measurements do not cover the time around ${e.from} (${p.what}, ${ageText(p.e)}), so ${n.id} cannot be judged`});
+      }
+    }
+  }
+  return pids.map(pid => out.get(pid));
+}
+
+async function matchWithEngine(def, post) {
+  const steps = engineSteps(def);
+  let step = steps.next();
+  while (!step.done) step = steps.next(await post(step.value));
+  return step.value;
+}
+
+async function postEngine(body) {
+  const response = await fetch(ENGINE_URL, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const value = await response.json();
+  if (!response.ok) throw new Error(value.error || `HTTP ${response.status}`);
+  return value;
+}
+
+const sortResults = results => results.sort((x, y) => ORDER.indexOf(x.status) - ORDER.indexOf(y.status) || (x.cost || 0) - (y.cost || 0) || x.pid.localeCompare(y.pid));
+let runToken = 0;
+
 function run() {
   const a = analyse(state.def);
   state.analysis = a;
-  state.results = a.errors.length || !state.def.nodes.length ? [] : [...state.patients.keys()].map(pid => matchPatient(pid, state.def, a));
-  state.results.sort((x, y) => ORDER.indexOf(x.status) - ORDER.indexOf(y.status) || (x.cost || 0) - (y.cost || 0) || x.pid.localeCompare(y.pid));
+  const token = ++runToken;
+  if (a.errors.length || !state.def.nodes.length) { state.results = []; state.pending = false; return; }
+  if (state.matcher === 'engine') {
+    state.pending = true;
+    state.engineError = null;
+    matchWithEngine(state.def, postEngine).then(results => {
+      if (token !== runToken) return;
+      state.results = sortResults(results);
+      state.pending = false;
+      render();
+    }).catch(error => {
+      if (token !== runToken) return;
+      // The engine refused or is unreachable: say so, and match in the browser instead.
+      state.engineError = error.message;
+      state.matcher = 'browser';
+      run();
+      render();
+    });
+    return;
+  }
+  state.pending = false;
+  state.results = sortResults([...state.patients.keys()].map(pid => matchPatient(pid, state.def, a)));
 }
 
 /* Rendering */
@@ -523,7 +691,17 @@ function renderMatches() {
     return;
   }
   const c = count();
-  $('#summary').innerHTML = `<p class="hint">Every patient is searched; there is no reference patient here. Each step is bound to one of the patient's events, and the constraints are checked jointly over the recorded time ranges.</p>
+  const matcher = state.engine
+    ? `<div class="tj-filters" role="group" aria-label="Matched by"><span class="hint">Matched by</span>${[['engine', `the engine (${state.engine})`], ['browser', 'this page']].map(([m, t]) =>
+        `<button class="tj-filter" aria-pressed="${state.matcher === m}" data-action="matcher" data-m="${m}">${esc(t)}</button>`).join('')}</div>`
+    : '<p class="hint">Matched in this page: no engine is reachable here. Serve the mockups with <code>demos/mockups/server.py</code> to match with the engine.</p>';
+  const notice = state.engineError ? `<p class="hint">The engine could not answer (${esc(state.engineError)}); matched in this page instead.</p>` : '';
+  if (state.pending) {
+    $('#summary').innerHTML = `${matcher}<p class="hint">Matching every patient with the engine…</p>`;
+    $('#list').innerHTML = '';
+    return;
+  }
+  $('#summary').innerHTML = `${matcher}${notice}<p class="hint">Every patient is searched; there is no reference patient here. Each step is bound to one of the patient's events, and the constraints are checked jointly over the recorded time ranges.</p>
     <div class="tj-filters" role="group" aria-label="Show results">${ORDER.map(st => `<button class="tj-filter${HIDDEN_BY_DEFAULT.includes(st) ? ' tj-filter-none' : ''}" aria-pressed="${state.filter.has(st)}" data-action="filter" data-s="${st}">${STATUS[st][0]} ${STATUS[st][1]} · ${c[st] || 0}</button>`).join('')}</div>
     <p class="hint">Select several result types to see them together. <em>No recorded match</em> and <em>No index period</em> are hidden until selected; <em>No recorded match</em> is shown only on its own. <em>Unresolved</em> patients were not fully searched and may still match.</p>`;
   const rows = state.results.filter(r => state.filter.has(r.status));
@@ -652,6 +830,7 @@ function handle(action, el) {
       break;
     }
     case 'scope': def.scope = el.value; break;
+    case 'matcher': state.matcher = el.dataset.m; state.engineError = null; break;
     case 'freetext': state.freeText = el.value; break;
     default: return;
   }
@@ -697,6 +876,10 @@ async function main() {
     $('#workspace').innerHTML = `<p class="loading">Could not load the synthetic dataset (${esc(error.message)}). Serve the <code>demos/mockups/</code> directory over HTTP.</p>`;
     return;
   }
+  try {
+    const health = await fetch('../api/health');
+    if (health.ok) { state.engine = (await health.json()).profile; state.matcher = 'engine'; }
+  } catch (error) { /* static hosting: match in the browser */ }
   state.def = defaultDef();
   run();
   wire();

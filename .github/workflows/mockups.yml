@@ -29,3 +29,7 @@ jobs:
           for script in demos/mockups/shared/core.js demos/mockups/patient-first/app.js demos/mockups/trajectory/app.js; do
             node --check "$script"
           done
+      - name: Mockup server serves the pages and the trajectory-graph engine
+        run: python -m unittest discover -s demos/mockups -p 'test_*.py'
+      - name: The trajectory page agrees with the engine on every patient
+        run: node demos/mockups/test_engine_parity.cjs

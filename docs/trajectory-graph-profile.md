@@ -6,7 +6,9 @@ This profile decides whether a patient's events match a trajectory shaped as a s
 
 ## Input
 
-The engine reads a projected execution form, not RDF. Concept matching is the caller's: each event lists every concept it counts as, ancestors included. The adapter from SULO claims and the page's endpoint are not yet built.
+The engine reads a projected execution form, not RDF. Concept matching is the caller's: each event lists every concept it counts as, ancestors included. The adapter from SULO claims is not yet built.
+
+The trajectory mockup is one caller. `demos/mockups/server.py` exposes `POST /api/trajectory-graph/match` with `{query, patients}`. The page resolves each step's candidates itself, including relaxed alternatives, emits them as events tagged with the step, and expresses each relaxation as `widen_concept` to the alternative's tag, `extend_max` or `extend_grace`. It sends times in minutes. On the synthetic cohort the engine and the page's own search agree for every patient (`demos/mockups/test_engine_parity.cjs`). The page offers relaxation sets the engine treats differently in two cases: a step's concept and count relaxations cannot combine (one relaxation per step), and sets of three or four relaxations within the budget are tried by the engine but not by the page's search. No template exercises either.
 
 **Query**
 
@@ -71,7 +73,7 @@ The reference enumerates every binding. It shares no decision code with the engi
 
 ## Not in this profile
 
-- An adapter from SULO claims or the execution store, and an endpoint for the mockup.
+- An adapter from SULO claims or the execution store.
 - Event-count steps and measurement conditions; callers supply them as derived events.
 - Distinct events across steps, disjunctive relations, nested "while taking" and absence (engine design §7.3).
 - Clocks: every time is on one comparable grid.
