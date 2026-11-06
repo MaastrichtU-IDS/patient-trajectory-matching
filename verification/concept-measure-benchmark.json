@@ -1,0 +1,122 @@
+{
+  "artifacts": {
+    "demos/mockups/synthetic/generate.py": "ac5de1bfda1f35b89cbd645d8b8a2930b4340c571ee75921a59fe0947f8960dc",
+    "patterns/patient_similarity.py": "b1f4168d2314e9939fde2e9e855fff9619519eb440f6c6f984803451df94a94a",
+    "tools/evaluate_concept_measures.py": "2af70f8258146d70196bcb969a9ad08f050e7130662a5bd95e4b427d65e0ef32"
+  },
+  "axes": {
+    "findings": {
+      "average_precision_vs_ancestor_jaccard": {
+        "resnik_bma": {
+          "better": 7,
+          "tied": 21,
+          "worse": 20
+        },
+        "simgic": {
+          "better": 5,
+          "tied": 41,
+          "worse": 2
+        }
+      },
+      "chance": {
+        "precision_at_5": "0.1268",
+        "recall_at_10": "0.2128"
+      },
+      "empty_profiles": 0,
+      "measures": {
+        "ancestor_jaccard": {
+          "average_precision": "0.8874",
+          "precision_at_5": "0.7333",
+          "recall_at_10": "0.9504",
+          "reciprocal_rank": "0.9052"
+        },
+        "resnik_bma": {
+          "average_precision": "0.7994",
+          "precision_at_5": "0.6958",
+          "recall_at_10": "0.8295",
+          "reciprocal_rank": "0.8291"
+        },
+        "simgic": {
+          "average_precision": "0.8789",
+          "precision_at_5": "0.7333",
+          "recall_at_10": "0.9523",
+          "reciprocal_rank": "0.9052"
+        }
+      },
+      "queries": 48
+    },
+    "findings_and_medications": {
+      "average_precision_vs_ancestor_jaccard": {
+        "resnik_bma": {
+          "better": 1,
+          "tied": 34,
+          "worse": 13
+        },
+        "simgic": {
+          "better": 9,
+          "tied": 35,
+          "worse": 4
+        }
+      },
+      "chance": {
+        "precision_at_5": "0.1268",
+        "recall_at_10": "0.2128"
+      },
+      "empty_profiles": 0,
+      "measures": {
+        "ancestor_jaccard": {
+          "average_precision": "0.9267",
+          "precision_at_5": "0.7625",
+          "recall_at_10": "0.9606",
+          "reciprocal_rank": "0.9688"
+        },
+        "resnik_bma": {
+          "average_precision": "0.8463",
+          "precision_at_5": "0.7167",
+          "recall_at_10": "0.8398",
+          "reciprocal_rank": "0.8832"
+        },
+        "simgic": {
+          "average_precision": "0.9342",
+          "precision_at_5": "0.7792",
+          "recall_at_10": "0.9689",
+          "reciprocal_rank": "0.9583"
+        }
+      },
+      "queries": 48
+    }
+  },
+  "clinical_validity_claim": false,
+  "cohort": {
+    "condition_groups": {
+      "cdkl5": 4,
+      "dravet": 12,
+      "febrile_only": 6,
+      "gefs_plus": 6,
+      "pcdh19": 5,
+      "rett": 5,
+      "sma": 4,
+      "tsc": 6
+    },
+    "dataset_sha256": "537f72650ded1367e1fc88fa4939f70fc89ea68a4e573ca37c1abbed0e20a01d",
+    "generator": {
+      "script": "demos/mockups/synthetic/generate.py",
+      "seed": 20261103,
+      "snapshot": "2026-06-30"
+    },
+    "patients": 48
+  },
+  "label_origin": "synthetic_generator_ground_truth",
+  "protocol": {
+    "information_content": "patterns.patient_similarity.information_content_table over the whole cohort",
+    "measures": [
+      "ancestor_jaccard",
+      "simgic",
+      "resnik_bma"
+    ],
+    "query_profile": "recorded concepts only: coded problems, registry entries, interpretations, dispensings, orders, and letter mentions asserted present of the patient; diagnoses and genetic results hidden",
+    "ranking": "every other patient, nearest first; undefined distance last; ties by patient ID",
+    "relevance": "same generator condition group"
+  },
+  "schema": "concept-measure-benchmark-1"
+}
