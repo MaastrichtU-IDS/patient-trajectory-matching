@@ -14,6 +14,7 @@ function defaultQuery() {
     window: {start: {kind: 'birth'}, end: {kind: 'age', amount: 24, unit: 'month'}},
     knownByIndex: true,
     freeText: 'present',
+    conceptMeasure: 'simgic',
     features: {
       phenotype: {mode: 'prefer', required: [], excluded: []},
       onset: {mode: 'prefer', tolerance: 6},
@@ -50,7 +51,58 @@ const jaccard = (a, b) => {
   const inter = [...a].filter(x => b.has(x)).length;
   return inter / (new Set([...a, ...b]).size || 1);
 };
-const expand = set => new Set([...set].flatMap(c => [...ancestors(c)]));
+
+/* Concept-set similarity, as in patterns/patient_similarity.py. Each concept stands for
+   its terms: itself and its broader classes. Information content is computed once from
+   every patient's whole record in this synthetic cohort, IC(t) = −ln((patients with t + 1)
+   / (patients + 1)), so a term most patients have counts for little. The window does not
+   change the IC table; with real data the population would be the searched database. */
+const MEASURES = {
+  simgic: ['simGIC', 'shared terms weighted by how informative they are in this cohort'],
+  ancestor_jaccard: ['Ancestor Jaccard', 'every shared term counts equally'],
+  resnik_bma: ['Best-match Resnik', 'how much of the reference the candidate explains, term by term; one-directional'],
+};
+const TERMS = {
+  phenotype: c => ancestors(c),
+  medication: c => new Set([c, ...classesOf(c).filter(k => k !== 'antiseizure')]),
+};
+const SET_ITEMS = {
+  phenotype: i => i.kind === 'phenotype',
+  medication: i => i.kind === 'medication' && i.concept !== 'midazolam',
+};
+const icTables = {};
+function icTable(key) {
+  if (icTables[key]) return icTables[key];
+  const counts = new Map();
+  for (const pid of state.patients.keys()) {
+    const terms = new Set();
+    for (const i of evidenceFor(pid).items.filter(SET_ITEMS[key]))
+      for (const c of [i.concept, i.textConcept].filter(Boolean)) TERMS[key](c).forEach(t => terms.add(t));
+    terms.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
+  }
+  const n = state.patients.size;
+  icTables[key] = t => -Math.log(((counts.get(t) || 0) + 1) / (n + 1));
+  return icTables[key];
+}
+function conceptSim(key, a, b, measure) {
+  const termsOf = set => new Set([...set].flatMap(c => [...TERMS[key](c)]));
+  if (measure === 'ancestor_jaccard') return jaccard(termsOf(a), termsOf(b));
+  const ic = icTable(key), sum = set => [...set].reduce((t, x) => t + ic(x), 0);
+  if (measure === 'simgic') {
+    const ta = termsOf(a), tb = termsOf(b), union = new Set([...ta, ...tb]);
+    const total = sum(union);
+    return total ? sum([...ta].filter(x => tb.has(x))) / total : 1;
+  }
+  // Best-match Resnik: for each reference concept, the most informative term it shares with
+  // any candidate concept, relative to the reference compared with itself.
+  let matched = 0, possible = 0;
+  for (const c of a) {
+    const own = TERMS[key](c);
+    possible += Math.max(...[...own].map(ic));
+    matched += Math.max(0, ...[...b].flatMap(d => [...TERMS[key](d)].filter(x => own.has(x)).map(ic)));
+  }
+  return possible ? matched / possible : 1;
+}
 
 const FEATURES = [
   {
@@ -60,7 +112,7 @@ const FEATURES = [
       const items = usable(view, q, win).filter(i => i.kind === 'phenotype' && !q.features.phenotype.excluded.includes(conceptFor(i, q)));
       return items.length ? {value: new Set(items.map(i => conceptFor(i, q))), items} : null;
     },
-    sim: (a, b) => jaccard(expand(a), expand(b)),
+    sim: (a, b, q) => conceptSim('phenotype', a, b, q.conceptMeasure),
     must(a, b, f) { const need = f.required.length ? f.required : [...a]; return need.every(r => [...b].some(c => isA(c, r))); },
     fail(a, b, f) { const need = f.required.length ? f.required : [...a]; return 'lacks ' + need.filter(r => ![...b].some(c => isA(c, r))).map(label).join(', '); },
     show: v => [...v].map(label).join(', '),
@@ -126,10 +178,7 @@ const FEATURES = [
       const items = usable(view, q, win).filter(i => i.kind === 'medication' && i.concept !== 'midazolam');
       return items.length ? {value: new Set(items.map(i => i.concept)), items} : null;
     },
-    sim(a, b) {
-      const widen = s => new Set([...s, ...[...s].flatMap(c => classesOf(c).filter(k => k !== 'antiseizure'))]);
-      return jaccard(widen(a), widen(b));
-    },
+    sim: (a, b, q) => conceptSim('medication', a, b, q.conceptMeasure),
     must(a, b, f) {
       const need = f.required.length ? f.required : [...a];
       return need.every(r => [...b].some(c => c === r || classesOf(c).includes(r)));
@@ -299,7 +348,7 @@ function evaluate(q) {
         else if (!f.must(rv.value, cv.value, fq)) failed = failed || `${f.label}: ${f.fail(rv.value, cv.value, fq)}`;
       } else if (fq.mode === 'prefer' && rv) {
         n += 1;
-        sims[f.key] = cv ? f.sim(rv.value, cv.value) : null;
+        sims[f.key] = cv ? f.sim(rv.value, cv.value, q) : null;
         if (cv) { observed += 1; total += sims[f.key]; }
       }
     }
@@ -321,6 +370,7 @@ function describeChange(a, b) {
   if (JSON.stringify(a.window) !== JSON.stringify(b.window)) out.push(`window ${windowText(b.window)}`);
   if (a.knownByIndex !== b.knownByIndex) out.push(b.knownByIndex ? 'only what was available by the window\'s end' : 'everything that had happened by the window\'s end');
   if (a.freeText !== b.freeText) out.push(`free text: ${({off: 'ignored', present: 'stated findings', possible: 'stated and hedged'})[b.freeText]}`);
+  if (a.conceptMeasure !== b.conceptMeasure) out.push(`concept similarity: ${MEASURES[b.conceptMeasure][0]}`);
   for (const f of FEATURES) {
     const x = a.features[f.key], y = b.features[f.key];
     if (x.mode !== y.mode) out.push(`${f.label}: ${MODE_LABEL[y.mode]}`);
@@ -572,6 +622,8 @@ function renderCriteria() {
         <label class="hide-toggle"><input type="checkbox" data-action="hide-feature" data-key="${f.key}" ${hiddenView ? 'checked' : ''}> Hide from view</label></div>
       ${featureSub(f.key, fq, rv)}${expansionFor(f.key, rv, q)}</div>`);
   }
+  out.push(`<h3>Concept similarity</h3><p class="hint">How clinical findings and medication exposures are compared under <em>Prefer similar</em>.</p><div class="options">${Object.entries(MEASURES).map(([v, [name, text]]) =>
+    `<label><input type="radio" name="measure" value="${v}" data-action="measure" ${q.conceptMeasure === v ? 'checked' : ''}><span><strong>${esc(name)}</strong>: ${esc(text)}${v === 'simgic' ? ' (default)' : ''}</span></label>`).join('')}</div>`);
   out.push(`<h3>Letters and free text</h3><div class="options">${[['off', 'Ignore letters: coded records only'], ['present', 'Use findings letters state about the patient'], ['possible', 'Also use hedged findings ("possible", "?")']].map(([v, t]) =>
     `<label><input type="radio" name="freetext" value="${v}" data-action="freetext" ${q.freeText === v ? 'checked' : ''}><span>${esc(t)}</span></label>`).join('')}</div>
     <p class="hint">Negated findings, plans and family history never count, whatever this is set to.</p>`);
@@ -678,7 +730,7 @@ function renderCompare() {
   out.push(`<table class="pair"><thead><tr><th>Feature</th><th>Setting</th><th class="col-shared">■ Shared exactly</th><th class="col-ref">Only in ${state.referenceId} (reference)</th><th class="col-cand">Only in ${pid}</th><th>Similarity</th><th>Data quality in ${pid}'s evidence</th></tr></thead><tbody>`);
   for (const f of FEATURES) {
     const rv = res.ref.values[f.key], cv = values[f.key], mode = q.features[f.key].mode;
-    const sim = mode === 'prefer' && rv ? (cv ? Math.round(f.sim(rv.value, cv.value) * 100) : 'not recorded') : mode === 'must' && rv ? (cv && f.must(rv.value, cv.value, q.features[f.key]) ? 'meets' : 'fails') : '—';
+    const sim = mode === 'prefer' && rv ? (cv ? Math.round(f.sim(rv.value, cv.value, q) * 100) : 'not recorded') : mode === 'must' && rv ? (cv && f.must(rv.value, cv.value, q.features[f.key]) ? 'meets' : 'fails') : '—';
     const cells = state.hiddenFeatures.has(f.key) ? ['<em>hidden from view</em>', '', '']
       : (({shared, ref, cand}) => [pairChips(shared), pairChips(ref), pairChips(cand)])(partition(f, rv, cv, q, state.referenceId, pid));
     out.push(`<tr><td>${esc(f.label)}</td><td>${esc(MODE_LABEL[mode])}</td><td class="col-shared">${cells[0]}</td><td class="col-ref">${cells[1]}</td><td class="col-cand">${cells[2]}</td><td>${esc(sim)}</td><td class="col-quality">${qualityByEvent(cv, f)}</td></tr>`);
@@ -714,6 +766,7 @@ function handle(action, el) {
     }
     case 'known': q.knownByIndex = el.checked; break;
     case 'freetext': q.freeText = el.value; break;
+    case 'measure': q.conceptMeasure = el.value; break;
     case 'tolerance': q.features.onset.tolerance = Math.max(0, +el.value || 0); break;
     case 'pathogenic': q.features.gene.pathogenicOnly = el.checked; break;
     case 'hide-feature': el.checked ? state.hiddenFeatures.add(el.dataset.key) : state.hiddenFeatures.delete(el.dataset.key); break;
