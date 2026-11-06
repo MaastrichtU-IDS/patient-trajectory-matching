@@ -135,7 +135,7 @@ OWL 2 DL can state transitivity, as the precedence decision proposes, but a tran
 
 **P5. Precedence needs order, not metric.** S8 uses only the order on coincidence classes. A chart is needed to evaluate gaps and durations, not to decide `precedes`. Two processes on clocks with no admitted alignment have no precedence relation under this interpretation, whatever their printed timestamps.
 
-**P6. Durations agree with endpoints.** Under S4, a valued duration part equals the chart distance between the referents of the start and end parts. A disagreement makes the description inconsistent with every interpretation and must be rejected at admission, not silently corrected.
+**P6. Durations agree with endpoints.** Under S4, a valued duration part equals the chart distance between the referents of the start and end parts, and is therefore positive (P1). With exact start and end values (S1), a disagreement makes the description inconsistent with every interpretation that gives the interval a referent, and must be rejected at admission, not silently corrected.
 
 **P7. A duration filler fixes length, not position.** Under S6, `atTime` with a `Duration` constrains `occ(p)` to chronoids of that length; it entails no precedence, meeting or overlap with any other process.
 
@@ -152,7 +152,7 @@ OWL 2 DL can state transitivity, as the precedence decision proposes, but a tran
 | Temporal individuals are descriptions (§3) | Adopted reading, proposed by the review | This document; [review §4](../sulo-owl-time-review.md#4-clarify-what-temporal-individuals-denote) |
 | S1–S7 | Interpretation conditions | This document |
 | S8 (`precedes` iff `e_A < s_B`) | Proposed meaning, not adopted in SULO | [Temporal precedence decision](../decisions/temporal-precedence.md); adoption needs the SULO maintainers (D-SULO) |
-| P1–P8 | Consequences of the interpretation over BT_C | §6 proofs; P1–P4 machine-checked (§11) |
+| P1–P8 | Consequences of the interpretation over BT_C | §6 proofs; P1–P4 and P6 machine-checked (§11) |
 | Exactly one start and one end per exact occurrence interval | Profile axiom, application module | `ei:ExactOccurrenceInterval` in `ontology/exact-interval-profile.ttl` |
 | `precedes` transitive; `directlyPrecedes` | Proposed SULO change | Temporal precedence decision |
 | `precedes` irreflexive and asymmetric | Consequence (P4), not OWL-expressible with transitivity | Validation |
@@ -204,23 +204,32 @@ The eight paired fixtures under `examples/temporal-interface/` are evidence that
 
 ## 11. Verification and next steps
 
-[`specification/formal/SULOTemporal.lean`](specification/formal/SULOTemporal.lean) machine-checks the core of this document against the BT_C axioms of [`IntegratedSemantics.lean`](specification/formal/IntegratedSemantics.lean). It is checked by `formal/check.sh` in the `temporal-semantics` workflow, with warnings treated as errors, and none of its theorems depends on an axiom beyond its stated hypotheses.
+[`specification/formal/SULOTemporal.lean`](specification/formal/SULOTemporal.lean) machine-checks the core of this document against the BT_C axioms of [`IntegratedSemantics.lean`](specification/formal/IntegratedSemantics.lean). It is checked by `formal/check.sh` in the `temporal-semantics` workflow, with warnings treated as errors. Order-only theorems depend on no axioms beyond their stated hypotheses; those that use excluded middle or integer arithmetic also use Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`), as `#print axioms` reports.
+
+The order on boundary positions is not assumed. BT_C's order (2014, §8.1) is definable: `a` is before `b` when some chronoid begins where `a` is and ends where `b` is (`TemporalSignature.Before`). `IntegratedSemantics.lean` proves from the existing axioms that it is irreflexive (A26), transitive (A33), respects coincidence (A18–A20), puts each chronoid's first boundary before its last, and is total on non-coincident boundaries (A27).
+
+Values enter through a chart (`Chart`). It maps boundaries to integer microseconds, the execution profile's `GFOBoundaryMicrosecond` (§8), rather than the rationals of §4. It is order-preserving and constant on coincidence classes, and it must be partial: BT_C is dense (A12), so no total order-preserving map into the integers exists. That a chart reflects equality is proved, not assumed (`chart_reflects`).
 
 | Statement | Lean | Checked |
 |---|---|---|
 | S2, S6 for interval fillers, S8 | Fields of `Interpretation` | As hypotheses |
+| S1 for exact values, S4 | Fields of `ValuedInterpretation` | As hypotheses |
 | SULO axioms used (StartTime and EndTime are instants and disjoint; `precedes` relates processes) | Fields of `SULOAxioms` | As hypotheses |
-| P1, intervals are proper | `interval_proper` | Yes |
+| P1, intervals are proper | `interval_proper`; with values, `exact_values_ordered` | Yes |
 | P2, meeting with distinct start and end descriptions | `meeting_descriptions_distinct` | Yes |
 | P3, equal extents give one chronoid | `same_extent_same_chronoid` | Yes |
 | P4, `precedes` irreflexive, transitive and asymmetric | `precedes_irrefl`, `precedes_trans`, `precedes_asymm` | Yes |
 | Precedence from `atTime` interval descriptions (S6 with S8) | `precedes_from_atTime` | Yes |
 | P5, precedence needs order, not metric | — | By construction: S8 mentions no chart |
-| P6–P8 | — | Not checked: P6 needs charts, and P8 needs a constructed BT_C model |
+| S8 on charted boundaries: `precedes` iff end coordinate < start coordinate | `precedes_iff_coords` | Yes |
+| P6, durations agree with endpoints, are positive, and disagreement is inconsistent | `duration_agrees`, `duration_positive`, `duration_disagreement_inconsistent` | Yes |
+| P7, P8 | — | Not checked: both are non-entailments, which need a constructed BT_C model as a countermodel |
 
-Two limits are explicit in the artifact. First, the integrated interface axiomatises BT_C's A1–A34 but not the §8.1 order on boundary positions, so the order used by P1 and P4 is a separate, named assumption (`BTCOrder`: strict, respecting coincidence, each chronoid's first boundary before its last); density and linearity are not needed. Second, as in the existing development, BT_C is an axiomatic interface, not a constructed model, so the hypotheses are not shown to be jointly satisfiable in Lean. The model is a single comparable clock; clocks without an admitted alignment remain outside these theorems.
+Three limits are explicit in the artifact. First, as in the existing development, BT_C is an axiomatic interface, not a constructed model, so the hypotheses are not shown to be jointly satisfiable in Lean. Second, S1 is modelled for exact values only; precision and rounding bounds (§8) are not. Third, the model is a single comparable clock with one chart; clocks without an admitted alignment remain outside these theorems.
 
-Next steps: carry the order into the integrated interface itself; add charts so that S1 and P6 can be checked; and add representative SULO graphs that exercise S2–S8 to the OWL consistency check.
+[`examples/sulo-temporal/graph.ttl`](../../examples/sulo-temporal/graph.ttl) gives representative SULO descriptions for S1–S9 and P1–P3: valued intervals with duration parts, two meeting intervals with distinct end and start descriptions, two descriptions of one extent, `atTime` with each kind of filler, `isTimeOf`, `precedes` and `isPrecededBy`. The OWL consistency check in CI merges it with the SULO stack and requires it to be OWL 2 DL and consistent under HermiT. It also requires negative controls built from the graph's content to be detected: an end description also typed `StartTime`, an `atTime` filler also typed `Unit`, and a process in `precedes` also typed `Object`. OWL cannot express S1, S4 or S8, so the check shows only that the shapes they constrain are consistent with SULO, and that SULO's temporal axioms apply to them.
+
+Next step: construct a BT_C model, which would show the hypotheses satisfiable and give countermodels for P7 and P8.
 
 ## References
 

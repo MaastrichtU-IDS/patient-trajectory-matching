@@ -22,6 +22,11 @@ def Overlap (t : TemporalSignature C B) (c d : C) := ∃ a, t.part a c ∧ t.par
 def Meets (t : TemporalSignature C B) (c d : C) := t.coinc (t.last c) (t.first d)
 def SameTime (t : TemporalSignature C B) (c d : C) :=
   t.coinc (t.first c) (t.first d) ∧ t.coinc (t.last c) (t.last d)
+/-- Boundary order induced by chronoids: a is before b when some chronoid begins
+where a is and ends where b is. BTC's order on coincidence classes (2014, §8.1)
+is this relation; its properties are proved from A18-A20, A26, A27 and A33 below. -/
+def Before (t : TemporalSignature C B) (a b : B) :=
+  ∃ c, t.coinc a (t.first c) ∧ t.coinc b (t.last c)
 end TemporalSignature
 
 /-- Typed relativization of 2014 BTC. The temporal universe is C ⊕ B.
@@ -65,6 +70,57 @@ structure BTC {C : Type u} {B : Type v} (t : TemporalSignature C B) : Prop where
   overlap_sum : ∀ c d, t.Overlap c d → (∃ a, t.Starts a c ∧ ¬t.Overlap a d) →
     ∃ e, t.first c = t.first e ∧ t.last d = t.last e ∧
     ¬∃ a, t.part a e ∧ ¬t.Overlap a c ∧ ¬t.Overlap a d -- A34
+
+/-- The order properties a temporal argument may rely on: strict, respecting
+coincidence, with each chronoid's first boundary before its last. -/
+structure BTCOrder {C : Type u} {B : Type v} (t : TemporalSignature C B)
+    (before : B → B → Prop) : Prop where
+  irrefl : ∀ a, ¬before a a
+  trans : ∀ a b c, before a b → before b c → before a c
+  coinc_left : ∀ a a' b, t.coinc a a' → before a b → before a' b
+  coinc_right : ∀ a b b', t.coinc b b' → before a b → before a b'
+  first_before_last : ∀ c, before (t.first c) (t.last c)
+
+section Order
+variable {C : Type u} {B : Type v} {t : TemporalSignature C B}
+
+theorem before_irrefl (h : BTC t) (a : B) : ¬t.Before a a := by
+  rintro ⟨c, hf, hl⟩
+  exact h.proper c (h.coinc_trans _ _ _ (h.coinc_symm _ _ hf) hl)
+
+/-- Two chronoids meeting at b sum to one chronoid (A33), so the order composes. -/
+theorem before_trans (h : BTC t) (a b d : B) (hab : t.Before a b) (hbd : t.Before b d) :
+    t.Before a d := by
+  obtain ⟨c₁, ha, hb⟩ := hab
+  obtain ⟨c₂, hb', hd⟩ := hbd
+  have meets : t.Meets c₁ c₂ := h.coinc_trans _ _ _ (h.coinc_symm _ _ hb) hb'
+  obtain ⟨e, hfirst, hlast, _⟩ := h.meeting_sum c₁ c₂ meets
+  exact ⟨e, hfirst ▸ ha, hlast ▸ hd⟩
+
+theorem before_coinc_left (h : BTC t) (a a' b : B) (co : t.coinc a a') (hab : t.Before a b) :
+    t.Before a' b := by
+  obtain ⟨c, ha, hb⟩ := hab
+  exact ⟨c, h.coinc_trans _ _ _ (h.coinc_symm _ _ co) ha, hb⟩
+
+theorem before_coinc_right (h : BTC t) (a b b' : B) (co : t.coinc b b') (hab : t.Before a b) :
+    t.Before a b' := by
+  obtain ⟨c, ha, hb⟩ := hab
+  exact ⟨c, ha, h.coinc_trans _ _ _ (h.coinc_symm _ _ co) hb⟩
+
+theorem first_before_last (h : BTC t) (c : C) : t.Before (t.first c) (t.last c) :=
+  ⟨c, h.coinc_refl _, h.coinc_refl _⟩
+
+/-- Non-coincident boundaries are ordered one way or the other (A27). -/
+theorem before_total (h : BTC t) (a b : B) (distinct : ¬t.coinc a b) :
+    t.Before a b ∨ t.Before b a := by
+  obtain ⟨c, (⟨ha, hb⟩ | ⟨ha, hb⟩)⟩ := h.span a b distinct
+  · exact Or.inl ⟨c, ha, hb⟩
+  · exact Or.inr ⟨c, hb, ha⟩
+
+/-- BTC's chronoid-induced order satisfies every BTCOrder property. -/
+theorem btc_order (h : BTC t) : BTCOrder t t.Before :=
+  ⟨before_irrefl h, before_trans h, before_coinc_left h, before_coinc_right h, first_before_last h⟩
+end Order
 
 /-- Exposed predicates of an OWL interpretation. Full satisfaction is external. -/
 structure OWLView (O : Type w) where
@@ -181,6 +237,10 @@ theorem certain_projection {World Assignment : Type}
 example : ∃ (extent : Bool → Unit), false ≠ true ∧ extent false = extent true := by
   exact ⟨fun _ => (), Bool.false_ne_true, rfl⟩
 
+#print axioms before_irrefl
+#print axioms before_trans
+#print axioms before_total
+#print axioms btc_order
 #print axioms same_time_chronoid_identity
 #print axioms endpoint_collapse_impossible
 #print axioms meeting_boundaries_distinct
