@@ -1,8 +1,8 @@
 import Std
 set_option warningAsError true
 
-/-! Typed integration metatheory. BTC is an axiomatic interface, not a model
-construction. OWL satisfaction is a parameter intended to be instantiated by
+/-! Typed integration metatheory. BTC is an axiomatic interface here; BTCModel.lean
+constructs a model of it. OWL satisfaction is a parameter intended to be instantiated by
 W3C Direct Semantics. No OWL parser or full translator is claimed. -/
 namespace TemporalIntegration
 universe u v w

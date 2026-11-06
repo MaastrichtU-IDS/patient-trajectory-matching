@@ -66,6 +66,9 @@ checks the [SULO temporal semantics](../sulo-temporal-semantics.md):
 - [SULOTemporal.lean](formal/SULOTemporal.lean): SULO 0.2.14's temporal
   descriptions interpreted in BT_C with a partial chart, and consequences P1–P4
   and P6 of that document.
+- [BTCModel.lean](formal/BTCModel.lean): a constructed BT_C model over open
+  rational intervals, with SULO interpretations over it giving the P7 and P8
+  countermodels.
 
 Run the checks from the repository root:
 
@@ -74,14 +77,15 @@ sh docs/temporal-kg/specification/formal/check.sh
 python3 docs/temporal-kg/specification/check_examples.py
 ```
 
-The toolchain pins Lean v4.34.0. All 18 named theorems are checked and their axiom
-reports are printed. Dependencies are confined to Lean's standard `propext` and
-`Quot.sound` where needed; the files contain no proof placeholders or added global
-axioms. GitHub Actions runs all three modules and the documentation/example checker.
+The toolchain pins Lean v4.34.0. Every named theorem is checked and its axiom
+report is printed. Dependencies are confined to Lean's standard `propext`,
+`Classical.choice` and `Quot.sound` where needed; the files contain no proof
+placeholders or added global axioms. GitHub Actions runs every module and the
+documentation/example checker.
 
 The appendix flags the remaining obligations: correspondence of the OWL
 transcription/normalization to the standard, concrete datatype maps and decoders,
-BT_C model construction, source/query adapter correctness, and model extension
+combined OWL/BT_C/source model construction, source/query adapter correctness, and model extension
 for the numerical solver. Runtime query contracts retain their existing scope.
 
 Markdown defines the review contract and the Lean files give its checked formal
