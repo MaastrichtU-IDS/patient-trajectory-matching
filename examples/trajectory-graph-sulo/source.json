@@ -1,0 +1,337 @@
+{
+  "profile": "bounded-interval-1.0",
+  "dataset_id": "trajectory-graph-example",
+  "snapshot_id": "trajectory-graph-example-1",
+  "clocks": [
+    {
+      "clock_id": "clinical",
+      "origin": "2026-01-01T00:00:00Z",
+      "scope": "global",
+      "policy": "offset-datetime-microseconds-v1"
+    }
+  ],
+  "variables": [
+    {
+      "id": "P1-fs-start",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 12960000000000,
+      "upper_us": 12960000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P1-fs/start"
+    },
+    {
+      "id": "P1-fs-end",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 12960000000001,
+      "upper_us": 12960000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P1-fs/end"
+    },
+    {
+      "id": "P1-cbz-start",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 17280000000000,
+      "upper_us": 17280000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P1-cbz/start"
+    },
+    {
+      "id": "P1-cbz-end",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 27648000000000,
+      "upper_us": 27648000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P1-cbz/end"
+    },
+    {
+      "id": "P1-rise-start",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 20736000000000,
+      "upper_us": 20736000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P1-rise/start"
+    },
+    {
+      "id": "P1-rise-end",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 20736000000001,
+      "upper_us": 20736000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P1-rise/end"
+    },
+    {
+      "id": "P2-fs-start",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 12096000000000,
+      "upper_us": 14688000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P2-fs/start"
+    },
+    {
+      "id": "P2-fs-end",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 12096000000001,
+      "upper_us": 14688000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P2-fs/end"
+    },
+    {
+      "id": "P2-ltg-start",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 18144000000000,
+      "upper_us": 18144000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P2-ltg/start"
+    },
+    {
+      "id": "P2-ltg-end",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 25920000000000,
+      "upper_us": 25920000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P2-ltg/end"
+    },
+    {
+      "id": "P2-rise-start",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 25920000000000,
+      "upper_us": 31104000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P2-rise/start"
+    },
+    {
+      "id": "P2-rise-end",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 25920000000001,
+      "upper_us": 31104000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P2-rise/end"
+    },
+    {
+      "id": "P3-sz-start",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 10368000000000,
+      "upper_us": 10368000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P3-sz/start"
+    },
+    {
+      "id": "P3-sz-end",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 10368000000001,
+      "upper_us": 10368000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P3-sz/end"
+    },
+    {
+      "id": "P3-cbz-start",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 15552000000000,
+      "upper_us": 15552000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P3-cbz/start"
+    },
+    {
+      "id": "P3-cbz-end",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 22464000000000,
+      "upper_us": 22464000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P3-cbz/end"
+    },
+    {
+      "id": "P3-rise-start",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 25920000000000,
+      "upper_us": 25920000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P3-rise/start"
+    },
+    {
+      "id": "P3-rise-end",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 25920000000001,
+      "upper_us": 25920000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P3-rise/end"
+    },
+    {
+      "id": "P4-fs-start",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 8640000000000,
+      "upper_us": 8640000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P4-fs/start"
+    },
+    {
+      "id": "P4-fs-end",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 8640000000001,
+      "upper_us": 8640000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P4-fs/end"
+    },
+    {
+      "id": "P4-rise-start",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 34560000000000,
+      "upper_us": 34560000000000,
+      "source_key": "examples/trajectory-graph/patients.json#P4-rise/start"
+    },
+    {
+      "id": "P4-rise-end",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "clock_id": "clinical",
+      "lower_us": 34560000000001,
+      "upper_us": 34560000000001,
+      "source_key": "examples/trajectory-graph/patients.json#P4-rise/end"
+    }
+  ],
+  "events": [
+    {
+      "id": "P1-fs",
+      "record_id": "record-P1-fs",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P1-fs-start",
+      "end_var": "P1-fs-end",
+      "source_key": "examples/trajectory-graph/patients.json#P1-fs"
+    },
+    {
+      "id": "P1-cbz",
+      "record_id": "record-P1-cbz",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P1-cbz-start",
+      "end_var": "P1-cbz-end",
+      "source_key": "examples/trajectory-graph/patients.json#P1-cbz"
+    },
+    {
+      "id": "P1-rise",
+      "record_id": "record-P1-rise",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P1-rise-start",
+      "end_var": "P1-rise-end",
+      "source_key": "examples/trajectory-graph/patients.json#P1-rise"
+    },
+    {
+      "id": "P2-fs",
+      "record_id": "record-P2-fs",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P2-fs-start",
+      "end_var": "P2-fs-end",
+      "source_key": "examples/trajectory-graph/patients.json#P2-fs"
+    },
+    {
+      "id": "P2-ltg",
+      "record_id": "record-P2-ltg",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P2-ltg-start",
+      "end_var": "P2-ltg-end",
+      "source_key": "examples/trajectory-graph/patients.json#P2-ltg"
+    },
+    {
+      "id": "P2-rise",
+      "record_id": "record-P2-rise",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P2-rise-start",
+      "end_var": "P2-rise-end",
+      "source_key": "examples/trajectory-graph/patients.json#P2-rise"
+    },
+    {
+      "id": "P3-sz",
+      "record_id": "record-P3-sz",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P3-sz-start",
+      "end_var": "P3-sz-end",
+      "source_key": "examples/trajectory-graph/patients.json#P3-sz"
+    },
+    {
+      "id": "P3-cbz",
+      "record_id": "record-P3-cbz",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "infusion",
+      "status": "performed",
+      "start_var": "P3-cbz-start",
+      "end_var": "P3-cbz-end",
+      "source_key": "examples/trajectory-graph/patients.json#P3-cbz"
+    },
+    {
+      "id": "P3-rise",
+      "record_id": "record-P3-rise",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P3-rise-start",
+      "end_var": "P3-rise-end",
+      "source_key": "examples/trajectory-graph/patients.json#P3-rise"
+    },
+    {
+      "id": "P4-fs",
+      "record_id": "record-P4-fs",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P4-fs-start",
+      "end_var": "P4-fs-end",
+      "source_key": "examples/trajectory-graph/patients.json#P4-fs"
+    },
+    {
+      "id": "P4-rise",
+      "record_id": "record-P4-rise",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "event_kind": "specimen_collection",
+      "status": "performed",
+      "start_var": "P4-rise-start",
+      "end_var": "P4-rise-end",
+      "source_key": "examples/trajectory-graph/patients.json#P4-rise"
+    }
+  ],
+  "constraints": []
+}

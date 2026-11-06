@@ -1,0 +1,157 @@
+{
+  "profile": "trajectory-graph-sulo-facts-1.0",
+  "vocabulary": {
+    "profile": "joint-semantic-policy-1.0",
+    "id": "trajectory-graph-example-concepts",
+    "classes": [
+      "https://example.org/trajectory/trajectory-graph-example/febrile_seizure",
+      "https://example.org/trajectory/trajectory-graph-example/seizure",
+      "https://example.org/trajectory/trajectory-graph-example/seizure_frequency_rise",
+      "https://example.org/trajectory/trajectory-graph-example/sodium_channel_blocker"
+    ],
+    "rules": [],
+    "disjoint": []
+  },
+  "facts": [
+    {
+      "id": "P1-fs-febrile_seizure",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P1-fs"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/febrile_seizure"
+    },
+    {
+      "id": "P1-fs-seizure",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P1-fs"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure"
+    },
+    {
+      "id": "P1-cbz-sodium_channel_blocker",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P1-cbz"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/sodium_channel_blocker"
+    },
+    {
+      "id": "P1-rise-seizure_frequency_rise",
+      "patient_id": "P1",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P1-rise"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure_frequency_rise"
+    },
+    {
+      "id": "P2-fs-febrile_seizure",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P2-fs"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/febrile_seizure"
+    },
+    {
+      "id": "P2-fs-seizure",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P2-fs"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure"
+    },
+    {
+      "id": "P2-ltg-sodium_channel_blocker",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P2-ltg"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/sodium_channel_blocker"
+    },
+    {
+      "id": "P2-rise-seizure_frequency_rise",
+      "patient_id": "P2",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P2-rise"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure_frequency_rise"
+    },
+    {
+      "id": "P3-sz-seizure",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P3-sz"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure"
+    },
+    {
+      "id": "P3-cbz-sodium_channel_blocker",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P3-cbz"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/sodium_channel_blocker"
+    },
+    {
+      "id": "P3-rise-seizure_frequency_rise",
+      "patient_id": "P3",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P3-rise"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure_frequency_rise"
+    },
+    {
+      "id": "P4-fs-febrile_seizure",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P4-fs"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/febrile_seizure"
+    },
+    {
+      "id": "P4-fs-seizure",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P4-fs"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure"
+    },
+    {
+      "id": "P4-rise-seizure_frequency_rise",
+      "patient_id": "P4",
+      "episode_id": "E1",
+      "kind": "class",
+      "subject": {
+        "event_id": "P4-rise"
+      },
+      "class_iri": "https://example.org/trajectory/trajectory-graph-example/seizure_frequency_rise"
+    }
+  ]
+}

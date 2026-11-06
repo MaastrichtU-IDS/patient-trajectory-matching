@@ -1,0 +1,78 @@
+{
+  "profile": "trajectory-graph-sulo-request-1.0",
+  "query": {
+    "profile": "trajectory-graph-1.0",
+    "scope": "from_start",
+    "steps": [
+      {
+        "id": "A",
+        "concept": "https://example.org/trajectory/trajectory-graph-example/febrile_seizure",
+        "occurrence": "first"
+      },
+      {
+        "id": "B",
+        "concept": "https://example.org/trajectory/trajectory-graph-example/sodium_channel_blocker",
+        "occurrence": "first"
+      },
+      {
+        "id": "C",
+        "concept": "https://example.org/trajectory/trajectory-graph-example/seizure_frequency_rise"
+      }
+    ],
+    "relations": [
+      {
+        "id": "A-then-B",
+        "kind": "after",
+        "from": "A",
+        "to": "B",
+        "min": 0,
+        "max": 365
+      },
+      {
+        "id": "C-while-on-B",
+        "kind": "during",
+        "from": "B",
+        "to": "C",
+        "grace": 30
+      }
+    ],
+    "relaxations": [
+      {
+        "id": "A-as-any-seizure",
+        "kind": "widen_concept",
+        "cost": "0.5",
+        "step": "A",
+        "concept": "https://example.org/trajectory/trajectory-graph-example/seizure"
+      },
+      {
+        "id": "60-days-after-stopping",
+        "kind": "extend_grace",
+        "cost": "0.25",
+        "relation": "C-while-on-B",
+        "grace": 60
+      }
+    ],
+    "budget": "1",
+    "search_budget": 40000
+  },
+  "unit": "day",
+  "windows": {
+    "P1": {
+      "start": 0,
+      "end": 730
+    },
+    "P2": {
+      "start": 0,
+      "end": 730
+    },
+    "P3": {
+      "start": 0,
+      "end": 730
+    },
+    "P4": {
+      "start": 0,
+      "end": 730
+    },
+    "P5": null
+  }
+}
