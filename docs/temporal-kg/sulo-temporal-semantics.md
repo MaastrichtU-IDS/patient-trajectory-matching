@@ -152,7 +152,7 @@ OWL 2 DL can state transitivity, as the precedence decision proposes, but a tran
 | Temporal individuals are descriptions (§3) | Adopted reading, proposed by the review | This document; [review §4](../sulo-owl-time-review.md#4-clarify-what-temporal-individuals-denote) |
 | S1–S7 | Interpretation conditions | This document |
 | S8 (`precedes` iff `e_A < s_B`) | Proposed meaning, not adopted in SULO | [Temporal precedence decision](../decisions/temporal-precedence.md); adoption needs the SULO maintainers (D-SULO) |
-| P1–P8 | Consequences of the interpretation over BT_C | §6 proofs |
+| P1–P8 | Consequences of the interpretation over BT_C | §6 proofs; P1–P4 machine-checked (§11) |
 | Exactly one start and one end per exact occurrence interval | Profile axiom, application module | `ei:ExactOccurrenceInterval` in `ontology/exact-interval-profile.ttl` |
 | `precedes` transitive; `directlyPrecedes` | Proposed SULO change | Temporal precedence decision |
 | `precedes` irreflexive and asymmetric | Consequence (P4), not OWL-expressible with transitivity | Validation |
@@ -204,7 +204,23 @@ The eight paired fixtures under `examples/temporal-interface/` are evidence that
 
 ## 11. Verification and next steps
 
-These conditions and proofs are stated in this document. They are not yet machine-checked. The specification's Lean artifact ([`specification/formal/IntegratedSemantics.lean`](specification/formal/IntegratedSemantics.lean)) already axiomatises BT_C and the integrated interpretation; the natural next step is a SULO signature map in that artifact, with P1–P5 proved there, so that `temporal-semantics` CI checks them alongside the existing development. A further step is adding representative SULO graphs that exercise S2–S8 to the OWL consistency check.
+[`specification/formal/SULOTemporal.lean`](specification/formal/SULOTemporal.lean) machine-checks the core of this document against the BT_C axioms of [`IntegratedSemantics.lean`](specification/formal/IntegratedSemantics.lean). It is checked by `formal/check.sh` in the `temporal-semantics` workflow, with warnings treated as errors, and none of its theorems depends on an axiom beyond its stated hypotheses.
+
+| Statement | Lean | Checked |
+|---|---|---|
+| S2, S6 for interval fillers, S8 | Fields of `Interpretation` | As hypotheses |
+| SULO axioms used (StartTime and EndTime are instants and disjoint; `precedes` relates processes) | Fields of `SULOAxioms` | As hypotheses |
+| P1, intervals are proper | `interval_proper` | Yes |
+| P2, meeting with distinct start and end descriptions | `meeting_descriptions_distinct` | Yes |
+| P3, equal extents give one chronoid | `same_extent_same_chronoid` | Yes |
+| P4, `precedes` irreflexive, transitive and asymmetric | `precedes_irrefl`, `precedes_trans`, `precedes_asymm` | Yes |
+| Precedence from `atTime` interval descriptions (S6 with S8) | `precedes_from_atTime` | Yes |
+| P5, precedence needs order, not metric | — | By construction: S8 mentions no chart |
+| P6–P8 | — | Not checked: P6 needs charts, and P8 needs a constructed BT_C model |
+
+Two limits are explicit in the artifact. First, the integrated interface axiomatises BT_C's A1–A34 but not the §8.1 order on boundary positions, so the order used by P1 and P4 is a separate, named assumption (`BTCOrder`: strict, respecting coincidence, each chronoid's first boundary before its last); density and linearity are not needed. Second, as in the existing development, BT_C is an axiomatic interface, not a constructed model, so the hypotheses are not shown to be jointly satisfiable in Lean. The model is a single comparable clock; clocks without an admitted alignment remain outside these theorems.
+
+Next steps: carry the order into the integrated interface itself; add charts so that S1 and P6 can be checked; and add representative SULO graphs that exercise S2–S8 to the OWL consistency check.
 
 ## References
 

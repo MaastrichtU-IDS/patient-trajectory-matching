@@ -52,7 +52,8 @@ The observations and their boundary contexts remain. The observation at minute
 
 ## Formal semantics and checked results
 
-[Appendix A](formal-semantics.md) connects the syntax to three Lean modules:
+[Appendix A](formal-semantics.md) connects the syntax to three Lean modules, and a fourth
+checks the [SULO temporal semantics](../sulo-temporal-semantics.md):
 
 - [OWLDirectSemantics.lean](formal/OWLDirectSemantics.lean): recursive expression
   interpretation, normalized axiom satisfaction, datatype extensions and
@@ -61,6 +62,8 @@ The observations and their boundary contexts remain. The observation at minute
   shared-object bridge and conditional solver-projection results.
 - [ProposalSemantics.lean](formal/ProposalSemantics.lean): combined worlds,
   source/chart constraints, fixed-witness answers, relaxation and coverage.
+- [SULOTemporal.lean](formal/SULOTemporal.lean): SULO 0.2.14's temporal
+  descriptions interpreted in BT_C, with consequences P1–P4 of that document.
 
 Run the checks from the repository root:
 
