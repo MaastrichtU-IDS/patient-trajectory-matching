@@ -38,7 +38,7 @@ records ─► build graph ─► validate ─► select evidence ─► candida
 | Certain | Every query edge is entailed by the source alone, never by the source narrowed by the query | The entailing paths |
 | Incomparable | The events are on different clocks | The comparable part's witness |
 
-Each fast engine has an independent reference implementation compared differentially (interval cohort, bounded, semantic, source mixed query), 949 contract checks cover the profiles, and every committed report is bound by digest to the files that produced it.
+Each fast engine has an independent reference implementation compared differentially (interval cohort, bounded, semantic, source mixed query), 950 contract checks cover the profiles, and every committed report is bound by digest to the files that produced it.
 
 Limits: the temporal profiles answer different query formats ([issue T1](issues.md#t1-the-four-profiles-are-not-unified-open)); the oracle's pattern is fixed; the interval and bounded profiles cover four operators, not the full Allen catalogue; there is no absence ("no X between A and B") and no disjunction between steps; bounded times are discrete; it is not an OWL reasoner and makes no clinical or causal claim.
 
