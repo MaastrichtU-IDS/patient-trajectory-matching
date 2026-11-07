@@ -1029,7 +1029,7 @@ def discharge_fr(c, se, dx):
 def capture(c, scripted_lines):
     """Records for every truth event, then free text, then the cases free text creates."""
     if not c.visits:
-        schedule_visits(c, max(min(e['day'] for e in c.truth), 0))
+        schedule_visits(c, max(min((e['day'] for e in c.truth), default=0), 0))
     for ev in list(c.truth):
         kind = ev['kind']
         if kind == 'phenotype':
@@ -1146,7 +1146,8 @@ def apply_reference_defects(c, lines):
 
 def reference_lines(c):
     by = lambda cid: next(e for e in c.truth if e['concept'] == cid)
-    stale_visit = next(v for v in c.visits if 780 <= v <= 900)
+    # Visits are 60-140 days apart, so a 120-day window can hold none: then take the visit nearest its middle.
+    stale_visit = next((v for v in c.visits if 780 <= v <= 900), None) or min(c.visits, key=lambda v: abs(v - 840))
     return {
         ('copy_forward', stale_visit): {'text': 'Seizure-free for three months on current treatment. ',
                                         'detail': 'Copied from the previous letter; the diary shows seizures every month'},
@@ -1172,7 +1173,9 @@ def scripted_edge_cases(children):
                      attributes={'supply_days': 30})
     sib.case('misattributed-record', [rec], None, 'Older brother\'s inhaler dispensed under this child\'s identifier')
     typo = by_key['dravet-typo']
-    target = next(r for r in typo.records if r['kind'] == 'condition' and r['source'] == 'ehr')
+    # The same wrong year goes on both bounds, so the range must sit in one calendar year: across New Year it would invert.
+    target = next(r for r in typo.records if r['kind'] == 'condition' and r['source'] == 'ehr' and
+                  r['occurred']['earliest'][:4] == r['occurred']['latest'][:4])
     good = target['occurred']['earliest'][:4]
     bad = good[:2] + good[3] + good[2] if good[2] != good[3] else str(int(good) + 10)
     target['occurred'] = dict(target['occurred'], earliest=bad + target['occurred']['earliest'][4:],
