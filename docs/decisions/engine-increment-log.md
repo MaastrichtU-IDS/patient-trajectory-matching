@@ -25,6 +25,9 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D13 | One event has one time: engine variables are keyed by source variable | Decided |
 | D14 | Demo item classes take their dictionary category as a labelled ancestor | Decided |
 | D15 | Store stage 2 sends every demo row through the canonical route, 32 claims per store | Decided |
+| D16 | Chartevents and later bulk sources take route (b), with a sampled graph check | Decided, not yet built |
+| D17 | Committed reports on credentialed data carry aggregate counts only | Decided |
+| D18 | A step that admission may have hidden is not comparable, judged by the query's scope | Decided |
 
 ## D1 Package with hatchling, in place
 
@@ -213,3 +216,26 @@ The demo's 424 stores take 62 seconds on 8 worker processes (about 480 CPU-secon
 - **Row identity across stores.** After joining a patient's stores, the converter requires every record id, source key and event id to be unique for that patient (`DUPLICATE_SOURCE_ROW_ACROSS_STORES`). The demo's rows are one release with no revisions, so splitting in record order cannot separate two versions of one record. A future source with revisions or repeated row ids must split by source-record chain, so that a record and its revisions share a store, and must rerun the claim-conflict check per patient after joining.
 - **The admitted subset.** Admission keeps 10,980 of 20,404 rows: continuous IV and medication segments with four statuses. So the store names its source `inputevents:continuous_segments` and lists the admitted statuses and categories in its labels. Every row admission leaves out is kept as an excluded record (item class and start) in a new snapshot table, `excluded_records`. A `none` that such a record could have changed becomes `not_comparable` with `ADMISSION_EXCLUDED_RECORDS`, following engine design §4.3. Item classes seen only in excluded rows join the closure (83 in the demo), so a query naming one is answered, never refused as unknown.
 - **Coverage beyond the stay.** 53 admitted records start before their stay's intime or end after its outtime, by up to 503 minutes (median 4). Each stay's period is widened to hold its own admitted records, with basis `inferred:icustay+records`; this applies to 16 of the 140 periods.
+
+## D16 Chartevents and later bulk sources take route (b), with a sampled graph check
+
+Route (a) costs about 0.2 CPU-seconds per claim, mostly per-store graph building and isolation certificates. For the demo's 668,862 chartevents rows that is about 37 CPU-hours; for full MIMIC-IV it would take years. So bulk sources take route (b):
+- **Bulk rows** are built directly with the importer's pure claim identity (`describe()` or its measurement equivalent).
+- **A deterministic sample of stores** per batch goes through the full graph route, with a row-equality differential on that sample. Reports must say rows are tied to the graph by claim identity and checked on a sample, not each validated through the graph.
+
+Chartevents also needs point-measurement support in the store mapping and the series table for measurement conditions. Its ingest must be sharded per patient, with the input digest computed as a Merkle tree over patients. The differential must build engine inputs once per patient. None of this is built yet.
+
+## D17 Committed reports on credentialed data carry aggregate counts only
+
+The open MIMIC-IV demo's reports commit `input_digest` and `snapshot_id`, which are digests of row-level data. That is acceptable for open-access data. For credentialed full MIMIC-IV, committed reports carry aggregate counts only. Digests of row-level data stay out of the repository unless the data owner confirms the data use agreement allows them (D-DATA).
+
+## D18 A step that admission may have hidden is not comparable, judged by the query's scope
+
+Admission keeps only continuous IV segments: 9,424 of the demo's 20,404 inputevents rows are dropped, mostly drug pushes and boluses. A patient whose source recorded an item only in dropped rows would otherwise get `none`, as if the source had been searched.
+- **What the store keeps.** It names its source `inputevents:continuous_segments`, labels the admitted statuses and categories, and keeps an `excluded_records` table inside the snapshot identity.
+- **The rule.** A result still `none` after the coverage check becomes `not_comparable` (`ADMISSION_EXCLUDED_RECORDS`) when an excluded record of a step's concept, closure and widenings included, has a start the query's scope admits: anywhere for `any`, inside the window for `within`, and so on (`excluded_records_scope_v1`).
+
+*Alternative declined:* "overlapping the window" for every scope. It would turn fewer results not comparable, but under scope `any` the engine can bind events outside the window, so it would be unsound.
+
+*Consequence:* on the demo, 27,257 of 50,000 differential results that were `none` become `not_comparable`. That is honest about how little a continuous-segment subset can rule out. It is not a defect to tune away.
+
