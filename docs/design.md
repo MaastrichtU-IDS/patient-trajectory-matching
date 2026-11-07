@@ -204,20 +204,28 @@ From [issues](issues.md): the four temporal profiles are not unified behind one 
 The [engine design](engine-design.md) analyses the items below in depth: how results are generated today, the server-side design for millions of patients, similarity on coded terms, embeddings, and the complexity of trajectory queries.
 
 1. **An engine library.** The engine is already cleanly layered: `patterns/` imports nothing above it and depends only on `rdflib`, `jsonschema`, `pyshacl` and optionally `rustdl`. Proposed in three stages:
-   - *Package in place.* A `pyproject.toml` that builds `patterns` and the oracle as an installable distribution, with the contracts it reads (`schemas/`, `ontology/`) shipped as package data behind one resource locator, and a CI job that installs the wheel into a clean environment and runs the oracle and one profile outside the repository. Replacing direct `ROOT / 'schemas/...'` reads changes engine files, so this is the moment to regenerate the reports that bind them, once.
+   - *Package in place.* Done ([packaging](packaging.md), decisions D1–D3 in the [engine increment log](decisions/engine-increment-log.md)).
+     - A hatchling wheel ships `patterns`, the oracle and the run-time contracts.
+     - One locator sits behind the existing `ROOT`, rather than rewriting each read; that kept report regeneration to a handful.
+     - CI installs the wheel into a clean environment and proves it byte-identical to the checkout.
    - *A public API.* A small, versioned facade — load a pattern, run a query, read results and evidence — with the rest marked internal and a changelog.
    - *Rename or split later.* A distinct import name, a separate folder or repository, only when the first two are stable. Splitting repositories now would break the provenance that binds engine files to reports produced by the workspace and services.
-2. **A trajectory-graph profile in the engine.** Done as [`trajectory-graph-1.0`](trajectory-graph-profile.md): the mockups' constraint-graph semantics in a tested Python profile, polynomial on trees, budgeted search otherwise, checked against an independent reference. Remaining: a SULO adapter and an endpoint so the trajectory page uses it. This also addresses part of T1.
+2. **A trajectory-graph profile in the engine.** Done as [`trajectory-graph-1.0`](trajectory-graph-profile.md): the mockups' constraint-graph semantics in a tested Python profile, polynomial on trees, budgeted search otherwise, checked against an independent reference.
+   - The trajectory page matches through it.
+   - A [SULO adapter](trajectory-graph-sulo-adapter.md) runs it on bounded, patient-local and claim snapshots, with evidence carried back (D8, D9).
+   - Events now share time variables (D13).
+   - An [execution store](execution-store.md) on DuckDB and Parquet filters candidates for it, soundly under relaxation (D4–D7).
+   - This also addresses part of T1.
 3. **Workspace adoption of the mockup designs.** Two-ended index windows with units and occurrence selectors, terminology search across codes, data-quality evidence on each event, and the pairwise shared/unique view.
 4. **The remaining reorganization.** The docs index regrouping (#102), the short README, and this document.
 5. **Hosting.** Choose between an organisation exception for `run.managed.requireInvokerIam`, a public ingress on the ids3 Kubernetes cluster (the launcher works there unchanged), or IAP with named accounts; then redeploy `ptm-demo` from `main`. Add a budget alert and an image cleanup policy.
-6. **Test hygiene.** Two presentation tests fail on macOS only (`/private/var` versus `/var`); they pass in Linux CI and should be made path-agnostic.
+6. **Test hygiene.** Done: the two macOS-only presentation tests are host-independent.
 
 ## 11. Proposed roadmap
 
 | Horizon | Work | Depends on |
 |---|---|---|
-| Next weeks | Merge the documentation phase; decide hosting and redeploy; package the engine in place; begin the trajectory-graph profile | team decisions only |
+| Next weeks | Decide hosting and redeploy; the execution store over the MIMIC-IV demo through the SULO adapter (stage 2); pass source variable ids through the adapter now that the engine shares them | team decisions only |
 | Next months | Engine public API; trajectory-graph profile integrated into the workspace with index windows and terminology search; time normalizer and calendar/age handling (T3, T4, TIME-002/003); a unified query surface (T1) | the above |
 | With partners | Full MIMIC-IV study (CLIN-001/002, UC-001); clinical mapping acceptance; usability study (UI-013); ADNI/FHIR adapter; SULO adoption decisions | D-DATA, D-CLINICAL, D-STUDY, D-USABILITY, D-ADNI-FHIR, D-SULO |
 | Product hardening | Governance, audit and sharing (FR-060/061/074); externalized operations and scaling (FR-081/082, NFR-004–006, NFR-014); the API service (A1/A2); neighbour graphs (FR-040–043) | D-DEPLOY and a hosting decision |

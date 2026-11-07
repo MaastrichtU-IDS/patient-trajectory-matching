@@ -208,8 +208,8 @@ A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); re
 | Source windows, partition plans, prepared sessions, result cache | Implemented at single-machine scale on the MIMIC-IV demo |
 | Availability modes and revision chains | Implemented on small bundles (evidence selection) |
 | Trajectory-graph matcher for sequences, trees and graphs | Implemented as a profile over projected JSON (`trajectory_graph`), checked against an exhaustive reference; the trajectory mockup matches through it; no SULO adapter yet |
-| Partitioned event store, concept postings, coverage tables | Not implemented |
-| Compiler with relaxation-sound filters | Not implemented |
+| Partitioned event store, concept postings, coverage tables | Stage 1 implemented on the synthetic cohort: DuckDB with immutable Parquet snapshots, a pure-Python reference and a store-versus-exhaustive differential ([execution store](execution-store.md)); MIMIC-IV demo ingest through the SULO adapter is stage 2 |
+| Compiler with relaxation-sound filters | A relaxation-sound concept filter is implemented in the store; time-based pruning on posting summaries is not |
 | Distributed workers, job queue, streaming results | Not implemented |
 | IC-weighted similarity (simGIC, best-match Resnik) | Implemented over the admitted snapshot, scored exhaustively; simGIC is the default for new queries, with a measure selector in the workspace; benchmarked on the synthetic cohort (§5.3) |
 | Similarity retrieval at scale, per-axis weights, governance, audit | Specified only |
@@ -354,14 +354,14 @@ The trajectory mockup now matches through it (§3). Not yet: certificates and co
 
 | Decision | Options |
 |---|---|
-| Storage for the execution store | Managed columnar warehouse (fastest to stand up) or a purpose-built Rust engine (fastest queries, more work) |
+| Storage for the execution store | Decided (D4, D7): embedded DuckDB writing immutable Parquet snapshots. Parquet moves to a warehouse or a Rust/DataFusion worker without migration. Postgres is kept for jobs and audit. A Rust engine would come later, as a second implementation over the same files |
 | Source model | OMOP CDM lifted into SULO claims, or each source directly |
 | First scale target | Full MIMIC-IV (about 300,000 patients, credentialed) before millions |
 | Live graph validation | Which of the three tightenings in §2 to adopt |
 | Similarity | simGIC as default and best-match Resnik as the reference-to-candidate option; IC population per snapshot. Implemented: simGIC is the default for new queries, each query records its measure, and queries recorded without one keep ancestor-Jaccard |
 | Embeddings | Baseline first; OWL2Vec* only if the baseline's recall falls short |
 
-Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. The trajectory mockup is connected to the profile. A retrieval benchmark for the concept measures is in §5.3. Remaining: an execution store built from the MIMIC-IV demo with concept postings and coverage tables, and a relaxation-sound compiler tested against the exhaustive reference.
+Proposed first increment, within the repository's discipline and on one machine. Done: the trajectory-graph profile with its reference implementation (§7.5); IC-weighted similarity, simGIC by default (§5.1); and the mockup's exhausted-search status corrected to unresolved. The trajectory mockup is connected to the profile. A retrieval benchmark for the concept measures is in §5.3. The execution store's first stage, with concept postings, coverage and a relaxation-sound candidate filter tested against exhaustive matching, is implemented on the synthetic cohort ([execution store](execution-store.md)). Remaining: the MIMIC-IV demo through the SULO adapter into the store, and time-based pruning.
 
 ## References
 
