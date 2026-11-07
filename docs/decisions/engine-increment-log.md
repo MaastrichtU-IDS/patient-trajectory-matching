@@ -23,6 +23,8 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D11 | MIMIC-IV demo files are fetched locally and verified, never committed | Decided |
 | D12 | Merges wait for a settled, complete, green check run | Decided |
 | D13 | One event has one time: engine variables are keyed by source variable | Decided |
+| D14 | Demo item classes take their dictionary category as a labelled ancestor | Decided |
+| D15 | Store stage 2 sends every demo row through the canonical route, 32 claims per store | Decided |
 
 ## D1 Package with hatchling, in place
 
@@ -176,3 +178,33 @@ The SULO adapter found that the trajectory-graph engine gave each step its own t
 
 The adapter keeps its refusal of shared source variables for now, and its source-network check permanently. Passing source variable ids through is a follow-up.
 
+## D14 Demo item classes take their dictionary category as a labelled ancestor
+
+Under D6 the MIMIC-IV demo's concepts are source item classes, `mimic-record-item/<itemid>`. In stage 2 of the store each item class also has one ancestor: its `d_items` category (for example `Fluids/Intake` or `Medications`), under its own namespace `mimic-record-item-category/`, percent-encoded. The basis is `source_dictionary_grouping`.
+- **Why.** A flat set of 76 item classes would leave the closure, the postings union over ancestors and `widen_concept` relaxation untested on real data. The category is the source dictionary's own grouping of its items. It asserts nothing clinical, so it does not need a reviewer (D-CLINICAL).
+- **Labelling.** These are never called clinical concepts. The store ingest's `provenance.labels`, which the manifest now copies as `labels`, say `clinical_mapping_verified: false`, `concept_basis: source_item_class` and `ancestor_basis: source_dictionary_grouping`, and the demo report repeats them. The closure version digests every ancestor and its basis.
+- **No invention.** An item with an empty category gets no ancestor.
+
+*Alternatives:* no ancestors, which tests nothing hierarchical on the demo; ancestors from a clinical terminology, which needs reviewed mappings that do not exist.
+
+## D15 Store stage 2 sends every demo row through the canonical route, 32 claims per store
+
+The canonical path is MIMIC rows, then pending claims (`mimic_claim_import.describe`), then a claim selection under a caller-declared accept-all analysis policy, then the snapshot by the patient-local graph route, then `ingest_rows`, then the store. The route has resource limits:
+- a patient-local record claim store holds at most 32 claims (schema `maxItems`, and the importer's `MAX_CLAIMS` per ICU stay);
+- at most 512 bundle rows and 256 entries in any list per store, a 256 KiB document, and a claim graph of at most 32,768 triples and 8,192 nodes;
+- a semantic policy declares at most 32 classes;
+- an import request names at most 16 items and 256 stays.
+
+The demo has 76 admitted item classes, and 60 of its 136 stays with admitted rows exceed 32 claims; they hold 10,143 of the 10,980 admitted rows. So `mimic_claim_import.run` alone would block most of the demo.
+
+**Decision: option (a), every row through the canonical route.**
+- Each stay's claims are split, in source-record order, into stores of at most 32.
+- Each store is built exactly as the importer builds one: the same `describe()` claims, one patient clock whose origin is the patient's earliest admitted start, and the importer's isolation certificate.
+- Each store declares only its own items in its semantic policy.
+- Each store is accepted, selected by `trajectory_graph_sulo.from_claims` and projected by `ingest_rows`.
+
+Splitting changes nothing the store reads. The claims carry no constraints between them, and every event has its own variables, so each event's box is the same whichever store holds it. A variable named by two rows across a patient's stores would still be refused as shared. On the fixture, the stores for a stay under the limit equal the importer's own, claims, clock and claim provenance alike. Route identity (snapshot context and evidence identifiers) is per store, and deterministic.
+
+The demo's 424 stores take 62 seconds on 8 worker processes (about 480 CPU-seconds), so option (b), which would build bulk rows from `describe()` and check a sample through the graph, was not needed.
+
+*Consequences:* the importer's per-stay limit becomes a per-store limit, and it is the store, not the adapter, that joins a patient's stores. That join is what the store is for.

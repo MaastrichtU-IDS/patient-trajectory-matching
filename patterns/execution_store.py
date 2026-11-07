@@ -123,6 +123,10 @@ def validate_ingest(ingest):
     _require(selection is None or (isinstance(selection, dict)
                                    and all(type(selection.get(k)) is str for k in ('mode', 'version', 'available_at'))),
              'INVALID_SELECTION')
+    labels = provenance.get('labels')
+    _require(labels is None or (isinstance(labels, dict) and labels
+                                and all(type(k) is str and type(v) in (str, bool) for k, v in labels.items())),
+             'INVALID_LABELS')
     closure = ingest['closure']
     _require(isinstance(closure, dict) and set(closure) == {'version', 'ancestors'}, 'INVALID_CLOSURE')
     _require(type(closure['version']) is str and closure['version'], 'INVALID_CLOSURE_VERSION')
@@ -405,6 +409,7 @@ def build(ingest, root, threads=1):
                     'time': {'unit': 'microsecond', 'origin': ORIGIN, 'calendar': 'patient_local'},
                     'buckets': BUCKETS, 'canonical_form': CANONICAL_FORM,
                     'selection': ingest.get('provenance', {}).get('selection'),
+                    'labels': ingest.get('provenance', {}).get('labels'),
                     'builder': {'artifacts': builder_artifacts(), 'engine': 'duckdb', 'engine_version': duckdb.__version__},
                     'tables': tables}
         manifest['snapshot_id'] = snapshot_identity(manifest)

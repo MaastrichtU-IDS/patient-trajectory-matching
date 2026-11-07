@@ -1,8 +1,8 @@
-# Execution store, stage 1
+# Execution store, stages 1 and 2
 
-**Profile:** `execution-store-1.0` · **Code:** [`patterns/execution_store.py`](../patterns/execution_store.py), reference [`patterns/execution_store_reference.py`](../patterns/execution_store_reference.py), synthetic converter [`patterns/synthetic_ingest.py`](../patterns/synthetic_ingest.py) · **Manifest schema:** [`schemas/execution-store-manifest.schema.json`](../schemas/execution-store-manifest.schema.json) · **Tests:** `python -m unittest patterns.test_execution_store` · **Lock:** [`patterns/requirements-store.lock.txt`](../patterns/requirements-store.lock.txt)
+**Profile:** `execution-store-1.0` · **Code:** [`patterns/execution_store.py`](../patterns/execution_store.py), reference [`patterns/execution_store_reference.py`](../patterns/execution_store_reference.py), synthetic converter [`patterns/synthetic_ingest.py`](../patterns/synthetic_ingest.py) · **Manifest schema:** [`schemas/execution-store-manifest.schema.json`](../schemas/execution-store-manifest.schema.json) · **MIMIC converter:** [`patterns/mimic_store_ingest.py`](../patterns/mimic_store_ingest.py), demo verifier [`patterns/verify_mimic_store_ingest.py`](../patterns/verify_mimic_store_ingest.py) · **Tests:** `python -m unittest patterns.test_execution_store patterns.test_mimic_store_ingest` · **Lock:** [`patterns/requirements-store.lock.txt`](../patterns/requirements-store.lock.txt)
 
-*Implemented on the synthetic paediatric cohort only.* The store is the first piece of the server-side design in [engine design](engine-design.md) §4: patient events, concept postings, a terminology closure and coverage, written as immutable Parquet snapshots on embedded DuckDB. A candidate filter that stays sound under relaxation sits in front of the [trajectory-graph matcher](trajectory-graph-profile.md). MIMIC-IV ingest is stage 2. The decisions are D4 to D7 and D10 in the engine-increment decision log.
+*Stage 1 is implemented on the synthetic paediatric cohort. Stage 2 loads the MIMIC-IV demo through the SULO adapter ([Stage 2](#stage-2-the-mimic-iv-demo-through-the-sulo-adapter)).* The store is the first piece of the server-side design in [engine design](engine-design.md) §4: patient events, concept postings, a terminology closure and coverage, written as immutable Parquet snapshots on embedded DuckDB. A candidate filter that stays sound under relaxation sits in front of the [trajectory-graph matcher](trajectory-graph-profile.md). The decisions are D4 to D7 and D10 in the engine-increment decision log, plus D14 and D15 for stage 2.
 
 DuckDB is imported lazily inside `execution_store.py` and is pinned in its own lock file, so the rest of the engine never needs it.
 
@@ -25,6 +25,7 @@ A store is built from one ingest document, whatever its source:
 - **Events.** `concepts` lists the event's direct concepts, never their ancestors. `end` is absent for a point event; `[lo, null]` means the event is still ongoing. Every event also names its `source`, which ties it to coverage.
 - **Boxes only.** The store keeps each time as independent bounds, a box. A patient whose source constraints go beyond a box, or whose events share time variables, must be declared `box_representable: false` and is refused. The field is optional and defaults to true.
 - **Selection.** `provenance.selection`, when given, says how the source chose which records to include (mode, version, availability rule). It is checked for shape and copied into the manifest.
+- **Labels.** `provenance.labels`, when given, is a flat map of strings and booleans saying what the snapshot's concepts and coverage are, such as `clinical_mapping_verified: false` and `concept_basis: source_item_class`. It is copied into the manifest as `labels`; anything else is refused with `INVALID_LABELS`.
 - **Closure.** The closure is a map from each concept to all of its strict ancestors. It must be closed (every ancestor is itself a key) and transitive, and must not contain cycles.
 
 `validate_ingest` refuses anything else with a named `IngestError` code. Examples are `DUPLICATE_EVENT_ID`, `DUPLICATE_PATIENT_ID`, `INVERTED_BOUNDS` (any lo > hi), `END_BEFORE_START`, `UNKNOWN_CONCEPT` (an event concept that is not in the closure), `CLOSURE_UNKNOWN_ANCESTOR`, `CLOSURE_NOT_TRANSITIVE`, `CLOSURE_CYCLE`, `INVALID_TIME`, `TIME_OUT_OF_RANGE`, `DUPLICATE_COVERAGE`, `INVALID_SELECTION` and `INGEST_PATIENT_NOT_BOX_REPRESENTABLE`. Nothing is written when an ingest is refused.
@@ -86,6 +87,7 @@ Record span was chosen over follow-up for coverage. It applies to every source i
 - the bucket count;
 - the canonical form;
 - the selection mode;
+- the labels, if the ingest gave any;
 - the builder: the sha256 of `patterns/execution_store.py` and of the manifest schema, plus the DuckDB version;
 - for each table, its columns, path, partitioning, row count and canonical-content digest.
 
@@ -199,34 +201,108 @@ These are on one laptop core, CPython 3.12 and DuckDB 2.0.0:
 | Differential test (300 queries, store path and exhaustive path) | about 15 s |
 | Whole suite (21 tests) | about 25 s |
 
-## Stage 2
+## Stage 2: the MIMIC-IV demo through the SULO adapter
 
-- **MIMIC-IV demo data.** Ingest goes through the SULO adapter (D8, D9), from `inputevents`, `icustays` and `d_items`. Items are indexed under their source item classes, not clinical concepts, and the labels and reports say so (D6). Coverage comes from ICU stays.
-- **Event columns.** The events table gains the D5 columns now carried inside `evidence`: status, selection state, recorded and available times, claim identifier and digest, source table, record and file digest.
-- **Per-bucket joins.** The candidate patient and event lookups are `IN` lists over the candidate set today. At MIMIC scale they become joins against a candidate table, one bucket partition at a time.
-- **Later.** `chartevents` (668,862 rows) comes in a later increment. Time pruning on posting summaries comes once differential tests cover it.
+`python -m patterns.mimic_store_ingest --input-dir DIR --dataset-id mimic-iv-demo-2.2 --workers 8` builds a snapshot from local `inputevents`, `icustays` and `d_items` files into the git-ignored `verification/execution-store-mimic-run/`. With no arguments it builds the synthetic fixture, [`examples/mimic-store-ingest/`](../examples/mimic-store-ingest/). `chartevents` is not read.
 
-### Mapping the adapter's rows to the store contract
+### Route
 
-The SULO adapter will provide a query-independent `ingest_rows(view)`. For each patient it gives:
-- each event's own clock;
-- declared and tightened bounds;
-- start and end variable identifiers;
-- a `box_representable` flag, with any non-box constraint and shared-variable identifiers;
-- concepts with their bases.
+Every admitted row takes the canonical route (D8, D15):
+1. `mimic_inputevents.stage` admits the rows.
+2. Each admitted row becomes one pending claim, `mimic_claim_import.describe`, in a patient-local record claim store built as the importer builds one: one clock per patient, whose origin is the patient's earliest admitted start, and the importer's isolation certificate.
+3. A caller-declared accept-all analysis policy (`caller_declared_accept_all`) accepts every claim. It is an analysis choice, not clinical review, and the labels say so.
+4. `trajectory_graph_sulo.from_claims` selects the accepted claims through the patient-local graph route, and `ingest_rows` projects the snapshot.
+5. `mimic_store_ingest.store_patients` maps the rows to this ingest contract, and `build` writes the snapshot.
 
-The planned mapping is:
+A record claim store holds at most 32 claims, and a semantic policy declares at most 32 classes. So each ICU stay's claims are split, in source-record order, into stores of at most 32, and each store declares only its own items. D15 lists the other limits, and why the split changes nothing the store reads. On the fixture, a stay under the limit gives exactly the importer's store.
 
-| Adapter row | Store ingest |
+### Mapping the adapter's rows
+
+| Adapter row (`trajectory-graph-sulo-ingest-1.0`) | Store ingest |
 |---|---|
-| Patient and its clock | `patient_id`, `clock_id`. The store allows one clock per patient. Events on another clock are rebased by the adapter, or the patient is refused, as D9 provides |
-| `box_representable: false`, any non-box constraint, or shared variables between events | `box_representable: false`, refused with `INGEST_PATIENT_NOT_BOX_REPRESENTABLE`. The store holds independent boxes only, so keeping such a patient would make possibility unsound |
-| Tightened start and end bounds | `start` and `end` (`[lo, null]` when open). The declared bounds and the variable identifiers go into `evidence` |
-| Concepts with basis `direct` | `concepts`. Ancestors come from the adapter's ontology closure as the ingest `closure`, versioned. Other bases stay in `evidence` until `event_concepts.basis` gains values beyond `direct` |
-| Evidence (evidence identifier, claim, role, person, source record and hash, context) | `evidence`, and then the D5 event columns |
-| Source table | `source` |
-| Coverage, from ICU stays | `coverage`, with basis `icu_stay` |
-| Selection mode of the claim view | `provenance.selection` |
+| `patient_id`, `clock_id`, `clock_origin` | `patient_id`, `clock_id`. One clock per patient; a patient whose rows name two clocks would be refused (`CLOCKS_NOT_REBASABLE`) |
+| `start_us`, `end_us` (tightened, on the event's own clock) | `start`, `end` as `origin_us + start_us`, where `origin_us` is the clock origin's patient-local coordinate from 0001-01-01T00:00. Every MIMIC event is a closed interval |
+| `box_representable`, `non_box_constraints`, `shared_variables` | A patient with any of them is left out and counted under `INGEST_PATIENT_NOT_BOX_REPRESENTABLE`, by the adapter's reason (`SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE` or `SHARED_SOURCE_VARIABLE`). A variable named by rows in two of a patient's stores counts as shared |
+| `kind_class` and the concepts with a `semantic_fact` basis | `concepts`: the event kind's class and the source item class |
+| The other concepts (`event_kind_closure`) | The closure: the kind class's ontology ancestors. The mapping checks that each event's closure reaches exactly the adapter's concepts, plus the item's grouping |
+| (no adapter field) | Each item class's `d_items` category as its one ancestor, basis `source_dictionary_grouping` (D14) |
+| Evidence, claim supports, declared bounds, variables, concept bases | `evidence`, with the claim id and digest from the claim support, which must equal `describe()`'s digest |
+| The importer's claim provenance | `evidence.recorded_at_us` from `storetime`; `available_at_us: null` and `history_mode: retrospective`, since the release carries no availability times |
+| `event_kind` | `kind` (`recorded_input_segment`); `source` is `inputevents` |
+| ICU stays | `coverage`: one period per stay, intime to outtime, source `inputevents`, basis `inferred:icustay`. Every `icustays` subject is a patient, with or without events |
+
+### Labels (D6, D14)
+
+The concepts are source item classes, `mimic-record-item/<itemid>`, never clinical concepts. Their ancestors are `d_items` categories, `mimic-record-item-category/<category>`, labelled `source_dictionary_grouping`; an item with no category gets none. The event kind's class and its ontology ancestors are structural.
+
+The manifest's `labels` say:
+- `clinical_mapping_verified: false`;
+- `concept_basis: source_item_class` and `ancestor_basis: source_dictionary_grouping`;
+- `structural_concept_basis: event_kind_closure`;
+- `coverage_basis: inferred:icustay`;
+- `history_mode: retrospective`, and the acceptance.
+
+The dataset identifier is suffixed `:source_item_class`. The selection is retrospective, as released, with availability not applied.
+
+### Coverage and refusals
+
+- **Coverage** is inferred from ICU stays. An event outside every stay of its patient is kept and counted, not dropped.
+- **Patients without admitted rows.** A patient with stays and no admitted rows is kept with its coverage, so a query over its window is `none`, not `not_comparable`.
+- **Refusals.** MIMIC claims carry no constraints between events and no shared variables, so the demo has no refusals. The fixture tests show refusal on a store with an added source constraint a box cannot hold, and on a variable shared across stores.
+
+### The demo
+
+[`verification/execution-store-mimic-demo-report.json`](../verification/execution-store-mimic-demo-report.json) holds aggregates only. It is regenerated from the verified demo files (D11) by `python -m patterns.verify_mimic_store_ingest --input-dir data/local-mimic/icu --workers 8`, which also checks the pinned file digests. The report binds its artifacts by digest for the provenance gate.
+
+| | Count |
+|---|---|
+| Source rows, admitted (9,424 not admitted: missing rate, one-minute boluses, other order categories) | 20,404, 10,980 |
+| Claims, claim stores | 10,980, 424 |
+| Patients (with events) | 100 (98) |
+| ICU stays (with claims), coverage periods | 140 (136), 140 |
+| Events, of which starting outside every ICU stay of their patient | 10,980, 41 |
+| Item classes, groupings | 76, 5 |
+| Refused patients | 0 |
+| Table rows: `event_concepts`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 1,412, 163, 84 |
+
+The snapshot identifier is `19722a32e9217eb2519338c02f401ed00dcff9ac4adace7e2dce0322c097f83f`. It changes whenever the converter or the store builder changes, or the rows they produce do.
+
+**Differential.** The verifier runs 500 seeded queries of 2 to 4 steps over source item classes and their groupings. Each query is shaped around one anchor patient's events, with gaps in minutes, first and last occurrences, widenings, `extend_max`, cycles and `during`. Every query runs over all 100 patients three ways:
+- the store path;
+- `exhaustive_match` over the whole ingest;
+- the engine over each patient's adapter rows directly, without the store mapping.
+
+Of the 50,000 patient results, none mismatch on either comparison, and the candidate filter drops no match.
+
+| Status | Results |
+|---|---|
+| `exact` | 1,644 |
+| `relaxed` | 818 |
+| `unresolved` | 2 |
+| `none` | 37,519 |
+| `not_comparable` | 7,508 |
+| `excluded` | 2,509 |
+
+The filter keeps 16,210 of the 50,000 patient results for the matcher. There is no `possible`, since every recorded MIMIC time is exact. The adapter-row engine has no coverage rule, so its `none` count is the store's `none` plus `not_comparable`.
+
+**Timings**, on one laptop with CPython 3.12 and DuckDB 2.0.0:
+
+| Step | Time |
+|---|---|
+| Admission and claim stores | 0.7 s |
+| 424 stores through isolation, acceptance, the graph route and `ingest_rows`, 8 worker processes | 62 s (about 480 CPU-seconds) |
+| Mapping | 0.3 s |
+| Building the snapshot | 0.9 s |
+| Opening and verifying it | 0.2 s |
+| Differential (500 queries, three paths) | 93 s |
+
+### Next
+
+- **`chartevents`** (668,862 rows) needs its own claim route and far more stores: about 21,000 at 32 claims each.
+- **Time pruning** on the posting summaries waits until differential tests cover it.
+- **Per-bucket joins.** The candidate patient and event lookups are `IN` lists over the candidate set today. At full scale they become joins against a candidate table, one bucket partition at a time.
+- **Event columns.** The D5 columns are still inside `evidence`: status, selection state, recorded and available times, claim identifier and digest, source table, record and file digest.
+- **Shared variables.** Once the adapter passes source variable ids through to the engine (D13), shared variables need not be refused. The store would then need variable columns.
 
 ## Deliberately not done
 

@@ -43,3 +43,4 @@ verification/configured-pressure-workload-run/
 verification/research-prototype-run/
 dist/
 patterns/_contracts/
+verification/execution-store-mimic-run/
