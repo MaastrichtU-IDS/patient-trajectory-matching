@@ -1,9 +1,10 @@
 """MIMIC inputevents into the execution store through the SULO adapter, on the synthetic fixture.
 
-`examples/mimic-store-ingest/` is synthetic and MIMIC-shaped: four patients, five ICU stays, 63
-inputevents rows (three not admitted), one stay with more claims than a record claim store holds,
-an item with no dictionary category and an event that starts before its ICU admission. No patient
-data is read.
+`examples/mimic-store-ingest/` is synthetic and MIMIC-shaped: four patients, five ICU stays, 69
+inputevents rows, one stay with more claims than a record claim store holds, an item with no
+dictionary category and an event that starts before its ICU admission. Nine rows are not admitted:
+boluses, drug pushes, a missing rate, an unsupported status, an exact duplicate, an unreadable start
+and an unknown item; one item (medication F) appears only in them. No patient data is read.
 """
 from contextlib import redirect_stdout
 from copy import deepcopy
@@ -112,7 +113,7 @@ class MappingTests(unittest.TestCase):
         for r in rows:
             origin = msi.micros(r['clock_origin'])
             i = index[r['patient_id']]
-            expected_events.add((i, r['event_id'], r['event_kind'], 'inputevents', r['clock_id'],
+            expected_events.add((i, r['event_id'], r['event_kind'], msi.SOURCE, r['clock_id'],
                                  origin + r['start_us'][0], origin + r['start_us'][1],
                                  origin + r['end_us'][0], origin + r['end_us'][1], False))
             facts = [c['concept'] for c in r['concepts'] if any(b['kind'] == 'semantic_fact' for b in c['basis'])]
@@ -177,11 +178,35 @@ class LabelTests(unittest.TestCase):
         self.assertEqual(ancestors[ITEM + '2003'], [GROUP + 'Medications'])
         self.assertEqual(ancestors[ITEM + '2004'], [])  # no category: no grouping is invented
         self.assertEqual(ancestors[GROUP + 'Medications'], [])
-        self.assertNotIn(ITEM + '2005', ancestors)  # a chartevents item never admitted
+        self.assertNotIn(ITEM + '2005', ancestors)  # a chartevents item no row carries
+        self.assertEqual(ancestors[ITEM + '2006'], [GROUP + 'Medications'])  # only in rows not admitted
+        self.assertNotIn(ITEM + '2999', ancestors)  # not in the dictionary: no concept is invented
         bases = result()['ingest']['provenance']['ancestor_bases']
-        self.assertEqual(bases['source_item_class'], 4)
+        self.assertEqual(bases['source_item_class'], 5)
         self.assertEqual(bases['source_dictionary_grouping'], 2)
-        self.assertEqual(result()['counts']['item_classes'], 4)
+        self.assertEqual(result()['counts']['item_classes'], 5)
+
+    def test_closure_rows_say_what_kind_of_concept_each_side_is(self):
+        rows = {(r[0], r[1]): r for r in STATE['store'].rows('concept_closure')}
+        item = rows[(ITEM + '2001', GROUP + 'Fluids%2FIntake')]
+        self.assertEqual(item[2:4], ('declared', result()['ingest']['closure']['version']))
+        self.assertEqual(item[4:], ('source_item_class', 'source_dictionary_grouping'))
+        self.assertEqual(rows[(KIND, KIND)][4:], ('ontology_closure', 'ontology_closure'))
+        self.assertEqual({r[4] for r in rows.values()}, {'source_item_class', 'source_dictionary_grouping',
+                                                          'ontology_closure'})
+
+    def test_labels_name_the_admitted_subset(self):
+        labels = STATE['store'].manifest['labels']
+        self.assertEqual(labels['source'], 'inputevents:continuous_segments')
+        self.assertEqual(labels['admitted_statuses'], 'ChangeDose/Rate|FinishedRunning|Paused|Stopped')
+        self.assertEqual(labels['admitted_order_categories'], 'Continuous IV|Continuous Med')
+        self.assertEqual({r[3] for r in STATE['store'].rows('events')}, {msi.SOURCE})
+
+    def test_match_results_carry_the_labels(self):
+        out = es.match(STATE['store'], MatchingTests.QUERY, MatchingTests().windows())
+        self.assertEqual(out['labels'], STATE['store'].manifest['labels'])
+        self.assertEqual(out['context']['labels'], STATE['store'].manifest['labels'])
+        self.assertIs(out['labels']['clinical_mapping_verified'], False)
 
     def test_labels_must_be_flat_strings_or_booleans(self):
         ingest = deepcopy(result()['ingest'])
@@ -197,8 +222,9 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual([(c['lo'], c['hi']) for c in p11['coverage']],
                          [(msi.micros('2150-01-01 08:00:00'), msi.micros('2150-01-05 08:00:00')),
                           (msi.micros('2150-03-01 08:00:00'), msi.micros('2150-03-03 08:00:00'))])
-        self.assertTrue(all(c['basis'] == 'inferred:icustay' and c['source'] == 'inputevents'
-                            for p in result()['ingest']['patients'] for c in p['coverage']))
+        self.assertTrue(all(c['source'] == msi.SOURCE for p in result()['ingest']['patients'] for c in p['coverage']))
+        self.assertEqual([c['basis'] for p in result()['ingest']['patients'] for c in p['coverage']].count(
+            'inferred:icustay'), 4)
         self.assertEqual(result()['counts']['coverage_periods'], 5)
 
     def test_a_patient_with_stays_but_no_admitted_rows_is_kept_with_coverage(self):
@@ -208,9 +234,62 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(result()['counts']['patients_with_events'], 3)
         self.assertEqual(result()['counts']['patients_in_store'], 4)
 
-    def test_events_outside_their_stay_are_counted_not_dropped(self):
-        self.assertEqual(result()['counts']['events_starting_outside_coverage'], 1)
+    def test_a_stay_is_extended_to_its_own_admitted_records(self):
+        # Patient 14's first medication starts an hour before the recorded ICU admission.
+        (period,) = ingest_patient('14')['coverage']
+        self.assertEqual((period['lo'], period['hi'], period['basis']),
+                         (msi.micros('2152-01-01 11:00:00'), msi.micros('2152-01-03 12:00:00'), 'inferred:icustay+records'))
+        counts = result()['counts']
+        self.assertEqual((counts['events_outside_own_stay'], counts['coverage_periods_extended_by_records']), (1, 1))
+        self.assertEqual(counts['minutes_outside_own_stay'], {'max': 60, 'median': 60})
         self.assertEqual(len(ingest_patient('14')['events']), 4)
+
+
+class ExcludedRecordTests(unittest.TestCase):
+    def excluded(self, pid):
+        return ingest_patient(pid).get('excluded', [])
+
+    def test_every_row_admission_leaves_out_is_kept_as_a_concept_and_a_start(self):
+        counts = result()['counts']['excluded']
+        self.assertEqual(result()['counts']['admission_outcomes'],
+                         {'STAGED_SEGMENT': 60, 'UNSUPPORTED_ROW': 6, 'INVALID_ROW': 2, 'DUPLICATE_ROW': 1})
+        self.assertEqual((counts['rows'], counts['duplicate_rows_skipped'], counts['rows_with_unknown_item']), (7, 1, 1))
+        self.assertEqual(self.excluded('14'), [{'source': msi.SOURCE, 'concept': ITEM + '2002',
+                                                'start': [msi.micros('2152-01-02 14:00:00')] * 2,
+                                                'reason': 'UNSUPPORTED_ORDER_CATEGORY'}])
+        self.assertEqual(len(self.excluded('11')), 1)  # the duplicate adds nothing
+        self.assertEqual(len(STATE['store'].rows('excluded_records')), 7)
+        self.assertEqual(counts['item_classes_only_in_excluded_records'], 1)
+        self.assertEqual(counts['patients_without_admitted_rows_with_excluded_records'], 1)
+
+    def test_an_unreadable_start_covers_all_time(self):
+        unreadable = [x for x in self.excluded('12') if x['start'] == [0, es.MAX_TIME]]
+        self.assertEqual([x['concept'] for x in unreadable], [ITEM + '2001'])
+        self.assertIn('INVALID_LOCAL_TIMESTAMP:starttime', unreadable[0]['reason'])
+
+    def test_a_none_an_excluded_record_could_change_is_not_comparable(self):
+        query = {'profile': tg.PROFILE_ID, 'scope': 'within', 'steps': [{'id': 'B', 'concept': ITEM + '2002'}]}
+        stay = ingest_patient('14')['coverage'][0]
+        for window, status in (({'start': stay['lo'], 'end': stay['hi']}, 'not_comparable'),
+                               ({'start': stay['lo'], 'end': msi.micros('2152-01-02 13:00:00')}, 'none')):
+            got = next(r for r in es.match(STATE['store'], query, {'14': window})['results'] if r['patient_id'] == '14')
+            self.assertEqual(got['status'], status)
+            if status == 'not_comparable':
+                self.assertEqual(got, {'patient_id': '14', 'status': 'not_comparable',
+                                       'reason': 'ADMISSION_EXCLUDED_RECORDS', 'excluded_steps': ['B']})
+        # Through the grouping too: fluid B is a Fluids/Intake item.
+        query['steps'][0]['concept'] = GROUP + 'Fluids%2FIntake'
+        windows = {'14': {'start': msi.micros('2152-01-02 13:00:00'), 'end': msi.micros('2152-01-02 15:00:00')}}
+        got = es.match(STATE['store'], query, windows)['results']
+        self.assertEqual(next(r for r in got if r['patient_id'] == '14')['reason'], 'ADMISSION_EXCLUDED_RECORDS')
+        self.assertEqual([r['status'] for r in got], [w['status'] for w in ref.exhaustive_match(result()['ingest'], query, windows)])
+
+    def test_an_item_only_in_excluded_records_is_known_and_never_a_plain_none(self):
+        query = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'F', 'concept': ITEM + '2006'}]}
+        windows = {p['patient_id']: {'start': 0, 'end': es.MAX_TIME} for p in result()['ingest']['patients']}
+        got = es.match(STATE['store'], query, windows)['results']
+        self.assertEqual({r['status'] for r in got}, {'not_comparable'})
+        self.assertEqual(got, ref.exhaustive_match(result()['ingest'], query, windows))
 
 
 class RefusalTests(unittest.TestCase):
@@ -257,6 +336,16 @@ class RefusalTests(unittest.TestCase):
             es.validate_ingest(ingest)
         self.assertEqual(caught.exception.code, 'INGEST_PATIENT_NOT_BOX_REPRESENTABLE')
 
+    def test_a_source_row_repeated_across_stores_is_refused(self):
+        rows = deepcopy(result()['rows'])
+        twin = deepcopy(next(r for r in rows if r['patient_id'] == '12'))
+        twin['event_id'] += '_again'
+        prepared = result()['prepared']
+        with self.assertRaises(msi.MimicStoreError) as caught:
+            msi.store_patients(rows + [twin], claim_provenance=prepared['claim_provenance'], stays=prepared['stays'],
+                               items=prepared['items'])
+        self.assertEqual(str(caught.exception), 'DUPLICATE_SOURCE_ROW_ACROSS_STORES:record_id')
+
     def test_the_fixture_has_no_refusals(self):
         self.assertEqual(result()['refused'][msi.REFUSAL]['patients'], 0)
 
@@ -282,7 +371,10 @@ class MatchingTests(unittest.TestCase):
             if g.get('reason') != 'FILTERED':
                 self.assertEqual(g, w)
         statuses = {r['patient_id']: r['status'] for r in got['results']}
-        self.assertEqual(statuses, {'11': 'exact', '12': 'exact', '13': 'none', '14': 'relaxed'})
+        # Patient 13 has no admitted rows, but its source recorded both items in rows admission left out.
+        self.assertEqual(statuses, {'11': 'exact', '12': 'exact', '13': 'not_comparable', '14': 'relaxed'})
+        p13 = next(r for r in got['results'] if r['patient_id'] == '13')
+        self.assertEqual((p13['reason'], p13['excluded_steps']), ('ADMISSION_EXCLUDED_RECORDS', ['fluid', 'drug']))
         # The adapter's own matching, on each patient whose claims fit in one store, over the same
         # absolute window expressed on the patient's clock.
         rows = result()['rows']
@@ -344,6 +436,11 @@ class CommittedReportTests(unittest.TestCase):
         self.assertEqual(report['differential']['adapter_row_mismatches'], 0)
         self.assertEqual(report['differential']['dropped_matches'], 0)
         self.assertEqual(report['route']['choice'], 'a')
+        self.assertEqual(report['raw_source_time_check'], {'events_checked': report['counts']['events'], 'mismatches': 0})
+        self.assertEqual(report['counts']['excluded']['rows'], report['counts']['admission_outcomes']['UNSUPPORTED_ROW']
+                         + report['counts']['admission_outcomes']['INVALID_ROW'])
+        self.assertEqual(report['snapshot']['labels']['source'], 'inputevents:continuous_segments')
+        self.assertIn('ADMISSION_EXCLUDED_RECORDS', report['differential']['not_comparable_by_reason'])
         # No event, claim or record identifiers, item IRIs or patient keys: counts only.
         text = json.dumps(report)
         self.assertIsNone(re.search(r'(input|row|claim_input)_[0-9a-f]{64}_[0-9]+', text))

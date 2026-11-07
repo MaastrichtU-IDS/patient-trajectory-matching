@@ -4,3 +4,4 @@ itemid,label,abbreviation,linksto,category,unitname,param_type,lownormalvalue,hi
 2003,Synthetic medication C,,inputevents,Medications,mg,Solution,,
 2004,Synthetic medication D,,inputevents,,mg,Solution,,
 2005,Synthetic chart item E,,chartevents,Routine Vital Signs,bpm,Numeric,,
+2006,Synthetic medication F,,inputevents,Medications,mg,Solution,,

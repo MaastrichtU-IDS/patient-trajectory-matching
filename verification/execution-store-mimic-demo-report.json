@@ -154,21 +154,47 @@
       "INVALID_ROW": 0,
       "DUPLICATE_ROW": 0
     },
+    "admission_reasons": {
+      "MISSING_QUANTITY_OR_UNIT:rate": 9366,
+      "NON_POSITIVE_QUANTITY:amount": 31,
+      "NON_POSITIVE_QUANTITY:rate": 2,
+      "ONE_MINUTE_BOLUS_AMBIGUITY": 8550,
+      "UNSUPPORTED_ORDER_CATEGORY": 8497,
+      "UNSUPPORTED_STATUS": 12
+    },
     "admitted_rows": 10980,
     "claims": 10980,
     "claim_stores": 424,
     "icu_stays": 140,
     "icu_stays_with_claims": 136,
+    "icu_stays_without_admitted_rows": 4,
     "patients": 100,
     "patients_in_store": 100,
     "patients_with_events": 98,
     "events": 10980,
-    "events_starting_outside_coverage": 41,
     "coverage_periods": 140,
-    "item_classes": 76,
-    "groupings": 5,
+    "coverage_periods_extended_by_records": 16,
+    "item_classes": 159,
+    "groupings": 6,
+    "excluded": {
+      "rows": 9424,
+      "excluded_records": 9424,
+      "patients_with_excluded_records": 99,
+      "patient_items_only_in_excluded_records": 1254,
+      "patient_items_only_in_excluded_records_of_admitted_items": 257,
+      "patients_with_items_only_in_excluded_records": 99,
+      "item_classes_only_in_excluded_records": 83,
+      "patients_without_admitted_rows": 2,
+      "patients_without_admitted_rows_with_excluded_records": 1
+    },
     "events_refused": 0,
-    "stays_without_coverage": {}
+    "stays_without_coverage": {},
+    "events_outside_own_stay": 53,
+    "minutes_outside_own_stay": {
+      "max": 503,
+      "median": 4
+    },
+    "excluded_rows_of_unknown_patients": 0
   },
   "refused": {
     "INGEST_PATIENT_NOT_BOX_REPRESENTABLE": {
@@ -180,17 +206,25 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "19722a32e9217eb2519338c02f401ed00dcff9ac4adace7e2dce0322c097f83f",
+    "snapshot_id": "e7de23610593967c76c7ceedd034957384534765f83bec618afa147f004adf50",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
-    "input_digest": "c3a246ce4f3daa3a3a8fb46bcb68f34e247459a0717e7d58472aadb53ac312aa",
-    "closure_version": "mimic-store-ingest-1.0:d8b9f984fca0f351f5938f9b508366c00c1667b62aefbe8230e7b620ffc5535a",
+    "input_digest": "acbadb93c9df0756a9ee83dec0f4e1f618386f0a295f1fb3aa44da3f4e79d163",
+    "closure_version": "mimic-store-ingest-1.0:eaf0778bb0fde1e0566d331da7a2a58f073e585f859c9767f391b786ad05f5f2",
     "labels": {
       "acceptance": "caller_declared_accept_all_analysis_not_clinical_review",
+      "admission_exclusions": "one-minute boluses, missing or non-positive rate or amount, other statuses and order categories, invalid and duplicate rows",
+      "admission_profile": "mimic-inputevents-staging-1.0",
+      "admitted_order_categories": "Continuous IV|Continuous Med",
+      "admitted_statuses": "ChangeDose/Rate|FinishedRunning|Paused|Stopped",
       "ancestor_basis": "source_dictionary_grouping",
       "clinical_mapping_verified": false,
       "concept_basis": "source_item_class",
       "coverage_basis": "inferred:icustay",
+      "excluded_records": "excluded_records table; a none they could change is not_comparable",
+      "extended_coverage_basis": "inferred:icustay+records",
       "history_mode": "retrospective",
+      "source": "inputevents:continuous_segments",
+      "source_table": "inputevents",
       "structural_concept_basis": "event_kind_closure"
     },
     "selection": {
@@ -201,19 +235,24 @@
     },
     "ancestor_bases": {
       "ontology_closure": 3,
-      "source_dictionary_grouping": 5,
-      "source_item_class": 76
+      "source_dictionary_grouping": 6,
+      "source_item_class": 159
     },
     "tables": {
-      "concept_closure": 163,
+      "concept_closure": 330,
       "concept_postings": 1412,
       "coverage": 140,
       "event_concepts": 21960,
       "events": 10980,
+      "excluded_records": 9398,
       "patients": 100,
       "source_concepts": 84
     },
     "duckdb_version": "2.0.0"
+  },
+  "raw_source_time_check": {
+    "events_checked": 10980,
+    "mismatches": 0
   },
   "differential": {
     "queries": 500,
@@ -226,8 +265,8 @@
     "status_mix": {
       "exact": 1644,
       "excluded": 2509,
-      "none": 37519,
-      "not_comparable": 7508,
+      "none": 10262,
+      "not_comparable": 34765,
       "relaxed": 818,
       "unresolved": 2
     },
@@ -238,16 +277,25 @@
       "relaxed": 818,
       "unresolved": 2
     },
+    "adapter_row_bindings_compared": 2462,
+    "not_comparable_by_reason": {
+      "ADMISSION_EXCLUDED_RECORDS": 27257,
+      "NO_SOURCE_COVERAGE": 7508
+    },
+    "relaxations_used_by_status_and_kind": {
+      "relaxed:extend_max": 52,
+      "relaxed:widen_concept": 809
+    },
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 62.11,
+    "adapter": 62.06,
     "admission_and_claims": 0.67,
-    "differential": 217.81,
-    "mapping": 0.25,
-    "store_build": 0.93,
-    "store_open_and_verify": 0.18,
-    "total": 281.97
+    "differential": 221.36,
+    "mapping": 0.27,
+    "store_build": 1.01,
+    "store_open_and_verify": 0.2,
+    "total": 285.65
   },
   "artifacts": {
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
@@ -266,13 +314,13 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "a2beb333524407c7f6b3971bcf360a9aa696482e449faf3367af0c6600f988da",
-    "patterns/execution_store_reference.py": "6d538a22a29f94152caaa6ce163f94a3a63bfbdc2028512715ffb04e81838c76",
+    "patterns/execution_store.py": "070c15603234bc7c06a020bc33cb5b4d3a6374ddb708c85efd8371796f76062e",
+    "patterns/execution_store_reference.py": "128647f37b94d1e3263ea0bf41cee0bb760f002139bdc430608503f3b0febc49",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
     "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
-    "patterns/mimic_store_ingest.py": "1e8edf81dbbceb0546e903109505391e373fc72645dd0f05d73c8ee7101d9a90",
+    "patterns/mimic_store_ingest.py": "c47fa19ec7152d086454c859ae0fac32b374fcc97988baeafcf38ae3980ace33",
     "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
     "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
     "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
@@ -284,10 +332,10 @@
     "patterns/trajectory_graph.py": "10c2d7fc6041dcbcd5520cef910e591af215442a38aed69e68cfee5d8c638df6",
     "patterns/trajectory_graph_sulo.py": "2b2af988bfb62b96c216ccb60f4e85794bd1e600920ba12270625a70719cd240",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
-    "patterns/verify_mimic_store_ingest.py": "f52fb19c880435fbd233d6b743d33aa80db9dde14d8213f44c768250942f88c1",
+    "patterns/verify_mimic_store_ingest.py": "0fe47d451dd402306514ccf0fb9a611f1628d1b49705c9785e7ffc76ea2fd0ea",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
     "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
-    "schemas/execution-store-manifest.schema.json": "60c60e1b379589e3e92c1a2d31beff28d0eb6aab670d48fa9fda79483f29b4e4",
+    "schemas/execution-store-manifest.schema.json": "9017963acf3f17fe87356170435ed9f67b4cb29fed3a723bda359580e2cc9184",
     "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
     "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
     "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",

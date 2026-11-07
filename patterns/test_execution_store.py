@@ -315,6 +315,37 @@ class MatchingTests(unittest.TestCase):
             self.assertEqual([by[p] for p in sorted(by)], ref.exhaustive_match(fixture(), q, windows))
             self.assertIn(('pharmacy', 'antiseizure', 'inferred_from_records'), store.rows('source_concepts'))
 
+    def test_excluded_records_turn_a_none_into_not_comparable(self):
+        """Records the source held but the ingest left out: a `none` that could have used them is not a non-match."""
+        ingest = fixture()
+        ingest['closure']['bases'] = {c: ('drug_class' if c in ('antiseizure', 'sodium_channel_blocker') else 'condition_or_drug')
+                                      for c in ingest['closure']['ancestors']}
+        p5 = next(p for p in ingest['patients'] if p['patient_id'] == 'P5')
+        held = {'source': 'pharmacy', 'concept': 'carbamazepine', 'start': [day(500), day(500)], 'reason': 'NOT_ADMITTED'}
+        p5['excluded'] = [held, dict(held)]
+        windows = {f'P{i}': {'start': day(-365), 'end': day(365)} for i in range(1, 7)}
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+            tables = ref.build_tables(ingest)
+            for name in es.TABLES:
+                self.assertEqual(store.rows(name), [tuple(r) for r in tables[name]], name)
+            self.assertEqual(store.rows('excluded_records'), [(4, 'pharmacy', 'carbamazepine', day(500), day(500), 'NOT_ADMITTED', 2)])
+            self.assertIn(('carbamazepine', 'antiseizure', 'declared', 'fixture-1', 'condition_or_drug', 'drug_class'),
+                          store.rows('concept_closure'))
+            for scope, status in (('any', 'not_comparable'), ('within', 'none')):
+                q = {**FIXTURE_QUERY, 'scope': scope}
+                out = es.match(store, q, windows)
+                self.assertEqual(out['exclusion_rule'], es.EXCLUSION_RULE)
+                p5_result = next(r for r in out['results'] if r['patient_id'] == 'P5')
+                self.assertEqual(p5_result['status'], status, scope)  # day 500 lies outside the window
+                if status == 'not_comparable':
+                    self.assertEqual(p5_result, {'patient_id': 'P5', 'status': 'not_comparable',
+                                                 'reason': 'ADMISSION_EXCLUDED_RECORDS', 'excluded_steps': ['B']})
+                want = ref.exhaustive_match(ingest, q, windows)
+                self.assertEqual([r['status'] for r in out['results']], [w['status'] for w in want])
+        with self.assertRaises(es.IngestError) as caught:
+            es.validate_ingest({**ingest, 'closure': {**ingest['closure'], 'bases': {'seizure': 'x'}}})
+        self.assertEqual(caught.exception.code, 'INVALID_CONCEPT_BASES')
+
     def test_store_matches_exhaustive_matching_and_never_drops_a_match(self):
         started = time.perf_counter()
         mismatches, dropped, mix, filtered = differential(_STATE['store'], _STATE['ingest'], _STATE['reference'])
@@ -368,6 +399,9 @@ class DeterminismTests(unittest.TestCase):
         snapshot = _STATE['snapshot']
         for name in es.PARTITIONED:
             buckets = sorted(p.name for p in (snapshot / name).iterdir())
+            if _STATE['store'].manifest['tables'][name]['rows'] == 0:  # the cohort has no excluded records
+                self.assertEqual(buckets, ['empty.parquet'], name)
+                continue
             self.assertTrue(buckets and all(b.startswith('bucket=') for b in buckets), name)
         self.assertEqual(len(list((snapshot / 'events').iterdir())), es.BUCKETS)
 

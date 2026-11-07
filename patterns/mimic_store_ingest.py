@@ -25,10 +25,17 @@ and `concept_basis: source_item_class`.
 
 Times are integer microseconds on the patient-local calendar from 0001-01-01T00:00: the clock
 origin's coordinate plus the adapter's tightened bounds (`origin_us + start_us`). There is one
-clock per patient. Coverage is one period per ICU stay, intime to outtime, with basis
-`inferred:icustay`. A patient the adapter marks not box-representable, or whose events share a
+clock per patient. A patient the adapter marks not box-representable, or whose events share a
 time variable, is refused (`INGEST_PATIENT_NOT_BOX_REPRESENTABLE`) and counted by the adapter's
-reason. See docs/execution-store.md, "Stage 2".
+reason.
+
+The admitted subset. Admission keeps continuous IV and medication segments with four statuses, so
+the store's source is `inputevents:continuous_segments`, and the labels list what was admitted.
+Coverage is one period per ICU stay, intime to outtime (`inferred:icustay`), widened to the stay's
+own admitted records where they fall outside it (`inferred:icustay+records`). Every row admission
+leaves out is kept as an excluded record, its item class and start, so that the store reports a
+`none` such a row could have changed as `not_comparable` (`ADMISSION_EXCLUDED_RECORDS`). See
+docs/execution-store.md, "Stage 2".
 """
 from __future__ import annotations
 
@@ -48,6 +55,7 @@ from . import claim_isolation
 from . import claim_projection as cp
 from . import claim_rdf as cr
 from . import exact_intervals as ei
+from . import execution_store as es
 from . import joint_evidence as joint
 from . import local_claim_projection as lcp
 from . import mimic_claim_import as importer
@@ -58,8 +66,11 @@ from . import trajectory_graph_sulo as tgs
 PROFILE = 'mimic-store-ingest-1.0'
 INGEST_PROFILE = 'execution-store-ingest-1.0'
 ORIGIN = '0001-01-01T00:00:00'
-SOURCE = 'inputevents'
+# The store holds only the rows admission keeps, so the source is named by that subset.
+SOURCE_TABLE = 'inputevents'
+SOURCE = 'inputevents:continuous_segments'
 COVERAGE_BASIS = 'inferred:icustay'
+EXTENDED_COVERAGE_BASIS = 'inferred:icustay+records'
 CONCEPT_BASIS = 'source_item_class'
 GROUP_NS = 'https://example.org/trajectory/mimic-record-item-category/'
 GROUP_BASIS = 'source_dictionary_grouping'
@@ -75,8 +86,15 @@ SELECTION = {'mode': 'retrospective', 'version': 'as_released', 'available_at': 
              'note': ('every admitted inputevents row of the release as read, all accepted for analysis; the release '
                       'carries no revision history or source availability times, so neither selects records')}
 LABELS = {'clinical_mapping_verified': False, 'concept_basis': CONCEPT_BASIS, 'ancestor_basis': GROUP_BASIS,
-          'structural_concept_basis': KIND_BASIS, 'coverage_basis': COVERAGE_BASIS, 'history_mode': 'retrospective',
-          'acceptance': 'caller_declared_accept_all_analysis_not_clinical_review'}
+          'structural_concept_basis': KIND_BASIS, 'coverage_basis': COVERAGE_BASIS,
+          'extended_coverage_basis': EXTENDED_COVERAGE_BASIS, 'history_mode': 'retrospective',
+          'acceptance': 'caller_declared_accept_all_analysis_not_clinical_review',
+          'source': SOURCE, 'source_table': SOURCE_TABLE, 'admission_profile': admission.PROFILE,
+          'admitted_statuses': '|'.join(sorted(admission.STATUSES)),
+          'admitted_order_categories': '|'.join(sorted(admission.CATEGORIES)),
+          'admission_exclusions': ('one-minute boluses, missing or non-positive rate or amount, other statuses and '
+                                   'order categories, invalid and duplicate rows'),
+          'excluded_records': 'excluded_records table; a none they could change is not_comparable'}
 FILES = tuple(sorted(set(
     ('patterns/mimic_store_ingest.py', 'patterns/execution_store.py', 'schemas/execution-store-manifest.schema.json',
      'patterns/claim_isolation.py', 'patterns/claim_rdf.py', 'ontology/claim-description-profile.ttl',
@@ -274,15 +292,28 @@ def _evidence(row, claim, origin_us):
         'start_var': row['start_var'], 'end_var': row['end_var'],
         'concept_bases': {c['concept']: sorted({b['kind'] for b in c['basis']}) for c in row['concepts']},
         'entailment': row['entailment'], 'vocabulary_disjointness': row['vocabulary_disjointness'],
-        'source_table': SOURCE, 'source_record_number': claim['source']['record_number'],
+        'source_table': SOURCE_TABLE, 'source_record_number': claim['source']['record_number'],
         'source_row_sha256': claim['source']['row_sha256'], 'source_file_sha256': claim['source']['file_sha256'],
         'recorded_at_us': micros(recorded) if recorded else None, 'available_at_us': None,
         'history_mode': 'retrospective', 'source_history_verified': False, 'clinical_mapping_verified': False}
 
 
-def _coverage(stays):
-    """{patient: [periods]} from ICU stays, and the stays left out for want of times."""
-    out, skipped = defaultdict(set), Counter()
+def _minutes(us):
+    return us // 60_000_000
+
+
+def _patient_coverage(stays, events):
+    """One coverage period per ICU stay, extended to the stay's own admitted records.
+
+    A stay's period is intime to outtime (basis `inferred:icustay`). Where an admitted record of the
+    stay starts before intime or ends after outtime, the period is widened to hold it and its basis
+    is `inferred:icustay+records`: the source was evidently recording then. Returns the periods, the
+    stays left out for want of times, and how far each outlying record fell outside its stay.
+    """
+    by_stay = defaultdict(list)
+    for e in events:
+        by_stay[e['evidence']['episode_id']].append(e)
+    periods, skipped, outside = set(), Counter(), []
     for stay in stays:
         try:
             lo, hi = micros(stay['intime']), micros(stay['outtime'])
@@ -292,31 +323,78 @@ def _coverage(stays):
         if lo > hi:
             skipped['STAY_OUTTIME_BEFORE_INTIME'] += 1
             continue
-        out[stay['subject_id']].add((lo, hi))
-    return {p: [{'source': SOURCE, 'lo': lo, 'hi': hi, 'basis': COVERAGE_BASIS} for lo, hi in sorted(periods)]
-            for p, periods in out.items()}, skipped
+        records = by_stay.pop(stay['stay_id'], [])
+        for e in records:
+            beyond = max(lo - e['start'][0], e['end'][1] - hi, 0)
+            if beyond:
+                outside.append(beyond)
+        first = min([lo] + [e['start'][0] for e in records])
+        last = max([hi] + [e['end'][1] for e in records])
+        periods.add((first, last, COVERAGE_BASIS if (first, last) == (lo, hi) else EXTENDED_COVERAGE_BASIS))
+    require(not by_stay, 'EVENT_STAY_WITHOUT_ICU_STAY')
+    return ([{'source': SOURCE, 'lo': lo, 'hi': hi, 'basis': basis} for lo, hi, basis in sorted(periods)],
+            skipped, outside)
 
 
-def store_patients(rows, *, claim_provenance, stays, items):
+def excluded_records(staged, items):
+    """{patient: excluded records} for every source row admission did not keep.
+
+    Each is the row's item class and start, so that a `none` the row could have changed is reported
+    not comparable. A start that cannot be read covers all time. Exact duplicates of another row add
+    nothing; a row whose item the dictionary does not hold has no concept and is only counted.
+    """
+    out, counts = defaultdict(list), Counter()
+    for entry in staged['reconciliation']:
+        if entry['outcome'] == 'STAGED_SEGMENT':
+            continue
+        if entry['outcome'] == 'DUPLICATE_ROW':
+            counts['duplicate_rows_skipped'] += 1
+            continue
+        raw = entry['raw']
+        if raw['itemid'] not in items:
+            counts['rows_with_unknown_item'] += 1
+            continue
+        try:
+            start = [micros(raw['starttime'])] * 2
+        except (ei.ContractError, ValueError):
+            start = [0, es.MAX_TIME]
+            counts['rows_with_unreadable_start'] += 1
+        out[raw['subject_id']].append({'source': SOURCE, 'concept': importer.ITEM_NS + raw['itemid'], 'start': start,
+                                       'reason': '|'.join(sorted(set(entry['reasons']))) or entry['outcome']})
+        counts['rows'] += 1
+    return dict(out), counts
+
+
+def store_patients(rows, *, claim_provenance, stays, items, excluded=None):
     """Map the adapter's ingest rows to the store's patients and closure.
 
     `rows` are `ingest_rows` output over any number of views; `claim_provenance` is keyed by claim
     id; `stays` are icustays rows (every subject is a patient, with or without events); `items`
-    maps itemid to its d_items row. Returns (patients, closure ancestors, ancestor bases, refused,
-    counts). Patients the adapter marks not box-representable are left out and counted.
+    maps itemid to its d_items row; `excluded` maps a patient to the records admission left out
+    (`excluded_records`). Returns (patients, closure ancestors, concept bases, refused, counts).
+    Patients the adapter marks not box-representable are left out and counted.
     """
+    excluded = excluded or {}
     by_patient = defaultdict(list)
     for row in rows:
         require(row['profile'] == tgs.INGEST_PROFILE, 'UNSUPPORTED_ADAPTER_ROWS')
         by_patient[row['patient_id']].append(row)
-    coverage, skipped = _coverage(stays)
+    stays_of = defaultdict(list)
+    for stay in stays:
+        stays_of[stay['subject_id']].append(stay)
     vocabulary = tgs.Vocabulary()
     categories = {i: r['category'] for i, r in items.items()}
-    concepts = {c['concept'] for row in rows for c in row['concepts']}
+    concepts = {c['concept'] for row in rows for c in row['concepts']} | {
+        x['concept'] for records in excluded.values() for x in records}
     ancestors, bases = _closure(concepts, vocabulary, categories)
-    patients, refused, events_refused = [], Counter(), 0
-    for pid in sorted({s['subject_id'] for s in stays} | set(by_patient)):
+    patients, refused, events_refused, skipped, outside = [], Counter(), 0, Counter(), []
+    unknown = sorted(set(excluded) - set(stays_of) - set(by_patient))
+    for pid in sorted(set(stays_of) | set(by_patient)):
         prows = sorted(by_patient.get(pid, []), key=lambda r: r['event_id'])
+        # Chunks of one patient must never repeat a source row: the claim stores were cut from one
+        # admission, so a repeat would mean the same record counted twice (D15).
+        for key in ('record_id', 'source_key', 'event_id'):
+            require(len({r[key] for r in prows}) == len(prows), 'DUPLICATE_SOURCE_ROW_ACROSS_STORES:' + key)
         reason = _refusal(prows)
         if reason:
             refused[reason] += 1
@@ -343,9 +421,20 @@ def store_patients(rows, *, claim_provenance, stays, items):
                            'start': [origin_us + r['start_us'][0], origin_us + r['start_us'][1]],
                            'end': [origin_us + r['end_us'][0], origin_us + r['end_us'][1]],
                            'evidence': _evidence(r, claim_provenance.get('claim_' + r['event_id']), origin_us)})
-        patients.append({'patient_id': pid, 'clock_id': clock_id, 'box_representable': True,
-                         'events': events, 'coverage': coverage.get(pid, [])})
-    counts = {'events_refused': events_refused, 'stays_without_coverage': dict(sorted(skipped.items()))}
+        coverage, missing, beyond = _patient_coverage(stays_of.get(pid, []), events)
+        skipped.update(missing)
+        outside += beyond
+        patient = {'patient_id': pid, 'clock_id': clock_id, 'box_representable': True,
+                   'events': events, 'coverage': coverage}
+        if excluded.get(pid):
+            patient['excluded'] = excluded[pid]
+        patients.append(patient)
+    outside.sort()
+    counts = {'events_refused': events_refused, 'stays_without_coverage': dict(sorted(skipped.items())),
+              'events_outside_own_stay': len(outside),
+              'minutes_outside_own_stay': ({'max': _minutes(outside[-1]), 'median': _minutes(outside[len(outside) // 2])}
+                                           if outside else None),
+              'excluded_rows_of_unknown_patients': sum(len(excluded[p]) for p in unknown)}
     refusals = {REFUSAL: {'patients': sum(refused[k] for k in refused if k != 'CLOCKS_NOT_REBASABLE'),
                           'by_adapter_reason': dict(sorted((k, v) for k, v in refused.items()
                                                            if k != 'CLOCKS_NOT_REBASABLE'))},
@@ -354,13 +443,31 @@ def store_patients(rows, *, claim_provenance, stays, items):
 
 
 def ingest_document(patients, ancestors, bases, *, dataset_id, provenance):
-    """The execution-store ingest, with a closure version binding the ancestors and their bases."""
+    """The execution-store ingest, with each concept's basis and a closure version binding both."""
     closure = {c: sorted(a) for c, a in sorted(ancestors.items())}
-    version = PROFILE + ':' + ei.digest(ei.canonical({'ancestors': closure, 'bases': dict(sorted(bases.items()))}))
+    bases = dict(sorted(bases.items()))
+    version = PROFILE + ':' + ei.digest(ei.canonical({'ancestors': closure, 'bases': bases}))
     return {'profile': INGEST_PROFILE, 'dataset_id': dataset_id + ':' + CONCEPT_BASIS,
             'provenance': {**provenance, 'selection': SELECTION, 'labels': LABELS,
                            'ancestor_bases': dict(sorted(Counter(bases.values()).items()))},
-            'closure': {'version': version, 'ancestors': closure}, 'patients': patients}
+            'closure': {'version': version, 'ancestors': closure, 'bases': bases}, 'patients': patients}
+
+
+def exclusion_summary(patients, ancestors):
+    """Aggregate counts of the excluded records, including the (patient, item) pairs the store's events
+    never show: items a patient's source recorded only in rows admission left out."""
+    admitted = {(p['patient_id'], c) for p in patients for e in p['events'] for c in e['concepts']}
+    vocabulary = {c for p in patients for e in p['events'] for c in e['concepts']}
+    only = {(p['patient_id'], x['concept']) for p in patients for x in p.get('excluded', [])} - admitted
+    return {'excluded_records': sum(len(p.get('excluded', [])) for p in patients),
+            'patients_with_excluded_records': sum(bool(p.get('excluded')) for p in patients),
+            'patient_items_only_in_excluded_records': len(only),
+            'patient_items_only_in_excluded_records_of_admitted_items': sum(c in vocabulary for _, c in only),
+            'patients_with_items_only_in_excluded_records': len({p for p, _ in only}),
+            'item_classes_only_in_excluded_records': len({c for _, c in only} - vocabulary),
+            'patients_without_admitted_rows': sum(not p['events'] for p in patients),
+            'patients_without_admitted_rows_with_excluded_records': sum(not p['events'] and bool(p.get('excluded'))
+                                                                        for p in patients)}
 
 
 def convert(input_dir, dataset_id, workers=1, isolation=True):
@@ -373,24 +480,32 @@ def convert(input_dir, dataset_id, workers=1, isolation=True):
     rows, route = run_adapter(prepared, workers, isolation) if prepared['stores'] else ([], {'stores': 0})
     timings['adapter'] = time.perf_counter() - t
     t = time.perf_counter()
+    excluded, excluded_counts = excluded_records(prepared['admission'], prepared['items'])
     patients, ancestors, bases, refused, extra = store_patients(
-        rows, claim_provenance=prepared['claim_provenance'], stays=prepared['stays'], items=prepared['items'])
+        rows, claim_provenance=prepared['claim_provenance'], stays=prepared['stays'], items=prepared['items'],
+        excluded=excluded)
     require(patients, 'NO_PATIENTS')
     summary = prepared['admission']['summary']
     events = sum(len(p['events']) for p in patients)
-    inside = sum(any(c['lo'] <= e['start'][0] <= c['hi'] for c in p['coverage']) for p in patients for e in p['events'])
+    stays_with_claims = {(s['patient_id'], s['episode_id']) for s in prepared['stores']}
     counts = {'source_rows': summary['input_rows'], 'admission_outcomes': summary['outcome_counts'],
+              'admission_reasons': summary['reason_counts'],
               'admitted_rows': summary['staged_segments'], 'claims': len(prepared['claim_provenance']),
               'claim_stores': len(prepared['stores']),
               'icu_stays': len(prepared['stays']),
-              'icu_stays_with_claims': len({(s['patient_id'], s['episode_id']) for s in prepared['stores']}),
+              'icu_stays_with_claims': len(stays_with_claims),
+              'icu_stays_without_admitted_rows': len(prepared['stays']) - len(stays_with_claims),
               'patients': len({s['subject_id'] for s in prepared['stays']}),
               'patients_in_store': len(patients),
               'patients_with_events': sum(bool(p['events']) for p in patients),
-              'events': events, 'events_starting_outside_coverage': events - inside,
+              'events': events,
               'coverage_periods': sum(len(p['coverage']) for p in patients),
+              'coverage_periods_extended_by_records': sum(c['basis'] == EXTENDED_COVERAGE_BASIS
+                                                          for p in patients for c in p['coverage']),
               'item_classes': sum(b == CONCEPT_BASIS for b in bases.values()),
-              'groupings': sum(b == GROUP_BASIS for b in bases.values()), **extra}
+              'groupings': sum(b == GROUP_BASIS for b in bases.values()),
+              'excluded': {**dict(sorted(excluded_counts.items())), **exclusion_summary(patients, ancestors)},
+              **extra}
     provenance = {'converter': PROFILE, 'context_id': prepared['context_id'], 'context': prepared['context'],
                   'route': {'steps': ['mimic_inputevents.stage', 'mimic_claim_import.describe',
                                       'claim_isolation.check' if isolation else 'claim_isolation.skipped',

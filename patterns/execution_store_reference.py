@@ -22,10 +22,11 @@ COLUMNS = {
     'events': ['patient_idx', 'event_id', 'kind', 'source', 'clock_id', 'start_lo', 'start_hi', 'end_lo', 'end_hi',
                'ongoing', 'evidence'],
     'event_concepts': ['patient_idx', 'event_id', 'concept', 'basis'],
-    'concept_closure': ['concept', 'ancestor', 'basis', 'version'],
+    'concept_closure': ['concept', 'ancestor', 'basis', 'version', 'concept_basis', 'ancestor_basis'],
     'concept_postings': ['concept', 'patient_idx', 'n', 'min_start_lo', 'max_start_hi'],
     'coverage': ['patient_idx', 'source', 'clock_id', 'lo', 'hi', 'basis'],
     'source_concepts': ['source', 'concept', 'basis'],
+    'excluded_records': ['patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason', 'n'],
 }
 
 
@@ -56,10 +57,12 @@ def build_tables(ingest):
     tables = {name: [] for name in COLUMNS}
     for pid in ids:
         tables['patients'].append((index[pid], pid, bucket_of(pid)))
+    kinds = ingest['closure'].get('bases') or {}
+    kind = lambda c: kinds[c] if c in kinds else 'declared'
     for concept in ancestors:
-        tables['concept_closure'].append((concept, concept, 'self', version))
+        tables['concept_closure'].append((concept, concept, 'self', version, kind(concept), kind(concept)))
         for a in ancestors[concept]:
-            tables['concept_closure'].append((concept, a, 'declared', version))
+            tables['concept_closure'].append((concept, a, 'declared', version, kind(concept), kind(a)))
     recorded = set()
     for p in ingest['patients']:
         i, clock = index[p['patient_id']], p['clock_id']
@@ -82,6 +85,12 @@ def build_tables(ingest):
             tables['concept_postings'].append((c, i, n, first, last))
         for period in p['coverage']:
             tables['coverage'].append((i, period['source'], clock, period['lo'], period['hi'], period['basis']))
+        excluded = {}
+        for x in p.get('excluded', []):
+            key = (x['source'], x['concept'], x['start'][0], x['start'][1], x['reason'])
+            excluded[key] = excluded.get(key, 0) + 1
+        for (source, concept, lo, hi, reason), n in excluded.items():
+            tables['excluded_records'].append((i, source, concept, lo, hi, reason, n))
     tables['source_concepts'] = [(source, concept, 'inferred_from_records') for source, concept in recorded]
     return {name: sorted(rows, key=lambda r: json.dumps(list(r), ensure_ascii=False)) for name, rows in tables.items()}
 
@@ -102,8 +111,16 @@ def step_concepts(query):
     return concepts
 
 
+def start_possible(scope, window, lo, hi):
+    """Could a step start in [lo, hi] under the query's scope? Written again from the specification."""
+    return {'within': lambda: hi >= window['start'] and lo <= window['end'],
+            'from_start': lambda: hi >= window['start'],
+            'after': lambda: hi >= window['end']}.get(scope, lambda: True)()
+
+
 def exhaustive_match(ingest, query, windows):
-    """The engine on every patient's full, closure-expanded events; then the coverage rule on `none`."""
+    """The engine on every patient's full, closure-expanded events; then the coverage rule on `none`,
+    then the excluded-records rule on any `none` left."""
     ancestors = ingest['closure']['ancestors']
     recorders = {}
     for p in ingest['patients']:
@@ -139,5 +156,13 @@ def exhaustive_match(ingest, query, windows):
                           'uncovered_steps': uncovered}
                 if unrecorded:
                     result['unrecorded_steps'] = unrecorded
+        if result['status'] == 'none':
+            touched = [step for step in (s['id'] for s in query['steps'])
+                       if any(expanded([x['concept']], ancestors) & per_step[step]
+                              and start_possible(query.get('scope', 'any'), window, *x['start'])
+                              for x in p.get('excluded', []))]
+            if touched:
+                result = {'patient_id': p['patient_id'], 'status': 'not_comparable',
+                          'reason': 'ADMISSION_EXCLUDED_RECORDS', 'excluded_steps': touched}
         results.append(result)
     return results

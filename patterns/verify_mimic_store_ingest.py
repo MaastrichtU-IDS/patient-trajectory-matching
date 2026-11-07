@@ -7,13 +7,15 @@ identifier, timings and a differential over seeded queries on source item classe
 patient identifiers, rows or times.
 
 The differential runs every query three ways over every patient:
-- the store path (`execution_store.match`: candidate filter, engine, coverage rule);
+- the store path (`execution_store.match`: candidate filter, engine, coverage and exclusion rules);
 - `execution_store_reference.exhaustive_match` over the whole ingest;
 - the engine over each patient's adapter rows directly, with times `origin_us + start_us`, the
-  rows' own concepts plus the item's dictionary grouping, and no coverage rule.
+  rows' own concepts plus the item's dictionary grouping, and neither rule.
 A mismatch is any patient whose store status differs from the reference, or whose full result
-differs where the store ran the engine; or whose status differs from the adapter-row engine's,
-reading the store's `not_comparable` as the adapter's `none`. The report requires none.
+differs where the store ran the engine; or whose decision differs from the adapter-row engine's
+(status, binding, relaxations, cost, certainty), reading the store's `not_comparable` as the
+adapter's `none`. The report requires none. Separately, every event's times and recorded time are
+checked against its raw source row.
 """
 from __future__ import annotations
 
@@ -41,6 +43,7 @@ MINUTE = 60_000_000
 DAY = 1440 * MINUTE
 COSTS = ('0.25', '0.5', '0.75', '1')
 MATCHED = ('exact', 'possible', 'relaxed', 'unresolved')
+DECISION = ('binding', 'relaxations', 'cost', 'certainty')
 REPORT = ei.ROOT / 'verification/execution-store-mimic-demo-report.json'
 FILES = tuple(sorted(set(msi.FILES + (
     'patterns/verify_mimic_store_ingest.py', 'patterns/verify_mimic_demo.py', 'patterns/mimic_store_ingest.py',
@@ -165,16 +168,21 @@ def adapter_engine_input(rows, items):
 def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
     """The store path against exhaustive matching and against the adapter rows, over every patient.
 
-    Returns {queries, patient_results, mismatches, adapter_mismatches, dropped, filtered, status_mix}
-    plus the first few mismatches (seed and status only) for diagnosis.
+    Against the reference, every status must agree, and every result the store's engine decided must
+    agree in full. Against the adapter rows, the decision must agree: status (the store's
+    `not_comparable` reads as `none`), binding, relaxations, cost and certainty. Returns counts, the
+    status mix, `not_comparable` by reason, relaxed results by relaxation kind, and the first few
+    mismatches (seed and status only) for diagnosis.
     """
     pool = concept_pool(ingest)
     ids = {i: p for i, p, _ in store.rows('patients')}
-    mix, adapter_mix = Counter(), Counter()
+    mix, adapter_mix, reasons, relaxed_by_kind = Counter(), Counter(), Counter(), Counter()
+    bindings_compared = 0
     mismatches, adapter_mismatches, dropped, filtered, examples = 0, 0, 0, 0, []
     for seed in range(first_seed, first_seed + seeds):
         rng = random.Random(seed)
         query, windows = random_query(rng, pool, ingest), random_windows(rng, ingest)
+        kinds = {x['id']: x['kind'] for x in query['relaxations']}
         kept = {ids[i] for i in es.candidates(store, query)['patient_idx']}
         got = es.match(store, query, windows)['results']
         want = ref.exhaustive_match(ingest, query, windows)
@@ -182,6 +190,11 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
             assert g['patient_id'] == w['patient_id'], (seed, g['patient_id'], w['patient_id'])
             pid = w['patient_id']
             mix[w['status']] += 1
+            if g['status'] == 'not_comparable':
+                reasons[g['reason']] += 1
+            used = g.get('relaxations') or g.get('relaxed_match', {}).get('relaxations') or []
+            for i in used:
+                relaxed_by_kind[f"{g['status']}:{kinds[i]}"] += 1
             if pid not in kept:
                 filtered += 1
                 dropped += w['status'] in MATCHED
@@ -190,13 +203,40 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
                 examples.append({'seed': seed, 'store': g['status'], 'reference': w['status']})
             a = tg.match(query, {'patient_id': pid, 'window': windows.get(pid), 'events': engine_input.get(pid, [])})
             adapter_mix[a['status']] += 1
-            if g['status'] != a['status'] and not (g['status'] == 'not_comparable' and a['status'] == 'none'):
+            same = (g['status'] == a['status'] or (g['status'] == 'not_comparable' and a['status'] == 'none'))
+            if same and 'binding' in a:
+                bindings_compared += 1
+                same = all(g.get(k) == a.get(k) for k in DECISION)
+            if same and 'relaxed_match' in a:
+                same = all(g['relaxed_match'].get(k) == a['relaxed_match'].get(k) for k in DECISION)
+            if not same:
                 adapter_mismatches += 1
                 examples.append({'seed': seed, 'store': g['status'], 'adapter_rows': a['status']})
     return {'queries': seeds, 'first_seed': first_seed, 'patient_results': sum(mix.values()),
             'mismatches': mismatches, 'adapter_row_mismatches': adapter_mismatches, 'dropped_matches': dropped,
             'filtered_by_candidate_filter': filtered, 'status_mix': dict(sorted(mix.items())),
-            'adapter_row_status_mix': dict(sorted(adapter_mix.items())), 'mismatch_examples': examples[:5]}
+            'adapter_row_status_mix': dict(sorted(adapter_mix.items())),
+            'adapter_row_bindings_compared': bindings_compared,
+            'not_comparable_by_reason': dict(sorted(reasons.items())),
+            'relaxations_used_by_status_and_kind': dict(sorted(relaxed_by_kind.items())),
+            'mismatch_examples': examples[:5]}
+
+
+def raw_time_check(ingest, segments):
+    """Every event's times against the raw source row: start, end and recorded time, to the microsecond."""
+    by_key = {s['id']: s for s in segments}
+    checked = mismatched = 0
+    for p in ingest['patients']:
+        for e in p['events']:
+            segment = by_key[e['evidence']['source_key']]
+            checked += 1
+            start, end = msi.micros(segment['start']['raw_value']), msi.micros(segment['end']['raw_value'])
+            recorded = segment['recorded_at']['raw_value']
+            ok = (e['start'] == [start, start] and e['end'] == [end, end]
+                  and e['evidence']['recorded_at_us'] == (msi.micros(recorded) if recorded else None)
+                  and e['evidence']['source_row_sha256'] == segment['source']['row_sha256'])
+            mismatched += not ok
+    return {'events_checked': checked, 'mismatches': mismatched}
 
 
 # ---------------------------------------------------------------- the report
@@ -218,9 +258,12 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None):
             engine_input = adapter_engine_input(result['rows'], result['prepared']['items'])
             check = differential(store, result['ingest'], engine_input, seeds)
             timings['differential'] = time.perf_counter() - t
+    times = raw_time_check(result['ingest'], result['prepared']['admission']['segments'])
     timings['total'] = time.perf_counter() - started
     ei.require(check['mismatches'] == 0 and check['adapter_row_mismatches'] == 0 and check['dropped_matches'] == 0,
                'DEMO_STORE_DIFFERENTIAL_MISMATCH')
+    ei.require(times['mismatches'] == 0 and times['events_checked'] == result['counts']['events'],
+               'DEMO_RAW_TIME_MISMATCH')
     return {
         'profile': 'execution-store-mimic-demo-verification-1.0',
         'scope': ('Public-demo inputevents through the SULO adapter into the execution store. Concepts are source item '
@@ -242,6 +285,7 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None):
                      'ancestor_bases': result['ingest']['provenance']['ancestor_bases'],
                      'tables': {n: t['rows'] for n, t in sorted(manifest['tables'].items())},
                      'duckdb_version': manifest['builder']['engine_version']},
+        'raw_source_time_check': times,
         'differential': check,
         'timings_seconds': {k: round(v, 2) for k, v in sorted(timings.items())},
         'artifacts': msi.artifacts(FILES),

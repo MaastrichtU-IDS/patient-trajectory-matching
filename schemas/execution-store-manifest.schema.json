@@ -67,7 +67,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["patients", "events", "event_concepts", "concept_closure", "concept_postings", "coverage",
-                   "source_concepts"],
+                   "source_concepts", "excluded_records"],
       "properties": {
         "patients": {"$ref": "#/$defs/table"},
         "events": {"$ref": "#/$defs/table"},
@@ -75,7 +75,8 @@
         "concept_closure": {"$ref": "#/$defs/table"},
         "concept_postings": {"$ref": "#/$defs/table"},
         "coverage": {"$ref": "#/$defs/table"},
-        "source_concepts": {"$ref": "#/$defs/table"}
+        "source_concepts": {"$ref": "#/$defs/table"},
+        "excluded_records": {"$ref": "#/$defs/table"}
       }
     },
     "labels": {
