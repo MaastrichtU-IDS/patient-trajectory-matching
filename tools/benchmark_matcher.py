@@ -9,8 +9,14 @@ peak resident memory is the query process's alone:
      from there): one query loads every candidate's events with an IN list, then matches.
   B  this tree: candidates loaded and matched in chunks, a prepared query, trusted events, windows
      checked as plain integers, comparability in SQL.  `B_decided` is B with `detail='decided'`.
-  C, D, D'  parallel Python, Rust single-threaded, Rust parallel (D21): later changes, recorded as
-     `not_run` so the report structure is already in place for them.
+  C  this tree with `workers=N` (N = 1, 2, 4, 8, 14): the engine's work units run in a persistent pool of
+     spawned processes; recorded as `C_w1` ... `C_w14`.  `C_w1` is the unchanged single-process path (a
+     control).  The pool is started and warmed before the first query (its start-up is recorded
+     separately, as the one cold-start figure), so the timings are of a warm pool.  The query process's
+     peak memory is its own (`getrusage(RUSAGE_SELF)`), the largest worker's is reported beside it; their
+     sum would double-count the shared page cache and is not given.
+  D, D'  Rust single-threaded, Rust parallel (D21): later changes, recorded as `not_run` so the report
+     structure is already in place for them.
 
 Per query it records wall seconds of `match` (median over repeats), the seconds spent inside the
 engine (`trajectory_graph` match calls) and inside the event loader, the candidate count, and a
@@ -50,8 +56,10 @@ ARMS = {
          "detail='full'",
     'B_decided': "arm B with detail='decided'",
 }
+WORKER_COUNTS = (1, 2, 4, 8, 14)
+ARMS['C'] = ('D21 arm C: B plus partition-parallel matching in a persistent pool of spawned worker processes, '
+             f'at {", ".join(map(str, WORKER_COUNTS))} workers; detail=\'full\'')
 FUTURE_ARMS = {
-    'C': 'parallel Python at 1, 2, 4, 8 and 14 workers over chunks (a later change)',
     'D': 'Rust matcher, single-threaded and batched, including FFI (a later change, built only if B+C misses the target)',
     "D'": 'Rust matcher, parallel (a later change, same condition)',
 }
@@ -78,7 +86,10 @@ LIMITATIONS = (
     'Latencies are wall-clock times of one Python thread and one DuckDB thread; no tuning was attempted.',
     'Byte identity is checked by a digest of canonical JSON of the plan, candidate count, counts and every patient result '
     '(not the context block, whose snapshot and code digests change with the code); no exhaustive reference ran at scale.',
-    'Arms C, D and D\' have not been run.')
+    'Arm C: workers and the query process share one machine (10 performance and 4 efficiency cores): counts above 10 '
+    'put work on efficiency cores. Workers are warm for the timings; start-up is one cold figure per count, with '
+    'the page cache warm from earlier arms. The comparability and exclusion steps still run in the query process.',
+    'Arms D and D\' have not been run.')
 
 
 def digest(path):
@@ -150,6 +161,12 @@ def worker(args):
         "SELECT p.patient_id, min(c.lo), max(c.hi) FROM patients p LEFT JOIN coverage c USING (patient_idx) "
         "WHERE p.patient_id NOT LIKE '%~r%' GROUP BY p.patient_id")}
     kwargs = {'detail': args.detail} if args.detail != 'full' else {}
+    pool_info = None
+    if args.arm_workers > 1:
+        kwargs['workers'] = args.arm_workers
+        pool = es.get_pool(store, args.arm_workers)
+        pool.warm()
+        pool_info = {'workers': args.arm_workers, 'start_seconds_cold': pool.start_seconds}
     baseline = rss_now()
     pooled, runs = {}, []
     for repeat in range(args.repeats):
@@ -175,16 +192,24 @@ def worker(args):
             del result, windows
             gc.collect()
         runs.append(rows)
+    out = {'runs': runs, 'rss_after_open_bytes': baseline, 'code': es.__file__,
+           'engine_wrapper': name, 'detail': args.detail}
+    if pool_info:
+        pool_info['worker_peak_rss_bytes'] = pool.worker_peak_rss
+        pool_info['worker_memory_limit'] = pool.memory_limit
+        pool_info['parent_peak_rss_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (
+            1 if sys.platform == 'darwin' else 1024)
+        out['pool'] = pool_info
+        es.close_pools()
     store.close()
-    return {'runs': runs, 'rss_after_open_bytes': baseline, 'code': es.__file__,
-            'engine_wrapper': name, 'detail': args.detail}
+    return out
 
 
-def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_limit, budget):
+def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_limit, budget, workers=1):
     out = Path(tempfile.mkdtemp(prefix='matcher-bench-')) / 'out.json'
     command = [sys.executable, str(Path(__file__).resolve()), '--worker', '--code-root', str(code_root), '--snapshot',
                str(snapshot), '--size', str(size), '--queries', str(queries), '--repeats', str(repeats), '--detail', detail,
-               '--memory-limit', memory_limit, '--worker-output', str(out)]
+               '--memory-limit', memory_limit, '--arm-workers', str(workers), '--worker-output', str(out)]
     started = time.monotonic()
     child = subprocess.Popen(command, cwd=ROOT, stderr=subprocess.PIPE, text=True, start_new_session=True)
     failure = None
@@ -208,12 +233,15 @@ def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_
     child.stderr.close()
     maxrss = usage.ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
     record = {'wall_seconds': time.monotonic() - started, 'peak_rss_bytes': maxrss}
+    # With a pool, wait4's maximum covers the workers it reaped: the query process's own is measured inside.
     if failure is None and (not os.WIFEXITED(status) or os.WEXITSTATUS(status) != 0):
         failure = {'reason': 'WORKER_FAILED', 'detail': (stderr.strip().splitlines() or ['no message'])[-1][:300]}
     if failure:
         return None, {**record, 'failure': failure}
     result = json.loads(out.read_text())
     shutil.rmtree(out.parent, ignore_errors=True)
+    if result.get('pool'):
+        record['peak_rss_bytes'] = result['pool']['parent_peak_rss_bytes']
     return result, record
 
 
@@ -229,7 +257,15 @@ def arm_statistics(result, record, patients):
                             'digest': rows[0].get('digest'), 'listed_results': rows[0]['listed_results']})
     candidates = sum(q['candidates'] for q in per_query)
     us = lambda key: 1e6 * sum(q[key] for q in per_query) / candidates if candidates else None
+    pool = result.get('pool')
+    each = [summary([r['match_seconds'] for r in run]) for run in runs]
+    spread = {k: {'min': min(e[k] for e in each), 'max': max(e[k] for e in each)} for k in ('p50', 'p95', 'max')}
     return {'queries': len(per_query), 'repeats': len(runs),
+            'per_repeat_match_seconds': each, 'spread_across_repeats': spread,
+            'all_runs_match_seconds': summary([r['match_seconds'] for run in runs for r in run]),
+            **({'workers': pool['workers'], 'worker_start_seconds_cold': pool['start_seconds_cold'],
+                'largest_worker_peak_rss_bytes': pool['worker_peak_rss_bytes'],
+                'worker_memory_limit': pool['worker_memory_limit']} if pool else {'workers': 1}),
             'match_seconds': summary([q['match_seconds'] for q in per_query]),
             'candidate_count': summary([q['candidates'] for q in per_query]),
             'per_candidate_microseconds': {'end_to_end': us('match_seconds'), 'engine_only': us('engine_seconds'),
@@ -252,13 +288,13 @@ def identity(a_queries, b_queries):
             'mismatching_seeds': sorted(set(q['seed'] for q in b_queries) - set(same))}
 
 
-def target_check(entry):
-    b = entry['arms'].get('B')
+def target_check(entry, arm='B'):
+    b = entry['arms'].get(arm)
     if not b or 'match_seconds' not in b:
         return None
     t = TARGET
-    return {'size': entry['size'], 'p95_seconds': b['match_seconds']['p95'], 'max_seconds': b['match_seconds']['max'],
-            'peak_rss_bytes': b['query_process']['peak_rss_bytes'],
+    return {'size': entry['size'], 'arm': arm, 'p95_seconds': b['match_seconds']['p95'],
+            'max_seconds': b['match_seconds']['max'], 'peak_rss_bytes': b['query_process']['peak_rss_bytes'],
             'p95_met': b['match_seconds']['p95'] <= t['match_seconds_p95_max'],
             'max_met': b['match_seconds']['max'] <= t['match_seconds_max_max'],
             'memory_met': b['query_process']['peak_rss_bytes'] < t['query_process_peak_rss_bytes_below']}
@@ -295,11 +331,14 @@ def benchmark(args):
         queries, repeats = (args.queries, args.repeats) if small else (args.large_queries, args.large_repeats)
         entry = {'size': size, 'snapshot_id': manifest['snapshot_id'], 'queries': queries, 'repeats': repeats, 'arms': {}}
         per_arm = {}
-        for arm, root, detail in (('A', scratch, 'full'), ('B', ROOT, 'full'), ('B_decided', ROOT, 'decided')):
-            if arm not in args.arms:
+        plan = [('A', scratch, 'full', 1), ('B', ROOT, 'full', 1), ('B_decided', ROOT, 'decided', 1)]
+        plan += [(f'C_w{n}', ROOT, 'full', n) for n in WORKER_COUNTS if n in args.workers]
+        for arm, root, detail, workers in plan:
+            if arm not in args.arms and not (arm.startswith('C_w') and 'C' in args.arms):
                 continue
             print(f'size {size} arm {arm} ...', file=sys.stderr, flush=True)
-            result, record = run_worker(arm, root, path, size, queries, repeats, detail, args.memory_limit, args.budget_seconds)
+            result, record = run_worker(arm, root, path, size, queries, repeats, detail, args.memory_limit,
+                                        args.budget_seconds, workers)
             if result is None:
                 entry['arms'][arm] = {'status': 'failed', **record}
                 continue
@@ -308,19 +347,23 @@ def benchmark(args):
                   f'peak {record["peak_rss_bytes"] / 2**30:.2f} GiB', file=sys.stderr, flush=True)
         if 'A' in per_arm and 'B' in per_arm:
             entry['byte_identity_B_against_A'] = identity(per_arm['A'], per_arm['B'])
+        entry['byte_identity_C_against_B'] = {
+            arm: identity(per_arm['B'], per_arm[arm]) for arm in per_arm if arm.startswith('C_w') and 'B' in per_arm}
         for future in (*FUTURE_ARMS, ):
             entry['arms'][future] = {'status': 'not_run', 'description': FUTURE_ARMS[future]}
         entry['target_check_arm_B'] = target_check(entry)
+        entry['target_check_arm_C'] = {arm: target_check(entry, arm) for arm in entry['arms'] if arm.startswith('C_w')}
         sizes.append(entry)
     shutil.rmtree(scratch, ignore_errors=True)
     return {'profile': PROFILE,
             'parameters': {'sizes': sorted(snapshots), 'queries': args.queries, 'repeats': args.repeats,
                            'large_queries': args.large_queries, 'large_repeats': args.large_repeats,
                            'small_max_size': args.small_max_size, 'threads': 1, 'memory_limit': args.memory_limit,
-                           'chunk_patients': args.chunk_patients},
+                           'chunk_patients': args.chunk_patients, 'arm_c_workers': sorted(args.workers)},
             'environment': bench.environment(1, args.memory_limit),
             'arms': {'A': arm_a, 'B': {'description': ARMS['B'], 'git_ref': 'this tree'},
                      'B_decided': {'description': ARMS['B_decided']},
+                     'C': {'description': ARMS['C'], 'git_ref': 'this tree', 'workers': list(WORKER_COUNTS)},
                      **{k: {'status': 'not_run', 'description': v} for k, v in FUTURE_ARMS.items()}},
             'target': TARGET, 'sizes': sizes,
             'artifacts': {p: digest(p) for p in ARTIFACTS},
@@ -328,11 +371,58 @@ def benchmark(args):
             'total_seconds': time.monotonic() - started}
 
 
+def confirm(args):
+    """Add `confirmation` to an existing report: arm C (and arm B once, for digests) at one size with more queries
+    and repeats than the main run, so that p95 and the maximum rest on more than ten single measurements."""
+    report = json.loads(args.output.read_text())
+    (item,) = args.snapshots
+    size, _, path = item.partition('=')
+    size = int(size)
+    manifest = json.loads((Path(path) / 'manifest.json').read_text())
+    entry = next(e for e in report['sizes'] if e['size'] == size)
+    if manifest['snapshot_id'] != entry['snapshot_id']:
+        raise SystemExit(f'snapshot {manifest["snapshot_id"]} is not the report\'s {entry["snapshot_id"]}')
+    arms, per_arm = {}, {}
+    plan = [('B', 1)] + [(f'C_w{n}', n) for n in args.workers]
+    for arm, workers in plan:
+        repeats = 1 if arm == 'B' else args.large_repeats
+        print(f'confirm size {size} arm {arm} ...', file=sys.stderr, flush=True)
+        result, record = run_worker(arm, ROOT, path, size, args.large_queries, repeats, 'full', args.memory_limit,
+                                    args.budget_seconds, workers)
+        if result is None:
+            arms[arm] = {'status': 'failed', **record}
+            continue
+        arms[arm], per_arm[arm] = arm_statistics(result, record, size)
+        print(f'  {arm}: {arms[arm]["match_seconds"]}', file=sys.stderr, flush=True)
+    t = TARGET
+    checks = {}
+    for arm in arms:
+        if arm.startswith('C_w') and 'match_seconds' in arms[arm]:
+            a = arms[arm]
+            checks[arm] = {'p95_seconds_all_runs': a['all_runs_match_seconds']['p95'],
+                           'max_seconds_all_runs': a['all_runs_match_seconds']['max'],
+                           'p95_seconds_by_repeat': [e['p95'] for e in a['per_repeat_match_seconds']],
+                           'max_seconds_by_repeat': [e['max'] for e in a['per_repeat_match_seconds']],
+                           'p95_met_all_runs': a['all_runs_match_seconds']['p95'] <= t['match_seconds_p95_max'],
+                           'max_met_all_runs': a['all_runs_match_seconds']['max'] <= t['match_seconds_max_max'],
+                           'memory_met': a['query_process']['peak_rss_bytes'] < t['query_process_peak_rss_bytes_below']}
+    report['confirmation'] = {
+        'size': size, 'queries': args.large_queries, 'repeats': args.large_repeats, 'seeds': f'0..{args.large_queries - 1}',
+        'note': 'Arm B ran once (digests and per-candidate reference); arm C at each count with the repeats stated. '
+                '"all_runs" pools every (query, repeat) measurement; per-query figures elsewhere are medians over repeats.',
+        'arms': arms, 'byte_identity_C_against_B': {a: identity(per_arm['B'], per_arm[a]) for a in per_arm if a.startswith('C_w') and 'B' in per_arm},
+        'target_check': checks}
+    report['artifacts'] = {p: digest(p) for p in ARTIFACTS}
+    args.output.write_text(json.dumps(report, indent=2) + '\n')
+    print(args.output)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshots', nargs='+', help='SIZE=SNAPSHOT_DIRECTORY, one per size')
     parser.add_argument('--arm-a-ref', default='7dc3364', help='git ref of the matcher before D21')
-    parser.add_argument('--arms', nargs='+', default=['A', 'B', 'B_decided'])
+    parser.add_argument('--arms', nargs='+', default=['A', 'B', 'B_decided', 'C'])
+    parser.add_argument('--workers', nargs='+', type=int, default=list(WORKER_COUNTS), help='arm C worker counts')
     parser.add_argument('--queries', type=int, default=50)
     parser.add_argument('--repeats', type=int, default=3)
     parser.add_argument('--small-max-size', type=int, default=10_000)
@@ -341,18 +431,24 @@ def main(argv=None):
     parser.add_argument('--memory-limit', default='4GB')
     parser.add_argument('--budget-seconds', type=float, default=4 * 3600, help='per arm and size')
     parser.add_argument('--output', type=Path, default=ROOT / 'verification/matcher-comparison-report.json')
+    parser.add_argument('--confirm', action='store_true', help='add a confirmation run (arm C, one snapshot, --large-queries x '
+                        '--large-repeats) to the existing report at --output')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
     parser.add_argument('--snapshot', help=argparse.SUPPRESS)
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--detail', default='full', help=argparse.SUPPRESS)
+    parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.worker:
         args.worker_output.write_text(json.dumps(worker(args)))
         return 0
     if not args.snapshots:
         parser.error('--snapshots is required')
+    if args.confirm:
+        confirm(args)
+        return 0
     from patterns import execution_store as es
     args.chunk_patients = es.CHUNK_PATIENTS
     report = benchmark(args)

@@ -576,6 +576,96 @@ class MatcherScalingTests(unittest.TestCase):
         self.assertEqual(store.query("SELECT table_name FROM duckdb_tables() WHERE temporary"), [])
 
 
+class ParallelMatchTests(unittest.TestCase):
+    """Partition-parallel matching (D21 arm C) gives the same bytes for any worker count."""
+
+    SEEDS = range(0, SEEDS, 12)
+
+    @classmethod
+    def tearDownClass(cls):
+        es.close_pools()
+
+    @staticmethod
+    def dump(out):
+        return json.dumps(out, sort_keys=True)
+
+    def test_workers_1_2_and_4_give_identical_full_output_equal_to_the_recorded_digests(self):
+        store, want, seen = _STATE['store'], json.loads(MatcherScalingTests.FIXTURE.read_text()), Counter()
+        for seed in self.SEEDS:
+            q, w = MatcherScalingTests.case(seed)
+            serial = es.match(store, q, w)
+            for workers, chunk in ((2, 3), (4, 1), (2, es.CHUNK_PATIENTS)):
+                self.assertEqual(self.dump(es.match(store, q, w, workers=workers, chunk=chunk)), self.dump(serial),
+                                 (seed, workers, chunk))
+            body = {k: serial[k] for k in ('plan', 'candidates', 'counts', 'results')}
+            self.assertEqual(hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest(), want[str(seed)])
+            seen.update(r['status'] for r in serial['results'])
+            seen.update(r['reason'] for r in serial['results'] if r['status'] == 'not_comparable')
+            self.assertEqual(self.dump(es.match(store, q, w, detail='decided', workers=2, chunk=2)),
+                             self.dump(es.match(store, q, w, detail='decided', chunk=2)))
+        self.assertTrue({'exact', 'none', 'not_comparable', 'excluded', 'relaxed'} <= set(seen), seen)
+
+    def test_a_worker_failure_fails_the_whole_match_by_name_and_the_pool_recovers(self):
+        store = _STATE['store']
+        q, w = MatcherScalingTests.case(0)
+        good = self.dump(es.match(store, q, w, workers=2, chunk=1))
+        pool = es.get_pool(store, 2)
+        for fault in ('raise', 'exit'):
+            pool.fault = fault
+            with self.assertRaises(es.MatchWorkerError) as caught:
+                es.match(store, q, w, workers=2, chunk=1)
+            pool.fault = None
+            self.assertEqual(caught.exception.code, 'MATCH_WORKER_FAILED')
+            self.assertIsInstance(caught.exception, es.StoreError)
+            self.assertEqual(self.dump(es.match(store, q, w, workers=2, chunk=1)), good)
+        with self.assertRaises(es.StoreError) as caught:
+            es.match(store, q, w, workers=0)
+        self.assertEqual(caught.exception.code, 'INVALID_WORKERS')
+
+    def test_the_pool_is_reused_and_closing_it_leaves_no_process(self):
+        store = _STATE['store']
+        q, w = MatcherScalingTests.case(1)
+        es.close_pools()
+        pool = es.get_pool(store, 2)
+        pool.warm()
+        pids = list(pool.pids)
+        self.assertEqual(len(pids), 2)
+        es.match(store, q, w, workers=2, chunk=1)
+        self.assertIs(es.get_pool(store, 2), pool)
+        self.assertEqual(pool.pids, pids)
+        pool.close()
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and any(_alive(p) for p in pids):
+            time.sleep(.05)
+        self.assertEqual([p for p in pids if _alive(p)], [])
+        with es.MatchPool(store, 2) as scoped:
+            scoped.warm()
+            alive = list(scoped.pids)
+        self.assertEqual([p for p in alive if _alive(p)], [])
+
+
+class WorkerResourceTests(unittest.TestCase):
+    def test_closing_a_pool_leaves_no_spill_directory_and_workers_share_the_memory_limit(self):
+        import glob
+        pattern = os.path.join(tempfile.gettempdir(), 'execution-store-spill-*')
+        before = set(glob.glob(pattern))
+        with es.MatchPool(_STATE['store'], 2) as pool:
+            pool.warm()
+            self.assertEqual(len(set(glob.glob(pattern)) - before), 2)
+        self.assertEqual(set(glob.glob(pattern)) - before, set())
+        self.assertEqual(es.worker_memory_limit('4GB', 2), f'{2 * 10**9 // 1024}KiB')
+        self.assertEqual(es.worker_memory_limit('1GB', 14), f'{256 * 10**6 // 1024}KiB')
+        self.assertEqual(es.worker_memory_limit(None, 4), f'{10**9 // 1024}KiB')
+
+
+def _alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
 class DeterminismTests(unittest.TestCase):
     def test_thread_counts_and_rebuilds_give_one_snapshot_id(self):
         with tempfile.TemporaryDirectory() as tmp:

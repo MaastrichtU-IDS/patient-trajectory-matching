@@ -30,7 +30,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D18 | A step that admission may have hidden is not comparable, judged by the query's scope | Decided |
 | D19 | Scaling: fix the Python-side storage memory first; defer the Rust matcher until it is measured | Decided |
 | D20 | Execution store 2.0: streaming per-patient ingest, streamed content digests, two verification tiers | Decided |
-| D21 | Matcher scaling: cheap wins, then parallel Python, then Rust only if needed | Decided; arm B built |
+| D21 | Matcher scaling: cheap wins, then parallel Python, then Rust only if needed | Decided; arms B and C built; target missed at 30 queries (p95 15.3 s); engine kernel work next, then re-measure, Rust prototype only if still missed |
 
 ## D1 Package with hatchling, in place
 
@@ -323,6 +323,35 @@ D19 step 3 and D20's measurement left matching as the wall: at 300,000 patients 
 | A | 10.2 s | 93.7 s | 760 (388) | 19.8 GiB |
 | B | 4.92 s | 71.1 s | 532 (296) | 0.92 GiB |
 
-The memory target is met (0.92 GiB, flat in cohort size); the latency target is not (p95 and maximum 71 s). Per candidate B is 1.4 times faster than A end to end, so a Rust matcher would have to be 10 times faster than 532 µs, about 53 µs, to pass the rule's first gate. cProfile puts the engine's pairwise arc-consistency kernel at about 60% of a wide query at 100,000 patients and event loading at 11 to 23%, so the next steps, C and then algorithmic pruning, aim at that. Arm C is the next PR; D and D' are built only if B+C misses the target.
+The memory target is met (0.92 GiB, flat in cohort size); the latency target is not (p95 and maximum 71 s). Per candidate B is 1.4 times faster than A end to end, so a Rust matcher would have to be 10 times faster than 532 µs, about 53 µs, to pass the rule's first gate. cProfile puts the engine's pairwise arc-consistency kernel at about 60% of a wide query at 100,000 patients and event loading at 11 to 23%, so the next steps, C and then algorithmic pruning, aim at that. Arm C follows.
+
+**This PR: arm C, and the decision.** `match(..., workers=N)` runs the engine's units (2,000 candidates each) in a persistent pool of spawned processes, each with its own connection to the snapshot, and merges by patient index; results are byte-identical to arm B for every query at every size and worker count (50 of 50, 50 of 50, 10 of 10, 10 of 10 at 1, 2, 4, 8 and 14 workers). At 300,000 patients, detail `full`, warm pool:
+
+| Workers | p50 | p95 = max | µs per candidate | query-process peak | largest worker peak |
+|---|---|---|---|---|---|
+| 1 | 4.98 s | 71.35 s | 536 | 0.92 GiB |  |
+| 2 | 3.00 s | 35.30 s | 278 | 0.58 GiB | 0.60 GiB |
+| 4 | 1.98 s | 18.59 s | 160 | 0.58 GiB | 0.58 GiB |
+| 8 | 1.55 s | 12.01 s | 109 | 0.61 GiB | 0.55 GiB |
+| 14 | 1.42 s | 9.70 s | 91 | 0.59 GiB | 0.60 GiB |
+
+(ten queries, one repeat each)
+
+**Target.** B+C at 14 workers: met narrowly in one early run, not met at 30 queries × 3 repeats: p95 15.3 s, max 20.7 s. The ten-query run (p95 = max = 9.70 s against 10 s, a 3% margin on one measurement of ten queries) did not hold up when repeated over thirty queries three times each (seeds 0 to 29, 90 measurements per arm, byte-identical to arm B for all 30):
+
+| Arm | p50 | p95 (range over the 3 repeats) | max (range) | µs per candidate | Query-process peak |
+|---|---|---|---|---|---|
+| B (1 repeat) | 22.6 s | 117.0 s (117.0 to 117.0) | 140.6 s (140.6 to 140.6) | 417 | 1.48 GiB |
+| C, 8 workers | 4.6 s | 19.6 s (19.5 to 19.7) | 21.6 s (21.5 to 21.6) | 75 | 0.78 GiB |
+| C, 14 workers | 3.7 s | 15.3 s (15.1 to 18.7) | 20.7 s (17.5 to 20.7) | 62 | 0.78 GiB |
+
+The maximum (20.7 s against 30 s) and memory (0.78 GiB against 4 GB) are met; the p95 is missed by a factor of about 1.5 at 14 workers, and at 8 workers (p95 19.6 s) by more. The thirty queries include wider ones than the first ten (seed 19: 195,270 candidates, 140.6 s in arm B), so their absolute figures are not comparable with the table above.
+
+**Decision: the target is not met, so D21's rule stands, and the Python matcher is improved before the Rust prototype is considered.** Parallel Python cut the per-candidate cost about 6 times (536 to 91 µs over the first ten queries; 417 to 62 µs over thirty). An earlier draft of this entry kept Python anyway, on the grounds that Rust would probably miss its separate 10-times gate. That reasoning was declined: the rule was fixed before measuring so that a miss could not be argued away afterwards, and "probably" is not a measurement. The rule does not forbid improving arm B before the next measurement, and work on the shared algorithm benefits any later Rust port equally. So the order is:
+1. **Algorithmic work on the engine, arm B.** About 60% of a wide match is the pairwise arc-consistency kernel (`certain`, `plausible`, `gap`), with time pruning on the posting summaries as the other lever. Results must stay byte-identical, or be differentially tested where they cannot.
+2. **Re-measure B and C at 30 queries × 3 repeats at 300,000 patients.** If the target is met, stay in Python.
+3. **If it is still missed, build the Rust prototype (arms D and D′) and apply the 10-times gate**, installing a toolchain then and not before.
+
+Arms D and D' are not run yet. If more headroom is needed, the algorithmic levers come first: about 60% of a wide match is the pairwise arc-consistency kernel (`certain`, `plausible`, `gap`), which is where to work, with time pruning on posting summaries as the other lever. The recommended worker count on this machine is 14 (10 performance and 4 efficiency cores; the library default stays `workers=1`, so a caller opts in); a query of fewer than 2,000 candidates is one unit and gains nothing. Pool start-up is 0.2 to 0.25 s, once per pool; workers share the store's memory limit, divided by their count (at least 256 MB each). Comparability and exclusions still run in the query process (under 2% of the time in the 10,000-patient profile; not profiled separately at 300,000).
 
 *Limitations:* one machine; synthetic data replicated beyond 10,000 patients; ten queries at 100,000 and above, so p95 equals the maximum; arm A is the old code imported from a git archive over the same snapshot files; peak memory includes the caller's windows dictionary and the full result.

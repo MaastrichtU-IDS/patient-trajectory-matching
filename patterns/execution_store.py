@@ -35,14 +35,17 @@ imported lazily, here only, so nothing else in the engine needs it.
 from __future__ import annotations
 
 import argparse
+import atexit
 import hashlib
 import json
 import os
 from pathlib import Path
+import multiprocessing
 import re
 import shutil
 import sys
 import tempfile
+import time
 
 from jsonschema import Draft202012Validator
 
@@ -797,6 +800,7 @@ class Store:
             raise StoreError('INVALID_VERIFY_LEVEL', repr(verify))
         self.path = Path(path)
         self.fetch_rows = fetch_rows
+        self.memory_limit = memory_limit
         try:
             manifest = json.loads((self.path / 'manifest.json').read_text())
         except (OSError, ValueError) as exc:
@@ -1154,6 +1158,191 @@ def apply_exclusions(query, result, touched, starts, every=None):
     return result
 
 
+# Partition-parallel matching (D21 arm C).
+#
+# The engine runs on candidates in work units of `chunk` patients, each independent of the others.
+# With `workers > 1` the units go to a pool of spawned processes; each worker opens the snapshot
+# once (verify=False: the parent verified it, and the worker checks it is the same snapshot and the
+# same file list) and keeps its own connection, which is never shared. The parent merges the units'
+# results by patient index, so the output is the same for any worker count.
+
+_UNITS = {'B': 1, 'KB': 10**3, 'MB': 10**6, 'GB': 10**9, 'TB': 10**12,
+          'KIB': 2**10, 'MIB': 2**20, 'GIB': 2**30, 'TIB': 2**40}
+WORKER_MEMORY_FLOOR = 256 * 10**6
+
+
+def worker_memory_limit(limit, workers):
+    """A DuckDB memory limit for each of `workers` processes sharing `limit` (a string like '4GB'; the
+    default limit when None), at least 256 MB. Without it each worker would take DuckDB's default of
+    80% of the machine's memory."""
+    limit = _memory_limit(limit) or DEFAULT_MEMORY_LIMIT
+    number, unit = re.fullmatch(r'([0-9.]+)\s*([A-Za-z]+)', limit).groups()
+    each = max(WORKER_MEMORY_FLOOR, int(float(number) * _UNITS[unit.upper()] / workers))
+    return f'{each // 1024}KiB'
+
+
+class MatchWorkerError(StoreError):
+    """A match worker crashed or raised; the whole `match` fails and returns nothing."""
+
+
+_W = {}  # per worker process: its store and the prepared query it last ran
+
+
+def _worker_init(path, snapshot_id, files_digest, memory_limit, barrier):
+    store = Store(path, 1, False, memory_limit, expected_snapshot_id=snapshot_id)
+    if store.files_digest != files_digest:
+        raise StoreError('SNAPSHOT_FILE_LIST_NOT_EXPECTED', str(path))
+    # atexit handlers do not run in multiprocessing children; this one removes the worker's spill directory.
+    multiprocessing.util.Finalize(None, store.close, exitpriority=10)
+    _W.update(store=store, key=None, barrier=barrier)
+
+
+def _worker_ready():
+    _W['barrier'].wait(120)
+    return os.getpid()
+
+
+def _peak_rss():
+    """This process's peak resident set size in bytes."""
+    import resource
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
+
+
+def _worker_unit(unit):
+    """Run the engine over one unit: ('ok', [(idx, result)], peak RSS) or ('error', type, message)."""
+    key, query, idxs, pids, windows, fault = unit
+    try:
+        if fault == 'exit':
+            os._exit(3)
+        if fault == 'raise':
+            raise RuntimeError('injected failure')
+        if _W['key'] != key:
+            pq = tg.PreparedQuery(query)
+            _W.update(key=key, pq=pq, per_step=_step_concepts(pq.query))
+        pq, per_step, store = _W['pq'], _W['per_step'], _W['store']
+        events = _load_events(store, idxs, per_step)
+        out = [(idx, tg.match_prepared(pq, {'patient_id': pid, 'window': w, 'events': events.get(idx, [])}, trusted=True))
+               for idx, pid, w in zip(idxs, pids, windows)]
+        return ('ok', out, _peak_rss())
+    except Exception as exc:
+        return ('error', type(exc).__name__, str(exc)[:300])
+
+
+class MatchPool:
+    """Persistent spawned worker processes over one snapshot; reuse it across `match` calls.
+
+    Pools outlive the `Store` they were made from and are shared: `get_pool` (which `match(workers=N)`
+    uses) keeps one per (snapshot path, worker count) until `close_pools()`, which callers should call
+    when done (it also runs at interpreter exit). Each worker's DuckDB memory limit is the store's (or
+    the default) divided by the worker count, at least 256 MB (`worker_memory_limit`, recorded here as
+    `memory_limit`, not in the match result, whose bytes must not depend on the worker count).
+    `close()` (or leaving a `with` block) stops the workers. `start_seconds` is the time the workers
+    took to start and open the snapshot (measured by `warm()`, which `run` calls on first use);
+    `worker_peak_rss` is the largest peak resident size any worker has reported."""
+
+    def __init__(self, store, workers, memory_limit=None):
+        if not (type(workers) is int and workers >= 1):
+            raise StoreError('INVALID_WORKERS', repr(workers))
+        self.workers, self.path, self.snapshot_id = workers, store.path.resolve(), store.snapshot_id
+        self.files_digest = store.files_digest
+        self.worker_peak_rss = 0
+        self.start_seconds = None
+        self.pids = []
+        self._context = multiprocessing.get_context('spawn')
+        self._barrier = self._context.Barrier(workers)
+        self.memory_limit = worker_memory_limit(memory_limit or store.memory_limit, workers)
+        self.fault = None  # test hook: 'raise' or 'exit' makes every unit fail that way
+        self._executor = None
+
+    def _pool(self):
+        if self._executor is None:
+            from concurrent.futures import ProcessPoolExecutor
+            self._executor = ProcessPoolExecutor(
+                self.workers, mp_context=self._context, initializer=_worker_init,
+                initargs=(str(self.path), self.snapshot_id, self.files_digest, self.memory_limit, self._barrier))
+        return self._executor
+
+    def warm(self):
+        """Start every worker and wait until each has opened the snapshot; the first call times it."""
+        if self.start_seconds is not None:
+            return self.start_seconds
+        started = time.perf_counter()
+        try:
+            self._barrier.reset()
+            futures = [self._pool().submit(_worker_ready) for _ in range(self.workers)]
+            self.pids = sorted({f.result(timeout=300) for f in futures})
+        except Exception as exc:
+            self.close()
+            raise MatchWorkerError('MATCH_WORKER_START_FAILED', f'{type(exc).__name__}: {exc}'[:300]) from exc
+        self.start_seconds = time.perf_counter() - started
+        return self.start_seconds
+
+    def run(self, units):
+        """Each unit's results, in unit order; the first failure raises `MatchWorkerError` (after
+        cancelling the rest, and discarding the workers if one died) and nothing is returned."""
+        self.warm()
+        futures = []
+        try:
+            for unit in units:
+                futures.append(self._pool().submit(_worker_unit, (*unit, self.fault)))
+        except Exception as exc:
+            self.close()
+            raise MatchWorkerError('MATCH_WORKER_FAILED', f'{type(exc).__name__}: {exc}'[:300]) from exc
+        out = []
+        try:
+            for future in futures:
+                try:
+                    reply = future.result()
+                except Exception as exc:  # BrokenProcessPool: a worker died
+                    self.close()
+                    raise MatchWorkerError('MATCH_WORKER_FAILED', f'{type(exc).__name__}: {exc}'[:300]) from exc
+                if reply[0] != 'ok':
+                    raise MatchWorkerError('MATCH_WORKER_FAILED', f'{reply[1]}: {reply[2]}')
+                self.worker_peak_rss = max(self.worker_peak_rss, reply[2])
+                out.append(reply[1])
+        finally:
+            for future in futures:
+                future.cancel()
+        return out
+
+    def close(self):
+        executor, self._executor = self._executor, None
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=True)
+        self.start_seconds = None
+        self.pids = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
+_POOLS = {}
+
+
+def get_pool(store, workers):
+    """The module's pool for this snapshot path and worker count, created on first use and kept."""
+    key = (str(store.path.resolve()), workers)
+    pool = _POOLS.get(key)
+    if pool is not None and (pool.snapshot_id, pool.files_digest) != (store.snapshot_id, store.files_digest):
+        pool.close()
+        pool = None
+    if pool is None:
+        pool = _POOLS[key] = MatchPool(store, workers)
+    return pool
+
+
+def close_pools():
+    """Stop every pool `match(workers=...)` created."""
+    while _POOLS:
+        _POOLS.popitem()[1].close()
+
+
+atexit.register(close_pools)
+
+
 def match_context(store, query, windows):
     """What a result depends on, and its digest: snapshot, query, windows, engine code, rules, verification
     level and the digest of the manifest's file list (which exact files were read)."""
@@ -1195,7 +1384,7 @@ def _bound_starts(store, idxs):
     return out
 
 
-def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS):
+def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1):
     """Every patient's result: the engine on candidates, `none` (FILTERED) for the rest, and
     `not_comparable` where a `none` rests on a step no covering source could have recorded, or on a
     step whose concepts the source recorded in records the ingest left out (ADMISSION_EXCLUDED_RECORDS).
@@ -1213,11 +1402,20 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS):
     `{'FILTERED': n, 'NO_INDEX_WINDOW': m}` (a `none` the candidate filter proved, and a patient
     with no window). `counts` and every other field are the same in both, and each listed result
     equals its `full` counterpart.
+
+    `workers=1` runs everything in this process. With `workers > 1` the engine's units (`chunk`
+    patients each) run in a persistent pool of spawned processes (`get_pool`; `close_pools()` stops
+    them), each with its own connection to the same snapshot, opened without re-verifying (`verified`
+    in the result is the level this store was opened at). Units merge by patient index, so the
+    result equals `workers=1` byte for byte; a worker failure raises `MatchWorkerError`. The pools
+    outlive `store` and are shared per (snapshot path, workers): call `close_pools()` when done.
     """
+    if not (type(workers) is int and workers >= 1):
+        raise StoreError('INVALID_WORKERS', repr(workers))
     if detail not in DETAILS:
         raise StoreError('INVALID_DETAIL', repr(detail))
     pq = tg.PreparedQuery(query)
-    query = pq.query
+    given, query = query, pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')
     by_id = {pid: idx for idx, pid in patients}
     unknown = sorted(set(windows) - set(by_id))
@@ -1234,13 +1432,19 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS):
     per_step = _step_concepts(query)
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
     results = {}  # the engine's results, and what a rule then changed; patients absent are filtered or windowless
-    for k in range(0, len(live), chunk):
-        part = live[k:k + chunk]
-        events = _load_events(store, part, per_step)
-        for idx in part:
-            results[idx] = tg.match_prepared(
-                pq, {'patient_id': pid_of[idx], 'window': windows_by_idx[idx], 'events': events.get(idx, [])}, trusted=True)
-        del events
+    parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
+    if workers > 1 and parts:
+        key = _digest(given)
+        units = [(key, given, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part]) for part in parts]
+        for unit in get_pool(store, workers).run(units):
+            results.update(unit)
+    else:
+        for part in parts:
+            events = _load_events(store, part, per_step)
+            for idx in part:
+                results[idx] = tg.match_prepared(
+                    pq, {'patient_id': pid_of[idx], 'window': windows_by_idx[idx], 'events': events.get(idx, [])}, trusted=True)
+            del events
     filtered = [idx for idx, _ in patients if windows_by_idx[idx] is not None and idx not in results]
     filtered_result = lambda idx: {'patient_id': pid_of[idx], 'status': 'none', 'reason': 'FILTERED', 'complete': True}
     nones = sorted(filtered + [idx for idx, r in results.items() if r['status'] == 'none'])
