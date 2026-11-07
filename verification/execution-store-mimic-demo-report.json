@@ -241,13 +241,13 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 62.01,
+    "adapter": 62.11,
     "admission_and_claims": 0.67,
-    "differential": 92.66,
+    "differential": 217.81,
     "mapping": 0.25,
     "store_build": 0.93,
-    "store_open_and_verify": 0.19,
-    "total": 156.73
+    "store_open_and_verify": 0.18,
+    "total": 281.97
   },
   "artifacts": {
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
@@ -281,7 +281,7 @@
     "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
     "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
-    "patterns/trajectory_graph.py": "da5e43ba8c16df6095be0dc1c115dd050588c53efb27b8d9b0edd89e067194a4",
+    "patterns/trajectory_graph.py": "10c2d7fc6041dcbcd5520cef910e591af215442a38aed69e68cfee5d8c638df6",
     "patterns/trajectory_graph_sulo.py": "2b2af988bfb62b96c216ccb60f4e85794bd1e600920ba12270625a70719cd240",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
     "patterns/verify_mimic_store_ingest.py": "f52fb19c880435fbd233d6b743d33aa80db9dde14d8213f44c768250942f88c1",
