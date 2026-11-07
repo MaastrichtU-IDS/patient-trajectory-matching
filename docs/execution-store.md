@@ -229,7 +229,7 @@ These are on one laptop core, CPython 3.12 and DuckDB 2.0.0:
 
 ## Scaling
 
-`tools/benchmark_execution_store.py` measures how the store and matching scale with cohort size. The report is `verification/execution-store-scaling-report.json`, which binds the benchmark, `execution_store.py`, `synthetic_ingest.py`, `trajectory_graph.py` and `generate.py` by digest. It is evidence for the deferred decision on a Rust engine (D7), from one machine and synthetic data.
+`tools/benchmark_execution_store.py` measures how the store and matching scale with cohort size. The report is `verification/execution-store-scaling-report.json`. It binds by digest the benchmark, `execution_store.py`, `execution_store_reference.py`, `synthetic_ingest.py`, `trajectory_graph.py`, `temporal_stn.py`, the manifest schema, `generate.py` and `test_execution_store.py` (the source of the query set). It is evidence for the deferred decision on a Rust engine (D7), from one machine and synthetic data.
 
 ```sh
 python tools/benchmark_execution_store.py --sizes 1000,10000,100000,300000,1000000 \
@@ -239,56 +239,92 @@ python tools/benchmark_execution_store.py --sizes 1000,10000,100000,300000,10000
 ### Method
 
 - **Machine.** Apple M4 Pro, 14 logical CPUs, 64 GB, macOS, CPython 3.12.15, DuckDB 2.0.0. DuckDB had one thread for build and open, and matching is single-threaded Python.
-- **Processes.** Each size runs in two fresh subprocesses: one generates, converts and builds, the other opens, verifies and queries. Peak memory is the maximum resident set size of each. The parent kills a size that passes the wall-time budget (30 min) or 40 GB resident, and records why.
-- **Cohorts.** The distinct pool is the generator with one seed per 48 patients (seed 20261103 + i), relabelled per cohort, up to 10,000 patients. Beyond that the pool is replicated: copy k of a patient takes the id `<id>~r<k>` and a whole-day shift that depends only on k. Replication adds no variety, and a replica shares its source's evidence objects in memory, so the in-memory ingest is smaller than a real one. In this run no size completed beyond the pool, so every number below is from distinct patients (1,000 and 10,000). The 100,000 failure used 10,000 distinct patients, replicated ten times.
-- **Generator failures.** The generator cannot build some seeds (`StopIteration`, `ValueError`) and a few produce records the store refuses (`INVERTED_BOUNDS`). The benchmark skips those seeds and records them: 2 of 23 attempted seeds at 1,000 patients, 20 of 229 at 10,000. This is a generator defect, found by the benchmark and not fixed here.
-- **Queries.** 50 seeded queries from `random_query`, anchored on the first cohort and identical for every size. Index windows come from `random_windows` per pool patient and follow the copy. Each size runs the query phase 3 times, and a query's latency is the median of its three runs. The table gives p50, p95 and max over the 50 queries. `match()` is end to end, including windows validation, candidate lookup, event loading, the engine and the comparability and exclusion rules, and returns a result for every patient.
+- **Processes.** Each size runs in fresh subprocesses: one generates, converts and builds, another opens, verifies and queries. Peak memory is the maximum resident set size of each. The parent kills a size that passes the wall-time budget (30 min) or 40 GB resident, and records why.
+- **Cohorts.** The distinct pool is the generator with one seed per 48 patients (seed 20261103 + i), relabelled per cohort, up to 10,000 patients. Beyond that the pool is replicated: copy k of a patient takes the id `<id>~r<k>` and a whole-day shift that depends only on k. Replication adds no variety, and a replica shares its source's evidence objects in memory, so the in-memory ingest is smaller than a real one. The distinct pool is 10,000 patients. No size beyond it completed: the 100,000 run used it ten times, and the 1,000 and 10,000 results are all distinct patients. Patients have a mean of 173 events (p95 384, max 519), over the seeds that build.
+- **Generator failures.** The generator cannot build some seeds (`StopIteration`, `ValueError`) and a few produce records the store refuses (`INVERTED_BOUNDS`). The benchmark skips those seeds, which are excluded from the pool and the event statistics, and records them: 2 of 23 attempted seeds at 1,000 patients, 20 of 229 at 10,000. This is a generator defect, found by the benchmark and not fixed here.
+- **Queries.** 50 seeded queries from `random_query`, anchored on the first cohort and identical for every size. Index windows come from `random_windows` per pool patient and follow the copy. Each size runs the query phase 3 times, and a query's latency is the median of its three runs. The table gives p50, p95 and max over the 50 queries. `match()` is end to end and calls `candidates()` internally, so its time includes the candidate lookup.
+- **Stage profile.** At 1,000 and 10,000 patients, and at the size that failed, a separate process runs `build()`'s stages one by one with the store's own helpers (validate, canonical copy, input digest, staging, DuckDB derive, Parquet write, read-back digests) and records resident memory after each. It does not change the store. A second process does the same for `verify()` on an opened snapshot, and a third runs cProfile on one `match()`.
 - **Correctness.** At 1,000 patients, 5 queries were compared with exhaustive matching: 5,000 patient results, 0 mismatches. Nothing larger was compared; correctness at scale rests on the 48-patient differential.
 
 ### Results
 
 | | 1,000 patients | 10,000 patients | 100,000 patients |
 |---|---|---|---|
-| Events | 172,296 | 1,730,355 | not built (17.3 million staged in memory) |
-| Generate / convert distinct pool | 3.0 s / 1.6 s | 29.2 s / 23.1 s | pool of 10,000, same cost |
-| Build (`build()`) | 4.2 s | 38.7 s | killed at 41.6 GiB after 316 s |
+| Events | 172,296 | 1,730,355 | not built (17.3 million) |
+| Generate / convert distinct pool | 2.9 s / 1.5 s | 28.9 s / 22.9 s | pool of 10,000, same cost |
+| Build (`build()`) | 4.1 s | 38.2 s | killed at 40.4 GiB after 316 s |
 | Snapshot on disk | 14.3 MB | 142.7 MB | |
 | Rows: events / postings | 172,296 / 13,254 | 1,730,355 / 132,825 | |
-| Peak memory, build process | 1.2 GB | 11.2 GB | over 40 GB (the ingest alone was 11.2 GB) |
-| Open and verify | 0.84 s | 8.2 s | |
-| Peak memory, query process | 0.75 GB | 3.7 GB | |
+| Peak memory, build process (includes generation) | 1.2 GB | 11.2 GB | over 40 GB |
+| Open and verify (first open after build, page cache not purged) | 0.83 s | 8.1 s | |
+| Peak memory, query process | 0.78 GB | 3.7 GB | |
 | Candidates, count p50 / p95 | 134 / 999 | 1,368 / 9,992 | |
 | Pruning rate p50 | 0.859 | 0.862 | |
-| `candidates()` p50 / p95 / max | 1.4 / 2.1 / 2.2 ms | 3.6 / 5.4 / 5.6 ms | |
-| `match()` p50 / p95 / max | 0.10 / 0.45 / 1.00 s | 1.20 / 4.93 / 10.45 s | |
-| `match()` with under 5 candidates | 14 to 18 ms | 109 to 135 ms | |
-| Largest size completed | yes | yes | no |
+| `candidates()` p50 / p95 / max | 1.4 / 2.2 / 2.5 ms | 3.5 / 5.4 / 5.4 ms | |
+| `match()` p50 / p95 / max | 0.10 / 0.44 / 0.97 s | 1.20 / 4.91 / 10.47 s | |
+| `match()` with under 5 candidates | 14 to 18 ms | 108 to 134 ms | |
 
-Status mix over the 50 queries at 10,000 patients: 385,651 none, 61,473 not comparable, 25,653 excluded, 12,586 exact, 8,424 relaxed, 6,212 possible, 1 unresolved. 300,000 and 1,000,000 were not attempted, because a larger ingest holds more of the same document. The whole run took about 13 minutes (766 s).
+Status mix over the 50 queries at 10,000 patients: 385,651 none, 61,473 not comparable, 25,653 excluded, 12,586 exact, 8,424 relaxed, 6,212 possible, 1 unresolved. 300,000 and 1,000,000 were not attempted, because 100,000 had failed. The whole run took about 21 minutes (1,256 s), including the profiles.
+
+### Where memory goes in `build()`
+
+Resident memory after each stage, in GiB (peak so far in brackets where it differs). The ingest row is the process before `build()` begins: it holds the cohort in memory and nothing else.
+
+| Stage | 1,000 | 10,000 | 100,000 (replicated) |
+|---|---|---|---|
+| Ingest in memory | 0.39 | 3.41 | 10.48 |
+| Validate | 0.39 | 3.41 | 10.48 |
+| Canonical copy of every event | 0.44 | 3.98 | 16.39 |
+| Input digest (one `json.dumps` of the whole canonical document, then SHA-256) | 0.60 | 5.62 | 16.41 (peak 32.75) |
+| Staging to ndjson files | 0.60 | 5.62 | 16.41 |
+| DuckDB derive | 0.86 | 7.69 | 24.28 (peak 36.34) |
+| Parquet write | 1.03 | 7.33 (peak 9.12) | killed above 40 |
+| Read-back content digests, peak | 1.30 | 10.08 | not reached |
+
+At 10,000 patients the peak is 10.1 GiB over a 3.4 GiB ingest, so `build()` roughly triples the document's memory. At 100,000 the replicated ingest is 10.5 GiB, because replicas share evidence; the canonical copy adds 5.9 GiB, and the single JSON string for the input digest transiently adds 16.3 GiB. The DuckDB derive then runs on top of the 16 GiB of Python still held, and the process crossed 40 GiB during the Parquet write. The read-back digests were not reached at 100,000; at 10,000 they add the last gigabyte or so, and `events` (whose evidence JSON is the bulk of it) is the largest table fetched.
+
+So the 100,000 failure is not one cause. In-memory Python copies of the document (canonical copy, the digest string) and DuckDB's derive both contribute, and the read-back digests, which are part of the storage design, are a third that would come next.
+
+### Where memory goes in `verify()`
+
+`verify()` (run on every open) fetches each table into Python rows and builds sorted JSON lines for the digest. Resident memory after each table, in GiB:
+
+| Table | 1,000 | 10,000 |
+|---|---|---|
+| Opened without verify | 0.06 | 0.06 |
+| `event_concepts` | 0.12 | 0.58 |
+| `events` (with evidence JSON) | 0.36 (peak 0.38) | 2.78 (peak 2.93) |
+
+The peak is 0.38 GiB at 1,000 and 2.93 GiB at 10,000, linear in events. That is about 29 GiB at 100,000 patients and about 290 GiB at 1,000,000 for the `events` table alone (extrapolated). It is a second wall, independent of the build one: a store that builds could not be opened with verification on a 64 GB machine at about 200,000 patients of this density. Its time is linear too: 5.3 s of the 8.1 s at 10,000 is the `events` table.
 
 ### What grows how
 
-- **Generation, conversion and build are linear.** Build time, snapshot size and rows grow 9 to 10 times for 10 times the patients (4.2 s, 38.7 s; 14.3 MB, 142.7 MB). At about 3.9 s per 1,000 patients on one DuckDB thread, 1,000,000 patients would take roughly an hour if memory allowed (extrapolated, not measured). Thread counts were not varied.
-- **Build memory is the wall.** The build process holds the ingest as one Python document and `build()` copies and serialises it: peak memory is about 6.5 KB per event (11.2 GB at 10,000 patients). At 100,000 patients the ingest alone reached 11.2 GB in 89 s, and `build()` then passed 40 GB within about 230 s. The benchmark does not instrument inside `build()`. The candidates are the canonical copy of every event, the staging and the single input-digest string over the whole canonical document, but which of them dominates was not isolated. A replicated ingest shares evidence objects, so a real 100,000-patient document is larger than this one.
-- **Opening is linear and checks everything.** `open_store` with `verify=True` recomputes every table's count and content digest in Python: 0.84 s, then 8.2 s. At 100,000 patients that would be about 80 s and at 1,000,000 about 14 minutes (extrapolated). Warm and cold opens were the same, so the cost is the Python digesting, not disk reads. `verify=False` skips it.
-- **`candidates()` is cheap and sub-linear.** It took 1.4 ms and 3.6 ms, 2.5 times for 10 times the patients, because DuckDB aggregates the postings (13,254 to 132,825 rows) and the Python sets are small. Pruning did not change (0.859, 0.862): with this synthetic mix, 14% of patients survive a typical query's concept filter, so candidates grow linearly with the cohort.
-- **`match()` follows candidate count, plus a floor per patient.** The cost per candidate was about 0.6 ms at both sizes (median 0.60 and 0.66 ms over queries with more than 50 candidates), so the 10 times larger candidate set made p50 12 times slower (0.10 s to 1.20 s). Queries with almost no candidates still took 14 to 18 ms and 109 to 135 ms, about 13 microseconds per patient, because `match()` builds a result for every patient, validates every window and runs the comparability and exclusion checks over all `none` results. At 1,000,000 patients that floor alone would be over 10 s (extrapolated).
+- **Generation, conversion and build time are linear.** Build time, snapshot size and rows grow 9 to 10 times for 10 times the patients. At about 3.8 s per 1,000 patients on one DuckDB thread, 1,000,000 patients would take roughly an hour if memory allowed (extrapolated). Thread counts were not varied.
+- **Build and verify memory are linear in events, with large constants** (about 6 KB per event at the 10,000 build peak, 1.8 KB per event for verify), and both are Python-side.
+- **`candidates()` is dominated by fixed per-query overhead at these sizes.** It took 1.4 and 3.5 ms at p50, with no visible dependence on candidate count (1 to 5 ms across queries with 0 to 9,992 candidates). The postings rows it reads grow linearly (13,254 to 132,825), so it will grow once they are large enough to matter; these sizes do not show where.
+- **Pruning did not change** (0.859, 0.862): with this synthetic mix, 14% of patients survive a typical filter, so candidates grow linearly with the cohort.
+- **`match()` follows candidate count, plus a floor per patient.** The cost per candidate was about 0.6 ms at both sizes (median 0.61 and 0.67 ms over queries with more than 50 candidates), so 10 times more candidates made p50 12 times slower. Queries with almost no candidates still took 14 to 18 ms and 108 to 134 ms, about 13 microseconds per patient, because `match()` builds a result for every patient, validates every window and runs the comparability checks over all `none` results. At 1,000,000 patients that floor alone would be over 10 s (extrapolated).
+- **Within a wide `match()`** (the query with the most candidates, 9,992 of 10,000 patients, under cProfile, which slows Python calls so shares are indicative): the trajectory-graph engine is 81% of the time, loading the candidates' events from DuckDB 16%, comparability, exclusion rule, window validation and result handling together under 4%, and the candidate lookup inside `match()` under 0.1%. The shares were the same at 1,000 patients (80%, 16%, 4%).
 
 ### Where it broke, and what follows
 
-- **The first limit is ingest memory at between 10,000 and 100,000 patients on this machine, not matching and not storage.** Parquet size and DuckDB were never the problem: the 10,000-patient snapshot is 143 MB. A document that has to fit in one Python process, and be copied by `build()`, ends the design. The remedies are streaming or per-patient-shard ingest (already planned in Stage 2, "Per-patient sharding"), with the input digest taken as a Merkle digest over per-patient digests so no step holds the whole document.
-- **Matching is the next bottleneck for interactive use.** A query whose filter keeps a typical 14% of 10,000 patients takes about a second, and the slowest took 10 s. Extrapolating the measured 0.6 ms per candidate gives about 12 s at 100,000 patients, and up to 100 s for the widest queries (extrapolated, not measured). That cost is in the per-patient engine call, which is Python. A per-candidate engine in Rust, or the same Python run across the 14 cores, attacks it directly. Parallelising the Python by partition could give most of the gain on this machine with no new language; the benchmark did not try either, so it does not say which is better.
-- **Cheaper filtering would help matching without touching the engine.** Time pruning on the posting summaries (each posting stores the earliest and latest start) would shrink the candidate set for queries with tight gaps. It stays out until differential tests cover it. The per-patient floor wants the work for non-candidates skipped: a result-count path that does not build every patient's result, and a comparability check done in SQL.
-- **Per-bucket joins.** Candidate lookups are `IN` lists over the candidate set. At the candidate counts here (up to 9,992) this was not the problem; it will be at hundreds of thousands, where a join against a candidate table, one bucket at a time, replaces them.
-- **For D7.** On this evidence, storage (Parquet snapshot, DuckDB postings, `candidates()`) does not call for Rust. The engine call per candidate and the Python per-patient result handling do, but only once ingest no longer fails first, and only if partition-parallel Python is not enough. The evidence does not settle it: the cohort is synthetic, the queries are random and the engine times come from one machine and 10,000 patients at most.
+- **There are two memory walls before any matching limit, both in the Python side of the storage design.** `build()` holds the whole ingest, copies it, serialises it as one string, and reads every table back into Python for the content digests. `verify()` does the same read-back on every open. On this machine the build wall is between 10,000 and 100,000 patients, and the verify wall is near 200,000 at this event density. Parquet size and DuckDB's query side were not the problem (the 10,000-patient snapshot is 143 MB), but DuckDB's derive adds gigabytes when it runs beside the Python document. The remedies are:
+  - **Per-patient shard ingest and streaming**, with the input digest a Merkle digest over per-patient digests (already planned under Stage 2, "Per-patient sharding"), so no step holds the whole document;
+  - **a streamed canonical digest** that hashes patients as they pass, rather than a canonical copy and one JSON string;
+  - **content digests computed inside DuckDB or streamed row by row** (a sorted, chunked or order-free digest), so the read-back never materialises a table in Python. This changes `CANONICAL_FORM` and so every snapshot identifier, and needs the reference to follow.
+- **Matching is the next limit for interactive use.** A query that keeps a typical 14% of 10,000 patients takes about a second, and the widest took 10 s. At 0.6 ms per candidate that is about 12 s at 100,000 patients, and up to about 100 s for the widest query (extrapolated, not measured). Four fifths of it is the per-candidate engine call, and about a sixth is moving events out of DuckDB into Python. A Rust engine would attack the first directly; partition-parallel Python across the 14 cores could give much of the gain with no new language. The benchmark tried neither, so it does not say which is better.
+- **Cheaper filtering would reduce matching without touching the engine.** Time pruning on the posting summaries (each posting stores the earliest and latest start) would shrink candidate sets for queries with tight gaps, once differential tests cover it. The per-patient floor wants non-candidates handled without building each patient's result, and the comparability check done in SQL.
+- **Per-bucket joins.** Candidate lookups are `IN` lists over the candidate set. At the counts here (up to 9,992) this was not the problem; it will be at hundreds of thousands, where a join against a candidate table, one bucket at a time, replaces them.
+- **For D7.** The evidence is mixed and does not call for Rust yet. What stopped the store first is ingest, build and verify memory, which is Python-side design and is fixed by streaming and digest changes, not by a new matcher. Matching cost is dominated by the engine call and is linear in candidates, which is what a Rust matcher or partition parallelism would address, but it was not the first thing to break. Only that part of the design bears on Rust, and the cohort is synthetic, the queries random and the engine times from one machine and 10,000 patients at most.
 
 ### Limits of this evidence
 
 - One machine, one thread for DuckDB and the matcher.
-- Synthetic data. At 100,000 and above the cohort would be replicated, which multiplies candidates exactly and understates the memory of a real document.
+- Synthetic data. At 100,000 and above the cohort is replicated, which multiplies candidates exactly and understates the memory of a real document.
 - Random queries from the differential generator, with a candidate fraction (14% median) that a real selective query would not have.
-- Beyond 10,000 patients every figure above is an extrapolation of two points.
+- Beyond 10,000 patients every figure above is an extrapolation of two points, except the 100,000 stage profile up to the kill.
 - The generator skips a few seeds, so the "distinct" pool is the seeds that build.
+- Resident memory is measured after each stage and as the process peak; transient peaks inside a stage are only seen through the peak-so-far.
 
 ## Stage 2: the MIMIC-IV demo through the SULO adapter
 

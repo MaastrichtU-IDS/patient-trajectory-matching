@@ -30,6 +30,7 @@ from pathlib import Path
 import platform
 import random
 import resource
+import shutil
 import signal
 import statistics
 import subprocess
@@ -49,7 +50,9 @@ SEED_BASE = 20261103  # the generator's default seed, so the first cohort is the
 DAY = 86_400_000_000
 RSS_LIMIT_BYTES = 40 * 2**30
 ARTIFACTS = ('tools/benchmark_execution_store.py', 'patterns/execution_store.py', 'patterns/synthetic_ingest.py',
-             'patterns/trajectory_graph.py', 'demos/mockups/synthetic/generate.py')
+             'patterns/trajectory_graph.py', 'demos/mockups/synthetic/generate.py',
+             'patterns/test_execution_store.py', 'patterns/execution_store_reference.py', 'patterns/temporal_stn.py',
+             'schemas/execution-store-manifest.schema.json')
 LIMITATIONS = (
     'One machine (see environment); no other hardware, operating system or storage was measured.',
     'The data are synthetic. Event density, concept frequencies and sources reflect the generator, not a clinical record system.',
@@ -232,11 +235,13 @@ def build_worker(size, work, threads, marker):
     started = time.perf_counter()
     progress(marker, 'generate_and_convert_distinct_pool')
     ingest, generating, converting, cohorts, failed = pool_ingest(size)
+    pool = ingest['patients']
     progress(marker, 'replicate', distinct_patients=len(ingest['patients']))
     started_replication = time.perf_counter()
     ingest = replicate(ingest, size)
     replicating = time.perf_counter() - started_replication
     events = sum(len(p['events']) for p in ingest['patients'])
+    per_patient = sorted(len(p['events']) for p in pool)
     prepared = time.perf_counter() - started
     progress(marker, 'build', patients=len(ingest['patients']), ingest_events=events, prepare_seconds=prepared)
     started = time.perf_counter()
@@ -245,7 +250,10 @@ def build_worker(size, work, threads, marker):
     built = time.perf_counter() - started
     manifest = json.loads((snapshot / 'manifest.json').read_text())
     return {'distinct_patients': min(size, DISTINCT_CAP), 'cohorts_generated': cohorts, 'generator_seeds_failed': failed, 'patients': len(ingest['patients']),
-            'ingest_events': events, 'generate_seconds': generating, 'convert_seconds': converting,
+            'ingest_events': events,
+            'events_per_distinct_patient': {'mean': statistics.fmean(per_patient), 'p95': pct(per_patient, .95),
+                                            'max': per_patient[-1], 'patients': len(per_patient)},
+            'generate_seconds': generating, 'convert_seconds': converting,
             'replicate_seconds': replicating, 'prepare_seconds': prepared, 'build_seconds': built,
             'snapshot_path': str(snapshot), 'snapshot_id': manifest['snapshot_id'],
             'snapshot_bytes': directory_bytes(snapshot),
@@ -312,6 +320,122 @@ def exhaustive_check(store, size, first, count):
     return {'queries': min(count, len(first)), 'patient_results': checked, 'mismatches': mismatches}
 
 
+# Memory and time profiles of build(), verify() and one wide match().
+
+def rss_now():
+    return current_rss(os.getpid())
+
+
+def peak_now():
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
+
+
+def stage_profile_worker(size, work, threads, marker):
+    """`build()`'s stages run one by one with the store's own helpers, as `build()` runs them, with memory after
+    each. Nothing here changes what the store does; the result is not a snapshot anyone uses."""
+    from patterns import execution_store as es
+    duckdb = es._duckdb()
+    stages = []
+    started = time.perf_counter()
+    def mark(name, **extra):
+        row = {'stage': name, 'seconds': time.perf_counter() - started, 'rss_bytes': rss_now(), 'peak_rss_bytes': peak_now(), **extra}
+        stages.append(row)
+        marker.write_text(json.dumps({'phase': 'stage:' + name, 'peak_rss_bytes_so_far': row['peak_rss_bytes'], 'stages': stages}))
+    ingest = replicate(pool_ingest(size)[0], size)
+    mark('ingest_in_memory', patients=len(ingest['patients']))
+    started = time.perf_counter()
+    es.validate_ingest(ingest)
+    mark('validate')
+    canonical = es.canonical_ingest(ingest)
+    mark('canonical_copy')
+    digest_hex = hashlib.sha256(es._json(canonical).encode('utf-8')).hexdigest()
+    mark('input_digest_json_and_sha256')
+    scratch = Path(work) / 'profile'
+    stage, snapshot = scratch / 'stage', scratch / 'snapshot'
+    stage.mkdir(parents=True)
+    snapshot.mkdir()
+    es._stage(canonical, stage)
+    mark('stage_ndjson_files', staged_bytes=directory_bytes(stage))
+    db = duckdb.connect(':memory:', config={'threads': threads})
+    es._derive(db, stage)
+    mark('duckdb_derive')
+    es._write(db, snapshot)
+    mark('duckdb_write_parquet', snapshot_bytes=directory_bytes(snapshot))
+    db.close()
+    reader = duckdb.connect(':memory:', config={'threads': threads})
+    es._attach(reader, snapshot)
+    for name in es.TABLES:
+        rows = es._table_rows(reader, name)
+        mark(f'readback_fetchall:{name}', rows=len(rows))
+        es.content_digest(rows)
+        mark(f'readback_content_digest:{name}')
+        del rows
+    reader.close()
+    return {'size': size, 'stages': stages, 'input_digest': digest_hex[:12]}
+
+
+def verify_profile_worker(snapshot, threads):
+    """`Store.verify()`'s per-table read-back, with memory after each table, on a freshly opened store."""
+    from patterns import execution_store as es
+    started = time.perf_counter()
+    store = es.open_store(snapshot, threads, verify=False)
+    rows = [{'stage': 'opened_without_verify', 'seconds': time.perf_counter() - started, 'rss_bytes': rss_now(),
+             'peak_rss_bytes': peak_now()}]
+    for name, recorded in store.manifest['tables'].items():
+        started = time.perf_counter()
+        data = es._table_rows(store.db, name)
+        fetched = time.perf_counter() - started
+        after_fetch = rss_now()
+        es.content_digest(data)
+        rows.append({'stage': f'verify:{name}', 'rows': len(data), 'fetch_seconds': fetched,
+                     'seconds': time.perf_counter() - started, 'rss_after_fetch_bytes': after_fetch,
+                     'rss_bytes': rss_now(), 'peak_rss_bytes': peak_now()})
+        del data
+    store.close()
+    return {'stages': rows}
+
+
+def cprofile_worker(snapshot, size, threads):
+    """cProfile of one `match()` for the query with the most candidates among the benchmark's queries."""
+    import cProfile
+    import pstats
+    from patterns import execution_store as es
+    inputs, _ = query_inputs(50)
+    store = es.open_store(snapshot, threads, verify=False)
+    ids = [r[0] for r in store.query('SELECT patient_id FROM patients ORDER BY patient_idx')]
+    bounds = {pid: (lo, hi) for pid, lo, hi in store.query(
+        "SELECT p.patient_id, min(c.lo), max(c.hi) FROM patients p LEFT JOIN coverage c USING (patient_idx) "
+        "WHERE p.patient_id NOT LIKE '%~r%' GROUP BY p.patient_id")}
+    seed, query = max(inputs, key=lambda sq: len(es.candidates(store, sq[1])['patient_idx']))
+    windows = expand_windows(pool_windows(seed, bounds), ids)
+    profiler = cProfile.Profile()
+    started = time.perf_counter()
+    profiler.enable()
+    result = es.match(store, query, windows)
+    profiler.disable()
+    unprofiled = time.perf_counter() - started
+    stats = pstats.Stats(profiler).stats
+    def cumulative(file_part, name):
+        return sum(v[3] for (f, _, n), v in stats.items() if n == name and f.endswith(file_part))
+    total = cumulative('execution_store.py', 'match')
+    parts = {'candidates_inside_match': cumulative('execution_store.py', 'candidates'),
+             'load_candidate_events': cumulative('execution_store.py', '_load_events'),
+             'engine_trajectory_graph_match': cumulative('trajectory_graph.py', 'match'),
+             'window_validation': cumulative('trajectory_graph.py', 'validate_patient'),
+             'comparability_of_none_results': cumulative('execution_store.py', '_comparability'),
+             'excluded_records_rule': cumulative('execution_store.py', '_excluded_starts')
+                                       + cumulative('execution_store.py', 'apply_exclusions'),
+             'match_context_digests': cumulative('execution_store.py', 'match_context')}
+    parts['other_result_handling'] = total - sum(parts.values())
+    store.close()
+    return {'seed': seed, 'patients': len(ids), 'candidates': result['candidates'], 'counts': result['counts'],
+            'match_seconds_profiled_total': total, 'wall_seconds_with_profiler': unprofiled,
+            'parts_seconds': parts,
+            'parts_share': {k: v / total for k, v in parts.items()},
+            'note': 'cumulative seconds under cProfile, which slows Python calls; shares are indicative. '
+                    'match() calls candidates() internally, so its time is inside the total.'}
+
+
 # The orchestrating process.
 
 def current_rss(pid):
@@ -344,7 +468,9 @@ def run_phase(name, arguments, output, budget, rss_limit):
             _, status, usage = os.wait4(child.pid, 0)
             break
         time.sleep(.5)
+    child.returncode = os.waitstatus_to_exitcode(status)  # reaped by wait4, not by Popen
     stderr = child.stderr.read() if child.stderr else ''
+    child.stderr.close()
     seconds = time.monotonic() - started
     maxrss = usage.ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
     record = {'wall_seconds': seconds, 'peak_rss_bytes': max(maxrss, peak)}
@@ -394,9 +520,20 @@ def run_size(size, args, work):
     built, record = run_phase('build', ['--size', str(size), '--work-dir', str(scratch), '--threads', str(args.threads)],
                               scratch / 'build.json', args.budget_seconds, RSS_LIMIT_BYTES)
     entry['build_phase'] = {k: v for k, v in record.items() if k != 'failure'}
+    if built is None or size <= args.profile_max_size:
+        # The stages of build() with memory after each: at sizes that complete, and at the size that failed.
+        out, rec = run_phase('stages', ['--size', str(size), '--work-dir', str(scratch), '--threads', str(args.threads)],
+                             scratch / 'stages.json', args.budget_seconds, RSS_LIMIT_BYTES)
+        if out is not None:
+            entry['build_stages'] = {**out, 'process_peak_rss_bytes': rec['peak_rss_bytes']}
+        else:
+            entry['build_stages'] = {'failure': rec['failure'], 'process_peak_rss_bytes': rec['peak_rss_bytes']}
+        shutil.rmtree(scratch / 'profile', ignore_errors=True)
     if built is None:
         entry.update(status='failed', failed_phase='build', failure=record['failure'])
         entry['wall_seconds'] = time.monotonic() - started
+        if not args.keep:
+            shutil.rmtree(scratch, ignore_errors=True)
         return entry
     entry.update({k: v for k, v in built.items() if k != 'snapshot_path'})
     remaining = max(1.0, args.budget_seconds - (time.monotonic() - started))
@@ -410,13 +547,22 @@ def run_size(size, args, work):
         entry.update(status='failed', failed_phase='query', failure=record['failure'])
     else:
         entry['open_verify_seconds'] = {'cold': queried['open_verify_seconds_cold'],
-                                        'warm': queried['open_verify_seconds_warm']}
+                                        'warm': queried['open_verify_seconds_warm'],
+                                        'cold_note': 'first open after build, page cache not purged'}
         entry['queries'] = query_statistics(queried, built['patients'])
         if queried['exhaustive_check']:
             entry['exhaustive_check'] = queried['exhaustive_check']
+    if queried is not None and size <= args.profile_max_size:
+        profile = {}
+        for name, flags in (('verify_stages', ['--worker', 'verify']), ('match_cprofile', ['--worker', 'cprofile'])):
+            out, rec = run_phase(flags[1], ['--size', str(size), '--snapshot', built['snapshot_path'], '--threads', str(args.threads)],
+                                 scratch / f'{flags[1]}.json', args.budget_seconds, RSS_LIMIT_BYTES)
+            profile[name] = out if out is not None else {'failure': rec['failure']}
+            if out is not None:
+                profile[name]['process_peak_rss_bytes'] = rec['peak_rss_bytes']
+        entry['profile'] = profile
     entry['wall_seconds'] = time.monotonic() - started
     if not args.keep:
-        import shutil
         shutil.rmtree(scratch, ignore_errors=True)
     return entry
 
@@ -499,7 +645,9 @@ def main(argv=None):
     parser.add_argument('--exhaustive', type=int, default=5, help='queries compared with exhaustive matching at small sizes')
     parser.add_argument('--exhaustive-max-size', type=int, default=1000)
     parser.add_argument('--keep', action='store_true', help='keep each size\'s snapshot')
-    parser.add_argument('--worker', choices=('build', 'query'), help=argparse.SUPPRESS)
+    parser.add_argument('--profile-max-size', type=int, default=10000,
+                        help='sizes up to this also get build-stage, verify and cProfile measurements')
+    parser.add_argument('--worker', choices=('build', 'query', 'stages', 'verify', 'cprofile'), help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--snapshot', help=argparse.SUPPRESS)
@@ -507,6 +655,12 @@ def main(argv=None):
     if args.worker:
         if args.worker == 'build':
             result = build_worker(args.size, args.work_dir, args.threads, args.worker_output.with_suffix('.progress'))
+        elif args.worker == 'stages':
+            result = stage_profile_worker(args.size, args.work_dir, args.threads, args.worker_output.with_suffix('.progress'))
+        elif args.worker == 'verify':
+            result = verify_profile_worker(args.snapshot, args.threads)
+        elif args.worker == 'cprofile':
+            result = cprofile_worker(args.snapshot, args.size, args.threads)
         else:
             result = query_worker(args.snapshot, args.size, args.queries, args.repeats, args.threads, args.exhaustive)
         args.worker_output.write_text(json.dumps(result))

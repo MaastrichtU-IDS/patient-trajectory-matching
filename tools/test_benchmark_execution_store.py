@@ -35,7 +35,7 @@ class ReportTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory(prefix='scaling-test-')
         cls.output = Path(cls.tmp.name) / 'report.json'
         bench.main(['--sizes', '100,200', '--queries', '3', '--repeats', '2', '--exhaustive', '1',
-                    '--exhaustive-max-size', '100', '--work-dir', str(Path(cls.tmp.name) / 'work'),
+                    '--exhaustive-max-size', '100', '--profile-max-size', '100', '--work-dir', str(Path(cls.tmp.name) / 'work'),
                     '--output', str(cls.output)])
         cls.report = json.loads(cls.output.read_text())
 
@@ -72,6 +72,23 @@ class ReportTests(unittest.TestCase):
         check = self.report['sizes'][0]['exhaustive_check']
         self.assertEqual((check['queries'], check['mismatches']), (1, 0))
         self.assertNotIn('exhaustive_check', self.report['sizes'][1])
+
+    def test_the_small_size_profiles_build_stages_verify_and_one_match(self):
+        entry, other = self.report['sizes']
+        stages = {s['stage']: s for s in entry['build_stages']['stages']}
+        for name in ('ingest_in_memory', 'canonical_copy', 'input_digest_json_and_sha256', 'stage_ndjson_files',
+                     'duckdb_derive', 'duckdb_write_parquet', 'readback_fetchall:events', 'readback_content_digest:events'):
+            self.assertGreater(stages[name]['peak_rss_bytes'], 0, name)
+        peaks = [s['peak_rss_bytes'] for s in entry['build_stages']['stages']]
+        self.assertEqual(peaks, sorted(peaks), 'peak memory only grows')
+        self.assertEqual(stages['readback_fetchall:events']['rows'], entry['tables']['events'])
+        verify = {s['stage'] for s in entry['profile']['verify_stages']['stages']}
+        self.assertIn('verify:events', verify)
+        parts = entry['profile']['match_cprofile']
+        self.assertGreater(parts['match_seconds_profiled_total'], 0)
+        self.assertIn('engine_trajectory_graph_match', parts['parts_seconds'])
+        self.assertGreater(entry['events_per_distinct_patient']['mean'], 0)
+        self.assertNotIn('build_stages', other)
 
     def test_report_binds_artifacts_states_limits_and_holds_no_patients(self):
         self.assertEqual(sorted(self.report['artifacts']), sorted(bench.ARTIFACTS))
