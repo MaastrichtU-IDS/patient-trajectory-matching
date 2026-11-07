@@ -28,6 +28,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D16 | Chartevents and later bulk sources take route (b), with a sampled graph check | Decided, not yet built |
 | D17 | Committed reports on credentialed data carry aggregate counts only | Decided |
 | D18 | A step that admission may have hidden is not comparable, judged by the query's scope | Decided |
+| D19 | Scaling: fix the Python-side storage memory first; defer the Rust matcher until it is measured | Decided |
 
 ## D1 Package with hatchling, in place
 
@@ -245,4 +246,23 @@ Admission keeps only continuous IV segments: 9,424 of the demo's 20,404 inputeve
 *Alternative declined:* "overlapping the window" for every scope. It would turn fewer results not comparable, but under scope `any` the engine can bind events outside the window, so it would be unsound.
 
 *Consequence:* on the demo's 50,000 differential results, 27,257 `none` results become `not_comparable`, 560 `first` or `last` matches (356 exact, 204 relaxed) become `not_comparable`, and 592 relaxed results become `unresolved` with their match beside them. No `possible` result arises, since every MIMIC time is exact. The store still agrees with the reference and with the admitted-only engine run under these rules, with no mismatch. That is honest about how little a continuous-segment subset can rule out. It is not a defect to tune away.
+
+## D19 Scaling: fix the Python-side storage memory first; defer the Rust matcher until it is measured
+
+The scaling benchmark (`tools/benchmark_execution_store.py`, `verification/execution-store-scaling-report.json`) grew the synthetic cohort on one machine (M4 Pro, 64 GB). It completed 1,000 and 10,000 patients. At 100,000 the store build exceeded 40 GB.
+
+**Where memory goes, measured stage by stage:**
+- `build()` roughly triples the in-memory document: a canonical copy, one JSON string for the input digest, DuckDB's derive alongside the Python document, then the read-back content digests.
+- `verify()` on open reads every table back into Python: 2.9 GB at 10,000 patients, extrapolated to about 29 GB at 100,000.
+
+So the first two limits are Python-side storage memory, not query time or Parquet size. At 10,000 patients the snapshot is 143 MB and the candidate filter takes milliseconds.
+
+**Decision, in order:**
+1. **Per-patient shard ingest.** The input digest becomes a Merkle tree over patient shards.
+2. **Streamed digests.** The canonical digest is streamed, and content digests are computed in DuckDB or streamed, never by holding a table in Python. This changes the canonical form and every snapshot id, and the reference must follow.
+3. **Then matching.** A wide match is about 81% engine and 16% event loading (one profile, so indicative); median 1.2 s and maximum 10.5 s at 10,000 patients. Partition-parallel Python and a Rust matcher are to be compared by measurement before choosing.
+
+*Why not Rust now:* storage is not the bottleneck. The matcher question needs a measured comparison the benchmark did not make, and everything past 10,000 patients is an extrapolation from two points.
+
+*Limitations:* one machine; synthetic data; the 100,000 cohort replicates a distinct pool of 10,000; and generator seeds that fail are excluded (a separate defect, to be fixed).
 

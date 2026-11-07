@@ -1,0 +1,1573 @@
+{
+  "profile": "execution-store-scaling-1.0",
+  "generator_seed_base": 20261103,
+  "parameters": {
+    "sizes": [
+      1000,
+      10000,
+      100000,
+      300000,
+      1000000
+    ],
+    "queries": 50,
+    "repeats": 3,
+    "budget_seconds_per_size": 1800,
+    "rss_limit_bytes": 42949672960,
+    "threads": 1,
+    "distinct_pool_cap": 10000,
+    "patients_per_cohort": 48
+  },
+  "environment": {
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "machine": "arm64",
+    "cpu": "Apple M4 Pro",
+    "logical_cpus": 14,
+    "memory_bytes": 68719476736,
+    "python": "3.12.15",
+    "duckdb": "2.0.0",
+    "duckdb_threads": 1,
+    "python_threads_for_matching": 1
+  },
+  "cohort_construction": {
+    "distinct": "one generator seed per 48 patients (seed 20261103 + i, skipping seeds the generator cannot build), relabelled per cohort, up to 10,000 distinct patients",
+    "replicated": "beyond the distinct pool, copy k of pool patient j is `<id>~r<k>` with every time shifted by (1 + (37k mod 700)) whole days; no new variety, and evidence is shared in memory",
+    "queries": "seeded random_query / random_windows from patterns/test_execution_store.py, anchored on the first cohort, identical for every size; windows follow the pool patient and its shift"
+  },
+  "sizes": [
+    {
+      "size": 1000,
+      "status": "completed",
+      "build_phase": {
+        "wall_seconds": 8.999142542015761,
+        "peak_rss_bytes": 1213808640
+      },
+      "build_stages": {
+        "size": 1000,
+        "stages": [
+          {
+            "stage": "ingest_in_memory",
+            "seconds": 4.409941791091114,
+            "rss_bytes": 418037760,
+            "peak_rss_bytes": 419069952,
+            "patients": 1000
+          },
+          {
+            "stage": "validate",
+            "seconds": 0.5960853327997029,
+            "rss_bytes": 418086912,
+            "peak_rss_bytes": 419069952
+          },
+          {
+            "stage": "canonical_copy",
+            "seconds": 1.0057677910663188,
+            "rss_bytes": 468189184,
+            "peak_rss_bytes": 468189184
+          },
+          {
+            "stage": "input_digest_json_and_sha256",
+            "seconds": 1.4955954579636455,
+            "rss_bytes": 646201344,
+            "peak_rss_bytes": 646217728
+          },
+          {
+            "stage": "stage_ndjson_files",
+            "seconds": 2.661368874832988,
+            "rss_bytes": 646316032,
+            "peak_rss_bytes": 646316032,
+            "staged_bytes": 118083318
+          },
+          {
+            "stage": "duckdb_derive",
+            "seconds": 2.8411762909963727,
+            "rss_bytes": 924729344,
+            "peak_rss_bytes": 924762112
+          },
+          {
+            "stage": "duckdb_write_parquet",
+            "seconds": 3.0277533326298,
+            "rss_bytes": 1104314368,
+            "peak_rss_bytes": 1104314368,
+            "snapshot_bytes": 14322529
+          },
+          {
+            "stage": "readback_fetchall:patients",
+            "seconds": 3.054613582789898,
+            "rss_bytes": 1104707584,
+            "peak_rss_bytes": 1104707584,
+            "rows": 1000
+          },
+          {
+            "stage": "readback_content_digest:patients",
+            "seconds": 3.0630285828374326,
+            "rss_bytes": 1104773120,
+            "peak_rss_bytes": 1104773120
+          },
+          {
+            "stage": "readback_fetchall:events",
+            "seconds": 3.542334582656622,
+            "rss_bytes": 1260158976,
+            "peak_rss_bytes": 1260158976,
+            "rows": 172296
+          },
+          {
+            "stage": "readback_content_digest:events",
+            "seconds": 3.9664474157616496,
+            "rss_bytes": 1137147904,
+            "peak_rss_bytes": 1395310592
+          },
+          {
+            "stage": "readback_fetchall:event_concepts",
+            "seconds": 4.051216375082731,
+            "rss_bytes": 1041203200,
+            "peak_rss_bytes": 1395310592,
+            "rows": 172296
+          },
+          {
+            "stage": "readback_content_digest:event_concepts",
+            "seconds": 4.250106165651232,
+            "rss_bytes": 1042825216,
+            "peak_rss_bytes": 1395310592
+          },
+          {
+            "stage": "readback_fetchall:concept_closure",
+            "seconds": 4.266509290784597,
+            "rss_bytes": 1000882176,
+            "peak_rss_bytes": 1395310592,
+            "rows": 98
+          },
+          {
+            "stage": "readback_content_digest:concept_closure",
+            "seconds": 4.275389332789928,
+            "rss_bytes": 1000882176,
+            "peak_rss_bytes": 1395310592
+          },
+          {
+            "stage": "readback_fetchall:concept_postings",
+            "seconds": 4.287043333053589,
+            "rss_bytes": 1000898560,
+            "peak_rss_bytes": 1395310592,
+            "rows": 13254
+          },
+          {
+            "stage": "readback_content_digest:concept_postings",
+            "seconds": 4.309896207880229,
+            "rss_bytes": 1000898560,
+            "peak_rss_bytes": 1395310592
+          },
+          {
+            "stage": "readback_fetchall:coverage",
+            "seconds": 4.325050707906485,
+            "rss_bytes": 1001308160,
+            "peak_rss_bytes": 1395310592,
+            "rows": 4483
+          },
+          {
+            "stage": "readback_content_digest:coverage",
+            "seconds": 4.338856207672507,
+            "rss_bytes": 1001308160,
+            "peak_rss_bytes": 1395310592
+          },
+          {
+            "stage": "readback_fetchall:source_concepts",
+            "seconds": 4.34827279066667,
+            "rss_bytes": 1001308160,
+            "peak_rss_bytes": 1395310592,
+            "rows": 160
+          },
+          {
+            "stage": "readback_content_digest:source_concepts",
+            "seconds": 4.356597499921918,
+            "rss_bytes": 1001308160,
+            "peak_rss_bytes": 1395310592
+          },
+          {
+            "stage": "readback_fetchall:excluded_records",
+            "seconds": 4.365046582650393,
+            "rss_bytes": 1001308160,
+            "peak_rss_bytes": 1395310592,
+            "rows": 0
+          },
+          {
+            "stage": "readback_content_digest:excluded_records",
+            "seconds": 4.372557540889829,
+            "rss_bytes": 1001308160,
+            "peak_rss_bytes": 1395310592
+          }
+        ],
+        "input_digest": "50d42cfe2be8",
+        "process_peak_rss_bytes": 1395310592
+      },
+      "distinct_patients": 1000,
+      "cohorts_generated": 21,
+      "generator_seeds_failed": [
+        {
+          "seed": 20261121,
+          "error": "StopIteration"
+        },
+        {
+          "seed": 20261123,
+          "error": "ValueError"
+        }
+      ],
+      "patients": 1000,
+      "ingest_events": 172296,
+      "events_per_distinct_patient": {
+        "mean": 172.296,
+        "p95": 384,
+        "max": 519,
+        "patients": 1000
+      },
+      "generate_seconds": 2.8580311676487327,
+      "convert_seconds": 1.514876626431942,
+      "replicate_seconds": 6.668269634246826e-07,
+      "prepare_seconds": 4.383870666846633,
+      "build_seconds": 4.114345999900252,
+      "snapshot_id": "5bbb4574131d12802abcb3b8c994db26ba4640a5647cf558c47c2e7f02da97e7",
+      "snapshot_bytes": 14329191,
+      "tables": {
+        "concept_closure": 98,
+        "concept_postings": 13254,
+        "coverage": 4483,
+        "event_concepts": 172296,
+        "events": 172296,
+        "excluded_records": 0,
+        "patients": 1000,
+        "source_concepts": 160
+      },
+      "query_phase": {
+        "wall_seconds": 37.6818082081154,
+        "peak_rss_bytes": 775454720
+      },
+      "open_verify_seconds": {
+        "cold": 0.8288042498752475,
+        "warm": 0.7935536247678101,
+        "cold_note": "first open after build, page cache not purged"
+      },
+      "queries": {
+        "queries": 50,
+        "repeats": 3,
+        "candidates_seconds": {
+          "p50": 0.0014495840296149254,
+          "p95": 0.0022489577531814575,
+          "max": 0.002539125271141529
+        },
+        "match_seconds": {
+          "p50": 0.1001584162004292,
+          "p95": 0.44407029217109084,
+          "max": 0.9739702502265573
+        },
+        "candidate_count": {
+          "p50": 134,
+          "p95": 999,
+          "max": 999
+        },
+        "pruning_rate": {
+          "p50": 0.859,
+          "p95": 1.0,
+          "max": 1.0,
+          "mean": 0.69914
+        },
+        "status_mix": {
+          "exact": 1303,
+          "excluded": 2639,
+          "none": 38508,
+          "not_comparable": 6109,
+          "possible": 606,
+          "relaxed": 835
+        },
+        "candidates_seconds_per_repeat_p50": [
+          0.0015575001016259193,
+          0.0014221249148249626,
+          0.001416458748281002
+        ],
+        "match_seconds_per_repeat_p50": [
+          0.09733337489888072,
+          0.1001584162004292,
+          0.10060129128396511
+        ],
+        "per_query": [
+          {
+            "seed": 0,
+            "candidates": 54,
+            "candidates_seconds": 0.001479417085647583,
+            "match_seconds": 0.032948917243629694
+          },
+          {
+            "seed": 1,
+            "candidates": 0,
+            "candidates_seconds": 0.001809542067348957,
+            "match_seconds": 0.016274707857519388
+          },
+          {
+            "seed": 2,
+            "candidates": 82,
+            "candidates_seconds": 0.0008692499250173569,
+            "match_seconds": 0.0381460408680141
+          },
+          {
+            "seed": 3,
+            "candidates": 125,
+            "candidates_seconds": 0.0016611251048743725,
+            "match_seconds": 0.053265875205397606
+          },
+          {
+            "seed": 4,
+            "candidates": 54,
+            "candidates_seconds": 0.0013369172811508179,
+            "match_seconds": 0.036537999752908945
+          },
+          {
+            "seed": 5,
+            "candidates": 250,
+            "candidates_seconds": 0.0013975417241454124,
+            "match_seconds": 0.2659638747572899
+          },
+          {
+            "seed": 6,
+            "candidates": 141,
+            "candidates_seconds": 0.001145457848906517,
+            "match_seconds": 0.0398822920396924
+          },
+          {
+            "seed": 7,
+            "candidates": 354,
+            "candidates_seconds": 0.0009847916662693024,
+            "match_seconds": 0.2735500829294324
+          },
+          {
+            "seed": 8,
+            "candidates": 98,
+            "candidates_seconds": 0.001531417015939951,
+            "match_seconds": 0.07165529113262892
+          },
+          {
+            "seed": 9,
+            "candidates": 0,
+            "candidates_seconds": 0.001700875349342823,
+            "match_seconds": 0.017682000063359737
+          },
+          {
+            "seed": 10,
+            "candidates": 962,
+            "candidates_seconds": 0.0011777500621974468,
+            "match_seconds": 0.24728587456047535
+          },
+          {
+            "seed": 11,
+            "candidates": 250,
+            "candidates_seconds": 0.002349833957850933,
+            "match_seconds": 0.335212167352438
+          },
+          {
+            "seed": 12,
+            "candidates": 134,
+            "candidates_seconds": 0.001705666072666645,
+            "match_seconds": 0.05681754229590297
+          },
+          {
+            "seed": 13,
+            "candidates": 127,
+            "candidates_seconds": 0.0014110826887190342,
+            "match_seconds": 0.1475207917392254
+          },
+          {
+            "seed": 14,
+            "candidates": 0,
+            "candidates_seconds": 0.001760374754667282,
+            "match_seconds": 0.016652833204716444
+          },
+          {
+            "seed": 15,
+            "candidates": 999,
+            "candidates_seconds": 0.001076249871402979,
+            "match_seconds": 0.30018054135143757
+          },
+          {
+            "seed": 16,
+            "candidates": 961,
+            "candidates_seconds": 0.001689959317445755,
+            "match_seconds": 0.24951050011441112
+          },
+          {
+            "seed": 17,
+            "candidates": 124,
+            "candidates_seconds": 0.0015055416151881218,
+            "match_seconds": 0.05616299994289875
+          },
+          {
+            "seed": 18,
+            "candidates": 124,
+            "candidates_seconds": 0.000936250202357769,
+            "match_seconds": 0.04544241586700082
+          },
+          {
+            "seed": 19,
+            "candidates": 639,
+            "candidates_seconds": 0.0010145418345928192,
+            "match_seconds": 0.5273855831474066
+          },
+          {
+            "seed": 20,
+            "candidates": 104,
+            "candidates_seconds": 0.002539125271141529,
+            "match_seconds": 0.24388758279383183
+          },
+          {
+            "seed": 21,
+            "candidates": 41,
+            "candidates_seconds": 0.0014495840296149254,
+            "match_seconds": 0.033160916063934565
+          },
+          {
+            "seed": 22,
+            "candidates": 188,
+            "candidates_seconds": 0.0010321671143174171,
+            "match_seconds": 0.09449125034734607
+          },
+          {
+            "seed": 23,
+            "candidates": 354,
+            "candidates_seconds": 0.0010454999282956123,
+            "match_seconds": 0.3868792080320418
+          },
+          {
+            "seed": 24,
+            "candidates": 244,
+            "candidates_seconds": 0.0017431247979402542,
+            "match_seconds": 0.1524897082708776
+          },
+          {
+            "seed": 25,
+            "candidates": 999,
+            "candidates_seconds": 0.0010745832696557045,
+            "match_seconds": 0.21460495796054602
+          },
+          {
+            "seed": 26,
+            "candidates": 354,
+            "candidates_seconds": 0.0011964580044150352,
+            "match_seconds": 0.27202870789915323
+          },
+          {
+            "seed": 27,
+            "candidates": 795,
+            "candidates_seconds": 0.0017756246961653233,
+            "match_seconds": 0.17763374978676438
+          },
+          {
+            "seed": 28,
+            "candidates": 0,
+            "candidates_seconds": 0.001819416880607605,
+            "match_seconds": 0.016739499755203724
+          },
+          {
+            "seed": 29,
+            "candidates": 326,
+            "candidates_seconds": 0.0011135837994515896,
+            "match_seconds": 0.2413958329707384
+          },
+          {
+            "seed": 30,
+            "candidates": 0,
+            "candidates_seconds": 0.0016518752090632915,
+            "match_seconds": 0.0161340837366879
+          },
+          {
+            "seed": 31,
+            "candidates": 0,
+            "candidates_seconds": 0.0011233328841626644,
+            "match_seconds": 0.013585083186626434
+          },
+          {
+            "seed": 32,
+            "candidates": 639,
+            "candidates_seconds": 0.0008790409192442894,
+            "match_seconds": 0.9739702502265573
+          },
+          {
+            "seed": 33,
+            "candidates": 961,
+            "candidates_seconds": 0.0014528329484164715,
+            "match_seconds": 0.18605487514287233
+          },
+          {
+            "seed": 34,
+            "candidates": 337,
+            "candidates_seconds": 0.001632083673030138,
+            "match_seconds": 0.24795887479558587
+          },
+          {
+            "seed": 35,
+            "candidates": 127,
+            "candidates_seconds": 0.0015066657215356827,
+            "match_seconds": 0.1001584162004292
+          },
+          {
+            "seed": 36,
+            "candidates": 337,
+            "candidates_seconds": 0.0010571246966719627,
+            "match_seconds": 0.19502329174429178
+          },
+          {
+            "seed": 37,
+            "candidates": 0,
+            "candidates_seconds": 0.001946084201335907,
+            "match_seconds": 0.016590332612395287
+          },
+          {
+            "seed": 38,
+            "candidates": 105,
+            "candidates_seconds": 0.0012106671929359436,
+            "match_seconds": 0.0460630408488214
+          },
+          {
+            "seed": 39,
+            "candidates": 833,
+            "candidates_seconds": 0.0014084582217037678,
+            "match_seconds": 0.39952208288013935
+          },
+          {
+            "seed": 40,
+            "candidates": 395,
+            "candidates_seconds": 0.0022489577531814575,
+            "match_seconds": 0.3782454580068588
+          },
+          {
+            "seed": 41,
+            "candidates": 999,
+            "candidates_seconds": 0.0018144589848816395,
+            "match_seconds": 0.44407029217109084
+          },
+          {
+            "seed": 42,
+            "candidates": 105,
+            "candidates_seconds": 0.0011744159273803234,
+            "match_seconds": 0.030097499955445528
+          },
+          {
+            "seed": 43,
+            "candidates": 0,
+            "candidates_seconds": 0.001204165630042553,
+            "match_seconds": 0.01594683388248086
+          },
+          {
+            "seed": 44,
+            "candidates": 354,
+            "candidates_seconds": 0.0015659583732485771,
+            "match_seconds": 0.4339888747781515
+          },
+          {
+            "seed": 45,
+            "candidates": 443,
+            "candidates_seconds": 0.0019274158403277397,
+            "match_seconds": 0.19035737495869398
+          },
+          {
+            "seed": 46,
+            "candidates": 82,
+            "candidates_seconds": 0.0014221249148249626,
+            "match_seconds": 0.05798549996688962
+          },
+          {
+            "seed": 47,
+            "candidates": 354,
+            "candidates_seconds": 0.0009753331542015076,
+            "match_seconds": 0.16530400002375245
+          },
+          {
+            "seed": 48,
+            "candidates": 38,
+            "candidates_seconds": 0.0016295826062560081,
+            "match_seconds": 0.046534332912415266
+          },
+          {
+            "seed": 49,
+            "candidates": 51,
+            "candidates_seconds": 0.0018551251851022243,
+            "match_seconds": 0.05315499985590577
+          }
+        ]
+      },
+      "exhaustive_check": {
+        "queries": 5,
+        "patient_results": 5000,
+        "mismatches": 0
+      },
+      "profile": {
+        "verify_stages": {
+          "stages": [
+            {
+              "stage": "opened_without_verify",
+              "seconds": 0.0897036250680685,
+              "rss_bytes": 63455232,
+              "peak_rss_bytes": 63455232
+            },
+            {
+              "stage": "verify:concept_closure",
+              "rows": 98,
+              "fetch_seconds": 0.0009091668762266636,
+              "seconds": 0.005658499896526337,
+              "rss_after_fetch_bytes": 64700416,
+              "rss_bytes": 64733184,
+              "peak_rss_bytes": 64733184
+            },
+            {
+              "stage": "verify:concept_postings",
+              "rows": 13254,
+              "fetch_seconds": 0.004847417119890451,
+              "seconds": 0.029407416936010122,
+              "rss_after_fetch_bytes": 68845568,
+              "rss_bytes": 70516736,
+              "peak_rss_bytes": 70516736
+            },
+            {
+              "stage": "verify:coverage",
+              "rows": 4483,
+              "fetch_seconds": 0.01497825002297759,
+              "seconds": 0.02526262542232871,
+              "rss_after_fetch_bytes": 70909952,
+              "rss_bytes": 70975488,
+              "peak_rss_bytes": 70975488
+            },
+            {
+              "stage": "verify:event_concepts",
+              "rows": 172296,
+              "fetch_seconds": 0.05677487514913082,
+              "seconds": 0.24225062504410744,
+              "rss_after_fetch_bytes": 125665280,
+              "rss_bytes": 127614976,
+              "peak_rss_bytes": 144392192
+            },
+            {
+              "stage": "verify:events",
+              "rows": 172296,
+              "fetch_seconds": 0.11208245810121298,
+              "seconds": 0.5107517498545349,
+              "rss_after_fetch_bytes": 270516224,
+              "rss_bytes": 381534208,
+              "peak_rss_bytes": 405667840
+            },
+            {
+              "stage": "verify:excluded_records",
+              "rows": 0,
+              "fetch_seconds": 0.0009132917039096355,
+              "seconds": 0.006719791796058416,
+              "rss_after_fetch_bytes": 239992832,
+              "rss_bytes": 239992832,
+              "peak_rss_bytes": 405667840
+            },
+            {
+              "stage": "verify:patients",
+              "rows": 1000,
+              "fetch_seconds": 0.0006387089379131794,
+              "seconds": 0.005617124959826469,
+              "rss_after_fetch_bytes": 240009216,
+              "rss_bytes": 240025600,
+              "peak_rss_bytes": 405667840
+            },
+            {
+              "stage": "verify:source_concepts",
+              "rows": 160,
+              "fetch_seconds": 0.00044354191049933434,
+              "seconds": 0.004592499695718288,
+              "rss_after_fetch_bytes": 240058368,
+              "rss_bytes": 240058368,
+              "peak_rss_bytes": 405667840
+            }
+          ],
+          "process_peak_rss_bytes": 405667840
+        },
+        "match_cprofile": {
+          "seed": 15,
+          "patients": 1000,
+          "candidates": 999,
+          "counts": {
+            "excluded": 56,
+            "none": 851,
+            "not_comparable": 69,
+            "relaxed": 24
+          },
+          "match_seconds_profiled_total": 0.6902881670000001,
+          "wall_seconds_with_profiler": 0.6937801660969853,
+          "parts_seconds": {
+            "candidates_inside_match": 0.0010775000000000001,
+            "load_candidate_events": 0.10800387500000001,
+            "engine_trajectory_graph_match": 0.555065749,
+            "window_validation": 0.004193024,
+            "comparability_of_none_results": 0.010371375,
+            "excluded_records_rule": 0.0046855,
+            "match_context_digests": 0.001182625,
+            "other_result_handling": 0.005708519000000023
+          },
+          "parts_share": {
+            "candidates_inside_match": 0.0015609423013620918,
+            "load_candidate_events": 0.15646201132113569,
+            "engine_trajectory_graph_match": 0.804107292483836,
+            "window_validation": 0.00607430954266959,
+            "comparability_of_none_results": 0.01502470344388795,
+            "excluded_records_rule": 0.0067877449216075005,
+            "match_context_digests": 0.0017132337718314095,
+            "other_result_handling": 0.008269762213669849
+          },
+          "note": "cumulative seconds under cProfile, which slows Python calls; shares are indicative. match() calls candidates() internally, so its time is inside the total.",
+          "process_peak_rss_bytes": 183369728
+        }
+      },
+      "wall_seconds": 59.36679270816967
+    },
+    {
+      "size": 10000,
+      "status": "completed",
+      "build_phase": {
+        "wall_seconds": 90.96406470797956,
+        "peak_rss_bytes": 11199496192
+      },
+      "build_stages": {
+        "size": 10000,
+        "stages": [
+          {
+            "stage": "ingest_in_memory",
+            "seconds": 52.222599290777,
+            "rss_bytes": 3658416128,
+            "peak_rss_bytes": 3662594048,
+            "patients": 10000
+          },
+          {
+            "stage": "validate",
+            "seconds": 6.104487999808043,
+            "rss_bytes": 3658448896,
+            "peak_rss_bytes": 3662594048
+          },
+          {
+            "stage": "canonical_copy",
+            "seconds": 10.566453875042498,
+            "rss_bytes": 4271095808,
+            "peak_rss_bytes": 4271095808
+          },
+          {
+            "stage": "input_digest_json_and_sha256",
+            "seconds": 15.580252333078533,
+            "rss_bytes": 6029410304,
+            "peak_rss_bytes": 6029410304
+          },
+          {
+            "stage": "stage_ndjson_files",
+            "seconds": 27.06851516617462,
+            "rss_bytes": 6029541376,
+            "peak_rss_bytes": 6029541376,
+            "staged_bytes": 1185813831
+          },
+          {
+            "stage": "duckdb_derive",
+            "seconds": 28.70603658305481,
+            "rss_bytes": 8256569344,
+            "peak_rss_bytes": 8256569344
+          },
+          {
+            "stage": "duckdb_write_parquet",
+            "seconds": 30.3685464579612,
+            "rss_bytes": 7873134592,
+            "peak_rss_bytes": 9787899904,
+            "snapshot_bytes": 142731515
+          },
+          {
+            "stage": "readback_fetchall:patients",
+            "seconds": 30.469214958138764,
+            "rss_bytes": 7771193344,
+            "peak_rss_bytes": 9787899904,
+            "rows": 10000
+          },
+          {
+            "stage": "readback_content_digest:patients",
+            "seconds": 30.513934415765107,
+            "rss_bytes": 7771832320,
+            "peak_rss_bytes": 9787899904
+          },
+          {
+            "stage": "readback_fetchall:events",
+            "seconds": 31.597290665842593,
+            "rss_bytes": 9450766336,
+            "peak_rss_bytes": 9787899904,
+            "rows": 1730355
+          },
+          {
+            "stage": "readback_content_digest:events",
+            "seconds": 35.762256916146725,
+            "rss_bytes": 10658119680,
+            "peak_rss_bytes": 10823090176
+          },
+          {
+            "stage": "readback_fetchall:event_concepts",
+            "seconds": 36.49713512510061,
+            "rss_bytes": 9670901760,
+            "peak_rss_bytes": 10823090176,
+            "rows": 1730355
+          },
+          {
+            "stage": "readback_content_digest:event_concepts",
+            "seconds": 38.39729666616768,
+            "rss_bytes": 9685172224,
+            "peak_rss_bytes": 10823090176
+          },
+          {
+            "stage": "readback_fetchall:concept_closure",
+            "seconds": 38.50625395774841,
+            "rss_bytes": 9201778688,
+            "peak_rss_bytes": 10823090176,
+            "rows": 98
+          },
+          {
+            "stage": "readback_content_digest:concept_closure",
+            "seconds": 38.5544759160839,
+            "rss_bytes": 9201778688,
+            "peak_rss_bytes": 10823090176
+          },
+          {
+            "stage": "readback_fetchall:concept_postings",
+            "seconds": 38.6294056661427,
+            "rss_bytes": 9224699904,
+            "peak_rss_bytes": 10823090176,
+            "rows": 132825
+          },
+          {
+            "stage": "readback_content_digest:concept_postings",
+            "seconds": 38.81979633308947,
+            "rss_bytes": 9225437184,
+            "peak_rss_bytes": 10823090176
+          },
+          {
+            "stage": "readback_fetchall:coverage",
+            "seconds": 38.90207037515938,
+            "rss_bytes": 9211150336,
+            "peak_rss_bytes": 10823090176,
+            "rows": 44854
+          },
+          {
+            "stage": "readback_content_digest:coverage",
+            "seconds": 39.0036254581064,
+            "rss_bytes": 9211904000,
+            "peak_rss_bytes": 10823090176
+          },
+          {
+            "stage": "readback_fetchall:source_concepts",
+            "seconds": 39.05474695796147,
+            "rss_bytes": 9206661120,
+            "peak_rss_bytes": 10823090176,
+            "rows": 160
+          },
+          {
+            "stage": "readback_content_digest:source_concepts",
+            "seconds": 39.10115358280018,
+            "rss_bytes": 9206661120,
+            "peak_rss_bytes": 10823090176
+          },
+          {
+            "stage": "readback_fetchall:excluded_records",
+            "seconds": 39.143626040779054,
+            "rss_bytes": 9206661120,
+            "peak_rss_bytes": 10823090176,
+            "rows": 0
+          },
+          {
+            "stage": "readback_content_digest:excluded_records",
+            "seconds": 39.18597674975172,
+            "rss_bytes": 9206661120,
+            "peak_rss_bytes": 10823090176
+          }
+        ],
+        "input_digest": "7542b16f2136",
+        "process_peak_rss_bytes": 10823090176
+      },
+      "distinct_patients": 10000,
+      "cohorts_generated": 209,
+      "generator_seeds_failed": [
+        {
+          "seed": 20261121,
+          "error": "StopIteration"
+        },
+        {
+          "seed": 20261123,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261168,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261185,
+          "error": "INVERTED_BOUNDS"
+        },
+        {
+          "seed": 20261192,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261194,
+          "error": "INVERTED_BOUNDS"
+        },
+        {
+          "seed": 20261208,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261209,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261212,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261221,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261230,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261231,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261248,
+          "error": "StopIteration"
+        },
+        {
+          "seed": 20261260,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261262,
+          "error": "StopIteration"
+        },
+        {
+          "seed": 20261266,
+          "error": "StopIteration"
+        },
+        {
+          "seed": 20261287,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261298,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261310,
+          "error": "ValueError"
+        },
+        {
+          "seed": 20261311,
+          "error": "StopIteration"
+        }
+      ],
+      "patients": 10000,
+      "ingest_events": 1730355,
+      "events_per_distinct_patient": {
+        "mean": 173.0355,
+        "p95": 384,
+        "max": 519,
+        "patients": 10000
+      },
+      "generate_seconds": 28.876529918052256,
+      "convert_seconds": 22.90847842162475,
+      "replicate_seconds": 1.041218638420105e-06,
+      "prepare_seconds": 51.811879416927695,
+      "build_seconds": 38.21714170789346,
+      "snapshot_id": "49181d265da4447bb2332fc56597dce574587f1c5a76146cb7fa45d8b09b0e6b",
+      "snapshot_bytes": 142738183,
+      "tables": {
+        "concept_closure": 98,
+        "concept_postings": 132825,
+        "coverage": 44854,
+        "event_concepts": 1730355,
+        "events": 1730355,
+        "excluded_records": 0,
+        "patients": 10000,
+        "source_concepts": 160
+      },
+      "query_phase": {
+        "wall_seconds": 310.0472817909904,
+        "peak_rss_bytes": 3677847552
+      },
+      "open_verify_seconds": {
+        "cold": 8.095161000266671,
+        "warm": 8.07020862493664,
+        "cold_note": "first open after build, page cache not purged"
+      },
+      "queries": {
+        "queries": 50,
+        "repeats": 3,
+        "candidates_seconds": {
+          "p50": 0.0034719579853117466,
+          "p95": 0.00536695821210742,
+          "max": 0.005417125299572945
+        },
+        "match_seconds": {
+          "p50": 1.1960483752191067,
+          "p95": 4.914267042186111,
+          "max": 10.473083625081927
+        },
+        "candidate_count": {
+          "p50": 1368,
+          "p95": 9992,
+          "max": 9992
+        },
+        "pruning_rate": {
+          "p50": 0.862,
+          "p95": 1.0,
+          "max": 1.0,
+          "mean": 0.699252
+        },
+        "status_mix": {
+          "exact": 12586,
+          "excluded": 25653,
+          "none": 385651,
+          "not_comparable": 61473,
+          "possible": 6212,
+          "relaxed": 8424,
+          "unresolved": 1
+        },
+        "candidates_seconds_per_repeat_p50": [
+          0.003478208091109991,
+          0.0034780409187078476,
+          0.0034719579853117466
+        ],
+        "match_seconds_per_repeat_p50": [
+          1.133912917226553,
+          1.1960483752191067,
+          1.2003477499820292
+        ],
+        "per_query": [
+          {
+            "seed": 0,
+            "candidates": 495,
+            "candidates_seconds": 0.0034719579853117466,
+            "match_seconds": 0.25288587529212236
+          },
+          {
+            "seed": 1,
+            "candidates": 0,
+            "candidates_seconds": 0.004155249800533056,
+            "match_seconds": 0.1342558329924941
+          },
+          {
+            "seed": 2,
+            "candidates": 833,
+            "candidates_seconds": 0.0022109579294919968,
+            "match_seconds": 0.4411435420624912
+          },
+          {
+            "seed": 3,
+            "candidates": 1236,
+            "candidates_seconds": 0.005417125299572945,
+            "match_seconds": 0.5289012501016259
+          },
+          {
+            "seed": 4,
+            "candidates": 496,
+            "candidates_seconds": 0.003690707962960005,
+            "match_seconds": 0.3594221668317914
+          },
+          {
+            "seed": 5,
+            "candidates": 2500,
+            "candidates_seconds": 0.003907499834895134,
+            "match_seconds": 2.9131797500886023
+          },
+          {
+            "seed": 6,
+            "candidates": 1380,
+            "candidates_seconds": 0.0029273750260472298,
+            "match_seconds": 0.3326424169354141
+          },
+          {
+            "seed": 7,
+            "candidates": 3541,
+            "candidates_seconds": 0.002727624960243702,
+            "match_seconds": 3.1906742500141263
+          },
+          {
+            "seed": 8,
+            "candidates": 912,
+            "candidates_seconds": 0.003135416191071272,
+            "match_seconds": 0.751572625245899
+          },
+          {
+            "seed": 9,
+            "candidates": 0,
+            "candidates_seconds": 0.004136666655540466,
+            "match_seconds": 0.13239937461912632
+          },
+          {
+            "seed": 10,
+            "candidates": 9592,
+            "candidates_seconds": 0.003441290929913521,
+            "match_seconds": 2.9487901250831783
+          },
+          {
+            "seed": 11,
+            "candidates": 2500,
+            "candidates_seconds": 0.005130124744027853,
+            "match_seconds": 3.7740746247582138
+          },
+          {
+            "seed": 12,
+            "candidates": 1368,
+            "candidates_seconds": 0.0039459168910980225,
+            "match_seconds": 0.5926952911540866
+          },
+          {
+            "seed": 13,
+            "candidates": 1229,
+            "candidates_seconds": 0.003916750196367502,
+            "match_seconds": 1.7988360831514
+          },
+          {
+            "seed": 14,
+            "candidates": 0,
+            "candidates_seconds": 0.004204791970551014,
+            "match_seconds": 0.13349450007081032
+          },
+          {
+            "seed": 15,
+            "candidates": 9992,
+            "candidates_seconds": 0.0036059576086699963,
+            "match_seconds": 3.5353957498446107
+          },
+          {
+            "seed": 16,
+            "candidates": 9591,
+            "candidates_seconds": 0.004779291804879904,
+            "match_seconds": 2.9483802090398967
+          },
+          {
+            "seed": 17,
+            "candidates": 1252,
+            "candidates_seconds": 0.003872124943882227,
+            "match_seconds": 0.599610292352736
+          },
+          {
+            "seed": 18,
+            "candidates": 1252,
+            "candidates_seconds": 0.0024700420908629894,
+            "match_seconds": 0.38533945800736547
+          },
+          {
+            "seed": 19,
+            "candidates": 6511,
+            "candidates_seconds": 0.002900124993175268,
+            "match_seconds": 5.920601958874613
+          },
+          {
+            "seed": 20,
+            "candidates": 996,
+            "candidates_seconds": 0.005256625358015299,
+            "match_seconds": 2.5801619170233607
+          },
+          {
+            "seed": 21,
+            "candidates": 424,
+            "candidates_seconds": 0.0027957498095929623,
+            "match_seconds": 0.25187366595491767
+          },
+          {
+            "seed": 22,
+            "candidates": 1796,
+            "candidates_seconds": 0.0021627498790621758,
+            "match_seconds": 1.1960483752191067
+          },
+          {
+            "seed": 23,
+            "candidates": 3541,
+            "candidates_seconds": 0.0028237500227987766,
+            "match_seconds": 4.370941916946322
+          },
+          {
+            "seed": 24,
+            "candidates": 2410,
+            "candidates_seconds": 0.004542042035609484,
+            "match_seconds": 1.5467854156158864
+          },
+          {
+            "seed": 25,
+            "candidates": 9992,
+            "candidates_seconds": 0.0033484590239822865,
+            "match_seconds": 2.650322750210762
+          },
+          {
+            "seed": 26,
+            "candidates": 3541,
+            "candidates_seconds": 0.002778416033834219,
+            "match_seconds": 3.150803416967392
+          },
+          {
+            "seed": 27,
+            "candidates": 7941,
+            "candidates_seconds": 0.004939374979585409,
+            "match_seconds": 2.33651224989444
+          },
+          {
+            "seed": 28,
+            "candidates": 0,
+            "candidates_seconds": 0.004040999803692102,
+            "match_seconds": 0.13432616693899035
+          },
+          {
+            "seed": 29,
+            "candidates": 3364,
+            "candidates_seconds": 0.0025537079200148582,
+            "match_seconds": 2.8573937080800533
+          },
+          {
+            "seed": 30,
+            "candidates": 0,
+            "candidates_seconds": 0.002638333011418581,
+            "match_seconds": 0.1311712092719972
+          },
+          {
+            "seed": 31,
+            "candidates": 0,
+            "candidates_seconds": 0.002198750153183937,
+            "match_seconds": 0.1080736662261188
+          },
+          {
+            "seed": 32,
+            "candidates": 6513,
+            "candidates_seconds": 0.002997749950736761,
+            "match_seconds": 10.473083625081927
+          },
+          {
+            "seed": 33,
+            "candidates": 9591,
+            "candidates_seconds": 0.0034112920984625816,
+            "match_seconds": 2.072884667199105
+          },
+          {
+            "seed": 34,
+            "candidates": 3394,
+            "candidates_seconds": 0.0038123340345919132,
+            "match_seconds": 3.0387765001505613
+          },
+          {
+            "seed": 35,
+            "candidates": 1229,
+            "candidates_seconds": 0.0027702082879841328,
+            "match_seconds": 1.0483895419165492
+          },
+          {
+            "seed": 36,
+            "candidates": 3394,
+            "candidates_seconds": 0.0028709592297673225,
+            "match_seconds": 2.3868925417773426
+          },
+          {
+            "seed": 37,
+            "candidates": 0,
+            "candidates_seconds": 0.005241583101451397,
+            "match_seconds": 0.13229695800691843
+          },
+          {
+            "seed": 38,
+            "candidates": 1043,
+            "candidates_seconds": 0.0035513751208782196,
+            "match_seconds": 0.4066260000690818
+          },
+          {
+            "seed": 39,
+            "candidates": 8342,
+            "candidates_seconds": 0.0050733331590890884,
+            "match_seconds": 4.565917542204261
+          },
+          {
+            "seed": 40,
+            "candidates": 3898,
+            "candidates_seconds": 0.005393583327531815,
+            "match_seconds": 4.2084731250070035
+          },
+          {
+            "seed": 41,
+            "candidates": 9992,
+            "candidates_seconds": 0.00536695821210742,
+            "match_seconds": 4.914267042186111
+          },
+          {
+            "seed": 42,
+            "candidates": 1043,
+            "candidates_seconds": 0.0021009589545428753,
+            "match_seconds": 0.22983258264139295
+          },
+          {
+            "seed": 43,
+            "candidates": 0,
+            "candidates_seconds": 0.003140707965940237,
+            "match_seconds": 0.13130254205316305
+          },
+          {
+            "seed": 44,
+            "candidates": 3541,
+            "candidates_seconds": 0.004789500031620264,
+            "match_seconds": 4.907017374876887
+          },
+          {
+            "seed": 45,
+            "candidates": 4381,
+            "candidates_seconds": 0.005011749919503927,
+            "match_seconds": 2.283411541953683
+          },
+          {
+            "seed": 46,
+            "candidates": 833,
+            "candidates_seconds": 0.003137124702334404,
+            "match_seconds": 0.5972521249204874
+          },
+          {
+            "seed": 47,
+            "candidates": 3541,
+            "candidates_seconds": 0.003028084058314562,
+            "match_seconds": 2.1042162091471255
+          },
+          {
+            "seed": 48,
+            "candidates": 412,
+            "candidates_seconds": 0.0025763330049812794,
+            "match_seconds": 0.39526179106906056
+          },
+          {
+            "seed": 49,
+            "candidates": 542,
+            "candidates_seconds": 0.004043125081807375,
+            "match_seconds": 0.5327582908794284
+          }
+        ]
+      },
+      "profile": {
+        "verify_stages": {
+          "stages": [
+            {
+              "stage": "opened_without_verify",
+              "seconds": 0.08768549980595708,
+              "rss_bytes": 63455232,
+              "peak_rss_bytes": 63455232
+            },
+            {
+              "stage": "verify:concept_closure",
+              "rows": 98,
+              "fetch_seconds": 0.0012677917256951332,
+              "seconds": 0.006836832966655493,
+              "rss_after_fetch_bytes": 64749568,
+              "rss_bytes": 64782336,
+              "peak_rss_bytes": 64782336
+            },
+            {
+              "stage": "verify:concept_postings",
+              "rows": 132825,
+              "fetch_seconds": 0.03339129174128175,
+              "seconds": 0.18393954215571284,
+              "rss_after_fetch_bytes": 105873408,
+              "rss_bytes": 108003328,
+              "peak_rss_bytes": 122683392
+            },
+            {
+              "stage": "verify:coverage",
+              "rows": 44854,
+              "fetch_seconds": 0.022927040699869394,
+              "seconds": 0.07876149984076619,
+              "rss_after_fetch_bytes": 94830592,
+              "rss_bytes": 95862784,
+              "peak_rss_bytes": 122683392
+            },
+            {
+              "stage": "verify:event_concepts",
+              "rows": 1730355,
+              "fetch_seconds": 0.4293280839920044,
+              "seconds": 2.3319595837965608,
+              "rss_after_fetch_bytes": 597426176,
+              "rss_bytes": 620544000,
+              "peak_rss_bytes": 793559040
+            },
+            {
+              "stage": "verify:events",
+              "rows": 1730355,
+              "fetch_seconds": 1.0385383749380708,
+              "seconds": 5.265075041912496,
+              "rss_after_fetch_bytes": 1786920960,
+              "rss_bytes": 2989539328,
+              "peak_rss_bytes": 3145924608
+            },
+            {
+              "stage": "verify:excluded_records",
+              "rows": 0,
+              "fetch_seconds": 0.0009797499515116215,
+              "seconds": 0.014698124956339598,
+              "rss_after_fetch_bytes": 1498562560,
+              "rss_bytes": 1498562560,
+              "peak_rss_bytes": 3145924608
+            },
+            {
+              "stage": "verify:patients",
+              "rows": 10000,
+              "fetch_seconds": 0.001970042008906603,
+              "seconds": 0.023063750006258488,
+              "rss_after_fetch_bytes": 1498824704,
+              "rss_bytes": 1498841088,
+              "peak_rss_bytes": 3145924608
+            },
+            {
+              "stage": "verify:source_concepts",
+              "rows": 160,
+              "fetch_seconds": 0.00060262531042099,
+              "seconds": 0.012436334043741226,
+              "rss_after_fetch_bytes": 1498873856,
+              "rss_bytes": 1498873856,
+              "peak_rss_bytes": 3145924608
+            }
+          ],
+          "process_peak_rss_bytes": 3145924608
+        },
+        "match_cprofile": {
+          "seed": 15,
+          "patients": 10000,
+          "candidates": 9992,
+          "counts": {
+            "excluded": 497,
+            "none": 8534,
+            "not_comparable": 760,
+            "relaxed": 209
+          },
+          "match_seconds_profiled_total": 7.091378583,
+          "wall_seconds_with_profiler": 7.121835708152503,
+          "parts_seconds": {
+            "candidates_inside_match": 0.0033943750000000003,
+            "load_candidate_events": 1.1127124590000002,
+            "engine_trajectory_graph_match": 5.749507852000001,
+            "window_validation": 0.044680467,
+            "comparability_of_none_results": 0.08133900000000001,
+            "excluded_records_rule": 0.040272583,
+            "match_context_digests": 0.005824500000000001,
+            "other_result_handling": 0.05364734699999918
+          },
+          "parts_share": {
+            "candidates_inside_match": 0.0004786622178284569,
+            "load_candidate_events": 0.15691059869056778,
+            "engine_trajectory_graph_match": 0.8107743486976093,
+            "window_validation": 0.006300674329686962,
+            "comparability_of_none_results": 0.011470125173544132,
+            "excluded_records_rule": 0.00567909081832756,
+            "match_context_digests": 0.0008213494642583237,
+            "other_result_handling": 0.007565150608177476
+          },
+          "note": "cumulative seconds under cProfile, which slows Python calls; shares are indicative. match() calls candidates() internally, so its time is inside the total.",
+          "process_peak_rss_bytes": 724238336
+        }
+      },
+      "wall_seconds": 511.2235035421327
+    },
+    {
+      "size": 100000,
+      "status": "failed",
+      "build_phase": {
+        "wall_seconds": 316.1542779998854,
+        "peak_rss_bytes": 44087296000
+      },
+      "build_stages": {
+        "failure": {
+          "reason": "MEMORY_GUARD",
+          "detail": "resident memory reached 40.4 GiB, limit 40 GiB",
+          "last_progress": {
+            "phase": "stage:duckdb_derive",
+            "peak_rss_bytes_so_far": 39021051904,
+            "stages": [
+              {
+                "stage": "ingest_in_memory",
+                "seconds": 90.66161383315921,
+                "rss_bytes": 11252219904,
+                "peak_rss_bytes": 11252219904,
+                "patients": 100000
+              },
+              {
+                "stage": "validate",
+                "seconds": 62.1444912920706,
+                "rss_bytes": 11254382592,
+                "peak_rss_bytes": 11254382592
+              },
+              {
+                "stage": "canonical_copy",
+                "seconds": 88.3886524583213,
+                "rss_bytes": 17599496192,
+                "peak_rss_bytes": 17599496192
+              },
+              {
+                "stage": "input_digest_json_and_sha256",
+                "seconds": 136.64025454223156,
+                "rss_bytes": 17618993152,
+                "peak_rss_bytes": 35168256000
+              },
+              {
+                "stage": "stage_ndjson_files",
+                "seconds": 250.27182479202747,
+                "rss_bytes": 17619124224,
+                "peak_rss_bytes": 35168256000,
+                "staged_bytes": 11953169373
+              },
+              {
+                "stage": "duckdb_derive",
+                "seconds": 271.68580754240975,
+                "rss_bytes": 26067566592,
+                "peak_rss_bytes": 39021051904
+              }
+            ]
+          }
+        },
+        "process_peak_rss_bytes": 43367530496
+      },
+      "failed_phase": "build",
+      "failure": {
+        "reason": "MEMORY_GUARD",
+        "detail": "resident memory reached 41.1 GiB, limit 40 GiB",
+        "last_progress": {
+          "phase": "build",
+          "peak_rss_bytes_so_far": 11245797376,
+          "patients": 100000,
+          "ingest_events": 17303550,
+          "prepare_seconds": 89.18428129237145
+        }
+      },
+      "wall_seconds": 685.0445611658506
+    },
+    {
+      "size": 300000,
+      "status": "not_attempted",
+      "reason": "size 100000 failed (MEMORY_GUARD); a larger size would hold more patients in the same in-memory ingest"
+    },
+    {
+      "size": 1000000,
+      "status": "not_attempted",
+      "reason": "size 100000 failed (MEMORY_GUARD); a larger size would hold more patients in the same in-memory ingest"
+    }
+  ],
+  "artifacts": {
+    "tools/benchmark_execution_store.py": "c030561dab7fe7659a492a7042b2cf32b7c26c9b816e90ad2309dfe72d84f3cd",
+    "patterns/execution_store.py": "27aac258ad509bda8e35dae9b5f9ab9b54bf137abd2fd78937699dca4e6a59fd",
+    "patterns/synthetic_ingest.py": "d59de84ac976f1a0fc7a43f7bb6ce1969bc67be2c0111771c56389436445c9b8",
+    "patterns/trajectory_graph.py": "10c2d7fc6041dcbcd5520cef910e591af215442a38aed69e68cfee5d8c638df6",
+    "demos/mockups/synthetic/generate.py": "47c0420554863cc48cd3dc392a7a35374d5545c4cc6bffb4b0832abcc5d63eed",
+    "patterns/test_execution_store.py": "2812fd4fec97495355239da0d4e8e9ccc1eec5948b6382414b00970687902328",
+    "patterns/execution_store_reference.py": "717d2ea2ec4cbdffbdb86cf3296a5fc9a91e1bd79e406b882fb9729b9d507da7",
+    "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+    "schemas/execution-store-manifest.schema.json": "9017963acf3f17fe87356170435ed9f67b4cb29fed3a723bda359580e2cc9184"
+  },
+  "limitations": [
+    "One machine (see environment); no other hardware, operating system or storage was measured.",
+    "The data are synthetic. Event density, concept frequencies and sources reflect the generator, not a clinical record system.",
+    "Beyond the distinct pool the cohort is replicated: copies repeat the pool patients with a whole-day time shift and add no variety. Concept posting sizes, candidate sets and match outcomes therefore scale as exact multiples, which a real population would not.",
+    "A replica shares its source patient's evidence objects in memory, so the in-memory ingest of a replicated cohort is smaller than a real one of the same size; the staged and stored bytes are not.",
+    "Queries are 50 seeded random queries from the differential test's generator, not a clinical query mix.",
+    "Latencies are wall-clock times of one thread of Python and DuckDB with the thread setting stated; no tuning was attempted.",
+    "Peak memory is the process's maximum resident set size, which includes the interpreter and DuckDB buffers.",
+    "No exhaustive reference ran at scale; correctness at scale rests on the differential test at 48 patients and the optional check at 1,000."
+  ],
+  "contains_patient_level_data": false,
+  "total_seconds": 1255.9692654167302
+}
