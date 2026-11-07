@@ -1,6 +1,6 @@
 {
   "artifacts": {
-    "demos/mockups/synthetic/generate.py": "47c0420554863cc48cd3dc392a7a35374d5545c4cc6bffb4b0832abcc5d63eed",
+    "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
     "patterns/patient_similarity.py": "b1f4168d2314e9939fde2e9e855fff9619519eb440f6c6f984803451df94a94a",
     "tools/evaluate_concept_measures.py": "2af70f8258146d70196bcb969a9ad08f050e7130662a5bd95e4b427d65e0ef32"
   },
