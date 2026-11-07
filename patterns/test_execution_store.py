@@ -669,6 +669,85 @@ class ContractTests(unittest.TestCase):
                     es.open_store(snapshot, verify=level)
                 self.assertEqual(caught.exception.code, 'INVALID_VERIFY_LEVEL')
 
+    def test_the_directory_name_and_an_expected_identifier_pin_the_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), Path(tmp) / 'store')
+            other = Path(tmp) / ('0' * 64)
+            shutil.copytree(snapshot, other)
+            with self.assertRaises(es.StoreError) as caught:  # a snapshot under another snapshot's name
+                es.open_store(other)
+            self.assertEqual(caught.exception.code, 'SNAPSHOT_DIRECTORY_MISMATCH')
+            plain = Path(tmp) / 'copy'
+            os.replace(other, plain)  # a name that is no identifier pins nothing
+            with es.open_store(plain, expected_snapshot_id=snapshot.name) as store:
+                self.assertEqual(store.snapshot_id, snapshot.name)
+            with self.assertRaises(es.StoreError) as caught:
+                es.open_store(plain, expected_snapshot_id='f' * 64)
+            self.assertEqual(caught.exception.code, 'SNAPSHOT_ID_NOT_EXPECTED')
+            # The match context names the exact files read.
+            with es.open_store(snapshot) as store:
+                context = es.match(store, FIXTURE_QUERY, {})['context']
+                want = hashlib.sha256(es._json(store.manifest['files']).encode('utf-8')).hexdigest()
+                self.assertEqual(context['files_digest'], want)
+
+    def test_staging_can_live_elsewhere_and_stale_builds_are_swept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, work = Path(tmp) / 'store', Path(tmp) / 'scratch'
+            seen = []
+            def watch(name, info):
+                if name == 'staged':
+                    seen.append((sorted(p.name for p in work.iterdir()), sorted(p.name for p in root.iterdir())))
+            snapshot = es.build(fixture(), root, work_dir=work, on_stage=watch)
+            self.assertEqual(snapshot.name, es.build(fixture(), Path(tmp) / 'plain').name)
+            self.assertEqual(len(seen[0][0]), 1)  # the staging lived in work_dir ...
+            self.assertTrue(all(n.startswith('.building-') for n in seen[0][0] + seen[0][1]))
+            self.assertEqual(os.listdir(work), [])  # ... and nothing is left in either place
+            self.assertEqual(os.listdir(root), [snapshot.name])
+            old, new = root / '.building-old', root / '.building-new'
+            old.mkdir()
+            new.mkdir()
+            os.utime(old, (time.time() - 3 * 86400,) * 2)
+            self.assertEqual(es.sweep_stale_builds(root), [old])
+            self.assertEqual(sorted(os.listdir(root)), sorted(['.building-new', snapshot.name]))
+
+    def test_non_ascii_order_matches_the_reference(self):
+        """Code-point order everywhere: precomposed and combining accents, an astral character and
+        capitals, in patient ids, event ids and concepts; nulls in evidence and an ongoing end;
+        four threads and odd fetch batches."""
+        pre, comb, astral, u_pre, u_comb = 'é', 'é', '\U0001d518', 'ü', 'ü'
+        ancestors = {pre: [], comb: [pre], 'E': [], astral: ['E'], 'z': []}
+        self.assertEqual(len({pre, comb, u_pre, u_comb}), 4)  # precomposed and combining forms differ
+        def patient(pid, events):
+            return {'patient_id': pid, 'clock_id': f'c-{pid}', 'events': events,
+                    'coverage': [cover('ehr', day(0), day(100)), cover('Ehr', day(5), day(50))]}
+        g = {'profile': es.INGEST_PROFILE, 'dataset_id': f'unicode-{pre}', 'provenance': {'labels': {'note': u_comb + astral}},
+             'closure': {'version': f'v-{comb}', 'ancestors': ancestors},
+             'patients': [patient(pre, [ev(u_pre, [comb], (day(1), day(1)), evidence_null=None),
+                                        ev(u_comb, [pre, 'z'], (day(2), day(3)), (day(4), None))]),
+                          patient(comb, [ev(astral, [astral], (day(1), day(2)), source='Ehr', nested={'x': None})]),
+                          patient('E', [ev('E', ['E'], (day(0), day(0))), ev('e', ['z'], (day(0), day(0)))]),
+                          patient(astral, []), patient('z', [ev(pre, [pre, 'E'], (day(9), day(9)))])]}
+        g['patients'][0]['excluded'] = [{'source': 'ehr', 'concept': astral, 'start': [day(5), day(6)], 'reason': comb}]
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(g, tmp, threads=4, fetch_rows=3)
+            with es.open_store(snapshot, threads=4, verify='content', fetch_rows=3) as store:
+                tables = ref.build_tables(g)
+                self.assertEqual(table_mismatches(store, tables), {})
+                want = ref.table_digests(tables)
+                for name in es.TABLES:
+                    recorded = store.manifest['tables'][name]
+                    self.assertEqual({k: recorded[k] for k in ('rows', 'content_digest', 'buckets')}, want[name], name)
+                self.assertEqual(store.manifest['input_digest'], ref.input_digest(g))
+                self.assertEqual([r[1] for r in sorted(store.rows('patients'))], sorted(p['patient_id'] for p in g['patients']))
+                self.assertEqual(store.rows('patients')[0][1], 'E')  # capitals before lower case, astral last
+                self.assertEqual(max(r[1] for r in store.rows('patients')), astral)
+            reordered = deepcopy(g)
+            reordered['patients'].reverse()
+            for p in reordered['patients']:
+                p['events'].reverse()
+                p['coverage'].reverse()
+            self.assertEqual(es.build(reordered, Path(tmp) / 'again', fetch_rows=1).name, snapshot.name)
+
     def rewrite(self, snapshot, path, select):
         """Replace one Parquet file with `select` over its current rows, and record the new file's
         byte digest in the manifest (the identity and content digests are left as they were)."""

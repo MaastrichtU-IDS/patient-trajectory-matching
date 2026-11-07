@@ -117,6 +117,7 @@ ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py
 _MEMORY = re.compile(r'^[0-9]+(\.[0-9]+)?\s*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$')
 # Characters a patient identifier may not hold: they delimit the input digest's lines.
 _ID_DELIMITERS = ('\t', '\n', '\r')
+_SNAPSHOT_NAME = re.compile(r'[0-9a-f]{64}')
 
 
 class IngestError(ValueError):
@@ -580,10 +581,16 @@ class StoreBuilder:
     `validate_patient` refuses are refused by name, and nothing is written under `root` on any
     refusal. Used as a context manager, leaving the block unfinished discards the build.
     `on_stage(name, info)`, when given, is called after each stage of `finish()`.
+
+    `work_dir`, when given, holds the staging files, the build database and DuckDB's spill files
+    (for example on another disk); the snapshot itself is always written under `root`, so that
+    publishing it is one rename. Each build works in `.building-*` directories, removed when the
+    build ends however it ends; a killed process leaves them behind, and `sweep_stale_builds`
+    removes old ones.
     """
 
     def __init__(self, root, header, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS,
-                 on_stage=None):
+                 on_stage=None, work_dir=None):
         self.header = validate_header(header)  # before anything is written
         self.ancestors = header['closure']['ancestors']
         self.threads, self.memory_limit, self.fetch_rows = threads, _memory_limit(memory_limit), fetch_rows
@@ -594,7 +601,13 @@ class StoreBuilder:
         # Directories this builder creates, so that a refusal leaves no trace of them.
         self._created = [d for d in (self.root, *self.root.parents) if not d.exists()]
         self.root.mkdir(parents=True, exist_ok=True)
-        self.work = Path(tempfile.mkdtemp(prefix='.building-', dir=self.root))
+        # The snapshot is written here, beside its final place; everything else goes to `work`.
+        self.publish = Path(tempfile.mkdtemp(prefix='.building-', dir=self.root))
+        if work_dir is None:
+            self.work = self.publish
+        else:
+            Path(work_dir).mkdir(parents=True, exist_ok=True)
+            self.work = Path(tempfile.mkdtemp(prefix='.building-', dir=work_dir))
         self.stage = self.work / 'stage'
         self.stage.mkdir()
         self._files = {name: open(self.stage / f'{name}.ndjson', 'w', encoding='utf-8') for name in STAGED}
@@ -676,7 +689,7 @@ class StoreBuilder:
                 shutil.rmtree(self.stage)
                 self._stage_done('derived', database_bytes=(self.work / 'build.duckdb').stat().st_size)
                 tables = content_digests(db, self.fetch_rows, lambda name: self._stage_done(f'content_digest:{name}'))
-                snapshot = self.work / 'snapshot'
+                snapshot = self.publish / 'snapshot'
                 snapshot.mkdir()
                 _write(db, snapshot)
             except duckdb.Error as exc:
@@ -723,6 +736,7 @@ class StoreBuilder:
         for f in self._files.values():
             f.close()
         shutil.rmtree(self.work, ignore_errors=True)
+        shutil.rmtree(self.publish, ignore_errors=True)
         if not keep_root:
             for d in self._created:  # deepest first
                 try:
@@ -736,14 +750,30 @@ class StoreBuilder:
             self._close(keep_root=False)
 
 
-def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None):
+def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None,
+          work_dir=None):
     """Validate, derive and write one immutable snapshot of a whole ingest document under `root`;
     return its directory. A wrapper over `StoreBuilder`: the patients are streamed from the list."""
     header = _validate_document(ingest)
-    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage) as builder:
+    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir) as builder:
         for p in ingest['patients']:
             builder.add(p)
         return builder.finish(ingest.get('provenance'))
+
+
+def sweep_stale_builds(directory, older_than_seconds=24 * 3600, now=None):
+    """Remove `.building-*` directories under `directory` (a store root or a `work_dir`) last
+    modified more than `older_than_seconds` ago: what a killed build leaves behind. A live build
+    touches its directory as it works, but one stalled longer than the threshold would be removed
+    too, so choose a threshold longer than any build. Returns the paths removed."""
+    import time
+    now = time.time() if now is None else now
+    removed = []
+    for path in sorted(Path(directory).glob('.building-*')):
+        if path.is_dir() and now - path.stat().st_mtime > older_than_seconds:
+            shutil.rmtree(path, ignore_errors=True)
+            removed.append(path)
+    return removed
 
 
 class Store:
@@ -754,9 +784,15 @@ class Store:
     manifest lists, each with its recorded sha256; `'content'` re-derives every table's per-bucket
     content digests from the files, streamed, and compares them with the manifest's; `False` skips
     both, explicitly. `match` reports the level (`verified`).
+
+    File digests are outside the identity, so the `files` level catches corruption, partial copies
+    and edited files, but not a coordinated edit of a Parquet file and its manifest entry. Three
+    checks cover that: `content`; `expected_snapshot_id`, which refuses any other identifier; and
+    the directory name, which, when it is a snapshot identifier, must be this one.
     """
 
-    def __init__(self, path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS):
+    def __init__(self, path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS,
+                 expected_snapshot_id=None):
         if not (verify is False or verify in ('files', 'content')):
             raise StoreError('INVALID_VERIFY_LEVEL', repr(verify))
         self.path = Path(path)
@@ -767,6 +803,12 @@ class Store:
             raise StoreError('SNAPSHOT_UNREADABLE', str(self.path)) from exc
         self.manifest = validate_manifest(manifest)
         self.snapshot_id = self.manifest['snapshot_id']
+        if _SNAPSHOT_NAME.fullmatch(self.path.name) and self.path.name != self.snapshot_id:
+            raise StoreError('SNAPSHOT_DIRECTORY_MISMATCH', f'{self.path.name} holds {self.snapshot_id}')
+        if expected_snapshot_id is not None and expected_snapshot_id != self.snapshot_id:
+            raise StoreError('SNAPSHOT_ID_NOT_EXPECTED', f'expected {expected_snapshot_id}, found {self.snapshot_id}')
+        # Which exact files this view reads: recorded in every match context.
+        self.files_digest = _sha256(_json(self.manifest['files']))
         self.verified = False
         if verify == 'files':  # before DuckDB reads any file, so a damaged one is named as such
             self.verify_files()
@@ -841,8 +883,8 @@ class Store:
         return self.db.execute(sql, list(params)).fetchall()
 
 
-def open_store(path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS):
-    return Store(path, threads, verify, memory_limit, fetch_rows)
+def open_store(path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS, expected_snapshot_id=None):
+    return Store(path, threads, verify, memory_limit, fetch_rows, expected_snapshot_id)
 
 
 # Matching path.
@@ -1065,12 +1107,13 @@ def apply_exclusions(query, result, touched, starts, every=None):
 
 
 def match_context(store, query, windows):
-    """What a result depends on, and its digest: snapshot, query, windows, engine code, rule, verification."""
+    """What a result depends on, and its digest: snapshot, query, windows, engine code, rules, verification
+    level and the digest of the manifest's file list (which exact files were read)."""
     context = {'snapshot_id': store.snapshot_id, 'query_digest': _digest(query),
                'windows_digest': _digest(dict(sorted(windows.items()))),
                'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ENGINE_ARTIFACTS},
                'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE, 'verified': store.verified,
-               'labels': store.manifest.get('labels')}
+               'files_digest': store.files_digest, 'labels': store.manifest.get('labels')}
     return context, _digest(context)
 
 
