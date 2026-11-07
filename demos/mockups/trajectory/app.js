@@ -5,11 +5,12 @@
    them, and a graph lets a step depend on several earlier ones. All three are the same
    structure: steps bound to a patient's events, and constraints on the time between them.
 
-   Each patient is matched as a simple temporal network. A step's time is a variable bounded by
-   the recorded range of the event it is bound to; a medicine also has an end. Constraints
-   are differences between variables. A binding is *possible* when some choice of times inside
-   the recorded ranges satisfies every constraint jointly (checked exactly with shortest paths),
-   and *exact* when every choice does. */
+   Each patient is matched as a simple temporal network. A step's time is the time of the
+   event it is bound to, a variable bounded by the event's recorded range; a medicine also has
+   an end. Steps bound to the same event share its time. Constraints are differences between
+   variables. A binding is *possible* when some choice of times inside the recorded ranges
+   satisfies every constraint jointly (checked exactly with shortest paths), and *exact* when
+   every choice does. */
 
 const ORDER = ['exact', 'possible', 'relaxed', 'incomparable', 'unresolved', 'none', 'excluded'];
 const HIDDEN_BY_DEFAULT = ['none', 'excluded'];
@@ -208,37 +209,55 @@ function candidates(view, n, relax, win) {
   return n.occ === 'count' ? out : pickOccurrence(out, n.occ || 'any', n.n);
 }
 
-/* Temporal network: variables are step starts and ends; constraints bound x_j − x_i */
+/* Temporal network: variables are the bound events' starts and ends; constraints bound x_j − x_i.
+
+   Variables belong to events, not steps: one event bound to two steps has one time. Each
+   step's candidates are rebuilt for that step, so an event is recognised by what it is --
+   the recorded item (or measurement record), as a point or a span -- not by object
+   identity. The same key names the event's variables in engine requests. If two steps ever
+   see one event with different ranges, its time lies in both, as in the engine. */
+
+const eventKey = c => `${c.item ? `item:${c.item.id}` : `measure:${c.record_id}`}|${c.point ? 'point' : 'span'}`;
 
 function compile(def, win, bind, relax) {
-  const vars = [], at = {}, cons = [];
-  const add = (key, lo, hi) => { at[key] = vars.length; vars.push({lo, hi}); };
-  add('START.s', win.start, win.start);
-  add('END.s', win.end, win.end);
-  for (const [id, c] of bind) { add(`${id}.s`, c.e, c.l); add(`${id}.f`, c.fe, c.fl); }
+  const vars = [], at = {}, cons = [], term = {};
+  const add = (key, lo, hi) => {
+    if (key in at) { const v = vars[at[key]]; v.lo = Math.max(v.lo, lo); v.hi = Math.min(v.hi, hi); }
+    else { at[key] = vars.length; vars.push({lo, hi}); }
+  };
+  add('START', win.start, win.start);
+  add('END', win.end, win.end);
+  for (const [id, c] of bind) {
+    const k = eventKey(c);
+    add(`${k}.s`, c.e, c.l);
+    if (!c.point) add(`${k}.f`, c.fe, c.fl);
+    term[id] = {s: `${k}.s`, f: c.point ? `${k}.s` : `${k}.f`};  // a point ends when it starts
+  }
+  const ref = (id, part) => isAnchor(id) ? id : term[id][part];
   const C = (i, j, lo, hi, tag) => cons.push({i: at[i], j: at[j], lo, hi, tag});
   for (const [id, c] of bind) {
-    C(`${id}.s`, `${id}.f`, 0, c.point ? 0 : Infinity, 'self');
-    if (def.scope === 'from_start' || def.scope === 'within') C('START.s', `${id}.s`, 0, Infinity, 'scope');
-    if (def.scope === 'within') C(`${id}.s`, 'END.s', 0, Infinity, 'scope');
-    if (def.scope === 'after') C('END.s', `${id}.s`, 0, Infinity, 'scope');
+    if (!c.point) C(term[id].s, term[id].f, 0, Infinity, 'self');
+    if (def.scope === 'from_start' || def.scope === 'within') C('START', term[id].s, 0, Infinity, 'scope');
+    if (def.scope === 'within') C(term[id].s, 'END', 0, Infinity, 'scope');
+    if (def.scope === 'after') C('END', term[id].s, 0, Infinity, 'scope');
   }
   def.edges.forEach((e, k) => {
     const ok = id => isAnchor(id) || bind.has(id);
     if (!ok(e.from) || !ok(e.to)) return;
-    const from = `${e.from}.s`;
     if (e.rel === 'after') {
       const hi = finite(e.max) ? toDays(e.max, e.unit) * (relax.has(`edge:${k}`) ? 1.5 : 1) : Infinity;
-      C(from, `${e.to}.s`, finite(e.min) ? toDays(e.min, e.unit) : -Infinity, hi, k);
+      C(ref(e.from, 's'), ref(e.to, 's'), finite(e.min) ? toDays(e.min, e.unit) : -Infinity, hi, k);
     } else {
-      C(`${e.from}.s`, `${e.to}.s`, 0, Infinity, k);
-      C(`${e.from}.f`, `${e.to}.s`, -Infinity, toDays(+e.grace || 0, e.unit) + (relax.has(`edge:${k}`) ? 30 : 0), k);
+      C(ref(e.from, 's'), ref(e.to, 's'), 0, Infinity, k);
+      C(ref(e.from, 'f'), ref(e.to, 's'), -Infinity, toDays(+e.grace || 0, e.unit) + (relax.has(`edge:${k}`) ? 30 : 0), k);
     }
   });
   return {vars, cons};
 }
 
-function consistent({vars, cons}) {
+// Shortest paths with variable k at index k + 1 and time zero at 0: d[i + 1][j + 1] is the
+// largest x_j − x_i the constraints allow.
+function distances(vars, cons) {
   const n = vars.length + 1;
   const d = Array.from({length: n}, (_, i) => Array.from({length: n}, (_, j) => i === j ? 0 : Infinity));
   vars.forEach((v, k) => { d[0][k + 1] = Math.min(d[0][k + 1], v.hi); d[k + 1][0] = Math.min(d[k + 1][0], -v.lo); });
@@ -250,11 +269,19 @@ function consistent({vars, cons}) {
     if (d[i][k] === Infinity) continue;
     for (let j = 0; j < n; j++) if (d[i][k] + d[k][j] < d[i][j]) d[i][j] = d[i][k] + d[k][j];
   }
-  return d.every((row, k) => row[k] >= -1e-9);
+  return d;
 }
 
-const certainCon = (vars, c) => vars[c.j].lo - vars[c.i].hi >= c.lo && vars[c.j].hi - vars[c.i].lo <= c.hi;
-const certainAll = net => net.cons.filter(c => c.tag !== 'self').every(c => certainCon(net.vars, c));
+const consistent = ({vars, cons}) => distances(vars, cons).every((row, k) => row[k] >= -1e-9);
+
+// A constraint is certain when every choice of times holds it: the recorded ranges, each
+// event ending at or after it starts, alone bound x_j − x_i inside [lo, hi]. Two terms on
+// one variable differ by exactly zero.
+function certainCon(net, c) {
+  net.facts ||= distances(net.vars, net.cons.filter(x => x.tag === 'self'));
+  return -net.facts[c.j + 1][c.i + 1] >= c.lo && net.facts[c.i + 1][c.j + 1] <= c.hi;
+}
+const certainAll = net => net.cons.filter(c => c.tag !== 'self').every(c => certainCon(net, c));
 
 function search(view, def, a, win, relax) {
   const byId = nodeById(def);
@@ -386,11 +413,13 @@ function engineRequest(def, pids, relax = true) {
     windows.set(pid, win);
     if (win.reason) return {patient_id: pid, window: null, events: []};
     const events = [];
+    // One engine event per step candidate; the same underlying event, emitted for several
+    // steps, names the same time variables, so the engine gives it one time.
     const add = (n, keys, concept) => candidates(view, n, keys, win).forEach((c, i) => {
-      const id = `${concept}#${i}`;
+      const id = `${concept}#${i}`, key = eventKey(c);
       lookup.set(`${pid}/${id}`, c);
-      events.push({id, concepts: [concept], start: [toGrid(c.e), toGrid(c.l)],
-        ...(c.point ? {} : {end: [Math.max(toGrid(c.fe), toGrid(c.e)), Number.isFinite(c.fl) ? toGrid(c.fl) : null]})});
+      events.push({id, concepts: [concept], start: [toGrid(c.e), toGrid(c.l)], start_var: `${key}.s`,
+        ...(c.point ? {} : {end: [Math.max(toGrid(c.fe), toGrid(c.e)), Number.isFinite(c.fl) ? toGrid(c.fl) : null], end_var: `${key}.f`})});
     });
     for (const n of def.nodes) {
       add(n, new Set(), n.id);
@@ -737,7 +766,7 @@ function renderDetail() {
       + '</tbody></table>');
     const verdict = tag => {
       const cs = net.cons.filter(c => c.tag === tag);
-      return cs.length && cs.every(c => certainCon(net.vars, c)) ? '<span class="status exact">■ holds for every recorded time</span>' : '<span class="status possible">◧ holds only for some times in the recorded ranges</span>';
+      return cs.length && cs.every(c => certainCon(net, c)) ? '<span class="status exact">■ holds for every recorded time</span>' : '<span class="status possible">◧ holds only for some times in the recorded ranges</span>';
     };
     out.push('<table class="tj-table"><thead><tr><th>Constraint</th><th>Verdict</th></tr></thead><tbody>'
       + def.edges.map((e, k) => `<tr><td><span class="tj-id">${esc(e.to)}</span> ${esc(edgeText(e))}${r.relaxKeys?.has(`edge:${k}`) ? ' <em>(relaxed)</em>' : ''}</td><td>${verdict(k)}</td></tr>`).join('')

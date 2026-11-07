@@ -4,18 +4,25 @@ A trajectory is a set of steps, each bound to one of a patient's events, and rel
 between them. An event has a start time known only to lie in a range and, if it is not a
 point, an end time in another range. `after` constrains the gap between two starts;
 `during` puts a start inside another step's exposure, up to a grace period after it ends.
-A binding is *possible* when some choice of times inside the recorded ranges satisfies
-every constraint jointly, and *exact* when every choice does. Times are integers on one
-declared grid (days, microseconds); the profile does not fix the unit.
+Times are variables named by the events. An event's start and end variables default to
+its own, and two events that name the same variable, or one event bound to two steps,
+share one time. A patient's times form one simple temporal network: each variable lies in
+every range that names it, and each event ends at or after it starts. A binding is
+*possible* when some choice of those times satisfies every constraint jointly, and *exact*
+when every choice does. Times are integers on one declared grid (days, microseconds); the
+profile does not fix the unit.
 
 The decision procedure (docs/trajectory-graph-profile.md):
 
-- Exact. Certainty of a constraint depends only on the two events' ranges, so exactness
-  is a binary constraint problem over each step's candidate events. Arc consistency
-  decides it with no search when the relations form a forest (Freuder 1982).
+- Exact. Certainty of a constraint depends only on its two variables, through the
+  patient's own network, so exactness is a binary constraint problem over each step's
+  candidate events. Arc consistency decides it with no search when the relations form a
+  forest (Freuder 1982).
 - Possible. When the relations form a forest and every step is a point event, dynamic
   programming over unions of time intervals decides it, leaves to root, and a top-down
-  pass picks the binding and a witness time for each step.
+  pass picks the binding and a witness time for each step. The programme treats steps as
+  independent, so a binding whose steps share a variable is checked against the joint
+  network, and searched for instead if that check fails.
 - Otherwise: backtracking over arc-consistent domains with an explicit step budget. An
   exhausted budget is reported as unresolved, never as a non-match.
 - Relaxation: a cost-ordered search over declared relaxation sets, stopping at the first
@@ -35,7 +42,7 @@ import math
 from pathlib import Path
 import sys
 
-from .temporal_stn import Edge, Network
+from .temporal_stn import ZERO, Edge, Network
 
 PROFILE_ID = 'trajectory-graph-1.0'
 ANCHORS = ('START', 'END')
@@ -43,6 +50,7 @@ SCOPES = ('any', 'from_start', 'within', 'after')
 OCCURRENCES = ('any', 'first', 'last')
 RELAXATION_KINDS = {'widen_concept': 'step', 'extend_max': 'after', 'extend_grace': 'during'}
 MAX_SEARCH_BUDGET = 10_000_000
+MAX_LINKED_VARIABLES = 300  # one linked component of 300 variables solves in under a second
 INF = math.inf
 
 
@@ -130,6 +138,12 @@ def validate_query(query):
 
 
 def validate_patient(patient):
+    patient_times(patient)
+    return patient
+
+
+def patient_times(patient):
+    """Validate a patient record and return its `Times`, the network `match` decides over."""
     require(isinstance(patient, dict) and set(patient) <= {'patient_id', 'window', 'events'}, 'INVALID_PATIENT')
     require(type(patient.get('patient_id')) is str and patient['patient_id'], 'INVALID_PATIENT_ID')
     window = patient.get('window')
@@ -138,7 +152,8 @@ def validate_patient(patient):
         require(_int(window['start'], 'INVALID_WINDOW') <= _int(window['end'], 'INVALID_WINDOW'), 'INVALID_WINDOW')
     ids = []
     for event in patient.get('events', []):
-        require(isinstance(event, dict) and set(event) <= {'id', 'concepts', 'start', 'end'} and {'id', 'concepts', 'start'} <= set(event), 'INVALID_EVENT')
+        require(isinstance(event, dict) and set(event) <= {'id', 'concepts', 'start', 'end', 'start_var', 'end_var'}
+                and {'id', 'concepts', 'start'} <= set(event), 'INVALID_EVENT')
         require(type(event['id']) is str and event['id'], 'INVALID_EVENT_ID')
         require(isinstance(event['concepts'], list) and event['concepts'] and all(type(c) is str for c in event['concepts']), 'INVALID_EVENT_CONCEPTS')
         start = event['start']
@@ -147,30 +162,121 @@ def validate_patient(patient):
             end = event['end']
             require(isinstance(end, list) and len(end) == 2 and type(end[0]) is int and (end[1] is None or type(end[1]) is int), 'INVALID_EVENT_END')
             require(end[0] >= start[0] and (end[1] is None or end[1] >= end[0]), 'INVALID_EVENT_END')
+        for field in ('start_var', 'end_var'):
+            require(field not in event or (type(event[field]) is str and event[field]), 'INVALID_EVENT_VARIABLE')
+        # A point's end is its start, so it has no end variable of its own.
+        require('end_var' not in event or 'end' in event, 'INVALID_EVENT_VARIABLE')
         ids.append(event['id'])
     require(len(ids) == len(set(ids)), 'DUPLICATE_EVENT')
-    return patient
+    # Refuses a shared variable no time satisfies, or a linked component too large to solve.
+    return Times(events_of(patient), window)
 
 
 @dataclass(frozen=True)
 class Event:
     id: str
     concepts: frozenset
-    s: tuple  # (earliest, latest) start
+    s: tuple  # (earliest, latest) start, as recorded
     f: tuple  # (earliest, latest) end; latest may be INF for an ongoing exposure
     point: bool
+    sv: str  # start variable
+    fv: str  # end variable; a point's is its start variable
 
 
 def events_of(patient):
     out = []
     for e in patient.get('events', []):
         s = tuple(e['start'])
+        sv = e.get('start_var', f"{e['id']}.s")
         if 'end' in e:
             f = (e['end'][0], INF if e['end'][1] is None else e['end'][1])
-            out.append(Event(e['id'], frozenset(e['concepts']), s, f, False))
+            out.append(Event(e['id'], frozenset(e['concepts']), s, f, False, sv, e.get('end_var', f"{e['id']}.f")))
         else:
-            out.append(Event(e['id'], frozenset(e['concepts']), s, s, True))
+            out.append(Event(e['id'], frozenset(e['concepts']), s, s, True, sv, sv))
     return out
+
+
+class Times:
+    """A patient's times as one simple temporal network, before any trajectory applies.
+
+    Each variable lies in the intersection of every range that names it, and every event
+    ends at or after it starts. `dom[v]` is the tightest range those facts leave `v`, and
+    `gap(x, y)` the largest value of y - x they allow. A variable no event links to another
+    ranges independently, so all-pairs distances are kept only inside larger components.
+    The anchors START and END are constants.
+    """
+
+    def __init__(self, events, window):
+        self.events, self.window = events, window
+        bounds = {}
+        for e in events:
+            for v, (lo, hi) in ((e.sv, e.s), (e.fv, e.f)):
+                old = bounds.get(v, (-INF, INF))
+                bounds[v] = (max(old[0], lo), min(old[1], hi))
+        require(all(lo <= hi for lo, hi in bounds.values()), 'EMPTY_SHARED_VARIABLE')
+        parent = {v: v for v in bounds}
+        def find(v):
+            while parent[v] != v:
+                parent[v] = parent[parent[v]]
+                v = parent[v]
+            return v
+        orders = {(e.sv, e.fv) for e in events if e.sv != e.fv}
+        for sv, fv in orders:
+            parent[find(sv)] = find(fv)
+        groups, ordered = {}, {}
+        for v in bounds:
+            groups.setdefault(find(v), []).append(v)
+        for sv, fv in orders:
+            ordered.setdefault(find(sv), []).append((sv, fv))
+        # All-pairs shortest paths are cubic in a component. A lone exposure (two variables)
+        # costs nothing; components that sharing builds may together cost no more than one
+        # of MAX_LINKED_VARIABLES, checked before any is solved.
+        require(sum(len(m) ** 3 for m in groups.values() if len(m) > 2) <= MAX_LINKED_VARIABLES ** 3,
+                'SHARED_VARIABLE_COMPONENT_LIMIT')
+        self.component, self.distance, self.dom = {}, {}, {}
+        for root, members in groups.items():
+            for v in members:
+                self.component[v] = root
+            if len(members) == 1:
+                self.dom[members[0]] = bounds[members[0]]
+                continue
+            # d[i][j] bounds value(j) - value(i); node 0 is time zero, member k is node k + 1.
+            index = {v: k + 1 for k, v in enumerate(members)}
+            n = len(members) + 1
+            d = [[0 if i == j else INF for j in range(n)] for i in range(n)]
+            for v, k in index.items():
+                lo, hi = bounds[v]
+                d[0][k], d[k][0] = hi, -lo
+            for sv, fv in ordered[root]:
+                d[index[fv]][index[sv]] = min(d[index[fv]][index[sv]], 0)  # start - end <= 0
+            for k in range(n):
+                dk = d[k]
+                for i in range(n):
+                    dik = d[i][k]
+                    if dik != INF:
+                        d[i] = [a if a <= dik + b else dik + b for a, b in zip(d[i], dk)]
+            require(all(d[i][i] >= 0 for i in range(n)), 'EMPTY_SHARED_VARIABLE')
+            for v, k in index.items():
+                self.dom[v] = (-d[k][0], d[0][k])
+            self.distance[root] = (index, d)
+        if window is not None:
+            for a in ANCHORS:
+                key = ('anchor', a)
+                value = window['start'] if a == 'START' else window['end']
+                self.dom[key], self.component[key] = (value, value), key
+
+    def linked(self, x, y):
+        """Whether the patient's facts relate the two variables beyond their own ranges."""
+        return x == y or (self.component[x] == self.component[y] and self.component[x] in self.distance)
+
+    def gap(self, x, y):
+        """The largest value(y) - value(x) the patient's facts allow; zero for one variable."""
+        if x == y:
+            return 0
+        if self.linked(x, y):
+            index, d = self.distance[self.component[x]]
+            return d[index[x]][index[y]]
+        return self.dom[y][1] - self.dom[x][0]
 
 
 def applied(query, relaxations):
@@ -199,7 +305,8 @@ def candidates(step, concept, events):
 
 @dataclass(frozen=True)
 class Constraint:
-    """value(y) - value(x) lies in [lo, hi]. A term is (step, 's' or 'f') or (anchor, None)."""
+    """value(y) - value(x) lies in [lo, hi]. A term is (step, 's' or 'f') or (anchor, None);
+    under a binding it names a time variable."""
     x: tuple
     y: tuple
     lo: float
@@ -230,56 +337,55 @@ def compile_constraints(query, relations):
     return out
 
 
-def _range(term, binding, window):
+def _var(term, binding):
+    """The time variable a term names under a binding: the bound event's, or an anchor."""
     name, part = term
     if name in ANCHORS:
-        v = window['start'] if name == 'START' else window['end']
-        return v, v
+        return ('anchor', name)
     event = binding[name]
-    return event.s if part == 's' else event.f
+    return event.sv if part == 's' else event.fv
 
 
-def certain(c, binding, window):
-    (xl, xh), (yl, yh) = _range(c.x, binding, window), _range(c.y, binding, window)
-    return yl - xh >= c.lo and yh - xl <= c.hi
+def certain(c, binding, times):
+    """Every choice of the patient's times satisfies the constraint. Two terms on one
+    variable differ by exactly zero."""
+    x, y = _var(c.x, binding), _var(c.y, binding)
+    return -times.gap(y, x) >= c.lo and times.gap(x, y) <= c.hi
 
 
-def plausible(c, binding, window):
-    """Necessary for possibility: the two ranges alone admit the constraint."""
-    (xl, xh), (yl, yh) = _range(c.x, binding, window), _range(c.y, binding, window)
-    return yh - xl >= c.lo and yl - xh <= c.hi
+def plausible(c, binding, times):
+    """Necessary for possibility: some choice of the patient's times satisfies this
+    constraint alone. The patient's network is minimal, so the two variables' difference
+    can take any value in [-gap(y, x), gap(x, y)]."""
+    x, y = _var(c.x, binding), _var(c.y, binding)
+    return max(c.lo, -times.gap(y, x)) <= min(c.hi, times.gap(x, y))
 
 
-def feasible(binding, constraints, window):
-    """Joint satisfiability of a (partial) binding: a simple temporal network."""
-    edges, n = [], 0
+def _node(v):
+    return f'anchor:{v[1]}' if isinstance(v, tuple) else f'var:{v}'
+
+
+def feasible(binding, constraints, times):
+    """Joint satisfiability of a (partial) binding: a simple temporal network over the
+    variables its events name. The patient's network is minimal, so its distances between
+    those variables carry every fact about them; the rest of the patient can be left out."""
+    edges = []
     def edge(left, right, upper):
-        nonlocal n
         if upper != INF:
-            n += 1
-            edges.append(Edge(f'e{n}', left, right, upper))
-    names = set()
-    for name, event in binding.items():
-        s, f = f'{name}.s', f'{name}.f'
-        names |= {s, f}
-        edge(s, '$zero', event.s[1]); edge('$zero', s, -event.s[0])
-        edge(f, '$zero', event.f[1]); edge('$zero', f, -event.f[0])
-        edge(s, f, 0)
-        if event.point:
-            edge(f, s, 0)
-    anchors = {'START': window['start'], 'END': window['end']}
-    def var(term):
-        name, part = term
-        return name if name in ANCHORS else f'{name}.{part}'
-    for a, v in anchors.items():
-        names.add(a)
-        edge(a, '$zero', v); edge('$zero', a, -v)
+            edges.append(Edge(f'e{len(edges)}', left, right, upper))
+    variables = sorted({v for e in binding.values() for v in (e.sv, e.fv)}) + [('anchor', a) for a in ANCHORS]
+    for v in variables:
+        lo, hi = times.dom[v]
+        edge(_node(v), ZERO, hi); edge(ZERO, _node(v), -lo)
+    for u, v in combinations(variables, 2):
+        if times.linked(u, v):
+            edge(_node(v), _node(u), times.gap(u, v)); edge(_node(u), _node(v), times.gap(v, u))
     for c in constraints:
         if all(t[0] in ANCHORS or t[0] in binding for t in (c.x, c.y)):
-            edge(var(c.y), var(c.x), c.hi)
-            edge(var(c.x), var(c.y), -c.lo)
-    network = Network(names, edges)
-    return network
+            x, y = _node(_var(c.x, binding)), _node(_var(c.y, binding))
+            edge(y, x, c.hi)
+            edge(x, y, -c.lo)
+    return Network({_node(v) for v in variables}, edges)
 
 
 class Budget:
@@ -324,7 +430,7 @@ def _split(constraints, step_ids):
     return unary, binary
 
 
-def _arc_consistency(domains, binary, test, window):
+def _arc_consistency(domains, binary, test, times):
     """AC-3 over step domains; `test` decides one constraint for two bound events."""
     arcs = [(a, b) for a, b in binary] + [(b, a) for a, b in binary]
     queue = list(arcs)
@@ -332,7 +438,7 @@ def _arc_consistency(domains, binary, test, window):
         a, b = queue.pop(0)
         key = (a, b) if (a, b) in binary else (b, a)
         kept = [ea for ea in domains[a]
-                if any(all(test(c, {a: ea, b: eb}, window) for c in binary[key]) for eb in domains[b])]
+                if any(all(test(c, {a: ea, b: eb}, times) for c in binary[key]) for eb in domains[b])]
         if len(kept) != len(domains[a]):
             domains[a] = kept
             if not kept:
@@ -361,7 +467,7 @@ def _backtrack(order, domains, accept, budget):
     return dict(binding) if walk(0) else None
 
 
-def _tree_assign(step_ids, adjacency, domains, binary, window):
+def _tree_assign(step_ids, adjacency, domains, binary, times):
     """Backtrack-free assignment of an arc-consistent forest: each child takes the first
     event supporting its parent's."""
     binding, seen = {}, set()
@@ -378,7 +484,7 @@ def _tree_assign(step_ids, adjacency, domains, binary, window):
                     continue
                 key = (p, c) if (p, c) in binary else (c, p)
                 binding[c] = next(e for e in domains[c]
-                                  if all(certain(x, {p: binding[p], c: e}, window) for x in binary[key]))
+                                  if all(certain(x, {p: binding[p], c: e}, times) for x in binary[key]))
                 seen.add(c)
                 stack.append(c)
     return binding
@@ -406,21 +512,26 @@ def _intersect(tagged, intervals):
     return out
 
 
-def _point_forest(step_ids, adjacency, domains, unary, binary, window):
-    """Possible on a forest of point steps. Each step's domain is a set of start times tagged
-    by event; leaves restrict parents (t_p must reach some child time), then a top-down pass
-    takes the latest admissible time at each step."""
+def _point_forest(step_ids, adjacency, domains, unary, binary, times):
+    """Possible on a forest of point steps, each step's time chosen independently. Each
+    step's domain is a set of times tagged by event, inside the event's variable's range;
+    leaves restrict parents (t_p must reach some child time), then a top-down pass takes the
+    latest admissible time at each step.
+
+    Steps whose events share a variable, or are linked through the patient's own facts,
+    are coupled in fact, so this is a relaxation of the problem: None is a sound refutation,
+    but a binding is a solution only if its steps' variables are unlinked (`decide` checks)."""
     tagged = {}
     for s in step_ids:
         out = []
         for e in domains[s]:
-            lo, hi = e.s
+            lo, hi = times.dom[e.sv]
             for c in unary[s]:
                 if c.x[0] in ANCHORS:  # t - anchor in [lo, hi]
-                    a = window['start'] if c.x[0] == 'START' else window['end']
+                    a = times.window['start'] if c.x[0] == 'START' else times.window['end']
                     lo, hi = max(lo, a + c.lo), min(hi, a + c.hi)
                 else:  # anchor - t in [lo, hi]
-                    a = window['start'] if c.y[0] == 'START' else window['end']
+                    a = times.window['start'] if c.y[0] == 'START' else times.window['end']
                     lo, hi = max(lo, a - c.hi), min(hi, a - c.lo)
             if lo <= hi:
                 out.append((lo, hi, e))
@@ -453,40 +564,44 @@ def _point_forest(step_ids, adjacency, domains, unary, binary, window):
         p = parent[c]
         if p is not None:
             lo, hi = gap(p, c)
+            if lo > hi:
+                # The pair's constraints contradict each other: t_c - t_p has no value,
+                # whatever events are bound.
+                return None
             tagged[p] = _intersect(tagged[p], _shift([(a, b) for a, b, _ in tagged[c]], lo, hi))
-    times, binding = {}, {}
+    at, binding = {}, {}
     for s in order:
         p = parent[s]
         options = tagged[s]
         if p is not None:
             lo, hi = gap(p, s)
-            options = _intersect(options, [(times[p] + lo, times[p] + hi)])
+            options = _intersect(options, [(at[p] + lo, at[p] + hi)])
         lo, hi, event = max(options, key=lambda o: (o[1], o[2].id))
-        times[s], binding[s] = hi, event
-    return binding, times
+        at[s], binding[s] = hi, event
+    return binding, at
 
 
-def decide(query, patient_events, window, relaxations, budget):
-    """Exact and possible decisions for one relaxation set."""
+def decide(query, times, relaxations, budget):
+    """Exact and possible decisions for one relaxation set over one patient's `Times`."""
     steps = query['steps']
     step_ids = [s['id'] for s in steps]
     concepts, relations = applied(query, relaxations)
     constraints = compile_constraints(query, relations)
     unary, binary = _split(constraints, step_ids)
     forest, adjacency = _components(step_ids, list(binary))
-    base = {s['id']: candidates(s, concepts[s['id']], patient_events) for s in steps}
+    base = {s['id']: candidates(s, concepts[s['id']], times.events) for s in steps}
     result = {'forest': forest}
 
     # Exact: unary certainty, then arc consistency on the pairwise certainty relation.
-    domains = {s: [e for e in base[s] if all(certain(c, {s: e}, window) for c in unary[s])] for s in step_ids}
-    if not all(domains.values()) or not _arc_consistency(domains, binary, certain, window):
+    domains = {s: [e for e in base[s] if all(certain(c, {s: e}, times) for c in unary[s])] for s in step_ids}
+    if not all(domains.values()) or not _arc_consistency(domains, binary, certain, times):
         result['exact'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
     elif forest:
         result['exact'] = {'found': True, 'complete': True, 'method': 'forest_arc_consistency',
-                           'binding': _tree_assign(step_ids, adjacency, domains, binary, window)}
+                           'binding': _tree_assign(step_ids, adjacency, domains, binary, times)}
     else:
         def accept(b):
-            return all(certain(c, b, window) for c in constraints
+            return all(certain(c, b, times) for c in constraints
                        if all(t[0] in ANCHORS or t[0] in b for t in (c.x, c.y)))
         meter = Budget(budget)
         order = sorted(step_ids, key=lambda s: len(domains[s]))
@@ -498,27 +613,40 @@ def decide(query, patient_events, window, relaxations, budget):
     if result['exact']['found']:
         return result
 
-    # Possible: pairwise plausibility prunes soundly; the joint test is a temporal network.
-    domains = {s: [e for e in base[s] if all(plausible(c, {s: e}, window) for c in unary[s])] for s in step_ids}
-    pruned = all(domains.values()) and _arc_consistency(domains, binary, plausible, window)
+    # Possible: pairwise plausibility prunes soundly (every witness of a binding satisfies
+    # each constraint alone, with the patient's facts); the joint test is a temporal network.
+    domains = {s: [e for e in base[s] if all(plausible(c, {s: e}, times) for c in unary[s])] for s in step_ids}
+    pruned = all(domains.values()) and _arc_consistency(domains, binary, plausible, times)
     points = all(e.point for s in step_ids for e in domains[s])
     if not pruned:
         result['possible'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
-    elif forest and points:
-        solved = _point_forest(step_ids, adjacency, domains, unary, binary, window)
-        result['possible'] = {'found': solved is not None, 'complete': True, 'method': 'point_forest_intervals'}
-        if solved:
-            result['possible'].update(binding=solved[0], witness=solved[1])
-    else:
-        meter = Budget(budget)
-        order = sorted(step_ids, key=lambda s: len(domains[s]))
-        found = _backtrack(order, domains, lambda b: feasible(b, constraints, window).feasible, meter)
-        result['possible'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
-                              'method': 'bounded_backtracking', 'search_steps': meter.steps}
-        if found is not None:
-            network = feasible(found, constraints, window)
+        return result
+    if forest and points:
+        solved = _point_forest(step_ids, adjacency, domains, unary, binary, times)
+        if solved is None:
+            result['possible'] = {'found': False, 'complete': True, 'method': 'point_forest_intervals'}
+            return result
+        binding, at = solved
+        if not any(times.linked(binding[a].sv, binding[b].sv) for a, b in combinations(step_ids, 2)):
+            result['possible'] = {'found': True, 'complete': True, 'method': 'point_forest_intervals',
+                                  'binding': binding, 'witness': at}
+            return result
+        # Steps share a variable: the independent times may disagree, so check the binding
+        # jointly, and search if it fails.
+        network = feasible(binding, constraints, times)
+        if network.feasible:
             witness = network.witness()
-            result['possible'].update(binding=found, witness={s: witness[f'{s}.s'] for s in found})
+            result['possible'] = {'found': True, 'complete': True, 'method': 'point_forest_intervals_checked',
+                                  'binding': binding, 'witness': {s: witness[_node(e.sv)] for s, e in binding.items()}}
+            return result
+    meter = Budget(budget)
+    order = sorted(step_ids, key=lambda s: len(domains[s]))
+    found = _backtrack(order, domains, lambda b: feasible(b, constraints, times).feasible, meter)
+    result['possible'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
+                          'method': 'bounded_backtracking', 'search_steps': meter.steps}
+    if found is not None:
+        witness = feasible(found, constraints, times).witness()
+        result['possible'].update(binding=found, witness={s: witness[_node(e.sv)] for s, e in found.items()})
     return result
 
 
@@ -545,13 +673,12 @@ def _binding_ids(binding):
 def match(query, patient):
     """One patient's result. Statuses: exact, possible, relaxed, unresolved, none, excluded."""
     validate_query(query)
-    validate_patient(patient)
+    times = patient_times(patient)
     pid, window = patient['patient_id'], patient.get('window')
     if window is None:
         return {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}
-    events = events_of(patient)
     budget = query.get('search_budget', 40_000)
-    first = decide(query, events, window, (), budget)
+    first = decide(query, times, (), budget)
     if first['exact']['found']:
         return {'patient_id': pid, 'status': 'exact', 'binding': _binding_ids(first['exact']['binding']),
                 'method': first['exact']['method'], 'complete': True}
@@ -566,7 +693,7 @@ def match(query, patient):
     stopped = not first['possible']['complete']
     skipped = False
     for cost, chosen in relaxation_sets(query):
-        r = decide(query, events, window, chosen, budget)
+        r = decide(query, times, chosen, budget)
         winner = 'exact' if r['exact']['found'] else 'possible' if r['possible']['found'] else None
         if winner is None:
             skipped = skipped or not r['possible']['complete']

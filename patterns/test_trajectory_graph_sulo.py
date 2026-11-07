@@ -538,19 +538,17 @@ class ProjectionTests(unittest.TestCase):
 
 class WitnessCheckTests(unittest.TestCase):
     def test_one_event_bound_to_two_steps_is_not_reported_possible(self):
-        # The engine gives each step its own time variables, so the box admits A and B at
-        # different times of the same event. The event has one start.
+        # One event has one start, so A and B cannot be five days apart on it. Before D13 the
+        # engine gave each step its own time variables and said possible, and this adapter
+        # refuted it against the source network; the engine now shares the event's variables
+        # and decides none itself. The adapter's refutation path stays as a safety net.
         source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY))])
         request = request_for([('a', INFUSION), ('b', INFUSION)], [after(5)])
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request, point_projection=False)
-        r = r['results'][0]
-        self.assertEqual(r['engine_result']['status'], 'possible')
-        self.assertEqual((r['status'], r['decided_by'], r['reason']),
-                         ('unresolved', 'adapter', 'POSSIBLE_BINDING_REFUTED_BY_SOURCE_NETWORK'))
-        self.assertFalse(r['source_check']['feasible'])
-        self.assertTrue(any(e.startswith('query:') for e in r['source_check']['refutation']))
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request)['results'][0]
-        self.assertEqual((r['projection'], r['status']), ('points', 'unresolved'))
+        for projection in (False, True):
+            with self.subTest(point_projection=projection):
+                r = tgs.match_snapshot(tgs.from_bounded_json(source), request, point_projection=projection)['results'][0]
+                self.assertEqual((r['status'], r['decided_by']), ('none', 'engine'))
+                self.assertNotIn('engine_result', r)
 
     def test_bound_event_check_equals_the_full_network_check(self):
         source, facts, request = convert(load(EXAMPLE / 'query.json'), load(EXAMPLE / 'patients.json'))
@@ -577,7 +575,8 @@ class WitnessCheckTests(unittest.TestCase):
                     self.assertEqual(full[key], check[key], (pid, key))
                 self.assertEqual(full['refutation'] is None, check['refutation'] is None)
                 compared += 1
-        self.assertEqual(compared, 4)  # P1, P2, P3 and the refuted possible
+        # P1, P2 and P3; the one-event case is now decided none by the engine (D13).
+        self.assertEqual(compared, 3)
 
     def _patched(self, fake):
         source, facts, request = convert(load(EXAMPLE / 'query.json'), load(EXAMPLE / 'patients.json'))

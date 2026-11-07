@@ -8,7 +8,7 @@ This profile decides whether a patient's events match a trajectory shaped as a s
 
 The engine reads a projected execution form, not RDF. Concept matching is the caller's: each event lists every concept it counts as, ancestors included. The [SULO adapter](trajectory-graph-sulo-adapter.md) produces this form from bounded, patient-local and claim snapshots, and carries each bound step's evidence back.
 
-The trajectory mockup is one caller. `demos/mockups/server.py` exposes `POST /api/trajectory-graph/match` with `{query, patients}`. The page resolves each step's candidates itself, including relaxed alternatives, emits them as events tagged with the step, and expresses each relaxation as `widen_concept` to the alternative's tag, `extend_max` or `extend_grace`. It sends times in minutes. On the synthetic cohort the engine and the page's own search agree for every patient (`demos/mockups/test_engine_parity.cjs`). The page offers relaxation sets the engine treats differently in two cases: a step's concept and count relaxations cannot combine (one relaxation per step), and sets of three or four relaxations within the budget are tried by the engine but not by the page's search. No template exercises either.
+The trajectory mockup is one caller. `demos/mockups/server.py` exposes `POST /api/trajectory-graph/match` with `{query, patients}`. The page resolves each step's candidates itself, including relaxed alternatives, emits them as events tagged with the step, and expresses each relaxation as `widen_concept` to the alternative's tag, `extend_max` or `extend_grace`. It sends times in minutes. A candidate emitted for several steps is one recorded event, so every copy names the same `start_var` and `end_var`, keyed by the underlying item (or measurement record) and whether it is a point or a span. The page's own network intersects the ranges of an event seen by several steps, as the engine does. On the synthetic cohort the engine and the page's own search agree for every patient (`demos/mockups/test_engine_parity.cjs`). The page offers relaxation sets the engine treats differently in two cases: a step's concept and count relaxations cannot combine (one relaxation per step), and sets of three or four relaxations within the budget are tried by the engine but not by the page's search. No template exercises either.
 
 **Query**
 
@@ -21,11 +21,33 @@ The trajectory mockup is one caller. `demos/mockups/server.py` exposes `POST /ap
 | `budget` | The largest total relaxation cost tried |
 | `search_budget` | Steps allowed to any one bounded search (default 40,000) |
 
-**Patient:** `{patient_id, window: {start, end} | null, events}`. An event has `start: [earliest, latest]` and, unless it is a point, `end: [earliest, latest | null]`, where `null` means still ongoing. Times are integers on one declared grid, such as days or microseconds. Steps may share an event: distinctness across steps is an NP-hard feature (engine design §7.3) and is not offered.
+**Patient:** `{patient_id, window: {start, end} | null, events}`. Times are integers on one declared grid, such as days or microseconds.
+
+| Event field | Meaning |
+|---|---|
+| `id`, `concepts` | Identifier, unique in the patient, and every concept the event counts as |
+| `start` | `[earliest, latest]` |
+| `end` | `[earliest, latest \| null]`, where `null` means still ongoing; absent for a point |
+| `start_var` | Optional name of the start's time variable; default `<id>.s` |
+| `end_var` | Optional name of the end's time variable; default `<id>.f`. A point has none: its end is its start |
+
+Events that name the same variable share one time. That covers one time recorded by several sources, or a dose that starts when an exposure ends. A shared variable lies in every range that names it, and every event ends at or after it starts. A record whose variables no time can satisfy is refused with `EMPTY_SHARED_VARIABLE`, whether the ranges naming one variable do not meet or the events' order rules out every time. A variable name that is not a non-empty string, or an `end_var` on a point, is refused with `INVALID_EVENT_VARIABLE`. Default names are names like any other: an event whose `start_var` is `m.f` starts when event `m` ends.
+
+The patient's network is solved once per patient, in time cubic in each group of linked variables. A lone exposure links only its own two variables and costs nothing. Groups that sharing builds may together cost no more than one group of 300 variables, which solves in under a second. A larger record is refused with `SHARED_VARIABLE_COMPONENT_LIMIT` before any group is solved.
+
+Steps may share an event, and then share its times: distinctness across steps is an NP-hard feature (engine design §7.3) and is not offered.
 
 ## Semantics
 
-Each bound step has a start variable in its event's start range and an end variable in its end range, with end ≥ start, and end = start for a point. A binding is **possible** when some choice of these times satisfies every relation and scope constraint jointly. It is **exact** when every choice does. Because the variables range independently over their boxes apart from end ≥ start, exactness is the conjunction of each constraint holding over the two events' ranges: min(*y*) − max(*x*) ≥ lo and max(*y*) − min(*x*) ≤ hi. The mockup's exact test is the same.
+Times belong to variables, not to steps. A step's start and end are the variables its event names, so one event bound to two steps has one time, and so do two events that name one variable. A patient's own record is a simple temporal network over its variables: each lies in every range that names it, and each event ends at or after it starts. A binding is **possible** when some choice of the patient's times satisfies that network and every relation and scope constraint jointly. It is **exact** when every choice the network allows satisfies every constraint.
+
+Every choice satisfies all the constraints exactly when, for each constraint, every choice satisfies it. So exactness is the conjunction of one test per constraint: over the patient's network, the largest value of *y* − *x* is at most hi and the smallest at least lo. Those extremes are shortest-path distances in the patient's network, which depend only on the two variables, never on the binding. Two terms on one variable differ by exactly 0, so a constraint between them is certain exactly when lo ≤ 0 ≤ hi. A variable that no event links to another ranges over its own range, and the test reduces to min(*y*) − max(*x*) ≥ lo and max(*y*) − min(*x*) ≤ hi. The mockup's exact test is the same, over the events it binds.
+
+**This changes exactness.** Before shared times, each step had its own copy of its event's variables, and certainty was tested over the two ranges alone. Two facts now count toward certainty that did not before:
+- an exposure's own end ≥ start;
+- the zero difference between two terms on one variable.
+
+So some bindings that were possible are now exact, and some that were possible are now impossible, because one event cannot take two times. On the trajectory page, the heavy trajectory "two seizures then a febrile seizure" moves 4 of the 48 synthetic patients from possible to relaxed/exact. They had been possible only because one seizure took two times. No template's results change.
 
 | Status | Meaning |
 |---|---|
@@ -44,10 +66,12 @@ Relaxation sets are tried in order of total cost, then size, then identifier, wi
 |---|---|---|---|
 | Exact | Forest (relations between steps form no cycle) | Arc consistency on the pairwise certainty relation over candidate events, then a backtrack-free assignment (Freuder 1982) | Polynomial, O(*e* · *n*³) with AC-3 |
 | Exact | Graph with a cycle | Arc consistency, then backtracking over the remaining candidates | Bounded by `search_budget` |
-| Possible | Forest, every candidate a point event | Arc consistency on pairwise plausibility, then dynamic programming over unions of time intervals: leaves restrict their parent's start times to those that can reach a child time, and a top-down pass takes the latest admissible time at each step | Polynomial |
+| Possible | Forest, every candidate a point event | Arc consistency on pairwise plausibility, then dynamic programming over unions of time intervals: leaves restrict their parent's start times to those that can reach a child time, and a top-down pass takes the latest admissible time at each step. If the binding found puts two steps on linked variables, it is checked against the joint network, and searched for as below if the check fails | Polynomial, unless the check fails |
 | Possible | Cycles, or exposures (start and end chosen together) | Arc consistency, then backtracking that checks each partial binding's temporal network (`temporal_stn.py`) | Bounded by `search_budget` |
 
-Arc consistency is always sound pruning: an event without support for some relation cannot be in any binding. On exact times it is often decisive even on cycles. For example, B and C each 1–2 days after A but exactly 10 days apart propagates around the cycle until every domain is empty.
+Arc consistency is always sound pruning: an event without support for some relation cannot be in any binding. That holds with shared variables, because both pairwise tests read the patient's network. A possible binding's times satisfy the network and each constraint, so every constraint is plausible for its pair of events. Exactness is a conjunction of tests that each depend on two variables. On exact times it is often decisive even on cycles. For example, B and C each 1–2 days after A but exactly 10 days apart propagates around the cycle until every domain is empty.
+
+The interval programme chooses each step's time independently. Steps whose events share a variable, or are linked through an exposure's start and end, are coupled in fact. The programme solves a relaxation of the problem: every true solution is one of its solutions. So its "no binding" is a sound refutation. A binding it finds stands as found only when no two steps' variables are linked. Otherwise the binding is checked against the joint temporal network and, if that fails, the question goes to the bounded search, which is exhaustive. Each answer is either refuted by a relaxation, verified by the exact network test, or searched, so the method is sound without having to reason about couplings inside the programme. The method reports `point_forest_intervals_checked` when the check confirms the binding, and `bounded_backtracking` when it falls back.
 
 Why the polynomial cases stop where they do:
 
@@ -61,15 +85,16 @@ Each result names its `method` and whether it is `complete`. A possible result c
 
 ## Verification
 
-`patterns/test_trajectory_graph.py` has 19 tests:
+`patterns/test_trajectory_graph.py` has 28 tests:
 
 - **Semantics.** Exact and possible sequences, first occurrence, `during` with grace and an ongoing exposure, scope and anchors, exclusion, and cost-ordered relaxation.
-- **Methods.** A six-step tree with 300 candidates per step (300⁶ bindings) decided by propagation with a search budget of 1. A cycle searched. An exhausted budget reported as unresolved, with the relaxed match beside it. A contradictory cycle refuted by arc consistency alone.
-- **Validation.** Queries and patient records outside the profile are refused by name.
+- **Methods.** A six-step tree with 300 candidates per step (300⁶ bindings) decided by propagation with a search budget of 1. A cycle searched. An exhausted budget reported as unresolved, with the relaxed match beside it. A contradictory cycle refuted by arc consistency alone. Two relations on one pair that leave it no gap (C during the point A, and at least 3 days after it) give no match; the interval programme used to crash on them.
+- **Shared times.** One uncertain event bound to two steps cannot take two times: the engine before this rule called "B at least 5 days after A" possible on a single event, and the answer is none. `after` from 0 to 0, or a step during its own exposure, is exact on one event. Events naming one `start_var` share its time and the intersection of its ranges. An exposure orders the variables it names even when it is not bound. A forest binding that gives one event two times is caught by the joint check, and search finds the binding that works.
+- **Validation.** Queries and patient records outside the profile are refused by name, including malformed time variables, shared variables no time satisfies, and linked variables beyond the limit.
 - **Example.** The committed example (`examples/trajectory-graph/`) gives one patient of each outcome.
-- **Differential.** 1,500 seeded random trajectories: chains, trees and graphs with a cycle, with point events and with exposures. The engine and `trajectory_graph_reference.py` must agree on status, certainty, relaxation set and cost, and every binding the engine reports must have the claimed certainty under the reference's own test.
+- **Differential.** 1,500 seeded random trajectories: chains, trees and graphs with a cycle, with point events and with exposures. Steps often share a concept, so one event is often bound to several steps. In about a third of the cases some events name another's start or end variable, sometimes with a different range. In a quarter of the cases a second relation is placed on a pair that is already related, sometimes contradicting the first. The engine and `trajectory_graph_reference.py` must agree on status, certainty, relaxation set and cost, and every binding the engine reports must have the claimed certainty under the reference's own test.
 
-The reference enumerates every binding. It shares no decision code with the engine: candidate selection, the constraint semantics and its feasibility test (Bellman–Ford) are written again. Planting a defect in the engine's interval propagation, or using certainty where plausibility belongs, makes dozens of differential cases fail.
+The reference enumerates every binding. It shares no decision code with the engine: candidate selection, the constraint semantics and the time model are written again. Its tests run Bellman–Ford over the whole patient's variables. A binding is possible if the patient's facts and the constraints are jointly satisfiable. It is exact if, for each constraint, the facts with that constraint's negation on the integer grid are unsatisfiable. Planting a defect in the engine's interval propagation, or using certainty where plausibility belongs, makes dozens of differential cases fail. So does giving each step its own copy of its event's variables, the modelling before shared times: 140 of the 1,500 cases fail.
 
 ## Not in this profile
 

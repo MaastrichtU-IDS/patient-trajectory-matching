@@ -96,6 +96,88 @@ class SemanticsTests(unittest.TestCase):
         self.assertEqual(tg.match(q, p)['status'], 'none')
 
 
+class SharedTimeTests(unittest.TestCase):
+    """One event bound to two steps, or two events naming one variable, has one time."""
+    TWICE = [{'id': 'A', 'concept': 'x'}, {'id': 'B', 'concept': 'x'}]
+
+    def test_one_event_cannot_take_two_times_for_two_steps(self):
+        # The only x is known to fall in [0, 100]. Taking it at 0 for A and at 100 for B
+        # would satisfy the gap, but it happened once: B - A is 0, never 5 or more.
+        q = query(self.TWICE, [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 5}])
+        for e in (event('e', 'x', (0, 100)), event('e', 'x', (0, 100), (100, 200))):
+            with self.subTest(point='end' not in e):
+                self.assertEqual(tg.match(q, patient([e])), {'patient_id': 'P1', 'status': 'none', 'complete': True})
+                self.assertIsNone(ref.classify(q, patient([e])))
+        # With a second x the steps can take one each.
+        result = tg.match(q, patient([event('e', 'x', (0, 100)), event('f', 'x', (50, 60))]))
+        self.assertEqual((result['status'], result['binding']), ('possible', {'A': 'e', 'B': 'f'}))
+
+    def test_terms_on_one_variable_differ_by_exactly_zero(self):
+        # B starts 0 to 0 days after A: always true of one event, however uncertain its time.
+        q = query(self.TWICE, [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 0}])
+        self.assertEqual(tg.match(q, patient([event('e', 'x', (0, 100))]))['status'], 'exact')
+        # An exposure ends at or after it starts, so a step during itself always holds.
+        q = query(self.TWICE, [{'id': 'AB', 'kind': 'during', 'from': 'A', 'to': 'B'}])
+        self.assertEqual(tg.match(q, patient([event('e', 'x', (0, 50), (10, 80))]))['status'], 'exact')
+
+    def test_events_that_name_one_variable_share_its_time(self):
+        q = query([{'id': 'A', 'concept': 'x'}, {'id': 'B', 'concept': 'y'}],
+                  [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 0}])
+        a, b = event('a', 'x', (0, 100)), event('b', 'y', (40, 60))
+        self.assertEqual(tg.match(q, patient([a, b]))['status'], 'possible')
+        shared = [{**a, 'start_var': 'onset'}, {**b, 'start_var': 'onset'}]
+        self.assertEqual(tg.match(q, patient(shared))['status'], 'exact')
+        q['relations'][0].update(min=5, max=None)
+        del q['relations'][0]['max']
+        self.assertEqual(tg.match(q, patient([a, b]))['status'], 'possible')
+        self.assertEqual(tg.match(q, patient(shared))['status'], 'none')
+
+    def test_a_shared_variable_lies_in_every_range_that_names_it(self):
+        # a alone could be in the first 30 days; b says their shared time is 40 to 60.
+        q = query([{'id': 'A', 'concept': 'x'}], [{'id': 'SA', 'kind': 'after', 'from': 'START', 'to': 'A', 'max': 30}])
+        a, b = event('a', 'x', (0, 100)), event('b', 'y', (40, 60))
+        self.assertEqual(tg.match(q, patient([a, b]))['status'], 'possible')
+        self.assertEqual(tg.match(q, patient([{**a, 'start_var': 'v'}, {**b, 'start_var': 'v'}]))['status'], 'none')
+
+    def test_an_exposure_orders_the_variables_it_names(self):
+        # p and r are a dose's start and stop, recorded as points; the exposure m names the
+        # same two times, so r is never before p, even if no step is bound to m.
+        q = query([{'id': 'P', 'concept': 'x'}, {'id': 'R', 'concept': 'y'}],
+                  [{'id': 'PR', 'kind': 'after', 'from': 'P', 'to': 'R', 'min': 0}])
+        p, r = event('p', 'x', (0, 50)), event('r', 'y', (10, 60))
+        m = {**event('m', 'z', (0, 50), (10, 60)), 'start_var': 'on', 'end_var': 'off'}
+        self.assertEqual(tg.match(q, patient([p, r, m]))['status'], 'possible')
+        linked = [{**p, 'start_var': 'on'}, {**r, 'start_var': 'off'}, m]
+        self.assertEqual(tg.match(q, patient(linked))['status'], 'exact')
+        self.assertEqual(ref.classify(q, patient(linked)), 'exact')
+
+    def test_a_forest_binding_that_shares_a_variable_is_checked_jointly(self):
+        # The interval programme over a forest of point steps takes each step's time
+        # independently, and arc consistency relates only adjacent steps. A and B, either side
+        # of C, both bind e, at 40 and at 100, which e cannot be; the joint check refuses
+        # that, and search finds f for A. Without f nothing matches.
+        q = query([{'id': 'A', 'concept': 'x'}, {'id': 'C', 'concept': 'y'}, {'id': 'B', 'concept': 'x'}],
+                  [{'id': 'AC', 'kind': 'after', 'from': 'A', 'to': 'C', 'min': 10},
+                   {'id': 'CB', 'kind': 'after', 'from': 'C', 'to': 'B', 'min': 10}])
+        e, f, g = event('e', 'x', (0, 100)), event('f', 'x', (0, 10)), event('g', 'y', (50, 50))
+        p = patient([e, f, g])
+        decision = tg.decide(q, tg.Times(tg.events_of(p), p['window']), (), 10_000)['possible']
+        self.assertEqual((decision['method'], tg._binding_ids(decision['binding'])),
+                         ('bounded_backtracking', {'A': 'f', 'B': 'e', 'C': 'g'}))
+        self.assertEqual(tg.match(q, patient([e, g]))['status'], 'none')
+        # Here the programme's binding e, e, f is consistent, and the check confirms it.
+        q = query([{'id': s, 'concept': 'x'} for s in 'ABC'],
+                  [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 0},
+                   {'id': 'BC', 'kind': 'after', 'from': 'B', 'to': 'C', 'min': 20, 'max': 30}])
+        p = patient([event('e', 'x', (0, 100)), event('f', 'x', (95, 100))])
+        result = tg.match(q, p)
+        self.assertEqual((result['status'], result['method'], result['binding']),
+                         ('possible', 'point_forest_intervals_checked', {'A': 'e', 'B': 'e', 'C': 'f'}))
+        self.assertEqual(result['witness']['A'], result['witness']['B'])
+        self.assertTrue(20 <= result['witness']['C'] - result['witness']['B'] <= 30)
+        self.assertTrue(ref.binding_reaches(q, p, (), result['binding'], 'possible'))
+
+
 class ExampleTests(unittest.TestCase):
     def test_the_committed_example_shows_each_outcome(self):
         root = tg.Path(__file__).resolve().parents[1] / 'examples/trajectory-graph'
@@ -162,8 +244,18 @@ class DecisionMethodTests(unittest.TestCase):
                    {'id': 'BC', 'kind': 'after', 'from': 'B', 'to': 'C', 'min': 10, 'max': 10}], search_budget=1)
         p = patient([event(f'e{i}', 'x', (i, i)) for i in range(40)])
         self.assertEqual(tg.match(q, p), {'patient_id': 'P1', 'status': 'none', 'complete': True})
-        decision = tg.decide(q, tg.events_of(p), p['window'], (), 1)
+        decision = tg.decide(q, tg.Times(tg.events_of(p), p['window']), (), 1)
         self.assertEqual(decision['possible']['method'], 'arc_consistency')
+
+    def test_two_relations_that_leave_a_pair_no_gap_are_no_match(self):
+        # C during the point A (so 0 to 0 after it) and at least 3 days after it: each is
+        # plausible alone, together impossible. The interval programme used to crash here.
+        q = query([{'id': 'A', 'concept': 'x'}, {'id': 'C', 'concept': 'y'}],
+                  [{'id': 'd', 'kind': 'during', 'from': 'A', 'to': 'C', 'grace': 0},
+                   {'id': 'a', 'kind': 'after', 'from': 'A', 'to': 'C', 'min': 3}])
+        p = patient([event('e', 'x', (0, 50)), event('f', 'y', (0, 50))])
+        self.assertEqual(tg.match(q, p), {'patient_id': 'P1', 'status': 'none', 'complete': True})
+        self.assertIsNone(ref.classify(q, p))
 
 
 class ValidationTests(unittest.TestCase):
@@ -195,6 +287,47 @@ class ValidationTests(unittest.TestCase):
                 with self.assertRaisesRegex(tg.TrajectoryError, code):
                     tg.validate_patient(p)
 
+    def test_time_variables_are_named_by_strings_and_must_admit_a_time(self):
+        exposure = event('m', 'x', (0, 10), (5, 20))
+        cases = [
+            ('INVALID_EVENT_VARIABLE', [{**event('a', 'x', (1, 1)), 'start_var': 3}]),
+            ('INVALID_EVENT_VARIABLE', [{**exposure, 'end_var': ''}]),
+            # A point's end is its start: it has no end variable.
+            ('INVALID_EVENT_VARIABLE', [{**event('a', 'x', (1, 1)), 'end_var': 'v'}]),
+            # The ranges naming one variable do not meet.
+            ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (0, 5)), 'start_var': 'v'},
+                                       {**event('b', 'x', (6, 9)), 'start_var': 'v'}]),
+            # They meet, but each exposure ends after the other starts: on is off, and the
+            # ranges of on (12 to 20) and off (5 to 10) do not meet.
+            ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (0, 20), (5, 10)), 'start_var': 'on', 'end_var': 'off'},
+                                       {**event('b', 'x', (5, 10), (12, 20)), 'start_var': 'off', 'end_var': 'on'}]),
+        ]
+        for code, events in cases:
+            with self.subTest(code=code, events=events):
+                with self.assertRaisesRegex(tg.TrajectoryError, code):
+                    tg.validate_patient(patient(events))
+        # Defaults are names too: naming another event's default shares its time.
+        tg.validate_patient(patient([exposure, {**event('b', 'x', (6, 9)), 'start_var': 'm.f'}]))
+        times = tg.Times(tg.events_of(patient([exposure, {**event('b', 'x', (6, 9)), 'start_var': 'm.f'}])), None)
+        self.assertEqual((times.dom['m.f'], times.dom['m.s'], times.gap('m.s', 'm.f')), ((6, 9), (0, 9), 9))
+
+    def test_linked_variables_are_capped_before_any_is_solved(self):
+        # Back-to-back exposures, each starting when the one before ends, link every
+        # variable. The patient's network is solved in time cubic in that component, so
+        # components built by sharing may together cost no more than one of the limit.
+        def chain(n, tag='v'):
+            return [{**event(f'{tag}{i}', 'x', (10 * i, 10 * i + 15), (10 * i + 10, 10 * i + 25)),
+                     'start_var': f'{tag}{i}', 'end_var': f'{tag}{i + 1}'} for i in range(n - 1)]
+        limit = tg.MAX_LINKED_VARIABLES
+        started = time.perf_counter()
+        tg.validate_patient(patient(chain(limit)))
+        self.assertLess(time.perf_counter() - started, 10)
+        for events in (chain(limit + 1), chain(limit, 'v') + chain(limit // 2, 'w')):
+            with self.assertRaisesRegex(tg.TrajectoryError, 'SHARED_VARIABLE_COMPONENT_LIMIT'):
+                tg.validate_patient(patient(events))
+        # Unshared exposures link only their own two variables and are not counted.
+        tg.validate_patient(patient([event(f'e{i}', 'x', (i, i + 1), (i + 2, i + 3)) for i in range(2 * limit)]))
+
 
 def random_case(rng, shape, intervals):
     n = rng.randint(2, 4)
@@ -217,6 +350,19 @@ def random_case(rng, shape, intervals):
                               **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
     if rng.random() < 0.3:
         relations.append({'id': 'anchor', 'kind': 'after', 'from': 'START', 'to': names[0], 'min': 0, 'max': 40})
+    if rng.random() < 0.25:
+        # A second relation on a pair already related, either way round; together the two
+        # may leave the pair no gap at all.
+        a, b = rng.choice(pairs)
+        if rng.random() < 0.5:
+            a, b = b, a
+        if rng.random() < 0.5:
+            relations.append({'id': 'twin', 'kind': 'during', 'from': a, 'to': b, 'grace': rng.choice([0, 0, 4])})
+        else:
+            lo = rng.choice([None, -10, 0, 3, 12])
+            hi = rng.choice([None, *[v for v in (0, 5, 20) if lo is None or v >= lo]])
+            relations.append({'id': 'twin', 'kind': 'after', 'from': a, 'to': b,
+                              **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
     relaxations = []
     if rng.random() < 0.6:
         relaxations.append({'id': 'widen', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),
@@ -236,7 +382,36 @@ def random_case(rng, shape, intervals):
             end = start + width + rng.randint(0, 20)
             e['end'] = [end, rng.choice([end, end + 5, None])]
         events.append(e)
+    if rng.random() < 0.4:
+        share_variables(rng, events)
     return q, patient(events, (10, 70))
+
+
+def share_variables(rng, events):
+    """Let some events name another's variable: the same time recorded twice, perhaps with a
+    different range, or an event that starts or ends when an exposure does. A sharing the
+    profile refuses (no time fits every range) is undone."""
+    for _ in range(rng.randint(1, 3)):
+        a, b = rng.sample(events, 2)
+        before = dict(b)
+        ends = [p for p in ('end',) if 'end' in a and a['end'][1] is not None]
+        part = rng.choice(['start', 'start', *ends])
+        name = a.get(f'{part}_var', f"{a['id']}.{'s' if part == 'start' else 'f'}")
+        lo, hi = a[part]
+        lo, hi = lo + rng.choice([0, 0, 1, 4]), hi + rng.choice([0, 0, 3, -2])
+        mine = rng.choice(['start', 'end']) if 'end' in b else 'start'
+        b[f'{mine}_var'] = name
+        if mine == 'start':
+            b['start'] = [lo, max(lo, hi)]
+            if 'end' in b and b['end'][0] < lo:
+                b['end'] = [lo, None if b['end'][1] is None else max(lo, b['end'][1])]
+        else:
+            b['end'] = [max(lo, b['start'][0]), max(lo, hi, b['start'][0])]
+        try:
+            tg.validate_patient(patient(events))
+        except tg.TrajectoryError:
+            b.clear()
+            b.update(before)
 
 
 class DifferentialTests(unittest.TestCase):
