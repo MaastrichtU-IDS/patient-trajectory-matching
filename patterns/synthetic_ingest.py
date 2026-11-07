@@ -36,7 +36,7 @@ import hashlib
 import json
 from pathlib import Path
 
-INGEST_PROFILE = 'execution-store-ingest-1.0'
+INGEST_PROFILE = 'execution-store-ingest-2.0'
 ORIGIN = datetime(1, 1, 1)
 MENTION_KINDS = ('note',)
 # Record statuses that assert the coded thing happened. `ordered` (a test or procedure requested,
@@ -166,32 +166,53 @@ def convert_patient(patient, codes):
     return {'patient_id': pid, 'clock_id': f'patient_{pid}', 'events': events, 'coverage': coverage}, skipped
 
 
-def synthetic_ingest(cohort):
-    """The whole cohort as an ingest document (profile execution-store-ingest-1.0)."""
-    concepts = cohort['concepts']
+def _codes(cohort):
     codes = {}
+    concepts = cohort['concepts']
     for cid in sorted(concepts):
         for c in concepts[cid]['codings']:
             key = (c['system'], c['code'])
             if key in codes and codes[key] != cid:
                 raise ValueError(f'AMBIGUOUS_CODE:{key[0]}:{key[1]}')
             codes[key] = cid
-    ancestors = ancestor_closure(concepts)
+    return codes
+
+
+def synthetic_header(cohort):
+    """The ingest header (profile, dataset id, closure) of a cohort, for `execution_store.StoreBuilder`."""
+    concepts = cohort['concepts']
+    _codes(cohort)  # refuse an ambiguous coding before anything is converted
     hierarchy = json.dumps({cid: [concepts[cid].get('parents', []), concepts[cid].get('classes', [])]
                             for cid in sorted(concepts)}, sort_keys=True, separators=(',', ':'))
     version = f"{cohort['dataset_id']}+{hashlib.sha256(hierarchy.encode()).hexdigest()[:16]}"
-    patients, skipped = [], {}
+    return {'profile': INGEST_PROFILE, 'dataset_id': cohort['dataset_id'],
+            'closure': {'version': version, 'ancestors': ancestor_closure(concepts)}}
+
+
+def iter_patients(cohort, skipped=None):
+    """Each converted patient in patient_id order, one at a time; the skip counts accumulate in `skipped`."""
+    codes = _codes(cohort)
+    skipped = {} if skipped is None else skipped
     for patient in sorted(cohort['patients'], key=lambda p: p['patient_id']):
         converted, why = convert_patient(patient, codes)
-        patients.append(converted)
         for k, v in why.items():
             skipped[k] = skipped.get(k, 0) + v
+        yield converted
+
+
+def synthetic_provenance(cohort, skipped):
+    """The ingest provenance, given the skip counts `iter_patients` accumulated."""
     late = sum(1 for p in cohort['patients'] for r in p['records'] if r['available_at'] > r['occurred']['latest'])
     selection = {**SELECTION, 'records_available_after_occurrence': late}
-    return {'profile': INGEST_PROFILE, 'dataset_id': cohort['dataset_id'],
-            'provenance': {'converter': 'patterns/synthetic_ingest.py',
-                           'converter_sha256': hashlib.sha256(CONVERTER.read_bytes()).hexdigest(),
-                           'generator': cohort['generator'], 'selection': selection,
-                           'skipped': dict(sorted(skipped.items()))},
-            'closure': {'version': version, 'ancestors': ancestors},
-            'patients': patients}
+    return {'converter': 'patterns/synthetic_ingest.py',
+            'converter_sha256': hashlib.sha256(CONVERTER.read_bytes()).hexdigest(),
+            'generator': cohort['generator'], 'selection': selection,
+            'skipped': dict(sorted(skipped.items()))}
+
+
+def synthetic_ingest(cohort):
+    """The whole cohort as an ingest document (profile execution-store-ingest-2.0)."""
+    header = synthetic_header(cohort)
+    skipped = {}
+    patients = list(iter_patients(cohort, skipped))
+    return {**header, 'provenance': synthetic_provenance(cohort, skipped), 'patients': patients}

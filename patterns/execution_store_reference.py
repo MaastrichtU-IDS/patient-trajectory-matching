@@ -2,12 +2,14 @@
 matcher over every patient.
 
 It shares no code with `patterns/execution_store.py`. The tables are built from the ingest
-document with dictionaries and loops, not SQL; the canonical-content digest, the bucket and
-the coverage rule are written again from the specification in docs/execution-store.md. It
-reads only the ingest and calls the trajectory-graph engine, never the store.
+document with dictionaries and loops, not SQL; the input digest, the per-bucket and per-table
+content digests, the bucket and the coverage rule are written again from the specification in
+docs/execution-store.md. It reads only the ingest and calls the trajectory-graph engine, never
+the store. It holds everything in memory, which a reference may do.
 
 `patterns/test_execution_store.py` compares every table row for row with the store's, the
-table digests with the manifest's, and the store's match results with `exhaustive_match`.
+input digest and every table and bucket digest with the manifest's, and the store's match
+results with `exhaustive_match`.
 """
 from __future__ import annotations
 
@@ -95,10 +97,78 @@ def build_tables(ingest):
     return {name: sorted(rows, key=lambda r: json.dumps(list(r), ensure_ascii=False)) for name, rows in tables.items()}
 
 
-def digest(rows):
-    """Canonical-content digest: compact JSON array per row, sorted as UTF-8 bytes, newline-terminated."""
-    encoded = sorted(json.dumps([*row], separators=(',', ':'), ensure_ascii=False).encode('utf-8') for row in rows)
-    return hashlib.sha256(b''.join(line + b'\n' for line in encoded)).hexdigest()
+# Which tables are split by bucket, and the columns that order each table's rows (unique in it).
+SPLIT_BY_BUCKET = {'events', 'event_concepts', 'coverage', 'excluded_records'}
+ORDER = {'patients': ['patient_idx'], 'events': ['patient_idx', 'event_id'],
+         'event_concepts': ['patient_idx', 'event_id', 'concept'], 'concept_closure': ['concept', 'ancestor'],
+         'concept_postings': ['concept', 'patient_idx'], 'coverage': ['patient_idx', 'source', 'lo', 'hi', 'basis'],
+         'source_concepts': ['source', 'concept'],
+         'excluded_records': ['patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason']}
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def compact(value, sort=False):
+    return json.dumps(value, separators=(',', ':'), ensure_ascii=False, sort_keys=sort)
+
+
+def patient_digest(patient):
+    """sha256 of one patient's order-free JSON: events by id with sorted concepts, coverage and
+    excluded records sorted, every object's keys sorted."""
+    p = dict(patient)
+    p['events'] = sorted(({**e, 'concepts': sorted(e['concepts'])} for e in patient['events']),
+                         key=lambda e: e['event_id'])
+    p['coverage'] = sorted(patient['coverage'], key=lambda c: [c['source'], c['lo'], c['hi'], c['basis']])
+    if 'excluded' in patient:
+        p['excluded'] = sorted(patient['excluded'], key=lambda x: [x['source'], x['concept'], x['start'], x['reason']])
+    return sha(compact(p, sort=True).encode('utf-8'))
+
+
+def input_digest(ingest):
+    """The header (profile, dataset, closure with sorted ancestor lists, provenance) as sorted-key
+    JSON and a newline, then one `patient_id TAB patient digest NEWLINE` per patient by id."""
+    closure = {'version': ingest['closure']['version'],
+               'ancestors': {c: sorted(a) for c, a in ingest['closure']['ancestors'].items()}}
+    if 'bases' in ingest['closure']:
+        closure['bases'] = ingest['closure']['bases']
+    head = {'profile': ingest['profile'], 'dataset_id': ingest['dataset_id'], 'closure': closure,
+            'provenance': ingest.get('provenance', {})}
+    lines = sorted((p['patient_id'], patient_digest(p)) for p in ingest['patients'])
+    text = compact(head, sort=True) + '\n' + ''.join(pid + '\t' + d + '\n' for pid, d in lines)
+    return sha(text.encode('utf-8'))
+
+
+def bucket_digest(rows, table):
+    """Rows ordered by the table's ordering columns, one compact JSON array per line."""
+    at = [COLUMNS[table].index(c) for c in ORDER[table]]
+    key = lambda row: tuple(row[i] for i in at)
+    ordered = sorted(rows, key=key)
+    if len({key(r) for r in ordered}) != len(ordered):
+        raise ValueError(f'{table}: ordering columns are not unique')
+    return sha(''.join(compact(list(r)) + '\n' for r in ordered).encode('utf-8'))
+
+
+def table_digests(tables):
+    """{table: {rows, content_digest, buckets: {label: {rows, content_digest}}}} from `build_tables`.
+
+    Patient-keyed tables have the eight buckets "0" to "7" (empty ones included), each holding the
+    rows of the patients in that bucket; the others have one bucket, "all". The table digest is the
+    sha256 of one `label TAB bucket digest NEWLINE` per bucket, in that order."""
+    bucket_by_idx = {idx: b for idx, _, b in tables['patients']}
+    out = {}
+    for name, rows in tables.items():
+        if name in SPLIT_BY_BUCKET:
+            groups = {str(b): [] for b in range(BUCKET_COUNT)}
+            for r in rows:
+                groups[str(bucket_by_idx[r[0]])].append(r)
+        else:
+            groups = {'all': list(rows)}
+        buckets = {label: {'rows': len(g), 'content_digest': bucket_digest(g, name)} for label, g in groups.items()}
+        text = ''.join(f"{label}\t{b['content_digest']}\n" for label, b in buckets.items())
+        out[name] = {'rows': len(rows), 'content_digest': sha(text.encode('utf-8')), 'buckets': buckets}
+    return out
 
 
 def step_concepts(query):
