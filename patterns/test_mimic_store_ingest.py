@@ -381,6 +381,8 @@ class MatchingTests(unittest.TestCase):
             self.assertEqual(g['status'], w['status'])
             if g.get('reason') != 'FILTERED':
                 self.assertEqual(g, w)
+        parallel = es.match(STATE['store'], self.QUERY, windows, workers=2, chunk=1)
+        self.assertEqual(json.dumps(parallel, sort_keys=True), json.dumps(got, sort_keys=True))
         statuses = {r['patient_id']: r['status'] for r in got['results']}
         # Patient 13 has no admitted rows, but its source recorded both items in rows admission left out.
         self.assertEqual(statuses, {'11': 'exact', '12': 'exact', '13': 'not_comparable', '14': 'relaxed'})

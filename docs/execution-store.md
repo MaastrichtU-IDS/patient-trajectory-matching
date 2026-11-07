@@ -372,7 +372,7 @@ This is the next storage wall, and it is DuckDB's, not Python's. The remedies, c
 
 ### Matching cost (D21)
 
-`tools/benchmark_matcher.py` and `verification/matcher-comparison-report.json` compare the matcher before and after the first D21 change on the same snapshots and the same seeded queries (50 queries with 3 repeats up to 10,000 patients; 10 queries once above). Each arm and size runs in its own process. The report binds the benchmark, `execution_store.py`, `trajectory_graph.py`, `temporal_stn.py`, the scaling benchmark and the byte-identity fixture.
+`tools/benchmark_matcher.py` and `verification/matcher-comparison-report.json` compare the matcher before D21, after its first change (arm B) and with partition-parallel matching (arm C) on the same snapshots and the same seeded queries (50 queries with 3 repeats up to 10,000 patients; 10 queries once above). Each arm, size and worker count runs in its own process. The report binds the benchmark, `execution_store.py`, `trajectory_graph.py`, `temporal_stn.py`, the scaling benchmark and the byte-identity fixture.
 
 **What changed (arm B).** Results are byte-identical to arm A's; the report compares a digest of every patient's result, query by query (50 of 50 at 1,000 and 10,000 patients, 10 of 10 at 100,000 and 300,000), and the test suite compares 300 seeded queries against a committed fixture made from the old matcher.
 - Candidates are loaded and matched 2,000 at a time (`chunk`): the chunk goes into a temporary table, the events are joined to it (and to the index range it spans) instead of an `IN` list of up to 106,000 parameters, and only each compact result is kept.
@@ -380,28 +380,68 @@ This is the next storage wall, and it is DuckDB's, not Python's. The remedies, c
 - Windows are checked as plain integers with the same refusal codes, no result dict is built for filtered patients until the output asks for it, and `detail='decided'` lists only decided patients.
 - Comparability runs in SQL: the windows go into a temporary table and the coverage-overlap test is a join. The excluded-record read is streamed.
 
-**Arm A against arm B** (wall time of `match()` over the queries, detail `full`; per-candidate cost is total seconds over total candidates; peak is the query process's resident set):
+**Arms A, B and C** (wall time of `match()` over the queries, detail `full`; per-candidate cost is total seconds over total candidates; peaks are the query process's own resident set and, for C, the largest worker's; the two overlap in shared pages, so they are not summed). Arm A's and B's rows are from the same run as C's; C with 1 worker is the unchanged single-process path, a control.
 
-| Patients | Arm | p50 / p95 / max (s) | End to end (engine only) µs per candidate | Peak RSS |
-|---|---|---|---|---|
-| 1,000 | A | 0.10 / 0.45 / 1.01 | 588 (388) | 0.29 GiB |
-| | B | 0.07 / 0.34 / 0.89 | 442 (290) | 0.27 GiB |
-| 10,000 | A | 1.00 / 4.55 / 10.2 | 592 (378) | 1.42 GiB |
-| | B | 0.72 / 3.81 / 9.06 | 449 (285) | 0.88 GiB |
-| 100,000 | A | 3.38 / 28.8 / 28.8 | 735 (388) | 7.85 GiB |
-| | B | 1.83 / 23.5 / 23.5 | 536 (299) | 0.72 GiB |
-| 300,000 | A | 10.2 / 93.7 / 93.7 | 760 (388) | 19.8 GiB |
-| | B | 4.92 / 71.1 / 71.1 | 532 (296) | 0.92 GiB |
+| Patients | Arm | p50 / p95 / max (s) | µs per candidate, end to end | Query-process peak | Largest worker peak |
+|---|---|---|---|---|---|
+| 1,000 | A | 0.09 / 0.43 / 0.96 | 557 | 0.29 GiB |  |
+| | B | 0.07 / 0.34 / 0.86 | 430 | 0.27 GiB |  |
+| | C, 1 worker (control) | 0.07 / 0.35 / 0.87 | 435 | 0.27 GiB |  |
+| | C, 2 workers | 0.07 / 0.34 / 0.86 | 434 | 0.14 GiB | 0.21 GiB |
+| | C, 4 workers | 0.07 / 0.34 / 0.86 | 436 | 0.14 GiB | 0.21 GiB |
+| | C, 8 workers | 0.07 / 0.34 / 0.87 | 438 | 0.14 GiB | 0.20 GiB |
+| | C, 14 workers | 0.08 / 0.34 / 0.86 | 438 | 0.14 GiB | 0.20 GiB |
+| 10,000 | A | 1.00 / 4.51 / 9.96 | 587 | 1.43 GiB |  |
+| | B | 0.72 / 3.84 / 9.11 | 451 | 0.88 GiB |  |
+| | C, 1 worker (control) | 0.71 / 3.78 / 9.01 | 448 | 0.88 GiB |  |
+| | C, 2 workers | 0.66 / 2.28 / 5.79 | 301 | 0.28 GiB | 0.69 GiB |
+| | C, 4 workers | 0.49 / 2.21 / 3.09 | 250 | 0.28 GiB | 0.64 GiB |
+| | C, 8 workers | 0.42 / 2.24 / 3.07 | 241 | 0.28 GiB | 0.64 GiB |
+| | C, 14 workers | 0.43 / 2.29 / 3.10 | 244 | 0.28 GiB | 0.68 GiB |
+| 100,000 | A | 3.45 / 29.17 / 29.17 | 746 | 7.70 GiB |  |
+| | B | 1.83 / 23.65 / 23.65 | 539 | 0.72 GiB |  |
+| | C, 1 worker (control) | 1.83 / 23.59 / 23.59 | 537 | 0.72 GiB |  |
+| | C, 2 workers | 1.11 / 12.01 / 12.01 | 288 | 0.30 GiB | 0.61 GiB |
+| | C, 4 workers | 0.78 / 6.72 / 6.72 | 175 | 0.30 GiB | 0.60 GiB |
+| | C, 8 workers | 0.78 / 4.39 / 4.39 | 129 | 0.31 GiB | 0.57 GiB |
+| | C, 14 workers | 0.77 / 3.67 / 3.67 | 114 | 0.31 GiB | 0.55 GiB |
+| 300,000 | A | 10.25 / 94.32 / 94.32 | 764 | 19.82 GiB |  |
+| | B | 5.01 / 71.76 / 71.76 | 538 | 0.92 GiB |  |
+| | C, 1 worker (control) | 4.98 / 71.35 / 71.35 | 536 | 0.92 GiB |  |
+| | C, 2 workers | 3.00 / 35.30 / 35.30 | 278 | 0.58 GiB | 0.60 GiB |
+| | C, 4 workers | 1.98 / 18.59 / 18.59 | 160 | 0.58 GiB | 0.58 GiB |
+| | C, 8 workers | 1.55 / 12.01 / 12.01 | 109 | 0.61 GiB | 0.55 GiB |
+| | C, 14 workers | 1.42 / 9.70 / 9.70 | 91 | 0.59 GiB | 0.60 GiB |
 
-At 100,000 and 300,000 the p95 is the maximum, since there are ten queries. `detail='decided'` costs the same to within noise (the per-patient floor was already small); it shrinks the output, not the time.
+At 100,000 and 300,000 the p95 is the maximum, since there are ten queries. `detail='decided'` costs the same as `full` to within noise (arm B_decided in the report); it shrinks the output, not the time.
 
-- **Memory** is the clear win: 19.8 GiB to 0.92 GiB at 300,000, and flat in the number of patients, as chunking intends. The caller's own window dictionary and the full result are in that figure.
-- **Time** falls by about a third to a half at the median and by a quarter at the maximum. Per-candidate cost no longer grows with the cohort (A: 588 to 760 µs, B: 442 to 532 µs, the rest being wider candidates in the larger queries' mix). Event loading is now 205 µs per candidate, so loading rather than memory is the limit of this change.
-- **The floor** for a query with no candidates fell from about 15 µs a patient to about 4 µs (1.5 s to 0.33 s at 100,000 in a profiled run).
+- **Memory** is the clear win of B: 20.4 GiB to 0.92 GiB at 300,000, flat in the number of patients. With workers the query process is smaller still (0.6 GiB at 300,000), since the candidates' events never reach it; each worker stays near 0.55 GiB.
+- **Time (B)** falls by about half at the median and a quarter at the maximum. Per-candidate cost no longer grows with the cohort.
+- **Parallel (C)** speeds the widest of the first ten queries up 7.4 times at 14 workers (71.8 s to 9.70 s at 300,000), the median 3.5 times. Scaling is close to linear to 4 workers (3.8 times), 5.9 times at 8, and 14 (the 4 efficiency cores included) a further 1.2 times. The remaining time is the query process: candidates(), the windows dictionary, comparability, exclusions, merging and the context digests, which run once and are not parallel. Small queries do not gain: a query with fewer than 2,000 candidates is one unit (1,000 patients: no change at any count).
+- **Start-up** of the pool (spawn, import, open the snapshot in each worker) is 0.20 s at 2 workers and 0.25 s at 14, paid once per pool (cold figure, page cache warm); the timings above are of a warm pool.
+- **Byte identity.** Every arm C result equals arm B's: the per-query digest of every patient's result matches for 50 of 50 queries at 1,000 and 10,000 patients and 10 of 10 at 100,000 and 300,000, at each of 1, 2, 4, 8 and 14 workers. The tests compare workers 1, 2 and 4 byte for byte over 25 seeded queries (with relaxations, exclusions and not-comparable results), against the committed digest fixture of the matcher before D21, and run a MIMIC stage-2 query with 2 workers.
 
-**Where time goes now.** cProfile of the widest query at 10,000 patients (seed 15, 9,994 candidates; the scaling report's profile): the engine 74%, loading events 23%, comparability 0.5%, window checks 0.1%, context digests 1%. At 100,000 (a wide query, 25,000 candidates, run by hand) the engine's pairwise kernel dominates: `certain`, `plausible` and `gap` with their generators are about 60% of the time, 48 million `gap` calls for 25,000 patients, and the loader about 11%. What is left is the engine's arc consistency over each step's candidate events, which is algorithmic (time pruning of the domains) or parallel work, not waste.
+**How it works (`match(..., workers=N)`).** The query process runs `candidates()` and checks the windows; the engine's work, loading each unit's events and matching its patients, is cut into units of `chunk` (2,000) candidate patients and sent to a persistent pool of `spawn`ed worker processes (`get_pool`, `MatchPool`, `close_pools()`; one pool per snapshot path and worker count). Each worker opens the snapshot once with `verify=False`, checking that it is the same snapshot id and file list the parent opened, and keeps its own connection; no store or connection is shared. A unit carries its patients' indices, ids and windows and the query, and returns each patient's result; the parent merges them by patient index, then runs comparability and exclusions as before. The result's `verified` is the level the parent opened at. Each worker's DuckDB memory limit is the store's (the default 4 GB if none) divided by the worker count, at least 256 MB, and it removes its spill directory when the pool closes. Pools outlive the `Store` they were made from and are shared per (snapshot path, worker count), so a caller that is done should call `close_pools()` (it also runs at interpreter exit). The limit is a property of the pool (`MatchPool.memory_limit`), not of the result, whose bytes do not depend on the worker count. A worker that raises or dies fails the whole call with `MatchWorkerError` (code `MATCH_WORKER_FAILED`), and the pool is discarded if a process died; no partial result is returned. Comparability and exclusions stayed in the parent: they were under 2% of the time in the profile at 10,000 patients (above), and their share at 300,000 was not profiled separately.
 
-**Target (D21)** is a 300,000-patient full-detail `match()` with p95 at most 10 s, maximum at most 30 s and query-process memory under 4 GB. Arm B meets the memory target (0.92 GiB) and misses the latency targets (p95 and maximum 71 s). Arm C (parallel) is next.
+**Confirmation at 300,000 patients (30 queries, 3 repeats).** The ten-query run above gives p95 = max = one query measured once, so it was repeated at 14 and 8 workers over seeds 0 to 29 (the first ten are the original queries), three repeats each, 90 measurements per arm; arm B ran the same 30 queries once for the digests. Every one of the 30 results is byte-identical to B's at both worker counts. The table pools every (query, repeat) measurement:
+
+| Arm | p50 | p95 (range over the 3 repeats) | max (range) | µs per candidate | Query-process peak |
+|---|---|---|---|---|---|
+| B (1 repeat) | 22.6 s | 117.0 s (117.0 to 117.0) | 140.6 s (140.6 to 140.6) | 417 | 1.48 GiB |
+| C, 8 workers | 4.6 s | 19.6 s (19.5 to 19.7) | 21.6 s (21.5 to 21.6) | 75 | 0.78 GiB |
+| C, 14 workers | 3.7 s | 15.3 s (15.1 to 18.7) | 20.7 s (17.5 to 20.7) | 62 | 0.78 GiB |
+
+The thirty queries include wider ones than the first ten (seed 19: 195,270 candidates, 140.6 s in arm B; seed 23: 106,230; seed 15: 299,820), so B's p50 is 22.6 s against 5.0 s over the first ten, and per-candidate costs are not comparable between the two sets (B 417 µs, C at 14 workers 62 µs here; 535 and 91 over the first ten). The slowest queries at 14 workers are seed 19 (17.5 s) and seed 23 (15.3 s). Parallel Python cuts per-candidate cost 6 to 7 times on either set. One repeat at 14 workers was slower throughout (p95 18.7 s, max 20.7 s against 15.1 to 15.3 and 17.5), the spread to expect from a shared machine.
+
+**Target (D21)** is a 300,000-patient full-detail `match()` with p95 at most 10 s, maximum at most 30 s and query-process memory under 4 GB. Arm B alone meets the memory target and misses latency (p95 and maximum 71.8 s over ten queries; 117 and 141 s over thirty). B+C at 14 workers: **met narrowly in one early run, not met at 30 queries × 3 repeats: p95 15.3 s, max 20.7 s**. The first ten queries gave p95 = max = 9.7 s, a 3% margin on a single measurement of ten queries that these thirty did not reproduce. The maximum (20.7 s against 30 s) and memory (0.78 GiB against 4 GB) are met with margin at 14 workers; at 8 workers the p95 is 19.6 s and the maximum 21.6 s. The p95 target is missed by a factor of about 1.5 at 14 workers.
+
+**Decision.** The target is not met, so D21's rule stands. Parallel Python cut the per-candidate cost about 6 times (536 to 91 µs over the first ten queries, 417 to 62 over thirty).
+
+Next comes algorithmic work on the engine. About 60% of a wide match is its pairwise arc-consistency kernel (`certain`, `plausible` and `gap`), with time pruning on posting summaries as the other lever, and any later Rust port would need the same work. Then B and C are re-measured at 30 queries × 3 repeats:
+- **If the target is met,** matching stays in Python.
+- **If it is still missed,** the Rust prototype (arms D and D′) is built and held to the 10-times gate.
+
+No Rust is built here; arms D and D' are not run yet.
 
 ### Limits of this evidence
 
