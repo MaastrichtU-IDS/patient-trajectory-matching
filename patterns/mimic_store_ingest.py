@@ -64,7 +64,7 @@ from . import patient_local as local
 from . import trajectory_graph_sulo as tgs
 
 PROFILE = 'mimic-store-ingest-1.0'
-INGEST_PROFILE = 'execution-store-ingest-1.0'
+INGEST_PROFILE = 'execution-store-ingest-2.0'
 ORIGIN = '0001-01-01T00:00:00'
 # The store holds only the rows admission keeps, so the source is named by that subset.
 SOURCE_TABLE = 'inputevents'

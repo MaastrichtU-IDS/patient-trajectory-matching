@@ -7,14 +7,18 @@ measured cleanly: one process generates, converts and builds (the build phase), 
 queries the snapshot (the query phase). The parent enforces a wall-time budget and a memory guard
 and records a size that cannot finish as a finding, with the reason.
 
+The build streams. The distinct pool is generated one generator seed at a time and written to an
+ndjson file, one patient per line; the build reads it back a line at a time, replicating as it
+goes, and feeds `execution_store.StoreBuilder`, so no process holds the cohort. The builder's own
+stage callback records time and resident memory after each stage of `finish()`, and resident memory
+is sampled while patients are added.
+
 Cohorts. Distinct patients come from the synthetic generator with one seed per 48 patients,
 relabelled per seed so ids are unique, up to DISTINCT_CAP. Beyond that the distinct pool is
 replicated: copy k of a pool patient gets the id `<id>~r<k>` and every time shifted by a whole
 number of days that depends only on k. Replication keeps the distributions realistic and adds no
-variety, and a replica shares its source's evidence objects in memory (which makes the in-memory
-document smaller than a real one). Queries are anchored on the first seed's patients and are the same
-for every size. A patient's index window is derived from its pool patient's coverage and shifted
-with its copy.
+variety. Queries are anchored on the first seed's patients and are the same for every size. A
+patient's index window is derived from its pool patient's coverage and shifted with its copy.
 
 The report holds aggregates only. It is evidence for one machine and synthetic data.
 """
@@ -42,13 +46,16 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-PROFILE = 'execution-store-scaling-1.0'
+PROFILE = 'execution-store-scaling-2.0'
 GENERATOR = ROOT / 'demos/mockups/synthetic/generate.py'
 PER_COHORT = 48
 DISTINCT_CAP = 10_000
 SEED_BASE = 20261103  # the generator's default seed, so the first cohort is the committed one
 DAY = 86_400_000_000
 RSS_LIMIT_BYTES = 40 * 2**30
+DEFAULT_MEMORY_LIMIT = '4GB'
+# Resident memory is sampled every this many patients while they are added.
+ADD_SAMPLE_EVERY = 1000
 ARTIFACTS = ('tools/benchmark_execution_store.py', 'patterns/execution_store.py', 'patterns/synthetic_ingest.py',
              'patterns/trajectory_graph.py', 'demos/mockups/synthetic/generate.py',
              'patterns/test_execution_store.py', 'patterns/execution_store_reference.py', 'patterns/temporal_stn.py',
@@ -59,10 +66,10 @@ LIMITATIONS = (
     'Beyond the distinct pool the cohort is replicated: copies repeat the pool patients with a whole-day time shift and add '
     'no variety. Concept posting sizes, candidate sets and match outcomes therefore scale as exact multiples, which a real '
     'population would not.',
-    'A replica shares its source patient\'s evidence objects in memory, so the in-memory ingest of a replicated cohort is '
-    'smaller than a real one of the same size; the staged and stored bytes are not.',
     'Queries are 50 seeded random queries from the differential test\'s generator, not a clinical query mix.',
     'Latencies are wall-clock times of one thread of Python and DuckDB with the thread setting stated; no tuning was attempted.',
+    'Above the profile size, the query phase runs fewer queries and repeats (see parameters), so its latency percentiles '
+    'rest on fewer samples.',
     'Peak memory is the process\'s maximum resident set size, which includes the interpreter and DuckDB buffers.',
     'No exhaustive reference ran at scale; correctness at scale rests on the differential test at 48 patients and the '
     'optional check at 1,000.')
@@ -102,19 +109,20 @@ def load_generator():
     return module
 
 
-def pool_ingest(size, generator=None, convert=None):
-    """(ingest of min(size, DISTINCT_CAP) distinct patients, generation seconds, conversion seconds, cohorts,
-    seeds the generator failed on and that were skipped)."""
+def generate_pool(size, sink, generator=None):
+    """Generate min(size, DISTINCT_CAP) distinct patients one generator seed at a time, passing each
+    converted, relabelled patient to `sink`. Returns (header, provenance, generation seconds, conversion
+    seconds, cohorts, seeds the generator failed on and that were skipped, events per patient)."""
     from patterns import execution_store as es
-    from patterns.synthetic_ingest import synthetic_ingest
+    from patterns import synthetic_ingest as si
     generator = generator or load_generator()
-    convert = convert or synthetic_ingest
     want = min(size, DISTINCT_CAP)
     cohorts = math.ceil(want / PER_COHORT)
     generating = converting = 0.0
-    ingests, failed, offset = [], [], 0
-    while len(ingests) < cohorts:
-        index, seed = len(ingests), SEED_BASE + offset
+    header = provenance = None
+    failed, skipped, events, offset, index, written = [], {}, [], 0, 0, 0
+    while index < cohorts:
+        seed = SEED_BASE + offset
         offset += 1
         started = time.perf_counter()
         try:
@@ -125,35 +133,70 @@ def pool_ingest(size, generator=None, convert=None):
             continue
         middle = time.perf_counter()
         generating += middle - started
-        ingest = convert(cohort)
-        try:
-            es.validate_ingest(ingest)  # a cohort the store would refuse (a generator defect) is skipped too
+        own, why = si.synthetic_header(cohort), {}
+        patients = list(si.iter_patients(cohort, why))  # one cohort of 48 at a time
+        try:  # a cohort the store would refuse (a generator defect) is skipped too
+            for p in patients:
+                es.validate_patient(p, own['closure']['ancestors'])
         except es.IngestError as exc:
             failed.append({'seed': seed, 'error': exc.code})
             converting += time.perf_counter() - middle
             continue
+        if header is None:
+            header, provenance = own, si.synthetic_provenance(cohort, {})
+        elif own['closure'] != header['closure']:
+            raise ValueError('the cohorts disagree on the concept closure')
+        for k, v in why.items():
+            skipped[k] = skipped.get(k, 0) + v
         converting += time.perf_counter() - middle
-        for p in ingest['patients']:
+        for p in patients:
+            if written == want:
+                break
             p['patient_id'] = f"{index:04d}-{p['patient_id']}"
             p['clock_id'] = f"patient_{p['patient_id']}"
-        ingests.append(ingest)
-    first = ingests[0]
-    skipped = {}
+            events.append(len(p['events']))
+            sink(p)
+            written += 1
+        index += 1
+    header = {**header, 'dataset_id': f'scaling-{size}'}
+    provenance = {**provenance, 'skipped': dict(sorted(skipped.items()))}
+    return header, provenance, generating, converting, cohorts, failed, events
+
+
+def pool_ingest(size, generator=None):
+    """(ingest document of min(size, DISTINCT_CAP) distinct patients, generation seconds, conversion seconds,
+    cohorts, failed seeds), in memory: for the query anchors and the exhaustive check at small sizes."""
     patients = []
-    for ingest in ingests:
-        if ingest['closure'] != first['closure']:
-            raise ValueError('the cohorts disagree on the concept closure')
-        patients.extend(ingest['patients'])
-        for k, v in ingest['provenance']['skipped'].items():
-            skipped[k] = skipped.get(k, 0) + v
-    merged = {**first, 'dataset_id': f'scaling-{size}',
-              'provenance': {**first['provenance'], 'skipped': dict(sorted(skipped.items()))},
-              'patients': patients[:want]}
-    return merged, generating, converting, cohorts, failed
+    header, provenance, generating, converting, cohorts, failed, _ = generate_pool(size, patients.append, generator)
+    return {**header, 'provenance': provenance, 'patients': patients}, generating, converting, cohorts, failed
+
+
+def write_pool(size, path):
+    """The distinct pool as ndjson at `path`, one patient per line; the rest of generate_pool's result."""
+    with open(path, 'w', encoding='utf-8') as out:
+        def sink(p):
+            out.write(json.dumps(p, ensure_ascii=False, separators=(',', ':')) + '\n')
+        return generate_pool(size, sink)
+
+
+def stream_patients(path, pool_size, size):
+    """`size` patients read back from the pool file a line at a time: the pool, then copy 1, 2, ... of it."""
+    produced = copy = 0
+    while produced < size:
+        with open(path, encoding='utf-8') as lines:
+            for line in lines:
+                if produced == size:
+                    return
+                patient = json.loads(line)
+                yield patient if copy == 0 else shifted(patient, copy)
+                produced += 1
+        copy += 1
+        if copy * pool_size != produced:
+            raise ValueError('the pool file changed while it was read')
 
 
 def shifted(patient, k):
-    """Copy k of a pool patient: new id, whole-day shift, evidence shared with the source."""
+    """Copy k of a pool patient: new id, whole-day shift, evidence shared with the source object."""
     delta = shift_for(k)
     pid = f"{patient['patient_id']}~r{k}"
     def move(pair):
@@ -230,31 +273,47 @@ def progress(path, phase, **extra):
     Path(path).write_text(json.dumps({'phase': phase, 'peak_rss_bytes_so_far': peak, **extra}))
 
 
-def build_worker(size, work, threads, marker):
+def build_worker(size, work, threads, memory_limit, marker):
+    """Generate the distinct pool to disk, then stream every patient into `StoreBuilder`."""
     from patterns import execution_store as es
-    started = time.perf_counter()
+    work = Path(work)
     progress(marker, 'generate_and_convert_distinct_pool')
-    ingest, generating, converting, cohorts, failed = pool_ingest(size)
-    pool = ingest['patients']
-    progress(marker, 'replicate', distinct_patients=len(ingest['patients']))
-    started_replication = time.perf_counter()
-    ingest = replicate(ingest, size)
-    replicating = time.perf_counter() - started_replication
-    events = sum(len(p['events']) for p in ingest['patients'])
-    per_patient = sorted(len(p['events']) for p in pool)
-    prepared = time.perf_counter() - started
-    progress(marker, 'build', patients=len(ingest['patients']), ingest_events=events, prepare_seconds=prepared)
+    pool_path = work / 'pool.ndjson'
+    header, provenance, generating, converting, cohorts, failed, per_patient = write_pool(size, pool_path)
+    per_patient.sort()
+    stages = []
     started = time.perf_counter()
-    root = Path(work) / 'store'
-    snapshot = es.build(ingest, root, threads=threads)
+    def mark(name, info=None):
+        row = {'stage': name, 'seconds': time.perf_counter() - started, 'rss_bytes': rss_now(),
+               'peak_rss_bytes': peak_now(), **(info or {})}
+        stages.append(row)
+        progress(marker, 'stage:' + name, peak_rss_bytes_so_far=row['peak_rss_bytes'], stages=stages)
+    mark('pool_on_disk', {'pool_bytes': pool_path.stat().st_size, 'distinct_patients': len(per_patient)})
+    started = time.perf_counter()
+    adding, add_rss = 0.0, []
+    root = work / 'store'
+    with es.StoreBuilder(root, header, threads=threads, memory_limit=memory_limit, on_stage=mark) as builder:
+        for i, patient in enumerate(stream_patients(pool_path, len(per_patient), size)):
+            t = time.perf_counter()
+            builder.add(patient)
+            adding += time.perf_counter() - t
+            if i % ADD_SAMPLE_EVERY == 0:
+                add_rss.append(rss_now())
+                progress(marker, 'add', patients=i, peak_rss_bytes_so_far=peak_now(), stages=stages)
+        del patient
+        events = builder.events
+        mark('added', {'patients': builder.patients, 'events': events, 'add_seconds': adding,
+                       'add_rss_max_bytes': max(add_rss), 'add_rss_samples': len(add_rss)})
+        snapshot = builder.finish(provenance)
     built = time.perf_counter() - started
     manifest = json.loads((snapshot / 'manifest.json').read_text())
-    return {'distinct_patients': min(size, DISTINCT_CAP), 'cohorts_generated': cohorts, 'generator_seeds_failed': failed, 'patients': len(ingest['patients']),
-            'ingest_events': events,
+    return {'distinct_patients': len(per_patient), 'cohorts_generated': cohorts, 'generator_seeds_failed': failed,
+            'patients': size, 'ingest_events': events,
             'events_per_distinct_patient': {'mean': statistics.fmean(per_patient), 'p95': pct(per_patient, .95),
                                             'max': per_patient[-1], 'patients': len(per_patient)},
-            'generate_seconds': generating, 'convert_seconds': converting,
-            'replicate_seconds': replicating, 'prepare_seconds': prepared, 'build_seconds': built,
+            'generate_seconds': generating, 'convert_seconds': converting, 'pool_bytes': pool_path.stat().st_size,
+            'build_seconds': built, 'add_seconds': adding, 'memory_limit': memory_limit,
+            'build_stages': stages,
             'snapshot_path': str(snapshot), 'snapshot_id': manifest['snapshot_id'],
             'snapshot_bytes': directory_bytes(snapshot),
             'tables': {n: t['rows'] for n, t in manifest['tables'].items()}}
@@ -266,12 +325,12 @@ def timed(function, *args):
     return value, time.perf_counter() - started
 
 
-def query_worker(snapshot, size, queries, repeats, threads, exhaustive):
+def query_worker(snapshot, size, queries, repeats, threads, memory_limit, exhaustive):
     from patterns import execution_store as es
     inputs, _ = query_inputs(queries)
     opened = []
     for _ in range(2):  # the second open is warm; the first reads the files cold
-        store, seconds = timed(es.open_store, snapshot, threads, True)
+        store, seconds = timed(es.open_store, snapshot, threads, 'files', memory_limit)
         opened.append(seconds)
         if len(opened) == 1:
             store.close()
@@ -300,12 +359,13 @@ def query_worker(snapshot, size, queries, repeats, threads, exhaustive):
     if exhaustive:
         check = exhaustive_check(store, size, first, exhaustive)
     store.close()
-    return {'open_verify_seconds_cold': opened[0], 'open_verify_seconds_warm': opened[1], 'runs': runs,
-            'exhaustive_check': check}
+    return {'open_verify_seconds_cold': opened[0], 'open_verify_seconds_warm': opened[1], 'open_verify_level': 'files',
+            'runs': runs, 'exhaustive_check': check}
 
 
 def exhaustive_check(store, size, first, count):
-    """Store results against exhaustive matching over every patient, for the first `count` queries."""
+    """Store results against exhaustive matching over every patient, for the first `count` queries (in memory:
+    small sizes only)."""
     from patterns import execution_store_reference as ref
     ingest = replicate(pool_ingest(size)[0], size)
     checked = mismatches = 0
@@ -330,69 +390,34 @@ def peak_now():
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == 'darwin' else 1024)
 
 
-def stage_profile_worker(size, work, threads, marker):
-    """`build()`'s stages run one by one with the store's own helpers, as `build()` runs them, with memory after
-    each. Nothing here changes what the store does; the result is not a snapshot anyone uses."""
-    from patterns import execution_store as es
-    duckdb = es._duckdb()
-    stages = []
-    started = time.perf_counter()
-    def mark(name, **extra):
-        row = {'stage': name, 'seconds': time.perf_counter() - started, 'rss_bytes': rss_now(), 'peak_rss_bytes': peak_now(), **extra}
-        stages.append(row)
-        marker.write_text(json.dumps({'phase': 'stage:' + name, 'peak_rss_bytes_so_far': row['peak_rss_bytes'], 'stages': stages}))
-    ingest = replicate(pool_ingest(size)[0], size)
-    mark('ingest_in_memory', patients=len(ingest['patients']))
-    started = time.perf_counter()
-    es.validate_ingest(ingest)
-    mark('validate')
-    canonical = es.canonical_ingest(ingest)
-    mark('canonical_copy')
-    digest_hex = hashlib.sha256(es._json(canonical).encode('utf-8')).hexdigest()
-    mark('input_digest_json_and_sha256')
-    scratch = Path(work) / 'profile'
-    stage, snapshot = scratch / 'stage', scratch / 'snapshot'
-    stage.mkdir(parents=True)
-    snapshot.mkdir()
-    es._stage(canonical, stage)
-    mark('stage_ndjson_files', staged_bytes=directory_bytes(stage))
-    db = duckdb.connect(':memory:', config={'threads': threads})
-    es._derive(db, stage)
-    mark('duckdb_derive')
-    es._write(db, snapshot)
-    mark('duckdb_write_parquet', snapshot_bytes=directory_bytes(snapshot))
-    db.close()
-    reader = duckdb.connect(':memory:', config={'threads': threads})
-    es._attach(reader, snapshot)
-    for name in es.TABLES:
-        rows = es._table_rows(reader, name)
-        mark(f'readback_fetchall:{name}', rows=len(rows))
-        es.content_digest(rows)
-        mark(f'readback_content_digest:{name}')
-        del rows
-    reader.close()
-    return {'size': size, 'stages': stages, 'input_digest': digest_hex[:12]}
-
-
-def verify_profile_worker(snapshot, threads):
-    """`Store.verify()`'s per-table read-back, with memory after each table, on a freshly opened store."""
+def verify_profile_worker(snapshot, threads, memory_limit):
+    """Both verification levels on a freshly opened store: the file digests, then the content digests
+    table by table, with time and resident memory after each."""
     from patterns import execution_store as es
     started = time.perf_counter()
-    store = es.open_store(snapshot, threads, verify=False)
+    store = es.open_store(snapshot, threads, False, memory_limit)
     rows = [{'stage': 'opened_without_verify', 'seconds': time.perf_counter() - started, 'rss_bytes': rss_now(),
              'peak_rss_bytes': peak_now()}]
-    for name, recorded in store.manifest['tables'].items():
-        started = time.perf_counter()
-        data = es._table_rows(store.db, name)
-        fetched = time.perf_counter() - started
-        after_fetch = rss_now()
-        es.content_digest(data)
-        rows.append({'stage': f'verify:{name}', 'rows': len(data), 'fetch_seconds': fetched,
-                     'seconds': time.perf_counter() - started, 'rss_after_fetch_bytes': after_fetch,
-                     'rss_bytes': rss_now(), 'peak_rss_bytes': peak_now()})
-        del data
+    started = time.perf_counter()
+    store.verify('files')
+    files = time.perf_counter() - started
+    rows.append({'stage': 'verify:files', 'seconds': files, 'rss_bytes': rss_now(), 'peak_rss_bytes': peak_now()})
+    started = last = time.perf_counter()
+    def table_done(name):
+        nonlocal last
+        now = time.perf_counter()
+        rows.append({'stage': f'verify:content:{name}', 'rows': store.manifest['tables'][name]['rows'],
+                     'seconds': now - last, 'rss_bytes': rss_now(), 'peak_rss_bytes': peak_now()})
+        last = now
+    derived = es.content_digests(store.db, store.fetch_rows, table_done)
+    content = time.perf_counter() - started
+    agrees = all(derived[n]['buckets'] == t['buckets'] for n, t in store.manifest['tables'].items())
     store.close()
-    return {'stages': rows}
+    total_rows = sum(t['rows'] for t in derived.values())
+    parquet = sum((Path(snapshot) / path).stat().st_size for path in store.manifest['files'])
+    return {'stages': rows, 'files_seconds': files, 'content_seconds': content, 'content_agrees': agrees,
+            'content_rows': total_rows, 'content_rows_per_second': total_rows / content if content else None,
+            'parquet_bytes': parquet, 'files_bytes_per_second': parquet / files if files else None}
 
 
 def cprofile_worker(snapshot, size, threads):
@@ -401,7 +426,7 @@ def cprofile_worker(snapshot, size, threads):
     import pstats
     from patterns import execution_store as es
     inputs, _ = query_inputs(50)
-    store = es.open_store(snapshot, threads, verify=False)
+    store = es.open_store(snapshot, threads, False)
     ids = [r[0] for r in store.query('SELECT patient_id FROM patients ORDER BY patient_idx')]
     bounds = {pid: (lo, hi) for pid, lo, hi in store.query(
         "SELECT p.patient_id, min(c.lo), max(c.hi) FROM patients p LEFT JOIN coverage c USING (patient_idx) "
@@ -514,33 +539,30 @@ def query_statistics(result, patients):
 def run_size(size, args, work):
     """The report entry for one size."""
     scratch = Path(work) / f'size-{size}'
-    scratch.mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(scratch, ignore_errors=True)
+    scratch.mkdir(parents=True)
     started = time.monotonic()
     entry = {'size': size, 'status': 'completed'}
-    built, record = run_phase('build', ['--size', str(size), '--work-dir', str(scratch), '--threads', str(args.threads)],
+    built, record = run_phase('build', ['--size', str(size), '--work-dir', str(scratch), '--threads', str(args.threads),
+                                        '--memory-limit', args.memory_limit],
                               scratch / 'build.json', args.budget_seconds, RSS_LIMIT_BYTES)
     entry['build_phase'] = {k: v for k, v in record.items() if k != 'failure'}
-    if built is None or size <= args.profile_max_size:
-        # The stages of build() with memory after each: at sizes that complete, and at the size that failed.
-        out, rec = run_phase('stages', ['--size', str(size), '--work-dir', str(scratch), '--threads', str(args.threads)],
-                             scratch / 'stages.json', args.budget_seconds, RSS_LIMIT_BYTES)
-        if out is not None:
-            entry['build_stages'] = {**out, 'process_peak_rss_bytes': rec['peak_rss_bytes']}
-        else:
-            entry['build_stages'] = {'failure': rec['failure'], 'process_peak_rss_bytes': rec['peak_rss_bytes']}
-        shutil.rmtree(scratch / 'profile', ignore_errors=True)
     if built is None:
         entry.update(status='failed', failed_phase='build', failure=record['failure'])
         entry['wall_seconds'] = time.monotonic() - started
         if not args.keep:
             shutil.rmtree(scratch, ignore_errors=True)
         return entry
-    entry.update({k: v for k, v in built.items() if k != 'snapshot_path'})
+    entry.update({k: v for k, v in built.items() if k not in ('snapshot_path', 'build_stages')})
+    entry['build_stages'] = {'stages': built['build_stages'], 'process_peak_rss_bytes': record['peak_rss_bytes']}
+    (scratch / 'pool.ndjson').unlink(missing_ok=True)
     remaining = max(1.0, args.budget_seconds - (time.monotonic() - started))
     exhaustive = args.exhaustive if size <= args.exhaustive_max_size else 0
-    queried, record = run_phase('query', ['--size', str(size), '--snapshot', built['snapshot_path'], '--queries', str(args.queries),
-                                          '--repeats', str(args.repeats), '--threads', str(args.threads),
-                                          '--exhaustive', str(exhaustive)],
+    small = size <= args.profile_max_size
+    queries, repeats = (args.queries, args.repeats) if small else (args.large_queries, args.large_repeats)
+    queried, record = run_phase('query', ['--size', str(size), '--snapshot', built['snapshot_path'], '--queries', str(queries),
+                                          '--repeats', str(repeats), '--threads', str(args.threads),
+                                          '--memory-limit', args.memory_limit, '--exhaustive', str(exhaustive)],
                                 scratch / 'query.json', remaining, RSS_LIMIT_BYTES)
     entry['query_phase'] = {k: v for k, v in record.items() if k != 'failure'}
     if queried is None:
@@ -548,18 +570,20 @@ def run_size(size, args, work):
     else:
         entry['open_verify_seconds'] = {'cold': queried['open_verify_seconds_cold'],
                                         'warm': queried['open_verify_seconds_warm'],
+                                        'level': queried['open_verify_level'],
                                         'cold_note': 'first open after build, page cache not purged'}
         entry['queries'] = query_statistics(queried, built['patients'])
         if queried['exhaustive_check']:
             entry['exhaustive_check'] = queried['exhaustive_check']
-    if queried is not None and size <= args.profile_max_size:
+    if queried is not None:
         profile = {}
-        for name, flags in (('verify_stages', ['--worker', 'verify']), ('match_cprofile', ['--worker', 'cprofile'])):
-            out, rec = run_phase(flags[1], ['--size', str(size), '--snapshot', built['snapshot_path'], '--threads', str(args.threads)],
-                                 scratch / f'{flags[1]}.json', args.budget_seconds, RSS_LIMIT_BYTES)
+        workers = [('verify_stages', 'verify')] + ([('match_cprofile', 'cprofile')] if small else [])
+        for name, worker in workers:
+            out, rec = run_phase(worker, ['--size', str(size), '--snapshot', built['snapshot_path'], '--threads', str(args.threads),
+                                          '--memory-limit', args.memory_limit],
+                                 scratch / f'{worker}.json', args.budget_seconds, RSS_LIMIT_BYTES)
             profile[name] = out if out is not None else {'failure': rec['failure']}
-            if out is not None:
-                profile[name]['process_peak_rss_bytes'] = rec['peak_rss_bytes']
+            profile[name]['process_peak_rss_bytes'] = rec['peak_rss_bytes']
         entry['profile'] = profile
     entry['wall_seconds'] = time.monotonic() - started
     if not args.keep:
@@ -589,12 +613,12 @@ def memory_bytes():
         return None
 
 
-def environment(threads):
+def environment(threads, memory_limit):
     import duckdb
     return {'platform': platform.platform(), 'machine': platform.machine(), 'cpu': cpu_model(),
             'logical_cpus': os.cpu_count(), 'memory_bytes': memory_bytes(),
             'python': platform.python_version(), 'duckdb': duckdb.__version__,
-            'duckdb_threads': threads, 'python_threads_for_matching': 1}
+            'duckdb_threads': threads, 'duckdb_memory_limit': memory_limit, 'python_threads_for_matching': 1}
 
 
 def benchmark(args):
@@ -605,8 +629,8 @@ def benchmark(args):
     for size in args.sizes:
         if stopped:
             entries.append({'size': size, 'status': 'not_attempted',
-                            'reason': f'size {stopped["size"]} failed ({stopped["failure"]["reason"]}); a larger size would hold '
-                                      'more patients in the same in-memory ingest'})
+                            'reason': f'size {stopped["size"]} failed ({stopped["failure"]["reason"]}) in phase '
+                                      f'{stopped["failed_phase"]}'})
             continue
         print(f'size {size} ...', file=sys.stderr, flush=True)
         entry = run_size(size, args, work)
@@ -616,14 +640,19 @@ def benchmark(args):
             stopped = entry
     return {'profile': PROFILE, 'generator_seed_base': SEED_BASE,
             'parameters': {'sizes': args.sizes, 'queries': args.queries, 'repeats': args.repeats,
+                           'profile_max_size': args.profile_max_size, 'large_queries': args.large_queries,
+                           'large_repeats': args.large_repeats,
                            'budget_seconds_per_size': args.budget_seconds, 'rss_limit_bytes': RSS_LIMIT_BYTES,
-                           'threads': args.threads, 'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT},
-            'environment': environment(args.threads),
+                           'threads': args.threads, 'memory_limit': args.memory_limit,
+                           'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT},
+            'environment': environment(args.threads, args.memory_limit),
             'cohort_construction': {
                 'distinct': f'one generator seed per {PER_COHORT} patients (seed {SEED_BASE} + i, skipping seeds the generator cannot build), relabelled per cohort, up to '
                             f'{DISTINCT_CAP:,} distinct patients',
                 'replicated': 'beyond the distinct pool, copy k of pool patient j is `<id>~r<k>` with every time shifted by '
-                              f'(1 + (37k mod 700)) whole days; no new variety, and evidence is shared in memory',
+                              f'(1 + (37k mod 700)) whole days; no new variety',
+                'streaming': 'the distinct pool is written to an ndjson file one seed at a time and read back a line at a '
+                             'time, replicated as it is read, into StoreBuilder.add',
                 'queries': 'seeded random_query / random_windows from patterns/test_execution_store.py, anchored on the '
                            'first cohort, identical for every size; windows follow the pool patient and its shift'},
             'sizes': entries,
@@ -642,27 +671,31 @@ def main(argv=None):
     parser.add_argument('--work-dir', default='/tmp/execution-store-scaling', help='scratch for snapshots (not tracked)')
     parser.add_argument('--budget-seconds', type=float, default=1800, help='wall time allowed per size')
     parser.add_argument('--threads', type=int, default=1, help='DuckDB threads for build and open')
+    parser.add_argument('--memory-limit', default=DEFAULT_MEMORY_LIMIT, help='DuckDB memory limit for build and open')
     parser.add_argument('--exhaustive', type=int, default=5, help='queries compared with exhaustive matching at small sizes')
     parser.add_argument('--exhaustive-max-size', type=int, default=1000)
     parser.add_argument('--keep', action='store_true', help='keep each size\'s snapshot')
     parser.add_argument('--profile-max-size', type=int, default=10000,
-                        help='sizes up to this also get build-stage, verify and cProfile measurements')
-    parser.add_argument('--worker', choices=('build', 'query', 'stages', 'verify', 'cprofile'), help=argparse.SUPPRESS)
+                        help='sizes up to this get the full query set and a cProfile of one match; larger ones get '
+                             '--large-queries and --large-repeats')
+    parser.add_argument('--large-queries', type=int, default=10)
+    parser.add_argument('--large-repeats', type=int, default=1)
+    parser.add_argument('--worker', choices=('build', 'query', 'verify', 'cprofile'), help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--snapshot', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.worker:
+        marker = args.worker_output.with_suffix('.progress')
         if args.worker == 'build':
-            result = build_worker(args.size, args.work_dir, args.threads, args.worker_output.with_suffix('.progress'))
-        elif args.worker == 'stages':
-            result = stage_profile_worker(args.size, args.work_dir, args.threads, args.worker_output.with_suffix('.progress'))
+            result = build_worker(args.size, args.work_dir, args.threads, args.memory_limit, marker)
         elif args.worker == 'verify':
-            result = verify_profile_worker(args.snapshot, args.threads)
+            result = verify_profile_worker(args.snapshot, args.threads, args.memory_limit)
         elif args.worker == 'cprofile':
             result = cprofile_worker(args.snapshot, args.size, args.threads)
         else:
-            result = query_worker(args.snapshot, args.size, args.queries, args.repeats, args.threads, args.exhaustive)
+            result = query_worker(args.snapshot, args.size, args.queries, args.repeats, args.threads, args.memory_limit,
+                                  args.exhaustive)
         args.worker_output.write_text(json.dumps(result))
         return 0
     if min(args.sizes) < PER_COHORT:

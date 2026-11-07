@@ -29,7 +29,7 @@ The engine in `patterns/`, one profile per page.
 | [Bounded temporal uncertainty](bounded-temporal-uncertainty.md) | `bounded-interval-1.0`: possible and certain matches over bounded times |
 | [Trajectory-graph profile](trajectory-graph-profile.md) | `trajectory-graph-1.0`: sequence, tree and graph trajectories over uncertain times, with an exhaustive reference |
 | [Trajectory-graph SULO adapter](trajectory-graph-sulo-adapter.md) | `trajectory-graph-sulo-1.0`: bounded, patient-local and claim snapshots into the trajectory-graph engine, with evidence carried back |
-| [Execution store](execution-store.md) | `execution-store-1.0`: immutable Parquet snapshots on DuckDB, concept postings, coverage and a relaxation-sound candidate filter, on the synthetic cohort |
+| [Execution store](execution-store.md) | `execution-store-2.0`: streamed ingest into immutable Parquet snapshots on DuckDB, concept postings, coverage and a relaxation-sound candidate filter, on the synthetic cohort |
 | [Bounded RDF ingestion](bounded-rdf-ingestion.md) | `bounded-rdf-1.0`: validated graph input for the bounded matcher |
 | [Evidence selection](evidence-selection.md) | `evidence-selection-1.0`: which records a bounded query may use |
 | [Joint temporal and semantic selection](joint-evidence-selection.md) | Temporal records and semantic assertions selected over the same revision chains |

@@ -38,7 +38,7 @@ def setUpModule():
     STATE['tmp'] = tempfile.mkdtemp(prefix='mimic-store-test-')
     result = msi.convert(FIXTURE, msi.FIXTURE_DATASET)
     snapshot = es.build(result['ingest'], Path(STATE['tmp']) / 'store')
-    STATE.update(result=result, snapshot=snapshot, store=es.open_store(snapshot))
+    STATE.update(result=result, snapshot=snapshot, store=es.open_store(snapshot, verify='content'))
 
 
 def tearDownModule():
@@ -127,7 +127,11 @@ class MappingTests(unittest.TestCase):
         tables = ref.build_tables(ingest)
         for name in es.TABLES:
             self.assertEqual(store.rows(name), [tuple(r) for r in tables[name]], name)
-            self.assertEqual(store.manifest['tables'][name]['content_digest'], ref.digest(tables[name]), name)
+        digests = ref.table_digests(tables)
+        for name in es.TABLES:
+            recorded = store.manifest['tables'][name]
+            self.assertEqual({k: recorded[k] for k in ('rows', 'content_digest', 'buckets')}, digests[name], name)
+        self.assertEqual(store.manifest['input_digest'], ref.input_digest(ingest))
 
     def test_closure_reaches_exactly_the_adapter_concepts_plus_groupings(self):
         ancestors = result()['ingest']['closure']['ancestors']

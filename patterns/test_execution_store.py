@@ -105,7 +105,7 @@ def setUpModule():
     started = time.perf_counter()
     _STATE['snapshot'] = es.build(_STATE['ingest'], tmp / 'store')
     _STATE['built'] = time.perf_counter() - started
-    _STATE['store'] = es.open_store(_STATE['snapshot'])
+    _STATE['store'] = es.open_store(_STATE['snapshot'], verify='content')
     _STATE['reference'] = ref.build_tables(_STATE['ingest'])
 
 
@@ -240,27 +240,40 @@ class TableTests(unittest.TestCase):
         self.assertGreater(counts['concept_postings'], counts['patients'])
 
     def test_every_fixture_table_equals_the_reference_row_for_row(self):
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp), verify='content') as store:
             self.assertEqual(table_mismatches(store, ref.build_tables(fixture())), {})
 
     def test_an_empty_partitioned_table_is_written_and_read_back(self):
         g = fixture()
         for p in g['patients']:
             p['coverage'] = []
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp), verify='content') as store:
             self.assertEqual(store.manifest['tables']['coverage']['rows'], 0)
             self.assertEqual(table_mismatches(store, ref.build_tables(g)), {})
 
-    def test_manifest_digests_equal_the_reference_digests(self):
-        manifest = _STATE['store'].manifest
-        for name, rows in _STATE['reference'].items():
-            with self.subTest(table=name):
-                self.assertEqual(manifest['tables'][name]['rows'], len(rows))
-                self.assertEqual(manifest['tables'][name]['content_digest'], ref.digest(rows))
-        self.assertTrue(_STATE['store'].verify())
+    def test_manifest_digests_equal_the_reference_digests_table_by_table_and_bucket_by_bucket(self):
+        cases = [('synthetic', _STATE['ingest'], _STATE['store'].manifest, _STATE['reference'])]
+        with tempfile.TemporaryDirectory() as tmp:
+            g = fixture()
+            g['patients'][0]['excluded'] = [{'source': 'ehr', 'concept': 'seizure', 'start': [day(3), day(4)],
+                                             'reason': 'DROPPED'}] * 2
+            cases.append(('fixture', g, json.loads((es.build(g, tmp) / 'manifest.json').read_text()),
+                          ref.build_tables(g)))
+        for label, ingest, manifest, tables in cases:
+            want = ref.table_digests(tables)
+            for name in es.TABLES:
+                recorded = manifest['tables'][name]
+                with self.subTest(case=label, table=name):
+                    self.assertEqual(recorded['rows'], len(tables[name]))
+                    self.assertEqual(recorded['buckets'], want[name]['buckets'])
+                    self.assertEqual(recorded['content_digest'], want[name]['content_digest'])
+                    self.assertEqual(list(recorded['buckets']), es.bucket_labels(name))
+            self.assertEqual(manifest['input_digest'], ref.input_digest(ingest), label)
+        self.assertTrue(_STATE['store'].verify('content'))
+        self.assertEqual(_STATE['store'].verified, 'content')
 
     def test_postings_count_each_event_once_through_the_closure(self):
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp), verify='content') as store:
             idx = {pid: i for i, pid, _ in store.rows('patients')}
             postings = {(c, p): (n, lo, hi) for c, p, n, lo, hi in store.rows('concept_postings')}
             # One event coded dee and dravet: one posting each for dee and epilepsy, not two.
@@ -280,7 +293,7 @@ class MatchingTests(unittest.TestCase):
     def test_fixture_statuses_including_filtered_and_not_comparable(self):
         windows = {f'P{i}': {'start': day(-365), 'end': day(365)} for i in range(1, 7)}
         windows['P2'] = None
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp), verify='content') as store:
             out = es.match(store, FIXTURE_QUERY, windows)
             by = {r['patient_id']: r for r in out['results']}
             self.assertEqual(by['P1']['status'], 'exact')
@@ -299,7 +312,8 @@ class MatchingTests(unittest.TestCase):
             self.assertEqual([r for r in out['results'] if r.get('reason') != 'FILTERED'],
                              [w for r, w in zip(out['results'], want) if r.get('reason') != 'FILTERED'])
             # The result says what it depends on.
-            self.assertEqual((out['verified'], out['coverage_rule']), (True, es.COVERAGE_RULE))
+            self.assertEqual((out['verified'], out['context']['verified'], out['coverage_rule']),
+                             ('content', 'content', es.COVERAGE_RULE))
             context = out['context']
             self.assertEqual(context['snapshot_id'], store.snapshot_id)
             self.assertEqual(set(context['artifacts']), set(es.ENGINE_ARTIFACTS))
@@ -324,7 +338,7 @@ class MatchingTests(unittest.TestCase):
         held = {'source': 'pharmacy', 'concept': 'carbamazepine', 'start': [day(500), day(500)], 'reason': 'NOT_ADMITTED'}
         p5['excluded'] = [held, dict(held)]
         windows = {f'P{i}': {'start': day(-365), 'end': day(365)} for i in range(1, 7)}
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp), verify='content') as store:
             tables = ref.build_tables(ingest)
             for name in es.TABLES:
                 self.assertEqual(store.rows(name), [tuple(r) for r in tables[name]], name)
@@ -361,7 +375,7 @@ class MatchingTests(unittest.TestCase):
                  'relations': [{'id': 'R', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 60 * 60_000_000}],
                  'relaxations': list(relaxations), 'budget': '1'}
         windows = {'P': {'start': m(-1000), 'end': m(1000)}}
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp), verify='content') as store:
             got = es.match(store, query, windows)['results'][0]
         want = ref.exhaustive_match(ingest, query, windows)[0]
         self.assertEqual(got, want)
@@ -404,7 +418,7 @@ class MatchingTests(unittest.TestCase):
                                              for d in excluded]}
                                for pid, events, excluded in patients]}
         query = {'profile': tg.PROFILE_ID, 'scope': scope, 'steps': [{'id': 'A', 'concept': 'X', 'occurrence': 'first'}]}
-        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp), verify='content') as store:
             got = es.match(store, query, windows)['results']
         self.assertEqual(got, ref.exhaustive_match(ingest, query, windows))
         return {r['patient_id']: r for r in got}
@@ -503,6 +517,75 @@ class DeterminismTests(unittest.TestCase):
         self.assertEqual(len(list((snapshot / 'events').iterdir())), es.BUCKETS)
 
 
+    def test_the_iterator_form_equals_the_dict_form(self):
+        cohort = _STATE['cohort']
+        with tempfile.TemporaryDirectory() as tmp:
+            skipped = {}
+            with es.StoreBuilder(Path(tmp) / 'stream', si.synthetic_header(cohort)) as builder:
+                for patient in si.iter_patients(cohort, skipped):
+                    builder.add(patient)
+                streamed = builder.finish(si.synthetic_provenance(cohort, skipped))
+            self.assertEqual(streamed.name, _STATE['snapshot'].name)
+            self.assertEqual(skipped, _STATE['ingest']['provenance']['skipped'])
+            self.assertEqual(sorted(os.listdir(Path(tmp) / 'stream')), [streamed.name])  # no staging left behind
+
+    def test_fetch_sizes_and_memory_limits_give_one_snapshot_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ids = {es.build(fixture(), Path(tmp) / f'f{n}', fetch_rows=n).name for n in (1, 7, 10_000)}
+            self.assertEqual(len(ids), 1)
+            small = deepcopy(_STATE['ingest'])
+            small['patients'] = small['patients'][:6]
+            ids = {es.build(small, Path(tmp) / f's{n}', fetch_rows=n).name for n in (1, 7, 10_000)}
+            self.assertEqual(len(ids), 1)
+            ids = {es.build(_STATE['ingest'], Path(tmp) / name, threads=threads, memory_limit=limit).name
+                   for name, threads, limit in (('m', 1, '256MB'), ('m4', 4, '256MB'), ('g4', 4, '4GB'))}
+            self.assertEqual(ids, {_STATE['snapshot'].name})
+            manifest = json.loads((Path(tmp) / 'm' / _STATE['snapshot'].name / 'manifest.json').read_text())
+            self.assertEqual(manifest['builder']['memory_limit'], '256MB')
+            for bad in ('lots', 256, '4 bananas'):
+                with self.subTest(memory_limit=bad), self.assertRaises(es.StoreError) as caught:
+                    es.build(fixture(), Path(tmp) / 'bad', memory_limit=bad)
+                self.assertEqual(caught.exception.code, 'INVALID_MEMORY_LIMIT')
+            self.assertFalse((Path(tmp) / 'bad').exists())
+
+    def test_add_holds_one_patient_at_a_time(self):
+        """tracemalloc over about 2,000 streamed patients: the peak inside `add()` is bounded by a
+        small multiple of one patient's JSON size, and nothing accumulates between calls."""
+        import tracemalloc
+        pool = _STATE['ingest']['patients']
+        largest = max(len(es._json(p)) for p in pool)
+        count = 42 * len(pool)  # 2,016
+        def stream():  # replicas made on the fly, so the stream itself holds no cohort
+            for i in range(count):
+                p = pool[i % len(pool)]
+                yield {**p, 'patient_id': f"{p['patient_id']}~{i // len(pool)}"}
+        header = {k: _STATE['ingest'][k] for k in ('profile', 'dataset_id', 'closure')}
+        peaks, retained = [], []
+        with tempfile.TemporaryDirectory() as tmp, es.StoreBuilder(Path(tmp) / 'mem', header) as builder:
+            tracemalloc.start()
+            try:
+                for patient in stream():
+                    before = tracemalloc.get_traced_memory()[0]
+                    tracemalloc.reset_peak()
+                    builder.add(patient)
+                    current, peak = tracemalloc.get_traced_memory()
+                    peaks.append(peak - before)
+                    retained.append(current)
+            finally:
+                tracemalloc.stop()
+            self.assertEqual(builder.patients, count)
+        whole = count * sum(len(es._json(p)) for p in pool) // len(pool)
+        self.assertLess(max(peaks), 4 * largest, (max(peaks), largest))
+        self.assertLess(max(peaks), whole // 200)
+        # Nothing per patient is kept: what is held after the last 500 adds is what was held after the
+        # first few hundred (staging-file buffers make it wobble by tens of KiB), not 1,500 patients more.
+        growth = max(retained[-500:]) - max(retained[100:600])
+        self.assertLess(growth, 1024 * 1024, growth)
+        print(f'\n  add(): {count} patients, peak {max(peaks) / 2**20:.2f} MiB per add, largest patient '
+              f'{largest / 2**20:.2f} MiB of JSON, stream {whole / 2**20:.0f} MiB, retained growth '
+              f'{growth / 1024:.0f} KiB', file=sys.stderr)
+
+
 class PlantedDefectTests(unittest.TestCase):
     def test_a_dropped_closure_row_fails_the_table_comparison(self):
         original = es._closure_rows
@@ -511,7 +594,7 @@ class PlantedDefectTests(unittest.TestCase):
             victim = next(r for r in rows if r['basis'] == 'declared' and r['ancestor'] == 'sodium_channel_blocker')
             return [r for r in rows if r is not victim]
         with patch.object(es, '_closure_rows', drop), tempfile.TemporaryDirectory() as tmp:
-            with es.open_store(es.build(_STATE['ingest'], tmp)) as store:
+            with es.open_store(es.build(_STATE['ingest'], tmp), verify='content') as store:
                 wrong = table_mismatches(store, _STATE['reference'])
         self.assertLessEqual({'concept_closure', 'concept_postings'}, set(wrong))
 
@@ -547,29 +630,82 @@ class ContractTests(unittest.TestCase):
         schema = json.loads((ROOT / es.SCHEMA_PATH).read_text())
         Draft202012Validator.check_schema(schema)
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(manifest)), [])
-        self.assertEqual(manifest['profile'], 'execution-store-1.0')
+        self.assertEqual(manifest['profile'], 'execution-store-2.0')
         self.assertEqual(set(manifest['builder']['artifacts']), {es.MODULE_PATH, es.SCHEMA_PATH})
+        self.assertEqual(manifest['builder']['memory_limit'], es.DEFAULT_MEMORY_LIMIT)
+        self.assertEqual(sorted(manifest['files']), sorted(es.file_digests(_STATE['snapshot'])))
         for mutate, code in [(lambda m: m.pop('input_digest'), 'INVALID_MANIFEST'),
+                             (lambda m: m.pop('files'), 'INVALID_MANIFEST'),
                              (lambda m: m['tables']['events'].update(rows=-1), 'INVALID_MANIFEST'),
-                             (lambda m: m['tables']['events'].update(rows=1), 'SNAPSHOT_ID_MISMATCH'),
+                             (lambda m: m['tables']['events']['columns'][5].update(type='DOUBLE'), 'INVALID_MANIFEST'),
+                             (lambda m: m['tables']['events'].update(rows=1), 'BUCKET_DIGEST_MISMATCH'),
+                             (lambda m: m['tables']['events']['buckets']['3'].update(content_digest='0' * 64),
+                              'BUCKET_DIGEST_MISMATCH'),
+                             (lambda m: m['tables']['events']['buckets'].pop('3'), 'BUCKET_DIGEST_MISMATCH'),
                              (lambda m: m.update(closure_version='other'), 'SNAPSHOT_ID_MISMATCH')]:
             broken = deepcopy(manifest)
             mutate(broken)
             with self.subTest(code=code), self.assertRaises(es.StoreError) as caught:
                 es.validate_manifest(broken)
             self.assertEqual(caught.exception.code, code)
+        # Neither the file digests nor the memory limit are part of the identity.
+        other = deepcopy(manifest)
+        other['builder']['memory_limit'] = '256MB'
+        other['files'] = {path: '0' * 64 for path in other['files']}
+        self.assertEqual(es.validate_manifest(other)['snapshot_id'], manifest['snapshot_id'])
 
-    def test_a_tampered_parquet_file_is_refused_on_open_and_on_rebuild(self):
+    def test_verification_levels_are_named_and_recorded(self):
         with tempfile.TemporaryDirectory() as tmp:
             snapshot = es.build(fixture(), tmp)
+            for level in ('files', 'content', False):
+                with es.open_store(snapshot, verify=level) as store:
+                    self.assertEqual(store.verified, level)
+                    out = es.match(store, FIXTURE_QUERY, {})
+                    self.assertEqual((out['verified'], out['context']['verified']), (level, level))
             with es.open_store(snapshot) as store:
-                self.assertTrue(store.verified)
-                store.db.execute(f"COPY (SELECT patient_idx, patient_id || 'x' AS patient_id, bucket FROM patients) "
-                                 f"TO '{snapshot}/patients-new.parquet' (FORMAT parquet)")
-            os.replace(snapshot / 'patients-new.parquet', snapshot / 'patients.parquet')
+                self.assertEqual(store.verified, 'files')  # the default
+            for level in (True, 'bytes', None, 0):
+                with self.subTest(level=level), self.assertRaises(es.StoreError) as caught:
+                    es.open_store(snapshot, verify=level)
+                self.assertEqual(caught.exception.code, 'INVALID_VERIFY_LEVEL')
+
+    def rewrite(self, snapshot, path, select):
+        """Replace one Parquet file with `select` over its current rows, and record the new file's
+        byte digest in the manifest (the identity and content digests are left as they were)."""
+        target = snapshot / path
+        with es.open_store(snapshot, verify=False) as store:
+            source = f"read_parquet('{target}')"
+            store.db.execute(f"COPY ({select.format(src=source)}) TO '{target}.new' (FORMAT parquet)")
+        os.replace(f'{target}.new', target)
+        manifest = json.loads((snapshot / 'manifest.json').read_text())
+        manifest['files'][path] = hashlib.sha256(target.read_bytes()).hexdigest()
+        (snapshot / 'manifest.json').write_text(json.dumps(manifest))
+
+    def test_a_flipped_byte_fails_the_file_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), tmp)
+            victim = snapshot / 'concept_postings.parquet'
+            data = bytearray(victim.read_bytes())
+            data[len(data) // 2] ^= 0x01
+            victim.write_bytes(bytes(data))
             with self.assertRaises(es.StoreError) as caught:
                 es.open_store(snapshot)
+            self.assertEqual(caught.exception.code, 'SNAPSHOT_FILE_MISMATCH')
+            self.assertIn('concept_postings.parquet', str(caught.exception))
+
+    def test_different_valid_content_with_a_matching_byte_digest_fails_the_content_and_identity_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), tmp)
+            self.rewrite(snapshot, 'patients.parquet',
+                         "SELECT patient_idx, patient_id || 'x' AS patient_id, bucket FROM {src}")
+            with es.open_store(snapshot) as store:  # the bytes are what the manifest now says
+                self.assertEqual(store.verified, 'files')
+            with self.assertRaises(es.StoreError) as caught:
+                es.open_store(snapshot, verify='content')
             self.assertEqual(caught.exception.code, 'SNAPSHOT_CONTENT_MISMATCH')
+            self.assertIn('patients/all', str(caught.exception))
+            with es.open_store(snapshot, verify=False) as store:
+                self.assertNotEqual(store.derived_snapshot_id(), store.snapshot_id)
             with self.assertRaises(es.StoreError) as caught:  # build must not reuse it either
                 es.build(fixture(), tmp)
             self.assertEqual(caught.exception.code, 'SNAPSHOT_CONTENT_MISMATCH')
@@ -578,12 +714,28 @@ class ContractTests(unittest.TestCase):
                 out = es.match(store, FIXTURE_QUERY, {})
                 self.assertEqual((out['verified'], out['context']['verified']), (False, False))
 
+    def test_swapped_rows_still_pass_the_content_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), tmp)
+            events = next(p for p in sorted(es.file_digests(snapshot)) if p.startswith('events/'))
+            for path, select in (('concept_closure.parquet', 'SELECT * FROM {src} ORDER BY concept DESC, ancestor DESC'),
+                                 (events, 'SELECT * FROM {src} ORDER BY event_id DESC')):
+                before = (snapshot / path).read_bytes()
+                self.rewrite(snapshot, path, select)
+                self.assertNotEqual((snapshot / path).read_bytes(), before)
+            with es.open_store(snapshot, verify='content') as store:
+                self.assertEqual(store.verified, 'content')
+                self.assertEqual(store.derived_snapshot_id(), snapshot.name)
+
     def test_a_missing_partition_is_refused_on_open(self):
         with tempfile.TemporaryDirectory() as tmp:
             snapshot = es.build(fixture(), tmp)
             shutil.rmtree(next((snapshot / 'events').iterdir()))
             with self.assertRaises(es.StoreError) as caught:
                 es.open_store(snapshot)
+            self.assertEqual(caught.exception.code, 'SNAPSHOT_FILE_MISMATCH')
+            with self.assertRaises(es.StoreError) as caught:
+                es.open_store(snapshot, verify='content')
             self.assertEqual(caught.exception.code, 'SNAPSHOT_CONTENT_MISMATCH')
 
     def test_malformed_ingest_is_refused_by_name_before_anything_is_written(self):
@@ -621,6 +773,46 @@ class ContractTests(unittest.TestCase):
         g = fixture()
         patient(g)['box_representable'] = True  # declared box-representable is accepted
         es.validate_ingest(g)
+
+    def test_a_stream_is_refused_by_name_and_leaves_nothing_behind(self):
+        """A duplicate patient anywhere in the stream (found in DuckDB at `finish`), a bad patient
+        mid-stream, an empty stream or bad provenance: refused, with nothing written under the root."""
+        g = fixture()
+        header = {k: g[k] for k in ('profile', 'dataset_id', 'closure')}
+        tab = deepcopy(g['patients'][1])
+        tab['patient_id'] = 'P\t2'
+        bad = deepcopy(g['patients'][2])
+        bad['events'][0]['concepts'] = ['nowhere']
+        cases = {'DUPLICATE_PATIENT_ID': (g['patients'] + [deepcopy(g['patients'][1])], None),
+                 'UNKNOWN_CONCEPT': (g['patients'][:2] + [bad] + g['patients'][3:], None),
+                 'INVALID_PATIENT_ID': (g['patients'][:1] + [tab], None),
+                 'NO_PATIENTS': ([], None),
+                 'INVALID_LABELS': (g['patients'], {'labels': {'x': 1}})}
+        for code, (patients, provenance) in cases.items():
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'deep' / 'store'
+                builder = es.StoreBuilder(root, header)
+                with self.assertRaises(es.IngestError) as caught:
+                    for p in patients:
+                        builder.add(p)
+                    builder.finish(provenance)
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(os.listdir(tmp), [])
+                with self.assertRaises(es.StoreError) as closed:  # a refused builder takes nothing more
+                    builder.add(g['patients'][0])
+                self.assertEqual(closed.exception.code, 'BUILDER_CLOSED')
+        # The same duplicate through the dict wrapper, into a root that already holds a snapshot.
+        with tempfile.TemporaryDirectory() as tmp:
+            kept = es.build(g, tmp)
+            with self.assertRaises(es.IngestError) as caught:
+                es.build({**g, 'patients': g['patients'] + [deepcopy(g['patients'][0])]}, tmp)
+            self.assertEqual(caught.exception.code, 'DUPLICATE_PATIENT_ID')
+            self.assertEqual(os.listdir(tmp), [kept.name])
+        # Leaving the block unfinished discards the build.
+        with tempfile.TemporaryDirectory() as tmp:
+            with es.StoreBuilder(Path(tmp) / 'store', header) as builder:
+                builder.add(g['patients'][0])
+            self.assertEqual(os.listdir(tmp), [])
 
 
 class SyntheticConverterTests(unittest.TestCase):

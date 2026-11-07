@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Execution store snapshot manifest",
-  "description": "One immutable execution-store snapshot: its identity, inputs, builder and tables. The snapshot_id is the sha256 of the canonical JSON of profile, input_digest, closure_version, builder.artifacts and each table's rows and content_digest (docs/execution-store.md).",
+  "description": "One immutable execution-store snapshot: its identity, inputs, builder, tables and files. The snapshot_id is the sha256 of the canonical JSON of profile, input_digest, closure_version, builder.artifacts and each table's rows and content_digest. Each table's content_digest is the sha256 over its per-bucket digests (canonical_form). files records each Parquet file's sha256 for integrity checks; it is not part of the identity, nor is builder.memory_limit (docs/execution-store.md).",
   "type": "object",
   "additionalProperties": false,
   "required": ["profile", "snapshot_id", "dataset_id", "input_digest", "closure_version", "time", "buckets",
-               "canonical_form", "selection", "builder", "tables"],
+               "canonical_form", "input_form", "selection", "builder", "tables", "files"],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "column": {
@@ -20,10 +20,22 @@
     "table": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["rows", "content_digest", "columns", "path", "partitioned_by"],
+      "required": ["rows", "content_digest", "buckets", "columns", "path", "partitioned_by"],
       "properties": {
         "rows": {"type": "integer", "minimum": 0},
         "content_digest": {"$ref": "#/$defs/sha256"},
+        "buckets": {
+          "description": "Per-bucket row counts and content digests: buckets 0 to buckets-1 for a partitioned table, the one bucket \"all\" otherwise.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^([0-9]+|all)$"},
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rows", "content_digest"],
+            "properties": {"rows": {"type": "integer", "minimum": 0}, "content_digest": {"$ref": "#/$defs/sha256"}}
+          }
+        },
         "columns": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/column"}},
         "path": {"type": "string", "pattern": "^[a-z_]+(\\.parquet)?$"},
         "partitioned_by": {"enum": ["bucket", null]}
@@ -31,7 +43,7 @@
     }
   },
   "properties": {
-    "profile": {"const": "execution-store-1.0"},
+    "profile": {"const": "execution-store-2.0"},
     "snapshot_id": {"$ref": "#/$defs/sha256"},
     "dataset_id": {"type": "string", "minLength": 1},
     "input_digest": {"$ref": "#/$defs/sha256"},
@@ -48,10 +60,11 @@
     },
     "buckets": {"type": "integer", "minimum": 1},
     "canonical_form": {"type": "string", "minLength": 1},
+    "input_form": {"type": "string", "minLength": 1},
     "builder": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["artifacts", "engine", "engine_version"],
+      "required": ["artifacts", "engine", "engine_version", "memory_limit"],
       "properties": {
         "artifacts": {
           "type": "object",
@@ -60,8 +73,19 @@
           "additionalProperties": {"$ref": "#/$defs/sha256"}
         },
         "engine": {"const": "duckdb"},
-        "engine_version": {"type": "string", "minLength": 1}
+        "engine_version": {"type": "string", "minLength": 1},
+        "memory_limit": {
+          "description": "DuckDB's memory limit for the build, as given (null: DuckDB's default). Not part of the identity.",
+          "oneOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?\\s*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$"}]
+        }
       }
+    },
+    "files": {
+      "description": "sha256 of every Parquet file of the snapshot, by path relative to the snapshot directory: integrity, not identity (bytes vary with the writer).",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z_]+(\\.parquet|/(bucket=[0-9]+/)?[A-Za-z0-9_.-]+\\.parquet)$"},
+      "additionalProperties": {"$ref": "#/$defs/sha256"}
     },
     "tables": {
       "type": "object",
