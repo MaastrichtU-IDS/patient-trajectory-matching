@@ -384,22 +384,6 @@ class TimeAndClockTests(unittest.TestCase):
         request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(4, 6)])
         self.assertEqual(tgs.match_snapshot(tgs.from_bounded_json(source), request)['statuses'], {'P1': 'exact'})
 
-    def test_a_variable_shared_by_two_events_is_refused(self):
-        # The reviewer's probe: X and Y share a start, so `after` with min 0 and max 0 holds
-        # in every source timeline. Box projection would understate that as possible.
-        source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY), 'shared-start'),
-                             ('Y', 'P1', 'specimen_collection', (0, 10 * DAY), (12 * DAY, 12 * DAY), 'shared-start'),
-                             ('Z', 'P2', 'infusion', (0, 0), (1, 1)), ('W', 'P2', 'specimen_collection', (0, 0), (1, 1))])
-        view = tgs.from_bounded_json(source)
-        r = tgs.match_snapshot(view, request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)]))
-        p1, p2 = r['results']
-        self.assertEqual((p1['status'], p1['adapter']['code']), ('refused', 'SHARED_SOURCE_VARIABLE'))
-        self.assertEqual(p1['adapter']['shared_variables'], [{'variable': 'shared-start', 'events': ['X', 'Y']}])
-        self.assertEqual(p2['status'], 'exact')
-        rows = {row['event_id']: row for row in tgs.ingest_rows(view)}
-        self.assertEqual((rows['X']['box_representable'], rows['X']['shared_variables']), (False, ['shared-start']))
-        self.assertTrue(rows['Z']['box_representable'])
-
     def test_variables_are_tightened_to_their_minimal_bounds(self):
         # The proper-interval edge alone tightens: end >= start + 1 lifts the end's floor.
         source = source_for([('A', 'P1', 'infusion', (5 * DAY, 9 * DAY), (0, 20 * DAY))])
@@ -507,6 +491,192 @@ class TimeAndClockTests(unittest.TestCase):
         hours['query']['relaxations'][1]['grace'] *= 24
         hours['windows'] = {p: w and {'start': w['start'] * 24, 'end': w['end'] * 24} for p, w in request['windows'].items()}
         self.assertEqual(tgs.match_snapshot(view, hours)['statuses'], tgs.match_snapshot(view, request)['statuses'])
+
+
+def assert_full_network_agrees(case, view, result, window):
+    """Every binding check equals the replay over the patient's whole source network."""
+    query = result['engine_query']
+    by_id = {x['id']: x for x in query.get('relaxations', [])}
+    compared = 0
+    for r in result['results']:
+        if 'source_check' not in r:
+            continue
+        check = r['source_check']
+        full = tgs.full_network_check(view.snapshot, r['patient_id'], {'clinical': 0}, query,
+                                      [by_id[i] for i in check['relaxations']], check['binding'], window,
+                                      check['certainty_claimed'], r.get('engine_result', r).get('witness'))
+        for key in ('feasible', 'entailed', 'engine_witness_confirmed'):
+            case.assertEqual(full[key], check[key], (r['patient_id'], key))
+        case.assertEqual(full['refutation'] is None, check['refutation'] is None)
+        compared += 1
+    return compared
+
+
+class SharedVariableTests(unittest.TestCase):
+    """A source variable named by several events reaches the engine as one variable (D22)."""
+
+    def probe(self):
+        return source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 11 * DAY), 'shared-start'),
+                           ('Y', 'P1', 'specimen_collection', (0, 10 * DAY), (12 * DAY, 12 * DAY), 'shared-start'),
+                           ('Z', 'P2', 'infusion', (0, 0), (1, 1)), ('W', 'P2', 'specimen_collection', (0, 0), (1, 1))])
+
+    def test_a_shared_start_makes_after_zero_exact(self):
+        # The reviewer's probe: X and Y share a start, so `after` with min 0 and max 0 holds in
+        # every source timeline. Box projection would understate that as possible, so it was
+        # refused (SHARED_SOURCE_VARIABLE); the engine now decides it, and the source network
+        # confirms it.
+        view = tgs.from_bounded_json(self.probe())
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)])
+        for projection in (True, False):
+            with self.subTest(point_projection=projection):
+                r = tgs.match_snapshot(view, request, point_projection=projection)
+                p1, p2 = r['results']
+                self.assertEqual((p1['status'], p1['decided_by'], p1['binding']), ('exact', 'engine', {'a': 'X', 'b': 'Y'}))
+                self.assertNotIn('adapter', p1)
+                self.assertEqual((p1['source_check']['entailed'], p1['source_check']['feasible']), (True, True))
+                self.assertEqual(p1['projection'], 'points' if projection else 'intervals')
+                self.assertEqual({e['id']: e['start_var'] for e in p1['engine_events']},
+                                 {'X': 'shared-start', 'Y': 'shared-start'})
+                self.assertEqual(p2['status'], 'exact')
+                self.assertEqual(r['summary']['adapter_codes'], {})
+                self.assertEqual(assert_full_network_agrees(self, view, r, tgs._window(request['window'], DAY)), 2)
+        # One start cannot also be a day later: none, decided by the engine.
+        r = tgs.match_snapshot(view, request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1)]))
+        self.assertEqual((r['results'][0]['status'], r['results'][0]['decided_by']), ('none', 'engine'))
+        # The store contract is unchanged: the rows still mark the patient as not box-representable.
+        rows = {row['event_id']: row for row in tgs.ingest_rows(view)}
+        self.assertEqual((rows['X']['box_representable'], rows['X']['shared_variables']), (False, ['shared-start']))
+        self.assertTrue(rows['Z']['box_representable'])
+
+    def test_engine_refusals_of_shared_variables_are_per_patient(self):
+        view = tgs.from_bounded_json(self.probe())
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)])
+        # A linked group over the engine's limit: the shared start links X's and Y's variables.
+        with patch.object(tgs.tg, 'MAX_LINKED_VARIABLES', 2):
+            r = tgs.match_snapshot(view, request, point_projection=False)
+        p1, p2 = r['results']
+        self.assertEqual((p1['status'], p1['decided_by'], p1['adapter']['code']),
+                         ('refused', 'adapter', 'SHARED_VARIABLE_COMPONENT_LIMIT'))
+        self.assertEqual(p1['adapter']['shared_variables'], [{'variable': 'shared-start', 'events': ['X', 'Y']}])
+        self.assertEqual(p2['status'], 'exact')
+        # A shared variable whose events' ranges do not meet. A validated snapshot cannot
+        # produce one: an inconsistent source is refused when prepared, and every event naming
+        # a variable is sent that variable's one tightened range. So the conflict is injected
+        # into the engine's input: Y's range for the shared start moves past X's.
+        real = tg.match
+
+        def conflicting(query, patient):
+            for event in patient['events']:
+                if event['id'] == 'Y':
+                    event['start'] = [11 * DAY, 11 * DAY]
+            return real(query, patient)
+        with patch.object(tgs.tg, 'match', side_effect=conflicting):
+            r = tgs.match_snapshot(view, request)
+        p1, p2 = r['results']
+        self.assertEqual((p1['status'], p1['adapter']['code']), ('refused', 'EMPTY_SHARED_VARIABLE'))
+        self.assertEqual(p2['status'], 'exact')
+        self.assertEqual(r['summary']['adapter_codes'], {'EMPTY_SHARED_VARIABLE': 1})
+
+    def test_a_non_box_constraint_is_still_refused_with_shared_variables(self):
+        # X ends at least two days before Y ends: an edge between events no box holds.
+        source = source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (11 * DAY, 20 * DAY), 'shared-start'),
+                             ('Y', 'P1', 'specimen_collection', (0, 10 * DAY), (11 * DAY, 20 * DAY), 'shared-start')],
+                            [{'id': 'x-ends-first', 'left_var': 'X-end', 'right_var': 'Y-end',
+                              'upper_us': -2 * DAY, 'source_key': 'declared'}])
+        r = tgs.match_snapshot(tgs.from_bounded_json(source), request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)]))
+        p1 = r['results'][0]
+        self.assertEqual((p1['status'], p1['adapter']['code']), ('refused', 'SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE'))
+        self.assertEqual([c['edge'] for c in p1['adapter']['constraints']], ['source:x-ends-first'])
+        self.assertEqual(p1['adapter']['shared_variables'], [{'variable': 'shared-start', 'events': ['X', 'Y']}])
+
+    def test_a_strict_order_the_engine_misses_is_refuted_by_the_source_network(self):
+        # Y starts when X ends. The engine's events only end at or after they start, so it
+        # finds X empty and the two starts equal possible; the source's start + 1 <= end
+        # refutes that, and the safety net reports unresolved rather than possible.
+        source = source_for([('X', 'P1', 'infusion', (DAY, 5 * DAY), (DAY, 6 * DAY)),
+                             ('Y', 'P1', 'specimen_collection', (0, 0), (9 * DAY, 9 * DAY), 'X-end')])
+        r = tgs.match_snapshot(tgs.from_bounded_json(source), request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)]))
+        p1 = r['results'][0]
+        self.assertEqual((p1['status'], p1['adapter']['code'], p1['engine_result']['status']),
+                         ('unresolved', 'POSSIBLE_BINDING_REFUTED_BY_SOURCE_NETWORK', 'possible'))
+        self.assertIn('proper:X', p1['source_check']['refutation'])
+        self.assertEqual(p1['projection'], 'intervals')
+
+    def strict_chain(self):
+        # Y starts when X ends (P1); P2 has the same times without the shared variable.
+        return source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (0, 20 * DAY)),
+                           ('Y', 'P1', 'specimen_collection', (0, 0), (30 * DAY, 30 * DAY), 'X-end'),
+                           ('X2', 'P2', 'infusion', (0, 10 * DAY), (0, 20 * DAY)),
+                           ('Y2', 'P2', 'specimen_collection', (DAY, 20 * DAY), (30 * DAY, 30 * DAY))])
+
+    def test_a_possible_binding_the_source_entails_is_exact(self):
+        # The review's repro: Y's start is X's end, so Y starts at least a microsecond after X.
+        # The engine lets X end as it starts and says possible; the source entails the binding.
+        view = tgs.from_bounded_json(self.strict_chain())
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1)], unit='microsecond', window=(0, 40 * DAY))
+        p1 = tgs.match_snapshot(view, request)['results'][0]
+        self.assertEqual((p1['status'], p1['complete'], p1['decided_by'], p1['binding']),
+                         ('exact', True, 'adapter', {'a': 'X', 'b': 'Y'}))
+        self.assertEqual(p1['adapter'], {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': 'possible'})
+        self.assertEqual((p1['engine_result']['status'], p1['engine_result']['complete']), ('possible', True))
+        self.assertTrue(p1['source_check']['entailed'])
+        self.assertNotIn('witness', p1)
+        # The same for a relaxed result's certainty: unrelaxed, b can only be X itself.
+        relaxed = request_for([('a', INFUSION), ('b', INFUSION)], [after(1)], unit='microsecond', window=(0, 40 * DAY),
+                              relaxations=[{'id': 'b-any-process', 'kind': 'widen_concept', 'cost': '1', 'step': 'b',
+                                            'concept': PROCESS}], budget='1')
+        p1 = tgs.match_snapshot(view, relaxed)['results'][0]
+        self.assertEqual((p1['status'], p1['certainty'], p1['complete'], p1['relaxations'], p1['binding']),
+                         ('relaxed', 'exact', True, ['b-any-process'], {'a': 'X', 'b': 'Y'}))
+        self.assertEqual((p1['engine_result']['certainty'], p1['adapter']['code']), ('possible', 'EXACT_BY_SOURCE_ENTAILMENT'))
+
+    def test_a_binding_not_entailed_under_a_shared_end_leaves_exactness_undecided(self):
+        # Another binding might be exact over the source and not over the engine's looser model.
+        view = tgs.from_bounded_json(self.strict_chain())
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1, 5 * DAY)], unit='microsecond',
+                              window=(0, 40 * DAY))
+        p1, p2 = tgs.match_snapshot(view, request)['results']
+        self.assertEqual((p1['status'], p1['complete'], p1['note'], p1['decided_by']),
+                         ('possible', False, 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', 'adapter'))
+        self.assertEqual(p1['adapter'], {'code': 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', 'engine_status': 'possible',
+                                         'engine_complete': True})
+        self.assertTrue(p1['source_check']['feasible'])
+        self.assertFalse(p1['source_check']['entailed'])
+        # Without a shared end the engine's model is the source's box: possible stays complete.
+        self.assertEqual((p2['status'], p2['complete'], p2['decided_by']), ('possible', True, 'engine'))
+        self.assertNotIn('adapter', p2)
+
+    def test_point_projection_with_shared_variables_equals_intervals(self):
+        # P1-P3 share a start between x and y; P4 shares none; P5 starts y when x ends.
+        events = []
+        for p, z in (('P1', (6, 9)), ('P2', (3, 5)), ('P3', (20, 21))):
+            events += [(p + 'x', p, 'infusion', (DAY, 4 * DAY), (30 * DAY, 30 * DAY), p + '-start'),
+                       (p + 'y', p, 'specimen_collection', (DAY, 4 * DAY), (31 * DAY, 31 * DAY), p + '-start'),
+                       (p + 'z', p, 'specimen_collection', (z[0] * DAY, z[1] * DAY), (32 * DAY, 32 * DAY))]
+        events += [('P4x', 'P4', 'infusion', (DAY, 4 * DAY), (30 * DAY, 30 * DAY)),
+                   ('P4y', 'P4', 'specimen_collection', (DAY, 4 * DAY), (31 * DAY, 31 * DAY)),
+                   ('P4z', 'P4', 'specimen_collection', (6 * DAY, 9 * DAY), (32 * DAY, 32 * DAY)),
+                   ('P5x', 'P5', 'infusion', (DAY, 5 * DAY), (3 * DAY, 6 * DAY)),
+                   ('P5y', 'P5', 'specimen_collection', (0, 0), (31 * DAY, 31 * DAY), 'P5x-end'),
+                   ('P5z', 'P5', 'specimen_collection', (8 * DAY, 9 * DAY), (32 * DAY, 32 * DAY))]
+        view = tgs.from_bounded_json(source_for(events))
+        request = request_for([('a', INFUSION), ('b', SPECIMEN), ('c', SPECIMEN)],
+                              [after(0, None, 'a', 'b'), after(2, 8, 'b', 'c')], window=(0, 60))
+        points = tgs.match_snapshot(view, request)
+        intervals = tgs.match_snapshot(view, request, point_projection=False)
+        self.assertEqual(points['statuses'], intervals['statuses'])
+        self.assertEqual([decision_fields(r) for r in points['results']], [decision_fields(r) for r in intervals['results']])
+        self.assertEqual(points['statuses'], {'P1': 'exact', 'P2': 'possible', 'P3': 'none', 'P4': 'possible', 'P5': 'exact'})
+        projections = {r['patient_id']: r['projection'] for r in points['results']}
+        # A shared end would order other events' starts, which points drop: P5 keeps intervals.
+        self.assertEqual(projections, {'P1': 'points', 'P2': 'points', 'P3': 'points', 'P4': 'points', 'P5': 'intervals'})
+        p1 = points['results'][0]
+        self.assertEqual({e['id']: e['start_var'] for e in p1['engine_events'] if e['id'] in ('P1x', 'P1y')},
+                         {'P1x': 'P1-start', 'P1y': 'P1-start'})
+        self.assertTrue(all('end_var' not in e for e in p1['engine_events']))
+        window = tgs._window(request['window'], DAY)
+        self.assertEqual(assert_full_network_agrees(self, view, points, window), 4)
+        self.assertEqual(assert_full_network_agrees(self, view, intervals, window), 4)
 
 
 class ProjectionTests(unittest.TestCase):

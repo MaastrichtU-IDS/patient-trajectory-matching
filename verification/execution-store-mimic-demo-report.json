@@ -296,13 +296,13 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 84.1,
-    "admission_and_claims": 0.76,
-    "differential": 222.8,
-    "mapping": 0.28,
-    "store_build": 1.47,
+    "adapter": 62.31,
+    "admission_and_claims": 0.69,
+    "differential": 228.69,
+    "mapping": 0.27,
+    "store_build": 1.46,
     "store_open_and_verify": 0.02,
-    "total": 309.51
+    "total": 293.52
   },
   "artifacts": {
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
@@ -337,7 +337,7 @@
     "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
     "patterns/trajectory_graph.py": "aa7a2e7abf3ccee2f7350182acebaccf24ab20023e022685554e31b097df3722",
-    "patterns/trajectory_graph_sulo.py": "2b2af988bfb62b96c216ccb60f4e85794bd1e600920ba12270625a70719cd240",
+    "patterns/trajectory_graph_sulo.py": "c2daac0b91edf54526de7aabad7eb20dc8dc311cb9cb7278b7b23963281b5c63",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
     "patterns/verify_mimic_store_ingest.py": "c75da6f2a94481317def5ef248db2264098dccfb7984ed01012622548356acb0",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",

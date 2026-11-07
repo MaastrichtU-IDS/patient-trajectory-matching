@@ -14,10 +14,10 @@ reports against the source's temporal network plus the query's constraints.
   semantic class facts carried with the snapshot; and, when the request supplies a semantic
   policy, rustDL-entailed memberships with their supports. A query or relaxation concept
   the vocabulary does not know is refused (UNKNOWN_CONCEPT).
-- Time. Variables are tightened to their minimal bounds. A patient whose source network a
-  box cannot represent (a source constraint the box does not imply, or a variable shared by
-  two events) is refused. A `possible` binding the source network refutes is never
-  reported as possible.
+- Time. Variables are tightened to their minimal bounds. A patient with a source constraint
+  the box does not imply is refused. A variable shared by several events reaches the engine
+  as one variable, named by its source id (D22). A `possible` binding the source network
+  refutes is never reported as possible.
 - Clocks and units. One clock per patient: offset-datetime clocks are rebased exactly; any
   other second clock makes the patient incomparable. Declared units convert to microseconds
   exactly; calendar months and years are refused.
@@ -62,6 +62,8 @@ RDF_FILES = ('patterns/bounded_rdf.py', 'ontology/bounded-rdf-profile.ttl')
 INF = math.inf
 # Adapter statuses, beside the engine's exact/possible/relaxed/unresolved/none/excluded.
 REFUSED, INCOMPARABLE = 'refused', 'incomparable'
+# Engine refusals of one patient's shared variables, reported as that patient's refusal (D22).
+ENGINE_PATIENT_REFUSALS = ('SHARED_VARIABLE_COMPONENT_LIMIT', 'EMPTY_SHARED_VARIABLE')
 
 
 class AdapterError(ValueError):
@@ -458,27 +460,59 @@ def _anchors(window):
             Edge('anchor:END:lower', ZERO, '$END', -window['end'])]
 
 
-def binding_check(query, relaxations, binding, spans, window, certainty, witness=None):
-    """Check a binding over the bound events alone.
+@dataclass(frozen=True)
+class Region:
+    """A patient's feasible region on its reference clock, once no source constraint is lost.
 
-    Valid once the patient is box-representable (no unimplied source constraint, no shared
-    variable): the feasible region is then each event's tightened box with its proper-interval
-    edge, events independent, so the bound events' variables carry every relevant constraint.
-    `spans` maps an event to its rebased tightened (start, end) bounds. Steps bound to the
-    same event share its variables.
+    `events` maps an event to its (start, end) source variable ids, and `bounds` a variable to
+    its rebased tightened [lo, hi]. With every source constraint implied by the tightened box,
+    the source network is exactly these bounds, each event's proper-interval edge
+    (start + 1 <= end), and the identity of a variable that several events name.
+    """
+    events: dict
+    bounds: dict
+    uses: dict = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        uses = defaultdict(set)
+        for eid, pair in self.events.items():
+            for vid in pair:
+                uses[vid].add(eid)
+        object.__setattr__(self, 'uses', uses)
+
+    def linked(self, eids):
+        """The events, plus every event they reach through shared variables."""
+        found, pending = set(), list(eids)
+        while pending:
+            eid = pending.pop()
+            if eid not in found:
+                found.add(eid)
+                pending.extend(e for vid in self.events[eid] for e in self.uses[vid] if e not in found)
+        return sorted(found)
+
+
+def binding_check(query, relaxations, binding, region, window, certainty, witness=None):
+    """Check a binding over the bound events and the events linked to them.
+
+    Valid once no source constraint is lost (no non-box constraint): the region is then the
+    `Region`'s bounds, proper-interval edges and shared variables. Events that share no
+    variable are independent, so the bound events and those reached from them through shared
+    variables carry every constraint relevant to the binding. Steps bound to the same event
+    share its variables, and events naming one variable share it.
     """
     names, edges = {'$START', '$END'}, _anchors(window)
-    for eid in sorted(set(binding.values())):
-        (sl, sh), (fl, fh) = spans[eid]
-        s, f = eid + '.s', eid + '.f'
-        names |= {s, f}
-        edges += [Edge(f'bound:{s}:upper', s, ZERO, sh), Edge(f'bound:{s}:lower', ZERO, s, -sl),
-                  Edge(f'bound:{f}:upper', f, ZERO, fh), Edge(f'bound:{f}:lower', ZERO, f, -fl),
-                  Edge('proper:' + eid, s, f, -1)]
+    linked = region.linked(set(binding.values()))
+    for vid in sorted({v for eid in linked for v in region.events[eid]}):
+        lo, hi = region.bounds[vid]
+        names.add('v:' + vid)
+        edges += [Edge(f'bound:{vid}:upper', 'v:' + vid, ZERO, hi), Edge(f'bound:{vid}:lower', ZERO, 'v:' + vid, -lo)]
+    for eid in linked:
+        s, f = region.events[eid]
+        edges.append(Edge('proper:' + eid, 'v:' + s, 'v:' + f, -1))
 
     def var(term):
         name, part = term
-        return '$' + name if name in tg.ANCHORS else binding[name] + '.' + part
+        return '$' + name if name in tg.ANCHORS else 'v:' + region.events[binding[name]][0 if part == 's' else 1]
     return _replay(names, edges, query, relaxations, binding, var, certainty, witness)
 
 
@@ -523,8 +557,16 @@ def _bound(view, query, relaxations, binding, concepts):
     return {s: _evidence(view, e, step_concepts[s], concepts) for s, e in sorted(binding.items())}
 
 
-def _verified(result, check, query, view, concepts):
-    """Apply the binding check to the engine's result for one patient."""
+def _verified(result, check, query, view, concepts, strict_gap=False):
+    """Apply the binding check to the engine's result for one patient.
+
+    `strict_gap` marks a patient where the engine's model is looser than the source's beyond
+    the box: a shared variable in an end role links one event's end to another's start, and
+    the engine lets an event end as it starts where the source needs start + 1 <= end. A
+    possible binding the source entails is reported exact whatever `strict_gap` says; one it
+    does not entail leaves exactness undecided under `strict_gap`, since another binding may
+    be exact over the source alone.
+    """
     by_id = {x['id']: x for x in query.get('relaxations', [])}
     status = result['status']
     out = dict(result)
@@ -554,16 +596,36 @@ def _verified(result, check, query, view, concepts):
                 out.update(status='unresolved', reason=downgrade,
                            adapter={'code': downgrade, 'engine_status': status, 'engine_certainty': certainty})
             return out
+        if certainty == 'possible' and verdict['entailed']:
+            # Every source timeline satisfies the binding: exact over the source, which the
+            # engine's looser model could not show.
+            out = {'patient_id': result['patient_id'], 'decided_by': 'adapter', 'engine_result': result,
+                   'source_check': verdict, 'bound_evidence': out['bound_evidence'],
+                   'adapter': {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': status}}
+            if status == 'relaxed':
+                # Exact ends the search in this set; only a stopped cheaper set leaves it open.
+                out.update({k: result[k] for k in ('relaxations', 'cost', 'binding', 'method')}, status='relaxed',
+                           certainty='exact', complete=result.get('note') != 'CHEAPER_RELAXATION_SEARCH_STOPPED')
+                if 'note' in result:
+                    out['note'] = result['note']
+            else:
+                out.update(status='exact', binding=result['binding'], method=result['method'], complete=True)
+            return out
         if certainty == 'possible' and status == 'possible' and verdict['engine_witness_confirmed'] is False:
             out.update(engine_witness=result['witness'], witness=verdict['witness'],
                        adapter={'code': 'ENGINE_WITNESS_REPLACED_BY_SOURCE_WITNESS'})
+        if certainty == 'possible' and strict_gap:
+            _undecided(out, result)
         return out
     if status == 'unresolved' and 'relaxed_match' in result:
         match = result['relaxed_match']
         relaxations = [by_id[i] for i in match['relaxations']]
         verdict = check(relaxations, match['binding'], match['certainty'], None)
         holds = verdict['entailed'] if match['certainty'] == 'exact' else verdict['feasible']
-        if not holds and verdict['feasible']:
+        if match['certainty'] == 'possible' and verdict['entailed']:
+            out['relaxed_match'] = dict(match, certainty='exact')
+            out['adapter'] = {'code': 'EXACT_BY_SOURCE_ENTAILMENT'}
+        elif not holds and verdict['feasible']:
             out['relaxed_match'] = dict(match, certainty='possible')
             out['adapter'] = {'code': 'RELAXED_MATCH_EXACTNESS_NOT_ENTAILED'}
         elif not holds:
@@ -574,6 +636,18 @@ def _verified(result, check, query, view, concepts):
             out['relaxed_bound_evidence'] = _bound(view, query, relaxations, match['binding'], concepts)
         out['relaxed_source_check'] = verdict
     return out
+
+
+def _undecided(out, result):
+    """Mark a possible binding the source does not entail, on a patient whose engine model is
+    looser than its source: another binding may be exact over the source, so it is incomplete."""
+    code = 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS'
+    out.update(complete=False, decided_by='adapter', engine_result=result)
+    out.setdefault('note', code)
+    if 'adapter' in out:
+        out['adapter'] = dict(out['adapter'], notes=[code])
+    else:
+        out['adapter'] = {'code': code, 'engine_status': result['status'], 'engine_complete': result['complete']}
 
 
 def match_snapshot(view, request, *, timeout_seconds=20, point_projection=True):
@@ -710,40 +784,52 @@ def _patient(pid, window, eids, snapshot, clocks, clock_of, bounds, box, concept
     if box['non_box_constraints']:
         return adapter(REFUSED, 'SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE', constraints=box['non_box_constraints'],
                        shared_variables=box['shared_variables'])
-    if box['shared_variables']:
-        # Until engine events can share variables (D13), a shared variable is an equality
-        # between events the engine would treat as independent.
-        return adapter(REFUSED, 'SHARED_SOURCE_VARIABLE', shared_variables=box['shared_variables'])
 
-    def shifted(vid, eid):
+    def shifted(vid):
         lo, hi = bounds[vid]
-        off = offsets[clock_of(eid)]
+        off = offsets[snapshot.variables[vid]['clock_id']]
         return [lo + off, hi + off]
 
-    spans = {e: (shifted(snapshot.events[e]['start_var'], e), shifted(snapshot.events[e]['end_var'], e)) for e in eids}
+    # Shared variables are equalities between events, which the engine models exactly (D13):
+    # every engine event names its source variables, so events naming one share its time (D22).
+    variables = {e: (snapshot.events[e]['start_var'], snapshot.events[e]['end_var']) for e in eids}
+    region = Region(variables, {vid: shifted(vid) for pair in variables.values() for vid in pair})
+    starts = {e: region.bounds[region.events[e][0]] for e in eids}
     # No `during` relation means no constraint reads an end, and after tightening every
-    # start has a feasible end: the engine may take each event as a point. Ties on start
-    # under first/last occurrence would be broken by end, so then intervals are kept.
+    # start has a feasible end: the engine may take each event as a point. That holds while
+    # each end variable belongs to its own event alone; a shared variable that is some event's
+    # end would order other events' starts, so then intervals are kept. Ties on start under
+    # first/last occurrence would be broken by end, so then intervals are kept too.
+    ends = {region.events[e][1] for e in eids}
+    shared_end = any(s['variable'] in ends for s in box['shared_variables'])
     ordered = any(s.get('occurrence', 'any') != 'any' for s in query['steps'])
-    points = (point_projection and not any(r['kind'] == 'during' for r in query.get('relations', []))
-              and (not ordered or len({tuple(spans[e][0]) for e in eids}) == len(eids)))
+    points = (point_projection and not shared_end and not any(r['kind'] == 'during' for r in query.get('relations', []))
+              and (not ordered or len({tuple(starts[e]) for e in eids}) == len(eids)))
     events = []
     for eid in eids:
-        event = {'id': eid, 'concepts': sorted(concepts[eid]), 'start': spans[eid][0]}
+        start_var, end_var = region.events[eid]
+        event = {'id': eid, 'concepts': sorted(concepts[eid]), 'start': starts[eid], 'start_var': start_var}
         if not points:
-            event['end'] = spans[eid][1]
+            event.update(end=region.bounds[end_var], end_var=end_var)
         events.append(event)
     engine_window = {'start': window['start'], 'end': window['end']}
-    result = tg.match(query, {'patient_id': pid, 'window': engine_window, 'events': events})
+    try:
+        result = tg.match(query, {'patient_id': pid, 'window': engine_window, 'events': events})
+    except tg.TrajectoryError as error:
+        if str(error) not in ENGINE_PATIENT_REFUSALS:
+            raise
+        return adapter(REFUSED, str(error), shared_variables=box['shared_variables'],
+                       projection='points' if points else 'intervals')
 
     def check(relaxations, binding, certainty, witness):
-        return binding_check(query, relaxations, binding, spans, engine_window, certainty, witness)
-    out = _verified(result, check, query, view, concepts)
+        return binding_check(query, relaxations, binding, region, engine_window, certainty, witness)
+    out = _verified(result, check, query, view, concepts, strict_gap=shared_end)
     out['projection'] = 'points' if points else 'intervals'
     out['clock'] = {'reference_clock': reference, 'rebase_offsets_us': dict(sorted(offsets.items())),
                     'policy': clocks[reference]['policy'], 'origin': clocks[reference]['origin']}
     # Request-specific: the events exactly as the engine received them, on the reference clock.
-    out['engine_events'] = [dict(e, tightened_end=spans[e['id']][1]) if points else e for e in events]
+    out['engine_events'] = [dict(e, tightened_end=region.bounds[region.events[e['id']][1]]) if points else e
+                            for e in events]
     return out
 
 
