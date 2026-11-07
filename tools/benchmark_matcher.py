@@ -281,8 +281,10 @@ def benchmark(args):
     scratch = Path(tempfile.mkdtemp(prefix='matcher-arm-a-'))
     commit = extract_ref(args.arm_a_ref, scratch)
     arm_a = {'description': ARMS['A'], 'git_ref': args.arm_a_ref, 'git_commit': commit, 'code_root': 'extracted from git archive',
-             'artifacts': {p: hashlib.sha256((scratch / p).read_bytes()).hexdigest() for p in
-                           ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')}}
+             # A list, not a path-to-digest map: the provenance gate reads every such map as a
+             # binding of the current tree, and these digests describe the old code at git_ref.
+             'artifacts_at_ref': [{'path': p, 'sha256': hashlib.sha256((scratch / p).read_bytes()).hexdigest()} for p in
+                                  ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')]}
     sizes, snapshots = [], {}
     for item in args.snapshots:
         size, _, path = item.partition('=')
