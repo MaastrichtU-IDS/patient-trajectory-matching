@@ -489,6 +489,93 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 'UNKNOWN_WINDOW_PATIENT')
 
 
+class MatcherScalingTests(unittest.TestCase):
+    """The chunked, prepared matcher (D19 step 3) decides exactly what the one-shot matcher did."""
+
+    FIXTURE = ROOT / 'patterns/fixtures/execution_store_match_digests.json'
+
+    @staticmethod
+    def case(seed):
+        rng = random.Random(seed)
+        pool, ingest = concept_pool(_STATE['reference']), _STATE['ingest']
+        return random_query(rng, pool, ingest), random_windows(rng, ingest)
+
+    def test_output_is_byte_identical_to_the_matcher_before_chunking(self):
+        """`patterns/fixtures/execution_store_match_digests.json` holds, for each of the 300 differential seeds, the
+        sha256 of `json.dumps({plan, candidates, counts, results}, sort_keys=True)` as the one-shot matcher
+        (commit 7dc3364) produced it on this module's synthetic store. A fixture, not a kept copy of the old
+        code: the old path stays unmaintained nowhere, and any later change that moves a result fails here.
+        The snapshot id and the engine-file digests in `context` change with the code, so they are excluded."""
+        want = json.loads(self.FIXTURE.read_text())
+        self.assertEqual(len(want), SEEDS)
+        wrong = []
+        for seed in range(SEEDS):
+            out = es.match(_STATE['store'], *self.case(seed))
+            body = {k: out[k] for k in ('plan', 'candidates', 'counts', 'results')}
+            if hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest() != want[str(seed)]:
+                wrong.append(seed)
+        self.assertEqual(wrong, [])
+
+    def test_the_chunk_size_changes_nothing(self):
+        for seed in range(40):
+            q, w = self.case(seed)
+            whole = json.dumps(es.match(_STATE['store'], q, w), sort_keys=True)
+            for chunk in (1, 7):
+                self.assertEqual(json.dumps(es.match(_STATE['store'], q, w, chunk=chunk), sort_keys=True), whole, (seed, chunk))
+
+    def test_decided_detail_agrees_with_full(self):
+        store, seen = _STATE['store'], Counter()
+        for seed in range(80):
+            q, w = self.case(seed)
+            full, decided = es.match(store, q, w), es.match(store, q, w, detail='decided')
+            self.assertEqual({k: v for k, v in decided.items() if k not in ('results', 'detail', 'implicit')},
+                             {k: v for k, v in full.items() if k != 'results'}, seed)
+            self.assertEqual(decided['detail'], 'decided')
+            by_id = {r['patient_id']: r for r in full['results']}
+            for r in decided['results']:
+                self.assertEqual(r, by_id[r['patient_id']])
+            listed = {r['patient_id'] for r in decided['results']}
+            order = [r['patient_id'] for r in full['results'] if r['patient_id'] in listed]
+            self.assertEqual([r['patient_id'] for r in decided['results']], order)
+            left_out = [r for r in full['results'] if r['patient_id'] not in listed]
+            filtered = sum(1 for r in left_out if r['status'] == 'none' and r['reason'] == 'FILTERED')
+            windowless = sum(1 for r in left_out if r['status'] == 'excluded')
+            self.assertEqual(len(left_out), filtered + windowless)
+            self.assertEqual(decided['implicit'], {'FILTERED': filtered, 'NO_INDEX_WINDOW': windowless})
+            # every candidate with a window, and every patient a rule changed, is listed
+            kept = {pid for pid, r in by_id.items()
+                    if r['status'] in ('exact', 'possible', 'relaxed', 'unresolved', 'not_comparable')}
+            self.assertLessEqual(kept, listed)
+            for r in full['results']:
+                seen[r['status']] += 1
+        self.assertTrue({'exact', 'not_comparable', 'none', 'excluded'} <= set(seen))
+        with self.assertRaises(es.StoreError) as caught:
+            es.match(store, *self.case(0), detail='some')
+        self.assertEqual(caught.exception.code, 'INVALID_DETAIL')
+
+    def test_windows_are_refused_with_the_codes_the_engine_gave(self):
+        store = _STATE['store']
+        pid = store.query('SELECT patient_id FROM patients ORDER BY patient_idx')[0][0]
+        bad = [{'start': 5, 'end': 4}, {'start': 1.0, 'end': 2}, {'start': True, 'end': 5}, {'start': 1},
+               {'start': 1, 'end': 2, 'x': 3}, {'start': '1', 'end': 2}, [1, 2], 7]
+        for window in bad:
+            with self.subTest(window=window):
+                with self.assertRaises(tg.TrajectoryError) as expected:
+                    tg.validate_patient({'patient_id': pid, 'window': window})
+                with self.assertRaises(tg.TrajectoryError) as got:
+                    es.match(store, FIXTURE_QUERY, {pid: window})
+                self.assertEqual(str(got.exception), str(expected.exception))
+        self.assertEqual(es.match(store, FIXTURE_QUERY, {pid: None})['results'][0]['status'], 'excluded')
+
+    def test_temporary_tables_are_dropped_after_a_match_and_after_a_failure(self):
+        store = _STATE['store']
+        q, w = self.case(3)
+        es.match(store, q, w)
+        with self.assertRaises(tg.TrajectoryError):
+            es.match(store, q, {next(iter(w)): {'start': 2, 'end': 1}})
+        self.assertEqual(store.query("SELECT table_name FROM duckdb_tables() WHERE temporary"), [])
+
+
 class DeterminismTests(unittest.TestCase):
     def test_thread_counts_and_rebuilds_give_one_snapshot_id(self):
         with tempfile.TemporaryDirectory() as tmp:

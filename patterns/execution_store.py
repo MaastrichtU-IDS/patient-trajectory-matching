@@ -934,7 +934,11 @@ def candidates(store, query):
     Sound, not exact: for each step, the union of postings over its concept and its
     widenings; intersected across steps, rarest first. No time pruning in stage 1.
     """
-    tg.validate_query(query)
+    return _candidates(store, tg.PreparedQuery(query))
+
+
+def _candidates(store, pq):
+    query = pq.query
     per_step = _step_concepts(query)
     _known(store, sorted({c for cs in per_step.values() for c in cs}))
     _visible_to_exclusions(store, sorted({c for cs in per_step.values() for c in cs}))
@@ -953,39 +957,65 @@ def candidates(store, query):
             'plan': [{'step': s['step'], 'concepts': s['concepts'], 'patients': len(s['patients'])} for s in plan]}
 
 
+CHUNK_PATIENTS = 2_000  # candidates loaded and matched at a time
+SET_CHUNK_FACTOR = 25  # set-based SQL steps (comparability) take this many times as many patients at a time
+_BIG = 2 ** 64  # window bounds are clamped to +-_BIG: comparisons with BIGINT columns are unchanged
+
+
+def _temp(store, name, columns, *arrays):
+    """(Re)create temp table `name` with the given columns from parallel Python lists."""
+    store.db.execute(f'DROP TABLE IF EXISTS {name}')
+    select = ', '.join(f'unnest(CAST(? AS {t}[])) AS {c}' for c, t in columns)
+    store.db.execute(f'CREATE TEMP TABLE {name} AS SELECT {select}', list(arrays))
+
+
+def _drop(store, *names):
+    for name in names:
+        store.db.execute(f'DROP TABLE IF EXISTS {name}')
+
+
 def _load_events(store, idxs, per_step):
-    """Candidates' events that carry any step's concept or widening through the closure, as engine
-    events listing only those concepts."""
+    """{patient_idx: [events]} of these candidates' events that carry any step's concept or widening
+    through the closure, as engine events listing only those concepts. `idxs` is sorted and meant to
+    be one chunk: it goes into a temporary table that the events are joined to, and the query reads
+    only the index range it spans."""
     concepts = sorted({c for cs in per_step.values() for c in cs})
     if not idxs:
         return {}
-    rows = store.query(f"""
-        SELECT e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
-               list(DISTINCT cc.ancestor ORDER BY cc.ancestor) AS concepts
-        FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
-        JOIN concept_closure cc ON cc.concept = ec.concept
-        WHERE cc.ancestor IN {_in(concepts)} AND e.patient_idx IN {_in(idxs)}
-        GROUP BY e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi
-        ORDER BY e.patient_idx, e.event_id""", concepts + list(idxs))
+    try:
+        _temp(store, '_m_cand', [('idx', 'INTEGER')], list(idxs))
+        rows = store.db.execute(f"""
+            SELECT e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
+                   list(DISTINCT cc.ancestor ORDER BY cc.ancestor) AS concepts
+            FROM _m_cand c JOIN events e ON e.patient_idx = c.idx
+            JOIN event_concepts ec USING (patient_idx, event_id)
+            JOIN concept_closure cc ON cc.concept = ec.concept
+            WHERE e.patient_idx BETWEEN ? AND ? AND cc.ancestor IN {_in(concepts)}
+            GROUP BY e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi
+            ORDER BY e.patient_idx, e.event_id""", [min(idxs), max(idxs)] + concepts).fetchall()
+    finally:
+        _drop(store, '_m_cand')
     out = {}
     for idx, eid, slo, shi, elo, ehi, cs in rows:
-        event = {'id': eid, 'concepts': list(cs), 'start': [slo, shi]}
+        event = {'id': eid, 'concepts': cs, 'start': [slo, shi]}
         if elo is not None:
             event['end'] = [elo, ehi]
         out.setdefault(idx, []).append(event)
     return out
 
 
-def _comparability(store, per_step, idxs, windows_by_idx):
-    """{patient_idx: (reason, uncovered steps, unrecorded steps)} for patients a `none` cannot stand for.
+def _comparability(store, per_step, nones, windows_by_idx, chunk=CHUNK_PATIENTS * SET_CHUNK_FACTOR):
+    """Yield (patient_idx, reason, uncovered steps, unrecorded steps) for patients in `nones` a `none` cannot stand for.
 
     Rule COVERAGE_RULE: a step is covered for a patient when some source that records any of the
     step's concepts (table `source_concepts`, fixed at build time) has a coverage period meeting
     the window (lo <= end and hi >= start). A step no source records at all is unrecorded; the
     reason is then NO_SOURCE_RECORDS_CONCEPT, otherwise NO_SOURCE_COVERAGE.
+
+    The overlap test runs in SQL against a temporary table of the windows, `chunk` patients at a time.
     """
-    if not idxs:
-        return {}
+    if not nones:
+        return
     concepts = sorted({c for cs in per_step.values() for c in cs})
     sources = {}
     for source, concept in store.query(
@@ -993,18 +1023,26 @@ def _comparability(store, per_step, idxs, windows_by_idx):
         sources.setdefault(concept, set()).add(source)
     able = {step: set().union(*(sources.get(c, set()) for c in cs)) for step, cs in per_step.items()}
     unrecorded = [step for step in per_step if not able[step]]
-    periods = {}
-    for idx, source, lo, hi in store.query(
-            f'SELECT patient_idx, source, lo, hi FROM coverage WHERE patient_idx IN {_in(idxs)}', idxs):
-        periods.setdefault(idx, []).append((source, lo, hi))
-    out = {}
-    for idx in idxs:
-        w = windows_by_idx[idx]
-        missing = [step for step in per_step
-                   if not any(s in able[step] and lo <= w['end'] and hi >= w['start'] for s, lo, hi in periods.get(idx, ()))]
-        if missing:
-            out[idx] = ('NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE', missing, unrecorded)
-    return out
+    reason = 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE'
+    pairs = [(step, source) for step in per_step for source in sorted(able[step])]
+    clamp = lambda v: max(-_BIG, min(_BIG, v))
+    try:
+        _temp(store, '_m_able', [('step', 'VARCHAR'), ('source', 'VARCHAR')], [p[0] for p in pairs], [p[1] for p in pairs])
+        for k in range(0, len(nones), chunk):
+            part = nones[k:k + chunk]
+            _temp(store, '_m_none', [('idx', 'INTEGER'), ('ws', 'HUGEINT'), ('we', 'HUGEINT')], part,
+                  [clamp(windows_by_idx[i]['start']) for i in part], [clamp(windows_by_idx[i]['end']) for i in part])
+            covered = dict(store.db.execute("""
+                SELECT n.idx, list(DISTINCT a.step) FROM _m_none n
+                JOIN coverage c ON c.patient_idx = n.idx JOIN _m_able a ON a.source = c.source
+                WHERE c.lo <= n.we AND c.hi >= n.ws GROUP BY n.idx""").fetchall())
+            for idx in part:
+                have = covered.get(idx, ())
+                missing = [step for step in per_step if step not in have]
+                if missing:
+                    yield idx, reason, missing, unrecorded
+    finally:
+        _drop(store, '_m_able', '_m_none')
 
 
 def _digest(value):
@@ -1027,23 +1065,33 @@ def admits_start(scope, window, lo, hi):
     return True
 
 
-def _excluded_starts(store, query, per_step, idxs, windows_by_idx):
-    """{patient_idx: ({step: starts the scope admits}, {step: all starts})} for each step's excluded records.
+def _excluded_starts(store, query, per_step, decided, windows_by_idx):
+    """{patient_idx: ({step: starts the scope admits}, {step: all starts})} for each step's excluded records,
+    for patients in `decided` (a set).
 
     A step's excluded records are those whose concept is one of the step's concepts or widenings, or
     a descendant of one (through the closure). It could have bound those whose start the query's
     scope admits (`admits_start`). But the engine picks a `first` or `last` target among every event
     carrying the concept and only then applies the scope, so any of them could displace a target.
+
+    The records are read in one streamed query, in batches of `store.fetch_rows`; only those of
+    `decided` patients are kept.
     """
-    if not idxs:
+    if not decided:
         return {}
     concepts = sorted({c for cs in per_step.values() for c in cs})
     found = {}
-    for idx, ancestor, lo, hi in store.query(f"""
+    cursor = store.db.execute(f"""
             SELECT x.patient_idx, cc.ancestor, x.start_lo, x.start_hi FROM excluded_records x
             JOIN concept_closure cc ON cc.concept = x.concept
-            WHERE cc.ancestor IN {_in(concepts)} AND x.patient_idx IN {_in(idxs)}""", concepts + list(idxs)):
-        found.setdefault(idx, set()).add((ancestor, lo, hi))
+            WHERE cc.ancestor IN {_in(concepts)}""", concepts)
+    while True:
+        rows = cursor.fetchmany(store.fetch_rows)
+        if not rows:
+            break
+        for idx, ancestor, lo, hi in rows:
+            if idx in decided:
+                found.setdefault(idx, set()).add((ancestor, lo, hi))
     scope = query.get('scope', 'any')
     out = {}
     for idx, records in found.items():
@@ -1117,14 +1165,59 @@ def match_context(store, query, windows):
     return context, _digest(context)
 
 
-def match(store, query, windows):
+DETAILS = ('full', 'decided')
+DECIDED = ('exact', 'possible', 'relaxed', 'unresolved', 'none')
+
+
+def _check_window(pid, w):
+    """The refusals `tg.validate_patient` makes of a window, as plain checks with the same codes."""
+    if not (type(pid) is str and pid):
+        raise tg.TrajectoryError('INVALID_PATIENT_ID')
+    if not (isinstance(w, dict) and len(w) == 2 and 'start' in w and 'end' in w):
+        raise tg.TrajectoryError('INVALID_WINDOW')
+    lo, hi = w['start'], w['end']
+    if not (type(lo) is int and type(hi) is int and lo <= hi):
+        raise tg.TrajectoryError('INVALID_WINDOW')
+
+
+def _bound_starts(store, idxs):
+    """{patient_idx: {event_id: start bounds}} of these patients' events."""
+    out = {}
+    if idxs:
+        try:
+            _temp(store, '_m_start', [('idx', 'INTEGER')], sorted(idxs))
+            for idx, eid, lo, hi in store.db.execute(
+                    'SELECT e.patient_idx, e.event_id, e.start_lo, e.start_hi FROM _m_start s '
+                    'JOIN events e ON e.patient_idx = s.idx').fetchall():
+                out.setdefault(idx, {})[eid] = [lo, hi]
+        finally:
+            _drop(store, '_m_start')
+    return out
+
+
+def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS):
     """Every patient's result: the engine on candidates, `none` (FILTERED) for the rest, and
     `not_comparable` where a `none` rests on a step no covering source could have recorded, or on a
     step whose concepts the source recorded in records the ingest left out (ADMISSION_EXCLUDED_RECORDS).
 
     `windows` maps patient_id to {start, end} or None; a patient absent or None is excluded.
+
+    Candidates are loaded and matched `chunk` patients at a time and only each compact result is kept,
+    so memory beyond the results themselves is bounded by one chunk. The store validated every event
+    at ingest, so the engine runs with `trusted=True`; windows are checked here.
+
+    `detail='full'` (the default) lists every patient in `results`, in patient order. `detail='decided'`
+    lists only the patients the engine ran on (every candidate with a window) and those whose status
+    comparability or exclusion changed, in patient order; it adds `'detail': 'decided'` and
+    `'implicit'`, the numbers of patients left out, by the result `full` would show for them:
+    `{'FILTERED': n, 'NO_INDEX_WINDOW': m}` (a `none` the candidate filter proved, and a patient
+    with no window). `counts` and every other field are the same in both, and each listed result
+    equals its `full` counterpart.
     """
-    tg.validate_query(query)
+    if detail not in DETAILS:
+        raise StoreError('INVALID_DETAIL', repr(detail))
+    pq = tg.PreparedQuery(query)
+    query = pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')
     by_id = {pid: idx for idx, pid in patients}
     unknown = sorted(set(windows) - set(by_id))
@@ -1134,43 +1227,63 @@ def match(store, query, windows):
     for idx, pid in patients:
         w = windows.get(pid)
         if w is not None:
-            tg.validate_patient({'patient_id': pid, 'window': w})
+            _check_window(pid, w)
         windows_by_idx[idx] = w
-    found = candidates(store, query)
+    pid_of = dict(patients)
+    found = _candidates(store, pq)
     per_step = _step_concepts(query)
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
-    events = _load_events(store, live, per_step)
-    live = set(live)
-    results = {}
-    for idx, pid in patients:
-        if windows_by_idx[idx] is None:
-            results[idx] = {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}
-        elif idx in live:
-            results[idx] = tg.match(query, {'patient_id': pid, 'window': windows_by_idx[idx], 'events': events.get(idx, [])})
-        else:
-            results[idx] = {'patient_id': pid, 'status': 'none', 'reason': 'FILTERED', 'complete': True}
-    nones = [idx for idx, r in results.items() if r['status'] == 'none']
-    for idx, (reason, missing, unrecorded) in _comparability(store, per_step, nones, windows_by_idx).items():
-        results[idx] = {'patient_id': results[idx]['patient_id'], 'status': 'not_comparable', 'reason': reason,
+    results = {}  # the engine's results, and what a rule then changed; patients absent are filtered or windowless
+    for k in range(0, len(live), chunk):
+        part = live[k:k + chunk]
+        events = _load_events(store, part, per_step)
+        for idx in part:
+            results[idx] = tg.match_prepared(
+                pq, {'patient_id': pid_of[idx], 'window': windows_by_idx[idx], 'events': events.get(idx, [])}, trusted=True)
+        del events
+    filtered = [idx for idx, _ in patients if windows_by_idx[idx] is not None and idx not in results]
+    filtered_result = lambda idx: {'patient_id': pid_of[idx], 'status': 'none', 'reason': 'FILTERED', 'complete': True}
+    nones = sorted(filtered + [idx for idx, r in results.items() if r['status'] == 'none'])
+    for idx, reason, missing, unrecorded in _comparability(store, per_step, nones, windows_by_idx,
+                                                           chunk * SET_CHUNK_FACTOR):
+        results[idx] = {'patient_id': pid_of[idx], 'status': 'not_comparable', 'reason': reason,
                         'uncovered_steps': missing}
         if unrecorded:
             results[idx]['unrecorded_steps'] = unrecorded
     # Records the ingest left out can change any engine decision, not only a `none`.
-    decided = [idx for idx, r in results.items() if r['status'] in ('exact', 'possible', 'relaxed', 'unresolved', 'none')]
-    for idx, (touched, every) in _excluded_starts(store, query, per_step, decided, windows_by_idx).items():
-        # Event ids are unique within a patient only, so each patient's own events give its starts.
-        starts = {e['id']: e['start'] for e in events.get(idx, [])}
-        results[idx] = apply_exclusions(query, results[idx], touched, starts, every)
-    ordered = [results[idx] for idx, _ in patients]
+    decided = {idx for idx, w in windows_by_idx.items()
+               if w is not None and (results[idx]['status'] in DECIDED if idx in results else True)}
+    touched = _excluded_starts(store, query, per_step, decided, windows_by_idx)
+    # Event ids are unique within a patient only, so each patient's own events give its starts.
+    starts = _bound_starts(store, [idx for idx in touched if idx in results and (
+        results[idx].get('binding') or results[idx].get('relaxed_match', {}).get('binding'))])
+    for idx, (hit, every) in touched.items():
+        results[idx] = apply_exclusions(query, results[idx] if idx in results else filtered_result(idx),
+                                        hit, starts.get(idx, {}), every)
     counts = {}
-    for r in ordered:
+    for r in results.values():
         counts[r['status']] = counts.get(r['status'], 0) + 1
+    implicit_filtered = sum(1 for idx in filtered if idx not in results)
+    windowless = sum(1 for w in windows_by_idx.values() if w is None)
+    if implicit_filtered:
+        counts['none'] = counts.get('none', 0) + implicit_filtered
+    if windowless:
+        counts['excluded'] = counts.get('excluded', 0) + windowless
     context, context_id = match_context(store, query, windows)
-    return {'profile': MATCH_PROFILE, 'engine': tg.PROFILE_ID, 'snapshot_id': store.snapshot_id,
-            'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE,
-            'labels': store.manifest.get('labels'), 'context': context, 'context_id': context_id,
-            'plan': found['plan'], 'candidates': len(found['patient_idx']), 'counts': dict(sorted(counts.items())),
-            'results': ordered}
+    out = {'profile': MATCH_PROFILE, 'engine': tg.PROFILE_ID, 'snapshot_id': store.snapshot_id,
+           'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE,
+           'labels': store.manifest.get('labels'), 'context': context, 'context_id': context_id,
+           'plan': found['plan'], 'candidates': len(found['patient_idx']), 'counts': dict(sorted(counts.items()))}
+    if detail == 'decided':
+        out['detail'] = 'decided'
+        out['implicit'] = {'FILTERED': implicit_filtered, 'NO_INDEX_WINDOW': windowless}
+        out['results'] = [results[idx] for idx in sorted(results)]
+    else:
+        out['results'] = [results[idx] if idx in results else
+                          filtered_result(idx) if windows_by_idx[idx] is not None else
+                          {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}
+                          for idx, pid in patients]
+    return out
 
 
 def main(argv=None):

@@ -30,6 +30,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D18 | A step that admission may have hidden is not comparable, judged by the query's scope | Decided |
 | D19 | Scaling: fix the Python-side storage memory first; defer the Rust matcher until it is measured | Decided |
 | D20 | Execution store 2.0: streaming per-patient ingest, streamed content digests, two verification tiers | Decided |
+| D21 | Matcher scaling: cheap wins, then parallel Python, then Rust only if needed | Decided; arm B built |
 
 ## D1 Package with hatchling, in place
 
@@ -294,3 +295,34 @@ D19 found two memory walls, both in the Python side of the storage design: `buil
 *1,000,000 patients (from a run with the pre-fix generator, not in the regenerated report):* the patients streamed in 45 minutes (173 million events, 120 GB of staging), and then DuckDB refused inside the derive (`Out of Memory Error: failed to pin block`, 3.7 of 3.7 GiB). The operator was not isolated; the postings `DISTINCT` is the prime suspect. Nothing was written under the store root. This size was not rerun after the generator fix, and the result is kept out of the report JSON, which binds only the regenerated run.
 
 *Limitations:* DuckDB keeps within its limit by its own accounting, but the process does not. Resident memory reached about twice the 4 GB limit during the derive (8.9 GiB at 300,000) and did not fall when the connection closed. It follows the limit (0.45 against 1.29 GiB for one load at 256 MB and 4 GB), so the limit is a lever and not a cap. Whether the rest is allocation outside the buffer manager or freed memory the macOS allocator keeps is not resolved. The 1,000,000-patient derive needs a bucket-at-a-time derive, typed staging or a larger limit; none is built here. The usual limits also apply: one machine, synthetic data replicated beyond 10,000 patients, and ten queries at the largest sizes.
+
+## D21 Matcher scaling: cheap wins, then parallel Python, then Rust only if needed
+
+D19 step 3 and D20's measurement left matching as the wall: at 300,000 patients a wide `match()` took 95 s and the query process reached 21 GiB. The profile showed waste (a 106,000-parameter `IN` list, every candidate's events held at once, a result dict and validation per patient) and, beneath it, an engine whose pairwise kernel is the real cost. The order is therefore: remove the waste, measure; parallelise Python, measure; build Rust only if both together miss the target.
+
+**Protocol.** One report (`verification/matcher-comparison-report.json`, `tools/benchmark_matcher.py`), the same seeded queries and snapshots (store 2.0 at 1,000, 10,000, 100,000 and 300,000 patients), each arm and size in a fresh process; wall time p50, p95 and maximum, per-candidate cost (engine-only and end to end), query-process peak RSS, and a per-query digest of every result so that arms are compared for byte identity. Arms:
+- **A** the matcher before D21 (git ref `7dc3364`).
+- **B** this change: chunked load and match, prepared queries, trusted events, integer window checks, SQL comparability.
+- **C** parallel Python over chunks at 1, 2, 4, 8 and 14 workers.
+- **D** Rust, single-threaded and batched, including the FFI.
+- **D'** Rust, parallel.
+
+**Target**, at 300,000 patients on this machine (M4 Pro, 64 GB): full-detail `match()` p95 at most 10 s, maximum at most 30 s, query-process memory under 4 GB.
+
+**Rule.**
+- Stay in Python if B+C meets the target.
+- Otherwise build Rust only if D is at least 10 times faster per candidate than B (single-threaded, including FFI), D' meets the target and it has 0 mismatches against the Python matcher.
+- Between 3 and 10 times, prefer algorithmic work (time pruning of step domains, a candidate-count fast path) over a second language.
+- Below 3 times, drop Rust.
+- The Rust prototype is built only if B+C misses the target, so no toolchain is installed unless the measurements justify one.
+
+**This PR: arm B.** Results are byte-identical to A (digests equal for 50 of 50 queries at 1,000 and 10,000, and 10 of 10 at 100,000 and 300,000; 300 seeded queries against a committed fixture in the tests). At 300,000 patients, detail `full`:
+
+| | p50 | p95 = max | µs per candidate, end to end (engine) | query-process peak |
+|---|---|---|---|---|
+| A | 10.2 s | 93.7 s | 760 (388) | 19.8 GiB |
+| B | 4.92 s | 71.1 s | 532 (296) | 0.92 GiB |
+
+The memory target is met (0.92 GiB, flat in cohort size); the latency target is not (p95 and maximum 71 s). Per candidate B is 1.4 times faster than A end to end, so a Rust matcher would have to be 10 times faster than 532 µs, about 53 µs, to pass the rule's first gate. cProfile puts the engine's pairwise arc-consistency kernel at about 60% of a wide query at 100,000 patients and event loading at 11 to 23%, so the next steps, C and then algorithmic pruning, aim at that. Arm C is the next PR; D and D' are built only if B+C misses the target.
+
+*Limitations:* one machine; synthetic data replicated beyond 10,000 patients; ten queries at 100,000 and above, so p95 equals the maximum; arm A is the old code imported from a git archive over the same snapshot files; peak memory includes the caller's windows dictionary and the full result.

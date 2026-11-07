@@ -450,5 +450,60 @@ class DifferentialTests(unittest.TestCase):
         self.check('graph', True, range(300))
 
 
+class PreparedQueryTests(unittest.TestCase):
+    """A prepared query, reused across patients, decides as a fresh `match` does; `trusted` changes
+    only what is checked, never what is decided."""
+
+    def variants(self, p):
+        """The case's patient and two relatives, to run one prepared query over several patients."""
+        shift = lambda pair, d: [None if t is None else t + d for t in pair]
+        moved = {**p, 'events': [{**e, 'start': shift(e['start'], 3), **({'end': shift(e['end'], 3)} if 'end' in e else {})}
+                                 for e in p['events']]}
+        return [p, moved, {**p, 'events': list(reversed(p['events']))}]
+
+    def test_one_prepared_query_equals_fresh_matches_on_the_differential_cases(self):
+        for shape, intervals in (('chain', False), ('tree', False), ('graph', False), ('tree', True), ('graph', True)):
+            for seed in range(150):
+                rng = random.Random(f'{shape}-{intervals}-{seed}')
+                q, p = random_case(rng, shape, intervals)
+                pq = tg.PreparedQuery(q)
+                for patient_ in self.variants(p):
+                    with self.subTest(shape=shape, intervals=intervals, seed=seed):
+                        want = tg.match(q, patient_)
+                        self.assertEqual(json.dumps(tg.match_prepared(pq, patient_), sort_keys=True),
+                                         json.dumps(want, sort_keys=True))
+                        self.assertEqual(tg.match_prepared(pq, patient_, trusted=True), want)
+
+    def test_the_plan_of_each_relaxation_set_is_built_once_and_not_shared(self):
+        q = deepcopy(SEQUENCE)
+        q['relations'][0]['max'] = 10
+        q['relaxations'] = [{'id': 'x', 'kind': 'extend_max', 'relation': 'AB', 'max': 400, 'cost': '0.5'}]
+        q['budget'] = '1'
+        pq = tg.PreparedQuery(q)
+        self.assertEqual([tuple(x['id'] for x in chosen) for _, chosen in pq.sets], [('x',)])
+        self.assertIs(pq.plan(), pq.plan())
+        self.assertIs(pq.plan(pq.sets[0][1]), pq.plan(pq.sets[0][1]))
+        self.assertIsNot(pq.plan(), pq.plan(pq.sets[0][1]))
+        p = patient([event('a', 'febrile_seizure', (100, 100)), event('b', 'blocker', (200, 200)),
+                     event('c', 'rise', (230, 230))])
+        first = tg.match_prepared(pq, p)
+        self.assertEqual(first['status'], 'relaxed')
+        self.assertEqual(tg.match_prepared(pq, p), first)  # the original relation was not widened in place
+        self.assertEqual(q['relations'][0]['max'], 10)
+
+    def test_a_query_is_refused_when_it_is_prepared_and_a_patient_when_it_is_matched(self):
+        with self.assertRaisesRegex(tg.TrajectoryError, 'NO_STEPS'):
+            tg.PreparedQuery({'profile': tg.PROFILE_ID, 'steps': []})
+        pq = tg.PreparedQuery(SEQUENCE)
+        bad = patient([event('a', 'febrile_seizure', (100, 90))])
+        with self.assertRaisesRegex(tg.TrajectoryError, 'INVALID_EVENT_START'):
+            tg.match_prepared(pq, bad)
+        # `trusted` skips the record's checks (the store validated it) but not the time network's.
+        clash = patient([{**event('a', 'febrile_seizure', (100, 110)), 'start_var': 'v'},
+                         {**event('b', 'blocker', (200, 210)), 'start_var': 'v'}])
+        with self.assertRaisesRegex(tg.TrajectoryError, 'EMPTY_SHARED_VARIABLE'):
+            tg.match_prepared(pq, clash, trusted=True)
+
+
 if __name__ == '__main__':
     unittest.main()

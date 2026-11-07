@@ -142,8 +142,14 @@ def validate_patient(patient):
     return patient
 
 
-def patient_times(patient):
-    """Validate a patient record and return its `Times`, the network `match` decides over."""
+def patient_times(patient, trusted=False):
+    """Validate a patient record and return its `Times`, the network `match` decides over.
+
+    `trusted` skips the record's checks, for a caller that has already enforced them (the execution
+    store validates every event at ingest); the `Times` build, which also refuses an unsatisfiable
+    shared variable, still runs."""
+    if trusted:
+        return Times(events_of(patient), patient.get('window'))
     require(isinstance(patient, dict) and set(patient) <= {'patient_id', 'window', 'events'}, 'INVALID_PATIENT')
     require(type(patient.get('patient_id')) is str and patient['patient_id'], 'INVALID_PATIENT_ID')
     window = patient.get('window')
@@ -581,14 +587,47 @@ def _point_forest(step_ids, adjacency, domains, unary, binary, times):
     return binding, at
 
 
-def decide(query, times, relaxations, budget):
-    """Exact and possible decisions for one relaxation set over one patient's `Times`."""
+class _Plan:
+    """What `decide` derives from a query and one relaxation set before it sees any patient."""
+
+    __slots__ = ('concepts', 'constraints', 'unary', 'binary', 'forest', 'adjacency')
+
+    def __init__(self, query, relaxations):
+        step_ids = [s['id'] for s in query['steps']]
+        self.concepts, relations = applied(query, relaxations)
+        self.constraints = compile_constraints(query, relations)
+        self.unary, self.binary = _split(self.constraints, step_ids)
+        self.forest, self.adjacency = _components(step_ids, list(self.binary))
+
+
+class PreparedQuery:
+    """A validated query with everything patient-independent computed once: the declared relaxation
+    sets in search order, and for each set (and the unrelaxed query) its applied concepts,
+    compiled constraints, unary/binary split and step graph. `match_prepared` reads them for
+    every patient. The query must not be changed after it is prepared."""
+
+    def __init__(self, query):
+        self.query = validate_query(query)
+        self.step_ids = [s['id'] for s in query['steps']]
+        self.budget = query.get('search_budget', 40_000)
+        self.sets = relaxation_sets(query)
+        self._plans = {}
+
+    def plan(self, relaxations=()):
+        key = tuple(x['id'] for x in relaxations)
+        if key not in self._plans:
+            self._plans[key] = _Plan(self.query, relaxations)
+        return self._plans[key]
+
+
+def decide(query, times, relaxations, budget, plan=None):
+    """Exact and possible decisions for one relaxation set over one patient's `Times`.
+    `plan` is the set's `_Plan` when the caller has prepared it."""
     steps = query['steps']
     step_ids = [s['id'] for s in steps]
-    concepts, relations = applied(query, relaxations)
-    constraints = compile_constraints(query, relations)
-    unary, binary = _split(constraints, step_ids)
-    forest, adjacency = _components(step_ids, list(binary))
+    plan = plan or _Plan(query, relaxations)
+    concepts, constraints, unary, binary = plan.concepts, plan.constraints, plan.unary, plan.binary
+    forest, adjacency = plan.forest, plan.adjacency
     base = {s['id']: candidates(s, concepts[s['id']], times.events) for s in steps}
     result = {'forest': forest}
 
@@ -672,13 +711,18 @@ def _binding_ids(binding):
 
 def match(query, patient):
     """One patient's result. Statuses: exact, possible, relaxed, unresolved, none, excluded."""
-    validate_query(query)
-    times = patient_times(patient)
+    return match_prepared(PreparedQuery(query), patient)
+
+
+def match_prepared(pq, patient, trusted=False):
+    """`match` for a `PreparedQuery`; `trusted` skips the patient record's checks (see `patient_times`)."""
+    query = pq.query
+    times = patient_times(patient, trusted)
     pid, window = patient['patient_id'], patient.get('window')
     if window is None:
         return {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}
-    budget = query.get('search_budget', 40_000)
-    first = decide(query, times, (), budget)
+    budget = pq.budget
+    first = decide(query, times, (), budget, pq.plan())
     if first['exact']['found']:
         return {'patient_id': pid, 'status': 'exact', 'binding': _binding_ids(first['exact']['binding']),
                 'method': first['exact']['method'], 'complete': True}
@@ -692,8 +736,8 @@ def match(query, patient):
     # A stopped unrelaxed search ruled nothing out: unresolved, whatever a relaxation finds.
     stopped = not first['possible']['complete']
     skipped = False
-    for cost, chosen in relaxation_sets(query):
-        r = decide(query, times, chosen, budget)
+    for cost, chosen in pq.sets:
+        r = decide(query, times, chosen, budget, pq.plan(chosen))
         winner = 'exact' if r['exact']['found'] else 'possible' if r['possible']['found'] else None
         if winner is None:
             skipped = skipped or not r['possible']['complete']
@@ -717,8 +761,8 @@ def match(query, patient):
 
 
 def run(query, patients):
-    validate_query(query)
-    return {'profile': PROFILE_ID, 'results': [match(query, p) for p in patients]}
+    pq = PreparedQuery(query)
+    return {'profile': PROFILE_ID, 'results': [match_prepared(pq, p) for p in patients]}
 
 
 def main(argv=None):
