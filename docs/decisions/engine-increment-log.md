@@ -233,9 +233,16 @@ The open MIMIC-IV demo's reports commit `input_digest` and `snapshot_id`, which 
 
 Admission keeps only continuous IV segments: 9,424 of the demo's 20,404 inputevents rows are dropped, mostly drug pushes and boluses. A patient whose source recorded an item only in dropped rows would otherwise get `none`, as if the source had been searched.
 - **What the store keeps.** It names its source `inputevents:continuous_segments`, labels the admitted statuses and categories, and keeps an `excluded_records` table inside the snapshot identity.
-- **The rule.** A result still `none` after the coverage check becomes `not_comparable` (`ADMISSION_EXCLUDED_RECORDS`) when an excluded record of a step's concept, closure and widenings included, has a start the query's scope admits: anywhere for `any`, inside the window for `within`, and so on (`excluded_records_scope_v1`).
+- **Reach.** A step reaches an excluded record when the record's concept is one of the step's concepts or widenings, or a descendant of one, and the query's scope admits its start: anywhere for `any`, inside the window for `within`, and so on (`excluded_records_scope_v1`).
+- **The rule.** Excluded records can falsify more than a `none`, so the rule applies to every engine result, in this order:
+  - A `first` or `last` step whose bound event an excluded record could displace (`start_lo` at or before its `start_hi` for first, `start_hi` at or after its `start_lo` for last) makes the result `not_comparable`, whatever its status. The binding found may not be a binding of the query against the whole source, so it is not offered as a match beside an `unresolved` status.
+  - `none` becomes `not_comparable`.
+  - `relaxed` becomes `unresolved`, with the relaxed match beside it. `relaxed` asserts that no unrelaxed binding exists, and an excluded record can supply one; the engine already reports an undecided unrelaxed search this way.
+  - `possible` stays possible but becomes incomplete, with note `EXCLUDED_RECORDS_MAY_MAKE_EXACT`: it asserts that no binding is exact.
+  - `exact` and `possible` bindings whose steps all have occurrence `any` stand, because adding records only adds bindings.
+- **Structural concepts.** Excluded records carry an item class and its grouping, never the event kind's ontology classes. On a snapshot with excluded records, a query naming a structural class is refused (`STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN`) rather than answered blind.
 
 *Alternative declined:* "overlapping the window" for every scope. It would turn fewer results not comparable, but under scope `any` the engine can bind events outside the window, so it would be unsound.
 
-*Consequence:* on the demo, 27,257 of 50,000 differential results that were `none` become `not_comparable`. That is honest about how little a continuous-segment subset can rule out. It is not a defect to tune away.
+*Consequence:* on the demo's 50,000 differential results, 27,257 `none` results become `not_comparable`, 553 `first` or `last` matches (353 exact, 200 relaxed) become `not_comparable`, and 594 relaxed results become `unresolved` with their match beside them. No `possible` result arises, since every MIMIC time is exact. The store still agrees with the reference and with the admitted-only engine run under these rules, with no mismatch. That is honest about how little a continuous-segment subset can rule out. It is not a defect to tune away.
 

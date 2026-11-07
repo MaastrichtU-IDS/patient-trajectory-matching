@@ -165,19 +165,50 @@ def adapter_engine_input(rows, items):
     return out
 
 
+ADMISSION_CASES = ('none_not_comparable', 'first_or_last_displaced', 'relaxed_unresolved', 'possible_incomplete')
+
+
+def admission_case(g, a):
+    """Which excluded-records case turned the admitted-only engine result `a` into the store's `g`."""
+    if g.get('reason') == 'ADMISSION_EXCLUDED_RECORDS':
+        if g['status'] == 'unresolved':
+            return 'relaxed_unresolved'
+        return 'none_not_comparable' if a['status'] == 'none' else 'first_or_last_displaced'
+    if g['status'] == 'possible' and 'excluded_steps' in g:
+        return 'possible_incomplete'
+    return None
+
+
+def agrees(g, a, case):
+    """(whether the store's result `g` is the admitted-only engine result `a` under the store's rules,
+    whether a binding was compared). Decisions are compared field by field where a binding survives."""
+    if case == 'first_or_last_displaced':
+        return a['status'] in MATCHED, False
+    if case == 'relaxed_unresolved':
+        return a['status'] == 'relaxed' and all(g['relaxed_match'][k] == a[k] for k in DECISION), True
+    if g['status'] == 'not_comparable':
+        return a['status'] == 'none', False
+    same = g['status'] == a['status']
+    if same and 'binding' in a:
+        same = all(g.get(k) == a.get(k) for k in DECISION)
+    if same and 'relaxed_match' in a:
+        same = all(g['relaxed_match'].get(k) == a['relaxed_match'].get(k) for k in DECISION)
+    return same, 'binding' in a
+
+
 def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
     """The store path against exhaustive matching and against the adapter rows, over every patient.
 
     Against the reference, every status must agree, and every result the store's engine decided must
-    agree in full. Against the adapter rows, the decision must agree: status (the store's
-    `not_comparable` reads as `none`), binding, relaxations, cost and certainty. Returns counts, the
-    status mix, `not_comparable` by reason, relaxed results by relaxation kind, and the first few
-    mismatches (seed and status only) for diagnosis.
+    agree in full. Against the adapter rows, the decision must agree once the store's comparability
+    rules are allowed for (`agrees`): status, binding, relaxations, cost and certainty. Returns counts,
+    the status mix, `not_comparable` by reason, the excluded-records cases, relaxed results by
+    relaxation kind, and the first few mismatches (seed and status only) for diagnosis.
     """
     pool = concept_pool(ingest)
     ids = {i: p for i, p, _ in store.rows('patients')}
     mix, adapter_mix, reasons, relaxed_by_kind = Counter(), Counter(), Counter(), Counter()
-    bindings_compared = 0
+    bindings_compared, cases = 0, Counter()
     mismatches, adapter_mismatches, dropped, filtered, examples = 0, 0, 0, 0, []
     for seed in range(first_seed, first_seed + seeds):
         rng = random.Random(seed)
@@ -203,12 +234,11 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
                 examples.append({'seed': seed, 'store': g['status'], 'reference': w['status']})
             a = tg.match(query, {'patient_id': pid, 'window': windows.get(pid), 'events': engine_input.get(pid, [])})
             adapter_mix[a['status']] += 1
-            same = (g['status'] == a['status'] or (g['status'] == 'not_comparable' and a['status'] == 'none'))
-            if same and 'binding' in a:
-                bindings_compared += 1
-                same = all(g.get(k) == a.get(k) for k in DECISION)
-            if same and 'relaxed_match' in a:
-                same = all(g['relaxed_match'].get(k) == a['relaxed_match'].get(k) for k in DECISION)
+            case = admission_case(g, a)
+            if case:
+                cases[case] += 1
+            same, compared = agrees(g, a, case)
+            bindings_compared += compared
             if not same:
                 adapter_mismatches += 1
                 examples.append({'seed': seed, 'store': g['status'], 'adapter_rows': a['status']})
@@ -218,6 +248,7 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
             'adapter_row_status_mix': dict(sorted(adapter_mix.items())),
             'adapter_row_bindings_compared': bindings_compared,
             'not_comparable_by_reason': dict(sorted(reasons.items())),
+            'admission_exclusion_cases': {k: cases[k] for k in ADMISSION_CASES},
             'relaxations_used_by_status_and_kind': dict(sorted(relaxed_by_kind.items())),
             'mismatch_examples': examples[:5]}
 

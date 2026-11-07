@@ -346,6 +346,72 @@ class MatchingTests(unittest.TestCase):
             es.validate_ingest({**ingest, 'closure': {**ingest['closure'], 'bases': {'seizure': 'x'}}})
         self.assertEqual(caught.exception.code, 'INVALID_CONCEPT_BASES')
 
+    def admission_case(self, events, excluded, steps, relaxations=(), labels=None):
+        """One patient, items X and Y, `after A->B` within 60 minutes; the store's result and the reference's."""
+        m = lambda n: T0 + n * 60_000_000
+        ingest = {'profile': es.INGEST_PROFILE, 'dataset_id': 'admission', 'provenance': {'labels': labels} if labels else {},
+                  'closure': {'version': 'v', 'ancestors': {'X': [], 'Y': [], 'K': []},
+                              'bases': {'X': 'source_item_class', 'Y': 'source_item_class', 'K': 'ontology_closure'}},
+                  'patients': [{'patient_id': 'P', 'clock_id': 'c',
+                                'events': [ev(eid, [c, 'K'], (m(lo), m(hi))) for eid, c, lo, hi in events],
+                                'excluded': [{'source': 'ehr', 'concept': c, 'start': [m(t), m(t)], 'reason': 'DROPPED'}
+                                             for c, t in excluded],
+                                'coverage': [cover('ehr', m(-1000), m(1000))]}]}
+        query = {'profile': tg.PROFILE_ID, 'steps': steps,
+                 'relations': [{'id': 'R', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 60 * 60_000_000}],
+                 'relaxations': list(relaxations), 'budget': '1'}
+        windows = {'P': {'start': m(-1000), 'end': m(1000)}}
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+            got = es.match(store, query, windows)['results'][0]
+        want = ref.exhaustive_match(ingest, query, windows)[0]
+        self.assertEqual(got, want)
+        return got, ingest, query
+
+    def test_an_excluded_record_can_supply_the_unrelaxed_binding_a_relaxed_result_denies(self):
+        extend = {'id': 'wider', 'kind': 'extend_max', 'relation': 'R', 'max': 200 * 60_000_000, 'cost': '0.5'}
+        steps = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
+        got, _, _ = self.admission_case([('x', 'X', 0, 0), ('y', 'Y', 100, 100)], [], steps, [extend])
+        self.assertEqual(got['status'], 'relaxed')
+        got, _, _ = self.admission_case([('x', 'X', 0, 0), ('y', 'Y', 100, 100)], [('X', 50)], steps, [extend])
+        self.assertEqual(got, {'patient_id': 'P', 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                               'relaxed_match': {'relaxations': ['wider'], 'cost': '0.5', 'certainty': 'exact',
+                                                 'binding': {'A': 'x', 'B': 'y'}, 'method': got['relaxed_match']['method']},
+                               'excluded_steps': ['A'], 'complete': False})
+
+    def test_an_excluded_record_can_displace_a_first_or_last_target(self):
+        first = [{'id': 'A', 'concept': 'X', 'occurrence': 'first'}, {'id': 'B', 'concept': 'Y'}]
+        events = [('x', 'X', 100, 100), ('y', 'Y', 130, 130)]
+        self.assertEqual(self.admission_case(events, [], first)[0]['status'], 'exact')
+        got, _, _ = self.admission_case(events, [('X', 10)], first)
+        self.assertEqual(got, {'patient_id': 'P', 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                               'excluded_steps': ['A']})
+        # A later excluded X cannot be first, so the exact result stands.
+        self.assertEqual(self.admission_case(events, [('X', 120)], first)[0]['status'], 'exact')
+        last = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y', 'occurrence': 'last'}]
+        self.assertEqual(self.admission_case(events, [('Y', 500)], last)[0]['status'], 'not_comparable')
+        self.assertEqual(self.admission_case(events, [('Y', 50)], last)[0]['status'], 'exact')
+        # Occurrence `any`: an extra record only adds bindings, so exact stands.
+        anyx = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
+        self.assertEqual(self.admission_case(events, [('X', 10)], anyx)[0]['status'], 'exact')
+
+    def test_an_excluded_record_may_make_a_possible_result_exact(self):
+        steps = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
+        events = [('x', 'X', 0, 0), ('y', 'Y', 50, 70)]
+        self.assertEqual(self.admission_case(events, [], steps)[0]['status'], 'possible')
+        got, _, _ = self.admission_case(events, [('Y', 30)], steps)
+        self.assertEqual((got['status'], got['complete'], got['note'], got['excluded_steps']),
+                         ('possible', False, 'EXCLUDED_RECORDS_MAY_MAKE_EXACT', ['B']))
+
+    def test_structural_concepts_are_refused_where_excluded_records_cannot_carry_them(self):
+        steps = [{'id': 'A', 'concept': 'K'}, {'id': 'B', 'concept': 'Y'}]
+        labels = {'structural_concept_basis': 'ontology_closure'}
+        with self.assertRaises(es.StoreError) as caught:
+            self.admission_case([('x', 'X', 0, 0)], [('X', 5)], steps, labels=labels)
+        self.assertEqual(caught.exception.code, 'STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN')
+        # Without excluded records there is nothing they could hide.
+        self.assertEqual(self.admission_case([('x', 'X', 0, 0), ('y', 'Y', 30, 30)], [], steps, labels=labels)[0]['status'],
+                         'exact')
+
     def test_store_matches_exhaustive_matching_and_never_drops_a_match(self):
         started = time.perf_counter()
         mismatches, dropped, mix, filtered = differential(_STATE['store'], _STATE['ingest'], _STATE['reference'])

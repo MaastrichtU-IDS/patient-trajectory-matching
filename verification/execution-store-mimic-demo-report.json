@@ -206,9 +206,9 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "e7de23610593967c76c7ceedd034957384534765f83bec618afa147f004adf50",
+    "snapshot_id": "4169368ee7ba9f9adc805f14cd55953960a40628372ba4d828d8a74797d5c46c",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
-    "input_digest": "acbadb93c9df0756a9ee83dec0f4e1f618386f0a295f1fb3aa44da3f4e79d163",
+    "input_digest": "2c012e87db9ff8f0a62f2d7658e8f7fa5c611ac68bf0ed581143370248a48edc",
     "closure_version": "mimic-store-ingest-1.0:eaf0778bb0fde1e0566d331da7a2a58f073e585f859c9767f391b786ad05f5f2",
     "labels": {
       "acceptance": "caller_declared_accept_all_analysis_not_clinical_review",
@@ -225,7 +225,7 @@
       "history_mode": "retrospective",
       "source": "inputevents:continuous_segments",
       "source_table": "inputevents",
-      "structural_concept_basis": "event_kind_closure"
+      "structural_concept_basis": "ontology_closure"
     },
     "selection": {
       "available_at": "not_applied",
@@ -263,12 +263,12 @@
     "dropped_matches": 0,
     "filtered_by_candidate_filter": 33790,
     "status_mix": {
-      "exact": 1644,
+      "exact": 1291,
       "excluded": 2509,
       "none": 10262,
-      "not_comparable": 34765,
-      "relaxed": 818,
-      "unresolved": 2
+      "not_comparable": 35318,
+      "relaxed": 24,
+      "unresolved": 596
     },
     "adapter_row_status_mix": {
       "exact": 1644,
@@ -277,25 +277,32 @@
       "relaxed": 818,
       "unresolved": 2
     },
-    "adapter_row_bindings_compared": 2462,
+    "adapter_row_bindings_compared": 1909,
     "not_comparable_by_reason": {
-      "ADMISSION_EXCLUDED_RECORDS": 27257,
+      "ADMISSION_EXCLUDED_RECORDS": 27810,
       "NO_SOURCE_COVERAGE": 7508
     },
+    "admission_exclusion_cases": {
+      "none_not_comparable": 27257,
+      "first_or_last_displaced": 553,
+      "relaxed_unresolved": 594,
+      "possible_incomplete": 0
+    },
     "relaxations_used_by_status_and_kind": {
-      "relaxed:extend_max": 52,
-      "relaxed:widen_concept": 809
+      "relaxed:widen_concept": 26,
+      "unresolved:extend_max": 31,
+      "unresolved:widen_concept": 584
     },
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 62.06,
-    "admission_and_claims": 0.67,
-    "differential": 221.36,
-    "mapping": 0.27,
-    "store_build": 1.01,
-    "store_open_and_verify": 0.2,
-    "total": 285.65
+    "adapter": 65.28,
+    "admission_and_claims": 0.73,
+    "differential": 231.48,
+    "mapping": 0.28,
+    "store_build": 1.03,
+    "store_open_and_verify": 0.21,
+    "total": 299.09
   },
   "artifacts": {
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
@@ -314,13 +321,13 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "070c15603234bc7c06a020bc33cb5b4d3a6374ddb708c85efd8371796f76062e",
-    "patterns/execution_store_reference.py": "128647f37b94d1e3263ea0bf41cee0bb760f002139bdc430608503f3b0febc49",
+    "patterns/execution_store.py": "b46ac183eeae382b402f9f2d6c454e354076d0dffd577a1d0c8a6ad137c06fd3",
+    "patterns/execution_store_reference.py": "938c85a050d6f1979969520b9b98faf48ce3bca10446e6ed4ef663bff94e2570",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
     "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
-    "patterns/mimic_store_ingest.py": "c47fa19ec7152d086454c859ae0fac32b374fcc97988baeafcf38ae3980ace33",
+    "patterns/mimic_store_ingest.py": "8e3867a6bc2c24fd4330aeaa15ef25c0b6b031f3855e64c22e89ebf2a171626d",
     "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
     "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
     "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
@@ -332,7 +339,7 @@
     "patterns/trajectory_graph.py": "10c2d7fc6041dcbcd5520cef910e591af215442a38aed69e68cfee5d8c638df6",
     "patterns/trajectory_graph_sulo.py": "2b2af988bfb62b96c216ccb60f4e85794bd1e600920ba12270625a70719cd240",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
-    "patterns/verify_mimic_store_ingest.py": "0fe47d451dd402306514ccf0fb9a611f1628d1b49705c9785e7ffc76ea2fd0ea",
+    "patterns/verify_mimic_store_ingest.py": "c75da6f2a94481317def5ef248db2264098dccfb7984ed01012622548356acb0",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
     "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
     "schemas/execution-store-manifest.schema.json": "9017963acf3f17fe87356170435ed9f67b4cb29fed3a723bda359580e2cc9184",

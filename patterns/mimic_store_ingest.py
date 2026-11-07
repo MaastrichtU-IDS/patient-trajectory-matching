@@ -86,7 +86,7 @@ SELECTION = {'mode': 'retrospective', 'version': 'as_released', 'available_at': 
              'note': ('every admitted inputevents row of the release as read, all accepted for analysis; the release '
                       'carries no revision history or source availability times, so neither selects records')}
 LABELS = {'clinical_mapping_verified': False, 'concept_basis': CONCEPT_BASIS, 'ancestor_basis': GROUP_BASIS,
-          'structural_concept_basis': KIND_BASIS, 'coverage_basis': COVERAGE_BASIS,
+          'structural_concept_basis': ONTOLOGY_BASIS, 'coverage_basis': COVERAGE_BASIS,
           'extended_coverage_basis': EXTENDED_COVERAGE_BASIS, 'history_mode': 'retrospective',
           'acceptance': 'caller_declared_accept_all_analysis_not_clinical_review',
           'source': SOURCE, 'source_table': SOURCE_TABLE, 'admission_profile': admission.PROFILE,

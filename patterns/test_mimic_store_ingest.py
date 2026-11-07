@@ -195,6 +195,13 @@ class LabelTests(unittest.TestCase):
         self.assertEqual({r[4] for r in rows.values()}, {'source_item_class', 'source_dictionary_grouping',
                                                           'ontology_closure'})
 
+    def test_structural_classes_are_refused_since_excluded_records_cannot_carry_them(self):
+        query = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'K', 'concept': KIND}]}
+        with self.assertRaises(es.StoreError) as caught:
+            es.match(STATE['store'], query, {})
+        self.assertEqual(caught.exception.code, 'STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN')
+        self.assertEqual(STATE['store'].manifest['labels']['structural_concept_basis'], 'ontology_closure')
+
     def test_labels_name_the_admitted_subset(self):
         labels = STATE['store'].manifest['labels']
         self.assertEqual(labels['source'], 'inputevents:continuous_segments')

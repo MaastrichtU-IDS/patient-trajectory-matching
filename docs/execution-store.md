@@ -158,15 +158,26 @@ When a patient's result is `none`, whether the engine returned it or the filter 
 
 If some step is not covered, the result is `{"status": "not_comparable", "reason": "NO_SOURCE_COVERAGE", "uncovered_steps": […]}`: these records could not have answered the question. If some step's concepts are recorded by no source at all, the reason is `NO_SOURCE_RECORDS_CONCEPT` instead, with `unrecorded_steps` listing those steps.
 
-**Excluded records** (rule `excluded_records_scope_v1`). A `none` that survives the coverage check is then checked against `excluded_records`. A step is affected when the patient has an excluded record whose concept is one of the step's concepts or widenings, or a descendant of one, and whose start the query's scope admits:
+**Excluded records** (rule `excluded_records_scope_v1`). Records the ingest left out can change any decision the engine made over the records it kept, so every engine result, and every `none` that survives the coverage check, is checked against `excluded_records`. A step *reaches* an excluded record when the record's concept is one of the step's concepts or widenings, or a descendant of one, and the query's scope admits its start:
 - `within`: the start range meets the window;
 - `from_start`: it can be at or after the window's start;
 - `after`: it can be at or after the window's end;
 - `any`: always, since such a step may bind an event anywhere.
 
-If any step is affected, the result is `{"status": "not_comparable", "reason": "ADMISSION_EXCLUDED_RECORDS", "excluded_steps": […]}`. A search that could not see every record the source held is not a non-match (engine design §4.3). The scope is the only constraint every step carries, so the test over-approximates: it may call a `none` incomparable that the excluded records could not in fact have changed, but never the reverse. Coverage reasons take precedence.
+The scope is the only constraint every step carries, so reaching over-approximates: it may flag a result the excluded records could not in fact have changed, but never the reverse. If no step reaches an excluded record, the result stands. Otherwise, in this order:
 
-An exact, possible, relaxed or unresolved result is never changed. A filtered `none` keeps `"reason": "FILTERED"`.
+| Case | Result | Why |
+|---|---|---|
+| A `first` or `last` step reaches an excluded record that could displace its bound event: `start_lo` at or before the bound event's `start_hi` for `first`, `start_hi` at or after its `start_lo` for `last` (on any status with a binding, or the binding of an `unresolved` result's relaxed match) | `not_comparable` | The step's target may be the excluded record, so the binding found may not be a binding of the query at all. Carrying it beside an `unresolved` status would present as a match something that may not be one |
+| `none` | `not_comparable` | The excluded records may hold a binding. A search that could not see every record the source held is not a non-match (engine design §4.3) |
+| `relaxed` | `unresolved`, with the relaxed match beside it as `relaxed_match` and `complete: false` | `relaxed` asserts that no unrelaxed binding exists, and an excluded record may supply one. This is the engine's own convention when the unrelaxed search is undecided |
+| `possible` | `possible`, with `complete: false` and note `EXCLUDED_RECORDS_MAY_MAKE_EXACT` | `possible` asserts that no binding is exact, and an excluded record may make one exact |
+
+Each changed result has reason `ADMISSION_EXCLUDED_RECORDS` (as a note, for `possible`) and lists `excluded_steps`. An `exact` or `possible` binding whose steps all have occurrence `any` stands, since adding records only adds bindings. An `unresolved` result without a binding is already undecided and is left alone. Coverage reasons take precedence.
+
+**Structural concepts.** An excluded record carries a source concept and that concept's closure, never the structural classes its event would have had (labels `structural_concept_basis`, such as an event kind's ontology classes). On a snapshot holding excluded records, a query or widening naming a structural concept is therefore refused (`STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN`), not answered as if those records were not there.
+
+Coverage never changes an exact, possible, relaxed or unresolved result. A filtered `none` keeps `"reason": "FILTERED"`.
 
 Limits in stage 1:
 - **Inferred recorders.** Which sources record a concept is inferred from the snapshot's records, not declared by the source owner (D-HISTORY).
@@ -256,7 +267,7 @@ Every `concept_closure` row carries the kind of its concept and its ancestor, an
 The manifest's `labels` say:
 - `clinical_mapping_verified: false`;
 - `concept_basis: source_item_class` and `ancestor_basis: source_dictionary_grouping`;
-- `structural_concept_basis: event_kind_closure`;
+- `structural_concept_basis: ontology_closure`, the kind of the event kind's class and its ancestors;
 - `source: inputevents:continuous_segments`, from `source_table: inputevents` under admission profile `mimic-inputevents-staging-1.0`;
 - the admitted statuses (`ChangeDose/Rate|FinishedRunning|Paused|Stopped`) and order categories (`Continuous IV|Continuous Med`), and what admission leaves out;
 - `coverage_basis: inferred:icustay`, and `extended_coverage_basis: inferred:icustay+records`;
@@ -274,7 +285,7 @@ So every dropped row is kept in `excluded_records`, as its item class, its start
 - A row whose item the dictionary does not hold has no concept, and is only counted.
 - Item classes seen only in dropped rows join the closure, so a query naming one is answered rather than refused. No source records them, so every patient's `none` on them is `not_comparable` (`NO_SOURCE_RECORDS_CONCEPT`).
 
-`match` then reports a `none` that an excluded record could have changed as `not_comparable` with `ADMISSION_EXCLUDED_RECORDS` (rule `excluded_records_scope_v1`, under [Comparability](#comparability)).
+`match` then qualifies every result an excluded record could have changed, with `ADMISSION_EXCLUDED_RECORDS` (rule `excluded_records_scope_v1`, under [Comparability](#comparability)). A `none` or a displaced `first` or `last` target becomes `not_comparable`; a `relaxed` becomes `unresolved` with its match beside it; a `possible` becomes incomplete. Structural classes, which excluded records cannot carry, are refused as query concepts.
 
 ### Coverage, patients without admitted rows, and refusals
 
@@ -298,7 +309,7 @@ So every dropped row is kept in `excluded_records`, as its item class, its start
 | Refused patients | 0 |
 | Table rows: `event_concepts`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 1,412, 330, 84 |
 
-The snapshot identifier is `e7de23610593967c76c7ceedd034957384534765f83bec618afa147f004adf50`. It changes whenever the converter or the store builder changes, or the rows they produce do.
+The snapshot identifier is `4169368ee7ba9f9adc805f14cd55953960a40628372ba4d828d8a74797d5c46c`. It changes whenever the converter or the store builder changes, or the rows they produce do.
 
 **Raw times.** Every one of the 10,980 events has its start, end and recorded time checked against its raw source row, to the microsecond, with no mismatch.
 
@@ -307,32 +318,41 @@ The snapshot identifier is `e7de23610593967c76c7ceedd034957384534765f83bec618afa
 - `exhaustive_match` over the whole ingest;
 - the engine over each patient's adapter rows directly, without the store mapping or either comparability rule.
 
-Of the 50,000 patient results, none mismatch on either comparison, and the candidate filter drops no match. Against the adapter rows, decisions are compared, not only statuses: binding, relaxations, cost and certainty, for the 2,462 results that bind.
+Of the 50,000 patient results, none mismatch on either comparison, and the candidate filter drops no match. Against the adapter rows, decisions are compared, not only statuses: binding, relaxations, cost and certainty, for the 1,909 results whose binding survives. Where the store's rules changed a result, it must follow from the admitted-only engine result as the table above says.
 
 | Status | Results |
 |---|---|
-| `exact` | 1,644 |
-| `relaxed` | 818 |
-| `unresolved` | 2 |
+| `exact` | 1,291 |
+| `relaxed` | 24 |
+| `unresolved` (594 of them `ADMISSION_EXCLUDED_RECORDS`) | 596 |
 | `none` | 10,262 |
-| `not_comparable`, `ADMISSION_EXCLUDED_RECORDS` | 27,257 |
+| `not_comparable`, `ADMISSION_EXCLUDED_RECORDS` | 27,810 |
 | `not_comparable`, `NO_SOURCE_COVERAGE` | 7,508 |
 | `excluded` | 2,509 |
 
-The relaxed results use 809 concept widenings and 52 extended maxima. The filter keeps 16,210 of the 50,000 patient results for the matcher. There is no `possible`, since every recorded MIMIC time is exact.
+The excluded-records cases, out of the admitted-only engine's 1,644 exact, 818 relaxed and 45,027 `none` results:
 
-Most `none` results become `ADMISSION_EXCLUDED_RECORDS`. That is what the subset costs: 99 of the 100 patients have dropped rows, mostly of common items, and under scope `any` a dropped record at any time could have bound a step. Before this rule, those 27,257 results were reported as `none`.
+| Case | Results |
+|---|---|
+| `none` to `not_comparable` | 27,257 |
+| `first` or `last` target displaced, to `not_comparable` (353 exact, 200 relaxed) | 553 |
+| `relaxed` to `unresolved` with the match beside it | 594 |
+| `possible` made incomplete | 0, since every recorded MIMIC time is exact |
+
+The 24 relaxed results that stand use 26 concept widenings; the 594 relaxed matches carried beside `unresolved` use 584 widenings and 31 extended maxima. The filter keeps 16,210 of the 50,000 patient results for the matcher.
+
+Most `none` results become `not_comparable`, and most relaxed ones `unresolved`. That is what the subset costs: 99 of the 100 patients have dropped rows, mostly of common items, and under scope `any` a dropped record at any time could have bound a step.
 
 **Timings**, on one laptop with CPython 3.12 and DuckDB 2.0.0:
 
 | Step | Time |
 |---|---|
 | Admission and claim stores | 0.7 s |
-| 424 stores through isolation, acceptance, the graph route and `ingest_rows`, 8 worker processes | 62 s (about 480 CPU-seconds) |
+| 424 stores through isolation, acceptance, the graph route and `ingest_rows`, 8 worker processes | 65 s (about 480 CPU-seconds) |
 | Mapping, excluded records and coverage | 0.3 s |
 | Building the snapshot | 1.0 s |
 | Opening and verifying it | 0.2 s |
-| Differential (500 queries, three paths) | 221 s |
+| Differential (500 queries, three paths) | 231 s |
 
 ### Chartevents path
 

@@ -560,6 +560,23 @@ def _known(store, concepts):
         raise StoreError('UNKNOWN_QUERY_CONCEPT', ', '.join(unknown))
 
 
+def _visible_to_exclusions(store, concepts):
+    """Refuse structural query concepts on a snapshot holding excluded records.
+
+    An excluded record carries a source concept and that concept's closure, but not the structural
+    classes (labels `structural_concept_basis`) that its events would have had. A query on such a
+    class could not see the excluded records, so its `none` would rest on what it could not see.
+    """
+    basis = (store.manifest.get('labels') or {}).get('structural_concept_basis')
+    if basis is None or not store.query('SELECT count(*) FROM excluded_records')[0][0]:
+        return
+    structural = sorted(r[0] for r in store.query(
+        f"SELECT concept FROM concept_closure WHERE basis = 'self' AND concept_basis = ? AND concept IN {_in(concepts)}",
+        [basis] + list(concepts)))
+    if structural:
+        raise StoreError('STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN', ', '.join(structural))
+
+
 def candidates(store, query):
     """Patients who could match under some relaxation set the engine would try.
 
@@ -569,6 +586,7 @@ def candidates(store, query):
     tg.validate_query(query)
     per_step = _step_concepts(query)
     _known(store, sorted({c for cs in per_step.values() for c in cs}))
+    _visible_to_exclusions(store, sorted({c for cs in per_step.values() for c in cs}))
     plan = []
     for step, concepts in per_step.items():
         patients = {r[0] for r in store.query(
@@ -658,13 +676,12 @@ def admits_start(scope, window, lo, hi):
     return True
 
 
-def _exclusions(store, query, per_step, idxs, windows_by_idx):
-    """{patient_idx: steps} for patients holding excluded records a step could have bound.
+def _excluded_starts(store, query, per_step, idxs, windows_by_idx):
+    """{patient_idx: {step: [(start_lo, start_hi)]}}: the excluded records each step could have bound.
 
-    Rule EXCLUSION_RULE: a step is affected when the patient has an excluded record whose concept is
-    one of the step's concepts or widenings, or a descendant of one (through the closure), and whose
-    start the query's scope admits (`admits_start`). Such a `none` was decided without records the
-    source held, so it is not a non-match.
+    A step could have bound an excluded record whose concept is one of the step's concepts or
+    widenings, or a descendant of one (through the closure), and whose start the query's scope
+    admits (`admits_start`).
     """
     if not idxs:
         return {}
@@ -674,16 +691,61 @@ def _exclusions(store, query, per_step, idxs, windows_by_idx):
             SELECT x.patient_idx, cc.ancestor, x.start_lo, x.start_hi FROM excluded_records x
             JOIN concept_closure cc ON cc.concept = x.concept
             WHERE cc.ancestor IN {_in(concepts)} AND x.patient_idx IN {_in(idxs)}""", concepts + list(idxs)):
-        found.setdefault(idx, []).append((ancestor, lo, hi))
+        found.setdefault(idx, set()).add((ancestor, lo, hi))
     scope = query.get('scope', 'any')
     out = {}
     for idx, records in found.items():
         w = windows_by_idx[idx]
-        steps = [step for step, cs in per_step.items()
-                 if any(c in cs and admits_start(scope, w, lo, hi) for c, lo, hi in records)]
+        steps = {step: sorted({(lo, hi) for c, lo, hi in records if c in cs and admits_start(scope, w, lo, hi)})
+                 for step, cs in per_step.items()}
+        steps = {step: starts for step, starts in steps.items() if starts}
         if steps:
             out[idx] = steps
     return out
+
+
+def apply_exclusions(query, result, touched, starts):
+    """Rule EXCLUSION_RULE: what a result may still say when excluded records could have changed it.
+
+    `touched` maps each step to the starts of the excluded records it could have bound; `starts` maps
+    an event id to its start bounds. Adding records only adds bindings, so an `exact` or `possible`
+    binding stands, except:
+    - a `first` or `last` step's target can move to an excluded record (`start_lo` at or before the
+      bound event's `start_hi` for first, `start_hi` at or after its `start_lo` for last). The found
+      binding may then not be a binding of the query at all, so the result is `not_comparable`,
+      whatever the engine said;
+    - `none` may hide a binding: `not_comparable`;
+    - `relaxed` claims no unrelaxed binding exists, which an excluded record may supply: `unresolved`,
+      with the relaxed match beside it, the engine's own convention for an undecided unrelaxed search;
+    - `possible` claims no exact binding exists: still possible, but `complete: false`.
+    Every changed result names the steps (`excluded_steps`) and the reason ADMISSION_EXCLUDED_RECORDS.
+    """
+    if not touched or result['status'] not in ('exact', 'possible', 'relaxed', 'unresolved', 'none'):
+        return result
+    order = [step['id'] for step in query['steps']]
+    occurrence = {step['id']: step.get('occurrence', 'any') for step in query['steps']}
+    steps = [step for step in order if step in touched]
+    pid = result['patient_id']
+    incomparable = lambda which: {'patient_id': pid, 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                                  'excluded_steps': which}
+    binding = result.get('binding') or result.get('relaxed_match', {}).get('binding')
+    if binding is not None:
+        moved = [step for step in steps
+                 if (occurrence[step] == 'first' and any(lo <= starts[binding[step]][1] for lo, _ in touched[step]))
+                 or (occurrence[step] == 'last' and any(hi >= starts[binding[step]][0] for _, hi in touched[step]))]
+        if moved:
+            return incomparable(moved)
+    if result['status'] == 'none':
+        return incomparable(steps)
+    if result['status'] == 'relaxed':
+        relaxed = {k: result[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                'relaxed_match': relaxed, 'excluded_steps': steps, 'complete': False}
+    if result['status'] == 'possible':
+        note = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
+        return {**result, 'complete': False, 'excluded_steps': steps,
+                'note': result['note'] + '; ' + note if 'note' in result else note}
+    return result
 
 
 def match_context(store, query, windows):
@@ -734,10 +796,11 @@ def match(store, query, windows):
                         'uncovered_steps': missing}
         if unrecorded:
             results[idx]['unrecorded_steps'] = unrecorded
-    nones = [idx for idx, r in results.items() if r['status'] == 'none']
-    for idx, steps in _exclusions(store, query, per_step, nones, windows_by_idx).items():
-        results[idx] = {'patient_id': results[idx]['patient_id'], 'status': 'not_comparable',
-                        'reason': 'ADMISSION_EXCLUDED_RECORDS', 'excluded_steps': steps}
+    # Records the ingest left out can change any engine decision, not only a `none`.
+    decided = [idx for idx, r in results.items() if r['status'] in ('exact', 'possible', 'relaxed', 'unresolved', 'none')]
+    starts = {e['id']: e['start'] for evs in events.values() for e in evs}
+    for idx, touched in _excluded_starts(store, query, per_step, decided, windows_by_idx).items():
+        results[idx] = apply_exclusions(query, results[idx], touched, starts)
     ordered = [results[idx] for idx, _ in patients]
     counts = {}
     for r in ordered:
