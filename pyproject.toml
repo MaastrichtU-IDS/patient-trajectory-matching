@@ -28,6 +28,7 @@ include = ["patterns/**", "reference_oracle.py"]
 exclude = [
     "patterns/test_*.py",
     "patterns/verify_*.py",
+    "patterns/fixtures/**",
     "**/__pycache__",
     "*.pyc",
 ]

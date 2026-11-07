@@ -250,6 +250,11 @@ Limits in stage 1:
   - the labels.
 - `context_id`: the sha256 of that context. It is the key under which a result can be cached or audited, as engine design §4.5 asks.
 
+`match(store, query, windows, detail='full', chunk=2000)`:
+- `detail='full'` (the default) lists every patient in `results`, in patient order, exactly as before the chunked matcher (D21).
+- `detail='decided'` lists only the patients the engine ran on (every candidate that has a window) and those whose status comparability or exclusion changed from `none`, in patient order. It adds `detail: 'decided'` and `implicit: {FILTERED: n, NO_INDEX_WINDOW: m}`, the numbers of patients left out, by the result `full` would show for them (`none` with reason `FILTERED`; `excluded`). `counts` and every other field equal the `full` output's, and each listed result equals its `full` counterpart. Use it when the caller needs the decided patients and the counts, not 300,000 identical `FILTERED` dicts.
+- `chunk` is the number of candidates loaded and matched at a time; it changes no result.
+
 ## Determinism
 
 - Building with one thread and with four threads gives the same `snapshot_id` and table digests.
@@ -305,22 +310,22 @@ The report covers 1,000 to 300,000 patients. The 1,000,000-patient attempt is no
 | | 1,000 | 10,000 | 100,000 | 300,000 |
 |---|---|---|---|---|
 | Events | 172,754 | 1,731,493 | 17,314,930 | 51,944,790 |
-| Build (`StoreBuilder`, add to publish) | 5.1 s | 48.7 s | 504 s | 1,560 s |
-| of which `add()` | 2.2 s | 22 s | 226 s | 682 s |
-| Peak memory, build process | 0.52 GiB | 3.46 GiB | 7.86 GiB | 8.85 GiB |
+| Build (`StoreBuilder`, add to publish) | 5.4 s | 49.5 s | 501 s | 1,586 s |
+| of which `add()` | 2.0 s | 23 s | 226 s | 684 s |
+| Peak memory, build process | 0.53 GiB | 2.50 GiB | 8.37 GiB | 8.72 GiB |
 | 1.0: build / peak | 4.3 s / 1.2 GB | 38.8 s / 11.8 GB | killed at 40.5 GiB after 327 s | not attempted |
 | Snapshot on disk | 14.4 MB | 142.8 MB | 1.34 GB | 3.85 GB |
 | Staged ndjson (deleted once loaded) | 0.12 GB | 1.19 GB | 12.0 GB | 36.0 GB |
-| Open with the `files` check, cold / warm | 0.18 / 0.02 s | 0.10 / 0.06 s | 0.80 / 0.47 s | 1.32 / 1.29 s |
+| Open with the `files` check, cold / warm | 0.06 / 0.02 s | 0.10 / 0.06 s | 0.49 / 0.46 s | 1.49 / 1.29 s |
 | 1.0: open with full content verification | 0.89 s | 8.1 s | | |
 | `content` verification of the files | 0.9 s | 8.3 s | 83 s | 247 s |
 | Peak memory, content verification | 0.19 GiB | 0.56 GiB | 2.37 GiB | 7.78 GiB |
 | 1.0: peak memory, verification | 0.38 GiB | 2.95 GiB | about 30 GiB (extrapolated) | |
-| Peak memory, query process | 0.59 GiB | 1.56 GiB | 6.84 GiB | 21.0 GiB |
-| `candidates()` p50 / max | 1.5 / 2.5 ms | 3.6 / 5.8 ms | 20 / 32 ms | 56 / 103 ms |
-| `match()` p50 / max | 0.10 / 1.00 s | 1.20 / 10.6 s | 3.5 / 29.6 s | 10.0 / 95.0 s |
+| Peak memory, query process (D21 matcher; 2.0 as first measured: 0.59, 1.56, 6.84, 21.0 GiB) | 0.56 GiB | 1.02 GiB | 1.11 GiB | 2.30 GiB |
+| `candidates()` p50 / max | 1.3 / 2.1 ms | 3.4 / 5.5 ms | 19 / 32 ms | 54 / 97 ms |
+| `match()` p50 / max (D21 matcher; 2.0 as first measured: 0.10 / 1.00, 1.20 / 10.6, 3.5 / 29.6, 10.0 / 95.0 s) | 0.08 / 0.92 s | 0.79 / 9.56 s | 1.9 / 23.7 s | 5.4 / 72.3 s |
 
-The whole run took 3,296 s (55 min). No generator seed failed (21 of 21 at 1,000 patients, 209 of 209 at 10,000).
+The table is the report as regenerated for D21 (the build, open and match rows differ slightly from the first 2.0 run, within run-to-run variation; the rows not listed here, the build stages and the 1,000,000-patient finding below are from that first run); its matching rows use the chunked matcher of [Matching cost](#matching-cost-d21). The first run took 3,296 s (55 min). No generator seed failed (21 of 21 at 1,000 patients, 209 of 209 at 10,000).
 
 ### Where memory and time go in the build
 
@@ -363,7 +368,40 @@ This is the next storage wall, and it is DuckDB's, not Python's. The remedies, c
 - **Build time, snapshot size and rows are linear**: 9 to 10 times for 10 times the patients, and 3 times for 3 times. At this rate 1,000,000 patients would take roughly 90 minutes to build once the derive fits.
 - **Build memory is DuckDB's buffer pool plus what DuckDB does not return.** It grows slowly with size (3.5, 7.9 and 8.9 GiB at 10,000, 100,000 and 300,000), not linearly with events as in 1.0 (about 6 KB per event).
 - **Opening is fast at every size.** The `files` check reads the Parquet bytes once: 0.47 s warm at 100,000 and 1.3 s at 300,000, against 8.1 s for the 1.0 content check at 10,000.
-- **Matching is now the wall.** The query process peaked at 21.0 GiB at 300,000, and a wide `match()` took 95 s. `match()` builds a Python result for every patient and loads every candidate's events into Python. This is D19's step 3: remove the per-patient floor, move the comparability check into SQL, join candidates per bucket, and then choose between partition-parallel Python and a Rust matcher by measurement.
+- **Matching is now the wall.** (As first measured, before D21: the query process peaked at 21.0 GiB at 300,000 and a wide `match()` took 95 s; the chunked matcher holds 2.3 GiB and takes 72 s.) `match()` builds a Python result for every patient and loads every candidate's events into Python. This is D19's step 3: remove the per-patient floor, move the comparability check into SQL, join candidates per bucket, and then choose between partition-parallel Python and a Rust matcher by measurement.
+
+### Matching cost (D21)
+
+`tools/benchmark_matcher.py` and `verification/matcher-comparison-report.json` compare the matcher before and after the first D21 change on the same snapshots and the same seeded queries (50 queries with 3 repeats up to 10,000 patients; 10 queries once above). Each arm and size runs in its own process. The report binds the benchmark, `execution_store.py`, `trajectory_graph.py`, `temporal_stn.py`, the scaling benchmark and the byte-identity fixture.
+
+**What changed (arm B).** Results are byte-identical to arm A's; the report compares a digest of every patient's result, query by query (50 of 50 at 1,000 and 10,000 patients, 10 of 10 at 100,000 and 300,000), and the test suite compares 300 seeded queries against a committed fixture made from the old matcher.
+- Candidates are loaded and matched 2,000 at a time (`chunk`): the chunk goes into a temporary table, the events are joined to it (and to the index range it spans) instead of an `IN` list of up to 106,000 parameters, and only each compact result is kept.
+- `trajectory_graph.PreparedQuery` validates the query once and caches the applied concepts, compiled constraints, constraint split, step graph and relaxation sets per query and per relaxation set; the store calls `match_prepared(pq, patient, trusted=True)`, which skips the per-event checks the store made at ingest (`Times` still runs).
+- Windows are checked as plain integers with the same refusal codes, no result dict is built for filtered patients until the output asks for it, and `detail='decided'` lists only decided patients.
+- Comparability runs in SQL: the windows go into a temporary table and the coverage-overlap test is a join. The excluded-record read is streamed.
+
+**Arm A against arm B** (wall time of `match()` over the queries, detail `full`; per-candidate cost is total seconds over total candidates; peak is the query process's resident set):
+
+| Patients | Arm | p50 / p95 / max (s) | End to end (engine only) µs per candidate | Peak RSS |
+|---|---|---|---|---|
+| 1,000 | A | 0.10 / 0.45 / 1.01 | 588 (388) | 0.29 GiB |
+| | B | 0.07 / 0.34 / 0.89 | 442 (290) | 0.27 GiB |
+| 10,000 | A | 1.00 / 4.55 / 10.2 | 592 (378) | 1.42 GiB |
+| | B | 0.72 / 3.81 / 9.06 | 449 (285) | 0.88 GiB |
+| 100,000 | A | 3.38 / 28.8 / 28.8 | 735 (388) | 7.85 GiB |
+| | B | 1.83 / 23.5 / 23.5 | 536 (299) | 0.72 GiB |
+| 300,000 | A | 10.2 / 93.7 / 93.7 | 760 (388) | 19.8 GiB |
+| | B | 4.92 / 71.1 / 71.1 | 532 (296) | 0.92 GiB |
+
+At 100,000 and 300,000 the p95 is the maximum, since there are ten queries. `detail='decided'` costs the same to within noise (the per-patient floor was already small); it shrinks the output, not the time.
+
+- **Memory** is the clear win: 19.8 GiB to 0.92 GiB at 300,000, and flat in the number of patients, as chunking intends. The caller's own window dictionary and the full result are in that figure.
+- **Time** falls by about a third to a half at the median and by a quarter at the maximum. Per-candidate cost no longer grows with the cohort (A: 588 to 760 µs, B: 442 to 532 µs, the rest being wider candidates in the larger queries' mix). Event loading is now 205 µs per candidate, so loading rather than memory is the limit of this change.
+- **The floor** for a query with no candidates fell from about 15 µs a patient to about 4 µs (1.5 s to 0.33 s at 100,000 in a profiled run).
+
+**Where time goes now.** cProfile of the widest query at 10,000 patients (seed 15, 9,994 candidates; the scaling report's profile): the engine 74%, loading events 23%, comparability 0.5%, window checks 0.1%, context digests 1%. At 100,000 (a wide query, 25,000 candidates, run by hand) the engine's pairwise kernel dominates: `certain`, `plausible` and `gap` with their generators are about 60% of the time, 48 million `gap` calls for 25,000 patients, and the loader about 11%. What is left is the engine's arc consistency over each step's candidate events, which is algorithmic (time pruning of the domains) or parallel work, not waste.
+
+**Target (D21)** is a 300,000-patient full-detail `match()` with p95 at most 10 s, maximum at most 30 s and query-process memory under 4 GB. Arm B meets the memory target (0.92 GiB) and misses the latency targets (p95 and maximum 71 s). Arm C (parallel) is next.
 
 ### Limits of this evidence
 

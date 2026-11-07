@@ -443,13 +443,14 @@ def cprofile_worker(snapshot, size, threads):
     def cumulative(file_part, name):
         return sum(v[3] for (f, _, n), v in stats.items() if n == name and f.endswith(file_part))
     total = cumulative('execution_store.py', 'match')
-    parts = {'candidates_inside_match': cumulative('execution_store.py', 'candidates'),
+    parts = {'candidates_inside_match': cumulative('execution_store.py', '_candidates'),
              'load_candidate_events': cumulative('execution_store.py', '_load_events'),
-             'engine_trajectory_graph_match': cumulative('trajectory_graph.py', 'match'),
-             'window_validation': cumulative('trajectory_graph.py', 'validate_patient'),
+             'engine_trajectory_graph_match': cumulative('trajectory_graph.py', 'match_prepared'),
+             'window_validation': cumulative('execution_store.py', '_check_window'),
              'comparability_of_none_results': cumulative('execution_store.py', '_comparability'),
              'excluded_records_rule': cumulative('execution_store.py', '_excluded_starts')
-                                       + cumulative('execution_store.py', 'apply_exclusions'),
+                                       + cumulative('execution_store.py', 'apply_exclusions')
+                                       + cumulative('execution_store.py', '_bound_starts'),
              'match_context_digests': cumulative('execution_store.py', 'match_context')}
     parts['other_result_handling'] = total - sum(parts.values())
     store.close()

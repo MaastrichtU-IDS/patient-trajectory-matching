@@ -1,0 +1,3507 @@
+{
+  "profile": "matcher-comparison-1.0",
+  "parameters": {
+    "sizes": [
+      1000,
+      10000,
+      100000,
+      300000
+    ],
+    "queries": 50,
+    "repeats": 3,
+    "large_queries": 10,
+    "large_repeats": 1,
+    "small_max_size": 10000,
+    "threads": 1,
+    "memory_limit": "4GB",
+    "chunk_patients": 2000
+  },
+  "environment": {
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "machine": "arm64",
+    "cpu": "Apple M4 Pro",
+    "logical_cpus": 14,
+    "memory_bytes": 68719476736,
+    "python": "3.12.15",
+    "duckdb": "2.0.0",
+    "duckdb_threads": 1,
+    "duckdb_memory_limit": "4GB",
+    "python_threads_for_matching": 1
+  },
+  "arms": {
+    "A": {
+      "description": "matcher before D21: one IN-list load of every candidate, validate every patient, one result dict per patient",
+      "git_ref": "7dc3364",
+      "git_commit": "7dc33642f40fd0667de568be52e3fabc6dd66793",
+      "code_root": "extracted from git archive",
+      "artifacts": {
+        "patterns/execution_store.py": "09466428e2a62f4069b75cad5a72d99c9b3c06ebe79623c7d4a9f1e21020f1a6",
+        "patterns/trajectory_graph.py": "10c2d7fc6041dcbcd5520cef910e591af215442a38aed69e68cfee5d8c638df6",
+        "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+      }
+    },
+    "B": {
+      "description": "D21 step 1: chunked load and match, PreparedQuery, trusted events, integer window checks, SQL comparability; detail='full'",
+      "git_ref": "this tree"
+    },
+    "B_decided": {
+      "description": "arm B with detail='decided'"
+    },
+    "C": {
+      "status": "not_run",
+      "description": "parallel Python at 1, 2, 4, 8 and 14 workers over chunks (a later change)"
+    },
+    "D": {
+      "status": "not_run",
+      "description": "Rust matcher, single-threaded and batched, including FFI (a later change, built only if B+C misses the target)"
+    },
+    "D'": {
+      "status": "not_run",
+      "description": "Rust matcher, parallel (a later change, same condition)"
+    }
+  },
+  "target": {
+    "size": 300000,
+    "match_seconds_p95_max": 10.0,
+    "match_seconds_max_max": 30.0,
+    "query_process_peak_rss_bytes_below": 4294967296,
+    "detail": "full",
+    "machine": "Apple M4 Pro, 64 GB"
+  },
+  "sizes": [
+    {
+      "size": 1000,
+      "snapshot_id": "08e9c50f98118ef8786aadec56df652df208c6aac968dbdd16f3c66f8aaf203b",
+      "queries": 50,
+      "repeats": 3,
+      "arms": {
+        "A": {
+          "queries": 50,
+          "repeats": 3,
+          "match_seconds": {
+            "p50": 0.09832395892590284,
+            "p95": 0.4466461669653654,
+            "max": 1.009914290625602
+          },
+          "candidate_count": {
+            "p50": 137,
+            "p95": 999,
+            "max": 999
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 587.7343639746276,
+            "engine_only": 387.9242827890301,
+            "event_loading": 138.2918220433194
+          },
+          "seconds_share": {
+            "engine": 0.6600333527644076,
+            "event_loading": 0.23529647153537786
+          },
+          "microseconds_per_patient_end_to_end": 176.69645918533206,
+          "query_process": {
+            "peak_rss_bytes": 308543488,
+            "rss_after_open_bytes": 119570432,
+            "wall_seconds": 30.283336583990604
+          },
+          "code": "/private/tmp/matcher-arm-a-tr496dn3/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 50,
+              "match_seconds": 0.03479766706004739,
+              "engine_seconds": 0.004158415365964174,
+              "load_seconds": 0.012922374997287989,
+              "listed_results": 1000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.017759874928742647,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.62515789270401e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 2,
+              "candidates": 84,
+              "match_seconds": 0.04071408277377486,
+              "engine_seconds": 0.00995708629488945,
+              "load_seconds": 0.014069916680455208,
+              "listed_results": 1000
+            },
+            {
+              "seed": 3,
+              "candidates": 124,
+              "match_seconds": 0.05660195788368583,
+              "engine_seconds": 0.021728044375777245,
+              "load_seconds": 0.01590291690081358,
+              "listed_results": 1000
+            },
+            {
+              "seed": 4,
+              "candidates": 50,
+              "match_seconds": 0.03811241639778018,
+              "engine_seconds": 0.007910836953669786,
+              "load_seconds": 0.01274537481367588,
+              "listed_results": 1000
+            },
+            {
+              "seed": 5,
+              "candidates": 249,
+              "match_seconds": 0.2658567503094673,
+              "engine_seconds": 0.21424704371020198,
+              "load_seconds": 0.03305308287963271,
+              "listed_results": 1000
+            },
+            {
+              "seed": 6,
+              "candidates": 138,
+              "match_seconds": 0.041158500127494335,
+              "engine_seconds": 0.01172557519748807,
+              "load_seconds": 0.012621083296835423,
+              "listed_results": 1000
+            },
+            {
+              "seed": 7,
+              "candidates": 352,
+              "match_seconds": 0.27418670896440744,
+              "engine_seconds": 0.1585292504169047,
+              "load_seconds": 0.097054542042315,
+              "listed_results": 1000
+            },
+            {
+              "seed": 8,
+              "candidates": 98,
+              "match_seconds": 0.07579570775851607,
+              "engine_seconds": 0.034703662153333426,
+              "load_seconds": 0.024406541604548693,
+              "listed_results": 1000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.0177545421756804,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.375097781419754e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 10,
+              "candidates": 963,
+              "match_seconds": 0.2465170412324369,
+              "engine_seconds": 0.1877812105230987,
+              "load_seconds": 0.04338612500578165,
+              "listed_results": 1000
+            },
+            {
+              "seed": 11,
+              "candidates": 249,
+              "match_seconds": 0.33247024985030293,
+              "engine_seconds": 0.2271312545053661,
+              "load_seconds": 0.08469112496823072,
+              "listed_results": 1000
+            },
+            {
+              "seed": 12,
+              "candidates": 137,
+              "match_seconds": 0.06014470895752311,
+              "engine_seconds": 0.023505793884396553,
+              "load_seconds": 0.01908975001424551,
+              "listed_results": 1000
+            },
+            {
+              "seed": 13,
+              "candidates": 127,
+              "match_seconds": 0.15274370834231377,
+              "engine_seconds": 0.09249412268400192,
+              "load_seconds": 0.04128437489271164,
+              "listed_results": 1000
+            },
+            {
+              "seed": 14,
+              "candidates": 0,
+              "match_seconds": 0.01764508429914713,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.2922100722789764e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 15,
+              "candidates": 999,
+              "match_seconds": 0.3116852077655494,
+              "engine_seconds": 0.2051451662555337,
+              "load_seconds": 0.08596624992787838,
+              "listed_results": 1000
+            },
+            {
+              "seed": 16,
+              "candidates": 962,
+              "match_seconds": 0.24950558319687843,
+              "engine_seconds": 0.18701407592743635,
+              "load_seconds": 0.04278337536379695,
+              "listed_results": 1000
+            },
+            {
+              "seed": 17,
+              "candidates": 125,
+              "match_seconds": 0.06069945776835084,
+              "engine_seconds": 0.023908786941319704,
+              "load_seconds": 0.018732875119894743,
+              "listed_results": 1000
+            },
+            {
+              "seed": 18,
+              "candidates": 125,
+              "match_seconds": 0.04082758305594325,
+              "engine_seconds": 0.009976329747587442,
+              "load_seconds": 0.01402320759370923,
+              "listed_results": 1000
+            },
+            {
+              "seed": 19,
+              "candidates": 641,
+              "match_seconds": 0.5444766250438988,
+              "engine_seconds": 0.37369725247845054,
+              "load_seconds": 0.15007650014013052,
+              "listed_results": 1000
+            },
+            {
+              "seed": 20,
+              "candidates": 104,
+              "match_seconds": 0.2482365407049656,
+              "engine_seconds": 0.18301396491006017,
+              "load_seconds": 0.04483229201287031,
+              "listed_results": 1000
+            },
+            {
+              "seed": 21,
+              "candidates": 43,
+              "match_seconds": 0.03512870892882347,
+              "engine_seconds": 0.005298204254359007,
+              "load_seconds": 0.012269916944205761,
+              "listed_results": 1000
+            },
+            {
+              "seed": 22,
+              "candidates": 187,
+              "match_seconds": 0.09832395892590284,
+              "engine_seconds": 0.05632370989769697,
+              "load_seconds": 0.025158332660794258,
+              "listed_results": 1000
+            },
+            {
+              "seed": 23,
+              "candidates": 352,
+              "match_seconds": 0.38655133405700326,
+              "engine_seconds": 0.3275780901312828,
+              "load_seconds": 0.03914816724136472,
+              "listed_results": 1000
+            },
+            {
+              "seed": 24,
+              "candidates": 247,
+              "match_seconds": 0.15101312519982457,
+              "engine_seconds": 0.1104742968454957,
+              "load_seconds": 0.02151933405548334,
+              "listed_results": 1000
+            },
+            {
+              "seed": 25,
+              "candidates": 999,
+              "match_seconds": 0.22785512497648597,
+              "engine_seconds": 0.1341942548751831,
+              "load_seconds": 0.0737508749589324,
+              "listed_results": 1000
+            },
+            {
+              "seed": 26,
+              "candidates": 352,
+              "match_seconds": 0.26711041713133454,
+              "engine_seconds": 0.15291337808594108,
+              "load_seconds": 0.0946370828896761,
+              "listed_results": 1000
+            },
+            {
+              "seed": 27,
+              "candidates": 794,
+              "match_seconds": 0.18968191696330905,
+              "engine_seconds": 0.10059465561062098,
+              "load_seconds": 0.06801329180598259,
+              "listed_results": 1000
+            },
+            {
+              "seed": 28,
+              "candidates": 0,
+              "match_seconds": 0.018161708023399115,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.2498348951339722e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 29,
+              "candidates": 326,
+              "match_seconds": 0.24059245781973004,
+              "engine_seconds": 0.13796779653057456,
+              "load_seconds": 0.08244029199704528,
+              "listed_results": 1000
+            },
+            {
+              "seed": 30,
+              "candidates": 0,
+              "match_seconds": 0.01737800007686019,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.2922100722789764e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 31,
+              "candidates": 0,
+              "match_seconds": 0.014956958126276731,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.1674128472805023e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 32,
+              "candidates": 641,
+              "match_seconds": 1.009914290625602,
+              "engine_seconds": 0.8373792138881981,
+              "load_seconds": 0.15295204194262624,
+              "listed_results": 1000
+            },
+            {
+              "seed": 33,
+              "candidates": 962,
+              "match_seconds": 0.17952008405700326,
+              "engine_seconds": 0.11856663879007101,
+              "load_seconds": 0.04219316691160202,
+              "listed_results": 1000
+            },
+            {
+              "seed": 34,
+              "candidates": 338,
+              "match_seconds": 0.2568999999202788,
+              "engine_seconds": 0.2021517432294786,
+              "load_seconds": 0.039720417000353336,
+              "listed_results": 1000
+            },
+            {
+              "seed": 35,
+              "candidates": 127,
+              "match_seconds": 0.09598941588774323,
+              "engine_seconds": 0.05530945910140872,
+              "load_seconds": 0.02242525015026331,
+              "listed_results": 1000
+            },
+            {
+              "seed": 36,
+              "candidates": 338,
+              "match_seconds": 0.20487275021150708,
+              "engine_seconds": 0.12426646333187819,
+              "load_seconds": 0.06406012503430247,
+              "listed_results": 1000
+            },
+            {
+              "seed": 37,
+              "candidates": 0,
+              "match_seconds": 0.017895834054797888,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.2922100722789764e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 38,
+              "candidates": 105,
+              "match_seconds": 0.04858129099011421,
+              "engine_seconds": 0.013854750897735357,
+              "load_seconds": 0.016617832705378532,
+              "listed_results": 1000
+            },
+            {
+              "seed": 39,
+              "candidates": 831,
+              "match_seconds": 0.40302816685289145,
+              "engine_seconds": 0.2841011178679764,
+              "load_seconds": 0.09736670833081007,
+              "listed_results": 1000
+            },
+            {
+              "seed": 40,
+              "candidates": 390,
+              "match_seconds": 0.3978507500141859,
+              "engine_seconds": 0.24009466171264648,
+              "load_seconds": 0.13415583269670606,
+              "listed_results": 1000
+            },
+            {
+              "seed": 41,
+              "candidates": 999,
+              "match_seconds": 0.44554049987345934,
+              "engine_seconds": 0.3459630426950753,
+              "load_seconds": 0.078682083170861,
+              "listed_results": 1000
+            },
+            {
+              "seed": 42,
+              "candidates": 105,
+              "match_seconds": 0.03153616702184081,
+              "engine_seconds": 0.0034439126029610634,
+              "load_seconds": 0.011525500100106001,
+              "listed_results": 1000
+            },
+            {
+              "seed": 43,
+              "candidates": 0,
+              "match_seconds": 0.017326666973531246,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.125037670135498e-06,
+              "listed_results": 1000
+            },
+            {
+              "seed": 44,
+              "candidates": 352,
+              "match_seconds": 0.4466461669653654,
+              "engine_seconds": 0.31615061359480023,
+              "load_seconds": 0.10777108278125525,
+              "listed_results": 1000
+            },
+            {
+              "seed": 45,
+              "candidates": 439,
+              "match_seconds": 0.18397037498652935,
+              "engine_seconds": 0.12805554131045938,
+              "load_seconds": 0.036416999995708466,
+              "listed_results": 1000
+            },
+            {
+              "seed": 46,
+              "candidates": 84,
+              "match_seconds": 0.06143895909190178,
+              "engine_seconds": 0.024293371941894293,
+              "load_seconds": 0.018936832901090384,
+              "listed_results": 1000
+            },
+            {
+              "seed": 47,
+              "candidates": 352,
+              "match_seconds": 0.1609321660362184,
+              "engine_seconds": 0.10654739895835519,
+              "load_seconds": 0.037847500294446945,
+              "listed_results": 1000
+            },
+            {
+              "seed": 48,
+              "candidates": 41,
+              "match_seconds": 0.048232624772936106,
+              "engine_seconds": 0.014188960194587708,
+              "load_seconds": 0.01602791715413332,
+              "listed_results": 1000
+            },
+            {
+              "seed": 49,
+              "candidates": 51,
+              "match_seconds": 0.05020304210484028,
+              "engine_seconds": 0.014938670210540295,
+              "load_seconds": 0.017513957805931568,
+              "listed_results": 1000
+            }
+          ]
+        },
+        "B": {
+          "queries": 50,
+          "repeats": 3,
+          "match_seconds": {
+            "p50": 0.07357025006785989,
+            "p95": 0.3449202920310199,
+            "max": 0.893086917232722
+          },
+          "candidate_count": {
+            "p50": 137,
+            "p95": 999,
+            "max": 999
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 442.0092689904854,
+            "engine_only": 289.9961646432141,
+            "event_loading": 119.84995361110231
+          },
+          "seconds_share": {
+            "engine": 0.6560861615086551,
+            "event_loading": 0.271148055073212
+          },
+          "microseconds_per_patient_end_to_end": 132.88566662929952,
+          "query_process": {
+            "peak_rss_bytes": 293076992,
+            "rss_after_open_bytes": 113475584,
+            "wall_seconds": 23.834466540720314
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 50,
+              "match_seconds": 0.023558666929602623,
+              "engine_seconds": 0.002123293001204729,
+              "load_seconds": 0.013290584087371826,
+              "listed_results": 1000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.008992874994874,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 2,
+              "candidates": 84,
+              "match_seconds": 0.028708375059068203,
+              "engine_seconds": 0.006937502883374691,
+              "load_seconds": 0.013940374832600355,
+              "listed_results": 1000
+            },
+            {
+              "seed": 3,
+              "candidates": 124,
+              "match_seconds": 0.03701441688463092,
+              "engine_seconds": 0.01300916587933898,
+              "load_seconds": 0.014543707948178053,
+              "listed_results": 1000
+            },
+            {
+              "seed": 4,
+              "candidates": 50,
+              "match_seconds": 0.02630149992182851,
+              "engine_seconds": 0.00481091532856226,
+              "load_seconds": 0.012951083946973085,
+              "listed_results": 1000
+            },
+            {
+              "seed": 5,
+              "candidates": 249,
+              "match_seconds": 0.22659566719084978,
+              "engine_seconds": 0.1864554574713111,
+              "load_seconds": 0.031913208309561014,
+              "listed_results": 1000
+            },
+            {
+              "seed": 6,
+              "candidates": 138,
+              "match_seconds": 0.026774875354021788,
+              "engine_seconds": 0.005998548585921526,
+              "load_seconds": 0.012777207884937525,
+              "listed_results": 1000
+            },
+            {
+              "seed": 7,
+              "candidates": 352,
+              "match_seconds": 0.20559304114431143,
+              "engine_seconds": 0.10350508335977793,
+              "load_seconds": 0.09105495782569051,
+              "listed_results": 1000
+            },
+            {
+              "seed": 8,
+              "candidates": 98,
+              "match_seconds": 0.0546511672437191,
+              "engine_seconds": 0.022118996363133192,
+              "load_seconds": 0.023708375170826912,
+              "listed_results": 1000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.008482958190143108,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 10,
+              "candidates": 963,
+              "match_seconds": 0.1807103748433292,
+              "engine_seconds": 0.13416500622406602,
+              "load_seconds": 0.037485416047275066,
+              "listed_results": 1000
+            },
+            {
+              "seed": 11,
+              "candidates": 249,
+              "match_seconds": 0.259289207868278,
+              "engine_seconds": 0.18234017957001925,
+              "load_seconds": 0.06518912501633167,
+              "listed_results": 1000
+            },
+            {
+              "seed": 12,
+              "candidates": 137,
+              "match_seconds": 0.042126750107854605,
+              "engine_seconds": 0.014924660790711641,
+              "load_seconds": 0.018512583803385496,
+              "listed_results": 1000
+            },
+            {
+              "seed": 13,
+              "candidates": 127,
+              "match_seconds": 0.10175174986943603,
+              "engine_seconds": 0.05322808213531971,
+              "load_seconds": 0.03848174959421158,
+              "listed_results": 1000
+            },
+            {
+              "seed": 14,
+              "candidates": 0,
+              "match_seconds": 0.008540625218302011,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 15,
+              "candidates": 999,
+              "match_seconds": 0.2195572080090642,
+              "engine_seconds": 0.12846589088439941,
+              "load_seconds": 0.07929191598668694,
+              "listed_results": 1000
+            },
+            {
+              "seed": 16,
+              "candidates": 962,
+              "match_seconds": 0.14235891588032246,
+              "engine_seconds": 0.09527226258069277,
+              "load_seconds": 0.03690308332443237,
+              "listed_results": 1000
+            },
+            {
+              "seed": 17,
+              "candidates": 125,
+              "match_seconds": 0.04243908263742924,
+              "engine_seconds": 0.015846199821680784,
+              "load_seconds": 0.017979000229388475,
+              "listed_results": 1000
+            },
+            {
+              "seed": 18,
+              "candidates": 125,
+              "match_seconds": 0.027034166269004345,
+              "engine_seconds": 0.005971538368612528,
+              "load_seconds": 0.013240791857242584,
+              "listed_results": 1000
+            },
+            {
+              "seed": 19,
+              "candidates": 641,
+              "match_seconds": 0.4276130832731724,
+              "engine_seconds": 0.2911570258438587,
+              "load_seconds": 0.12345679104328156,
+              "listed_results": 1000
+            },
+            {
+              "seed": 20,
+              "candidates": 104,
+              "match_seconds": 0.20036208303645253,
+              "engine_seconds": 0.14808703819289804,
+              "load_seconds": 0.04103745939210057,
+              "listed_results": 1000
+            },
+            {
+              "seed": 21,
+              "candidates": 43,
+              "match_seconds": 0.024403500370681286,
+              "engine_seconds": 0.0033154161646962166,
+              "load_seconds": 0.01293629128485918,
+              "listed_results": 1000
+            },
+            {
+              "seed": 22,
+              "candidates": 187,
+              "match_seconds": 0.07344654062762856,
+              "engine_seconds": 0.040559910237789154,
+              "load_seconds": 0.024270459078252316,
+              "listed_results": 1000
+            },
+            {
+              "seed": 23,
+              "candidates": 352,
+              "match_seconds": 0.3449202920310199,
+              "engine_seconds": 0.29851924208924174,
+              "load_seconds": 0.037220416124910116,
+              "listed_results": 1000
+            },
+            {
+              "seed": 24,
+              "candidates": 247,
+              "match_seconds": 0.12124133389443159,
+              "engine_seconds": 0.09180624736472964,
+              "load_seconds": 0.020190083887428045,
+              "listed_results": 1000
+            },
+            {
+              "seed": 25,
+              "candidates": 999,
+              "match_seconds": 0.15311516681686044,
+              "engine_seconds": 0.09061263734474778,
+              "load_seconds": 0.05277412524446845,
+              "listed_results": 1000
+            },
+            {
+              "seed": 26,
+              "candidates": 352,
+              "match_seconds": 0.20221987506374717,
+              "engine_seconds": 0.10224513430148363,
+              "load_seconds": 0.08893954241648316,
+              "listed_results": 1000
+            },
+            {
+              "seed": 27,
+              "candidates": 794,
+              "match_seconds": 0.11175170820206404,
+              "engine_seconds": 0.05374901136383414,
+              "load_seconds": 0.04746625013649464,
+              "listed_results": 1000
+            },
+            {
+              "seed": 28,
+              "candidates": 0,
+              "match_seconds": 0.008593957871198654,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 29,
+              "candidates": 326,
+              "match_seconds": 0.18275733292102814,
+              "engine_seconds": 0.10898667108267546,
+              "load_seconds": 0.06296395789831877,
+              "listed_results": 1000
+            },
+            {
+              "seed": 30,
+              "candidates": 0,
+              "match_seconds": 0.008519083261489868,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 31,
+              "candidates": 0,
+              "match_seconds": 0.008314750157296658,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 32,
+              "candidates": 641,
+              "match_seconds": 0.893086917232722,
+              "engine_seconds": 0.757012686226517,
+              "load_seconds": 0.12279741698876023,
+              "listed_results": 1000
+            },
+            {
+              "seed": 33,
+              "candidates": 962,
+              "match_seconds": 0.11677129101008177,
+              "engine_seconds": 0.06923092668876052,
+              "load_seconds": 0.03744841692969203,
+              "listed_results": 1000
+            },
+            {
+              "seed": 34,
+              "candidates": 338,
+              "match_seconds": 0.20828166604042053,
+              "engine_seconds": 0.1604664959013462,
+              "load_seconds": 0.03723766701295972,
+              "listed_results": 1000
+            },
+            {
+              "seed": 35,
+              "candidates": 127,
+              "match_seconds": 0.07357025006785989,
+              "engine_seconds": 0.041921832133084536,
+              "load_seconds": 0.022611957974731922,
+              "listed_results": 1000
+            },
+            {
+              "seed": 36,
+              "candidates": 338,
+              "match_seconds": 0.14809237513691187,
+              "engine_seconds": 0.09122703224420547,
+              "load_seconds": 0.04713345831260085,
+              "listed_results": 1000
+            },
+            {
+              "seed": 37,
+              "candidates": 0,
+              "match_seconds": 0.009060833137482405,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 38,
+              "candidates": 105,
+              "match_seconds": 0.03254987532272935,
+              "engine_seconds": 0.007473260164260864,
+              "load_seconds": 0.01655791699886322,
+              "listed_results": 1000
+            },
+            {
+              "seed": 39,
+              "candidates": 831,
+              "match_seconds": 0.299769083969295,
+              "engine_seconds": 0.19673711620271206,
+              "load_seconds": 0.09083254216238856,
+              "listed_results": 1000
+            },
+            {
+              "seed": 40,
+              "candidates": 390,
+              "match_seconds": 0.28679849999025464,
+              "engine_seconds": 0.1649680845439434,
+              "load_seconds": 0.10824595764279366,
+              "listed_results": 1000
+            },
+            {
+              "seed": 41,
+              "candidates": 999,
+              "match_seconds": 0.32450020918622613,
+              "engine_seconds": 0.2558536664582789,
+              "load_seconds": 0.05667066713795066,
+              "listed_results": 1000
+            },
+            {
+              "seed": 42,
+              "candidates": 105,
+              "match_seconds": 0.020776125136762857,
+              "engine_seconds": 0.0013958681374788284,
+              "load_seconds": 0.011726082768291235,
+              "listed_results": 1000
+            },
+            {
+              "seed": 43,
+              "candidates": 0,
+              "match_seconds": 0.008074707817286253,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 1000
+            },
+            {
+              "seed": 44,
+              "candidates": 352,
+              "match_seconds": 0.3437518337741494,
+              "engine_seconds": 0.23046176508069038,
+              "load_seconds": 0.1004210002720356,
+              "listed_results": 1000
+            },
+            {
+              "seed": 45,
+              "candidates": 439,
+              "match_seconds": 0.10988104110583663,
+              "engine_seconds": 0.0659853289835155,
+              "load_seconds": 0.03308166703209281,
+              "listed_results": 1000
+            },
+            {
+              "seed": 46,
+              "candidates": 84,
+              "match_seconds": 0.042409458197653294,
+              "engine_seconds": 0.01520492509007454,
+              "load_seconds": 0.018432124983519316,
+              "listed_results": 1000
+            },
+            {
+              "seed": 47,
+              "candidates": 352,
+              "match_seconds": 0.12343929102644324,
+              "engine_seconds": 0.07913174666464329,
+              "load_seconds": 0.03509324975311756,
+              "listed_results": 1000
+            },
+            {
+              "seed": 48,
+              "candidates": 41,
+              "match_seconds": 0.031918833032250404,
+              "engine_seconds": 0.007809330243617296,
+              "load_seconds": 0.015555334277451038,
+              "listed_results": 1000
+            },
+            {
+              "seed": 49,
+              "candidates": 51,
+              "match_seconds": 0.03381070913746953,
+              "engine_seconds": 0.01013116491958499,
+              "load_seconds": 0.015220500063151121,
+              "listed_results": 1000
+            }
+          ]
+        },
+        "B_decided": {
+          "queries": 50,
+          "repeats": 3,
+          "match_seconds": {
+            "p50": 0.07340558292344213,
+            "p95": 0.346558166667819,
+            "max": 0.9016472906805575
+          },
+          "candidate_count": {
+            "p50": 137,
+            "p95": 999,
+            "max": 999
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 442.9292370440828,
+            "engine_only": 290.69160762653866,
+            "event_loading": 119.9061833267527
+          },
+          "seconds_share": {
+            "engine": 0.656293564106285,
+            "event_loading": 0.2707118277559514
+          },
+          "microseconds_per_patient_end_to_end": 133.16224582493305,
+          "query_process": {
+            "peak_rss_bytes": 291192832,
+            "rss_after_open_bytes": 114802688,
+            "wall_seconds": 23.440570084378123
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "decided",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 50,
+              "match_seconds": 0.023621042259037495,
+              "engine_seconds": 0.0022035446017980576,
+              "load_seconds": 0.013365790713578463,
+              "listed_results": 126
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.009097457863390446,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 83
+            },
+            {
+              "seed": 2,
+              "candidates": 84,
+              "match_seconds": 0.02867799997329712,
+              "engine_seconds": 0.006851534359157085,
+              "load_seconds": 0.013898999895900488,
+              "listed_results": 149
+            },
+            {
+              "seed": 3,
+              "candidates": 124,
+              "match_seconds": 0.03660449991002679,
+              "engine_seconds": 0.01271275570616126,
+              "load_seconds": 0.014665875118225813,
+              "listed_results": 178
+            },
+            {
+              "seed": 4,
+              "candidates": 50,
+              "match_seconds": 0.02610395895317197,
+              "engine_seconds": 0.004795794375240803,
+              "load_seconds": 0.012949916999787092,
+              "listed_results": 116
+            },
+            {
+              "seed": 5,
+              "candidates": 249,
+              "match_seconds": 0.22641995828598738,
+              "engine_seconds": 0.18601066805422306,
+              "load_seconds": 0.03073241701349616,
+              "listed_results": 287
+            },
+            {
+              "seed": 6,
+              "candidates": 138,
+              "match_seconds": 0.026613709051162004,
+              "engine_seconds": 0.005960626527667046,
+              "load_seconds": 0.012731208000332117,
+              "listed_results": 191
+            },
+            {
+              "seed": 7,
+              "candidates": 352,
+              "match_seconds": 0.20553612476214767,
+              "engine_seconds": 0.10395911103114486,
+              "load_seconds": 0.0907749580219388,
+              "listed_results": 373
+            },
+            {
+              "seed": 8,
+              "candidates": 98,
+              "match_seconds": 0.055056207813322544,
+              "engine_seconds": 0.022167157847434282,
+              "load_seconds": 0.023761832620948553,
+              "listed_results": 740
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.008472499903291464,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 86
+            },
+            {
+              "seed": 10,
+              "candidates": 963,
+              "match_seconds": 0.1810376662760973,
+              "engine_seconds": 0.13389317225664854,
+              "load_seconds": 0.0379513343796134,
+              "listed_results": 923
+            },
+            {
+              "seed": 11,
+              "candidates": 249,
+              "match_seconds": 0.2586187915876508,
+              "engine_seconds": 0.1818434251472354,
+              "load_seconds": 0.06474308297038078,
+              "listed_results": 294
+            },
+            {
+              "seed": 12,
+              "candidates": 137,
+              "match_seconds": 0.04307887516915798,
+              "engine_seconds": 0.014977164100855589,
+              "load_seconds": 0.019069249741733074,
+              "listed_results": 185
+            },
+            {
+              "seed": 13,
+              "candidates": 127,
+              "match_seconds": 0.10199345834553242,
+              "engine_seconds": 0.05290804477408528,
+              "load_seconds": 0.03928312472999096,
+              "listed_results": 197
+            },
+            {
+              "seed": 14,
+              "candidates": 0,
+              "match_seconds": 0.008925958070904016,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 81
+            },
+            {
+              "seed": 15,
+              "candidates": 999,
+              "match_seconds": 0.22016629111021757,
+              "engine_seconds": 0.12906433502212167,
+              "load_seconds": 0.07950258394703269,
+              "listed_results": 944
+            },
+            {
+              "seed": 16,
+              "candidates": 962,
+              "match_seconds": 0.14208041690289974,
+              "engine_seconds": 0.09475717460736632,
+              "load_seconds": 0.03721775021404028,
+              "listed_results": 924
+            },
+            {
+              "seed": 17,
+              "candidates": 125,
+              "match_seconds": 0.042219874914735556,
+              "engine_seconds": 0.01565770385786891,
+              "load_seconds": 0.01790149975568056,
+              "listed_results": 200
+            },
+            {
+              "seed": 18,
+              "candidates": 125,
+              "match_seconds": 0.027332207653671503,
+              "engine_seconds": 0.0059384917840361595,
+              "load_seconds": 0.013742874842137098,
+              "listed_results": 194
+            },
+            {
+              "seed": 19,
+              "candidates": 641,
+              "match_seconds": 0.42628900008276105,
+              "engine_seconds": 0.29242416797205806,
+              "load_seconds": 0.12085579195991158,
+              "listed_results": 644
+            },
+            {
+              "seed": 20,
+              "candidates": 104,
+              "match_seconds": 0.20111154112964869,
+              "engine_seconds": 0.14931919937953353,
+              "load_seconds": 0.04079141607508063,
+              "listed_results": 172
+            },
+            {
+              "seed": 21,
+              "candidates": 43,
+              "match_seconds": 0.024153583217412233,
+              "engine_seconds": 0.003260458819568157,
+              "load_seconds": 0.01275304239243269,
+              "listed_results": 99
+            },
+            {
+              "seed": 22,
+              "candidates": 187,
+              "match_seconds": 0.07340558292344213,
+              "engine_seconds": 0.04057695809751749,
+              "load_seconds": 0.0243523339740932,
+              "listed_results": 239
+            },
+            {
+              "seed": 23,
+              "candidates": 352,
+              "match_seconds": 0.346558166667819,
+              "engine_seconds": 0.29956032894551754,
+              "load_seconds": 0.037234959192574024,
+              "listed_results": 397
+            },
+            {
+              "seed": 24,
+              "candidates": 247,
+              "match_seconds": 0.12112675001844764,
+              "engine_seconds": 0.09135425696149468,
+              "load_seconds": 0.020026917103677988,
+              "listed_results": 296
+            },
+            {
+              "seed": 25,
+              "candidates": 999,
+              "match_seconds": 0.15350499982014298,
+              "engine_seconds": 0.09042552951723337,
+              "load_seconds": 0.05227579176425934,
+              "listed_results": 950
+            },
+            {
+              "seed": 26,
+              "candidates": 352,
+              "match_seconds": 0.2006852920167148,
+              "engine_seconds": 0.10087428707629442,
+              "load_seconds": 0.08878058288246393,
+              "listed_results": 390
+            },
+            {
+              "seed": 27,
+              "candidates": 794,
+              "match_seconds": 0.11150574963539839,
+              "engine_seconds": 0.053229245357215405,
+              "load_seconds": 0.047555333003401756,
+              "listed_results": 773
+            },
+            {
+              "seed": 28,
+              "candidates": 0,
+              "match_seconds": 0.008488583844155073,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 79
+            },
+            {
+              "seed": 29,
+              "candidates": 326,
+              "match_seconds": 0.18174954177811742,
+              "engine_seconds": 0.10834687110036612,
+              "load_seconds": 0.0629039159975946,
+              "listed_results": 359
+            },
+            {
+              "seed": 30,
+              "candidates": 0,
+              "match_seconds": 0.008316250052303076,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 79
+            },
+            {
+              "seed": 31,
+              "candidates": 0,
+              "match_seconds": 0.008369209244847298,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 663
+            },
+            {
+              "seed": 32,
+              "candidates": 641,
+              "match_seconds": 0.9016472906805575,
+              "engine_seconds": 0.7656693388707936,
+              "load_seconds": 0.12289937492460012,
+              "listed_results": 629
+            },
+            {
+              "seed": 33,
+              "candidates": 962,
+              "match_seconds": 0.11650449968874454,
+              "engine_seconds": 0.06927989330142736,
+              "load_seconds": 0.037422250024974346,
+              "listed_results": 918
+            },
+            {
+              "seed": 34,
+              "candidates": 338,
+              "match_seconds": 0.2094291253015399,
+              "engine_seconds": 0.16133391484618187,
+              "load_seconds": 0.038044416811317205,
+              "listed_results": 941
+            },
+            {
+              "seed": 35,
+              "candidates": 127,
+              "match_seconds": 0.07259591715410352,
+              "engine_seconds": 0.04151358641684055,
+              "load_seconds": 0.02212891634553671,
+              "listed_results": 181
+            },
+            {
+              "seed": 36,
+              "candidates": 338,
+              "match_seconds": 0.1481196670792997,
+              "engine_seconds": 0.09177366411313415,
+              "load_seconds": 0.04717458272352815,
+              "listed_results": 954
+            },
+            {
+              "seed": 37,
+              "candidates": 0,
+              "match_seconds": 0.009027250111103058,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 64
+            },
+            {
+              "seed": 38,
+              "candidates": 105,
+              "match_seconds": 0.03257770882919431,
+              "engine_seconds": 0.007473750505596399,
+              "load_seconds": 0.0166163332760334,
+              "listed_results": 158
+            },
+            {
+              "seed": 39,
+              "candidates": 831,
+              "match_seconds": 0.3000610829330981,
+              "engine_seconds": 0.19674023753032088,
+              "load_seconds": 0.09103408362716436,
+              "listed_results": 796
+            },
+            {
+              "seed": 40,
+              "candidates": 390,
+              "match_seconds": 0.28796287486329675,
+              "engine_seconds": 0.165545170661062,
+              "load_seconds": 0.10923070786520839,
+              "listed_results": 414
+            },
+            {
+              "seed": 41,
+              "candidates": 999,
+              "match_seconds": 0.3278966248035431,
+              "engine_seconds": 0.25690440321341157,
+              "load_seconds": 0.05713429115712643,
+              "listed_results": 938
+            },
+            {
+              "seed": 42,
+              "candidates": 105,
+              "match_seconds": 0.02098933421075344,
+              "engine_seconds": 0.001348123885691166,
+              "load_seconds": 0.012024125084280968,
+              "listed_results": 165
+            },
+            {
+              "seed": 43,
+              "candidates": 0,
+              "match_seconds": 0.008080374915152788,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 85
+            },
+            {
+              "seed": 44,
+              "candidates": 352,
+              "match_seconds": 0.3444569995626807,
+              "engine_seconds": 0.23020178591832519,
+              "load_seconds": 0.10112162493169308,
+              "listed_results": 380
+            },
+            {
+              "seed": 45,
+              "candidates": 439,
+              "match_seconds": 0.11046733427792788,
+              "engine_seconds": 0.06629141233861446,
+              "load_seconds": 0.03351891692727804,
+              "listed_results": 464
+            },
+            {
+              "seed": 46,
+              "candidates": 84,
+              "match_seconds": 0.04178283270448446,
+              "engine_seconds": 0.015104623977094889,
+              "load_seconds": 0.018326582852751017,
+              "listed_results": 142
+            },
+            {
+              "seed": 47,
+              "candidates": 352,
+              "match_seconds": 0.12387474998831749,
+              "engine_seconds": 0.07966366549953818,
+              "load_seconds": 0.035052542109042406,
+              "listed_results": 384
+            },
+            {
+              "seed": 48,
+              "candidates": 41,
+              "match_seconds": 0.03172320779412985,
+              "engine_seconds": 0.007766671013087034,
+              "load_seconds": 0.01555016590282321,
+              "listed_results": 101
+            },
+            {
+              "seed": 49,
+              "candidates": 51,
+              "match_seconds": 0.03399416711181402,
+              "engine_seconds": 0.00999399647116661,
+              "load_seconds": 0.015328249894082546,
+              "listed_results": 126
+            }
+          ]
+        },
+        "C": {
+          "status": "not_run",
+          "description": "parallel Python at 1, 2, 4, 8 and 14 workers over chunks (a later change)"
+        },
+        "D": {
+          "status": "not_run",
+          "description": "Rust matcher, single-threaded and batched, including FFI (a later change, built only if B+C misses the target)"
+        },
+        "D'": {
+          "status": "not_run",
+          "description": "Rust matcher, parallel (a later change, same condition)"
+        }
+      },
+      "byte_identity_B_against_A": {
+        "compared": 50,
+        "identical": 50,
+        "mismatching_seeds": []
+      },
+      "target_check_arm_B": {
+        "size": 1000,
+        "p95_seconds": 0.3449202920310199,
+        "max_seconds": 0.893086917232722,
+        "peak_rss_bytes": 293076992,
+        "p95_met": true,
+        "max_met": true,
+        "memory_met": true
+      }
+    },
+    {
+      "size": 10000,
+      "snapshot_id": "906d5647d840b967f94cb25fb4467fb02e23a2f58e5b6d2b58437e5b0591ac6f",
+      "queries": 50,
+      "repeats": 3,
+      "arms": {
+        "A": {
+          "queries": 50,
+          "repeats": 3,
+          "match_seconds": {
+            "p50": 0.9965836661867797,
+            "p95": 4.5462990826927125,
+            "max": 10.160259165801108
+          },
+          "candidate_count": {
+            "p50": 1370,
+            "p95": 9994,
+            "max": 9994
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 591.7457109365268,
+            "engine_only": 377.645183982405,
+            "event_loading": 165.7867527262672
+          },
+          "seconds_share": {
+            "engine": 0.6381882910223794,
+            "event_loading": 0.2801655333739296
+          },
+          "microseconds_per_patient_end_to_end": 177.8740267418325,
+          "query_process": {
+            "peak_rss_bytes": 1524334592,
+            "rss_after_open_bytes": 114933760,
+            "wall_seconds": 275.54268954182044
+          },
+          "code": "/private/tmp/matcher-arm-a-tr496dn3/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 489,
+              "match_seconds": 0.26877500023692846,
+              "engine_seconds": 0.03802203107625246,
+              "load_seconds": 0.08409554092213511,
+              "listed_results": 10000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.13546733278781176,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.834239810705185e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 2,
+              "candidates": 833,
+              "match_seconds": 0.3384343748912215,
+              "engine_seconds": 0.09676763787865639,
+              "load_seconds": 0.0952234580181539,
+              "listed_results": 10000
+            },
+            {
+              "seed": 3,
+              "candidates": 1227,
+              "match_seconds": 0.4814473339356482,
+              "engine_seconds": 0.229098632466048,
+              "load_seconds": 0.1128372922539711,
+              "listed_results": 10000
+            },
+            {
+              "seed": 4,
+              "candidates": 490,
+              "match_seconds": 0.2900882908143103,
+              "engine_seconds": 0.07554613007232547,
+              "load_seconds": 0.08260824996978045,
+              "listed_results": 10000
+            },
+            {
+              "seed": 5,
+              "candidates": 2497,
+              "match_seconds": 2.7455264581367373,
+              "engine_seconds": 2.1523841340094805,
+              "load_seconds": 0.44944437500089407,
+              "listed_results": 10000
+            },
+            {
+              "seed": 6,
+              "candidates": 1381,
+              "match_seconds": 0.346666042227298,
+              "engine_seconds": 0.12135894736275077,
+              "load_seconds": 0.08158949995413423,
+              "listed_results": 10000
+            },
+            {
+              "seed": 7,
+              "candidates": 3541,
+              "match_seconds": 2.825719750020653,
+              "engine_seconds": 1.5107675199396908,
+              "load_seconds": 1.1687810407020152,
+              "listed_results": 10000
+            },
+            {
+              "seed": 8,
+              "candidates": 902,
+              "match_seconds": 0.7229038327932358,
+              "engine_seconds": 0.303093689493835,
+              "load_seconds": 0.3014798332005739,
+              "listed_results": 10000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.1341907912865281,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.4579854905605316e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 10,
+              "candidates": 9608,
+              "match_seconds": 2.661064624786377,
+              "engine_seconds": 1.8589040813967586,
+              "load_seconds": 0.6778290825895965,
+              "listed_results": 10000
+            },
+            {
+              "seed": 11,
+              "candidates": 2497,
+              "match_seconds": 3.4320363751612604,
+              "engine_seconds": 2.249214569106698,
+              "load_seconds": 1.0238914578221738,
+              "listed_results": 10000
+            },
+            {
+              "seed": 12,
+              "candidates": 1370,
+              "match_seconds": 0.5538089578039944,
+              "engine_seconds": 0.22001965250819921,
+              "load_seconds": 0.20026641571894288,
+              "listed_results": 10000
+            },
+            {
+              "seed": 13,
+              "candidates": 1220,
+              "match_seconds": 1.5113289998844266,
+              "engine_seconds": 0.7327656568959355,
+              "load_seconds": 0.629220625385642,
+              "listed_results": 10000
+            },
+            {
+              "seed": 14,
+              "candidates": 0,
+              "match_seconds": 0.1347562917508185,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.416075974702835e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 15,
+              "candidates": 9994,
+              "match_seconds": 3.2179337083362043,
+              "engine_seconds": 2.0150204561650753,
+              "load_seconds": 1.0347650423645973,
+              "listed_results": 10000
+            },
+            {
+              "seed": 16,
+              "candidates": 9607,
+              "match_seconds": 2.62208608398214,
+              "engine_seconds": 1.821936807129532,
+              "load_seconds": 0.6526809171773493,
+              "listed_results": 10000
+            },
+            {
+              "seed": 17,
+              "candidates": 1250,
+              "match_seconds": 0.5484789577312768,
+              "engine_seconds": 0.23934921622276306,
+              "load_seconds": 0.16915091685950756,
+              "listed_results": 10000
+            },
+            {
+              "seed": 18,
+              "candidates": 1250,
+              "match_seconds": 0.3382310410961509,
+              "engine_seconds": 0.09831878263503313,
+              "load_seconds": 0.0937790828756988,
+              "listed_results": 10000
+            },
+            {
+              "seed": 19,
+              "candidates": 6509,
+              "match_seconds": 5.414094292093068,
+              "engine_seconds": 3.6104138093069196,
+              "load_seconds": 1.6246232921257615,
+              "listed_results": 10000
+            },
+            {
+              "seed": 20,
+              "candidates": 983,
+              "match_seconds": 2.4394653332419693,
+              "engine_seconds": 1.5903224013745785,
+              "load_seconds": 0.6933572087436914,
+              "listed_results": 10000
+            },
+            {
+              "seed": 21,
+              "candidates": 419,
+              "match_seconds": 0.2701811660081148,
+              "engine_seconds": 0.04746813466772437,
+              "load_seconds": 0.07639512466266751,
+              "listed_results": 10000
+            },
+            {
+              "seed": 22,
+              "candidates": 1790,
+              "match_seconds": 0.9965836661867797,
+              "engine_seconds": 0.5343116414733231,
+              "load_seconds": 0.3323884168639779,
+              "listed_results": 10000
+            },
+            {
+              "seed": 23,
+              "candidates": 3541,
+              "match_seconds": 4.302442375104874,
+              "engine_seconds": 3.5269522699527442,
+              "load_seconds": 0.6296474998816848,
+              "listed_results": 10000
+            },
+            {
+              "seed": 24,
+              "candidates": 2409,
+              "match_seconds": 1.4503090418875217,
+              "engine_seconds": 1.0795069206506014,
+              "load_seconds": 0.22732558427378535,
+              "listed_results": 10000
+            },
+            {
+              "seed": 25,
+              "candidates": 9994,
+              "match_seconds": 2.28313429094851,
+              "engine_seconds": 1.2644344554282725,
+              "load_seconds": 0.8556887502782047,
+              "listed_results": 10000
+            },
+            {
+              "seed": 26,
+              "candidates": 3541,
+              "match_seconds": 2.8178287921473384,
+              "engine_seconds": 1.4899397697299719,
+              "load_seconds": 1.1664920002222061,
+              "listed_results": 10000
+            },
+            {
+              "seed": 27,
+              "candidates": 7948,
+              "match_seconds": 1.9741466250270605,
+              "engine_seconds": 0.955822276417166,
+              "load_seconds": 0.8536496660672128,
+              "listed_results": 10000
+            },
+            {
+              "seed": 28,
+              "candidates": 0,
+              "match_seconds": 0.13428241573274136,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.666136085987091e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 29,
+              "candidates": 3364,
+              "match_seconds": 2.4904090836644173,
+              "engine_seconds": 1.3378654951229692,
+              "load_seconds": 0.9933124999515712,
+              "listed_results": 10000
+            },
+            {
+              "seed": 30,
+              "candidates": 0,
+              "match_seconds": 0.13098774990066886,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.7080456018447876e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 31,
+              "candidates": 0,
+              "match_seconds": 0.10671145794913173,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.4170072972774506e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 32,
+              "candidates": 6511,
+              "match_seconds": 10.160259165801108,
+              "engine_seconds": 8.369404803030193,
+              "load_seconds": 1.6426492501050234,
+              "listed_results": 10000
+            },
+            {
+              "seed": 33,
+              "candidates": 9607,
+              "match_seconds": 1.9593733749352396,
+              "engine_seconds": 1.151503792963922,
+              "load_seconds": 0.6563148749992251,
+              "listed_results": 10000
+            },
+            {
+              "seed": 34,
+              "candidates": 3377,
+              "match_seconds": 2.7387155001051724,
+              "engine_seconds": 1.9678039546124637,
+              "load_seconds": 0.6649369578808546,
+              "listed_results": 10000
+            },
+            {
+              "seed": 35,
+              "candidates": 1220,
+              "match_seconds": 0.9216547501273453,
+              "engine_seconds": 0.5050260657444596,
+              "load_seconds": 0.24700341699644923,
+              "listed_results": 10000
+            },
+            {
+              "seed": 36,
+              "candidates": 3377,
+              "match_seconds": 2.0316328341141343,
+              "engine_seconds": 1.1858826042152941,
+              "load_seconds": 0.7217787089757621,
+              "listed_results": 10000
+            },
+            {
+              "seed": 37,
+              "candidates": 0,
+              "match_seconds": 0.13530608406290412,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.8747523427009583e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 38,
+              "candidates": 1042,
+              "match_seconds": 0.41914758272469044,
+              "engine_seconds": 0.1339696515351534,
+              "load_seconds": 0.14913491671904922,
+              "listed_results": 10000
+            },
+            {
+              "seed": 39,
+              "candidates": 8335,
+              "match_seconds": 4.149247124791145,
+              "engine_seconds": 2.7941971849650145,
+              "load_seconds": 1.1877587498165667,
+              "listed_results": 10000
+            },
+            {
+              "seed": 40,
+              "candidates": 3896,
+              "match_seconds": 3.8644794998690486,
+              "engine_seconds": 2.262286029756069,
+              "load_seconds": 1.4121739161200821,
+              "listed_results": 10000
+            },
+            {
+              "seed": 41,
+              "candidates": 9994,
+              "match_seconds": 4.5462990826927125,
+              "engine_seconds": 3.4348781942389905,
+              "load_seconds": 0.9301891247741878,
+              "listed_results": 10000
+            },
+            {
+              "seed": 42,
+              "candidates": 1042,
+              "match_seconds": 0.23255295818671584,
+              "engine_seconds": 0.03478003013879061,
+              "load_seconds": 0.06947137508541346,
+              "listed_results": 10000
+            },
+            {
+              "seed": 43,
+              "candidates": 0,
+              "match_seconds": 0.12944845901802182,
+              "engine_seconds": 0.0,
+              "load_seconds": 1.375097781419754e-06,
+              "listed_results": 10000
+            },
+            {
+              "seed": 44,
+              "candidates": 3541,
+              "match_seconds": 4.460442916955799,
+              "engine_seconds": 2.937908628489822,
+              "load_seconds": 1.3382695000618696,
+              "listed_results": 10000
+            },
+            {
+              "seed": 45,
+              "candidates": 4386,
+              "match_seconds": 1.909906709101051,
+              "engine_seconds": 1.2489082985557616,
+              "load_seconds": 0.5023923749104142,
+              "listed_results": 10000
+            },
+            {
+              "seed": 46,
+              "candidates": 833,
+              "match_seconds": 0.5649829171597958,
+              "engine_seconds": 0.22539697866886854,
+              "load_seconds": 0.20098454179242253,
+              "listed_results": 10000
+            },
+            {
+              "seed": 47,
+              "candidates": 3541,
+              "match_seconds": 1.7661608327180147,
+              "engine_seconds": 1.0311501189135015,
+              "load_seconds": 0.6024714577943087,
+              "listed_results": 10000
+            },
+            {
+              "seed": 48,
+              "candidates": 396,
+              "match_seconds": 0.3952778750099242,
+              "engine_seconds": 0.13195020472630858,
+              "load_seconds": 0.12858579074963927,
+              "listed_results": 10000
+            },
+            {
+              "seed": 49,
+              "candidates": 544,
+              "match_seconds": 0.43260516598820686,
+              "engine_seconds": 0.14390891278162599,
+              "load_seconds": 0.1524352077394724,
+              "listed_results": 10000
+            }
+          ]
+        },
+        "B": {
+          "queries": 50,
+          "repeats": 3,
+          "match_seconds": {
+            "p50": 0.7169853332452476,
+            "p95": 3.8059106250293553,
+            "max": 9.056523334234953
+          },
+          "candidate_count": {
+            "p50": 1370,
+            "p95": 9994,
+            "max": 9994
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 449.4509240706576,
+            "engine_only": 285.45177063011454,
+            "event_loading": 149.21366950517256
+          },
+          "seconds_share": {
+            "engine": 0.6351122121293915,
+            "event_loading": 0.33199101729227926
+          },
+          "microseconds_per_patient_end_to_end": 135.1013521682471,
+          "query_process": {
+            "peak_rss_bytes": 940294144,
+            "rss_after_open_bytes": 116244480,
+            "wall_seconds": 211.3443517498672
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 489,
+              "match_seconds": 0.1258169999346137,
+              "engine_seconds": 0.01999230543151498,
+              "load_seconds": 0.07362166699022055,
+              "listed_results": 10000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.03331779222935438,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 2,
+              "candidates": 833,
+              "match_seconds": 0.19184195902198553,
+              "engine_seconds": 0.06901451712474227,
+              "load_seconds": 0.09341354202479124,
+              "listed_results": 10000
+            },
+            {
+              "seed": 3,
+              "candidates": 1227,
+              "match_seconds": 0.2589626247063279,
+              "engine_seconds": 0.1236587162129581,
+              "load_seconds": 0.10037550004199147,
+              "listed_results": 10000
+            },
+            {
+              "seed": 4,
+              "candidates": 490,
+              "match_seconds": 0.16157983290031552,
+              "engine_seconds": 0.04594269301742315,
+              "load_seconds": 0.08372691599652171,
+              "listed_results": 10000
+            },
+            {
+              "seed": 5,
+              "candidates": 2497,
+              "match_seconds": 2.30364445829764,
+              "engine_seconds": 1.8586213230155408,
+              "load_seconds": 0.3950407919473946,
+              "listed_results": 10000
+            },
+            {
+              "seed": 6,
+              "candidates": 1381,
+              "match_seconds": 0.17788562504574656,
+              "engine_seconds": 0.0628214692696929,
+              "load_seconds": 0.08371100015938282,
+              "listed_results": 10000
+            },
+            {
+              "seed": 7,
+              "candidates": 3541,
+              "match_seconds": 2.156515042297542,
+              "engine_seconds": 1.0257094129920006,
+              "load_seconds": 1.0749980425462127,
+              "listed_results": 10000
+            },
+            {
+              "seed": 8,
+              "candidates": 902,
+              "match_seconds": 0.491910208016634,
+              "engine_seconds": 0.1965610794723034,
+              "load_seconds": 0.25572270806878805,
+              "listed_results": 10000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.03164008306339383,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 10,
+              "candidates": 9608,
+              "match_seconds": 1.9777204156853259,
+              "engine_seconds": 1.3257909268140793,
+              "load_seconds": 0.6050658328458667,
+              "listed_results": 10000
+            },
+            {
+              "seed": 11,
+              "candidates": 2497,
+              "match_seconds": 2.6202923748642206,
+              "engine_seconds": 1.6680573080666363,
+              "load_seconds": 0.8922044173814356,
+              "listed_results": 10000
+            },
+            {
+              "seed": 12,
+              "candidates": 1370,
+              "match_seconds": 0.35004683304578066,
+              "engine_seconds": 0.14415590604767203,
+              "load_seconds": 0.17021858412772417,
+              "listed_results": 10000
+            },
+            {
+              "seed": 13,
+              "candidates": 1220,
+              "match_seconds": 1.061121459119022,
+              "engine_seconds": 0.495903339702636,
+              "load_seconds": 0.5185729172080755,
+              "listed_results": 10000
+            },
+            {
+              "seed": 14,
+              "candidates": 0,
+              "match_seconds": 0.031379375141113997,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 15,
+              "candidates": 9994,
+              "match_seconds": 2.290403457824141,
+              "engine_seconds": 1.2868744190782309,
+              "load_seconds": 0.9417415843345225,
+              "listed_results": 10000
+            },
+            {
+              "seed": 16,
+              "candidates": 9607,
+              "match_seconds": 1.5703880842775106,
+              "engine_seconds": 0.9315119590610266,
+              "load_seconds": 0.5882464172318578,
+              "listed_results": 10000
+            },
+            {
+              "seed": 17,
+              "candidates": 1250,
+              "match_seconds": 0.3481125836260617,
+              "engine_seconds": 0.14946340350434184,
+              "load_seconds": 0.16300254175439477,
+              "listed_results": 10000
+            },
+            {
+              "seed": 18,
+              "candidates": 1250,
+              "match_seconds": 0.18330891709774733,
+              "engine_seconds": 0.059399403631687164,
+              "load_seconds": 0.09333570906892419,
+              "listed_results": 10000
+            },
+            {
+              "seed": 19,
+              "candidates": 6509,
+              "match_seconds": 4.463102999608964,
+              "engine_seconds": 2.8640996515750885,
+              "load_seconds": 1.522643500007689,
+              "listed_results": 10000
+            },
+            {
+              "seed": 20,
+              "candidates": 983,
+              "match_seconds": 1.8983388748019934,
+              "engine_seconds": 1.28566709253937,
+              "load_seconds": 0.5637819170951843,
+              "listed_results": 10000
+            },
+            {
+              "seed": 21,
+              "candidates": 419,
+              "match_seconds": 0.12506416672840714,
+              "engine_seconds": 0.029312131460756063,
+              "load_seconds": 0.065096250269562,
+              "listed_results": 10000
+            },
+            {
+              "seed": 22,
+              "candidates": 1790,
+              "match_seconds": 0.7169853332452476,
+              "engine_seconds": 0.39633662439882755,
+              "load_seconds": 0.28353258362039924,
+              "listed_results": 10000
+            },
+            {
+              "seed": 23,
+              "candidates": 3541,
+              "match_seconds": 3.8059106250293553,
+              "engine_seconds": 3.218611286021769,
+              "load_seconds": 0.542576499748975,
+              "listed_results": 10000
+            },
+            {
+              "seed": 24,
+              "candidates": 2409,
+              "match_seconds": 1.1361401658505201,
+              "engine_seconds": 0.8921264880336821,
+              "load_seconds": 0.2056091669946909,
+              "listed_results": 10000
+            },
+            {
+              "seed": 25,
+              "candidates": 9994,
+              "match_seconds": 1.7116228751838207,
+              "engine_seconds": 0.8887610654346645,
+              "load_seconds": 0.7656977488659322,
+              "listed_results": 10000
+            },
+            {
+              "seed": 26,
+              "candidates": 3541,
+              "match_seconds": 2.1380757917650044,
+              "engine_seconds": 1.0236969613470137,
+              "load_seconds": 1.0554211237467825,
+              "listed_results": 10000
+            },
+            {
+              "seed": 27,
+              "candidates": 7948,
+              "match_seconds": 1.3676815000362694,
+              "engine_seconds": 0.530930352397263,
+              "load_seconds": 0.7792953746393323,
+              "listed_results": 10000
+            },
+            {
+              "seed": 28,
+              "candidates": 0,
+              "match_seconds": 0.03285220777615905,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 29,
+              "candidates": 3364,
+              "match_seconds": 1.8864744589664042,
+              "engine_seconds": 0.9303734628483653,
+              "load_seconds": 0.9039856670424342,
+              "listed_results": 10000
+            },
+            {
+              "seed": 30,
+              "candidates": 0,
+              "match_seconds": 0.029621500056236982,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 31,
+              "candidates": 0,
+              "match_seconds": 0.0293482500128448,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 32,
+              "candidates": 6511,
+              "match_seconds": 9.056523334234953,
+              "engine_seconds": 7.444723414257169,
+              "load_seconds": 1.5373597512952983,
+              "listed_results": 10000
+            },
+            {
+              "seed": 33,
+              "candidates": 9607,
+              "match_seconds": 1.310325208120048,
+              "engine_seconds": 0.6979796374216676,
+              "load_seconds": 0.5641717910766602,
+              "listed_results": 10000
+            },
+            {
+              "seed": 34,
+              "candidates": 3377,
+              "match_seconds": 2.1868064580485225,
+              "engine_seconds": 1.5627297214232385,
+              "load_seconds": 0.5754048749804497,
+              "listed_results": 10000
+            },
+            {
+              "seed": 35,
+              "candidates": 1220,
+              "match_seconds": 0.6495429580099881,
+              "engine_seconds": 0.374780832324177,
+              "load_seconds": 0.2376534161157906,
+              "listed_results": 10000
+            },
+            {
+              "seed": 36,
+              "candidates": 3377,
+              "match_seconds": 1.5683126673102379,
+              "engine_seconds": 0.9037370104342699,
+              "load_seconds": 0.6159794582054019,
+              "listed_results": 10000
+            },
+            {
+              "seed": 37,
+              "candidates": 0,
+              "match_seconds": 0.033466875087469816,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 38,
+              "candidates": 1042,
+              "match_seconds": 0.24793491698801517,
+              "engine_seconds": 0.09199838014319539,
+              "load_seconds": 0.12216966599225998,
+              "listed_results": 10000
+            },
+            {
+              "seed": 39,
+              "candidates": 8335,
+              "match_seconds": 3.18166770786047,
+              "engine_seconds": 1.995162493083626,
+              "load_seconds": 1.1138497507199645,
+              "listed_results": 10000
+            },
+            {
+              "seed": 40,
+              "candidates": 3896,
+              "match_seconds": 2.952212791889906,
+              "engine_seconds": 1.595844586379826,
+              "load_seconds": 1.280658833682537,
+              "listed_results": 10000
+            },
+            {
+              "seed": 41,
+              "candidates": 9994,
+              "match_seconds": 3.534306417219341,
+              "engine_seconds": 2.6009110962040722,
+              "load_seconds": 0.8726280010305345,
+              "listed_results": 10000
+            },
+            {
+              "seed": 42,
+              "candidates": 1042,
+              "match_seconds": 0.11471149977296591,
+              "engine_seconds": 0.014055243227630854,
+              "load_seconds": 0.07190016703680158,
+              "listed_results": 10000
+            },
+            {
+              "seed": 43,
+              "candidates": 0,
+              "match_seconds": 0.030611000023782253,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 10000
+            },
+            {
+              "seed": 44,
+              "candidates": 3541,
+              "match_seconds": 3.619161249604076,
+              "engine_seconds": 2.3277185140177608,
+              "load_seconds": 1.218884415924549,
+              "listed_results": 10000
+            },
+            {
+              "seed": 45,
+              "candidates": 4386,
+              "match_seconds": 1.1866469997912645,
+              "engine_seconds": 0.6547530111856759,
+              "load_seconds": 0.4821256250143051,
+              "listed_results": 10000
+            },
+            {
+              "seed": 46,
+              "candidates": 833,
+              "match_seconds": 0.3547874582000077,
+              "engine_seconds": 0.14676882000640035,
+              "load_seconds": 0.1731946668587625,
+              "listed_results": 10000
+            },
+            {
+              "seed": 47,
+              "candidates": 3541,
+              "match_seconds": 1.3706093337386847,
+              "engine_seconds": 0.7965415809303522,
+              "load_seconds": 0.5319808754138649,
+              "listed_results": 10000
+            },
+            {
+              "seed": 48,
+              "candidates": 396,
+              "match_seconds": 0.20427437499165535,
+              "engine_seconds": 0.07370933657512069,
+              "load_seconds": 0.09783912496641278,
+              "listed_results": 10000
+            },
+            {
+              "seed": 49,
+              "candidates": 544,
+              "match_seconds": 0.24166795797646046,
+              "engine_seconds": 0.09745234251022339,
+              "load_seconds": 0.1097792498767376,
+              "listed_results": 10000
+            }
+          ]
+        },
+        "B_decided": {
+          "queries": 50,
+          "repeats": 3,
+          "match_seconds": {
+            "p50": 0.7172493753023446,
+            "p95": 3.810756624676287,
+            "max": 9.063522458076477
+          },
+          "candidate_count": {
+            "p50": 1370,
+            "p95": 9994,
+            "max": 9994
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 450.5418221963309,
+            "engine_only": 285.68964671641896,
+            "event_loading": 150.13213123234976
+          },
+          "seconds_share": {
+            "engine": 0.6341023910360203,
+            "event_loading": 0.33322573806905603
+          },
+          "microseconds_per_patient_end_to_end": 135.4292674176395,
+          "query_process": {
+            "peak_rss_bytes": 903675904,
+            "rss_after_open_bytes": 116457472,
+            "wall_seconds": 211.27150087524205
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "decided",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 489,
+              "match_seconds": 0.128476083278656,
+              "engine_seconds": 0.02027829783037305,
+              "load_seconds": 0.07515725027769804,
+              "listed_results": 1199
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.032297542318701744,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 748
+            },
+            {
+              "seed": 2,
+              "candidates": 833,
+              "match_seconds": 0.1935587078332901,
+              "engine_seconds": 0.06946992268785834,
+              "load_seconds": 0.09425083314999938,
+              "listed_results": 1481
+            },
+            {
+              "seed": 3,
+              "candidates": 1227,
+              "match_seconds": 0.25891808327287436,
+              "engine_seconds": 0.12517067836597562,
+              "load_seconds": 0.09909200016409159,
+              "listed_results": 1849
+            },
+            {
+              "seed": 4,
+              "candidates": 490,
+              "match_seconds": 0.16367608262225986,
+              "engine_seconds": 0.04674779390916228,
+              "load_seconds": 0.08537920797243714,
+              "listed_results": 1202
+            },
+            {
+              "seed": 5,
+              "candidates": 2497,
+              "match_seconds": 2.314177041873336,
+              "engine_seconds": 1.8727997578680515,
+              "load_seconds": 0.3989401259459555,
+              "listed_results": 2962
+            },
+            {
+              "seed": 6,
+              "candidates": 1381,
+              "match_seconds": 0.17462004208937287,
+              "engine_seconds": 0.06241643102839589,
+              "load_seconds": 0.08296645805239677,
+              "listed_results": 1974
+            },
+            {
+              "seed": 7,
+              "candidates": 3541,
+              "match_seconds": 2.1642924579791725,
+              "engine_seconds": 1.0260333213955164,
+              "load_seconds": 1.0817185826599598,
+              "listed_results": 3873
+            },
+            {
+              "seed": 8,
+              "candidates": 902,
+              "match_seconds": 0.4890444162301719,
+              "engine_seconds": 0.19641406275331974,
+              "load_seconds": 0.25525666680186987,
+              "listed_results": 7356
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.030582624953240156,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 745
+            },
+            {
+              "seed": 10,
+              "candidates": 9608,
+              "match_seconds": 1.9752521668560803,
+              "engine_seconds": 1.324665649794042,
+              "load_seconds": 0.6064136256463826,
+              "listed_results": 9145
+            },
+            {
+              "seed": 11,
+              "candidates": 2497,
+              "match_seconds": 2.6327382917515934,
+              "engine_seconds": 1.6736557045951486,
+              "load_seconds": 0.8990772510878742,
+              "listed_results": 2932
+            },
+            {
+              "seed": 12,
+              "candidates": 1370,
+              "match_seconds": 0.35015075001865625,
+              "engine_seconds": 0.1441918141208589,
+              "load_seconds": 0.17115841712802649,
+              "listed_results": 1919
+            },
+            {
+              "seed": 13,
+              "candidates": 1220,
+              "match_seconds": 1.0628069168888032,
+              "engine_seconds": 0.4988461514003575,
+              "load_seconds": 0.5178076662123203,
+              "listed_results": 1860
+            },
+            {
+              "seed": 14,
+              "candidates": 0,
+              "match_seconds": 0.03092229086905718,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 909
+            },
+            {
+              "seed": 15,
+              "candidates": 9994,
+              "match_seconds": 2.3147886670194566,
+              "engine_seconds": 1.2939294469542801,
+              "load_seconds": 0.9572411682456732,
+              "listed_results": 9505
+            },
+            {
+              "seed": 16,
+              "candidates": 9607,
+              "match_seconds": 1.569930916186422,
+              "engine_seconds": 0.9298678585328162,
+              "load_seconds": 0.5889032920822501,
+              "listed_results": 9193
+            },
+            {
+              "seed": 17,
+              "candidates": 1250,
+              "match_seconds": 0.3486042907461524,
+              "engine_seconds": 0.15035022655501962,
+              "load_seconds": 0.16224300023168325,
+              "listed_results": 1873
+            },
+            {
+              "seed": 18,
+              "candidates": 1250,
+              "match_seconds": 0.18253020802512765,
+              "engine_seconds": 0.059307816438376904,
+              "load_seconds": 0.09369145892560482,
+              "listed_results": 1982
+            },
+            {
+              "seed": 19,
+              "candidates": 6509,
+              "match_seconds": 4.465670332778245,
+              "engine_seconds": 2.8493586503900588,
+              "load_seconds": 1.5351300002075732,
+              "listed_results": 6471
+            },
+            {
+              "seed": 20,
+              "candidates": 983,
+              "match_seconds": 1.914848709013313,
+              "engine_seconds": 1.2938196719624102,
+              "load_seconds": 0.5697889998555183,
+              "listed_results": 1640
+            },
+            {
+              "seed": 21,
+              "candidates": 419,
+              "match_seconds": 0.12422070791944861,
+              "engine_seconds": 0.029437283519655466,
+              "load_seconds": 0.06443254183977842,
+              "listed_results": 1112
+            },
+            {
+              "seed": 22,
+              "candidates": 1790,
+              "match_seconds": 0.7172493753023446,
+              "engine_seconds": 0.39635972352698445,
+              "load_seconds": 0.2843684167601168,
+              "listed_results": 2372
+            },
+            {
+              "seed": 23,
+              "candidates": 3541,
+              "match_seconds": 3.810756624676287,
+              "engine_seconds": 3.218824878334999,
+              "load_seconds": 0.5478637078776956,
+              "listed_results": 3886
+            },
+            {
+              "seed": 24,
+              "candidates": 2409,
+              "match_seconds": 1.136982792057097,
+              "engine_seconds": 0.8920243182219565,
+              "load_seconds": 0.2062204168178141,
+              "listed_results": 2824
+            },
+            {
+              "seed": 25,
+              "candidates": 9994,
+              "match_seconds": 1.7133601666428149,
+              "engine_seconds": 0.8852495010942221,
+              "load_seconds": 0.7701891674660146,
+              "listed_results": 9469
+            },
+            {
+              "seed": 26,
+              "candidates": 3541,
+              "match_seconds": 2.1445098337717354,
+              "engine_seconds": 1.0258264765143394,
+              "load_seconds": 1.0599652091041207,
+              "listed_results": 3895
+            },
+            {
+              "seed": 27,
+              "candidates": 7948,
+              "match_seconds": 1.3788710827939212,
+              "engine_seconds": 0.534383405931294,
+              "load_seconds": 0.7848390410654247,
+              "listed_results": 7736
+            },
+            {
+              "seed": 28,
+              "candidates": 0,
+              "match_seconds": 0.0313767078332603,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 942
+            },
+            {
+              "seed": 29,
+              "candidates": 3364,
+              "match_seconds": 1.8889697920531034,
+              "engine_seconds": 0.9289801511913538,
+              "load_seconds": 0.9063547495752573,
+              "listed_results": 3688
+            },
+            {
+              "seed": 30,
+              "candidates": 0,
+              "match_seconds": 0.028823542408645153,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 779
+            },
+            {
+              "seed": 31,
+              "candidates": 0,
+              "match_seconds": 0.029481082689017057,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 6571
+            },
+            {
+              "seed": 32,
+              "candidates": 6511,
+              "match_seconds": 9.063522458076477,
+              "engine_seconds": 7.4360350468195975,
+              "load_seconds": 1.549972376320511,
+              "listed_results": 6410
+            },
+            {
+              "seed": 33,
+              "candidates": 9607,
+              "match_seconds": 1.320533042307943,
+              "engine_seconds": 0.701409054454416,
+              "load_seconds": 0.5696197501383722,
+              "listed_results": 9114
+            },
+            {
+              "seed": 34,
+              "candidates": 3377,
+              "match_seconds": 2.188786417245865,
+              "engine_seconds": 1.5658925441093743,
+              "load_seconds": 0.5765075837261975,
+              "listed_results": 9498
+            },
+            {
+              "seed": 35,
+              "candidates": 1220,
+              "match_seconds": 0.6555245826020837,
+              "engine_seconds": 0.37676163110882044,
+              "load_seconds": 0.24258408322930336,
+              "listed_results": 1816
+            },
+            {
+              "seed": 36,
+              "candidates": 3377,
+              "match_seconds": 1.5767651251517236,
+              "engine_seconds": 0.9064560811966658,
+              "load_seconds": 0.6204378749243915,
+              "listed_results": 9484
+            },
+            {
+              "seed": 37,
+              "candidates": 0,
+              "match_seconds": 0.031779584009200335,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 728
+            },
+            {
+              "seed": 38,
+              "candidates": 1042,
+              "match_seconds": 0.24679333390668035,
+              "engine_seconds": 0.09214544761925936,
+              "load_seconds": 0.12169162509962916,
+              "listed_results": 1661
+            },
+            {
+              "seed": 39,
+              "candidates": 8335,
+              "match_seconds": 3.176034417003393,
+              "engine_seconds": 1.9889125525951385,
+              "load_seconds": 1.1164192901924253,
+              "listed_results": 8009
+            },
+            {
+              "seed": 40,
+              "candidates": 3896,
+              "match_seconds": 2.9586791251786053,
+              "engine_seconds": 1.6035210536792874,
+              "load_seconds": 1.2810777495615184,
+              "listed_results": 4183
+            },
+            {
+              "seed": 41,
+              "candidates": 9994,
+              "match_seconds": 3.5436602500267327,
+              "engine_seconds": 2.611842770129442,
+              "load_seconds": 0.8667702511884272,
+              "listed_results": 9468
+            },
+            {
+              "seed": 42,
+              "candidates": 1042,
+              "match_seconds": 0.11459174985066056,
+              "engine_seconds": 0.014234488364309072,
+              "load_seconds": 0.07184191606938839,
+              "listed_results": 1652
+            },
+            {
+              "seed": 43,
+              "candidates": 0,
+              "match_seconds": 0.02952150022611022,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 791
+            },
+            {
+              "seed": 44,
+              "candidates": 3541,
+              "match_seconds": 3.6186907500959933,
+              "engine_seconds": 2.3240406191907823,
+              "load_seconds": 1.2233385411091149,
+              "listed_results": 3843
+            },
+            {
+              "seed": 45,
+              "candidates": 4386,
+              "match_seconds": 1.2047873749397695,
+              "engine_seconds": 0.6575368503108621,
+              "load_seconds": 0.4981198743917048,
+              "listed_results": 4603
+            },
+            {
+              "seed": 46,
+              "candidates": 833,
+              "match_seconds": 0.35422862507402897,
+              "engine_seconds": 0.145637686830014,
+              "load_seconds": 0.17415854102000594,
+              "listed_results": 1488
+            },
+            {
+              "seed": 47,
+              "candidates": 3541,
+              "match_seconds": 1.3815079173073173,
+              "engine_seconds": 0.7940678168088198,
+              "load_seconds": 0.5426758755929768,
+              "listed_results": 3848
+            },
+            {
+              "seed": 48,
+              "candidates": 396,
+              "match_seconds": 0.20437245815992355,
+              "engine_seconds": 0.07343221176415682,
+              "load_seconds": 0.09940645797178149,
+              "listed_results": 1105
+            },
+            {
+              "seed": 49,
+              "candidates": 544,
+              "match_seconds": 0.24236666690558195,
+              "engine_seconds": 0.0976762929931283,
+              "load_seconds": 0.11118775000795722,
+              "listed_results": 1216
+            }
+          ]
+        },
+        "C": {
+          "status": "not_run",
+          "description": "parallel Python at 1, 2, 4, 8 and 14 workers over chunks (a later change)"
+        },
+        "D": {
+          "status": "not_run",
+          "description": "Rust matcher, single-threaded and batched, including FFI (a later change, built only if B+C misses the target)"
+        },
+        "D'": {
+          "status": "not_run",
+          "description": "Rust matcher, parallel (a later change, same condition)"
+        }
+      },
+      "byte_identity_B_against_A": {
+        "compared": 50,
+        "identical": 50,
+        "mismatching_seeds": []
+      },
+      "target_check_arm_B": {
+        "size": 10000,
+        "p95_seconds": 3.8059106250293553,
+        "max_seconds": 9.056523334234953,
+        "peak_rss_bytes": 940294144,
+        "p95_met": true,
+        "max_met": true,
+        "memory_met": true
+      }
+    },
+    {
+      "size": 100000,
+      "snapshot_id": "22fd66843c67664a21e58fb0fb5e57f355d5c6015ab8d73af009aa3c07386796",
+      "queries": 10,
+      "repeats": 1,
+      "arms": {
+        "A": {
+          "queries": 10,
+          "repeats": 1,
+          "match_seconds": {
+            "p50": 3.37856762483716,
+            "p95": 28.757499374914914,
+            "max": 28.757499374914914
+          },
+          "candidate_count": {
+            "p50": 8330,
+            "p95": 35410,
+            "max": 35410
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 734.8660035198227,
+            "engine_only": 388.2173783945995,
+            "event_loading": 220.27440178519586
+          },
+          "seconds_share": {
+            "engine": 0.5282832197096291,
+            "event_loading": 0.2997477100997149
+          },
+          "microseconds_per_patient_end_to_end": 83.48077799985185,
+          "query_process": {
+            "peak_rss_bytes": 8431566848,
+            "rss_after_open_bytes": 126468096,
+            "wall_seconds": 90.46515699988231
+          },
+          "code": "/private/tmp/matcher-arm-a-tr496dn3/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 4890,
+              "match_seconds": 2.666935042012483,
+              "engine_seconds": 0.3692503566853702,
+              "load_seconds": 0.8556612906977534,
+              "listed_results": 100000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 1.4277513748966157,
+              "engine_seconds": 0.0,
+              "load_seconds": 2.334360033273697e-06,
+              "listed_results": 100000
+            },
+            {
+              "seed": 2,
+              "candidates": 8330,
+              "match_seconds": 3.424609915819019,
+              "engine_seconds": 0.9518626858480275,
+              "load_seconds": 1.114282582886517,
+              "listed_results": 100000
+            },
+            {
+              "seed": 3,
+              "candidates": 12270,
+              "match_seconds": 4.873972124885768,
+              "engine_seconds": 2.0913028568029404,
+              "load_seconds": 1.3833652078174055,
+              "listed_results": 100000
+            },
+            {
+              "seed": 4,
+              "candidates": 4900,
+              "match_seconds": 2.9421271248720586,
+              "engine_seconds": 0.7470477670431137,
+              "load_seconds": 0.8376794173382223,
+              "listed_results": 100000
+            },
+            {
+              "seed": 5,
+              "candidates": 24970,
+              "match_seconds": 27.352043666876853,
+              "engine_seconds": 20.994219785556197,
+              "load_seconds": 4.6261707921512425,
+              "listed_results": 100000
+            },
+            {
+              "seed": 6,
+              "candidates": 13810,
+              "match_seconds": 3.37856762483716,
+              "engine_seconds": 1.1944167716428638,
+              "load_seconds": 0.871895041782409,
+              "listed_results": 100000
+            },
+            {
+              "seed": 7,
+              "candidates": 35410,
+              "match_seconds": 28.757499374914914,
+              "engine_seconds": 14.7987888911739,
+              "load_seconds": 12.481897875200957,
+              "listed_results": 100000
+            },
+            {
+              "seed": 8,
+              "candidates": 9020,
+              "match_seconds": 7.225640583783388,
+              "engine_seconds": 2.954605070874095,
+              "load_seconds": 2.852214875165373,
+              "listed_results": 100000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 1.4316311669535935,
+              "engine_seconds": 0.0,
+              "load_seconds": 2.625398337841034e-06,
+              "listed_results": 100000
+            }
+          ]
+        },
+        "B": {
+          "queries": 10,
+          "repeats": 1,
+          "match_seconds": {
+            "p50": 1.8324815831147134,
+            "p95": 23.489459082949907,
+            "max": 23.489459082949907
+          },
+          "candidate_count": {
+            "p50": 8330,
+            "p95": 35410,
+            "max": 35410
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 535.6780410060514,
+            "engine_only": 299.1643442049242,
+            "event_loading": 205.16319209004712
+          },
+          "seconds_share": {
+            "engine": 0.5584778940033955,
+            "event_loading": 0.3829972042623443
+          },
+          "microseconds_per_patient_end_to_end": 60.85302545828745,
+          "query_process": {
+            "peak_rss_bytes": 772456448,
+            "rss_after_open_bytes": 126894080,
+            "wall_seconds": 65.03483004216105
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 4890,
+              "match_seconds": 1.2584077920764685,
+              "engine_seconds": 0.1968899117782712,
+              "load_seconds": 0.7041694987565279,
+              "listed_results": 100000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.30781566724181175,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 100000
+            },
+            {
+              "seed": 2,
+              "candidates": 8330,
+              "match_seconds": 2.025655540637672,
+              "engine_seconds": 0.6856294302269816,
+              "load_seconds": 1.0597279984503984,
+              "listed_results": 100000
+            },
+            {
+              "seed": 3,
+              "candidates": 12270,
+              "match_seconds": 2.8078812500461936,
+              "engine_seconds": 1.2342031742446125,
+              "load_seconds": 1.2229371662251651,
+              "listed_results": 100000
+            },
+            {
+              "seed": 4,
+              "candidates": 4900,
+              "match_seconds": 1.5037107923999429,
+              "engine_seconds": 0.4547021798789501,
+              "load_seconds": 0.7361179990693927,
+              "listed_results": 100000
+            },
+            {
+              "seed": 5,
+              "candidates": 24970,
+              "match_seconds": 23.489459082949907,
+              "engine_seconds": 18.544178905896842,
+              "load_seconds": 4.527800917159766,
+              "listed_results": 100000
+            },
+            {
+              "seed": 6,
+              "candidates": 13810,
+              "match_seconds": 1.8324815831147134,
+              "engine_seconds": 0.6162955984473228,
+              "load_seconds": 0.9333253754302859,
+              "listed_results": 100000
+            },
+            {
+              "seed": 7,
+              "candidates": 35410,
+              "match_seconds": 22.235482166986912,
+              "engine_seconds": 10.290664560161531,
+              "load_seconds": 11.393564458470792,
+              "listed_results": 100000
+            },
+            {
+              "seed": 8,
+              "candidates": 9020,
+              "match_seconds": 5.0713457078672945,
+              "engine_seconds": 1.962505741044879,
+              "load_seconds": 2.7288952078670263,
+              "listed_results": 100000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.320785874966532,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 100000
+            }
+          ]
+        },
+        "B_decided": {
+          "queries": 10,
+          "repeats": 1,
+          "match_seconds": {
+            "p50": 1.8086126670241356,
+            "p95": 23.672482083085924,
+            "max": 23.672482083085924
+          },
+          "candidate_count": {
+            "p50": 8330,
+            "p95": 35410,
+            "max": 35410
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 534.8317337781518,
+            "engine_only": 300.5031910913498,
+            "event_loading": 205.09685191709522
+          },
+          "seconds_share": {
+            "engine": 0.5618649233255828,
+            "event_loading": 0.38347921217810416
+          },
+          "microseconds_per_patient_end_to_end": 60.756884957198054,
+          "query_process": {
+            "peak_rss_bytes": 773685248,
+            "rss_after_open_bytes": 127500288,
+            "wall_seconds": 63.66070079198107
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "decided",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 4890,
+              "match_seconds": 1.1810926250182092,
+              "engine_seconds": 0.19706791499629617,
+              "load_seconds": 0.6896549998782575,
+              "listed_results": 11990
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.2868499169126153,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 7480
+            },
+            {
+              "seed": 2,
+              "candidates": 8330,
+              "match_seconds": 2.02492337487638,
+              "engine_seconds": 0.6928991554304957,
+              "load_seconds": 1.07284912513569,
+              "listed_results": 14810
+            },
+            {
+              "seed": 3,
+              "candidates": 12270,
+              "match_seconds": 2.7866404158994555,
+              "engine_seconds": 1.2372626746073365,
+              "load_seconds": 1.2182060023769736,
+              "listed_results": 18490
+            },
+            {
+              "seed": 4,
+              "candidates": 4900,
+              "match_seconds": 1.4911102089099586,
+              "engine_seconds": 0.4629476056434214,
+              "load_seconds": 0.7327178758569062,
+              "listed_results": 12020
+            },
+            {
+              "seed": 5,
+              "candidates": 24970,
+              "match_seconds": 23.672482083085924,
+              "engine_seconds": 18.74351916508749,
+              "load_seconds": 4.5183400814421475,
+              "listed_results": 29620
+            },
+            {
+              "seed": 6,
+              "candidates": 13810,
+              "match_seconds": 1.8086126670241356,
+              "engine_seconds": 0.6183375921100378,
+              "load_seconds": 0.929403459187597,
+              "listed_results": 19740
+            },
+            {
+              "seed": 7,
+              "candidates": 35410,
+              "match_seconds": 22.158424332737923,
+              "engine_seconds": 10.227795709390193,
+              "load_seconds": 11.389018542133272,
+              "listed_results": 38730
+            },
+            {
+              "seed": 8,
+              "candidates": 9020,
+              "match_seconds": 5.0598414577543736,
+              "engine_seconds": 1.9573326907120645,
+              "load_seconds": 2.7488122917711735,
+              "listed_results": 73560
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.28690787497907877,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 7450
+            }
+          ]
+        },
+        "C": {
+          "status": "not_run",
+          "description": "parallel Python at 1, 2, 4, 8 and 14 workers over chunks (a later change)"
+        },
+        "D": {
+          "status": "not_run",
+          "description": "Rust matcher, single-threaded and batched, including FFI (a later change, built only if B+C misses the target)"
+        },
+        "D'": {
+          "status": "not_run",
+          "description": "Rust matcher, parallel (a later change, same condition)"
+        }
+      },
+      "byte_identity_B_against_A": {
+        "compared": 10,
+        "identical": 10,
+        "mismatching_seeds": []
+      },
+      "target_check_arm_B": {
+        "size": 100000,
+        "p95_seconds": 23.489459082949907,
+        "max_seconds": 23.489459082949907,
+        "peak_rss_bytes": 772456448,
+        "p95_met": false,
+        "max_met": true,
+        "memory_met": true
+      }
+    },
+    {
+      "size": 300000,
+      "snapshot_id": "44fb0e89edb54c19315564b0fc6d27f7114fd12fb692673408735c5c7f9ba929",
+      "queries": 10,
+      "repeats": 1,
+      "arms": {
+        "A": {
+          "queries": 10,
+          "repeats": 1,
+          "match_seconds": {
+            "p50": 10.185100167058408,
+            "p95": 93.71956370817497,
+            "max": 93.71956370817497
+          },
+          "candidate_count": {
+            "p50": 24990,
+            "p95": 106230,
+            "max": 106230
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 760.0106406512019,
+            "engine_only": 387.9700991037595,
+            "event_loading": 238.84367322092308
+          },
+          "seconds_share": {
+            "engine": 0.5104798253499899,
+            "event_loading": 0.3142635911206112
+          },
+          "microseconds_per_patient_end_to_end": 86.33720877797653,
+          "query_process": {
+            "peak_rss_bytes": 21250342912,
+            "rss_after_open_bytes": 163168256,
+            "wall_seconds": 268.24067487521097
+          },
+          "code": "/private/tmp/matcher-arm-a-tr496dn3/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 14670,
+              "match_seconds": 7.792522124946117,
+              "engine_seconds": 1.1038173558190465,
+              "load_seconds": 2.158128499984741,
+              "listed_results": 300000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 4.741930167190731,
+              "engine_seconds": 0.0,
+              "load_seconds": 4.125293344259262e-06,
+              "listed_results": 300000
+            },
+            {
+              "seed": 2,
+              "candidates": 24990,
+              "match_seconds": 10.215171958319843,
+              "engine_seconds": 2.857588664162904,
+              "load_seconds": 2.903900791890919,
+              "listed_results": 300000
+            },
+            {
+              "seed": 3,
+              "candidates": 36810,
+              "match_seconds": 14.736987959127873,
+              "engine_seconds": 6.321298419032246,
+              "load_seconds": 3.6526345419697464,
+              "listed_results": 300000
+            },
+            {
+              "seed": 4,
+              "candidates": 14700,
+              "match_seconds": 8.835228458046913,
+              "engine_seconds": 2.2412249096669257,
+              "load_seconds": 2.1462248750030994,
+              "listed_results": 300000
+            },
+            {
+              "seed": 5,
+              "candidates": 74910,
+              "match_seconds": 82.80959670804441,
+              "engine_seconds": 63.067004384472966,
+              "load_seconds": 14.92785295797512,
+              "listed_results": 300000
+            },
+            {
+              "seed": 6,
+              "candidates": 41430,
+              "match_seconds": 10.185100167058408,
+              "engine_seconds": 3.52970951795578,
+              "load_seconds": 2.3101576659828424,
+              "listed_results": 300000
+            },
+            {
+              "seed": 7,
+              "candidates": 106230,
+              "match_seconds": 93.71956370817497,
+              "engine_seconds": 44.27484598103911,
+              "load_seconds": 44.802169874776155,
+              "listed_results": 300000
+            },
+            {
+              "seed": 8,
+              "candidates": 27060,
+              "match_seconds": 21.35798208322376,
+              "engine_seconds": 8.824720542412251,
+              "load_seconds": 8.496847542002797,
+              "listed_results": 300000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 4.617542999796569,
+              "engine_seconds": 0.0,
+              "load_seconds": 2.9588118195533752e-06,
+              "listed_results": 300000
+            }
+          ]
+        },
+        "B": {
+          "queries": 10,
+          "repeats": 1,
+          "match_seconds": {
+            "p50": 4.924876042176038,
+            "p95": 71.09845866682008,
+            "max": 71.09845866682008
+          },
+          "candidate_count": {
+            "p50": 24990,
+            "p95": 106230,
+            "max": 106230
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 531.8658783247021,
+            "engine_only": 295.95114636407646,
+            "event_loading": 203.9153557686144
+          },
+          "seconds_share": {
+            "engine": 0.5564394303621776,
+            "event_loading": 0.3833961983252568
+          },
+          "microseconds_per_patient_end_to_end": 60.41996377768616,
+          "query_process": {
+            "peak_rss_bytes": 982499328,
+            "rss_after_open_bytes": 163463168,
+            "wall_seconds": 189.89600204210728
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "full",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 14670,
+              "match_seconds": 3.3174517080187798,
+              "engine_seconds": 0.5794147462584078,
+              "load_seconds": 1.7988003338687122,
+              "listed_results": 300000
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.9560261247679591,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 300000
+            },
+            {
+              "seed": 2,
+              "candidates": 24990,
+              "match_seconds": 5.630981707945466,
+              "engine_seconds": 2.0236024409532547,
+              "load_seconds": 2.7348763728514314,
+              "listed_results": 300000
+            },
+            {
+              "seed": 3,
+              "candidates": 36810,
+              "match_seconds": 8.001508916262537,
+              "engine_seconds": 3.672986369114369,
+              "load_seconds": 3.2446109573356807,
+              "listed_results": 300000
+            },
+            {
+              "seed": 4,
+              "candidates": 14700,
+              "match_seconds": 4.061770792119205,
+              "engine_seconds": 1.3500227588228881,
+              "load_seconds": 1.7747564162127674,
+              "listed_results": 300000
+            },
+            {
+              "seed": 5,
+              "candidates": 74910,
+              "match_seconds": 71.09845866682008,
+              "engine_seconds": 55.49767052708194,
+              "load_seconds": 14.250472164712846,
+              "listed_results": 300000
+            },
+            {
+              "seed": 6,
+              "candidates": 41430,
+              "match_seconds": 4.924876042176038,
+              "engine_seconds": 1.7922991933301091,
+              "load_seconds": 2.23961283499375,
+              "listed_results": 300000
+            },
+            {
+              "seed": 7,
+              "candidates": 106230,
+              "match_seconds": 67.76312491716817,
+              "engine_seconds": 30.185410387348384,
+              "load_seconds": 35.866257540881634,
+              "listed_results": 300000
+            },
+            {
+              "seed": 8,
+              "candidates": 27060,
+              "match_seconds": 14.572661125101149,
+              "engine_seconds": 5.758744257967919,
+              "load_seconds": 7.584966625086963,
+              "listed_results": 300000
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.9330313326790929,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 300000
+            }
+          ]
+        },
+        "B_decided": {
+          "queries": 10,
+          "repeats": 1,
+          "match_seconds": {
+            "p50": 4.879891874734312,
+            "p95": 70.9435049998574,
+            "max": 70.9435049998574
+          },
+          "candidate_count": {
+            "p50": 24990,
+            "p95": 106230,
+            "max": 106230
+          },
+          "per_candidate_microseconds": {
+            "end_to_end": 530.7992376939682,
+            "engine_only": 296.506199740068,
+            "event_loading": 203.57564100973798
+          },
+          "seconds_share": {
+            "engine": 0.5586032885582597,
+            "event_loading": 0.38352662655312497
+          },
+          "microseconds_per_patient_end_to_end": 60.29879340203479,
+          "query_process": {
+            "peak_rss_bytes": 976273408,
+            "rss_after_open_bytes": 163545088,
+            "wall_seconds": 185.52328195795417
+          },
+          "code": "/Users/dumontier/code/ptm/.claude/worktrees/agent-ac201229afa712510/patterns/execution_store.py",
+          "detail": "decided",
+          "per_query": [
+            {
+              "seed": 0,
+              "candidates": 14670,
+              "match_seconds": 3.2496551661752164,
+              "engine_seconds": 0.5757610397413373,
+              "load_seconds": 1.7774087497964501,
+              "listed_results": 35970
+            },
+            {
+              "seed": 1,
+              "candidates": 0,
+              "match_seconds": 0.9012325420044363,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 22440
+            },
+            {
+              "seed": 2,
+              "candidates": 24990,
+              "match_seconds": 5.545621291734278,
+              "engine_seconds": 2.00605755392462,
+              "load_seconds": 2.716472084634006,
+              "listed_results": 44430
+            },
+            {
+              "seed": 3,
+              "candidates": 36810,
+              "match_seconds": 7.941768290940672,
+              "engine_seconds": 3.682696125935763,
+              "load_seconds": 3.2249696245417,
+              "listed_results": 55470
+            },
+            {
+              "seed": 4,
+              "candidates": 14700,
+              "match_seconds": 4.000113790854812,
+              "engine_seconds": 1.3499475456774235,
+              "load_seconds": 1.7652186248451471,
+              "listed_results": 36060
+            },
+            {
+              "seed": 5,
+              "candidates": 74910,
+              "match_seconds": 70.9435049998574,
+              "engine_seconds": 55.437474641017616,
+              "load_seconds": 14.195349452551454,
+              "listed_results": 88860
+            },
+            {
+              "seed": 6,
+              "candidates": 41430,
+              "match_seconds": 4.879891874734312,
+              "engine_seconds": 1.8035755017772317,
+              "load_seconds": 2.2310114591382444,
+              "listed_results": 59220
+            },
+            {
+              "seed": 7,
+              "candidates": 106230,
+              "match_seconds": 67.99553870782256,
+              "engine_seconds": 30.390224416274577,
+              "load_seconds": 35.90551654342562,
+              "listed_results": 116190
+            },
+            {
+              "seed": 8,
+              "candidates": 27060,
+              "match_seconds": 14.543101749848574,
+              "engine_seconds": 5.803576047066599,
+              "load_seconds": 7.562631917186081,
+              "listed_results": 220680
+            },
+            {
+              "seed": 9,
+              "candidates": 0,
+              "match_seconds": 0.8959517921321094,
+              "engine_seconds": 0.0,
+              "load_seconds": 0.0,
+              "listed_results": 22350
+            }
+          ]
+        },
+        "C": {
+          "status": "not_run",
+          "description": "parallel Python at 1, 2, 4, 8 and 14 workers over chunks (a later change)"
+        },
+        "D": {
+          "status": "not_run",
+          "description": "Rust matcher, single-threaded and batched, including FFI (a later change, built only if B+C misses the target)"
+        },
+        "D'": {
+          "status": "not_run",
+          "description": "Rust matcher, parallel (a later change, same condition)"
+        }
+      },
+      "byte_identity_B_against_A": {
+        "compared": 10,
+        "identical": 10,
+        "mismatching_seeds": []
+      },
+      "target_check_arm_B": {
+        "size": 300000,
+        "p95_seconds": 71.09845866682008,
+        "max_seconds": 71.09845866682008,
+        "peak_rss_bytes": 982499328,
+        "p95_met": false,
+        "max_met": false,
+        "memory_met": true
+      }
+    }
+  ],
+  "artifacts": {
+    "tools/benchmark_matcher.py": "04e7766fe4e8f1d8261418dd944680a3a227c35fd9fcef789668834431b896ff",
+    "tools/benchmark_execution_store.py": "54c502134995d4932f29414be7e576200ce2fab5a8c0bd245b973f1704fcba4d",
+    "patterns/execution_store.py": "403906a72b5f2c99765ca906fb663ae23f09ba45e9370210176aacab1f0b1874",
+    "patterns/trajectory_graph.py": "aa7a2e7abf3ccee2f7350182acebaccf24ab20023e022685554e31b097df3722",
+    "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
+    "patterns/test_execution_store.py": "c31a379a19c81c2ccebeeea2553b0ddf0ec7b10d3e82915f930e23d8c2eba04a",
+    "patterns/fixtures/execution_store_match_digests.json": "7568110549c2de044000332a176bc4b5c4d7649ebf2163d8e8e8e00418bc7916"
+  },
+  "limitations": [
+    "One machine (see environment); no other hardware, operating system or storage was measured.",
+    "The data are synthetic and replicated beyond 10,000 distinct patients (see the scaling report): candidate sets and outcomes scale as exact multiples, which a real population would not.",
+    "Queries are the scaling benchmark's seeded random queries (10 at 100,000 patients and above), not a clinical mix; percentiles over 10 queries rest on few samples, and the maximum is the slowest single query.",
+    "Arm A is the code of the stated git ref extracted and imported from a scratch directory; both arms read the same snapshot files. The snapshots were built by the builder at the ref the report states, not by the final tree.",
+    "Peak memory is the query process's maximum resident set size. It includes the interpreter, DuckDB buffers, the caller's windows dictionary (one entry per patient, rebuilt for each query) and the full result, which for detail='full' is one dict per patient and is part of what the caller asked for.",
+    "\"Engine-only\" time is the seconds inside `trajectory_graph` match calls as measured by a wrapper (about 0.1 microsecond of overhead per call); \"end-to-end\" is the whole `match` call including candidates(), loading, comparability, exclusions and the context digests.",
+    "Latencies are wall-clock times of one Python thread and one DuckDB thread; no tuning was attempted.",
+    "Byte identity is checked by a digest of canonical JSON of the plan, candidate count, counts and every patient result (not the context block, whose snapshot and code digests change with the code); no exhaustive reference ran at scale.",
+    "Arms C, D and D' have not been run."
+  ],
+  "contains_patient_level_data": false,
+  "total_seconds": 1638.9917507078499
+}
