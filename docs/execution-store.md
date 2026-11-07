@@ -43,7 +43,7 @@ A store is built from one ingest document, whatever its source:
 | Dispensing, measurement, diary summary, … | Point events |
 | Uncoded diary entries and screening results | Skipped and counted |
 | Times | The record's `occurred` earliest and latest, as written |
-| Event identifier | `source/record_id`, with `#m<i>` for the i-th mention in a letter. Record identifiers alone collide once in the cohort (`C029-R0271`), which the store's duplicate check found |
+| Event identifier | `source/record_id`, with `#m<i>` for the i-th mention in a letter. An earlier generator reused `C029-R0271` for two records; the generator now keeps record identifiers unique, and the source stays in the key as a safeguard. The store's duplicate check still refuses any repeat |
 | Coverage | For each source, the patient's record span: earliest to latest `occurred` over every record that source holds, converted or not, with basis `record_span`. This coverage is inferred, and gaps inside the span are not represented |
 | Ancestors | Transitive closure of each concept's `parents` and `classes`. The version is the dataset identifier plus a digest of the hierarchy |
 
