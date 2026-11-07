@@ -5,7 +5,7 @@
   "errors": 0,
   "passed": true,
   "production_readiness_claim": false,
-  "python": "3.12.15",
+  "python": "3.12.13",
   "tests": [
     "test_a_case_without_a_warrant_is_refused",
     "test_a_stipulated_warrant_is_carried_into_the_result",

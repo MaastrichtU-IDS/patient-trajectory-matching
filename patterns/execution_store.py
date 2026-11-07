@@ -677,11 +677,12 @@ def admits_start(scope, window, lo, hi):
 
 
 def _excluded_starts(store, query, per_step, idxs, windows_by_idx):
-    """{patient_idx: {step: [(start_lo, start_hi)]}}: the excluded records each step could have bound.
+    """{patient_idx: ({step: starts the scope admits}, {step: all starts})} for each step's excluded records.
 
-    A step could have bound an excluded record whose concept is one of the step's concepts or
-    widenings, or a descendant of one (through the closure), and whose start the query's scope
-    admits (`admits_start`).
+    A step's excluded records are those whose concept is one of the step's concepts or widenings, or
+    a descendant of one (through the closure). It could have bound those whose start the query's
+    scope admits (`admits_start`). But the engine picks a `first` or `last` target among every event
+    carrying the concept and only then applies the scope, so any of them could displace a target.
     """
     if not idxs:
         return {}
@@ -696,22 +697,25 @@ def _excluded_starts(store, query, per_step, idxs, windows_by_idx):
     out = {}
     for idx, records in found.items():
         w = windows_by_idx[idx]
-        steps = {step: sorted({(lo, hi) for c, lo, hi in records if c in cs and admits_start(scope, w, lo, hi)})
-                 for step, cs in per_step.items()}
-        steps = {step: starts for step, starts in steps.items() if starts}
-        if steps:
-            out[idx] = steps
+        every = {step: sorted({(lo, hi) for c, lo, hi in records if c in cs}) for step, cs in per_step.items()}
+        every = {step: starts for step, starts in every.items() if starts}
+        admitted = {step: [(lo, hi) for lo, hi in starts if admits_start(scope, w, lo, hi)] for step, starts in every.items()}
+        admitted = {step: starts for step, starts in admitted.items() if starts}
+        if every:
+            out[idx] = (admitted, every)
     return out
 
 
-def apply_exclusions(query, result, touched, starts):
+def apply_exclusions(query, result, touched, starts, every=None):
     """Rule EXCLUSION_RULE: what a result may still say when excluded records could have changed it.
 
-    `touched` maps each step to the starts of the excluded records it could have bound; `starts` maps
-    an event id to its start bounds. Adding records only adds bindings, so an `exact` or `possible`
+    `touched` maps each step to the starts of the excluded records its scope admits, and `every` to
+    the starts of all its excluded records (defaulting to `touched`); `starts` maps each of this
+    patient's event ids to its start bounds. Adding records only adds bindings, so an `exact` or `possible`
     binding stands, except:
-    - a `first` or `last` step's target can move to an excluded record (`start_lo` at or before the
-      bound event's `start_hi` for first, `start_hi` at or after its `start_lo` for last). The found
+    - a `first` or `last` step's target can move to any of its excluded records, whether or not the
+      scope admits it (`start_lo` at or before the bound event's `start_hi` for first, `start_hi` at
+      or after its `start_lo` for last), since the engine applies the scope after choosing. The found
       binding may then not be a binding of the query at all, so the result is `not_comparable`,
       whatever the engine said;
     - `none` may hide a binding: `not_comparable`;
@@ -720,7 +724,8 @@ def apply_exclusions(query, result, touched, starts):
     - `possible` claims no exact binding exists: still possible, but `complete: false`.
     Every changed result names the steps (`excluded_steps`) and the reason ADMISSION_EXCLUDED_RECORDS.
     """
-    if not touched or result['status'] not in ('exact', 'possible', 'relaxed', 'unresolved', 'none'):
+    every = touched if every is None else every
+    if not every or result['status'] not in ('exact', 'possible', 'relaxed', 'unresolved', 'none'):
         return result
     order = [step['id'] for step in query['steps']]
     occurrence = {step['id']: step.get('occurrence', 'any') for step in query['steps']}
@@ -730,11 +735,13 @@ def apply_exclusions(query, result, touched, starts):
                                   'excluded_steps': which}
     binding = result.get('binding') or result.get('relaxed_match', {}).get('binding')
     if binding is not None:
-        moved = [step for step in steps
-                 if (occurrence[step] == 'first' and any(lo <= starts[binding[step]][1] for lo, _ in touched[step]))
-                 or (occurrence[step] == 'last' and any(hi >= starts[binding[step]][0] for _, hi in touched[step]))]
+        moved = [step for step in order if step in every
+                 and ((occurrence[step] == 'first' and any(lo <= starts[binding[step]][1] for lo, _ in every[step]))
+                      or (occurrence[step] == 'last' and any(hi >= starts[binding[step]][0] for _, hi in every[step])))]
         if moved:
             return incomparable(moved)
+    if not steps:
+        return result
     if result['status'] == 'none':
         return incomparable(steps)
     if result['status'] == 'relaxed':
@@ -798,9 +805,10 @@ def match(store, query, windows):
             results[idx]['unrecorded_steps'] = unrecorded
     # Records the ingest left out can change any engine decision, not only a `none`.
     decided = [idx for idx, r in results.items() if r['status'] in ('exact', 'possible', 'relaxed', 'unresolved', 'none')]
-    starts = {e['id']: e['start'] for evs in events.values() for e in evs}
-    for idx, touched in _excluded_starts(store, query, per_step, decided, windows_by_idx).items():
-        results[idx] = apply_exclusions(query, results[idx], touched, starts)
+    for idx, (touched, every) in _excluded_starts(store, query, per_step, decided, windows_by_idx).items():
+        # Event ids are unique within a patient only, so each patient's own events give its starts.
+        starts = {e['id']: e['start'] for e in events.get(idx, [])}
+        results[idx] = apply_exclusions(query, results[idx], touched, starts, every)
     ordered = [results[idx] for idx, _ in patients]
     counts = {}
     for r in ordered:

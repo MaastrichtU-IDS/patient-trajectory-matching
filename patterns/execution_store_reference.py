@@ -121,19 +121,23 @@ def start_possible(scope, window, lo, hi):
 def admission_check(query, per_step, result, patient, events, ancestors, window):
     """The excluded-records rule, written again from docs/execution-store.md ("Excluded records").
 
-    Steps reach an excluded record through its concept's closure and the scope. Then, in order: a
-    first or last step whose target an excluded record could displace makes the result not
-    comparable; a `none` is not comparable; a `relaxed` is unresolved with the match beside it; a
-    `possible` is incomplete.
+    A step carries an excluded record through its concept's closure, and reaches it if the scope also
+    admits its start. Then, in order: a first or last step whose target a carried record could
+    displace makes the result not comparable; if some step reaches a record, a `none` is not
+    comparable, a `relaxed` is unresolved with the match beside it and a `possible` is incomplete.
     """
     scope = query.get('scope', 'any')
-    reach = {}
+    reach, carrying = {}, {}
     for step in query['steps']:
-        hits = [tuple(x['start']) for x in patient.get('excluded', [])
-                if expanded([x['concept']], ancestors) & per_step[step['id']] and start_possible(scope, window, *x['start'])]
+        mine = [tuple(x['start']) for x in patient.get('excluded', [])
+                if expanded([x['concept']], ancestors) & per_step[step['id']]]
+        if mine:
+            # Any of them can be the true first or last such record; the scope is applied after that choice.
+            carrying[step['id']] = mine
+        hits = [(lo, hi) for lo, hi in mine if start_possible(scope, window, lo, hi)]
         if hits:
             reach[step['id']] = hits
-    if not reach:
+    if not carrying:
         return result
     status, pid = result['status'], result['patient_id']
     named = [step['id'] for step in query['steps'] if step['id'] in reach]
@@ -145,16 +149,18 @@ def admission_check(query, per_step, result, patient, events, ancestors, window)
         displaced = []
         for step in query['steps']:
             sid, how = step['id'], step.get('occurrence', 'any')
-            if sid not in reach:
+            if sid not in carrying:
                 continue
             lo, hi = begins[bound[sid]]
-            if how == 'first' and min(x for x, _ in reach[sid]) <= hi:
+            if how == 'first' and min(x for x, _ in carrying[sid]) <= hi:
                 displaced.append(sid)
-            elif how == 'last' and max(y for _, y in reach[sid]) >= lo:
+            elif how == 'last' and max(y for _, y in carrying[sid]) >= lo:
                 displaced.append(sid)
         if displaced:
             return {'patient_id': pid, 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
                     'excluded_steps': displaced}
+    if not reach:
+        return result
     if status == 'none':
         return {'patient_id': pid, 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
                 'excluded_steps': named}

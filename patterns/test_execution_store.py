@@ -394,6 +394,37 @@ class MatchingTests(unittest.TestCase):
         anyx = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
         self.assertEqual(self.admission_case(events, [('X', 10)], anyx)[0]['status'], 'exact')
 
+    def first_x(self, patients, scope, windows):
+        """Store and reference results for the one-step query `first X` over hand-built patients."""
+        ingest = {'profile': es.INGEST_PROFILE, 'dataset_id': 'first-x',
+                  'closure': {'version': 'v', 'ancestors': {'X': []}},
+                  'patients': [{'patient_id': pid, 'clock_id': 'c', 'coverage': [cover('ehr', day(0), day(400))],
+                                'events': [ev(eid, ['X'], (day(d), day(d))) for eid, d in events],
+                                'excluded': [{'source': 'ehr', 'concept': 'X', 'start': [day(d), day(d)], 'reason': 'DROPPED'}
+                                             for d in excluded]}
+                               for pid, events, excluded in patients]}
+        query = {'profile': tg.PROFILE_ID, 'scope': scope, 'steps': [{'id': 'A', 'concept': 'X', 'occurrence': 'first'}]}
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+            got = es.match(store, query, windows)['results']
+        self.assertEqual(got, ref.exhaustive_match(ingest, query, windows))
+        return {r['patient_id']: r for r in got}
+
+    def test_an_excluded_record_the_scope_rejects_can_still_displace_a_first_target(self):
+        # The engine picks the first X among all X records, then applies the scope: the true first X is
+        # on day 50, outside the window, so with every record the answer is none, not exact.
+        window = {'P': {'start': day(100), 'end': day(200)}}
+        self.assertEqual(self.first_x([('P', [('x150', 150)], [])], 'within', window)['P']['status'], 'exact')
+        got = self.first_x([('P', [('x150', 150)], [50])], 'within', window)['P']
+        self.assertEqual(got, {'patient_id': 'P', 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                               'excluded_steps': ['A']})
+
+    def test_displacement_reads_each_patients_own_event_times(self):
+        # Event ids are unique within a patient only: P2's e1 on day 10 must not stand in for P1's e1.
+        windows = {'P1': {'start': day(0), 'end': day(400)}, 'P2': {'start': day(0), 'end': day(400)}}
+        got = self.first_x([('P1', [('e1', 150)], [120]), ('P2', [('e1', 10)], [])], 'any', windows)
+        self.assertEqual((got['P1']['status'], got['P1']['reason']), ('not_comparable', 'ADMISSION_EXCLUDED_RECORDS'))
+        self.assertEqual(got['P2']['status'], 'exact')
+
     def test_an_excluded_record_may_make_a_possible_result_exact(self):
         steps = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
         events = [('x', 'X', 0, 0), ('y', 'Y', 50, 70)]

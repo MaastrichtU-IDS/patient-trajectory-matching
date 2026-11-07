@@ -164,11 +164,11 @@ If some step is not covered, the result is `{"status": "not_comparable", "reason
 - `after`: it can be at or after the window's end;
 - `any`: always, since such a step may bind an event anywhere.
 
-The scope is the only constraint every step carries, so reaching over-approximates: it may flag a result the excluded records could not in fact have changed, but never the reverse. If no step reaches an excluded record, the result stands. Otherwise, in this order:
+The scope is the only constraint every step carries, so reaching over-approximates: it may flag a result the excluded records could not in fact have changed, but never the reverse. The displacement test for `first` and `last` steps is the exception: it uses every excluded record of the step's concepts, without the scope filter. Otherwise, if no step reaches an excluded record, the result stands. The cases apply in this order:
 
 | Case | Result | Why |
 |---|---|---|
-| A `first` or `last` step reaches an excluded record that could displace its bound event: `start_lo` at or before the bound event's `start_hi` for `first`, `start_hi` at or after its `start_lo` for `last` (on any status with a binding, or the binding of an `unresolved` result's relaxed match) | `not_comparable` | The step's target may be the excluded record, so the binding found may not be a binding of the query at all. Carrying it beside an `unresolved` status would present as a match something that may not be one |
+| A `first` or `last` step has an excluded record of its concepts, admitted by the scope or not, that could displace its bound event: `start_lo` at or before the bound event's `start_hi` for `first`, `start_hi` at or after its `start_lo` for `last` (on any status with a binding, or the binding of an `unresolved` result's relaxed match) | `not_comparable` | The step's target may be the excluded record, so the binding found may not be a binding of the query at all. The engine chooses the first or last event among all events carrying the concept and only then applies the scope, so a record outside the scope can still displace the target and move the answer out of the window. Carrying the binding beside an `unresolved` status would present as a match something that may not be one |
 | `none` | `not_comparable` | The excluded records may hold a binding. A search that could not see every record the source held is not a non-match (engine design §4.3) |
 | `relaxed` | `unresolved`, with the relaxed match beside it as `relaxed_match` and `complete: false` | `relaxed` asserts that no unrelaxed binding exists, and an excluded record may supply one. This is the engine's own convention when the unrelaxed search is undecided |
 | `possible` | `possible`, with `complete: false` and note `EXCLUDED_RECORDS_MAY_MAKE_EXACT` | `possible` asserts that no binding is exact, and an excluded record may make one exact |
@@ -309,7 +309,7 @@ So every dropped row is kept in `excluded_records`, as its item class, its start
 | Refused patients | 0 |
 | Table rows: `event_concepts`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 1,412, 330, 84 |
 
-The snapshot identifier is `4169368ee7ba9f9adc805f14cd55953960a40628372ba4d828d8a74797d5c46c`. It changes whenever the converter or the store builder changes, or the rows they produce do.
+The snapshot identifier is `b66e0ad708e1469bc31025d558dbb25f6ba9ba8e67fe4b9f852b444516ed8775`. It changes whenever the converter or the store builder changes, or the rows they produce do.
 
 **Raw times.** Every one of the 10,980 events has its start, end and recorded time checked against its raw source row, to the microsecond, with no mismatch.
 
@@ -318,15 +318,15 @@ The snapshot identifier is `4169368ee7ba9f9adc805f14cd55953960a40628372ba4d828d8
 - `exhaustive_match` over the whole ingest;
 - the engine over each patient's adapter rows directly, without the store mapping or either comparability rule.
 
-Of the 50,000 patient results, none mismatch on either comparison, and the candidate filter drops no match. Against the adapter rows, decisions are compared, not only statuses: binding, relaxations, cost and certainty, for the 1,909 results whose binding survives. Where the store's rules changed a result, it must follow from the admitted-only engine result as the table above says.
+Of the 50,000 patient results, none mismatch on either comparison, and the candidate filter drops no match. Against the adapter rows, decisions are compared, not only statuses: binding, relaxations, cost and certainty, for the 1,902 results whose binding survives. Where the store's rules changed a result, it must follow from the admitted-only engine result as the table above says.
 
 | Status | Results |
 |---|---|
-| `exact` | 1,291 |
-| `relaxed` | 24 |
-| `unresolved` (594 of them `ADMISSION_EXCLUDED_RECORDS`) | 596 |
+| `exact` | 1,288 |
+| `relaxed` | 22 |
+| `unresolved` (592 of them `ADMISSION_EXCLUDED_RECORDS`) | 594 |
 | `none` | 10,262 |
-| `not_comparable`, `ADMISSION_EXCLUDED_RECORDS` | 27,810 |
+| `not_comparable`, `ADMISSION_EXCLUDED_RECORDS` | 27,817 |
 | `not_comparable`, `NO_SOURCE_COVERAGE` | 7,508 |
 | `excluded` | 2,509 |
 
@@ -335,11 +335,11 @@ The excluded-records cases, out of the admitted-only engine's 1,644 exact, 818 r
 | Case | Results |
 |---|---|
 | `none` to `not_comparable` | 27,257 |
-| `first` or `last` target displaced, to `not_comparable` (353 exact, 200 relaxed) | 553 |
-| `relaxed` to `unresolved` with the match beside it | 594 |
+| `first` or `last` target displaced, to `not_comparable` (356 exact, 204 relaxed) | 560 |
+| `relaxed` to `unresolved` with the match beside it | 592 |
 | `possible` made incomplete | 0, since every recorded MIMIC time is exact |
 
-The 24 relaxed results that stand use 26 concept widenings; the 594 relaxed matches carried beside `unresolved` use 584 widenings and 31 extended maxima. The filter keeps 16,210 of the 50,000 patient results for the matcher.
+The 22 relaxed results that stand use 24 concept widenings; the 592 relaxed matches carried beside `unresolved` use 582 widenings and 31 extended maxima. The filter keeps 16,210 of the 50,000 patient results for the matcher.
 
 Most `none` results become `not_comparable`, and most relaxed ones `unresolved`. That is what the subset costs: 99 of the 100 patients have dropped rows, mostly of common items, and under scope `any` a dropped record at any time could have bound a step.
 
@@ -348,11 +348,11 @@ Most `none` results become `not_comparable`, and most relaxed ones `unresolved`.
 | Step | Time |
 |---|---|
 | Admission and claim stores | 0.7 s |
-| 424 stores through isolation, acceptance, the graph route and `ingest_rows`, 8 worker processes | 65 s (about 480 CPU-seconds) |
+| 424 stores through isolation, acceptance, the graph route and `ingest_rows`, 8 worker processes | 63 s (about 480 CPU-seconds) |
 | Mapping, excluded records and coverage | 0.3 s |
 | Building the snapshot | 1.0 s |
 | Opening and verifying it | 0.2 s |
-| Differential (500 queries, three paths) | 231 s |
+| Differential (500 queries, three paths) | 226 s |
 
 ### Chartevents path
 
