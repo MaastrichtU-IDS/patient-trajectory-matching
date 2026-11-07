@@ -13,3 +13,4 @@ jobs:
       - run: python -m pip install -r patterns/requirements.lock.txt -r patterns/requirements-store.lock.txt
       - run: python -m unittest -v patterns.test_execution_store
       - run: python -m unittest patterns.test_trajectory_graph
+      - run: python -m unittest -v patterns.test_mimic_store_ingest

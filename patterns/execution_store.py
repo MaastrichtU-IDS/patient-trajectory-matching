@@ -2,7 +2,7 @@
 relaxation-sound candidate filter in front of the trajectory-graph matcher.
 
 `build(ingest, root)` validates an ingest document (docs/execution-store.md, "Ingest
-contract"), derives seven tables in DuckDB and writes them as Parquet under
+contract"), derives eight tables in DuckDB and writes them as Parquet under
 `root/<snapshot_id>/`, with a `manifest.json` that `schemas/execution-store-manifest.schema.json`
 validates. The snapshot identifier is a digest of the canonical inputs and of each table's
 row count and canonical-content digest, computed over sorted canonical rows and never over
@@ -15,9 +15,10 @@ steps, rarest first. Each step's postings are the union over its concept and eve
 engine could match under any tried relaxation set is never dropped. `match(store, query,
 windows)` runs `trajectory_graph.match` on the survivors, reports the rest as `none` with
 reason `FILTERED`, and turns `none` into `not_comparable` when, for some step, no source
-that records the step's concepts (table `source_concepts`) covers the patient's window. Its
-output carries a `context` (snapshot, query and window digests, engine artifact digests,
-coverage rule, verification) and that context's digest, `context_id`.
+that records the step's concepts (table `source_concepts`) covers the patient's window, or
+when the patient holds excluded records (table `excluded_records`) a step could have bound. Its
+output carries the snapshot's labels and a `context` (snapshot, query and window digests,
+engine artifact digests, rules, verification, labels) and that context's digest, `context_id`.
 
 `patterns/execution_store_reference.py` builds the same tables in pure Python, and
 `patterns/test_execution_store.py` compares them row for row. DuckDB is imported lazily,
@@ -58,21 +59,29 @@ TABLES = {
                ('end_hi', 'BIGINT'), ('ongoing', 'BOOLEAN'), ('evidence', 'VARCHAR')),
     'event_concepts': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('concept', 'VARCHAR'),
                        ('basis', 'VARCHAR')),
-    'concept_closure': (('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR')),
+    'concept_closure': (('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR'),
+                        ('concept_basis', 'VARCHAR'), ('ancestor_basis', 'VARCHAR')),
     'concept_postings': (('concept', 'VARCHAR'), ('patient_idx', 'INTEGER'), ('n', 'BIGINT'),
                          ('min_start_lo', 'BIGINT'), ('max_start_hi', 'BIGINT')),
     'coverage': (('patient_idx', 'INTEGER'), ('source', 'VARCHAR'), ('clock_id', 'VARCHAR'), ('lo', 'BIGINT'),
                  ('hi', 'BIGINT'), ('basis', 'VARCHAR')),
     'source_concepts': (('source', 'VARCHAR'), ('concept', 'VARCHAR'), ('basis', 'VARCHAR')),
+    'excluded_records': (('patient_idx', 'INTEGER'), ('source', 'VARCHAR'), ('concept', 'VARCHAR'),
+                         ('start_lo', 'BIGINT'), ('start_hi', 'BIGINT'), ('reason', 'VARCHAR'), ('n', 'BIGINT')),
 }
 # Patient-keyed tables are written as hive-style bucket partitions; the others as one file.
-PARTITIONED = ('events', 'event_concepts', 'coverage')
+PARTITIONED = ('events', 'event_concepts', 'coverage', 'excluded_records')
 SORT = {'patients': 'patient_idx', 'events': 'patient_idx, start_lo, event_id',
         'event_concepts': 'patient_idx, concept, event_id', 'concept_closure': 'concept, ancestor',
         'concept_postings': 'concept, patient_idx', 'coverage': 'patient_idx, source, lo',
-        'source_concepts': 'concept, source'}
+        'source_concepts': 'concept, source', 'excluded_records': 'patient_idx, concept, start_lo, reason'}
+# The basis a concept has when the ingest's closure does not name one.
+DEFAULT_CONCEPT_BASIS = 'declared'
 # How `match` turns `none` into `not_comparable` (docs/execution-store.md, "Comparability").
 COVERAGE_RULE = 'window_overlap_source_concepts_v1'
+# How `match` turns a remaining `none` into `not_comparable` when the source held records of a step's
+# concepts that the ingest left out (docs/execution-store.md, "Excluded records").
+EXCLUSION_RULE = 'excluded_records_scope_v1'
 ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')
 
 
@@ -123,8 +132,13 @@ def validate_ingest(ingest):
     _require(selection is None or (isinstance(selection, dict)
                                    and all(type(selection.get(k)) is str for k in ('mode', 'version', 'available_at'))),
              'INVALID_SELECTION')
+    labels = provenance.get('labels')
+    _require(labels is None or (isinstance(labels, dict) and labels
+                                and all(type(k) is str and type(v) in (str, bool) for k, v in labels.items())),
+             'INVALID_LABELS')
     closure = ingest['closure']
-    _require(isinstance(closure, dict) and set(closure) == {'version', 'ancestors'}, 'INVALID_CLOSURE')
+    _require(isinstance(closure, dict) and {'version', 'ancestors'} <= set(closure) <= {'version', 'ancestors', 'bases'},
+             'INVALID_CLOSURE')
     _require(type(closure['version']) is str and closure['version'], 'INVALID_CLOSURE_VERSION')
     ancestors = closure['ancestors']
     _require(isinstance(ancestors, dict) and ancestors, 'INVALID_CLOSURE')
@@ -136,12 +150,16 @@ def validate_ingest(ingest):
         for a in above:
             _require(a in ancestors, 'CLOSURE_UNKNOWN_ANCESTOR', f'{concept} -> {a}')
             _require(set(ancestors[a]) <= set(above), 'CLOSURE_NOT_TRANSITIVE', f'{concept} -> {a}')
+    bases = closure.get('bases')
+    _require(bases is None or (isinstance(bases, dict) and set(bases) == set(ancestors)
+                               and all(type(b) is str and b for b in bases.values())), 'INVALID_CONCEPT_BASES')
     patients = ingest['patients']
     _require(isinstance(patients, list) and patients, 'NO_PATIENTS')
     seen = set()
     for p in patients:
         _require(isinstance(p, dict) and {'patient_id', 'clock_id', 'events', 'coverage'} <= set(p)
-                 and set(p) <= {'patient_id', 'clock_id', 'events', 'coverage', 'box_representable'}, 'INVALID_PATIENT')
+                 and set(p) <= {'patient_id', 'clock_id', 'events', 'coverage', 'box_representable', 'excluded'},
+                 'INVALID_PATIENT')
         pid = p['patient_id']
         _require(type(pid) is str and pid, 'INVALID_PATIENT_ID')
         _require(pid not in seen, 'DUPLICATE_PATIENT_ID', pid)
@@ -197,6 +215,15 @@ def validate_ingest(ingest):
             key = (c['source'], lo, hi, c['basis'])
             _require(key not in periods, 'DUPLICATE_COVERAGE', f'{pid} {c["source"]}')
             periods.add(key)
+        # Records the source held that the ingest left out: a concept and a start, never an event.
+        _require(isinstance(p.get('excluded', []), list), 'INVALID_EXCLUDED', pid)
+        for x in p.get('excluded', []):
+            _require(isinstance(x, dict) and set(x) == {'source', 'concept', 'start', 'reason'}
+                     and all(type(x[k]) is str and x[k] for k in ('source', 'concept', 'reason')), 'INVALID_EXCLUDED', pid)
+            _require(x['concept'] in ancestors, 'UNKNOWN_CONCEPT', f'{pid} excluded: {x["concept"]}')
+            _require(isinstance(x['start'], list) and len(x['start']) == 2, 'INVALID_TIME', f'{pid} excluded')
+            lo, hi = (_time(v, f'{pid} excluded') for v in x['start'])
+            _require(lo <= hi, 'INVERTED_BOUNDS', f'{pid} excluded')
     return ingest
 
 
@@ -210,26 +237,38 @@ def canonical_ingest(ingest):
     for p in sorted(ingest['patients'], key=lambda p: p['patient_id']):
         events = [{**e, 'concepts': sorted(e['concepts'])} for e in sorted(p['events'], key=lambda e: e['event_id'])]
         coverage = sorted(p['coverage'], key=lambda c: (c['source'], c['lo'], c['hi'], c['basis']))
-        patients.append({**p, 'events': events, 'coverage': coverage})
+        patient = {**p, 'events': events, 'coverage': coverage}
+        if 'excluded' in p:
+            patient['excluded'] = sorted(p['excluded'], key=lambda x: (x['source'], x['concept'], x['start'], x['reason']))
+        patients.append(patient)
     closure = {'version': ingest['closure']['version'],
                'ancestors': {c: sorted(a) for c, a in sorted(ingest['closure']['ancestors'].items())}}
+    if 'bases' in ingest['closure']:
+        closure['bases'] = dict(sorted(ingest['closure']['bases'].items()))
     return {**ingest, 'closure': closure, 'patients': patients}
 
 
 def _closure_rows(closure):
-    """concept_closure rows: each concept is its own ancestor (basis self), then its declared ones."""
+    """concept_closure rows: each concept is its own ancestor (basis self), then its declared ones.
+
+    Each row also carries what kind of concept each side is (`closure.bases`, default 'declared'),
+    so that a row read alone says whether it is, say, a source item class or a clinical concept.
+    """
+    bases = closure.get('bases') or {}
+    kind = lambda c: bases.get(c, DEFAULT_CONCEPT_BASIS)
     rows = []
     for concept, above in closure['ancestors'].items():
-        rows.append({'concept': concept, 'ancestor': concept, 'basis': 'self', 'version': closure['version']})
-        rows.extend({'concept': concept, 'ancestor': a, 'basis': 'declared', 'version': closure['version']}
-                    for a in above)
+        rows.append({'concept': concept, 'ancestor': concept, 'basis': 'self', 'version': closure['version'],
+                     'concept_basis': kind(concept), 'ancestor_basis': kind(concept)})
+        rows.extend({'concept': concept, 'ancestor': a, 'basis': 'declared', 'version': closure['version'],
+                     'concept_basis': kind(concept), 'ancestor_basis': kind(a)} for a in above)
     return rows
 
 
 def _stage(ingest, directory):
     """Flatten the ingest into newline-delimited JSON files DuckDB reads with fixed column types."""
     files = {name: open(directory / f'{name}.ndjson', 'w', encoding='utf-8')
-             for name in ('patients', 'events', 'concepts', 'closure', 'coverage')}
+             for name in ('patients', 'events', 'concepts', 'closure', 'coverage', 'excluded')}
     def put(name, row):
         files[name].write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
     try:
@@ -245,6 +284,9 @@ def _stage(ingest, directory):
                     put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c})
             for c in p['coverage']:
                 put('coverage', {'patient_id': pid, **c})
+            for x in p.get('excluded', []):
+                put('excluded', {'patient_id': pid, 'source': x['source'], 'concept': x['concept'],
+                                 'start_lo': x['start'][0], 'start_hi': x['start'][1], 'reason': x['reason']})
         for row in _closure_rows(ingest['closure']):
             put('closure', row)
     finally:
@@ -262,7 +304,7 @@ def _read_json(path, columns):
 
 
 def _derive(db, stage):
-    """Create the seven logical tables (plus a bucket column on partitioned ones) from the staging files."""
+    """Create the eight logical tables (plus a bucket column on partitioned ones) from the staging files."""
     db.execute(f"""CREATE TABLE s_patients AS SELECT * FROM {_read_json(stage / 'patients.ndjson',
         [('patient_id', 'VARCHAR'), ('clock_id', 'VARCHAR')])}""")
     db.execute(f"""CREATE TABLE s_events AS SELECT * FROM {_read_json(stage / 'events.ndjson',
@@ -272,9 +314,13 @@ def _derive(db, stage):
     db.execute(f"""CREATE TABLE s_concepts AS SELECT * FROM {_read_json(stage / 'concepts.ndjson',
         [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('concept', 'VARCHAR')])}""")
     db.execute(f"""CREATE TABLE s_closure AS SELECT * FROM {_read_json(stage / 'closure.ndjson',
-        [('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR')])}""")
+        [('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR'),
+         ('concept_basis', 'VARCHAR'), ('ancestor_basis', 'VARCHAR')])}""")
     db.execute(f"""CREATE TABLE s_coverage AS SELECT * FROM {_read_json(stage / 'coverage.ndjson',
         [('patient_id', 'VARCHAR'), ('source', 'VARCHAR'), ('lo', 'BIGINT'), ('hi', 'BIGINT'), ('basis', 'VARCHAR')])}""")
+    db.execute(f"""CREATE TABLE s_excluded AS SELECT * FROM {_read_json(stage / 'excluded.ndjson',
+        [('patient_id', 'VARCHAR'), ('source', 'VARCHAR'), ('concept', 'VARCHAR'), ('start_lo', 'BIGINT'),
+         ('start_hi', 'BIGINT'), ('reason', 'VARCHAR')])}""")
     # Dense index by sorted identifier; bucket from the identifier alone, so it never moves.
     db.execute(f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id) - 1)::INTEGER AS patient_idx, patient_id,
@@ -286,7 +332,8 @@ def _derive(db, stage):
         e.evidence, p.bucket FROM s_events e JOIN p USING (patient_id)""")
     db.execute("""CREATE TABLE event_concepts AS SELECT p.patient_idx, c.event_id, c.concept, 'direct' AS basis,
         p.bucket FROM s_concepts c JOIN p USING (patient_id)""")
-    db.execute('CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version FROM s_closure')
+    db.execute('''CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version, concept_basis, ancestor_basis
+        FROM s_closure''')
     db.execute("""CREATE TABLE concept_postings AS
         WITH expanded AS (SELECT DISTINCT ec.patient_idx, ec.event_id, cc.ancestor AS concept
                           FROM event_concepts ec JOIN concept_closure cc ON cc.concept = ec.concept)
@@ -301,6 +348,11 @@ def _derive(db, stage):
         'inferred_from_records' AS basis
         FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
         JOIN concept_closure cc ON cc.concept = ec.concept""")
+    # Identical excluded records (same patient, source, concept, start and reason) are one row with a count.
+    db.execute("""CREATE TABLE excluded_records AS SELECT p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi,
+        x.reason, count(*)::BIGINT AS n, p.bucket
+        FROM s_excluded x JOIN p USING (patient_id)
+        GROUP BY p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi, x.reason, p.bucket""")
 
 
 def _write(db, snapshot):
@@ -405,6 +457,7 @@ def build(ingest, root, threads=1):
                     'time': {'unit': 'microsecond', 'origin': ORIGIN, 'calendar': 'patient_local'},
                     'buckets': BUCKETS, 'canonical_form': CANONICAL_FORM,
                     'selection': ingest.get('provenance', {}).get('selection'),
+                    'labels': ingest.get('provenance', {}).get('labels'),
                     'builder': {'artifacts': builder_artifacts(), 'engine': 'duckdb', 'engine_version': duckdb.__version__},
                     'tables': tables}
         manifest['snapshot_id'] = snapshot_identity(manifest)
@@ -507,6 +560,23 @@ def _known(store, concepts):
         raise StoreError('UNKNOWN_QUERY_CONCEPT', ', '.join(unknown))
 
 
+def _visible_to_exclusions(store, concepts):
+    """Refuse structural query concepts on a snapshot holding excluded records.
+
+    An excluded record carries a source concept and that concept's closure, but not the structural
+    classes (labels `structural_concept_basis`) that its events would have had. A query on such a
+    class could not see the excluded records, so its `none` would rest on what it could not see.
+    """
+    basis = (store.manifest.get('labels') or {}).get('structural_concept_basis')
+    if basis is None or not store.query('SELECT count(*) FROM excluded_records')[0][0]:
+        return
+    structural = sorted(r[0] for r in store.query(
+        f"SELECT concept FROM concept_closure WHERE basis = 'self' AND concept_basis = ? AND concept IN {_in(concepts)}",
+        [basis] + list(concepts)))
+    if structural:
+        raise StoreError('STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN', ', '.join(structural))
+
+
 def candidates(store, query):
     """Patients who could match under some relaxation set the engine would try.
 
@@ -516,6 +586,7 @@ def candidates(store, query):
     tg.validate_query(query)
     per_step = _step_concepts(query)
     _known(store, sorted({c for cs in per_step.values() for c in cs}))
+    _visible_to_exclusions(store, sorted({c for cs in per_step.values() for c in cs}))
     plan = []
     for step, concepts in per_step.items():
         patients = {r[0] for r in store.query(
@@ -589,18 +660,115 @@ def _digest(value):
     return hashlib.sha256(_json(value).encode('utf-8')).hexdigest()
 
 
+def admits_start(scope, window, lo, hi):
+    """Whether a step under `scope` could start anywhere in [lo, hi], given the index window.
+
+    The query's scope is the only constraint every step carries: `within` keeps a step's start in the
+    window, `from_start` after its start, `after` after its end, and `any` nowhere in particular. Other
+    constraints only narrow this, so the test is a sound over-approximation.
+    """
+    if scope == 'within':
+        return lo <= window['end'] and hi >= window['start']
+    if scope == 'from_start':
+        return hi >= window['start']
+    if scope == 'after':
+        return hi >= window['end']
+    return True
+
+
+def _excluded_starts(store, query, per_step, idxs, windows_by_idx):
+    """{patient_idx: ({step: starts the scope admits}, {step: all starts})} for each step's excluded records.
+
+    A step's excluded records are those whose concept is one of the step's concepts or widenings, or
+    a descendant of one (through the closure). It could have bound those whose start the query's
+    scope admits (`admits_start`). But the engine picks a `first` or `last` target among every event
+    carrying the concept and only then applies the scope, so any of them could displace a target.
+    """
+    if not idxs:
+        return {}
+    concepts = sorted({c for cs in per_step.values() for c in cs})
+    found = {}
+    for idx, ancestor, lo, hi in store.query(f"""
+            SELECT x.patient_idx, cc.ancestor, x.start_lo, x.start_hi FROM excluded_records x
+            JOIN concept_closure cc ON cc.concept = x.concept
+            WHERE cc.ancestor IN {_in(concepts)} AND x.patient_idx IN {_in(idxs)}""", concepts + list(idxs)):
+        found.setdefault(idx, set()).add((ancestor, lo, hi))
+    scope = query.get('scope', 'any')
+    out = {}
+    for idx, records in found.items():
+        w = windows_by_idx[idx]
+        every = {step: sorted({(lo, hi) for c, lo, hi in records if c in cs}) for step, cs in per_step.items()}
+        every = {step: starts for step, starts in every.items() if starts}
+        admitted = {step: [(lo, hi) for lo, hi in starts if admits_start(scope, w, lo, hi)] for step, starts in every.items()}
+        admitted = {step: starts for step, starts in admitted.items() if starts}
+        if every:
+            out[idx] = (admitted, every)
+    return out
+
+
+def apply_exclusions(query, result, touched, starts, every=None):
+    """Rule EXCLUSION_RULE: what a result may still say when excluded records could have changed it.
+
+    `touched` maps each step to the starts of the excluded records its scope admits, and `every` to
+    the starts of all its excluded records (defaulting to `touched`); `starts` maps each of this
+    patient's event ids to its start bounds. Adding records only adds bindings, so an `exact` or `possible`
+    binding stands, except:
+    - a `first` or `last` step's target can move to any of its excluded records, whether or not the
+      scope admits it (`start_lo` at or before the bound event's `start_hi` for first, `start_hi` at
+      or after its `start_lo` for last), since the engine applies the scope after choosing. The found
+      binding may then not be a binding of the query at all, so the result is `not_comparable`,
+      whatever the engine said;
+    - `none` may hide a binding: `not_comparable`;
+    - `relaxed` claims no unrelaxed binding exists, which an excluded record may supply: `unresolved`,
+      with the relaxed match beside it, the engine's own convention for an undecided unrelaxed search;
+    - `possible` claims no exact binding exists: still possible, but `complete: false`.
+    Every changed result names the steps (`excluded_steps`) and the reason ADMISSION_EXCLUDED_RECORDS.
+    """
+    every = touched if every is None else every
+    if not every or result['status'] not in ('exact', 'possible', 'relaxed', 'unresolved', 'none'):
+        return result
+    order = [step['id'] for step in query['steps']]
+    occurrence = {step['id']: step.get('occurrence', 'any') for step in query['steps']}
+    steps = [step for step in order if step in touched]
+    pid = result['patient_id']
+    incomparable = lambda which: {'patient_id': pid, 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                                  'excluded_steps': which}
+    binding = result.get('binding') or result.get('relaxed_match', {}).get('binding')
+    if binding is not None:
+        moved = [step for step in order if step in every
+                 and ((occurrence[step] == 'first' and any(lo <= starts[binding[step]][1] for lo, _ in every[step]))
+                      or (occurrence[step] == 'last' and any(hi >= starts[binding[step]][0] for _, hi in every[step])))]
+        if moved:
+            return incomparable(moved)
+    if not steps:
+        return result
+    if result['status'] == 'none':
+        return incomparable(steps)
+    if result['status'] == 'relaxed':
+        relaxed = {k: result[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                'relaxed_match': relaxed, 'excluded_steps': steps, 'complete': False}
+    if result['status'] == 'possible':
+        note = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
+        return {**result, 'complete': False, 'excluded_steps': steps,
+                'note': result['note'] + '; ' + note if 'note' in result else note}
+    return result
+
+
 def match_context(store, query, windows):
     """What a result depends on, and its digest: snapshot, query, windows, engine code, rule, verification."""
     context = {'snapshot_id': store.snapshot_id, 'query_digest': _digest(query),
                'windows_digest': _digest(dict(sorted(windows.items()))),
                'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ENGINE_ARTIFACTS},
-               'coverage_rule': COVERAGE_RULE, 'verified': store.verified}
+               'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE, 'verified': store.verified,
+               'labels': store.manifest.get('labels')}
     return context, _digest(context)
 
 
 def match(store, query, windows):
     """Every patient's result: the engine on candidates, `none` (FILTERED) for the rest, and
-    `not_comparable` where a `none` rests on a step no covering source could have recorded.
+    `not_comparable` where a `none` rests on a step no covering source could have recorded, or on a
+    step whose concepts the source recorded in records the ingest left out (ADMISSION_EXCLUDED_RECORDS).
 
     `windows` maps patient_id to {start, end} or None; a patient absent or None is excluded.
     """
@@ -635,13 +803,20 @@ def match(store, query, windows):
                         'uncovered_steps': missing}
         if unrecorded:
             results[idx]['unrecorded_steps'] = unrecorded
+    # Records the ingest left out can change any engine decision, not only a `none`.
+    decided = [idx for idx, r in results.items() if r['status'] in ('exact', 'possible', 'relaxed', 'unresolved', 'none')]
+    for idx, (touched, every) in _excluded_starts(store, query, per_step, decided, windows_by_idx).items():
+        # Event ids are unique within a patient only, so each patient's own events give its starts.
+        starts = {e['id']: e['start'] for e in events.get(idx, [])}
+        results[idx] = apply_exclusions(query, results[idx], touched, starts, every)
     ordered = [results[idx] for idx, _ in patients]
     counts = {}
     for r in ordered:
         counts[r['status']] = counts.get(r['status'], 0) + 1
     context, context_id = match_context(store, query, windows)
     return {'profile': MATCH_PROFILE, 'engine': tg.PROFILE_ID, 'snapshot_id': store.snapshot_id,
-            'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'context': context, 'context_id': context_id,
+            'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE,
+            'labels': store.manifest.get('labels'), 'context': context, 'context_id': context_id,
             'plan': found['plan'], 'candidates': len(found['patient_idx']), 'counts': dict(sorted(counts.items())),
             'results': ordered}
 

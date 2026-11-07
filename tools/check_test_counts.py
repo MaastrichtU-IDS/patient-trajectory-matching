@@ -74,6 +74,7 @@ LABELS = {
     'test_trajectory_graph_sulo': 'Trajectory-graph SULO adapter tests',
     'test_packaging': 'Packaging resource-locator tests',
     'test_execution_store': 'Execution store, reference and differential matching tests',
+    'test_mimic_store_ingest': 'MIMIC store ingest through the SULO adapter tests',
 }
 
 

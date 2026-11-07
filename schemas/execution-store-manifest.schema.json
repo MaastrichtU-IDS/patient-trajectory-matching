@@ -67,7 +67,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["patients", "events", "event_concepts", "concept_closure", "concept_postings", "coverage",
-                   "source_concepts"],
+                   "source_concepts", "excluded_records"],
       "properties": {
         "patients": {"$ref": "#/$defs/table"},
         "events": {"$ref": "#/$defs/table"},
@@ -75,8 +75,16 @@
         "concept_closure": {"$ref": "#/$defs/table"},
         "concept_postings": {"$ref": "#/$defs/table"},
         "coverage": {"$ref": "#/$defs/table"},
-        "source_concepts": {"$ref": "#/$defs/table"}
+        "source_concepts": {"$ref": "#/$defs/table"},
+        "excluded_records": {"$ref": "#/$defs/table"}
       }
+    },
+    "labels": {
+      "description": "What the snapshot's concepts and coverage are, copied from the ingest's provenance.labels (for example clinical_mapping_verified and concept_basis), or null if it did not say.",
+      "oneOf": [
+        {"type": "null"},
+        {"type": "object", "minProperties": 1, "additionalProperties": {"type": ["string", "boolean"]}}
+      ]
     },
     "selection": {
       "description": "How the ingest selected records (copied from its provenance.selection), or null if it did not say.",
