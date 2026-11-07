@@ -63,7 +63,7 @@
     "test_state_validity": 22,
     "test_temporal_interface": 28,
     "test_trajectory_graph": 31,
-    "test_trajectory_graph_sulo": 45,
+    "test_trajectory_graph_sulo": 49,
     "test_unique_claim_review": 28,
     "test_use_case_conformance": 4
   }

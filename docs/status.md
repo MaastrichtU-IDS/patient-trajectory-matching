@@ -108,7 +108,7 @@ The synthetic checks below are produced by commands in [validation.md](validatio
 | Prepared measurement session tests | 20 passed |
 | Pre-index similarity and immutable refinement tests | 50 passed |
 | Trajectory-graph profile and differential reference tests | 31 passed |
-| Trajectory-graph SULO adapter tests | 45 passed |
+| Trajectory-graph SULO adapter tests | 49 passed |
 | Packaging resource-locator tests | 8 passed |
 | Execution store, reference and differential matching tests | 47 passed |
 | MIMIC store ingest through the SULO adapter tests | 33 passed |
