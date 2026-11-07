@@ -557,8 +557,16 @@ def _bound(view, query, relaxations, binding, concepts):
     return {s: _evidence(view, e, step_concepts[s], concepts) for s, e in sorted(binding.items())}
 
 
-def _verified(result, check, query, view, concepts):
-    """Apply the binding check to the engine's result for one patient."""
+def _verified(result, check, query, view, concepts, strict_gap=False):
+    """Apply the binding check to the engine's result for one patient.
+
+    `strict_gap` marks a patient where the engine's model is looser than the source's beyond
+    the box: a shared variable in an end role links one event's end to another's start, and
+    the engine lets an event end as it starts where the source needs start + 1 <= end. A
+    possible binding the source entails is reported exact whatever `strict_gap` says; one it
+    does not entail leaves exactness undecided under `strict_gap`, since another binding may
+    be exact over the source alone.
+    """
     by_id = {x['id']: x for x in query.get('relaxations', [])}
     status = result['status']
     out = dict(result)
@@ -588,16 +596,36 @@ def _verified(result, check, query, view, concepts):
                 out.update(status='unresolved', reason=downgrade,
                            adapter={'code': downgrade, 'engine_status': status, 'engine_certainty': certainty})
             return out
+        if certainty == 'possible' and verdict['entailed']:
+            # Every source timeline satisfies the binding: exact over the source, which the
+            # engine's looser model could not show.
+            out = {'patient_id': result['patient_id'], 'decided_by': 'adapter', 'engine_result': result,
+                   'source_check': verdict, 'bound_evidence': out['bound_evidence'],
+                   'adapter': {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': status}}
+            if status == 'relaxed':
+                # Exact ends the search in this set; only a stopped cheaper set leaves it open.
+                out.update({k: result[k] for k in ('relaxations', 'cost', 'binding', 'method')}, status='relaxed',
+                           certainty='exact', complete=result.get('note') != 'CHEAPER_RELAXATION_SEARCH_STOPPED')
+                if 'note' in result:
+                    out['note'] = result['note']
+            else:
+                out.update(status='exact', binding=result['binding'], method=result['method'], complete=True)
+            return out
         if certainty == 'possible' and status == 'possible' and verdict['engine_witness_confirmed'] is False:
             out.update(engine_witness=result['witness'], witness=verdict['witness'],
                        adapter={'code': 'ENGINE_WITNESS_REPLACED_BY_SOURCE_WITNESS'})
+        if certainty == 'possible' and strict_gap:
+            _undecided(out, result)
         return out
     if status == 'unresolved' and 'relaxed_match' in result:
         match = result['relaxed_match']
         relaxations = [by_id[i] for i in match['relaxations']]
         verdict = check(relaxations, match['binding'], match['certainty'], None)
         holds = verdict['entailed'] if match['certainty'] == 'exact' else verdict['feasible']
-        if not holds and verdict['feasible']:
+        if match['certainty'] == 'possible' and verdict['entailed']:
+            out['relaxed_match'] = dict(match, certainty='exact')
+            out['adapter'] = {'code': 'EXACT_BY_SOURCE_ENTAILMENT'}
+        elif not holds and verdict['feasible']:
             out['relaxed_match'] = dict(match, certainty='possible')
             out['adapter'] = {'code': 'RELAXED_MATCH_EXACTNESS_NOT_ENTAILED'}
         elif not holds:
@@ -608,6 +636,18 @@ def _verified(result, check, query, view, concepts):
             out['relaxed_bound_evidence'] = _bound(view, query, relaxations, match['binding'], concepts)
         out['relaxed_source_check'] = verdict
     return out
+
+
+def _undecided(out, result):
+    """Mark a possible binding the source does not entail, on a patient whose engine model is
+    looser than its source: another binding may be exact over the source, so it is incomplete."""
+    code = 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS'
+    out.update(complete=False, decided_by='adapter', engine_result=result)
+    out.setdefault('note', code)
+    if 'adapter' in out:
+        out['adapter'] = dict(out['adapter'], notes=[code])
+    else:
+        out['adapter'] = {'code': code, 'engine_status': result['status'], 'engine_complete': result['complete']}
 
 
 def match_snapshot(view, request, *, timeout_seconds=20, point_projection=True):
@@ -783,7 +823,7 @@ def _patient(pid, window, eids, snapshot, clocks, clock_of, bounds, box, concept
 
     def check(relaxations, binding, certainty, witness):
         return binding_check(query, relaxations, binding, region, engine_window, certainty, witness)
-    out = _verified(result, check, query, view, concepts)
+    out = _verified(result, check, query, view, concepts, strict_gap=shared_end)
     out['projection'] = 'points' if points else 'intervals'
     out['clock'] = {'reference_clock': reference, 'rebase_offsets_us': dict(sorted(offsets.items())),
                     'policy': clocks[reference]['policy'], 'origin': clocks[reference]['origin']}

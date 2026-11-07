@@ -602,6 +602,50 @@ class SharedVariableTests(unittest.TestCase):
         self.assertIn('proper:X', p1['source_check']['refutation'])
         self.assertEqual(p1['projection'], 'intervals')
 
+    def strict_chain(self):
+        # Y starts when X ends (P1); P2 has the same times without the shared variable.
+        return source_for([('X', 'P1', 'infusion', (0, 10 * DAY), (0, 20 * DAY)),
+                           ('Y', 'P1', 'specimen_collection', (0, 0), (30 * DAY, 30 * DAY), 'X-end'),
+                           ('X2', 'P2', 'infusion', (0, 10 * DAY), (0, 20 * DAY)),
+                           ('Y2', 'P2', 'specimen_collection', (DAY, 20 * DAY), (30 * DAY, 30 * DAY))])
+
+    def test_a_possible_binding_the_source_entails_is_exact(self):
+        # The review's repro: Y's start is X's end, so Y starts at least a microsecond after X.
+        # The engine lets X end as it starts and says possible; the source entails the binding.
+        view = tgs.from_bounded_json(self.strict_chain())
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1)], unit='microsecond', window=(0, 40 * DAY))
+        p1 = tgs.match_snapshot(view, request)['results'][0]
+        self.assertEqual((p1['status'], p1['complete'], p1['decided_by'], p1['binding']),
+                         ('exact', True, 'adapter', {'a': 'X', 'b': 'Y'}))
+        self.assertEqual(p1['adapter'], {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': 'possible'})
+        self.assertEqual((p1['engine_result']['status'], p1['engine_result']['complete']), ('possible', True))
+        self.assertTrue(p1['source_check']['entailed'])
+        self.assertNotIn('witness', p1)
+        # The same for a relaxed result's certainty: unrelaxed, b can only be X itself.
+        relaxed = request_for([('a', INFUSION), ('b', INFUSION)], [after(1)], unit='microsecond', window=(0, 40 * DAY),
+                              relaxations=[{'id': 'b-any-process', 'kind': 'widen_concept', 'cost': '1', 'step': 'b',
+                                            'concept': PROCESS}], budget='1')
+        p1 = tgs.match_snapshot(view, relaxed)['results'][0]
+        self.assertEqual((p1['status'], p1['certainty'], p1['complete'], p1['relaxations'], p1['binding']),
+                         ('relaxed', 'exact', True, ['b-any-process'], {'a': 'X', 'b': 'Y'}))
+        self.assertEqual((p1['engine_result']['certainty'], p1['adapter']['code']), ('possible', 'EXACT_BY_SOURCE_ENTAILMENT'))
+
+    def test_a_binding_not_entailed_under_a_shared_end_leaves_exactness_undecided(self):
+        # Another binding might be exact over the source and not over the engine's looser model.
+        view = tgs.from_bounded_json(self.strict_chain())
+        request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1, 5 * DAY)], unit='microsecond',
+                              window=(0, 40 * DAY))
+        p1, p2 = tgs.match_snapshot(view, request)['results']
+        self.assertEqual((p1['status'], p1['complete'], p1['note'], p1['decided_by']),
+                         ('possible', False, 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', 'adapter'))
+        self.assertEqual(p1['adapter'], {'code': 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', 'engine_status': 'possible',
+                                         'engine_complete': True})
+        self.assertTrue(p1['source_check']['feasible'])
+        self.assertFalse(p1['source_check']['entailed'])
+        # Without a shared end the engine's model is the source's box: possible stays complete.
+        self.assertEqual((p2['status'], p2['complete'], p2['decided_by']), ('possible', True, 'engine'))
+        self.assertNotIn('adapter', p2)
+
     def test_point_projection_with_shared_variables_equals_intervals(self):
         # P1-P3 share a start between x and y; P4 shares none; P5 starts y when x ends.
         events = []
