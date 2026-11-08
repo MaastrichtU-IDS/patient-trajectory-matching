@@ -34,6 +34,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D22 | The adapter passes shared source variables to the engine; the store still refuses them | Decided; its follow-ups (strict intervals in the engine, the store) done in D24 |
 | D23 | Per-bucket derive: the store builds at 1M patients | Decided; 1,000,000 patients build and verify under a 4 GB limit; verification memory follow-up done in D24 |
 | D24 | Shared variables end to end: strict intervals in the engine; the store holds shared variables | Decided |
+| D25 | D24 review follow-ups; time pruning on the posting summaries, under a rule fixed before measuring | In progress |
 
 ## D1 Package with hatchling, in place
 
@@ -510,3 +511,14 @@ D22 passed shared source variables to the engine and left three follow-ups. Firs
   - The ingest profile stays `execution-store-ingest-2.0` though it accepts three new optional fields, and `proper: false` or an explicit default variable name gives a different input digest from leaving them out. Normalising at ingest, or a 2.1 ingest profile, would make the identifier name one format.
   - Writing the Parquet files still sorts each whole bucket, which sets the build peak.
 - *Before and after for strict intervals and the store test* are above. The trajectory page and its Node parity test are unchanged: the page sends no `proper`, and the engine's path without it is the same code.
+
+## D25 D24 review follow-ups; time pruning on the posting summaries
+
+**Pre-committed rule for time pruning** (written and committed before any pruning measurement). After the candidate filter, a candidate that the per-patient posting summaries prove cannot match is pruned before its events are loaded.
+- *Exactness* is required: no result may change at any `detail` level, the 300 recorded match digests (`patterns/fixtures/execution_store_match_digests.json`) must be unchanged, and a differential test (pruning on against off) must be byte-identical on the synthetic cohorts, the shared-variable fuzz cohorts and the existing differential suites, at 1 and 2 workers.
+- *Keep pruning* only if it is exact and either
+  1. arm B's end-to-end cost per candidate at 300,000 patients, in the regenerated matcher comparison's main run (ten queries, `per_candidate_microseconds.end_to_end`), falls by at least 15% against the D24 report (342.7 µs, so to at most 291.3 µs), or
+  2. the 8-worker confirmation p95 (30 queries × 3 repeats, all runs pooled, `confirmation.target_check.C_w8.p95_seconds_all_runs`) is under 10 s.
+- *Otherwise* the negative result is recorded here with its numbers, and the pruning code is removed from the pull request; the D24 follow-ups stay.
+- *Pilot first:* arm B alone on the D24 300,000-patient snapshot, a few queries, to decide before a full regeneration. The pilot informs whether to regenerate; the verdict is taken on the regenerated report as stated above.
+
