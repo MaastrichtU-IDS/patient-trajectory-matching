@@ -23,7 +23,8 @@ content digests; `finish()` always checks content before it publishes.
 steps, rarest first. Each step's postings are the union over its concept and every concept a
 `widen_concept` relaxation within the budget could put in its place, so a patient the
 engine could match under any tried relaxation set is never dropped. `match(store, query,
-windows)` runs `trajectory_graph.match` on the survivors, reports the rest as `none` with
+windows)` runs `trajectory_graph.match` on the survivors, except those the postings' start summaries
+prove `none` (time pruning, D25: the engine's own `none`, its events never loaded), reports the rest as `none` with
 reason `FILTERED`, and turns `none` into `not_comparable` when, for some step, no source
 that records the step's concepts (table `source_concepts`) covers the patient's window, or
 when the patient holds excluded records (table `excluded_records`) a step could have bound. Its
@@ -85,7 +86,8 @@ CANONICAL_FORM = ('per table and bucket (an unpartitioned table is the one bucke
 INPUT_FORM = ('sha256 over the canonical JSON of {profile, dataset_id, closure, provenance}, a newline, then '
               '"<patient_id>\\t<sha256 of the patient\'s canonical JSON>\\n" for each patient in code-point order of '
               'patient_id; a patient is canonical with events sorted by event_id, each event\'s concepts sorted, '
-              'coverage and excluded records sorted, and keys sorted')
+              'coverage and excluded records sorted, and keys sorted, and each event without proper: false, a '
+              'start_var equal to "<event_id>.s" or an end_var equal to "<event_id>.f"')
 
 # Logical tables: column names and DuckDB types, in canonical column order.
 TABLES = {
@@ -380,9 +382,20 @@ def canonical_closure(closure):
     return out
 
 
+def normal_event(e):
+    """An event without what the engine reads as its default (D25): `proper: false`, a `start_var` equal to
+    `<event_id>.s` and an `end_var` equal to `<event_id>.f`. The engine decides the two forms alike, so they
+    have one digest and one set of rows."""
+    own = {'start_var': e['event_id'] + '.s', 'end_var': e['event_id'] + '.f'}
+    drop = [k for k in own if e.get(k) == own[k]] + (['proper'] if e.get('proper') is False else [])
+    return {k: v for k, v in e.items() if k not in drop} if drop else e
+
+
 def canonical_patient(p):
-    """Order-free form of one patient: the same content in any order has the same digest."""
-    out = {**p, 'events': [{**e, 'concepts': sorted(e['concepts'])} for e in sorted(p['events'], key=lambda e: e['event_id'])],
+    """Order-free, normal form of one patient: the same content in any order, or with the engine's defaults
+    spelled out (`normal_event`), has the same digest and the same rows."""
+    out = {**p, 'events': [{**normal_event(e), 'concepts': sorted(e['concepts'])}
+                           for e in sorted(p['events'], key=lambda e: e['event_id'])],
            'coverage': sorted(p['coverage'], key=lambda c: (c['source'], c['lo'], c['hi'], c['basis']))}
     if 'excluded' in p:
         out['excluded'] = sorted(p['excluded'], key=lambda x: (x['source'], x['concept'], x['start'], x['reason']))
@@ -1171,7 +1184,8 @@ def candidates(store, query):
     """Patients who could match under some relaxation set the engine would try.
 
     Sound, not exact: for each step, the union of postings over its concept and its
-    widenings; intersected across steps, rarest first. No time pruning in stage 1.
+    widenings; intersected across steps, rarest first. By concept only: `match` then prunes on the
+    postings' start summaries (`_prune`, D25).
     """
     return _candidates(store, tg.PreparedQuery(query))
 
@@ -1194,6 +1208,101 @@ def _candidates(store, pq):
             break
     return {'patient_idx': sorted(survivors or ()),
             'plan': [{'step': s['step'], 'concepts': s['concepts'], 'patients': len(s['patients'])} for s in plan]}
+
+
+# Time pruning on the posting summaries (D25). `match` drops a candidate before loading its events when the
+# summaries prove the engine's answer is `none`, complete; `_PRUNE = False` turns it off (the tests compare both).
+_PRUNE = True
+_NONE = lambda pid: {'patient_id': pid, 'status': 'none', 'complete': True}  # tg.match_prepared's own `none`
+
+
+def _prune_plan(pq):
+    """For the unrelaxed query and each relaxation set the engine would try, in its order, what a patient must
+    have for that set to be possible: per step, its concept and the bounds its unary constraints put on the start
+    of an event of that concept; per related step pair, the bounds on the difference of their starts.
+
+    Each entry is (steps, pairs): steps as (concept, lows, highs), where lows are (anchor, k) meaning some event's
+    latest start >= anchor + k and highs (anchor, k) meaning its earliest start <= anchor + k; pairs as
+    (concept of x, concept of y, lo, hi), meaning start(y) - start(x) in [lo, hi] for some pair of events.
+    A constraint on an end (`during`'s grace) is left out, which only weakens the test."""
+    out = []
+    for chosen in [()] + [chosen for _, chosen in pq.sets]:
+        plan = pq.plan(chosen)
+        steps = []
+        for s in pq.step_ids:
+            lows, highs = [], []
+            for c in plan.unary[s]:
+                if c.lo > c.hi:  # no difference satisfies it, so no event passes: a bound no start reaches
+                    lows.append(('START', tg.INF))
+                if c.x[0] in tg.ANCHORS and c.y == (s, 's'):  # start - anchor in [lo, hi]
+                    lows += [(c.x[0], c.lo)] if c.lo != -tg.INF else []
+                    highs += [(c.x[0], c.hi)] if c.hi != tg.INF else []
+                elif c.y[0] in tg.ANCHORS and c.x == (s, 's'):  # anchor - start in [lo, hi]
+                    lows += [(c.y[0], -c.hi)] if c.hi != tg.INF else []
+                    highs += [(c.y[0], -c.lo)] if c.lo != -tg.INF else []
+            steps.append((plan.concepts[s], tuple(lows), tuple(highs)))
+        pairs = tuple((plan.concepts[c.x[0]], plan.concepts[c.y[0]], c.lo, c.hi)
+                      for cs in plan.binary.values() for c in cs if c.x[1] == 's' and c.y[1] == 's')
+        out.append((tuple(steps), pairs))
+    return out
+
+
+def _impossible(spec, idx, window):
+    """Whether one relaxation set cannot be possible for patient `idx`, given its index window. `spec` is one
+    entry of `_prune_plan` with each concept replaced by its posting summaries, {patient_idx: (min_start_lo,
+    max_start_hi)}.
+
+    Why this is sound. The engine's candidate events for a step are the patient's events carrying the step's
+    concept (one of them, under `first` or `last`), which are exactly the events the concept's posting counts, so
+    each has start_lo >= min_start_lo and start_hi <= max_start_hi. The engine decides each start over the
+    tightest range the patient's own facts leave it (`Times.dom`), never wider than the recorded bounds; shared
+    variables and `proper` only narrow it. A step's unary constraints are on its start, and `plausible`, which
+    `certain` implies, passes an event only if its start can reach each bound (latest start >= anchor + lo,
+    earliest start <= anchor + hi). Between two steps, `plausible` needs start(y) - start(x) to reach [lo, hi]
+    within the patient's distances, which are at most the bounds' differences (zero for one event). So when a step
+    has no posting for its concept, or its posting cannot reach a bound, or a pair's postings cannot reach a gap,
+    every candidate domain or arc of that set empties under both `certain` and `plausible`: exact and possible
+    are not found, by arc consistency, with `complete: true`, before any search."""
+    steps, pairs = spec
+    anchor = {'START': window['start'], 'END': window['end']}
+    for postings, lows, highs in steps:
+        found = postings.get(idx)
+        if found is None:
+            return True
+        lo, hi = found
+        if any(hi < anchor[a] + k for a, k in lows) or any(lo > anchor[a] + k for a, k in highs):
+            return True
+    for x, y, lo, hi in pairs:
+        (xlo, xhi), (ylo, yhi) = x[idx], y[idx]
+        if lo > hi or yhi - xlo < lo or ylo - xhi > hi:
+            return True
+    return False
+
+
+def _prune(store, pq, live, windows_by_idx):
+    """The candidates in `live` whose result the posting summaries prove: every set the engine would try is
+    impossible (`_impossible`), so its answer is `none` with `complete: true`, byte for byte, whatever the
+    patient's events. The summaries are read for these candidates only, one concept at a time."""
+    if not live:
+        return set()
+    specs = _prune_plan(pq)
+    summaries = {}
+    try:
+        _temp(store, '_m_live', [('idx', 'INTEGER')], live)
+        for concept in sorted({c for steps, _ in specs for c, _, _ in steps}):
+            cursor = store.db.execute("""SELECT p.patient_idx, p.min_start_lo, p.max_start_hi FROM concept_postings p
+                JOIN _m_live l ON l.idx = p.patient_idx WHERE p.concept = ?""", [concept])
+            mine = summaries[concept] = {}
+            while True:
+                rows = cursor.fetchmany(store.fetch_rows)
+                if not rows:
+                    break
+                mine.update({idx: (lo, hi) for idx, lo, hi in rows})
+    finally:
+        _drop(store, '_m_live')
+    specs = [([(summaries[c], lows, highs) for c, lows, highs in steps],
+              [(summaries[x], summaries[y], lo, hi) for x, y, lo, hi in pairs]) for steps, pairs in specs]
+    return {idx for idx in live if all(_impossible(spec, idx, windows_by_idx[idx]) for spec in specs)}
 
 
 CHUNK_PATIENTS = 2_000  # candidates loaded and matched at a time
@@ -1655,7 +1764,9 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
 
     Candidates are loaded and matched `chunk` patients at a time and only each compact result is kept,
     so memory beyond the results themselves is bounded by one chunk. The store validated every event
-    at ingest, so the engine runs with `trusted=True`; windows are checked here.
+    at ingest, so the engine runs with `trusted=True`; windows are checked here. Before that, a candidate
+    whose posting summaries prove the engine's answer `none` under every relaxation set it would try gets
+    that answer without its events being loaded (`_prune`, D25); no result changes.
 
     `detail='full'` (the default) lists every patient in `results`, in patient order. `detail='decided'`
     lists only the patients the engine ran on (every candidate with a window) and those whose status
@@ -1696,6 +1807,12 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     per_step = _step_concepts(query)
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
     results = {}  # the engine's results, and what a rule then changed; patients absent are filtered or windowless
+    if _PRUNE:
+        # Candidates the posting summaries prove `none` get the engine's own `none`, and no events are loaded (D25).
+        pruned = _prune(store, pq, live, windows_by_idx)
+        for idx in pruned:
+            results[idx] = _NONE(pid_of[idx])
+        live = [i for i in live if i not in pruned]
     parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
     if workers > 1 and parts:
         key = _digest(given)

@@ -242,7 +242,7 @@ class Times:
             if fv == sv:
                 names += 1
                 # An exposure naming one variable twice ends as it starts, which a proper event cannot.
-                require(not e.proper, 'EMPTY_SHARED_VARIABLE')
+                require(not e.proper, 'EMPTY_PROPER_EVENT')
                 if f != s:
                     old = bounds[sv]
                     bounds[sv] = (max(old[0], f[0]), min(old[1], f[1]))
@@ -262,7 +262,9 @@ class Times:
             self.component, self.dom = {v: v for v in bounds}, dict(bounds)
             for e in events:
                 if e.sv != e.fv:
-                    self._solve(e.fv, [e.sv, e.fv], bounds, [(e.sv, e.fv)], {(e.sv, e.fv)} if e.proper else ())
+                    # Only a proper event's own order can leave its two variables no time (D25).
+                    self._solve(e.fv, [e.sv, e.fv], bounds, [(e.sv, e.fv)], {(e.sv, e.fv)} if e.proper else (),
+                                'EMPTY_PROPER_EVENT' if e.proper else 'EMPTY_SHARED_VARIABLE')
         else:
             parent = {v: v for v in bounds}
             def find(v):
@@ -285,9 +287,18 @@ class Times:
             # of MAX_LINKED_VARIABLES, checked before any is solved.
             require(sum(len(m) ** 3 for m in groups.values() if len(m) > 2) <= MAX_LINKED_VARIABLES ** 3,
                     'SHARED_VARIABLE_COMPONENT_LIMIT')
+            # A component no two events name a variable of is one event's own two variables (only orders join
+            # variables, and an order is one event's): if it has no time, that event is proper and cannot end
+            # after it starts, which is no shared variable (D25).
+            namers = {}
+            for e in events:
+                for v in {e.sv, e.fv}:
+                    namers[v] = namers.get(v, 0) + 1
             self.component, self.dom = {}, {}
             for root, members in groups.items():
-                self._solve(root, members, bounds, ordered.get(root), strict)
+                alone = all(namers[v] == 1 for v in members)
+                self._solve(root, members, bounds, ordered.get(root), strict,
+                            'EMPTY_PROPER_EVENT' if alone else 'EMPTY_SHARED_VARIABLE')
         if window is not None:
             for a in ANCHORS:
                 key = ('anchor', a)
@@ -296,10 +307,10 @@ class Times:
         self._records = None
         self._by_concept = {}
 
-    def _solve(self, root, members, bounds, orders, strict=()):
+    def _solve(self, root, members, bounds, orders, strict=(), empty='EMPTY_SHARED_VARIABLE'):
         """One component's variables: their ranges, and all-pairs distances if there are several.
         `orders` are its (start, end) pairs, end at or after start; those in `strict`, a proper
-        event's, end at least one grid step after start."""
+        event's, end at least one grid step after start. `empty` is the refusal if they leave no time."""
         for v in members:
             self.component[v] = root
         if len(members) == 1:
@@ -321,7 +332,7 @@ class Times:
                 dik = d[i][k]
                 if dik != INF:
                     d[i] = [a if a <= dik + b else dik + b for a, b in zip(d[i], dk)]
-        require(all(d[i][i] >= 0 for i in range(n)), 'EMPTY_SHARED_VARIABLE')
+        require(all(d[i][i] >= 0 for i in range(n)), empty)
         for v, k in index.items():
             self.dom[v] = (-d[k][0], d[0][k])
         self.distance[root] = (index, d)

@@ -50,6 +50,20 @@ def expanded(concepts, ancestors):
     return out
 
 
+def normalised(event):
+    """The event as the store keeps it (D25): a field that only restates the engine's default is left out, that
+    is `proper` when false, and a start or end variable named `<event_id>.s` or `<event_id>.f` respectively."""
+    def restates_default(key, value):
+        if key == 'proper':
+            return value is False
+        if key == 'start_var':
+            return value == event['event_id'] + '.s'
+        if key == 'end_var':
+            return value == event['event_id'] + '.f'
+        return False
+    return {k: v for k, v in event.items() if not restates_default(k, v)}
+
+
 def time_names(event):
     """The time variables an event names, as the engine profile defines them: its start, and its end
     unless it is a point; `<id>.s` and `<id>.f` where the event names none."""
@@ -75,7 +89,7 @@ def build_tables(ingest):
     ids = sorted(p['patient_id'] for p in ingest['patients'])
     index = {pid: i for i, pid in enumerate(ids)}
     tables = {name: [] for name in COLUMNS}
-    by_id = {p['patient_id']: p for p in ingest['patients']}
+    by_id = {p['patient_id']: {**p, 'events': [normalised(e) for e in p['events']]} for p in ingest['patients']}
     for pid in ids:
         tables['patients'].append((index[pid], pid, bucket_of(pid), shares_variables(by_id[pid])))
     kinds = ingest['closure'].get('bases') or {}
@@ -85,7 +99,7 @@ def build_tables(ingest):
         for a in ancestors[concept]:
             tables['concept_closure'].append((concept, a, 'declared', version, kind(concept), kind(a)))
     recorded = set()
-    for p in ingest['patients']:
+    for p in by_id.values():
         i, clock = index[p['patient_id']], p['clock_id']
         postings = {}
         for e in p['events']:
@@ -138,7 +152,7 @@ def patient_digest(patient):
     """sha256 of one patient's order-free JSON: events by id with sorted concepts, coverage and
     excluded records sorted, every object's keys sorted."""
     p = dict(patient)
-    p['events'] = sorted(({**e, 'concepts': sorted(e['concepts'])} for e in patient['events']),
+    p['events'] = sorted(({**normalised(e), 'concepts': sorted(e['concepts'])} for e in patient['events']),
                          key=lambda e: e['event_id'])
     p['coverage'] = sorted(patient['coverage'], key=lambda c: [c['source'], c['lo'], c['hi'], c['basis']])
     if 'excluded' in patient:

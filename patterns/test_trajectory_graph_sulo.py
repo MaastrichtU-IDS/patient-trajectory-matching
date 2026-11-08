@@ -580,6 +580,21 @@ class SharedVariableTests(unittest.TestCase):
         self.assertEqual((p1['status'], p1['adapter']['code']), ('refused', 'EMPTY_SHARED_VARIABLE'))
         self.assertEqual(p2['status'], 'exact')
         self.assertEqual(r['summary']['adapter_codes'], {'EMPTY_SHARED_VARIABLE': 1})
+        # A proper event that cannot end after it starts, nothing shared (D25), cannot come from a validated
+        # snapshot either: the bounded profile's start + 1 <= end is tightened into its ranges. Injected, it is
+        # that patient's refusal with its own code.
+        def improper(query, patient):
+            for event in patient['events']:
+                event.pop('start_var', None), event.pop('end_var', None)  # nothing shared
+                if event['id'] == 'X':
+                    event.update(start=[5 * DAY, 5 * DAY], end=[5 * DAY, 5 * DAY], proper=True)
+            return real(query, patient)
+        with patch.object(tgs.tg, 'match', side_effect=improper):
+            r = tgs.match_snapshot(view, request, point_projection=False)
+        p1, p2 = r['results']
+        self.assertEqual((p1['status'], p1['adapter']['code']), ('refused', 'EMPTY_PROPER_EVENT'))
+        self.assertEqual(p2['status'], 'exact')
+        self.assertEqual(r['summary']['adapter_codes'], {'EMPTY_PROPER_EVENT': 1})
 
     def test_a_non_box_constraint_is_still_refused_with_shared_variables(self):
         # X ends at least two days before Y ends: an edge between events no box holds.

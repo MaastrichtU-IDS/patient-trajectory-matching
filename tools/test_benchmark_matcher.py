@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 try:
     import duckdb  # noqa: F401
@@ -64,7 +65,7 @@ class ReportTests(unittest.TestCase):
 
     def test_each_arm_reports_cost_latency_and_memory_and_later_arms_are_placeholders(self):
         entry = self.report['sizes'][0]
-        for arm in ('A', 'B', 'B_decided'):
+        for arm in ('A', 'B', 'B_unpruned', 'B_decided'):
             got = entry['arms'][arm]
             self.assertEqual(got['queries'], 3)
             self.assertEqual(set(got['match_seconds']), {'p50', 'p95', 'max'})
@@ -83,6 +84,8 @@ class ReportTests(unittest.TestCase):
     def test_the_arms_agree_byte_for_byte_and_the_report_binds_its_files(self):
         entry = self.report['sizes'][0]
         self.assertEqual(entry['byte_identity_B_against_A'], {'compared': 3, 'identical': 3, 'mismatching_seeds': []})
+        # Time pruning off (D25) gives the same bytes.
+        self.assertEqual(entry['byte_identity_B_against_B_unpruned'], {'compared': 3, 'identical': 3, 'mismatching_seeds': []})
         self.assertEqual(entry['byte_identity_C_against_B'],
                          {w: {'compared': 3, 'identical': 3, 'mismatching_seeds': []} for w in ('C_w1', 'C_w2')})
         self.assertEqual(set(entry['target_check_arm_C']), {'C_w1', 'C_w2'})
@@ -113,7 +116,47 @@ class OlderArmTests(unittest.TestCase):
         self.assertEqual(entry['byte_identity_B_against_A'], {'compared': 4, 'identical': 4, 'mismatching_seeds': []})
         self.assertEqual(entry['arms']['A']['snapshot_view']['snapshot_profile'], es.PROFILE)
         self.assertEqual(entry['arms']['A']['snapshot_view']['read_as_profile'], 'execution-store-2.0')
+        self.assertEqual((entry['arms']['A']['snapshot_view']['patients_sharing_variables'],
+                          entry['arms']['A']['snapshot_view']['events_proper_or_naming_variables']), (0, 0))
         self.assertNotIn('snapshot_view', entry['arms']['B'])
+
+    def test_a_view_is_refused_where_older_code_would_misread_the_snapshot(self):
+        """The relabelled view is equivalent only when no patient shares variables and no event is proper or names
+        a variable (D25, after the D24 review). Otherwise, or for any other pair of profiles, it is refused, and
+        its scratch directory is removed however the block ends."""
+        from types import SimpleNamespace
+        from patterns import execution_store as es
+        from patterns import test_execution_store as tes
+        old = SimpleNamespace(PROFILE='execution-store-2.0', snapshot_identity=es.snapshot_identity)
+        plain = tes.fixture()
+        proper = tes.fixture()
+        proper['patients'][0]['events'][1]['proper'] = True  # P1's carbamazepine exposure
+        named = tes.fixture()
+        named['patients'][0]['events'][0]['start_var'] = 'own'  # a name nobody shares
+        shared = tes.fixture()
+        shared['patients'] += tes.shared_variable_patients()
+        with tempfile.TemporaryDirectory(prefix='matcher-view-test-') as tmp:
+            scratch = Path(tmp) / 'scratch'
+            for label, ingest, refused in (('plain', plain, False), ('proper', proper, True), ('named', named, True),
+                                           ('shared', shared, True)):
+                snapshot = es.build(ingest, Path(tmp) / label)
+                with self.subTest(label), mock.patch.object(matcher.tempfile, 'mkdtemp',
+                                                            lambda prefix: str(scratch.mkdir() or scratch)):
+                    if refused:
+                        with self.assertRaises(matcher.SnapshotViewError):
+                            with matcher.snapshot_view(old, snapshot):
+                                pass
+                    else:
+                        with self.assertRaisesRegex(RuntimeError, 'later failure'):
+                            with matcher.snapshot_view(old, snapshot) as (view, note):
+                                self.assertEqual(json.loads((view / 'manifest.json').read_text())['profile'],
+                                                 'execution-store-2.0')
+                                self.assertEqual(note['patients_sharing_variables'], 0)
+                                raise RuntimeError('later failure')
+                    self.assertFalse(scratch.exists())
+            with self.assertRaisesRegex(matcher.SnapshotViewError, 'no view'):
+                matcher.readable_snapshot(SimpleNamespace(PROFILE='execution-store-1.0'), snapshot, tmp)
+            self.assertEqual(matcher.readable_snapshot(es, snapshot, tmp), (snapshot, None))
 
 
 if __name__ == '__main__':

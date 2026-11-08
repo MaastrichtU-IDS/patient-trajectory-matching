@@ -231,6 +231,51 @@ def differential(store, ingest, reference, seeds=SEEDS):
     return mismatches, dropped, mix, filtered
 
 
+def engine_runs(store, query, windows):
+    """The candidates with a window that time pruning leaves to the engine (D25)."""
+    pq = tg.PreparedQuery(query)
+    ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+    by_idx = {ids[pid]: w for pid, w in windows.items()}
+    live = [i for i in es._candidates(store, pq)['patient_idx'] if by_idx.get(i) is not None]
+    return sorted(set(live) - es._prune(store, pq, live, by_idx))
+
+
+def shared_variable_cohort(ingest, seed):
+    """The synthetic cohort with shared time variables and proper exposures added at random (after a D24
+    reviewer's fuzz script): in about 60% of patients, some closed exposures become proper and one to six
+    events take another event's start or end variable, with ranges moved to meet it; a change the ingest
+    would refuse is undone."""
+    ingest, rng = deepcopy(ingest), random.Random(seed)
+    ancestors = ingest['closure']['ancestors']
+    for p in ingest['patients']:
+        if rng.random() >= 0.6 or len(p['events']) < 2:
+            continue
+        evs = p['events']
+        for e in evs:
+            if 'end' in e and e['end'][1] is not None and e['end'][1] > e['start'][0] and rng.random() < 0.5:
+                e['proper'] = True
+        for _ in range(rng.randint(1, 6)):
+            a, b = rng.sample(evs, 2)
+            before = deepcopy(b)
+            part = 'end' if 'end' in a and a['end'][1] is not None and rng.random() < 0.6 else 'start'
+            name = a.get(part + '_var', a['event_id'] + ('.f' if part == 'end' else '.s'))
+            mine = 'end' if 'end' in b and rng.random() < 0.3 else 'start'
+            b[mine + '_var'] = name
+            lo, hi = a[part]
+            if mine == 'start':
+                b['start'] = [lo, hi]
+                if 'end' in b:
+                    b['end'] = [max(b['end'][0], lo), None if b['end'][1] is None else max(b['end'][1], hi + 1)]
+            else:
+                b['end'] = [max(lo, b['start'][0]), max(hi, b['start'][0] + 1)]
+            try:
+                es.validate_patient(p, ancestors)
+            except es.IngestError:
+                b.clear()
+                b.update(before)
+    return ingest
+
+
 class TableTests(unittest.TestCase):
     def test_every_synthetic_table_equals_the_reference_row_for_row(self):
         self.assertEqual(table_mismatches(_STATE['store'], _STATE['reference']), {})
@@ -607,7 +652,9 @@ class ParallelMatchTests(unittest.TestCase):
 
     def test_a_worker_failure_fails_the_whole_match_by_name_and_the_pool_recovers(self):
         store = _STATE['store']
-        q, w = MatcherScalingTests.case(0)
+        # A query with candidates left to the engine after time pruning (D25), so that units run.
+        seed = next(seed for seed in range(SEEDS) if engine_runs(store, *MatcherScalingTests.case(seed)))
+        q, w = MatcherScalingTests.case(seed)
         good = self.dump(es.match(store, q, w, workers=2, chunk=1))
         pool = es.get_pool(store, 2)
         for fault in ('raise', 'exit'):
@@ -1010,7 +1057,8 @@ def shared_variable_patients():
     """Patients with shared time variables and proper exposures, on the fixture's closure (D24): S1's
     seizure starts when its carbamazepine exposure ends; S2's two points are ordered only through an
     exposure that carries no other step's concept (`unused`), naming one's start and the other's end;
-    S3 has S2's times without the sharing; S4 names its own default variables explicitly."""
+    S3 has S2's times without the sharing; S4 names its own default variables explicitly (which the store
+    normalises away, D25)."""
     span = (day(-30), day(400))
     cbz = {**ev('cbz', ['carbamazepine'], (day(30), day(35)), (day(30), day(40)), 'pharmacy', 'exposure'),
            'proper': True}
@@ -1068,7 +1116,7 @@ class SharedVariableStoreTests(unittest.TestCase):
             self.assertEqual(events[('S1', 'cbz')], (None, None, True))
             self.assertEqual(events[('S1', 'fs')], ('cbz.f', None, False))
             self.assertEqual(events[('S2', 'link')], ('on', 'off', True))
-            self.assertEqual(events[('S4', 'fs')], ('fs.s', 'fs.f', True))  # names its defaults: not shared
+            self.assertEqual(events[('S4', 'fs')], (None, None, True))  # named its defaults: kept as none (D25)
             self.assertEqual(events[('P1', 'cbz')], (None, None, False))
 
     def test_a_linking_event_no_step_can_bind_is_loaded(self):
@@ -1152,7 +1200,8 @@ class SharedVariableStoreTests(unittest.TestCase):
                                          {**ev('b', ['seizure'], (day(2), day(3))), 'start_var': 'v'}),
         }
         cases['INVALID_EVENT_VARIABLE '] = bad({**ev('a', ['seizure'], (day(0), day(1))), 'start_var': ''})
-        cases['EMPTY_SHARED_VARIABLE '] = bad({**ev('a', ['seizure'], (day(0), day(0)), (day(0), day(0))), 'proper': True})
+        # A proper event that cannot end after it starts shares nothing: its own code (D25).
+        cases['EMPTY_PROPER_EVENT'] = bad({**ev('a', ['seizure'], (day(0), day(0)), (day(0), day(0))), 'proper': True})
         for code, g in cases.items():
             with self.subTest(code=code), tempfile.TemporaryDirectory() as tmp:
                 with self.assertRaises(es.IngestError) as caught:
@@ -1165,6 +1214,196 @@ class SharedVariableStoreTests(unittest.TestCase):
             es.validate_ingest(bad(*chain))
         self.assertEqual(caught.exception.code, 'SHARED_VARIABLE_COMPONENT_LIMIT')
         es.validate_ingest(bad(*chain))
+
+
+class TimePruningTests(unittest.TestCase):
+    """Time pruning on the posting summaries (D25) changes no byte of any result: pruning on against off, at
+    both detail levels and at 1 and 2 workers, on the synthetic cohort, two shared-variable fuzz cohorts and the
+    fixture with shared-variable patients. The existing differentials (exhaustive matching, the recorded digests,
+    workers, the MIMIC fixture) run with pruning on."""
+
+    @classmethod
+    def tearDownClass(cls):
+        es.close_pools()
+
+    def compare(self, store, cases, decided=(), parallel=()):
+        """(pruned candidates, candidates with a window, pruned patients that share variables) over `cases`,
+        asserting that pruning on and off give the same bytes for every case, also with `detail='decided'` for
+        the indices in `decided` and with `workers=2` (chunk 3, both details) for those in `parallel`."""
+        linked = {i for i, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')}
+        ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+        pruned = live = pruned_linked = 0
+        for k, (q, w) in enumerate(cases):
+            runs = [{}] + ([{'detail': 'decided'}] if k in decided else []) + \
+                   ([{'workers': 2, 'chunk': 3}, {'workers': 2, 'chunk': 3, 'detail': 'decided'}] if k in parallel else [])
+            for kwargs in runs:
+                with patch.object(es, '_PRUNE', False):
+                    off = json.dumps(es.match(store, q, w, **kwargs))
+                self.assertEqual(json.dumps(es.match(store, q, w, **kwargs)), off, (k, kwargs))
+            pq = tg.PreparedQuery(q)
+            by_idx = {ids[pid]: v for pid, v in w.items()}
+            mine = [i for i in es._candidates(store, pq)['patient_idx'] if by_idx.get(i) is not None]
+            gone = es._prune(store, pq, mine, by_idx)
+            pruned, live, pruned_linked = pruned + len(gone), live + len(mine), pruned_linked + len(gone & linked)
+        return pruned, live, pruned_linked
+
+    def test_pruning_on_and_off_give_the_same_bytes_on_the_synthetic_cohort(self):
+        cases = [MatcherScalingTests.case(seed) for seed in range(SEEDS)]
+        pruned, live, _ = self.compare(_STATE['store'], cases, decided=range(0, SEEDS, 3), parallel=range(0, SEEDS, 6))
+        print(f'\n  time pruning: {pruned} of {live} candidates with a window pruned over {SEEDS} queries', file=sys.stderr)
+        self.assertGreater(pruned, live // 10)  # not vacuous
+
+    def test_pruning_on_and_off_give_the_same_bytes_with_shared_variables_and_proper_events(self):
+        totals = Counter()
+        for seed in (5, 6):
+            ingest = shared_variable_cohort(_STATE['ingest'], seed)
+            self.assertGreater(sum(es.shares_variables(p['events']) for p in ingest['patients']), 10)
+            reference = ref.build_tables(ingest)
+            with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp), verify='content') as store:
+                self.assertEqual(table_mismatches(store, reference), {})
+                pool = concept_pool(reference)
+                cases = []
+                for q in range(150):
+                    rng = random.Random(f'fuzz-{seed}-{q}')
+                    cases.append((random_query(rng, pool, ingest), random_windows(rng, ingest)))
+                pruned, live, linked = self.compare(store, cases, decided=range(0, 150, 3), parallel=range(0, 150, 10))
+                totals.update(pruned=pruned, live=live, linked=linked)
+                # Pruning on, against exhaustive matching over every patient's whole record.
+                mismatches, dropped, _, _ = differential(store, ingest, reference, seeds=60)
+                self.assertEqual((mismatches, dropped), ([], []), seed)
+                es.close_pools()
+        print(f"\n  time pruning, shared-variable cohorts: {totals['pruned']} of {totals['live']} pruned, "
+              f"{totals['linked']} of them sharing variables", file=sys.stderr)
+        self.assertGreater(totals['pruned'], totals['live'] // 10)
+        self.assertGreater(totals['linked'], 0)  # sharing patients were pruned too
+
+    def test_pruning_on_and_off_give_the_same_bytes_on_the_fixture(self):
+        g = fixture()
+        g['patients'] += shared_variable_patients()
+        # A patient with enough events for `random_query` to anchor on: a proper exposure whose end is a seizure's
+        # start, and an ongoing one.
+        span = (day(-30), day(400))
+        g['patients'].append({'patient_id': 'Q1', 'clock_id': 'patient_Q1', 'coverage': [cover('ehr', *span),
+                                                                                         cover('pharmacy', *span)],
+                              'events': [ev('fs', ['febrile_seizure'], (day(0), day(2))),
+                                         {**ev('cbz', ['carbamazepine'], (day(20), day(25)), (day(20), day(60)),
+                                               'pharmacy', 'exposure'), 'proper': True},
+                                         {**ev('sz', ['seizure'], (day(40), day(50))), 'start_var': 'cbz.f'},
+                                         ev('vpa', ['valproate'], (day(70), day(70)), (day(70), None), 'pharmacy',
+                                            'exposure'),
+                                         ev('dx', ['dravet'], (day(90), day(95)))]})
+        reference = ref.build_tables(g)
+        pool = concept_pool(reference)
+        cases = []
+        for seed in range(200):
+            rng = random.Random(f'fixture-{seed}')
+            cases.append((random_query(rng, pool, g), random_windows(rng, g)))
+        cases.append((FIXTURE_QUERY, {p['patient_id']: {'start': day(-30), 'end': day(400)} for p in g['patients']}))
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp)) as store:
+            pruned, live, _ = self.compare(store, cases, decided=range(0, 201, 2), parallel=range(0, 201, 20))
+            es.close_pools()
+        self.assertGreater(pruned, 0)
+
+    def test_an_unsound_pruning_fails_the_comparison(self):
+        """Planted defects: pruning on the unrelaxed query alone (a relaxation set could still match), and a bound
+        off by one (a start exactly at the bound can still satisfy it). Each changes some result."""
+        original_plan, original_impossible = es._prune_plan, es._impossible
+
+        def unrelaxed_only(pq):
+            return original_plan(pq)[:1]
+
+        def off_by_one(spec, idx, window):
+            steps, _ = spec
+            anchor = {'START': window['start'], 'END': window['end']}
+            for postings, lows, highs in steps:
+                found = postings.get(idx)
+                if found is not None and (any(found[1] <= anchor[a] + k for a, k in lows)
+                                          or any(found[0] >= anchor[a] + k for a, k in highs)):
+                    return True
+            return original_impossible(spec, idx, window)
+
+        changed = []
+        with patch.object(es, '_prune_plan', unrelaxed_only):
+            for seed in range(SEEDS):
+                q, w = MatcherScalingTests.case(seed)
+                with patch.object(es, '_PRUNE', False):
+                    off = json.dumps(es.match(_STATE['store'], q, w))
+                if json.dumps(es.match(_STATE['store'], q, w)) != off:
+                    changed.append(seed)
+                    if len(changed) >= 3:
+                        break
+        self.assertTrue(changed, 'pruning on the unrelaxed query alone went unnoticed')
+        # Random windows rarely put a bound exactly on a start, so the boundary is checked by construction: P3's
+        # one seizure starts at day 0 exactly, and so does each window's bound. Every scope's bound is met with
+        # equality, which the engine accepts and the defect prunes.
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp)) as store:
+            for scope, window in (('from_start', (day(0), day(5))), ('within', (day(-5), day(0))),
+                                  ('after', (day(-5), day(0)))):
+                q = {'profile': tg.PROFILE_ID, 'scope': scope, 'steps': [{'id': 'A', 'concept': 'febrile_seizure'}]}
+                w = {'P3': {'start': window[0], 'end': window[1]}}
+                right = {r['patient_id']: r['status'] for r in es.match(store, q, w)['results']}
+                self.assertEqual(right['P3'], 'exact', scope)
+                with patch.object(es, '_impossible', off_by_one):
+                    wrong = {r['patient_id']: r['status'] for r in es.match(store, q, w)['results']}
+                self.assertEqual(wrong['P3'], 'none', scope)
+
+    def test_a_pruned_candidate_carries_the_engines_own_none(self):
+        """A pruned candidate's result is the dict the engine returns for it on its loaded events, key order
+        included."""
+        store, seen = _STATE['store'], 0
+        ids = {i: pid for i, pid, *_ in store.rows('patients')}
+        for seed in range(60):
+            q, w = MatcherScalingTests.case(seed)
+            pq = tg.PreparedQuery(q)
+            by_idx = {i: w.get(pid) for i, pid in ids.items()}
+            live = [i for i in es._candidates(store, pq)['patient_idx'] if by_idx[i] is not None]
+            gone = sorted(es._prune(store, pq, live, by_idx))
+            events = es._load_events(store, gone, es._step_concepts(pq.query)) if gone else {}
+            for i in gone:
+                engine = tg.match_prepared(pq, {'patient_id': ids[i], 'window': by_idx[i], 'events': events.get(i, [])},
+                                           trusted=True)
+                self.assertEqual(json.dumps(engine), json.dumps(es._NONE(ids[i])), (seed, ids[i]))
+                seen += 1
+        self.assertGreater(seen, 100)
+
+
+class IngestNormalisationTests(unittest.TestCase):
+    """Fields that restate the engine's default are normalised away at ingest (D25), so documents the engine
+    reads alike have one input digest and one set of tables."""
+
+    def test_explicit_defaults_give_the_same_input_digest_and_tables(self):
+        g = fixture()
+        g['patients'] += shared_variable_patients()
+        explicit = deepcopy(g)
+        for p in explicit['patients']:
+            for e in p['events']:
+                e.setdefault('start_var', e['event_id'] + '.s')
+                if 'end' in e:
+                    e.setdefault('end_var', e['event_id'] + '.f')
+                    e.setdefault('proper', False)
+        self.assertNotEqual(explicit, g)
+        self.assertEqual(ref.input_digest(explicit), ref.input_digest(g))
+        self.assertEqual(ref.build_tables(explicit), ref.build_tables(g))
+        with tempfile.TemporaryDirectory() as tmp:
+            plain, spelled = es.build(g, Path(tmp) / 'a'), es.build(explicit, Path(tmp) / 'b')
+            self.assertEqual(plain.name, spelled.name)
+            manifest = json.loads((spelled / 'manifest.json').read_text())
+            self.assertEqual(manifest['input_digest'], ref.input_digest(g))
+            with es.open_store(spelled, verify='content') as store:
+                self.assertEqual(table_mismatches(store, ref.build_tables(explicit)), {})
+        # Only exact restatements go: a variable named after another event's default, or after the event's own
+        # default for the other end, is a real name.
+        e = {'event_id': 'a', 'start_var': 'b.s', 'end_var': 'a.s', 'proper': True, 'end': [0, 1]}
+        self.assertEqual(es.normal_event(e), e)
+        self.assertEqual(ref.normalised(e), e)
+
+    def test_the_synthetic_cohort_is_unchanged(self):
+        """Normalisation is the identity on the synthetic cohort, so its input digest is unchanged (the recorded
+        digests of `PerBucketDeriveTests` say the same); the MIMIC fixture's test checks its own ingest."""
+        for p in _STATE['ingest']['patients']:
+            for e in p['events']:
+                self.assertEqual(es.normal_event(e), e, (p['patient_id'], e['event_id']))
+                self.assertEqual(ref.normalised(e), e)
 
 
 class PlantedDefectTests(unittest.TestCase):
