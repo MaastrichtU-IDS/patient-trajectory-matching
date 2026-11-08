@@ -1,7 +1,11 @@
 """Trajectory-graph profile: semantics, decision methods, budgets and the exhaustive reference."""
 from copy import deepcopy
+import hashlib
+import importlib.util
 import json
+from pathlib import Path
 import random
+import sys
 import time
 import unittest
 
@@ -448,6 +452,126 @@ class DifferentialTests(unittest.TestCase):
 
     def test_graphs_with_exposures_and_during(self):
         self.check('graph', True, range(300))
+
+
+class KernelIdentityTests(unittest.TestCase):
+    """The engine decides as it did before its pairwise kernel was rewritten (D21): every result field,
+    and every intermediate decision, equals the old engine's on seeded cases of every shape.
+
+    The old engine is kept whole, byte for byte, as `patterns/fixtures/trajectory_graph_before_kernel.py`
+    (the engine at main 12b3440; its digest is pinned below, so it cannot drift). A frozen copy, rather
+    than a fixture of recorded outputs, lets the comparison run on any number of new cases, including
+    wider ones than the differential's, and compare `decide`'s intermediate results (method, search steps,
+    witness) as well as `match`'s. The fixtures directory is not packaged."""
+    FROZEN = Path(__file__).resolve().parent / 'fixtures/trajectory_graph_before_kernel.py'
+    FROZEN_SHA256 = 'aa7a2e7abf3ccee2f7350182acebaccf24ab20023e022685554e31b097df3722'
+
+    @classmethod
+    def setUpClass(cls):
+        assert hashlib.sha256(cls.FROZEN.read_bytes()).hexdigest() == cls.FROZEN_SHA256, 'the frozen engine changed'
+        spec = importlib.util.spec_from_file_location('patterns._trajectory_graph_before_kernel', cls.FROZEN)
+        cls.old = sys.modules[spec.name] = importlib.util.module_from_spec(spec)  # dataclasses look it up
+        spec.loader.exec_module(cls.old)
+
+    @staticmethod
+    def decisions(engine, q, p):
+        """`decide` for the unrelaxed query and every relaxation set, with events as their fields."""
+        times = engine.Times(engine.events_of(p), p['window'])
+        event = lambda e: (e.id, sorted(e.concepts), e.s, e.f, e.point, e.sv, e.fv)
+        out = []
+        for _, chosen in [(0, ())] + engine.relaxation_sets(q):
+            d = engine.decide(q, times, chosen, q.get('search_budget', 40_000))
+            row = {'forest': d['forest']}
+            for kind in ('exact', 'possible'):
+                if kind in d:
+                    row[kind] = {k: [(s, event(e)) for s, e in v.items()] if k == 'binding' else
+                                 list(v.items()) if k == 'witness' else v for k, v in d[kind].items()}
+            out.append(row)
+        return out
+
+    def compare(self, q, p):
+        old, new = self.old.match(q, p), tg.match(q, p)
+        self.assertEqual(new, old)
+        self.assertEqual(json.dumps(new), json.dumps(old))  # key order too
+        pq = tg.PreparedQuery(q)
+        self.assertEqual(tg.match_prepared(pq, p, trusted=True), old)
+        if p['window'] is not None:
+            self.assertEqual(self.decisions(tg, q, p), self.decisions(self.old, q, p))
+
+    def wide(self, rng, q, p, intervals):
+        """The case with more events, so that domains are wider, and more variables shared."""
+        events = list(p['events'])
+        for i in range(rng.randint(6, 24)):
+            start = rng.randint(-25, 80)  # some before time zero
+            width = rng.choice([0, 0, 2, 6, 15])
+            e = event(f'w{i}', rng.choice(['x', 'y']), (start, start + width), None, 'any')
+            if intervals and rng.random() < 0.4:
+                end = start + width + rng.randint(0, 20)
+                e['end'] = [end, rng.choice([end, end + 5, None])]
+            events.append(e)
+        if rng.random() < 0.5:
+            share_variables(rng, events)
+        q = {**q, 'search_budget': rng.choice([q['search_budget'], 1, 7, 60])}
+        if rng.random() < 0.3:
+            # Unary constraints the differential's generator does not make: a step before the window's end,
+            # or a scope after it.
+            step = rng.choice(q['steps'])['id']
+            bound = rng.choice([{'max': 0}, {'min': -30}, {'min': -40, 'max': -5}])
+            q = {**q, 'relations': q['relations'] + [{'id': 'to-end', 'kind': 'after', 'from': step, 'to': 'END', **bound}]}
+        elif rng.random() < 0.15:
+            q = {**q, 'scope': 'after'}
+        return q, {**p, 'events': events}
+
+    def test_the_engine_decides_as_before_on_seeded_cases(self):
+        for shape, intervals in (('chain', False), ('tree', False), ('graph', False), ('tree', True), ('graph', True),
+                                 ('chain', True)):
+            for seed in range(400):
+                rng = random.Random(f'kernel-{shape}-{intervals}-{seed}')
+                q, p = random_case(rng, shape, intervals)
+                with self.subTest(shape=shape, intervals=intervals, seed=seed):
+                    self.compare(q, p)
+                    self.compare(*self.wide(rng, q, p, intervals))
+
+    def test_the_differential_cases_and_their_relatives_decide_as_before(self):
+        moved = PreparedQueryTests.variants
+        for shape, intervals in (('chain', False), ('tree', False), ('graph', False), ('tree', True), ('graph', True)):
+            for seed in range(300):
+                rng = random.Random(f'{shape}-{intervals}-{seed}')
+                q, p = random_case(rng, shape, intervals)
+                for patient_ in moved(None, p) + [{**p, 'window': None}]:
+                    with self.subTest(shape=shape, intervals=intervals, seed=seed):
+                        self.compare(q, patient_)
+
+    def test_the_original_test_decides_where_the_closed_form_is_refused(self):
+        # `_arc_spec` refuses the closed form only for bounds outside the profile, which validation never
+        # lets through; with it refusing everything, every pair and unary check takes `certain` or
+        # `plausible` itself, and the engine still decides as before.
+        contradiction = [tg.Constraint(('A', 's'), ('B', 's'), 5, 1, 'r')]
+        self.assertIsNone(tg._arc_spec('A', contradiction, 'plausible'))
+        self.assertIsNotNone(tg._arc_spec('A', contradiction, 'certain'))
+        original = tg._arc_spec
+        tg._arc_spec = lambda a, constraints, kind: None
+        try:
+            for seed in range(150):
+                rng = random.Random(f'kernel-refused-{seed}')
+                intervals = rng.random() < 0.5
+                q, p = random_case(rng, rng.choice(['chain', 'tree', 'graph']), intervals)
+                with self.subTest(seed=seed):
+                    self.compare(*self.wide(rng, q, p, intervals))
+        finally:
+            tg._arc_spec = original
+
+    def test_shared_variable_cases_decide_as_before(self):
+        # Every case shares variables, between points, exposures and their ends, so pairs of steps meet
+        # linked events often: those pairs take the original test.
+        for seed in range(400):
+            rng = random.Random(f'kernel-shared-{seed}')
+            q, p = random_case(rng, rng.choice(['chain', 'tree', 'graph']), True)
+            for _ in range(rng.randint(1, 3)):
+                share_variables(rng, p['events'])
+            with self.subTest(seed=seed):
+                self.compare(q, p)
+                self.compare(*self.wide(rng, q, p, True))
 
 
 class PreparedQueryTests(unittest.TestCase):
