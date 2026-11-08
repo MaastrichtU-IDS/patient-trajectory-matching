@@ -54,7 +54,10 @@ from jsonschema import Draft202012Validator
 from . import trajectory_graph as tg
 from ._resources import ROOT
 
-PROFILE = 'execution-store-2.0'
+# 2.1 (D24): events hold their time variables and `proper`, and patients whether their events share variables.
+PROFILE = 'execution-store-2.1'
+# The ingest profile is unchanged: the event fields 2.1 reads (start_var, end_var, proper) are optional, so a
+# document without them is read, and digested, exactly as before.
 INGEST_PROFILE = 'execution-store-ingest-2.0'
 MATCH_PROFILE = 'execution-store-match-2.0'
 SCHEMA_PATH = 'schemas/execution-store-manifest.schema.json'
@@ -71,6 +74,10 @@ FETCH_ROWS = 10_000
 # working set depends on this and not on the cohort. Any size gives the same tables (D23).
 PART_ROWS = 2_000_000
 DEFAULT_MEMORY_LIMIT = '4GB'
+# Patient indices one ordered query of a partitioned table's bucket covers when digesting (`content_digests`):
+# about 12,500 patients of the bucket, so a sort's size depends on this and not on the cohort (D24). Any span
+# gives the same digests.
+DIGEST_SPAN = 100_000
 CANONICAL_FORM = ('per table and bucket (an unpartitioned table is the one bucket "all"; a partitioned one has buckets '
                   '0..7, empty ones included): sha256 over its rows ordered by the table key, then every column, '
                   'each row a compact UTF-8 JSON array of its values in column order followed by a newline; the table '
@@ -82,10 +89,12 @@ INPUT_FORM = ('sha256 over the canonical JSON of {profile, dataset_id, closure, 
 
 # Logical tables: column names and DuckDB types, in canonical column order.
 TABLES = {
-    'patients': (('patient_idx', 'INTEGER'), ('patient_id', 'VARCHAR'), ('bucket', 'INTEGER')),
+    'patients': (('patient_idx', 'INTEGER'), ('patient_id', 'VARCHAR'), ('bucket', 'INTEGER'),
+                 ('shared_variables', 'BOOLEAN')),
     'events': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('kind', 'VARCHAR'), ('source', 'VARCHAR'),
                ('clock_id', 'VARCHAR'), ('start_lo', 'BIGINT'), ('start_hi', 'BIGINT'), ('end_lo', 'BIGINT'),
-               ('end_hi', 'BIGINT'), ('ongoing', 'BOOLEAN'), ('evidence', 'VARCHAR')),
+               ('end_hi', 'BIGINT'), ('ongoing', 'BOOLEAN'), ('start_var', 'VARCHAR'), ('end_var', 'VARCHAR'),
+               ('proper', 'BOOLEAN'), ('evidence', 'VARCHAR')),
     'event_concepts': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('concept', 'VARCHAR'),
                        ('basis', 'VARCHAR')),
     'concept_closure': (('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR'),
@@ -209,6 +218,46 @@ def validate_provenance(provenance):
     return provenance
 
 
+EVENT_FIELDS = {'event_id', 'kind', 'source', 'concepts', 'start', 'end', 'evidence', 'start_var', 'end_var', 'proper'}
+
+
+def engine_event(event_id, concepts, start, end, start_var, end_var, proper):
+    """An engine event: the stored times, and the variable names and `proper` only where the ingest gave
+    them (an absent name is the engine's default, `<id>.s` or `<id>.f`)."""
+    out = {'id': event_id, 'concepts': concepts, 'start': start}
+    if start_var is not None:
+        out['start_var'] = start_var
+    if end is not None:
+        out['end'] = end
+        if end_var is not None:
+            out['end_var'] = end_var
+        if proper:
+            out['proper'] = True
+    return out
+
+
+def engine_events(events):
+    """A patient's ingest events as engine events (concepts as given)."""
+    return [engine_event(e['event_id'], e['concepts'], list(e['start']), list(e['end']) if 'end' in e else None,
+                         e.get('start_var'), e.get('end_var'), e.get('proper', False)) for e in events]
+
+
+def shares_variables(events):
+    """Whether two of these ingest events name one time variable, default names included (as the engine
+    names them): then the events are matched together, never filtered by concept (`patients.shared_variables`)."""
+    if not any('start_var' in e or 'end_var' in e for e in events):
+        return False  # default names are unique, since event ids are
+    seen = set()
+    for e in events:
+        names = {e.get('start_var', e['event_id'] + '.s')}  # a point names its start only
+        if 'end' in e:
+            names.add(e.get('end_var', e['event_id'] + '.f'))
+        if not names.isdisjoint(seen):
+            return True
+        seen |= names
+    return False
+
+
 def validate_patient(p, ancestors):
     """One patient against the closure's concepts. Duplicate patient ids are a whole-stream check."""
     _require(isinstance(p, dict) and {'patient_id', 'clock_id', 'events', 'coverage'} <= set(p)
@@ -216,17 +265,17 @@ def validate_patient(p, ancestors):
              'INVALID_PATIENT')
     pid = p['patient_id']
     _require(type(pid) is str and pid and not any(c in pid for c in _ID_DELIMITERS), 'INVALID_PATIENT_ID')
-    # The store holds boxes (independent bounds per time). A source whose constraints go beyond
-    # them, or share variables between events, cannot be stored without losing soundness.
+    # The store holds each time as bounds, and events may name shared time variables (an equality
+    # between events) and be proper; the engine models both exactly (D24). A source whose other
+    # constraints between events go beyond that cannot be stored without losing soundness.
     _require(type(p.get('box_representable', True)) is bool, 'INVALID_PATIENT', pid)
     _require(p.get('box_representable', True), 'INGEST_PATIENT_NOT_BOX_REPRESENTABLE', pid)
     _require(type(p['clock_id']) is str and p['clock_id'], 'INVALID_CLOCK_ID', pid)
     _require(isinstance(p['events'], list), 'INVALID_EVENTS', pid)
-    ids = set()
+    ids, named = set(), False
     for e in p['events']:
         _require(isinstance(e, dict) and {'event_id', 'kind', 'source', 'concepts', 'start', 'evidence'} <= set(e)
-                 and set(e) <= {'event_id', 'kind', 'source', 'concepts', 'start', 'end', 'evidence'},
-                 'INVALID_EVENT', pid)
+                 and set(e) <= EVENT_FIELDS, 'INVALID_EVENT', pid)
         eid = e['event_id']
         where = f'{pid}/{eid}'
         _require(type(eid) is str and eid, 'INVALID_EVENT_ID', pid)
@@ -251,11 +300,25 @@ def validate_patient(p, ancestors):
             _require(end_lo >= lo, 'END_BEFORE_START', where)
             if end[1] is not None:
                 _require(_time(end[1], where) >= end_lo, 'INVERTED_BOUNDS', f'{where} end')
+        # Time variables, as the engine names them (a point has no end variable), and `proper`, an
+        # end strictly after the start, which a point cannot have.
+        for field in ('start_var', 'end_var'):
+            _require(field not in e or (type(e[field]) is str and e[field]), 'INVALID_EVENT_VARIABLE', where)
+        _require('end_var' not in e or 'end' in e, 'INVALID_EVENT_VARIABLE', where)
+        _require('proper' not in e or (type(e['proper']) is bool and 'end' in e), 'INVALID_EVENT_PROPER', where)
+        named = named or 'start_var' in e or 'end_var' in e or 'proper' in e
         _require(isinstance(e['evidence'], dict), 'INVALID_EVIDENCE', where)
         try:
             json.dumps(e['evidence'], allow_nan=False)
         except (TypeError, ValueError):
             raise IngestError('INVALID_EVIDENCE', where) from None
+    if named:
+        # The engine solves the patient's network when it matches; refuse here what it would refuse
+        # then (variables no time satisfies, a linked group beyond its limit), so `match` never meets it.
+        try:
+            tg.patient_times({'patient_id': pid, 'window': None, 'events': engine_events(p['events'])}, trusted=True)
+        except tg.TrajectoryError as exc:
+            raise IngestError(str(exc), pid) from None
     _require(isinstance(p['coverage'], list), 'INVALID_COVERAGE', pid)
     periods = set()
     for c in p['coverage']:
@@ -384,10 +447,13 @@ def _read_json(path, columns):
 
 
 STAGED = {
-    'patients': [('patient_id', 'VARCHAR'), ('clock_id', 'VARCHAR'), ('digest', 'VARCHAR')],
+    # A staged line leaves out `shared_variables`, `start_var`, `end_var` and `proper` when they are false or
+    # absent; the reader takes a missing key as null.
+    'patients': [('patient_id', 'VARCHAR'), ('clock_id', 'VARCHAR'), ('digest', 'VARCHAR'),
+                 ('shared_variables', 'BOOLEAN')],
     'events': [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('kind', 'VARCHAR'), ('source', 'VARCHAR'),
                ('start_lo', 'BIGINT'), ('start_hi', 'BIGINT'), ('end_lo', 'BIGINT'), ('end_hi', 'BIGINT'),
-               ('evidence', 'VARCHAR')],
+               ('evidence', 'VARCHAR'), ('start_var', 'VARCHAR'), ('end_var', 'VARCHAR'), ('proper', 'BOOLEAN')],
     'concepts': [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('concept', 'VARCHAR')],
     'closure': [('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR'),
                 ('concept_basis', 'VARCHAR'), ('ancestor_basis', 'VARCHAR')],
@@ -479,9 +545,10 @@ def _derive(db, stage, parts, on_stage=None):
     # Dense index by sorted identifier; bucket from the identifier alone, so it never moves.
     run('patient_index', f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
-        (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {BUCKETS})::INTEGER AS bucket, clock_id
+        (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {BUCKETS})::INTEGER AS bucket, clock_id,
+        coalesce(shared_variables, false) AS shared_variables
         FROM s_patients""")
-    run('patients', 'CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket FROM p')
+    run('patients', 'CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket, shared_variables FROM p')
     run('concept_closure', f'''CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version, concept_basis,
         ancestor_basis FROM {staged('closure')}''')
     for name in PARTITIONED:
@@ -496,7 +563,8 @@ def _derive(db, stage, parts, on_stage=None):
         for part in mine:
             run('events', f"""CREATE TEMP TABLE part_events AS SELECT p.patient_idx, e.event_id, e.kind, e.source,
                 p.clock_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
-                (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing, e.evidence, p.bucket
+                (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing, e.start_var, e.end_var,
+                coalesce(e.proper, false) AS proper, e.evidence, p.bucket
                 FROM {staged('events', part)} e JOIN p USING (patient_id)""")
             run('event_concepts', f"""CREATE TEMP TABLE part_concepts AS SELECT p.patient_idx, c.event_id, c.concept,
                 'direct' AS basis, p.bucket FROM {staged('concepts', part)} c JOIN p USING (patient_id)""")
@@ -580,26 +648,52 @@ def _order(name):
     return ', '.join(f'{c} ASC NULLS LAST' for c in ordered)
 
 
-def content_digests(db, fetch_rows=FETCH_ROWS, on_table=None):
+def _slices(db, name, label, span):
+    """The WHERE clauses, in canonical order, whose ordered rows concatenated are one bucket's ordered rows.
+
+    An unpartitioned table is one query. A partitioned table's key starts with `patient_idx` (nulls last),
+    so its bucket is cut into consecutive `patient_idx` ranges of `span` indices, the first open below and
+    the last open above, then the rows with a null index: together they cover every row the file could
+    hold, whatever its content, and each ordered query sorts one range, not the bucket (D24). A bucket
+    whose largest index is below `span` is one query over the bucket, as before."""
+    if name not in PARTITIONED:
+        return [('', [])]
+    bucket = int(label)
+    top = db.execute(f'SELECT max(patient_idx) FROM {name} WHERE bucket = ?', [bucket]).fetchone()[0]
+    if top is None or top < span:
+        return [(' WHERE bucket = ?', [bucket])]
+    cuts = list(range(span, top + 1, span))
+    out = [(' WHERE bucket = ? AND patient_idx < ?', [bucket, cuts[0]])]
+    out += [(' WHERE bucket = ? AND patient_idx >= ? AND patient_idx < ?', [bucket, lo, hi])
+            for lo, hi in zip(cuts, cuts[1:])]
+    out += [(' WHERE bucket = ? AND patient_idx >= ?', [bucket, cuts[-1]]),
+            (' WHERE bucket = ? AND patient_idx IS NULL', [bucket])]
+    return out
+
+
+def content_digests(db, fetch_rows=FETCH_ROWS, on_table=None, span=None):
     """{table: {rows, content_digest, buckets: {label: {rows, content_digest}}}}, streamed from `db`.
 
-    Each bucket is one ordered query whose rows are fetched `fetch_rows` at a time and hashed as
-    they arrive (CANONICAL_FORM), so Python holds one batch, never a table.
+    Each bucket is read by ordered queries (one, or one per `patient_idx` range of `span` indices for a
+    large partitioned bucket; `_slices`) whose rows are fetched `fetch_rows` at a time and hashed as
+    they arrive (CANONICAL_FORM), so Python holds one batch, never a table, and DuckDB sorts one range
+    at a time. Any `fetch_rows` and any `span` give the same digests.
     """
+    span = DIGEST_SPAN if span is None else span
     out = {}
     for name, columns in TABLES.items():
         cols = ', '.join(c for c, _ in columns)
         buckets = {}
         for label in bucket_labels(name):
-            where, params = (' WHERE bucket = ?', [int(label)]) if name in PARTITIONED else ('', [])
-            cursor = db.execute(f'SELECT {cols} FROM {name}{where} ORDER BY {_order(name)}', params)
             h, n = hashlib.sha256(), 0
-            while True:
-                rows = cursor.fetchmany(fetch_rows)
-                if not rows:
-                    break
-                n += len(rows)
-                h.update(''.join(row_line(r) for r in rows).encode('utf-8'))
+            for where, params in _slices(db, name, label, span):
+                cursor = db.execute(f'SELECT {cols} FROM {name}{where} ORDER BY {_order(name)}', params)
+                while True:
+                    rows = cursor.fetchmany(fetch_rows)
+                    if not rows:
+                        break
+                    n += len(rows)
+                    h.update(''.join(row_line(r) for r in rows).encode('utf-8'))
             buckets[label] = {'rows': n, 'content_digest': h.hexdigest()}
         out[name] = {'rows': sum(b['rows'] for b in buckets.values()), 'content_digest': table_digest(buckets),
                      'buckets': buckets}
@@ -749,16 +843,24 @@ class StoreBuilder:
             validate_patient(patient, self.ancestors)
             canonical = canonical_patient(patient)
             pid = canonical['patient_id']
-            self._put('patients', {'patient_id': pid, 'clock_id': canonical['clock_id'],
-                                   'digest': _sha256(_json(canonical))})
+            staged = {'patient_id': pid, 'clock_id': canonical['clock_id'], 'digest': _sha256(_json(canonical))}
+            if shares_variables(canonical['events']):
+                staged['shared_variables'] = True
+            self._put('patients', staged)
             bucket = bucket_of(pid)
             current = self._part(bucket)
             files, rows = current[1], 0
             for e in canonical['events']:
                 end = e.get('end') or [None, None]
-                self._put('events', {'patient_id': pid, 'event_id': e['event_id'], 'kind': e['kind'],
-                                     'source': e['source'], 'start_lo': e['start'][0], 'start_hi': e['start'][1],
-                                     'end_lo': end[0], 'end_hi': end[1], 'evidence': _json(e['evidence'])}, files)
+                row = {'patient_id': pid, 'event_id': e['event_id'], 'kind': e['kind'], 'source': e['source'],
+                       'start_lo': e['start'][0], 'start_hi': e['start'][1], 'end_lo': end[0], 'end_hi': end[1],
+                       'evidence': _json(e['evidence'])}
+                for field in ('start_var', 'end_var'):
+                    if field in e:
+                        row[field] = e[field]
+                if e.get('proper'):
+                    row['proper'] = True
+                self._put('events', row, files)
                 for c in e['concepts']:
                     self._put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c}, files)
                 rows += 1 + len(e['concepts'])
@@ -986,8 +1088,19 @@ class Store:
         return snapshot_identity(self.manifest, self.derived_tables())
 
     def verify_content(self):
-        """Re-derive every table's per-bucket digests from the files; refuse on any drift."""
-        derived = self.derived_tables()
+        """Re-derive every table's per-bucket digests from the files; refuse on any drift.
+
+        A store opened without a memory limit verifies under the build's (`builder.memory_limit` in the
+        manifest), and then returns to DuckDB's default, so content verification never takes DuckDB's
+        default of most of the machine's memory (D24)."""
+        limit = None if self.memory_limit is not None else self.manifest['builder'].get('memory_limit')
+        if limit is not None:
+            self.db.execute(f"SET memory_limit = '{_memory_limit(limit)}'")
+        try:
+            derived = self.derived_tables()
+        finally:
+            if limit is not None:
+                self.db.execute('RESET memory_limit')
         for name, recorded in self.manifest['tables'].items():
             mine = derived[name]
             for label, bucket in recorded['buckets'].items():
@@ -1100,32 +1213,59 @@ def _drop(store, *names):
         store.db.execute(f'DROP TABLE IF EXISTS {name}')
 
 
-def _load_events(store, idxs, per_step):
+def _load_events(store, idxs, per_step, linked=()):
     """{patient_idx: [events]} of these candidates' events that carry any step's concept or widening
     through the closure, as engine events listing only those concepts. `idxs` is sorted and meant to
     be one chunk: it goes into a temporary table that the events are joined to, and the query reads
-    only the index range it spans."""
+    only the index range it spans.
+
+    `linked` lists the candidates whose events share time variables (`patients.shared_variables`). Their
+    events are matched together: an event no step can bind may still link two that can, so each such
+    patient gets every event, those carrying no step concept with no concepts (D24). Any other event
+    links only its own two variables, so leaving it out changes no decision."""
     concepts = sorted({c for cs in per_step.values() for c in cs})
     if not idxs:
         return {}
     try:
         _temp(store, '_m_cand', [('idx', 'INTEGER')], list(idxs))
         rows = store.db.execute(f"""
-            SELECT e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
-                   list(DISTINCT cc.ancestor ORDER BY cc.ancestor) AS concepts
+            SELECT e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi, e.start_var, e.end_var,
+                   e.proper, list(DISTINCT cc.ancestor ORDER BY cc.ancestor) AS concepts
             FROM _m_cand c JOIN events e ON e.patient_idx = c.idx
             JOIN event_concepts ec USING (patient_idx, event_id)
             JOIN concept_closure cc ON cc.concept = ec.concept
             WHERE e.patient_idx BETWEEN ? AND ? AND cc.ancestor IN {_in(concepts)}
-            GROUP BY e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi
+            GROUP BY e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi, e.start_var, e.end_var,
+                     e.proper
             ORDER BY e.patient_idx, e.event_id""", [min(idxs), max(idxs)] + concepts).fetchall()
     finally:
         _drop(store, '_m_cand')
+    if linked:
+        try:
+            _temp(store, '_m_linked', [('idx', 'INTEGER')], list(linked))
+            whole = store.db.execute(f"""
+                SELECT e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi, e.start_var, e.end_var,
+                       e.proper, list(DISTINCT cc.ancestor ORDER BY cc.ancestor)
+                           FILTER (WHERE cc.ancestor IN {_in(concepts)}) AS concepts
+                FROM _m_linked l JOIN events e ON e.patient_idx = l.idx
+                LEFT JOIN event_concepts ec USING (patient_idx, event_id)
+                LEFT JOIN concept_closure cc ON cc.concept = ec.concept
+                WHERE e.patient_idx BETWEEN ? AND ?
+                GROUP BY e.patient_idx, e.event_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi, e.start_var,
+                         e.end_var, e.proper
+                ORDER BY e.patient_idx, e.event_id""", concepts + [min(linked), max(linked)]).fetchall()
+        finally:
+            _drop(store, '_m_linked')
+        mine = set(linked)
+        rows = [r for r in rows if r[0] not in mine] + whole
     out = {}
-    for idx, eid, slo, shi, elo, ehi, cs in rows:
-        event = {'id': eid, 'concepts': cs, 'start': [slo, shi]}
-        if elo is not None:
-            event['end'] = [elo, ehi]
+    for idx, eid, slo, shi, elo, ehi, sv, fv, proper, cs in rows:
+        if sv is None and fv is None and not proper:  # no names of its own: the event as 2.0 loaded it
+            event = {'id': eid, 'concepts': cs or [], 'start': [slo, shi]}
+            if elo is not None:
+                event['end'] = [elo, ehi]
+        else:
+            event = engine_event(eid, cs or [], [slo, shi], None if elo is None else [elo, ehi], sv, fv, proper)
         out.setdefault(idx, []).append(event)
     return out
 
@@ -1332,7 +1472,7 @@ def _peak_rss():
 
 def _worker_unit(unit):
     """Run the engine over one unit: ('ok', [(idx, result)], peak RSS) or ('error', type, message)."""
-    key, query, idxs, pids, windows, fault = unit
+    key, query, idxs, pids, windows, linked, fault = unit
     try:
         if fault == 'exit':
             os._exit(3)
@@ -1342,7 +1482,7 @@ def _worker_unit(unit):
             pq = tg.PreparedQuery(query)
             _W.update(key=key, pq=pq, per_step=_step_concepts(pq.query))
         pq, per_step, store = _W['pq'], _W['per_step'], _W['store']
-        events = _load_events(store, idxs, per_step)
+        events = _load_events(store, idxs, per_step, linked)
         out = [(idx, tg.match_prepared(pq, {'patient_id': pid, 'window': w, 'events': events.get(idx, [])}, trusted=True))
                for idx, pid, w in zip(idxs, pids, windows)]
         return ('ok', out, _peak_rss())
@@ -1539,6 +1679,8 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     pq = tg.PreparedQuery(query)
     given, query = query, pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')
+    # Patients whose events share time variables: their events are loaded whole (`_load_events`).
+    linked = {idx for idx, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')}
     by_id = {pid: idx for idx, pid in patients}
     unknown = sorted(set(windows) - set(by_id))
     if unknown:
@@ -1557,12 +1699,13 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
     if workers > 1 and parts:
         key = _digest(given)
-        units = [(key, given, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part]) for part in parts]
+        units = [(key, given, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part],
+                  [i for i in part if i in linked]) for part in parts]
         for unit in get_pool(store, workers).run(units):
             results.update(unit)
     else:
         for part in parts:
-            events = _load_events(store, part, per_step)
+            events = _load_events(store, part, per_step, [i for i in part if i in linked])
             for idx in part:
                 results[idx] = tg.match_prepared(
                     pq, {'patient_id': pid_of[idx], 'window': windows_by_idx[idx], 'events': events.get(idx, [])}, trusted=True)

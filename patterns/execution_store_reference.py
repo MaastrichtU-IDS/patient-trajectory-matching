@@ -20,9 +20,9 @@ from . import trajectory_graph as tg
 
 BUCKET_COUNT = 8
 COLUMNS = {
-    'patients': ['patient_idx', 'patient_id', 'bucket'],
+    'patients': ['patient_idx', 'patient_id', 'bucket', 'shared_variables'],
     'events': ['patient_idx', 'event_id', 'kind', 'source', 'clock_id', 'start_lo', 'start_hi', 'end_lo', 'end_hi',
-               'ongoing', 'evidence'],
+               'ongoing', 'start_var', 'end_var', 'proper', 'evidence'],
     'event_concepts': ['patient_idx', 'event_id', 'concept', 'basis'],
     'concept_closure': ['concept', 'ancestor', 'basis', 'version', 'concept_basis', 'ancestor_basis'],
     'concept_postings': ['concept', 'patient_idx', 'n', 'min_start_lo', 'max_start_hi'],
@@ -50,6 +50,24 @@ def expanded(concepts, ancestors):
     return out
 
 
+def time_names(event):
+    """The time variables an event names, as the engine profile defines them: its start, and its end
+    unless it is a point; `<id>.s` and `<id>.f` where the event names none."""
+    names = [event.get('start_var', event['event_id'] + '.s')]
+    if 'end' in event:
+        names.append(event.get('end_var', event['event_id'] + '.f'))
+    return set(names)
+
+
+def shares_variables(patient):
+    """Whether some time variable is named by two of the patient's events."""
+    count = {}
+    for e in patient['events']:
+        for name in time_names(e):
+            count[name] = count.get(name, 0) + 1
+    return any(n > 1 for n in count.values())
+
+
 def build_tables(ingest):
     """{table: [row tuples]} in the store's column order."""
     ancestors = ingest['closure']['ancestors']
@@ -57,8 +75,9 @@ def build_tables(ingest):
     ids = sorted(p['patient_id'] for p in ingest['patients'])
     index = {pid: i for i, pid in enumerate(ids)}
     tables = {name: [] for name in COLUMNS}
+    by_id = {p['patient_id']: p for p in ingest['patients']}
     for pid in ids:
-        tables['patients'].append((index[pid], pid, bucket_of(pid)))
+        tables['patients'].append((index[pid], pid, bucket_of(pid), shares_variables(by_id[pid])))
     kinds = ingest['closure'].get('bases') or {}
     kind = lambda c: kinds[c] if c in kinds else 'declared'
     for concept in ancestors:
@@ -76,7 +95,8 @@ def build_tables(ingest):
             else:
                 end_lo = end_hi = None
             tables['events'].append((i, e['event_id'], e['kind'], e['source'], clock, lo, hi, end_lo, end_hi,
-                                     end_lo is not None and end_hi is None, evidence_text(e['evidence'])))
+                                     end_lo is not None and end_hi is None, e.get('start_var'), e.get('end_var'),
+                                     bool(e.get('proper', False)), evidence_text(e['evidence'])))
             for c in e['concepts']:
                 tables['event_concepts'].append((i, e['event_id'], c, 'direct'))
             for c in expanded(e['concepts'], ancestors):
@@ -156,7 +176,7 @@ def table_digests(tables):
     Patient-keyed tables have the eight buckets "0" to "7" (empty ones included), each holding the
     rows of the patients in that bucket; the others have one bucket, "all". The table digest is the
     sha256 of one `label TAB bucket digest NEWLINE` per bucket, in that order."""
-    bucket_by_idx = {idx: b for idx, _, b in tables['patients']}
+    bucket_by_idx = {row[0]: row[2] for row in tables["patients"]}
     out = {}
     for name, rows in tables.items():
         if name in SPLIT_BY_BUCKET:
@@ -264,6 +284,8 @@ def exhaustive_match(ingest, query, windows):
             event = {'id': e['event_id'], 'concepts': sorted(expanded(e['concepts'], ancestors)), 'start': list(e['start'])}
             if 'end' in e:
                 event['end'] = list(e['end'])
+            # Every event of the patient, with the time variables and `proper` the ingest gave it.
+            event.update({k: e[k] for k in ('start_var', 'end_var', 'proper') if k in e})
             events.append(event)
         result = tg.match(query, {'patient_id': p['patient_id'], 'window': window, 'events': events})
         if result['status'] == 'none':

@@ -424,6 +424,7 @@ def verify_profile_worker(snapshot, threads, memory_limit):
     total_rows = sum(t['rows'] for t in derived.values())
     parquet = sum((Path(snapshot) / path).stat().st_size for path in store.manifest['files'])
     return {'stages': rows, 'files_seconds': files, 'content_seconds': content, 'content_agrees': agrees,
+            'digest_span_patients': es.DIGEST_SPAN, 'memory_limit': memory_limit,
             'content_rows': total_rows, 'content_rows_per_second': total_rows / content if content else None,
             'parquet_bytes': parquet, 'files_bytes_per_second': parquet / files if files else None}
 

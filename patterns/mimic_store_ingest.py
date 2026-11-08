@@ -25,9 +25,11 @@ and `concept_basis: source_item_class`.
 
 Times are integer microseconds on the patient-local calendar from 0001-01-01T00:00: the clock
 origin's coordinate plus the adapter's tightened bounds (`origin_us + start_us`). There is one
-clock per patient. A patient the adapter marks not box-representable, or whose events share a
-time variable, is refused (`INGEST_PATIENT_NOT_BOX_REPRESENTABLE`) and counted by the adapter's
-reason.
+clock per patient. Each event names its source time variables and is `proper` (it ends strictly
+after it starts), as the adapter's rows say, so events that share a variable, within one claim
+store or across a patient's stores, share it in the store too (D24). A patient the adapter marks not
+box-representable (a source constraint the tightened box does not imply) is refused
+(`INGEST_PATIENT_NOT_BOX_REPRESENTABLE`) and counted by the adapter's reason.
 
 The admitted subset. Admission keeps continuous IV and medication segments with four statuses, so
 the store's source is `inputevents:continuous_segments`, and the labels list what was admitted.
@@ -234,16 +236,12 @@ def run_adapter(prepared, workers=1, isolation=True):
 def _refusal(rows):
     """The adapter's reason a patient's events are not boxes, or None.
 
-    Per store, `ingest_rows` gives the verdict. Across a patient's stores, a time variable named by
-    two rows is also an equality between events, so it is refused the same way.
+    Per store, `ingest_rows` gives the verdict: a source constraint the tightened box does not imply.
+    Shared time variables are not a reason (D24): the store keeps each event's variables, within a
+    store and across a patient's stores, and the engine shares them.
     """
-    if any(r['non_box_constraints'] for r in rows):
+    if any(r['non_box_constraints'] for r in rows) or any(not r['box_representable'] for r in rows):
         return 'SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE'
-    if any(r['shared_variables'] for r in rows) or any(not r['box_representable'] for r in rows):
-        return 'SHARED_SOURCE_VARIABLE'
-    uses = Counter(v for r in rows for v in {r['start_var'], r['end_var']})
-    if any(n > 1 for n in uses.values()):
-        return 'SHARED_SOURCE_VARIABLE'
     return None
 
 
@@ -372,7 +370,8 @@ def store_patients(rows, *, claim_provenance, stays, items, excluded=None):
     id; `stays` are icustays rows (every subject is a patient, with or without events); `items`
     maps itemid to its d_items row; `excluded` maps a patient to the records admission left out
     (`excluded_records`). Returns (patients, closure ancestors, concept bases, refused, counts).
-    Patients the adapter marks not box-representable are left out and counted.
+    Patients the adapter marks not box-representable are left out and counted. Events keep their source
+    time variables and `proper`, so shared variables reach the store (D24).
     """
     excluded = excluded or {}
     by_patient = defaultdict(list)
@@ -420,6 +419,7 @@ def store_patients(rows, *, claim_provenance, stays, items, excluded=None):
             events.append({'event_id': r['event_id'], 'kind': r['event_kind'], 'source': SOURCE, 'concepts': direct,
                            'start': [origin_us + r['start_us'][0], origin_us + r['start_us'][1]],
                            'end': [origin_us + r['end_us'][0], origin_us + r['end_us'][1]],
+                           'start_var': r['start_var'], 'end_var': r['end_var'], 'proper': r['proper'],
                            'evidence': _evidence(r, claim_provenance.get('claim_' + r['event_id']), origin_us)})
         coverage, missing, beyond = _patient_coverage(stays_of.get(pid, []), events)
         skipped.update(missing)

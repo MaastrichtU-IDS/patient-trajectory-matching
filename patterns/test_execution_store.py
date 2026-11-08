@@ -211,7 +211,7 @@ def differential(store, ingest, reference, seeds=SEEDS):
     differs at all. Dropped are patients outside the candidate set whom exhaustive matching finds
     exact, possible, relaxed or unresolved: soundness means there are none."""
     pool = concept_pool(reference)
-    ids = {i: p for i, p, _ in store.rows('patients')}
+    ids = {i: p for i, p, *_ in store.rows("patients")}
     mismatches, dropped, mix, filtered = [], [], Counter(), 0
     for seed in range(seeds):
         rng = random.Random(seed)
@@ -274,7 +274,7 @@ class TableTests(unittest.TestCase):
 
     def test_postings_count_each_event_once_through_the_closure(self):
         with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp), verify='content') as store:
-            idx = {pid: i for i, pid, _ in store.rows('patients')}
+            idx = {pid: i for i, pid, *_ in store.rows("patients")}
             postings = {(c, p): (n, lo, hi) for c, p, n, lo, hi in store.rows('concept_postings')}
             # One event coded dee and dravet: one posting each for dee and epilepsy, not two.
             self.assertEqual(postings[('dee', idx['P2'])], (1, day(10), day(10)))
@@ -283,7 +283,7 @@ class TableTests(unittest.TestCase):
             self.assertEqual(postings[('antiseizure', idx['P1'])], (1, day(30), day(30)))
             self.assertNotIn('unused', {c for c, _ in postings})
             events = {(store.rows('patients')[i][1], e): (elo, ehi, ongoing)
-                      for i, e, _, _, _, _, _, elo, ehi, ongoing, _ in store.rows('events')}
+                      for i, e, _, _, _, _, _, elo, ehi, ongoing, *_ in store.rows("events")}
             self.assertEqual(events[('P2', 'vpa')], (day(5), None, True))
             self.assertEqual(events[('P1', 'fs')], (None, None, False))
             self.assertEqual(sorted(r[2] for r in store.rows('patients')), sorted(ref.bucket_of(p) for p in idx))
@@ -725,6 +725,58 @@ class DeterminismTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 'INVALID_MEMORY_LIMIT')
             self.assertFalse((Path(tmp) / 'bad').exists())
 
+    def test_digest_spans_give_one_digest_and_cover_every_row(self):
+        """D24: a partitioned bucket is digested in `patient_idx` ranges of `span` indices (then its null
+        indices), one ordered query each; any span gives the manifest's digests, on the synthetic store and on
+        files whose rows carry an index outside every patient's (negative, beyond the last, null)."""
+        store = _STATE['store']
+        want = {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in store.manifest['tables'].items()}
+        for span in (1, 3, 7, 40, 10**6):
+            with self.subTest(span=span):
+                got = es.content_digests(store.db, span=span)
+                self.assertEqual({n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in got.items()},
+                                 want)
+        # The slices of one bucket: below the first cut, the ranges, from the last cut up, then nulls.
+        top = store.query('SELECT max(patient_idx) FROM events WHERE bucket = 0')[0][0]
+        self.assertEqual(len(es._slices(store.db, 'events', '0', 10)), len(range(10, top + 1, 10)) + 2)
+        self.assertEqual(es._slices(store.db, 'events', '0', 10**6), [(' WHERE bucket = ?', [0])])
+        self.assertEqual(es._slices(store.db, 'concept_postings', 'all', 1), [('', [])])
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), tmp)
+            events = next((snapshot / 'events').glob('bucket=*/data_0.parquet'))
+            with es.open_store(snapshot, verify=False) as clean:
+                bucket = clean.query(f"SELECT DISTINCT bucket FROM read_parquet('{events}')")[0][0]
+                # Odd indices: copies of the rows with idx -5, 10**6 and null. A span beyond them is one query over
+                # the bucket, the reference; smaller spans cut it in three or four ranges plus the nulls.
+                clean.db.execute(f"""CREATE TABLE odd AS SELECT * FROM read_parquet('{events}') UNION ALL
+                    SELECT * REPLACE (-5 AS patient_idx) FROM read_parquet('{events}') UNION ALL
+                    SELECT * REPLACE (1000000 AS patient_idx) FROM read_parquet('{events}') UNION ALL
+                    SELECT * REPLACE (NULL::INTEGER AS patient_idx) FROM read_parquet('{events}')""")
+                clean.db.execute('CREATE OR REPLACE VIEW events AS SELECT * FROM odd')
+                digests = {span: es.content_digests(clean.db, span=span)['events']['buckets'][str(bucket)]
+                           for span in (300_000, 700_000, 10**7)}
+        self.assertEqual(len(set(map(json.dumps, digests.values()))), 1, digests)
+
+    def test_content_verification_takes_the_builds_memory_limit(self):
+        """D24: a store opened without a memory limit verifies content under the manifest's
+        `builder.memory_limit`, then returns to DuckDB's default; one opened with a limit keeps its own."""
+        seen = []
+        original = es.Store.derived_tables
+        def spy(self):
+            seen.append(self.db.execute("SELECT current_setting('memory_limit')").fetchone()[0])
+            return original(self)
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = es.build(fixture(), tmp, memory_limit='300MB')
+            with patch.object(es.Store, 'derived_tables', spy):
+                with es.open_store(snapshot, verify='content') as store:
+                    after = store.db.execute("SELECT current_setting('memory_limit')").fetchone()[0]
+                    store.verify('content')
+                with es.open_store(snapshot, verify='content', memory_limit='500MB') as store:
+                    own = store.db.execute("SELECT current_setting('memory_limit')").fetchone()[0]
+        self.assertEqual(seen[:2], ['286.1 MiB', '286.1 MiB'])  # 300 MB, as DuckDB prints it
+        self.assertNotEqual(after, '286.1 MiB')
+        self.assertEqual((seen[2], own), ('476.8 MiB', '476.8 MiB'))
+
     def test_add_holds_one_patient_at_a_time(self):
         """tracemalloc over about 2,000 streamed patients: the peak inside `add()` is bounded by a
         small multiple of one patient's JSON size, and nothing accumulates between calls."""
@@ -764,15 +816,19 @@ class DeterminismTests(unittest.TestCase):
 
 
 def main_derive(db, stage):
-    """`_derive` as at main fdd6e97, frozen: every table in one statement over whole staging files (D23)."""
+    """`_derive` as at main fdd6e97, frozen: every table in one statement over whole staging files (D23).
+    The only change since is the 2.1 columns (D24): `patients.shared_variables` and the events' variables
+    and `proper`, each a copy of its staged value (false where the staging leaves it out)."""
     staged = lambda name: es._read_json(stage / f'{name}.ndjson', es.STAGED[name])
     db.execute(f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
-        (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {es.BUCKETS})::INTEGER AS bucket, clock_id
+        (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {es.BUCKETS})::INTEGER AS bucket, clock_id,
+        coalesce(shared_variables, false) AS shared_variables
         FROM s_patients""")
-    db.execute('CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket FROM p')
+    db.execute('CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket, shared_variables FROM p')
     db.execute(f"""CREATE TABLE events AS SELECT p.patient_idx, e.event_id, e.kind, e.source, p.clock_id,
         e.start_lo, e.start_hi, e.end_lo, e.end_hi, (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing,
+        e.start_var, e.end_var, coalesce(e.proper, false) AS proper,
         e.evidence, p.bucket FROM {staged('events')} e JOIN p USING (patient_id)""")
     db.execute(f"""CREATE TABLE event_concepts AS SELECT p.patient_idx, c.event_id, c.concept, 'direct' AS basis,
         p.bucket FROM {staged('concepts')} c JOIN p USING (patient_id)""")
@@ -835,6 +891,21 @@ def tables_of(manifest):
     return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in manifest['tables'].items()}
 
 
+# The 2.0 columns of the two tables 2.1 widened (D24), in their 2.0 order.
+COLUMNS_2_0 = {'patients': es.TABLES['patients'][:3],
+               'events': es.TABLES['events'][:10] + es.TABLES['events'][13:]}
+
+
+def digests_2_0(snapshot):
+    """Content digests of a 2.1 snapshot with `patients` and `events` read as their 2.0 columns: the
+    canonical form is unchanged, so on an ingest without shared variables or `proper` these must be the
+    digests 2.0 recorded, and the other tables' digests too."""
+    assert [c for c, _ in COLUMNS_2_0['events']][-2:] == ['ongoing', 'evidence']
+    with es.open_store(snapshot, verify=False) as store, patch.dict(es.TABLES, COLUMNS_2_0):
+        return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')}
+                for n, t in es.content_digests(store.db).items()}
+
+
 class PerBucketDeriveTests(unittest.TestCase):
     """D23: deriving one part (a run of whole patients of one bucket) at a time gives the tables and
     digests main's single-statement derive gave, for any part size."""
@@ -848,6 +919,9 @@ class PerBucketDeriveTests(unittest.TestCase):
         return json.loads((es.build(ingest, Path(tmp) / 'store', **options) / 'manifest.json').read_text())
 
     def test_the_digests_recorded_before_the_change_are_reproduced_at_any_part_size(self):
+        """The digests recorded at main fdd6e97 (2.0). 2.1 adds columns to `patients` and `events` (D24), so
+        those two tables' 2.1 digests differ; read as their 2.0 columns they are the recorded ones, every
+        other table's digest is unchanged, and so is the input digest. The new columns hold nothing here."""
         ingest = _STATE['ingest']
         times_ten = {**ingest, 'dataset_id': 'synthetic-x10',
                      'patients': [{**p, 'patient_id': f"{p['patient_id']}~{k}"} if k else p
@@ -857,10 +931,20 @@ class PerBucketDeriveTests(unittest.TestCase):
                  ('fixture', fixture(), {}), ('fixture', fixture(), {'part_rows': 1})]
         for name, case, options in cases:
             with self.subTest(case=name, **options), tempfile.TemporaryDirectory() as tmp:
-                manifest = self.build(case, tmp, **options)
+                snapshot = es.build(case, Path(tmp) / 'store', **options)
+                manifest = json.loads((snapshot / 'manifest.json').read_text())
                 want = self.recorded[name]
                 self.assertEqual(manifest['input_digest'], want['input_digest'])
-                self.assertEqual(tables_of(manifest), want['tables'])
+                widened = {'patients', 'events'}
+                self.assertEqual({n: t for n, t in tables_of(manifest).items() if n not in widened},
+                                 {n: t for n, t in want['tables'].items() if n not in widened})
+                for n in widened:
+                    self.assertNotEqual(tables_of(manifest)[n]['content_digest'], want['tables'][n]['content_digest'])
+                self.assertEqual(digests_2_0(snapshot), want['tables'])
+                with es.open_store(snapshot) as store:
+                    self.assertEqual(store.query('SELECT count(*) FROM patients WHERE shared_variables')[0][0], 0)
+                    self.assertEqual(store.query('SELECT count(*) FROM events WHERE start_var IS NOT NULL OR '
+                                                 'end_var IS NOT NULL OR proper')[0][0], 0)
 
     def test_the_per_part_derive_equals_mains_single_statement_derive(self):
         g = fixture()
@@ -870,7 +954,9 @@ class PerBucketDeriveTests(unittest.TestCase):
                                          'reason': 'NOT_ADMITTED'}]
         g['patients'].append({'patient_id': 'Ünïcode-😀', 'clock_id': 'c', 'coverage': [cover('ehr', day(0), day(9))],
                               'events': [ev('é', ['dravet', 'valproate'], (day(1), day(2)), (day(3), None))]})
-        for label, ingest in (('synthetic', _STATE['ingest']), ('fixture with excluded records', g)):
+        g['patients'] += shared_variable_patients()
+        for label, ingest in (('synthetic', _STATE['ingest']),
+                              ('fixture with excluded records and shared variables', g)):
             with tempfile.TemporaryDirectory() as tmp:
                 input_digest, tables = main_path_digests(ingest, Path(tmp) / 'main')
             for options in ({}, {'part_rows': 1}, {'part_rows': 700}):
@@ -900,7 +986,7 @@ class PerBucketDeriveTests(unittest.TestCase):
                 self.assertGreater(len(builder.parts), es.BUCKETS)
                 snapshot = builder.finish(_STATE['ingest']['provenance'])
             with es.open_store(snapshot) as store:
-                for idx, pid, bucket in store.rows('patients'):
+                for idx, pid, bucket, _ in store.rows("patients"):
                     self.assertEqual(bucket, es.bucket_of(pid))
                     self.assertEqual(bucket, ref.bucket_of(pid))
         names = [n for n, _ in stages]
@@ -918,6 +1004,167 @@ class PerBucketDeriveTests(unittest.TestCase):
         with self.assertRaises(es.StoreError) as caught:
             es.StoreBuilder(Path(tempfile.gettempdir()) / 'never', header, part_rows=0)
         self.assertEqual(caught.exception.code, 'INVALID_PART_ROWS')
+
+
+def shared_variable_patients():
+    """Patients with shared time variables and proper exposures, on the fixture's closure (D24): S1's
+    seizure starts when its carbamazepine exposure ends; S2's two points are ordered only through an
+    exposure that carries no other step's concept (`unused`), naming one's start and the other's end;
+    S3 has S2's times without the sharing; S4 names its own default variables explicitly."""
+    span = (day(-30), day(400))
+    cbz = {**ev('cbz', ['carbamazepine'], (day(30), day(35)), (day(30), day(40)), 'pharmacy', 'exposure'),
+           'proper': True}
+    return [
+        {'patient_id': 'S1', 'clock_id': 'patient_S1', 'coverage': [cover('ehr', *span), cover('pharmacy', *span)],
+         'events': [cbz, {**ev('fs', ['febrile_seizure'], (day(30), day(40))), 'start_var': 'cbz.f'}]},
+        {'patient_id': 'S2', 'clock_id': 'patient_S2', 'coverage': [cover('ehr', *span), cover('pharmacy', *span)],
+         'events': [{**ev('link', ['unused'], (day(10), day(12)), (day(10), day(12)), 'pharmacy', 'exposure'),
+                     'start_var': 'on', 'end_var': 'off', 'proper': True},
+                    {**ev('fs', ['febrile_seizure'], (day(10), day(12))), 'start_var': 'on'},
+                    {**ev('vpa', ['valproate'], (day(10), day(12))), 'start_var': 'off'}]},
+        {'patient_id': 'S3', 'clock_id': 'patient_S3', 'coverage': [cover('ehr', *span), cover('pharmacy', *span)],
+         'events': [ev('link', ['unused'], (day(10), day(12)), (day(10), day(12)), 'pharmacy', 'exposure'),
+                    ev('fs', ['febrile_seizure'], (day(10), day(12))), ev('vpa', ['valproate'], (day(10), day(12)))]},
+        {'patient_id': 'S4', 'clock_id': 'patient_S4', 'coverage': [cover('ehr', *span)],
+         'events': [{**ev('fs', ['febrile_seizure'], (day(0), day(2)), (day(1), day(3))), 'start_var': 'fs.s',
+                     'end_var': 'fs.f', 'proper': True}]},
+    ]
+
+
+def store_ingest_from_adapter_rows(rows, origin_us):
+    """The SULO adapter's ingest rows as an execution-store ingest: one event per row, its tightened bounds
+    on the store's time line (`origin_us` plus the bounds on the clock), its source variables and `proper`,
+    and every concept the row carries as a direct concept with no ancestors."""
+    patients, concepts = {}, set()
+    for r in rows:
+        p = patients.setdefault(r['patient_id'], {'patient_id': r['patient_id'], 'clock_id': r['clock_id'],
+                                                  'events': [], 'coverage': []})
+        mine = sorted(c['concept'] for c in r['concepts'])
+        concepts.update(mine)
+        p['events'].append({'event_id': r['event_id'], 'kind': r['event_kind'], 'source': 'bounded',
+                            'concepts': mine, 'start': [origin_us + t for t in r['start_us']],
+                            'end': [origin_us + t for t in r['end_us']], 'start_var': r['start_var'],
+                            'end_var': r['end_var'], 'proper': r['proper'], 'evidence': {'row': r['event_id']}})
+        assert r['box_representable'], r
+    for p in patients.values():
+        p['coverage'] = [cover('bounded', min(e['start'][0] for e in p['events']), max(e['end'][1] for e in p['events']))]
+    return {'profile': es.INGEST_PROFILE, 'dataset_id': 'adapter-rows',
+            'closure': {'version': 'adapter-rows-1', 'ancestors': {c: [] for c in sorted(concepts)}},
+            'patients': sorted(patients.values(), key=lambda p: p['patient_id'])}
+
+
+class SharedVariableStoreTests(unittest.TestCase):
+    """The store holds shared time variables and `proper` (2.1, D24) and matches as the engine does."""
+
+    def test_variables_and_proper_are_columns_and_patients_say_whether_they_share(self):
+        g = fixture()
+        g['patients'] += shared_variable_patients()
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp), verify='content') as store:
+            self.assertEqual(table_mismatches(store, ref.build_tables(g)), {})
+            shared = {pid: flag for _, pid, _, flag in store.rows('patients')}
+            self.assertEqual({p for p, flag in shared.items() if flag}, {'S1', 'S2'})
+            ids = {i: pid for i, pid, *_ in store.rows('patients')}
+            events = {(ids[r[0]], r[1]): r[10:13] for r in store.rows('events')}
+            self.assertEqual(events[('S1', 'cbz')], (None, None, True))
+            self.assertEqual(events[('S1', 'fs')], ('cbz.f', None, False))
+            self.assertEqual(events[('S2', 'link')], ('on', 'off', True))
+            self.assertEqual(events[('S4', 'fs')], ('fs.s', 'fs.f', True))  # names its defaults: not shared
+            self.assertEqual(events[('P1', 'cbz')], (None, None, False))
+
+    def test_a_linking_event_no_step_can_bind_is_loaded(self):
+        # S2's seizure starts when the link starts and its valproate when the link ends, strictly later:
+        # equal starts are impossible, at least one microsecond apart is exact. S3, without the sharing,
+        # is possible both ways. The store must load the link though no step carries `unused`.
+        g = fixture()
+        g['patients'] += shared_variable_patients()
+        q = lambda lo, hi=None: {'profile': tg.PROFILE_ID, 'steps': [{'id': 'A', 'concept': 'febrile_seizure'},
+                                                                      {'id': 'B', 'concept': 'valproate'}],
+                                 'relations': [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': lo,
+                                                **({} if hi is None else {'max': hi})}]}
+        windows = {p['patient_id']: {'start': day(-30), 'end': day(400)} for p in g['patients']}
+        original = es._load_events
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp)) as store:
+            for query, want in ((q(0, 0), {'S2': 'none', 'S3': 'possible'}), (q(1), {'S2': 'exact', 'S3': 'possible'})):
+                got = es.match(store, query, windows)
+                self.assertEqual({r['patient_id']: r['status'] for r in got['results'] if r['patient_id'] in want}, want)
+                for mine, theirs in zip(got['results'], ref.exhaustive_match(g, query, windows), strict=True):
+                    self.assertEqual(mine['status'], theirs['status'])
+                    if mine.get('reason') != 'FILTERED':
+                        self.assertEqual(mine, theirs)
+                self.assertEqual(json.dumps(es.match(store, query, windows, workers=2, chunk=1), sort_keys=True),
+                                 json.dumps(got, sort_keys=True))
+                # A loader that filters a sharing patient's events by concept, as 2.0 did, loses the link.
+                with patch.object(es, '_load_events', lambda s, idxs, per_step, linked=(): original(s, idxs, per_step)):
+                    wrong = {r['patient_id']: r['status'] for r in es.match(store, query, windows)['results']}
+                self.assertEqual(wrong['S2'], 'possible')
+            es.close_pools()
+
+    def test_a_shared_variable_patient_through_the_store_equals_the_adapters_own_engine_result(self):
+        """Bounded sources with shared variables (the D22 probes and a three-event chain) go through the
+        SULO adapter's ingest rows into the store; the store's match of each patient equals the adapter's
+        own `match_snapshot` (status, binding, certainty, relaxations, method, completeness and witness,
+        on the store's time line), which the engine decides alone (no adapter code)."""
+        from . import trajectory_graph_sulo as tgs
+        from .test_trajectory_graph_sulo import (DAY as D, INFUSION, SPECIMEN, SharedVariableTests, after, request_for,
+                                                 source_for)
+        probes = SharedVariableTests()
+        chain = source_for([('X', 'P1', 'infusion', (0, 10 * D), (0, 20 * D)),
+                            ('Y', 'P1', 'infusion', (0, 0), (21 * D, 30 * D), 'X-end'),
+                            ('Z', 'P1', 'specimen_collection', (0, 0), (31 * D, 31 * D), 'Y-end'),
+                            ('X2', 'P2', 'infusion', (0, 10 * D), (0, 20 * D)),
+                            ('Z2', 'P2', 'specimen_collection', (D, 30 * D), (31 * D, 31 * D))])
+        origin_us = si.micros('2026-01-01T00:00')
+        fields = ('status', 'binding', 'certainty', 'relaxations', 'cost', 'method', 'complete', 'note', 'reason')
+        compared, statuses = 0, Counter()
+        for source in (probes.probe(), probes.strict_chain(), chain):
+            view = tgs.from_bounded_json(source)
+            ingest = store_ingest_from_adapter_rows(tgs.ingest_rows(view), origin_us)
+            self.assertTrue(any(es.shares_variables(p['events']) for p in ingest['patients']))
+            with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp), verify='content') as store:
+                for relations in ([after(0, 0)], [after(1)], [after(1, 5 * D)], [after(0)], [after(None, 0)],
+                                  [{'id': 'a-b', 'kind': 'during', 'from': 'a', 'to': 'b', 'grace': 0}]):
+                    request = request_for([('a', INFUSION), ('b', SPECIMEN)], relations, unit='microsecond',
+                                          window=(0, 40 * D))
+                    adapter = tgs.match_snapshot(view, request, point_projection=False)  # the store sends intervals
+                    windows = {pid: {'start': origin_us, 'end': origin_us + 40 * D} for pid in adapter['statuses']}
+                    mine = {r['patient_id']: r for r in es.match(store, adapter['engine_query'], windows)['results']}
+                    for a in adapter['results']:
+                        self.assertEqual((a['decided_by'], a.get('adapter')), ('engine', None))
+                        m = mine[a['patient_id']]
+                        self.assertEqual({k: m[k] for k in fields if k in m}, {k: a[k] for k in fields if k in a},
+                                         (a['patient_id'], relations))
+                        if 'witness' in a:
+                            self.assertEqual(m['witness'], {s: origin_us + t for s, t in a['witness'].items()})
+                        statuses[a['status']] += 1
+                        compared += 1
+        self.assertEqual(set(statuses), {'exact', 'possible', 'none'})
+        self.assertGreater(compared, 30)
+
+    def test_shared_variables_the_engine_would_refuse_are_refused_at_ingest(self):
+        def bad(*events):
+            g = fixture()
+            g['patients'].append({'patient_id': 'B', 'clock_id': 'c', 'coverage': [], 'events': list(events)})
+            return g
+        cases = {
+            'INVALID_EVENT_VARIABLE': bad({**ev('a', ['seizure'], (day(0), day(1))), 'end_var': 'v'}),
+            'INVALID_EVENT_PROPER': bad({**ev('a', ['seizure'], (day(0), day(1))), 'proper': True}),
+            'EMPTY_SHARED_VARIABLE': bad({**ev('a', ['seizure'], (day(0), day(1))), 'start_var': 'v'},
+                                         {**ev('b', ['seizure'], (day(2), day(3))), 'start_var': 'v'}),
+        }
+        cases['INVALID_EVENT_VARIABLE '] = bad({**ev('a', ['seizure'], (day(0), day(1))), 'start_var': ''})
+        cases['EMPTY_SHARED_VARIABLE '] = bad({**ev('a', ['seizure'], (day(0), day(0)), (day(0), day(0))), 'proper': True})
+        for code, g in cases.items():
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as tmp:
+                with self.assertRaises(es.IngestError) as caught:
+                    es.build(g, Path(tmp) / 'store')
+                self.assertEqual(caught.exception.code, code.strip())
+                self.assertFalse((Path(tmp) / 'store').exists())
+        chain = [{**ev(f'e{i}', ['valproate'], (day(i), day(i + 1)), (day(i + 1), day(i + 2)), 'pharmacy', 'exposure'),
+                  'start_var': f'v{i}', 'end_var': f'v{i + 1}'} for i in range(4)]
+        with patch.object(tg, 'MAX_LINKED_VARIABLES', 3), self.assertRaises(es.IngestError) as caught:
+            es.validate_ingest(bad(*chain))
+        self.assertEqual(caught.exception.code, 'SHARED_VARIABLE_COMPONENT_LIMIT')
+        es.validate_ingest(bad(*chain))
 
 
 class PlantedDefectTests(unittest.TestCase):
@@ -945,10 +1192,10 @@ class PlantedDefectTests(unittest.TestCase):
         one loads only each step's own concept (not its widenings); one loses each candidate's
         earliest event, which changes which event is first."""
         original = es._load_events
-        def own_concepts_only(store, idxs, per_step):
-            return original(store, idxs, {s: cs[:1] for s, cs in per_step.items()})
-        def without_earliest(store, idxs, per_step):
-            loaded = original(store, idxs, per_step)
+        def own_concepts_only(store, idxs, per_step, linked=()):
+            return original(store, idxs, {s: cs[:1] for s, cs in per_step.items()}, linked)
+        def without_earliest(store, idxs, per_step, linked=()):
+            loaded = original(store, idxs, per_step, linked)
             return {i: sorted(evs, key=lambda e: (e['start'], e['id']))[1:] for i, evs in loaded.items()}
         for defect in (own_concepts_only, without_earliest):
             with self.subTest(defect=defect.__name__), patch.object(es, '_load_events', defect):
@@ -964,7 +1211,7 @@ class ContractTests(unittest.TestCase):
         schema = json.loads((ROOT / es.SCHEMA_PATH).read_text())
         Draft202012Validator.check_schema(schema)
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(manifest)), [])
-        self.assertEqual(manifest['profile'], 'execution-store-2.0')
+        self.assertEqual(manifest['profile'], 'execution-store-2.1')
         self.assertEqual(set(manifest['builder']['artifacts']), {es.MODULE_PATH, es.SCHEMA_PATH})
         self.assertEqual(manifest['builder']['memory_limit'], es.DEFAULT_MEMORY_LIMIT)
         self.assertEqual(sorted(manifest['files']), sorted(es.file_digests(_STATE['snapshot'])))
@@ -1110,7 +1357,7 @@ class ContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             snapshot = es.build(fixture(), tmp)
             self.rewrite(snapshot, 'patients.parquet',
-                         "SELECT patient_idx, patient_id || 'x' AS patient_id, bucket FROM {src}")
+                         "SELECT patient_idx, patient_id || 'x' AS patient_id, bucket, shared_variables FROM {src}")
             with es.open_store(snapshot) as store:  # the bytes are what the manifest now says
                 self.assertEqual(store.verified, 'files')
             with self.assertRaises(es.StoreError) as caught:

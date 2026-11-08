@@ -418,14 +418,80 @@ def share_variables(rng, events):
             b.update(before)
 
 
+def proper_case(rng, shape):
+    """A differential case with proper exposures: some may otherwise end as they start, events often
+    start when an exposure ends (between events two related steps can bind), and `after` bounds sit
+    near zero and `during` graces at zero, where whether an end may equal its start decides."""
+    q, p = random_case(rng, shape, True)
+    events = p['events']
+    for e in events:
+        if 'end' in e and rng.random() < 0.7:
+            before = list(e['end'])
+            if rng.random() < 0.6:
+                e['end'] = [e['start'][0], e['start'][1] + rng.choice([1, 1, 2, 5])]
+            e['proper'] = True
+            try:
+                tg.validate_patient(p)
+            except tg.TrajectoryError:  # an exposure that already shares its end: left as it was
+                del e['proper']
+                e['end'] = before
+    concept = {s['id']: s['concept'] for s in q['steps']}
+    related = [(r['from'], r['to']) for r in q['relations'] if r['from'] in concept and r['to'] in concept]
+    for _ in range(rng.randint(1, 4)):
+        x, y = rng.choice(related) if related and rng.random() < 0.7 else (None, None)
+        exposures = [e for e in events if 'end' in e and e['end'][1] is not None
+                     and (x is None or concept[x] in e['concepts'])]
+        others = [e for e in events if (y is None or concept[y] in e['concepts'])]
+        if not exposures:
+            continue
+        a = rng.choice(exposures)
+        others = [e for e in others if e is not a]
+        if not others:
+            continue
+        b = rng.choice(others)
+        before = dict(b)
+        b['start_var'], b['start'] = a.get('end_var', a['id'] + '.f'), list(a['end'])
+        if 'end' in b:
+            b['end'] = [max(b['end'][0], b['start'][0]),
+                        None if b['end'][1] is None else max(b['end'][1], b['start'][1] + 1)]
+        try:
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            b.clear()
+            b.update(before)
+    if rng.random() < 0.3:
+        share_variables(rng, events)
+    for r in q['relations']:
+        if r['kind'] == 'after' and r['from'] not in tg.ANCHORS and r['to'] not in tg.ANCHORS and rng.random() < 0.6:
+            r.pop('min', None), r.pop('max', None)
+            lo = rng.choice([None, 0, 1, 1, 2])
+            hi = rng.choice([None, 0, 1, 3]) if lo is None else rng.choice([None, lo, lo + 2])
+            r.update({} if lo is None else {'min': lo}, **({} if hi is None else {'max': hi}))
+        elif r['kind'] == 'during' and rng.random() < 0.5:
+            r['grace'] = 0
+    for x in list(q['relaxations']):
+        if x['kind'] == 'extend_max':
+            r = next(r for r in q['relations'] if r['id'] == x['relation'])
+            if r.get('max') is None:
+                q['relaxations'].remove(x)
+            else:
+                x['max'] = max(x['max'], r['max'])
+    tg.validate_query(q)
+    return q, p
+
+
+def without_proper(p):
+    return {**p, 'events': [{k: v for k, v in e.items() if k != 'proper'} for e in p['events']]}
+
+
 class DifferentialTests(unittest.TestCase):
     """The engine agrees with exhaustive enumeration, and every binding it reports really has
     the certainty it claims."""
 
-    def check(self, shape, intervals, seeds):
+    def check(self, shape, intervals, seeds, make=None):
         for seed in seeds:
-            rng = random.Random(f'{shape}-{intervals}-{seed}')
-            q, p = random_case(rng, shape, intervals)
+            rng = random.Random(f'{shape}-{intervals}-{seed}' if make is None else f'proper-{shape}-{seed}')
+            q, p = random_case(rng, shape, intervals) if make is None else make(rng, shape)
             with self.subTest(shape=shape, intervals=intervals, seed=seed):
                 engine, oracle = tg.match(q, p), ref.match(q, p)
                 self.assertEqual(engine['status'], oracle['status'], (q, p))
@@ -452,6 +518,105 @@ class DifferentialTests(unittest.TestCase):
 
     def test_graphs_with_exposures_and_during(self):
         self.check('graph', True, range(300))
+
+    def test_proper_exposures_with_shared_variables(self):
+        for shape in ('chain', 'tree', 'graph'):
+            self.check(shape, True, range(300), make=proper_case)
+
+
+class ProperIntervalTests(unittest.TestCase):
+    """`proper: true` makes an exposure end strictly after it starts: start - end <= -1 in `Times`."""
+
+    def chain(self, proper=True, x_end=(1, 6)):
+        # Y starts when X ends.
+        x = {**event('X', 'x', (1, 5), x_end), **({'proper': True} if proper else {})}
+        return patient([x, {**event('Y', 'y', (0, 10)), 'start_var': 'X.f'}])
+
+    def test_an_event_that_starts_when_a_proper_exposure_ends_starts_strictly_later(self):
+        q = lambda lo, hi=None: query([{'id': 'a', 'concept': 'x'}, {'id': 'b', 'concept': 'y'}],
+                                      [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': lo,
+                                        **({} if hi is None else {'max': hi})}])
+        # Equal starts need X to end as it starts: possible without `proper`, none with it.
+        self.assertEqual(tg.match(q(0, 0), self.chain(False))['status'], 'possible')
+        self.assertEqual(tg.match(q(0, 0), self.chain())['status'], 'none')
+        # At least one step later holds in every timeline: possible without `proper`, exact with it.
+        self.assertEqual(tg.match(q(1), self.chain(False))['status'], 'possible')
+        self.assertEqual(tg.match(q(1), self.chain())['status'], 'exact')
+        for case in (q(0, 0), q(1), q(1, 3), q(0)):
+            for p in (self.chain(), self.chain(False)):
+                self.assertEqual(tg.match(case, p)['status'], ref.match(case, p)['status'], (case, p))
+
+    def test_strictness_tightens_a_lone_exposure_and_links_only_its_own_variables(self):
+        times = tg.Times(tg.events_of(patient([{**event('m', 'x', (5, 9), (5, 9)), 'proper': True},
+                                               event('n', 'x', (5, 9), (5, 9))])), None)
+        self.assertEqual((times.dom['m.s'], times.dom['m.f'], times.gap('m.f', 'm.s')), ((5, 8), (6, 9), -1))
+        self.assertEqual((times.dom['n.s'], times.dom['n.f'], times.gap('n.f', 'n.s')), ((5, 9), (5, 9), 0))
+        self.assertFalse(times.shared)
+        self.assertFalse(times.linked('m.f', 'n.s'))
+        self.assertEqual(times.gap('m.f', 'n.s'), 9 - 6)  # still the product of the two ranges
+        # Shared: Y's start is m's end, so it is at least one step after m's start.
+        times = tg.Times(tg.events_of(patient([{**event('m', 'x', (5, 9), (5, 9)), 'proper': True},
+                                               {**event('y', 'x', (0, 20)), 'start_var': 'm.f'}])), None)
+        self.assertEqual((times.dom['m.f'], times.gap('m.f', 'm.s')), ((6, 9), -1))
+
+    def test_proper_is_a_boolean_on_an_exposure_that_can_end_after_it_starts(self):
+        for code, events in [
+                ('INVALID_EVENT_PROPER', [{**event('a', 'x', (1, 1)), 'proper': True}]),  # a point
+                ('INVALID_EVENT_PROPER', [{**event('a', 'x', (1, 1)), 'proper': False}]),
+                ('INVALID_EVENT_PROPER', [{**event('a', 'x', (1, 1), (2, 2)), 'proper': 1}]),
+                # It cannot end after it starts: both at 5.
+                ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (5, 5), (5, 5)), 'proper': True}]),
+                # One variable for start and end ends as it starts.
+                ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (1, 5), (1, 5)), 'end_var': 'a.s', 'proper': True}]),
+                # Y starts when X ends and X when Y ends, each strictly after it starts.
+                ('EMPTY_SHARED_VARIABLE', [{**event('X', 'x', (0, 9), (0, 9)), 'start_var': 'u', 'end_var': 'v',
+                                            'proper': True},
+                                           {**event('Y', 'x', (0, 9), (0, 9)), 'start_var': 'v', 'end_var': 'u'}])]:
+            with self.subTest(code=code, events=events):
+                with self.assertRaisesRegex(tg.TrajectoryError, code):
+                    tg.validate_patient(patient(events))
+        # The same records without `proper` are valid: an end may equal its start.
+        tg.validate_patient(patient([event('a', 'x', (5, 5), (5, 5))]))
+        tg.validate_patient(patient([{**event('a', 'x', (1, 5), (1, 5)), 'end_var': 'a.s'}]))
+        # The store's trusted path builds the same network, so it refuses the same records.
+        with self.assertRaisesRegex(tg.TrajectoryError, 'EMPTY_SHARED_VARIABLE'):
+            tg.match_prepared(tg.PreparedQuery(query([{'id': 'a', 'concept': 'x'}])),
+                              patient([{**event('a', 'x', (5, 5), (5, 5)), 'proper': True}]), trusted=True)
+
+    def test_proper_false_is_the_default_byte_for_byte(self):
+        for shape, intervals in (('tree', True), ('graph', True)):
+            for seed in range(150):
+                q, p = random_case(random.Random(f'{shape}-{intervals}-{seed}'), shape, intervals)
+                explicit = {**p, 'events': [{**e, 'proper': False} if 'end' in e else e for e in p['events']]}
+                self.assertEqual(json.dumps(tg.match(q, explicit)), json.dumps(tg.match(q, p)))
+                times, plain = tg.Times(tg.events_of(explicit), p['window']), tg.Times(tg.events_of(p), p['window'])
+                self.assertEqual((times.dom, times.distance), (plain.dom, plain.distance))
+
+    def test_proper_changes_decisions_and_the_closed_form_stays_exact(self):
+        # The proper cases are not vacuous: dropping `proper` changes the reference's answer on some of
+        # them, and an engine that ignores it (the 0 edge) disagrees with the reference there.
+        changed, wrong = 0, 0
+        original_solve = tg.Times._solve
+        cases = [proper_case(random.Random(f'proper-{shape}-{seed}'), shape)
+                 for shape in ('chain', 'tree', 'graph') for seed in range(300)]
+        for q, p in cases:
+            changed += ref.match(q, p) != ref.match(q, without_proper(p))
+        tg.Times._solve = lambda self, root, members, bounds, orders, strict=(): original_solve(
+            self, root, members, bounds, orders)
+        try:
+            wrong = sum(tg.match(q, p)['status'] != ref.match(q, p)['status'] for q, p in cases)
+        finally:
+            tg.Times._solve = original_solve
+        self.assertGreaterEqual(changed, 10)
+        self.assertGreaterEqual(wrong, 5)
+        # The pairwise kernel's closed form decides as the original tests do on every proper case.
+        original = tg._arc_spec
+        want = [json.dumps(tg.match(q, p)) for q, p in cases]
+        tg._arc_spec = lambda a, constraints, kind: None
+        try:
+            self.assertEqual([json.dumps(tg.match(q, p)) for q, p in cases], want)
+        finally:
+            tg._arc_spec = original
 
 
 class KernelIdentityTests(unittest.TestCase):

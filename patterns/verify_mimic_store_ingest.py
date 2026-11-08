@@ -161,7 +161,8 @@ def adapter_engine_input(rows, items):
                 concepts.add(msi.group_iri(items[c[len(importer.ITEM_NS):]]['category']))
         out[r['patient_id']].append({'id': r['event_id'], 'concepts': sorted(concepts),
                                      'start': [origin + v for v in r['start_us']],
-                                     'end': [origin + v for v in r['end_us']]})
+                                     'end': [origin + v for v in r['end_us']],
+                                     'start_var': r['start_var'], 'end_var': r['end_var'], 'proper': r['proper']})
     return out
 
 
@@ -206,7 +207,7 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
     relaxation kind, and the first few mismatches (seed and status only) for diagnosis.
     """
     pool = concept_pool(ingest)
-    ids = {i: p for i, p, _ in store.rows('patients')}
+    ids = {i: p for i, p, *_ in store.rows("patients")}
     mix, adapter_mix, reasons, relaxed_by_kind = Counter(), Counter(), Counter(), Counter()
     bindings_compared, cases = 0, Counter()
     mismatches, adapter_mismatches, dropped, filtered, examples = 0, 0, 0, 0, []
