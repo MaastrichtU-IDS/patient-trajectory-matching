@@ -8,7 +8,8 @@ peak resident memory is the query process's alone:
   A  the matcher as it stood before D21 (a git ref, extracted to a scratch directory and imported
      from there): one query loads every candidate's events with an IN list, then matches.
   B  this tree: candidates loaded and matched in chunks, a prepared query, trusted events, windows
-     checked as plain integers, comparability in SQL.  `B_decided` is B with `detail='decided'`.
+     checked as plain integers, comparability in SQL, and the engine's rewritten pairwise kernel (results
+     unchanged).  `B_decided` is B with `detail='decided'`.
   C  this tree with `workers=N` (N = 1, 2, 4, 8, 14): the engine's work units run in a persistent pool of
      spawned processes; recorded as `C_w1` ... `C_w14`.  `C_w1` is the unchanged single-process path (a
      control).  The pool is started and warmed before the first query (its start-up is recorded
@@ -53,7 +54,8 @@ PROFILE = 'matcher-comparison-1.0'
 ARMS = {
     'A': 'matcher before D21: one IN-list load of every candidate, validate every patient, one result dict per patient',
     'B': 'D21 step 1: chunked load and match, PreparedQuery, trusted events, integer window checks, SQL comparability; '
-         "detail='full'",
+         'then the engine kernel: closed-form pair and unary tests over per-patient records, Times and events built '
+         "without per-call overhead (results unchanged); detail='full'",
     'B_decided': "arm B with detail='decided'",
 }
 WORKER_COUNTS = (1, 2, 4, 8, 14)
