@@ -16,6 +16,10 @@ from tools import benchmark_execution_store as bench
 
 
 class PureHelperTests(unittest.TestCase):
+    def test_memory_limits_are_read_as_duckdb_reads_them(self):
+        self.assertEqual(bench.limit_bytes('4GB'), 4e9)
+        self.assertEqual(bench.limit_bytes('256 MiB'), 256 * 2**20)
+
     def test_percentiles_are_nearest_rank(self):
         self.assertEqual(bench.summary([5, 1, 3, 2, 4]), {'p50': 3, 'p95': 5, 'max': 5})
         self.assertEqual(bench.summary([]), {'p50': None, 'p95': None, 'max': None})
@@ -26,6 +30,22 @@ class PureHelperTests(unittest.TestCase):
         for k in range(1, 50):
             self.assertEqual(bench.shift_for(k) % bench.DAY, 0)
             self.assertGreater(bench.shift_for(k), 0)
+
+
+class CommittedReportTests(unittest.TestCase):
+    def test_the_committed_report_builds_and_verifies_a_million_patients_with_flat_memory(self):
+        """D23: the regenerated report holds a completed 1,000,000-patient size, verified by content, whose
+        build peak is no higher than a few percent above the 300,000-patient one."""
+        report = json.loads((bench.ROOT / 'verification/execution-store-scaling-report.json').read_text())
+        sizes = {s['size']: s for s in report['sizes']}
+        big, mid = sizes[1_000_000], sizes[300_000]
+        self.assertEqual(big['status'], 'completed')
+        self.assertEqual(big['tables']['patients'], 1_000_000)
+        self.assertTrue(big['profile']['verify_stages']['content_agrees'])
+        self.assertEqual(big['memory_limit'], '4GB')
+        stages = {s['stage'] for s in big['build_stages']['stages']}
+        self.assertTrue({f'derived:bucket={b}' for b in range(8)} <= stages)
+        self.assertLess(big['build_phase']['peak_rss_bytes'], 1.05 * mid['build_phase']['peak_rss_bytes'])
 
 
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
@@ -83,6 +103,14 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(peaks, sorted(peaks), 'peak memory only grows')
             self.assertEqual(stages['added']['patients'], entry['size'])
             self.assertEqual(stages['added']['events'], entry['tables']['events'])
+            # The derive runs one bucket at a time (D23) and reports each bucket's statements and memory.
+            buckets = [stages[f'derived:bucket={b}'] for b in range(8)]
+            self.assertEqual(sum(b['parts'] for b in buckets), stages['staged']['parts'])
+            for b in buckets:
+                self.assertIn('concept_postings', b['statement_seconds'])
+                self.assertGreater(b['duckdb_memory_max_bytes'], 0)
+                self.assertGreater(b['rss_bytes'], 0)
+            self.assertGreater(entry['build_stages']['process_peak_rss_over_memory_limit'], 0)
             self.assertEqual(entry['memory_limit'], bench.DEFAULT_MEMORY_LIMIT)
             verify = entry['profile']['verify_stages']
             self.assertTrue(verify['content_agrees'])

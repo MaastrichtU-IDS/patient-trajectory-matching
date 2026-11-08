@@ -206,7 +206,7 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "cfb673b3b39fe27c24c5c5a5a11f22758b8e7acc46a6c0b420bc94f4bf5fabcc",
+    "snapshot_id": "44ed8714dcbe189c7976aef8cfa9179ba4585c1dba0b38247977f866ea91e589",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
     "input_digest": "8e79379b09f7cbd7343fd0285c7c2cd654af50ad412a9b78b33cdebf6c7df735",
     "closure_version": "mimic-store-ingest-1.0:eaf0778bb0fde1e0566d331da7a2a58f073e585f859c9767f391b786ad05f5f2",
@@ -296,13 +296,13 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 62.66,
-    "admission_and_claims": 0.7,
-    "differential": 155.69,
+    "adapter": 84.66,
+    "admission_and_claims": 0.79,
+    "differential": 156.75,
     "mapping": 0.27,
-    "store_build": 1.77,
+    "store_build": 2.15,
     "store_open_and_verify": 0.02,
-    "total": 221.19
+    "total": 244.74
   },
   "artifacts": {
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
@@ -321,7 +321,7 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "5e8331579fb048c43cc3bfc92a40b2e088295fd80398cfb568a049ba14fb92f5",
+    "patterns/execution_store.py": "4d7f08c438f6bd31a15569f8dd1e9668cd9688a4487961bcb2da7bf21118c62e",
     "patterns/execution_store_reference.py": "111e065ce516cbd00ee1e865fac922b57efc39a02791df1bbbc9aaa50a654c8b",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",

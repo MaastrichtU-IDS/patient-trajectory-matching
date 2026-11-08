@@ -2,7 +2,7 @@
 
 **Profile:** `execution-store-2.0` (ingest `execution-store-ingest-2.0`) · **Code:** [`patterns/execution_store.py`](../patterns/execution_store.py), reference [`patterns/execution_store_reference.py`](../patterns/execution_store_reference.py), synthetic converter [`patterns/synthetic_ingest.py`](../patterns/synthetic_ingest.py) · **Manifest schema:** [`schemas/execution-store-manifest.schema.json`](../schemas/execution-store-manifest.schema.json) · **MIMIC converter:** [`patterns/mimic_store_ingest.py`](../patterns/mimic_store_ingest.py), demo verifier [`patterns/verify_mimic_store_ingest.py`](../patterns/verify_mimic_store_ingest.py) · **Tests:** `python -m unittest patterns.test_execution_store patterns.test_mimic_store_ingest` · **Lock:** [`patterns/requirements-store.lock.txt`](../patterns/requirements-store.lock.txt)
 
-*Stage 1 is implemented on the synthetic paediatric cohort. Stage 2 loads the MIMIC-IV demo through the SULO adapter ([Stage 2](#stage-2-the-mimic-iv-demo-through-the-sulo-adapter)).* The store is the first piece of the server-side design in [engine design](engine-design.md) §4: patient events, concept postings, a terminology closure and coverage, written as immutable Parquet snapshots on embedded DuckDB. A candidate filter that stays sound under relaxation sits in front of the [trajectory-graph matcher](trajectory-graph-profile.md). The decisions are D4 to D7 and D10 in the engine-increment decision log, plus D14 and D15 for stage 2, and D19 and D20 for scaling: 2.0 builds by streaming one patient at a time and digests every table without holding it in Python ([Streaming build](#streaming-build), [Verification](#verification)).
+*Stage 1 is implemented on the synthetic paediatric cohort. Stage 2 loads the MIMIC-IV demo through the SULO adapter ([Stage 2](#stage-2-the-mimic-iv-demo-through-the-sulo-adapter)).* The store is the first piece of the server-side design in [engine design](engine-design.md) §4: patient events, concept postings, a terminology closure and coverage, written as immutable Parquet snapshots on embedded DuckDB. A candidate filter that stays sound under relaxation sits in front of the [trajectory-graph matcher](trajectory-graph-profile.md). The decisions are D4 to D7 and D10 in the engine-increment decision log, plus D14 and D15 for stage 2, and D19, D20 and D23 for scaling: 2.0 builds by streaming one patient at a time, derives one part of a bucket at a time and digests every table without holding it in Python, and builds 1,000,000 patients under a 4 GB limit ([Streaming build](#streaming-build), [Verification](#verification), [Scaling](#scaling)).
 
 DuckDB is imported lazily inside `execution_store.py` and is pinned in its own lock file, so the rest of the engine never needs it.
 
@@ -68,12 +68,15 @@ with StoreBuilder(root, {'profile': ..., 'dataset_id': ..., 'closure': ...}, thr
     snapshot_dir = builder.finish(provenance)
 ```
 
-- **`add(patient)`** validates one patient against the closure, puts it in canonical order (events by id, each event's concepts, coverage and excluded records sorted), appends its rows to newline-delimited JSON staging files, and appends `(patient_id, sha256 of its canonical JSON)` to a staged patient list. Python holds one patient: over 2,016 streamed synthetic patients the tracemalloc peak inside `add()` is 0.66 MiB, against a largest patient of 0.25 MiB of JSON and a 170 MiB stream, and nothing accumulates between calls (a test asserts both).
-- **`finish(provenance)`** opens a file-backed DuckDB database in the build directory with `memory_limit`, a `temp_directory` for spilling and `preserve_insertion_order=false` (order comes only from `ORDER BY`). It loads the staged patients, refuses a duplicate patient identifier anywhere in the stream (`GROUP BY patient_id HAVING count(*) > 1`, `DUPLICATE_PATIENT_ID`), computes the input digest, derives the tables straight from the staging files, digests every table bucket by bucket, writes the Parquet files and hashes each, then verifies the written files by content before renaming the snapshot into place.
+- **`add(patient)`** validates one patient against the closure, puts it in canonical order (events by id, each event's concepts, coverage and excluded records sorted), appends its rows to newline-delimited JSON staging files, and appends `(patient_id, sha256 of its canonical JSON)` to a staged patient list. The rows go to the staging files of the patient's current *part*: a run of whole patients of one bucket (the bucket is a function of the identifier alone), closed once it holds `part_rows` staged rows (default 2,000,000 events, event concepts, coverage periods and excluded records; D23). A part always ends between patients. Python holds one patient: over 2,016 streamed synthetic patients the tracemalloc peak inside `add()` is 0.66 MiB, against a largest patient of 0.25 MiB of JSON and a 170 MiB stream, and nothing accumulates between calls (a test asserts both).
+- **`finish(provenance)`** opens a file-backed DuckDB database in the build directory with `memory_limit`, a `temp_directory` for spilling and `preserve_insertion_order=false` (order comes only from `ORDER BY`). It loads the staged patients, refuses a duplicate patient identifier anywhere in the stream (`GROUP BY patient_id HAVING count(*) > 1`, `DUPLICATE_PATIENT_ID`), computes the input digest, derives the tables from the staging files one part at a time, bucket by bucket (below), digests every table bucket by bucket, writes the Parquet files and hashes each, then verifies the written files by content before renaming the snapshot into place.
+- **Per-part derive (D23).** The patient index (dense, by sorted identifier, with each patient's bucket), `patients` and `concept_closure` are derived once. Then, for each bucket in turn and each of its parts, the part's events and event concepts are loaded into temporary tables, joined to the patient index; the part's postings and its distinct (source, concept) pairs are computed from those two tables; and the part's rows are appended to `events`, `event_concepts`, `coverage`, `excluded_records` and `concept_postings`. `source_concepts` is the distinct union of the parts' pairs. Each statement sees one part, so the derive's working set is set by `part_rows`, not by the cohort. Rows are appended bucket by bucket, so each bucket's rows sit together and `WHERE bucket = k` skips the others. Partitioned tables are written one bucket at a time, in the layout `PARTITION_BY (bucket)` gives (`bucket=k/data_0.parquet`).
+- **Identity.** The per-part derive gives the same tables as one statement over all the staging, so the same content digests and input digest, for any part size: every row of the patient-keyed tables and of the postings depends on one patient's staged rows (plus the closure and the patient index), every patient is in exactly one part, and a distinct union of distinct sets is the distinct set. Parts never change the bucket a row is in either: the bucket comes from the patient index, not from the part. The bucket count stays 8. `PerBucketDeriveTests` require the digests recorded at main fdd6e97 (`patterns/fixtures/execution_store_content_digests.json`) and compare with main's single-statement derive, kept frozen in the test (D23).
+- **Instrumentation.** `on_stage(name, info)` reports `derived:whole`, then `derived:bucket=0` to `derived:bucket=7` with the bucket's part count, each statement kind's seconds, the largest DuckDB-accounted memory and temporary storage after any statement (`duckdb_memory()`) and the process's peak resident memory, then `derived:source_concepts` and `derived`. The scaling benchmark adds resident memory after each.
 - **Refusals.** Any refusal in `add()` or `finish()`, or leaving the `with` block unfinished, discards the build: staging, database and unpublished snapshot, and the root directory if the builder created it. A refused builder takes nothing more (`BUILDER_CLOSED`).
 - **`build(ingest, root, threads=1, memory_limit='4GB')`** is a wrapper that streams `ingest['patients']` through the builder, so callers holding a whole document keep working. `synthetic_ingest.iter_patients(cohort, skipped)` streams the synthetic converter, with `synthetic_header` and `synthetic_provenance` around it; the MIMIC converter still hands over a document.
 - **`memory_limit`** is DuckDB's (default `4GB`). It is recorded in the manifest as `builder.memory_limit`, outside the identity: 256 MB and 4 GB give the same snapshot.
-- **`work_dir`**, optional, holds the staging files, the build database and DuckDB's spill files, for example on another disk (the staging is about 0.7 KB per event: 120 GB for 1,000,000 synthetic patients). The snapshot itself is always written under the root, so publishing it is one rename.
+- **`work_dir`**, optional, holds the staging files, the build database and DuckDB's spill files, for example on another disk (the staging is about 0.7 KB per event: 120 GB for 1,000,000 synthetic patients, and the build database 24 GB). The snapshot itself is always written under the root, so publishing it is one rename.
 - **Leftovers.** Each build works in `.building-*` directories under the root (and `work_dir`), removed when the build ends, however it ends. A killed process cannot remove them; `sweep_stale_builds(directory, older_than_seconds=86400)` removes those older than the threshold and returns their paths. Choose a threshold longer than any build, since a live build that stalls past it would be swept too.
 
 ## Tables
@@ -110,7 +113,7 @@ with StoreBuilder(root, {'profile': ..., 'dataset_id': ..., 'closure': ...}, thr
 
 File digests are integrity, not identity: Parquet bytes vary with the writer, its version and its threads, so they are recorded beside the content digests and are not part of the snapshot identifier. So the `files` tier catches corruption, partial copies and edited files, but not a coordinated edit of a Parquet file and its manifest `files` entry. Three checks cover that: content verification; `open_store(path, expected_snapshot_id=...)`, which refuses any other identifier (`SNAPSHOT_ID_NOT_EXPECTED`); and the directory name, which, when it is a 64-hex identifier, must be the manifest's (`SNAPSHOT_DIRECTORY_MISMATCH`). The match context also records `files_digest`, the sha256 of the manifest's `files` map, so a result names the exact files it read. A file rewritten with other valid content and a matching byte digest passes `'files'` and fails `'content'`, and the identifier its content would give (`Store.derived_snapshot_id()`) differs from the manifest's; rows reordered within a file still pass `'content'`. `match` reports the level used as `verified` (`'files'`, `'content'` or `false`), in its output and in its `context`.
 
-The default on open is `'files'` because a content check streams every row: 8.3 s at 10,000 patients, 83 s at 100,000 and 247 s at 300,000, so about a quarter of an hour per open at 1,000,000 (extrapolated), against 1.45 s for the file check at 300,000 (see [Scaling](#scaling)). Content always runs at build time and in CI.
+The default on open is `'files'` because a content check streams every row: 8.3 s at 10,000 patients, 82 s at 100,000, 247 s at 300,000 and 843 s (14 minutes) at 1,000,000, against 1.2 s for the file check at 1,000,000 (see [Scaling](#scaling)). Content always runs at build time and in CI.
 
 ## Snapshot identity
 
@@ -287,88 +290,90 @@ These are on one laptop core, CPython 3.12 and DuckDB 2.0.0:
 
 ## Scaling
 
-`tools/benchmark_execution_store.py` measures how the store and matching scale with cohort size. The report is `verification/execution-store-scaling-report.json`. It binds by digest the benchmark, `execution_store.py`, `execution_store_reference.py`, `synthetic_ingest.py`, `trajectory_graph.py`, `temporal_stn.py`, the manifest schema, `generate.py` and `test_execution_store.py` (the source of the query set). It is evidence for D19 and D20 and for the deferred decision on a Rust engine (D7), from one machine and synthetic data. The 1.0 figures below come from the 1.0 report as regenerated with the fixed generator (#128), on the same machine and cohorts.
+`tools/benchmark_execution_store.py` measures how the store and matching scale with cohort size. The report is `verification/execution-store-scaling-report.json`. It binds by digest the benchmark, `execution_store.py`, `execution_store_reference.py`, `synthetic_ingest.py`, `trajectory_graph.py`, `temporal_stn.py`, the manifest schema, `generate.py` and `test_execution_store.py` (the source of the query set). It is evidence for D19, D20 and D23 and for the deferred decision on a Rust engine (D7), from one machine and synthetic data. The 1.0 figures below come from the 1.0 report as regenerated with the fixed generator (#128), on the same machine and cohorts; the "before D23" figures come from the report as committed at main fdd6e97.
 
 ```sh
-python tools/benchmark_execution_store.py --sizes 1000,10000,100000,300000 \
-    --memory-limit 4GB --budget-seconds 14400 --work-dir /tmp/execution-store-scaling
+python tools/benchmark_execution_store.py --sizes 1000,10000,100000,300000,1000000 \
+    --memory-limit 4GB --budget-seconds 14400 --keep --work-dir /tmp/store-1m-scaling
 ```
 
-The report covers 1,000 to 300,000 patients. The 1,000,000-patient attempt is not in it: it ran before the generator fix, and is kept below as a separately labelled finding ([1,000,000 patients](#1000000-patients-where-it-broke-from-a-run-with-the-pre-fix-generator)).
+The report covers 1,000 to 1,000,000 patients, all built with the per-bucket derive (D23) and the fixed generator, in one run of 9,118 s (2 h 32 min). `--keep` kept the snapshots for the matcher comparison.
 
 ### Method
 
-- **Machine.** Apple M4 Pro, 14 logical CPUs, 64 GB, macOS, CPython 3.12.15, DuckDB 2.0.0. DuckDB had one thread and a 4 GB memory limit for build and open. Matching is single-threaded Python.
+- **Machine.** Apple M4 Pro, 14 logical CPUs, 64 GB, macOS, CPython 3.12.15, DuckDB 2.0.0. DuckDB had one thread and a 4 GB memory limit for build and open (DuckDB reads `4GB` as 4 × 10⁹ bytes, 3.73 GiB). Matching is single-threaded Python.
 - **Processes.** Each size runs in fresh subprocesses. One generates, converts and builds; another opens and queries; a third profiles both verification levels; and, up to 10,000 patients, a fourth runs cProfile on one `match()`. Peak memory is the maximum resident set size of each. The parent kills a size that passes the wall-time budget (4 h) or 40 GB resident, and records why.
-- **Streaming.** The build process writes the distinct pool to an ndjson file one generator seed at a time. It then reads the file back a line at a time, replicating as it reads, into `StoreBuilder.add`, so no process holds the cohort. The builder's stage callback records time and resident memory after each stage of `finish()`, and resident memory is sampled every 1,000 patients while adding.
+- **Streaming.** The build process writes the distinct pool to an ndjson file one generator seed at a time. It then reads the file back a line at a time, replicating as it reads, into `StoreBuilder.add`, so no process holds the cohort. The builder's stage callback records time and resident memory after each stage of `finish()`, including each bucket of the derive, and resident memory is sampled every 1,000 patients while adding.
 - **Cohorts.** The distinct pool is the generator with one seed per 48 patients (seed 20261103 + i), relabelled per cohort, up to 10,000 patients. Beyond that the pool is replicated: copy k of a patient takes the id `<id>~r<k>` and a whole-day shift that depends only on k. Replication adds no variety. Patients have a mean of 173 events (p95 384, max 519). Since the generator fix (#128) no seed fails; the benchmark still skips and records a failing seed as a safeguard.
-- **Queries.** Seeded queries from `random_query`, anchored on the first cohort and identical for every size, with index windows from `random_windows` per pool patient, following the copy. Up to 10,000 patients the benchmark runs 50 queries with 3 repeats and takes the median per query. Above that it runs 10 queries once, because a wide `match()` takes minutes there, so the percentiles at 100,000 and 300,000 rest on ten samples. `match()` is timed end to end and includes `candidates()`.
-- **Correctness.** At 1,000 patients, 5 queries were compared with exhaustive matching: 5,000 patient results, 0 mismatches. Every build verified its own files by content before publishing. The verify profile then re-derived every digest from the files at every size, and agreed each time.
+- **Queries.** Seeded queries from `random_query`, anchored on the first cohort and identical for every size, with index windows from `random_windows` per pool patient, following the copy. Up to 10,000 patients the benchmark runs 50 queries with 3 repeats and takes the median per query. Above that it runs 10 queries once, because a wide `match()` takes minutes there, so the percentiles from 100,000 up rest on ten samples. At 1,000,000 the same ten queries ran in full (no reduced set was needed). `match()` is timed end to end, includes `candidates()` and runs single-process (`workers=1`).
+- **Correctness.** At 1,000 patients, 5 queries were compared with exhaustive matching: 5,000 patient results, 0 mismatches. Every build verified its own files by content before publishing. The verify profile then re-derived every digest from the files at every size, 1,000,000 included, and agreed each time.
 
 ### Results
 
-| | 1,000 | 10,000 | 100,000 | 300,000 |
-|---|---|---|---|---|
-| Events | 172,754 | 1,731,493 | 17,314,930 | 51,944,790 |
-| Build (`StoreBuilder`, add to publish) | 5.4 s | 49.5 s | 501 s | 1,586 s |
-| of which `add()` | 2.0 s | 23 s | 226 s | 684 s |
-| Peak memory, build process | 0.53 GiB | 2.50 GiB | 8.37 GiB | 8.72 GiB |
-| 1.0: build / peak | 4.3 s / 1.2 GB | 38.8 s / 11.8 GB | killed at 40.5 GiB after 327 s | not attempted |
-| Snapshot on disk | 14.4 MB | 142.8 MB | 1.34 GB | 3.85 GB |
-| Staged ndjson (deleted once loaded) | 0.12 GB | 1.19 GB | 12.0 GB | 36.0 GB |
-| Open with the `files` check, cold / warm | 0.06 / 0.02 s | 0.10 / 0.06 s | 0.49 / 0.46 s | 1.49 / 1.29 s |
-| 1.0: open with full content verification | 0.89 s | 8.1 s | | |
-| `content` verification of the files | 0.9 s | 8.3 s | 83 s | 247 s |
-| Peak memory, content verification | 0.19 GiB | 0.56 GiB | 2.37 GiB | 7.78 GiB |
-| 1.0: peak memory, verification | 0.38 GiB | 2.95 GiB | about 30 GiB (extrapolated) | |
-| Peak memory, query process (D21 matcher with the engine kernel; 2.0 as first measured: 0.59, 1.56, 6.84, 21.0 GiB) | 0.57 GiB | 1.00 GiB | 1.11 GiB | 2.29 GiB |
-| `candidates()` p50 / max | 1.3 / 2.1 ms | 3.4 / 5.5 ms | 19 / 32 ms | 54 / 97 ms |
-| `match()` p50 / max (D21 matcher with the engine kernel; chunked matcher before it: 0.08 / 0.92, 0.79 / 9.56, 1.9 / 23.7, 5.4 / 72.3 s; 2.0 as first measured: 0.10 / 1.00, 1.20 / 10.6, 3.5 / 29.6, 10.0 / 95.0 s) | 0.05 / 0.27 s | 0.46 / 3.20 s | 1.6 / 19.0 s | 4.5 / 60.6 s |
+| | 1,000 | 10,000 | 100,000 | 300,000 | 1,000,000 |
+|---|---|---|---|---|---|
+| Events | 172,754 | 1,731,493 | 17,314,930 | 51,944,790 | 173,149,300 |
+| Build (`StoreBuilder`, add to publish) | 5.5 s | 47.7 s | 485 s | 1,463 s | 4,901 s (82 min) |
+| of which `add()` | 2.2 s | 22 s | 227 s | 686 s | 2,279 s |
+| of which the derive | 0.9 s | 4.3 s | 40 s | 116 s | 401 s |
+| Peak memory, build process | 0.42 GiB | 0.98 GiB | 5.11 GiB | 8.09 GiB | 8.12 GiB |
+| Before D23: build / peak | 5.2 s / 0.66 GiB | 48.4 s / 2.50 GiB | 503 s / 8.48 GiB | 1,597 s / 8.78 GiB | refused in the derive (pre-fix generator run, 11.6 GiB) |
+| 1.0: build / peak | 4.3 s / 1.2 GB | 38.8 s / 11.8 GB | killed at 40.5 GiB after 327 s | not attempted | not attempted |
+| Derive parts | 8 | 8 | 24 | 56 | 176 |
+| Staged ndjson (deleted once derived) | 0.12 GB | 1.19 GB | 12.0 GB | 36.0 GB | 120.1 GB |
+| Build database | 0.04 GB | 0.27 GB | 2.38 GB | 7.15 GB | 24.0 GB |
+| Snapshot on disk | 14.4 MB | 142.8 MB | 1.34 GB | 3.86 GB | 3.51 GB (see below) |
+| Open with the `files` check, cold / warm | 0.05 / 0.02 s | 0.10 / 0.06 s | 0.82 / 0.47 s | 1.84 / 1.30 s | 1.73 / 1.19 s |
+| 1.0: open with full content verification | 0.89 s | 8.1 s | | | |
+| `content` verification of the files | 0.9 s | 8.3 s | 82 s | 247 s | 843 s |
+| Peak memory, content verification | 0.19 GiB | 0.47 GiB | 2.37 GiB | 5.53 GiB | 7.85 GiB |
+| 1.0: peak memory, verification | 0.38 GiB | 2.95 GiB | about 30 GiB (extrapolated) | | |
+| Peak memory, query process (D21 matcher with the engine kernel, one process; 2.0 as first measured: 0.59, 1.56, 6.84, 21.0 GiB to 300,000) | 0.57 GiB | 0.99 GiB | 1.12 GiB | 2.30 GiB | 6.79 GiB |
+| `candidates()` p50 / max | 1.3 / 2.0 ms | 3.4 / 5.2 ms | 20 / 32 ms | 54 / 100 ms | 200 / 367 ms |
+| `match()` p50 / max (D21 matcher with the engine kernel, one process; chunked matcher before it: 0.08 / 0.92, 0.79 / 9.56, 1.9 / 23.7, 5.4 / 72.3 s; 2.0 as first measured: 0.10 / 1.00, 1.20 / 10.6, 3.5 / 29.6, 10.0 / 95.0 s) | 0.05 / 0.27 s | 0.45 / 3.16 s | 1.6 / 18.9 s | 4.5 / 60.3 s | 16.6 / 246 s |
 
-The table is the report as regenerated for D21 (the build, open and match rows differ slightly from the first 2.0 run, within run-to-run variation; the rows not listed here, the build stages and the 1,000,000-patient finding below are from that first run). Its matching rows are from the latest regeneration, with the chunked matcher and the rewritten engine kernel of [Matching cost](#matching-cost-d21) (2,969 s in all); the build and open rows shown are from the earlier regeneration (the latest run's build times are within 4% of them). The first run took 3,296 s (55 min). No generator seed failed (21 of 21 at 1,000 patients, 209 of 209 at 10,000).
+- **1,000,000 patients build and verify** under the 4 GB limit: 82 minutes from the first `add()` to publication, peak 8.12 GiB, and a separate content verification of the files in 14 minutes that agreed with the manifest.
+- **The derive's memory no longer grows with the cohort.** The build peak is now set by the per-bucket sorts for content digests, which DuckDB spills: 8.09 GiB at 300,000 and 8.12 GiB at 1,000,000 for 3.3 times the events, about 2.2 times the limit (3.73 GiB). Content verification's resident memory still grows (2.37 GiB at 100,000, 5.53 at 300,000, 7.85 at 1,000,000), probably because the verifying store is opened without the build's `memory_limit`; passing it is a follow-up. At 100,000 it fell from 8.48 to 5.11 GiB.
+- **The snapshot at 1,000,000 is smaller than at 300,000.** This is an artefact of replication: copies of a patient sort next to each other (`<id>`, `<id>~r1`, ...), so at 1,000,000 a bucket's events table holds runs of about 12 identical evidence strings and Parquet's dictionary encoding takes them, where at 300,000 the runs are about 4. Events are 3.10 GB of the 3.51 GB. Linear growth from 300,000 would give about 13 GB.
+- **Matching at 1,000,000** (single process, ten queries): `match()` p50 16.6 s and max 246 s, query process 6.79 GiB, which holds a result for every patient. The partition-parallel matcher (D21, arm C) was not run at this size; it is the lever.
 
 ### Where memory and time go in the build
 
-Resident memory after each stage of `finish()` at 100,000 and 300,000 patients, in GiB, with the peak so far in brackets where it differs, and each stage's seconds:
+Resident memory after each stage of `finish()`, in GiB, with the peak so far in brackets where it differs, and each stage's seconds:
 
-| Stage | 100,000 | 300,000 |
-|---|---|---|
-| All patients added (Python holds one patient at a time) | 0.08 (0.21), 264 s | 0.08 (0.21), 798 s |
-| Staged patients loaded, duplicates checked, input digest | 0.16, 0.2 s | 0.21, 0.3 s |
-| DuckDB derive | 7.58 (7.86), 43 s | 8.42 (8.82), 158 s |
-| Content digests from the derived tables | 6.52 (7.86), 89 s | 8.19 (8.85), 266 s |
-| Parquet written and each file hashed | 7.19 (7.86), 25 s | 8.23 (8.85), 95 s |
-| Content verification of the written files | 6.99 (7.86), 82 s | 8.23 (8.85), 243 s |
+| Stage | 100,000 | 300,000 | 1,000,000 |
+|---|---|---|---|
+| All patients added (Python holds one patient at a time) | 0.08 (0.21), 266 s | 0.08 (0.21), 802 s | 0.08 (0.21), 2,665 s |
+| Staged patients loaded, duplicates checked, input digest | 0.16, 0.2 s | 0.21, 0.3 s | 0.34, 0.9 s |
+| DuckDB derive, one part at a time | 4.00, 40 s | 5.19, 116 s | 5.49, 401 s |
+| Content digests from the derived tables | 4.39 (4.57), 82 s | 7.74 (7.93), 251 s | 7.87 (8.08), 848 s |
+| Parquet written bucket by bucket, each file hashed | 4.79 (4.91), 15 s | 7.75 (7.93), 50 s | 7.88 (8.08), 160 s |
+| Content verification of the written files | 4.80 (5.11), 82 s | 7.76 (8.09), 244 s | 7.92 (8.12), 826 s |
 
-- **Python no longer holds the data.** Resident memory stays at 0.08 to 0.21 GiB while patients are added, at every size, because `add()` holds one patient (the tracemalloc test bounds it at 0.66 MiB per call). In 1.0 the same stage held the whole document: 3.4 GiB at 10,000 and 10.5 GiB at 100,000, before `build()` had started.
-- **What remains is DuckDB's, and it exceeds `memory_limit`.** By DuckDB's own accounting (`duckdb_memory()`), its buffer manager stayed within the limit: a separate diagnostic at 100,000 saw at most 1.1 GiB accounted after each derive statement. But the process grew to 7.6 GiB during the derive at 100,000 (peak 7.9) and to 8.4 GiB at 300,000 (peak 8.8), about twice the 4 GB limit. Memory did not fall when the connection closed: the diagnostic still held 5.2 GiB after `close()`.
-- **Most of it comes from loading the events.** Materialising the events table from the staging file accounts for most of the growth. Scanning the same file without materialising it stays at 0.14 GiB.
-- **The limit is a lever, not a cap.** Resident memory does follow the limit: a 30,000-patient events load reached 1.29 GiB under 4 GB and 0.45 GiB under 256 MB. The rest is either outside DuckDB's buffer manager or freed memory the macOS allocator keeps. This is not resolved.
-- **100,000 patients is close to 8 GB.** Its 7.86 GiB peak is under the target of about 8 GB, but by little, and it rose from 7.00 GiB in the run before the generator fix on almost the same cohort, so the margin is within run-to-run variation in DuckDB's resident memory.
-- **Content verification** shows the same pattern: 7.8 GiB at 300,000 under the same 4 GB limit. All of it is DuckDB's; Python holds one 10,000-row batch.
-- **Time is linear**, at about 5.0 to 5.2 s per 1,000 patients at 100,000 and 300,000. `add()` is 44 to 45% of it: validation, canonical form, staging and the patient digest, all in Python. The two content passes are 33 to 34%, and the derive 8 to 10%.
-- **Smaller builds are slower than in 1.0** (49 s against 39 s at 10,000), at the sizes where 1.0 fitted in memory. 2.0 validates and stages each patient in Python and digests twice, first from the derived tables and then from the files.
-- **Content verification runs at about 440,000 rows a second** at every size, and the `events` table, with its evidence JSON, is two thirds of the time. The 365 million rows of 1,000,000 patients would take about 14 minutes (extrapolated). That is why the default check on open is `files`, which takes 1.45 s at 300,000 (2.7 GB/s).
+Before D23 the derive took the process to 8.46 GiB at 100,000 (43 s) and to 8.17 GiB, peak 8.59, at 300,000 (189 s); the content digests, Parquet and verification then ran at that level.
 
-### 1,000,000 patients: where it broke (from a run with the pre-fix generator)
+- **The derive is bounded by the part, not the cohort.** A part holds about 2,000,000 staged rows, a million events. At 1,000,000 patients each of the 176 parts runs ten statements; DuckDB's accounted memory after any statement was at most 3.71 GB, it spilled nothing (`temporary_storage_bytes` 0 throughout), and each bucket took 49 to 51 s. Resident memory rose while DuckDB's buffer pool filled with table pages and then held: after each bucket at 1,000,000, 4.80, 5.24, 5.32, 5.35, 5.40, 5.42, 5.44 and 5.49 GiB; at 300,000 it levelled at 5.04 to 5.19 GiB from the fourth bucket on. Main's derive at 300,000 used up to 13.2 GB of temporary storage in its events load and 5.6 GB in its postings statement.
+- **The derive is faster too**: 116 s against 189 s at 300,000, because nothing spills. Loading the events is 70% of it (279 of 401 s at 1,000,000), then event concepts (59 s), postings (34 s) and source concepts (17 s).
+- **The peak is now in digesting the events.** Each bucket's events are sorted by the canonical key (21.6 million rows per bucket at 1,000,000) and streamed; that took the process to 7.92 GiB at 300,000 and 8.05 GiB at 1,000,000. DuckDB sorts out of core within its limit, so this too is flat in the cohort; it is what sets the 2.2 times the limit.
+- **Resident memory against `memory_limit`.** DuckDB keeps to its own accounting (at most 3.71 GB against the 4 GB limit). The process holds about 1.5 times the limit through the derive and about 2.2 times at the peak, at 300,000 and 1,000,000 alike; under a 1.2 GB limit at 300,000 (a pilot run of this code) the build peaked at 2.84 GiB, 2.5 times, and its derive at 2.45 GiB with DuckDB at 0.82 GiB. The limit is a lever on resident memory, and now also a cap independent of the cohort, but the factor between them (allocation outside the buffer manager, or freed memory the macOS allocator keeps) is not resolved.
+- **Time is linear**: 4.85 to 4.90 s per 1,000 patients at 100,000, 300,000 and 1,000,000. `add()` is 47% of it (validation, canonical form, staging and the patient digest, all in Python); the content digests 17%, content verification 17%, the derive 8% and writing 3%.
+- **Disk.** Staging is about 0.69 KB per event (120 GB at 1,000,000), deleted once derived; the build database is 24 GB at 1,000,000. Both live in `work_dir`.
+- **Content verification runs at about 433,000 to 443,000 rows a second** at every size; at 1,000,000 its 365 million rows took 843 s, close to the 14 minutes extrapolated before. Its process peaked at 7.85 GiB. That is why the default check on open is `files`, which takes 1.2 s at 1,000,000.
 
-*This result is from a run with the pre-fix generator, not in the regenerated report. That run's cohorts differ slightly from the report's (the pre-fix generator skipped 20 of 229 seeds), which does not bear on where the build broke.*
+### 1,000,000 patients: before and after D23
 
-The build streamed all 1,000,000 patients in 45 minutes (173 million events, 120 GB of staging), with Python at 0.18 GiB. It loaded the staged patients and computed the input digest. Then DuckDB refused inside the derive: `Out of Memory Error: failed to pin block of size 256.0 KiB (3.7 GiB/3.7 GiB used)`.
+*Before (from a run with the pre-fix generator, not in the report):* the build streamed all 1,000,000 patients in 45 minutes (173 million events, 120 GB of staging), with Python at 0.18 GiB. Then DuckDB refused inside the derive: `Out of Memory Error: failed to pin block of size 256.0 KiB (3.7 GiB/3.7 GiB used)`. The process peak was 11.6 GiB. Nothing was written under the store root.
 
-Some operator in the derive could not spill within the 4 GB limit. The operator was not isolated; the postings `DISTINCT` is the prime suspect, as the derive's largest intermediate: every event's closure-expanded concepts, made distinct and joined back to the events. As designed, the refusal left nothing under the store root. The process peak was 11.6 GiB.
+*Diagnosis (D23).* Main's derive, run statement by statement on the staged 300,000-patient cohort, fails in the postings statement under a 1.2 GB limit (4 GB × 0.3, the same limit per patient as 4 GB at 1,000,000), with the same error. Its two halves run as separate statements succeed. The statement plans four hash aggregates and a hash join, all sized by the events (pre-aggregated events by patient and event, 52 million groups at 300,000; the closure-expanded `DISTINCT`, 83 million rows), live at once. It needs about 0.6 to 0.67 GB per 100,000 patients, so about 6 to 6.7 GB at 1,000,000; 4 GB held to about 600,000 to 650,000 patients. D23 has the figures.
 
-This is the next storage wall, and it is DuckDB's, not Python's. The remedies, cheapest first:
-- **A higher memory limit for the derive only.** It works on this machine, but it moves the wall rather than removing it.
-- **Typed staging.** Staging as Parquet or typed CSV instead of ndjson would shrink the 120 GB of staging and the cost of materialising the events.
-- **Derive one bucket at a time.** Every patient-keyed table, the postings and the source concepts can be derived per bucket, so each statement sees an eighth of the events. This also fits bucket-level digests and incremental appends.
+*After:* the cohort of the regenerated report (fixed generator, 173,149,300 events) builds in 82 minutes with a peak of 8.12 GiB, verifies, opens in 1.2 s and answers the ten queries.
 
 ### What grows how
 
-- **Build time, snapshot size and rows are linear**: 9 to 10 times for 10 times the patients, and 3 times for 3 times. At this rate 1,000,000 patients would take roughly 90 minutes to build once the derive fits.
-- **Build memory is DuckDB's buffer pool plus what DuckDB does not return.** It grows slowly with size (3.5, 7.9 and 8.9 GiB at 10,000, 100,000 and 300,000), not linearly with events as in 1.0 (about 6 KB per event).
-- **Opening is fast at every size.** The `files` check reads the Parquet bytes once: 0.47 s warm at 100,000 and 1.3 s at 300,000, against 8.1 s for the 1.0 content check at 10,000.
-- **Matching is now the wall.** (As first measured, before D21: the query process peaked at 21.0 GiB at 300,000 and a wide `match()` took 95 s; the chunked matcher holds 2.3 GiB and takes 72 s.) `match()` builds a Python result for every patient and loads every candidate's events into Python. This is D19's step 3: remove the per-patient floor, move the comparability check into SQL, join candidates per bucket, and then choose between partition-parallel Python and a Rust matcher by measurement.
+- **Build time and rows are linear**: about 3.3 times for 3.3 times the patients. The snapshot is linear up to 300,000; beyond, replication makes it compress better (above).
+- **Build memory is DuckDB's buffer pool plus what DuckDB does not return, and is now flat**: 0.42, 0.98, 5.11, 8.09 and 8.12 GiB from 1,000 to 1,000,000. It grows until the buffer pool fills, about 300,000 patients here, and then stays at about 2.2 times the limit. Before D23 it was 8.5 to 8.8 GiB already at 100,000 to 300,000 and failed at 1,000,000.
+- **Opening is fast at every size.** The `files` check reads the Parquet bytes once: 1.2 s warm at 1,000,000, against 8.1 s for the 1.0 content check at 10,000.
+- **Matching is the wall.** (As first measured, before D21: the query process peaked at 21.0 GiB at 300,000 and a wide `match()` took 95 s; the single-process matcher now holds 2.3 GiB and takes 60 s there, and 6.8 GiB and 246 s at 1,000,000.) Single-process `match()` still builds a result for every patient and loads every candidate's events into Python; partition-parallel matching (D21) is the lever above 300,000.
 
 ### Matching cost (D21)
 
@@ -473,12 +478,15 @@ The largest worker's peak was 1.06 GiB at 8 workers and 0.96 GiB at 14. Per-quer
 
 **Decision.** Target met; stay in Python. By D21's rule the Rust prototype (arms D and D′) is not built, and no toolchain is installed. The recommended worker count on this machine stays 14; the library default stays `workers=1`. The p95 margin at 14 workers is 21% pooled (7.9 s against 10 s) and 16% in the slowest repeat (8.4 s). The levers left if more is needed are event loading in the store (now the larger part of a candidate's cost) and time pruning of step domains on posting summaries.
 
+**Regenerated for D23.** The report was regenerated on the snapshots of the D23 scaling run (same cohorts and contents, new identifiers, since `execution_store.py` changed). Every per-query result digest equals the previous report's, for every arm and size and in the confirmation, and arm C equals B and B equals A as before. The tables above are from the previous run. In this one the confirmation at 14 workers gave p95 9.1 s (8.6 to 9.4 over the repeats), max 12.9 s and a 0.79 GiB query process; at 8 workers p95 9.4 s (9.3 to 9.7) and max 13.4 s. The target is still met, but the p95 margin at 14 workers is 9% here against 21% before. Single-process event loading and engine cost per candidate are unchanged at 300,000 (arm B: loading 160.34 → 160.26 µs, engine 82.48 → 82.22 µs), and so is C at 8 workers (48.95 → 49.55 µs), so the store change did not slow matching. Only C at 14 workers moved, 41.59 → 47.32 µs per candidate (p95 7.9 → 9.1 s), by 14% between two runs on identical results; the cause is not established (likely machine state at full core count), and two runs cannot show it is within normal variation. The margin in this run is 9%.
+
 ### Limits of this evidence
 
 - One machine, one DuckDB thread and one memory limit (4 GB). Thread counts and other limits were not swept at scale.
 - Synthetic data. Beyond 10,000 patients the cohort is replicated, which multiplies candidates exactly.
-- Ten queries at 100,000 and 300,000 in the main runs, so their latency percentiles are coarse; the D21 target is judged on the 30-query, 3-repeat confirmation at 300,000.
-- The resident-memory diagnosis (DuckDB's accounting against the process) comes from separate diagnostic runs at 30,000 and 100,000 patients with the pre-fix generator, not from the benchmark itself. They ran beside the 1,000,000 build, at low priority.
+- Ten queries at 100,000, 300,000 and 1,000,000 in the main runs, so their latency percentiles are coarse; the D21 target is judged on the 30-query, 3-repeat confirmation at 300,000.
+- The diagnosis of the 1,000,000-patient failure (D23) comes from separate diagnostic runs of main's derive on a staged 300,000-patient cohort, under 1.2 GB as a stand-in for 1,000,000 under 4 GB, and from threshold runs on the first 100,000 to 300,000 of its patients; the earlier resident-memory diagnosis came from runs at 30,000 and 100,000 with the pre-fix generator. None of them is in the report.
+- Replication flatters the snapshot size at 1,000,000 (above) and makes postings, candidates and match outcomes exact multiples; a cohort of a million distinct patients was not built.
 - Resident memory is measured after each stage and as the process peak, so transient peaks inside a stage show only in the peak so far.
 
 ## Stage 2: the MIMIC-IV demo through the SULO adapter
@@ -620,7 +628,7 @@ This is not built. `chartevents` has 668,862 demo rows. At about 0.2 CPU-seconds
 
 - **Store 2.x (after D20).** In order:
   - an evidence table and the D5 typed event columns, so evidence leaves the events table that dominates digests and loads;
-  - a bucket-at-a-time derive, which the 1,000,000-patient build needs ([Scaling](#1000000-patients-where-it-broke-from-a-run-with-the-pre-fix-generator)), and bucket-level roots so that an append rebuilds and rehashes only the buckets it touches;
+  - bucket-level roots so that an append rebuilds and rehashes only the buckets it touches (the per-bucket derive of D23, which lets 1,000,000 patients build, is done: [Scaling](#1000000-patients-before-and-after-d23));
   - matching, the next wall per D19 step 3.
 - **`chartevents`**, by the path above.
 - **Time pruning** on the posting summaries waits until differential tests cover it.

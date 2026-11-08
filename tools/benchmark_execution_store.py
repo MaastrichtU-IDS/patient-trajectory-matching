@@ -33,6 +33,7 @@ import os
 from pathlib import Path
 import platform
 import random
+import re
 import resource
 import shutil
 import signal
@@ -319,6 +320,13 @@ def build_worker(size, work, threads, memory_limit, marker):
             'tables': {n: t['rows'] for n, t in manifest['tables'].items()}}
 
 
+def limit_bytes(limit):
+    """A DuckDB memory limit in bytes: KB, MB, GB and TB are powers of 1000, KiB to TiB powers of 1024."""
+    number, unit = re.fullmatch(r'([0-9.]+)\s*([KMGT]i?B|B)', limit).groups()
+    power = 'BKMGT'.index(unit[0])
+    return float(number) * (1024 if 'i' in unit else 1000) ** power
+
+
 def timed(function, *args):
     started = time.perf_counter()
     value = function(*args)
@@ -555,7 +563,8 @@ def run_size(size, args, work):
             shutil.rmtree(scratch, ignore_errors=True)
         return entry
     entry.update({k: v for k, v in built.items() if k not in ('snapshot_path', 'build_stages')})
-    entry['build_stages'] = {'stages': built['build_stages'], 'process_peak_rss_bytes': record['peak_rss_bytes']}
+    entry['build_stages'] = {'stages': built['build_stages'], 'process_peak_rss_bytes': record['peak_rss_bytes'],
+                             'process_peak_rss_over_memory_limit': record['peak_rss_bytes'] / limit_bytes(args.memory_limit)}
     (scratch / 'pool.ndjson').unlink(missing_ok=True)
     remaining = max(1.0, args.budget_seconds - (time.monotonic() - started))
     exhaustive = args.exhaustive if size <= args.exhaustive_max_size else 0
