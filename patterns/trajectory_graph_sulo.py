@@ -16,8 +16,9 @@ reports against the source's temporal network plus the query's constraints.
   the vocabulary does not know is refused (UNKNOWN_CONCEPT).
 - Time. Variables are tightened to their minimal bounds. A patient with a source constraint
   the box does not imply is refused. A variable shared by several events reaches the engine
-  as one variable, named by its source id (D22). A `possible` binding the source network
-  refutes is never reported as possible.
+  as one variable, named by its source id (D22), and interval events reach it `proper`,
+  ending strictly after they start, as the bounded profile requires (D24). A `possible`
+  binding the source network refutes is never reported as possible.
 - Clocks and units. One clock per patient: offset-datetime clocks are rebased exactly; any
   other second clock makes the patient incomparable. Declared units convert to microseconds
   exactly; calendar months and years are refused.
@@ -44,7 +45,8 @@ from . import trajectory_graph as tg
 from .temporal_stn import Edge, Network, ZERO
 
 PROFILE = 'trajectory-graph-sulo-1.0'
-INGEST_PROFILE = 'trajectory-graph-sulo-ingest-1.0'
+# 1.1 (D24): rows carry `proper`, and a shared variable no longer makes a patient not box-representable.
+INGEST_PROFILE = 'trajectory-graph-sulo-ingest-1.1'
 REQUEST_PROFILE = 'trajectory-graph-sulo-request-1.0'
 FACTS_PROFILE = 'trajectory-graph-sulo-facts-1.0'
 OFFSET_POLICY = 'offset-datetime-microseconds-v1'
@@ -304,8 +306,10 @@ def _non_box(network, bounds, edge_evidence):
 def box_analysis(snapshot):
     """Tightened bounds, and for each patient whether a box per event represents the source.
 
-    Two things a box cannot hold: a source constraint the tightened box does not imply, and
-    a variable referenced by two events (an equality between them). Query-independent.
+    A box cannot hold a source constraint the tightened box does not imply. A variable
+    referenced by two events (an equality between them) is listed, but no longer counts
+    against the box: events name their variables, and the engine and the store share them
+    (D22, D24). Query-independent.
     """
     bounds = {}
     for network in snapshot.networks.values():
@@ -323,7 +327,7 @@ def box_analysis(snapshot):
             patients[snapshot.variables[vid]['patient_id']]['shared_variables'].append(
                 {'variable': vid, 'events': sorted(eids)})
     for info in patients.values():
-        info['box_representable'] = not info['non_box_constraints'] and not info['shared_variables']
+        info['box_representable'] = not info['non_box_constraints']
     return bounds, patients
 
 
@@ -359,7 +363,7 @@ def ingest_rows(view):
             'declared_start_us': [snapshot.variables[e['start_var']][k] for k in ('lower_us', 'upper_us')],
             'declared_end_us': [snapshot.variables[e['end_var']][k] for k in ('lower_us', 'upper_us')],
             'start_us': list(bounds[e['start_var']]), 'end_us': list(bounds[e['end_var']]), 'ongoing': False,
-            'start_var': e['start_var'], 'end_var': e['end_var'],
+            'start_var': e['start_var'], 'end_var': e['end_var'], 'proper': True,
             'box_representable': box['box_representable'],
             'non_box_constraints': [c['edge'] for c in box['non_box_constraints']],
             'shared_variables': [s['variable'] for s in box['shared_variables']],
@@ -557,15 +561,14 @@ def _bound(view, query, relaxations, binding, concepts):
     return {s: _evidence(view, e, step_concepts[s], concepts) for s, e in sorted(binding.items())}
 
 
-def _verified(result, check, query, view, concepts, strict_gap=False):
+def _verified(result, check, query, view, concepts):
     """Apply the binding check to the engine's result for one patient.
 
-    `strict_gap` marks a patient where the engine's model is looser than the source's beyond
-    the box: a shared variable in an end role links one event's end to another's start, and
-    the engine lets an event end as it starts where the source needs start + 1 <= end. A
-    possible binding the source entails is reported exact whatever `strict_gap` says; one it
-    does not entail leaves exactness undecided under `strict_gap`, since another binding may
-    be exact over the source alone.
+    With no source constraint lost, the engine's model is the source's region: the tightened
+    box, each interval event `proper` (start + 1 <= end) and one variable per shared source
+    variable (D24). So the check confirms what the engine decided; its downgrades and the
+    lift of an entailed `possible` to exact stay as safety nets, and do not fire on such
+    patients.
     """
     by_id = {x['id']: x for x in query.get('relaxations', [])}
     status = result['status']
@@ -597,8 +600,8 @@ def _verified(result, check, query, view, concepts, strict_gap=False):
                            adapter={'code': downgrade, 'engine_status': status, 'engine_certainty': certainty})
             return out
         if certainty == 'possible' and verdict['entailed']:
-            # Every source timeline satisfies the binding: exact over the source, which the
-            # engine's looser model could not show.
+            # Every source timeline satisfies the binding: exact over the source. A safety net:
+            # the engine's model equals the source region once interval events are proper (D24).
             out = {'patient_id': result['patient_id'], 'decided_by': 'adapter', 'engine_result': result,
                    'source_check': verdict, 'bound_evidence': out['bound_evidence'],
                    'adapter': {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': status}}
@@ -614,8 +617,6 @@ def _verified(result, check, query, view, concepts, strict_gap=False):
         if certainty == 'possible' and status == 'possible' and verdict['engine_witness_confirmed'] is False:
             out.update(engine_witness=result['witness'], witness=verdict['witness'],
                        adapter={'code': 'ENGINE_WITNESS_REPLACED_BY_SOURCE_WITNESS'})
-        if certainty == 'possible' and strict_gap:
-            _undecided(out, result)
         return out
     if status == 'unresolved' and 'relaxed_match' in result:
         match = result['relaxed_match']
@@ -636,18 +637,6 @@ def _verified(result, check, query, view, concepts, strict_gap=False):
             out['relaxed_bound_evidence'] = _bound(view, query, relaxations, match['binding'], concepts)
         out['relaxed_source_check'] = verdict
     return out
-
-
-def _undecided(out, result):
-    """Mark a possible binding the source does not entail, on a patient whose engine model is
-    looser than its source: another binding may be exact over the source, so it is incomplete."""
-    code = 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS'
-    out.update(complete=False, decided_by='adapter', engine_result=result)
-    out.setdefault('note', code)
-    if 'adapter' in out:
-        out['adapter'] = dict(out['adapter'], notes=[code])
-    else:
-        out['adapter'] = {'code': code, 'engine_status': result['status'], 'engine_complete': result['complete']}
 
 
 def match_snapshot(view, request, *, timeout_seconds=20, point_projection=True):
@@ -810,7 +799,9 @@ def _patient(pid, window, eids, snapshot, clocks, clock_of, bounds, box, concept
         start_var, end_var = region.events[eid]
         event = {'id': eid, 'concepts': sorted(concepts[eid]), 'start': starts[eid], 'start_var': start_var}
         if not points:
-            event.update(end=region.bounds[end_var], end_var=end_var)
+            # The bounded profile's intervals are proper (start + 1 <= end), and so are the engine's (D24):
+            # with shared variables the box alone cannot carry that order, the engine's own network does.
+            event.update(end=region.bounds[end_var], end_var=end_var, proper=True)
         events.append(event)
     engine_window = {'start': window['start'], 'end': window['end']}
     try:
@@ -823,7 +814,7 @@ def _patient(pid, window, eids, snapshot, clocks, clock_of, bounds, box, concept
 
     def check(relaxations, binding, certainty, witness):
         return binding_check(query, relaxations, binding, region, engine_window, certainty, witness)
-    out = _verified(result, check, query, view, concepts, strict_gap=shared_end)
+    out = _verified(result, check, query, view, concepts)
     out['projection'] = 'points' if points else 'intervals'
     out['clock'] = {'reference_clock': reference, 'rebase_offsets_us': dict(sorted(offsets.items())),
                     'policy': clocks[reference]['policy'], 'origin': clocks[reference]['origin']}

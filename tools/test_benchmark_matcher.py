@@ -90,6 +90,30 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(sha, matcher.digest(path), path)
         self.assertFalse(self.report['contains_patient_level_data'])
         self.assertTrue(self.report['limitations'])
+        self.assertNotIn('snapshot_view', entry['arms']['A'])  # the same profile: the snapshot as it is
+
+
+@unittest.skipIf(duckdb is None, 'DuckDB is not installed')
+class OlderArmTests(unittest.TestCase):
+    """Arm A's code may read an older store profile than the snapshots' (2.0 against 2.1, D24): it opens the
+    same files under a relabelled manifest and must decide byte for byte as this tree does."""
+    REF = '0a18b9a'  # main before D24: execution store 2.0
+
+    def test_an_older_arm_reads_the_snapshot_through_a_relabelled_view_and_agrees(self):
+        from patterns import execution_store as es
+        with tempfile.TemporaryDirectory(prefix='matcher-older-') as tmp:
+            snapshot = es.build(bench.replicate(bench.pool_ingest(96)[0], 96), Path(tmp) / 'store')
+            output = Path(tmp) / 'report.json'
+            try:
+                matcher.main(['--snapshots', f'96={snapshot}', '--arm-a-ref', self.REF, '--arms', 'A', 'B',
+                              '--queries', '4', '--repeats', '1', '--workers', '1', '--output', str(output)])
+            except (OSError, matcher.subprocess.CalledProcessError) as exc:  # no git, or a clone without the ref
+                raise unittest.SkipTest(f'git archive {self.REF} unavailable: {exc}')
+            entry = json.loads(output.read_text())['sizes'][0]
+        self.assertEqual(entry['byte_identity_B_against_A'], {'compared': 4, 'identical': 4, 'mismatching_seeds': []})
+        self.assertEqual(entry['arms']['A']['snapshot_view']['snapshot_profile'], es.PROFILE)
+        self.assertEqual(entry['arms']['A']['snapshot_view']['read_as_profile'], 'execution-store-2.0')
+        self.assertNotIn('snapshot_view', entry['arms']['B'])
 
 
 if __name__ == '__main__':

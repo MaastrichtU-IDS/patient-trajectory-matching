@@ -1,4 +1,5 @@
 """The SULO adapter for the trajectory-graph engine: routes, evidence, concepts, time and clocks."""
+from collections import Counter
 from contextlib import redirect_stdout
 from copy import deepcopy
 import io
@@ -290,7 +291,8 @@ class IngestRowTests(unittest.TestCase):
         self.assertEqual((fs['clock_id'], fs['clock_origin']), ('clinical', ORIGIN))
         self.assertEqual(fs['start_us'], [140 * DAY, 170 * DAY])
         self.assertEqual(fs['end_us'], [140 * DAY + 1, 170 * DAY + 1])
-        self.assertEqual((fs['start_var'], fs['end_var']), ('P2-fs-start', 'P2-fs-end'))
+        self.assertEqual((fs['start_var'], fs['end_var'], fs['proper']), ('P2-fs-start', 'P2-fs-end', True))
+        self.assertEqual(fs['profile'], 'trajectory-graph-sulo-ingest-1.1')
         self.assertEqual((fs['box_representable'], fs['non_box_constraints'], fs['shared_variables']), (True, [], []))
         self.assertEqual(fs['selection_state'], 'declared_source')
         bases = {c['concept']: c['basis'] for c in fs['concepts']}
@@ -543,9 +545,11 @@ class SharedVariableTests(unittest.TestCase):
         # One start cannot also be a day later: none, decided by the engine.
         r = tgs.match_snapshot(view, request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1)]))
         self.assertEqual((r['results'][0]['status'], r['results'][0]['decided_by']), ('none', 'engine'))
-        # The store contract is unchanged: the rows still mark the patient as not box-representable.
+        # The store holds shared variables (D24): the rows list them, and they no longer make the
+        # patient not box-representable.
         rows = {row['event_id']: row for row in tgs.ingest_rows(view)}
-        self.assertEqual((rows['X']['box_representable'], rows['X']['shared_variables']), (False, ['shared-start']))
+        self.assertEqual((rows['X']['box_representable'], rows['X']['shared_variables']), (True, ['shared-start']))
+        self.assertEqual((rows['X']['start_var'], rows['Y']['start_var']), ('shared-start', 'shared-start'))
         self.assertTrue(rows['Z']['box_representable'])
 
     def test_engine_refusals_of_shared_variables_are_per_patient(self):
@@ -589,18 +593,37 @@ class SharedVariableTests(unittest.TestCase):
         self.assertEqual([c['edge'] for c in p1['adapter']['constraints']], ['source:x-ends-first'])
         self.assertEqual(p1['adapter']['shared_variables'], [{'variable': 'shared-start', 'events': ['X', 'Y']}])
 
-    def test_a_strict_order_the_engine_misses_is_refuted_by_the_source_network(self):
-        # Y starts when X ends. The engine's events only end at or after they start, so it
-        # finds X empty and the two starts equal possible; the source's start + 1 <= end
-        # refutes that, and the safety net reports unresolved rather than possible.
+    @staticmethod
+    def engine_without_proper():
+        """The engine as it was before D24, for the adapter: interval events may end as they start."""
+        real = tg.match
+
+        def match(query, patient):
+            return real(query, {**patient, 'events': [{k: v for k, v in e.items() if k != 'proper'}
+                                                      for e in patient['events']]})
+        return patch.object(tgs.tg, 'match', side_effect=match)
+
+    def test_a_strict_order_is_decided_by_the_engine(self):
+        # Y starts when X ends, and the source's X ends strictly after it starts. The engine's
+        # interval events are proper (D24), so the two starts cannot be equal: none, decided by
+        # the engine. Before D24 the engine let X end as it starts, called them possible, and the
+        # source network refuted that (unresolved, POSSIBLE_BINDING_REFUTED_BY_SOURCE_NETWORK);
+        # that safety net stays, and still fires against the engine without `proper`.
         source = source_for([('X', 'P1', 'infusion', (DAY, 5 * DAY), (DAY, 6 * DAY)),
                              ('Y', 'P1', 'specimen_collection', (0, 0), (9 * DAY, 9 * DAY), 'X-end')])
-        r = tgs.match_snapshot(tgs.from_bounded_json(source), request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)]))
+        view, request = tgs.from_bounded_json(source), request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)])
+        r = tgs.match_snapshot(view, request)
         p1 = r['results'][0]
-        self.assertEqual((p1['status'], p1['adapter']['code'], p1['engine_result']['status']),
+        self.assertEqual((p1['status'], p1['decided_by'], p1['complete'], p1['projection']),
+                         ('none', 'engine', True, 'intervals'))
+        self.assertNotIn('adapter', p1)
+        self.assertEqual(r['summary']['adapter_codes'], {})
+        self.assertEqual([e.get('proper') for e in p1['engine_events']], [True, True])
+        with self.engine_without_proper():
+            before = tgs.match_snapshot(view, request)['results'][0]
+        self.assertEqual((before['status'], before['adapter']['code'], before['engine_result']['status']),
                          ('unresolved', 'POSSIBLE_BINDING_REFUTED_BY_SOURCE_NETWORK', 'possible'))
-        self.assertIn('proper:X', p1['source_check']['refutation'])
-        self.assertEqual(p1['projection'], 'intervals')
+        self.assertIn('proper:X', before['source_check']['refutation'])
 
     def strict_chain(self):
         # Y starts when X ends (P1); P2 has the same times without the shared variable.
@@ -609,42 +632,82 @@ class SharedVariableTests(unittest.TestCase):
                            ('X2', 'P2', 'infusion', (0, 10 * DAY), (0, 20 * DAY)),
                            ('Y2', 'P2', 'specimen_collection', (DAY, 20 * DAY), (30 * DAY, 30 * DAY))])
 
-    def test_a_possible_binding_the_source_entails_is_exact(self):
+    def test_a_binding_the_source_entails_is_exact_in_the_engine(self):
         # The review's repro: Y's start is X's end, so Y starts at least a microsecond after X.
-        # The engine lets X end as it starts and says possible; the source entails the binding.
+        # Before D24 the engine let X end as it starts and said possible, and the adapter lifted
+        # the binding to exact because the source entails it (EXACT_BY_SOURCE_ENTAILMENT). X is
+        # now proper in the engine, which decides exact itself; the lift stays as a safety net,
+        # and still fires against the engine without `proper`.
         view = tgs.from_bounded_json(self.strict_chain())
         request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1)], unit='microsecond', window=(0, 40 * DAY))
         p1 = tgs.match_snapshot(view, request)['results'][0]
         self.assertEqual((p1['status'], p1['complete'], p1['decided_by'], p1['binding']),
-                         ('exact', True, 'adapter', {'a': 'X', 'b': 'Y'}))
-        self.assertEqual(p1['adapter'], {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': 'possible'})
-        self.assertEqual((p1['engine_result']['status'], p1['engine_result']['complete']), ('possible', True))
-        self.assertTrue(p1['source_check']['entailed'])
-        self.assertNotIn('witness', p1)
+                         ('exact', True, 'engine', {'a': 'X', 'b': 'Y'}))
+        self.assertNotIn('adapter', p1)
+        self.assertNotIn('engine_result', p1)
+        self.assertEqual((p1['source_check']['entailed'], p1['source_check']['feasible']), (True, True))
         # The same for a relaxed result's certainty: unrelaxed, b can only be X itself.
         relaxed = request_for([('a', INFUSION), ('b', INFUSION)], [after(1)], unit='microsecond', window=(0, 40 * DAY),
                               relaxations=[{'id': 'b-any-process', 'kind': 'widen_concept', 'cost': '1', 'step': 'b',
                                             'concept': PROCESS}], budget='1')
         p1 = tgs.match_snapshot(view, relaxed)['results'][0]
-        self.assertEqual((p1['status'], p1['certainty'], p1['complete'], p1['relaxations'], p1['binding']),
-                         ('relaxed', 'exact', True, ['b-any-process'], {'a': 'X', 'b': 'Y'}))
-        self.assertEqual((p1['engine_result']['certainty'], p1['adapter']['code']), ('possible', 'EXACT_BY_SOURCE_ENTAILMENT'))
+        self.assertEqual((p1['status'], p1['certainty'], p1['complete'], p1['relaxations'], p1['binding'], p1['decided_by']),
+                         ('relaxed', 'exact', True, ['b-any-process'], {'a': 'X', 'b': 'Y'}, 'engine'))
+        self.assertNotIn('adapter', p1)
+        with self.engine_without_proper():
+            p1 = tgs.match_snapshot(view, request)['results'][0]
+            self.assertEqual((p1['status'], p1['decided_by'], p1['adapter'], p1['engine_result']['status']),
+                             ('exact', 'adapter', {'code': 'EXACT_BY_SOURCE_ENTAILMENT', 'engine_status': 'possible'},
+                              'possible'))
+            p1 = tgs.match_snapshot(view, relaxed)['results'][0]
+            self.assertEqual((p1['certainty'], p1['engine_result']['certainty'], p1['adapter']['code']),
+                             ('exact', 'possible', 'EXACT_BY_SOURCE_ENTAILMENT'))
 
-    def test_a_binding_not_entailed_under_a_shared_end_leaves_exactness_undecided(self):
-        # Another binding might be exact over the source and not over the engine's looser model.
+    def test_a_binding_not_entailed_under_a_shared_end_is_possible_and_complete(self):
+        # Before D24 the engine's model was looser than the source's under a shared end, so a
+        # possible binding the source did not entail was left incomplete
+        # (EXACTNESS_NOT_DECIDED_STRICT_INTERVALS): another binding might have been exact over the
+        # source only. The models are now equal, so the engine's possible is complete. That path
+        # is retired.
         view = tgs.from_bounded_json(self.strict_chain())
         request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(1, 5 * DAY)], unit='microsecond',
                               window=(0, 40 * DAY))
-        p1, p2 = tgs.match_snapshot(view, request)['results']
-        self.assertEqual((p1['status'], p1['complete'], p1['note'], p1['decided_by']),
-                         ('possible', False, 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', 'adapter'))
-        self.assertEqual(p1['adapter'], {'code': 'EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', 'engine_status': 'possible',
-                                         'engine_complete': True})
-        self.assertTrue(p1['source_check']['feasible'])
-        self.assertFalse(p1['source_check']['entailed'])
-        # Without a shared end the engine's model is the source's box: possible stays complete.
+        result = tgs.match_snapshot(view, request)
+        p1, p2 = result['results']
+        self.assertEqual((p1['status'], p1['complete'], p1['decided_by']), ('possible', True, 'engine'))
+        self.assertNotIn('note', p1)
+        self.assertNotIn('adapter', p1)
+        self.assertEqual((p1['source_check']['feasible'], p1['source_check']['entailed']), (True, False))
         self.assertEqual((p2['status'], p2['complete'], p2['decided_by']), ('possible', True, 'engine'))
         self.assertNotIn('adapter', p2)
+        self.assertEqual(result['summary']['adapter_codes'], {})
+        self.assertFalse(hasattr(tgs, '_undecided'))
+        self.assertNotIn('EXACTNESS_NOT_DECIDED_STRICT_INTERVALS', (ei.ROOT / 'patterns/trajectory_graph_sulo.py').read_text())
+
+    def test_no_safety_net_fires_on_shared_variable_and_strict_interval_patients(self):
+        # Over the probes and chains above, several queries each: the engine decides every
+        # patient, and its decision is the source's (the source check agrees with the engine
+        # and with the whole-network replay).
+        views = [tgs.from_bounded_json(self.probe()), tgs.from_bounded_json(self.strict_chain()),
+                 tgs.from_bounded_json(source_for([('X', 'P1', 'infusion', (DAY, 5 * DAY), (DAY, 6 * DAY)),
+                                                   ('Y', 'P1', 'specimen_collection', (0, 0), (9 * DAY, 9 * DAY), 'X-end')]))]
+        statuses, compared = Counter(), 0
+        for view in views:
+            for unit in ('microsecond', 'day'):
+                d = DAY if unit == 'microsecond' else 1
+                for relation in (after(0, 0), after(1), after(1, 5 * d), after(None, 0), after(0), after(2 * d)):
+                    request = request_for([('a', INFUSION), ('b', SPECIMEN)], [relation], unit=unit,
+                                          window=(0, 40 * DAY if unit == 'microsecond' else 40))
+                    for projection in (True, False):
+                        result = tgs.match_snapshot(view, request, point_projection=projection)
+                        self.assertEqual(result['summary']['adapter_codes'], {}, (relation, unit))
+                        for r in result['results']:
+                            self.assertEqual((r['decided_by'], r['complete']), ('engine', True))
+                            statuses[r['status']] += 1
+                        compared += assert_full_network_agrees(self, view, result,
+                                                               tgs._window(request["window"], tgs.UNITS[unit]))
+        self.assertEqual(set(statuses), {'exact', 'possible', 'none'})
+        self.assertGreater(compared, 0)
 
     def test_point_projection_with_shared_variables_equals_intervals(self):
         # P1-P3 share a start between x and y; P4 shares none; P5 starts y when x ends.

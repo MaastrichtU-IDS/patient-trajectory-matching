@@ -43,7 +43,7 @@
     }
   },
   "properties": {
-    "profile": {"const": "execution-store-2.0"},
+    "profile": {"const": "execution-store-2.1"},
     "snapshot_id": {"$ref": "#/$defs/sha256"},
     "dataset_id": {"type": "string", "minLength": 1},
     "input_digest": {"$ref": "#/$defs/sha256"},

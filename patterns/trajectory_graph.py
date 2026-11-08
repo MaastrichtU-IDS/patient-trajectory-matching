@@ -7,7 +7,8 @@ point, an end time in another range. `after` constrains the gap between two star
 Times are variables named by the events. An event's start and end variables default to
 its own, and two events that name the same variable, or one event bound to two steps,
 share one time. A patient's times form one simple temporal network: each variable lies in
-every range that names it, and each event ends at or after it starts. A binding is
+every range that names it, and each event ends at or after it starts (a `proper` event
+strictly after, by at least one grid step). A binding is
 *possible* when some choice of those times satisfies every constraint jointly, and *exact*
 when every choice does. Times are integers on one declared grid (days, microseconds); the
 profile does not fix the unit.
@@ -159,7 +160,7 @@ def patient_times(patient, trusted=False):
         require(_int(window['start'], 'INVALID_WINDOW') <= _int(window['end'], 'INVALID_WINDOW'), 'INVALID_WINDOW')
     ids = []
     for event in patient.get('events', []):
-        require(isinstance(event, dict) and set(event) <= {'id', 'concepts', 'start', 'end', 'start_var', 'end_var'}
+        require(isinstance(event, dict) and set(event) <= {'id', 'concepts', 'start', 'end', 'start_var', 'end_var', 'proper'}
                 and {'id', 'concepts', 'start'} <= set(event), 'INVALID_EVENT')
         require(type(event['id']) is str and event['id'], 'INVALID_EVENT_ID')
         require(isinstance(event['concepts'], list) and event['concepts'] and all(type(c) is str for c in event['concepts']), 'INVALID_EVENT_CONCEPTS')
@@ -173,6 +174,8 @@ def patient_times(patient, trusted=False):
             require(field not in event or (type(event[field]) is str and event[field]), 'INVALID_EVENT_VARIABLE')
         # A point's end is its start, so it has no end variable of its own.
         require('end_var' not in event or 'end' in event, 'INVALID_EVENT_VARIABLE')
+        # A proper event ends strictly after it starts; a point, whose end is its start, cannot be one.
+        require('proper' not in event or (type(event['proper']) is bool and 'end' in event), 'INVALID_EVENT_PROPER')
         ids.append(event['id'])
     require(len(ids) == len(set(ids)), 'DUPLICATE_EVENT')
     # Refuses a shared variable no time satisfies, or a linked component too large to solve.
@@ -188,6 +191,7 @@ class Event:
     point: bool
     sv: str  # start variable
     fv: str  # end variable; a point's is its start variable
+    proper: bool = False  # ends strictly after it starts (start - end <= -1); a point never is
 
 
 def events_of(patient):
@@ -203,11 +207,12 @@ def events_of(patient):
         sv = e.get('start_var', f"{e['id']}.s")
         if 'end' in e:
             f = (e['end'][0], INF if e['end'][1] is None else e['end'][1])
-            d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'] = (
-                e['id'], frozenset(e['concepts']), s, f, False, sv, e.get('end_var', f"{e['id']}.f"))
+            d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'], d['proper'] = (
+                e['id'], frozenset(e['concepts']), s, f, False, sv, e.get('end_var', f"{e['id']}.f"),
+                e.get('proper') is True)
         else:
-            d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'] = (
-                e['id'], frozenset(e['concepts']), s, s, True, sv, sv)
+            d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'], d['proper'] = (
+                e['id'], frozenset(e['concepts']), s, s, True, sv, sv, False)
         out.append(event)
     return out
 
@@ -216,7 +221,8 @@ class Times:
     """A patient's times as one simple temporal network, before any trajectory applies.
 
     Each variable lies in the intersection of every range that names it, and every event
-    ends at or after it starts. `dom[v]` is the tightest range those facts leave `v`, and
+    ends at or after it starts, a proper event at least one grid step after (start - end <= -1
+    rather than <= 0). `dom[v]` is the tightest range those facts leave `v`, and
     `gap(x, y)` the largest value of y - x they allow. A variable no event links to another
     ranges independently, so all-pairs distances are kept only inside larger components.
     The anchors START and END are constants.
@@ -235,6 +241,8 @@ class Times:
             bounds[sv] = (s[0], s[1]) if old is None else (max(old[0], s[0]), min(old[1], s[1]))
             if fv == sv:
                 names += 1
+                # An exposure naming one variable twice ends as it starts, which a proper event cannot.
+                require(not e.proper, 'EMPTY_SHARED_VARIABLE')
                 if f != s:
                     old = bounds[sv]
                     bounds[sv] = (max(old[0], f[0]), min(old[1], f[1]))
@@ -254,7 +262,7 @@ class Times:
             self.component, self.dom = {v: v for v in bounds}, dict(bounds)
             for e in events:
                 if e.sv != e.fv:
-                    self._solve(e.fv, [e.sv, e.fv], bounds, [(e.sv, e.fv)])
+                    self._solve(e.fv, [e.sv, e.fv], bounds, [(e.sv, e.fv)], {(e.sv, e.fv)} if e.proper else ())
         else:
             parent = {v: v for v in bounds}
             def find(v):
@@ -263,6 +271,8 @@ class Times:
                     v = parent[v]
                 return v
             orders = {(e.sv, e.fv) for e in events if e.sv != e.fv}
+            # Orders some proper event puts on its variables: start - end <= -1 (several events may name one pair).
+            strict = {(e.sv, e.fv) for e in events if e.proper}
             for sv, fv in orders:
                 parent[find(sv)] = find(fv)
             groups, ordered = {}, {}
@@ -277,7 +287,7 @@ class Times:
                     'SHARED_VARIABLE_COMPONENT_LIMIT')
             self.component, self.dom = {}, {}
             for root, members in groups.items():
-                self._solve(root, members, bounds, ordered.get(root))
+                self._solve(root, members, bounds, ordered.get(root), strict)
         if window is not None:
             for a in ANCHORS:
                 key = ('anchor', a)
@@ -286,8 +296,10 @@ class Times:
         self._records = None
         self._by_concept = {}
 
-    def _solve(self, root, members, bounds, orders):
-        """One component's variables: their ranges, and all-pairs distances if there are several."""
+    def _solve(self, root, members, bounds, orders, strict=()):
+        """One component's variables: their ranges, and all-pairs distances if there are several.
+        `orders` are its (start, end) pairs, end at or after start; those in `strict`, a proper
+        event's, end at least one grid step after start."""
         for v in members:
             self.component[v] = root
         if len(members) == 1:
@@ -301,7 +313,8 @@ class Times:
             lo, hi = bounds[v]
             d[0][k], d[k][0] = hi, -lo
         for sv, fv in orders:
-            d[index[fv]][index[sv]] = min(d[index[fv]][index[sv]], 0)  # start - end <= 0
+            # start - end <= 0, or <= -1 for a proper event
+            d[index[fv]][index[sv]] = min(d[index[fv]][index[sv]], -1 if (sv, fv) in strict else 0)
         for k in range(n):
             dk = d[k]
             for i in range(n):
@@ -539,6 +552,10 @@ def _split(constraints, step_ids):
 #   plausible, x b's:  lo <= hi,  vlo <= uhi - lo  (if lo > -inf),  vhi >= ulo - hi  (if hi < inf)
 # with the same treatment of infinite ends. Every test is a bound on one end of rb's ranges set by ra;
 # several lower bounds on one end are their maximum, several upper bounds their minimum.
+#
+# A proper event's start - end <= -1 changes nothing here: it links only the event's own two variables,
+# so it narrows that event's ranges (`dom`, solved with the -1 edge) and its own start-to-end distance,
+# never the joint range of two unlinked variables, which stays the product of their ranges.
 #
 # A pair whose variables can be linked (one event bound to both steps, or events with variables in one
 # component) is decided by the original `certain` or `plausible`, and never by the closed form. So every

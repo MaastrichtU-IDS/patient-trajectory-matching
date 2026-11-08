@@ -108,14 +108,14 @@ class RouteTests(unittest.TestCase):
 class MappingTests(unittest.TestCase):
     def test_store_rows_equal_the_adapter_rows_mapped(self):
         store, rows = STATE['store'], result()['rows']
-        index = {pid: i for i, pid, _ in store.rows('patients')}
+        index = {pid: i for i, pid, *_ in store.rows("patients")}
         expected_events, expected_concepts = set(), set()
         for r in rows:
             origin = msi.micros(r['clock_origin'])
             i = index[r['patient_id']]
             expected_events.add((i, r['event_id'], r['event_kind'], msi.SOURCE, r['clock_id'],
                                  origin + r['start_us'][0], origin + r['start_us'][1],
-                                 origin + r['end_us'][0], origin + r['end_us'][1], False))
+                                 origin + r['end_us'][0], origin + r['end_us'][1], False, r['start_var'], r['end_var'], True))
             facts = [c['concept'] for c in r['concepts'] if any(b['kind'] == 'semantic_fact' for b in c['basis'])]
             for concept in {r['kind_class'], *facts}:
                 expected_concepts.add((i, r['event_id'], concept, 'direct'))
@@ -331,14 +331,44 @@ class RefusalTests(unittest.TestCase):
         self.assertEqual(counts['events_refused'], len(rows))
         self.assertEqual({p['patient_id'] for p in patients}, {'11', '13', '14'})
 
-    def test_a_variable_shared_across_stores_is_refused(self):
-        rows = deepcopy(result()['rows'])
-        p11 = [r for r in rows if r['patient_id'] == '11']
-        p11[-1]['start_var'] = p11[0]['start_var']
+    def test_a_variable_shared_across_stores_is_kept_and_shared_in_the_store(self):
+        # Before D24 a time variable named by rows in two of a patient's stores refused the patient
+        # (SHARED_SOURCE_VARIABLE). The store now keeps every event's variables, so the patient is kept and
+        # the two events share one start. Patient 11's first 2001 infusion (first store) and its first 2002
+        # infusion (third store) are given one uncertain start: `after` 0 to 0 between them is exact
+        # through the shared variable and only possible without it, and the store decides as the engine
+        # does on the adapter's rows directly.
         prepared = result()['prepared']
-        _, _, _, refused, _ = msi.store_patients(rows, claim_provenance=prepared['claim_provenance'],
-                                                 stays=prepared['stays'], items=prepared['items'])
-        self.assertEqual(refused[msi.REFUSAL]['by_adapter_reason'], {'SHARED_SOURCE_VARIABLE': 1})
+        query = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'a', 'concept': ITEM + '2001', 'occurrence': 'first'},
+                                                      {'id': 'b', 'concept': ITEM + '2002', 'occurrence': 'first'}],
+                 'relations': [{'id': 'R', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 0, 'max': 0}]}
+        window = {'start': 0, 'end': es.MAX_TIME}
+        statuses = {}
+        for share in (True, False):
+            rows = deepcopy(result()['rows'])
+            p11 = {r['event_id'].rsplit('_', 1)[1]: r for r in rows if r['patient_id'] == '11'}
+            first, other = p11['1'], p11['44']
+            self.assertNotEqual(first['snapshot_context_id'], other['snapshot_context_id'])
+            for r in (first, other):
+                r['start_us'] = [0, 10 * MINUTE]
+            if share:
+                other['start_var'] = first['start_var']
+            patients, ancestors, bases, refused, _ = msi.store_patients(
+                rows, claim_provenance=prepared['claim_provenance'], stays=prepared['stays'], items=prepared['items'])
+            self.assertEqual(refused[msi.REFUSAL], {'patients': 0, 'by_adapter_reason': {}})
+            p = next(p for p in patients if p['patient_id'] == '11')
+            self.assertEqual(es.shares_variables(p['events']), share)
+            self.assertTrue(all(e['proper'] for e in p['events']))
+            self.assertEqual(sum(e['start_var'] == first['start_var'] for e in p['events']), 2 if share else 1)
+            ingest = msi.ingest_document(patients, ancestors, bases, dataset_id='shared-across-stores',
+                                         provenance=result()['ingest']['provenance'])
+            engine_input = verify.adapter_engine_input(rows, prepared['items'])
+            with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp)) as store:
+                self.assertEqual(store.query("SELECT shared_variables FROM patients WHERE patient_id = '11'"), [(share,)])
+                got = next(r for r in es.match(store, query, {'11': window})['results'] if r['patient_id'] == '11')
+            self.assertEqual(got, tg.match(query, {'patient_id': '11', 'window': window, 'events': engine_input['11']}))
+            statuses[share] = got['status']
+        self.assertEqual(statuses, {True: 'exact', False: 'possible'})
 
     def test_the_store_itself_refuses_a_patient_declared_not_box_representable(self):
         ingest = deepcopy(result()['ingest'])
@@ -421,16 +451,22 @@ class MatchingTests(unittest.TestCase):
 class PerBucketDeriveTests(unittest.TestCase):
     def test_the_snapshot_holds_the_digests_recorded_before_the_per_bucket_derive_at_any_part_size(self):
         """D23: the per-bucket derive gives the fixture's tables, excluded records included, exactly
-        as main's single-statement derive did (`patterns/fixtures/execution_store_content_digests.json`)."""
+        as main's single-statement derive did (`patterns/fixtures/execution_store_content_digests.json`),
+        at any part size. D24 changed the events (their variables and `proper`, and the adapter profile in
+        their evidence), the patients (`shared_variables`) and so the input digest; every other table is
+        the one recorded."""
         want = json.loads((ei.ROOT / 'patterns/fixtures/execution_store_content_digests.json').read_text())['cases']['mimic']
-        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()}
+        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()
+                            if n not in ('patients', 'events')}
         self.assertGreater(want['tables']['excluded_records']['rows'], 0)
         manifests = [STATE['store'].manifest]
         with tempfile.TemporaryDirectory() as tmp:
             manifests.append(json.loads((es.build(result()['ingest'], tmp, part_rows=1) / 'manifest.json').read_text()))
         for manifest in manifests:
-            self.assertEqual(manifest['input_digest'], want['input_digest'])
-            self.assertEqual(tables(manifest), want['tables'])
+            self.assertEqual(tables(manifest), {n: t for n, t in want['tables'].items() if n not in ('patients', 'events')})
+            self.assertEqual(manifest['tables']['events']['rows'], want['tables']['events']['rows'])
+        self.assertEqual(manifests[0]['input_digest'], manifests[1]['input_digest'])
+        self.assertEqual(manifests[0]['tables'], manifests[1]['tables'])
 
 
 class CommandLineTests(unittest.TestCase):

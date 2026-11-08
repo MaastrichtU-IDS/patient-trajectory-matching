@@ -78,7 +78,9 @@ LIMITATIONS = (
     'Queries are the scaling benchmark\'s seeded random queries (10 at 100,000 patients and above), not a clinical mix; '
     'percentiles over 10 queries rest on few samples, and the maximum is the slowest single query.',
     'Arm A is the code of the stated git ref extracted and imported from a scratch directory; both arms read the same '
-    'snapshot files. The snapshots were built by the builder at the ref the report states, not by the final tree.',
+    'snapshot files. The snapshots were built by the builder at the ref the report states, not by the final tree. '
+    'Arm A\'s code reads execution store 2.0; it opens the 2.1 snapshots (D24, which only added columns) as the same '
+    'files under a manifest relabelled 2.0 (`snapshot_view` in its arm entries).',
     'Peak memory is the query process\'s maximum resident set size. It includes the interpreter, DuckDB buffers, the '
     'caller\'s windows dictionary (one entry per patient, rebuilt for each query) and the full result, which for '
     "detail='full' is one dict per patient and is part of what the caller asked for.",
@@ -120,6 +122,26 @@ def result_digest(result):
 
 # The worker: one arm, one snapshot.
 
+def readable_snapshot(es, snapshot, scratch):
+    """The snapshot as the arm's code can open it: itself, or, when its profile is newer than the code's, a
+    view of the same Parquet files (each linked, none copied) under a manifest relabelled with the code's
+    profile and the identifier the code computes for it. Execution store 2.1 (D24) only added columns, which
+    older code never selects, so the old code reads the same rows of its own columns; the files, their
+    digests, the tables' content digests and the input digest are the snapshot's. Returns (path, note)."""
+    manifest = json.loads((Path(snapshot) / 'manifest.json').read_text())
+    if manifest['profile'] == es.PROFILE:
+        return snapshot, None
+    view = Path(scratch) / f'snapshot-as-{es.PROFILE}'  # not a 64-hex name, so no directory check applies
+    for rel in manifest['files']:
+        (view / rel).parent.mkdir(parents=True, exist_ok=True)
+        (view / rel).symlink_to(Path(snapshot).resolve() / rel)
+    relabelled = {**manifest, 'profile': es.PROFILE}
+    relabelled['snapshot_id'] = es.snapshot_identity(relabelled)
+    (view / 'manifest.json').write_text(json.dumps(relabelled, indent=2, sort_keys=True) + '\n')
+    return view, {'snapshot_profile': manifest['profile'], 'read_as_profile': es.PROFILE,
+                  'method': 'the same Parquet files, linked, under a manifest relabelled with the code\'s profile'}
+
+
 def rss_now():
     out = subprocess.run(['ps', '-o', 'rss=', '-p', str(os.getpid())], capture_output=True, text=True)
     return int(out.stdout.strip() or 0) * 1024
@@ -157,7 +179,9 @@ def worker(args):
             loading['seconds'] += time.perf_counter() - t
     es._load_events = timed_load
     inputs, _ = bench.query_inputs(args.queries)
-    store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
+    view_dir = tempfile.mkdtemp(prefix='matcher-view-')
+    snapshot, view = readable_snapshot(es, args.snapshot, view_dir)
+    store = es.open_store(snapshot, 1, 'files', args.memory_limit)
     ids = [r[0] for r in store.query('SELECT patient_id FROM patients ORDER BY patient_idx')]
     bounds = {pid: (lo, hi) for pid, lo, hi in store.query(
         "SELECT p.patient_id, min(c.lo), max(c.hi) FROM patients p LEFT JOIN coverage c USING (patient_idx) "
@@ -196,6 +220,8 @@ def worker(args):
         runs.append(rows)
     out = {'runs': runs, 'rss_after_open_bytes': baseline, 'code': es.__file__,
            'engine_wrapper': name, 'detail': args.detail}
+    if view:
+        out['snapshot_view'] = view
     if pool_info:
         pool_info['worker_peak_rss_bytes'] = pool.worker_peak_rss
         pool_info['worker_memory_limit'] = pool.memory_limit
@@ -204,6 +230,7 @@ def worker(args):
         out['pool'] = pool_info
         es.close_pools()
     store.close()
+    shutil.rmtree(view_dir, ignore_errors=True)
     return out
 
 
@@ -278,6 +305,7 @@ def arm_statistics(result, record, patients):
             'query_process': {'peak_rss_bytes': record['peak_rss_bytes'], 'rss_after_open_bytes': result['rss_after_open_bytes'],
                               'wall_seconds': record['wall_seconds']},
             'code': result['code'], 'detail': result['detail'],
+            **({'snapshot_view': result['snapshot_view']} if result.get('snapshot_view') else {}),
             'per_query': [{k: q[k] for k in ('seed', 'candidates', 'match_seconds', 'engine_seconds', 'load_seconds',
                                               'listed_results')} for q in per_query]}, per_query
 

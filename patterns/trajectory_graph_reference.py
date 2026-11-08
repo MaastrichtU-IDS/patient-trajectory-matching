@@ -5,7 +5,8 @@ constraint semantics and the time model are written here again from
 docs/trajectory-graph-profile.md, so a defect in the engine's arc consistency, interval
 propagation, search or variable sharing does not reappear in the oracle it is compared
 with. Each test runs Bellman-Ford over the whole patient's times: one node per named
-variable, so events and steps that name one variable share it.
+variable, so events and steps that name one variable share it, and an edge from each
+event's end to its start, of weight -1 for a proper event and 0 otherwise.
 """
 from decimal import Decimal
 from fractions import Fraction
@@ -24,16 +25,18 @@ def _events(patient):
         if 'end' in e:
             end = (e['end'][0], INF if e['end'][1] is None else e['end'][1])
             names = {'s': s_name, 'f': e.get('end_var', e['id'] + '.f')}
-            out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': start, 'f': end, 'point': False, 'var': names})
+            out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': start, 'f': end, 'point': False, 'var': names,
+                        'proper': e.get('proper') is True})
         else:
             out.append({'id': e['id'], 'concepts': set(e['concepts']), 's': start, 'f': start, 'point': True,
-                        'var': {'s': s_name, 'f': s_name}})
+                        'var': {'s': s_name, 'f': s_name}, 'proper': False})
     return out
 
 
 def _facts(events, window):
     """What every choice of the patient's times satisfies, as (u, v, w): value(v) - value(u) <= w.
-    Every range naming a variable bounds it; every event ends at or after it starts."""
+    Every range naming a variable bounds it; every event ends at or after it starts, and a proper
+    event at least one grid step after: value(start) - value(end) <= -1."""
     out = []
     for anchor, value in (('START', window['start']), ('END', window['end'])):
         out += [('ZERO', anchor, value), (anchor, 'ZERO', -value)]
@@ -45,7 +48,7 @@ def _facts(events, window):
             if hi != INF:
                 out.append(('ZERO', node, hi))
         if not e['point']:
-            out.append((('time', e['var']['f']), ('time', e['var']['s']), 0))
+            out.append((('time', e['var']['f']), ('time', e['var']['s']), -1 if e['proper'] else 0))
     return out
 
 
