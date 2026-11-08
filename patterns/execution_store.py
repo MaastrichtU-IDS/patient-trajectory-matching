@@ -3,11 +3,13 @@ at a time, and a relaxation-sound candidate filter in front of the trajectory-gr
 
 `StoreBuilder(root, header)` takes the ingest header (profile, dataset id, closure), then one
 patient per `add()`, then the provenance in `finish()`. Each `add()` validates the patient against
-the closure, appends its rows to staging files and its digest to a staged patient list, so Python
-holds one patient at a time. `finish()` derives eight tables in a file-backed DuckDB database under
-a memory limit and writes them as Parquet under `root/<snapshot_id>/`, with a `manifest.json` that
+the closure, appends its rows to the staging files of its bucket's current part (a run of whole
+patients of one bucket) and its digest to a staged patient list, so Python holds one patient at a
+time. `finish()` derives eight tables in a file-backed DuckDB database under a memory limit, one part
+at a time and bucket by bucket, so the derive's working set does not grow with the cohort, and
+writes them as Parquet under `root/<snapshot_id>/`, with a `manifest.json` that
 `schemas/execution-store-manifest.schema.json` validates. `build(ingest, root)` does the same for a
-whole ingest document. Docs: docs/execution-store.md; decisions D19 and D20.
+whole ingest document. Docs: docs/execution-store.md; decisions D19, D20 and D23.
 
 Identity is content, never Parquet bytes. The input digest hashes the header and a sorted list of
 per-patient digests. Each table's content digest hashes its per-bucket digests, and each bucket
@@ -64,6 +66,10 @@ BUCKETS = 8
 WHOLE = 'all'
 # Rows fetched from DuckDB per batch while digesting; any size gives the same digests.
 FETCH_ROWS = 10_000
+# Staged rows (events, event concepts, coverage and excluded records) in one derive part: a part is a
+# run of whole patients of one bucket, and `finish()` derives one part at a time, so the derive's
+# working set depends on this and not on the cohort. Any size gives the same tables (D23).
+PART_ROWS = 2_000_000
 DEFAULT_MEMORY_LIMIT = '4GB'
 CANONICAL_FORM = ('per table and bucket (an unpartitioned table is the one bucket "all"; a partitioned one has buckets '
                   '0..7, empty ones included): sha256 over its rows ordered by the table key, then every column, '
@@ -335,6 +341,11 @@ def bucket_labels(name):
     return [str(b) for b in range(BUCKETS)] if name in PARTITIONED else [WHOLE]
 
 
+def bucket_of(patient_id):
+    """A patient's bucket: the first 32 bits of sha256(patient_id) modulo BUCKETS, as the derive's SQL computes it."""
+    return int(hashlib.sha256(patient_id.encode('utf-8')).hexdigest()[:8], 16) % BUCKETS
+
+
 def table_digest(buckets):
     """A table's content digest from its bucket digests, in bucket order: see CANONICAL_FORM."""
     return _sha256(''.join(f'{label}\t{buckets[label]["content_digest"]}\n' for label in bucket_labels_of(buckets)))
@@ -401,6 +412,15 @@ def _connect(path, threads, memory_limit, temp_directory):
     return db
 
 
+# Staged per derive part (a run of whole patients of one bucket); the patient list and the closure are one file each.
+PART_STAGED = ('events', 'concepts', 'coverage', 'excluded')
+
+
+def part_file(stage, name, part):
+    bucket, index = part
+    return Path(stage) / f'{name}.b{bucket}.p{index:05d}.ndjson'
+
+
 def _load_patients(db, stage):
     db.execute(f"CREATE TABLE s_patients AS SELECT * FROM {_read_json(stage / 'patients.ndjson', STAGED['patients'])}")
     duplicate = db.execute('SELECT patient_id FROM s_patients GROUP BY patient_id HAVING count(*) > 1 '
@@ -408,42 +428,108 @@ def _load_patients(db, stage):
     _require(duplicate is None, 'DUPLICATE_PATIENT_ID', duplicate[0] if duplicate else '')
 
 
-def _derive(db, stage):
-    """Create the eight logical tables (plus a bucket column on partitioned ones) from the staging files."""
-    staged = lambda name: _read_json(stage / f'{name}.ndjson', STAGED[name])
+class _Statements:
+    """Runs the derive's statements, timing each kind and reading DuckDB's own memory accounting
+    (`duckdb_memory()`) after each, for `on_stage`."""
+
+    def __init__(self, db):
+        self.db = db
+        self.reset()
+
+    def reset(self):
+        self.seconds, self.memory, self.temporary, self.count = {}, 0, 0, 0
+
+    def __call__(self, kind, sql):
+        started = time.perf_counter()
+        self.db.execute(sql)
+        self.seconds[kind] = self.seconds.get(kind, 0.0) + time.perf_counter() - started
+        self.count += 1
+        used, temporary = self.db.execute(
+            'SELECT sum(memory_usage_bytes), sum(temporary_storage_bytes) FROM duckdb_memory()').fetchone()
+        self.memory, self.temporary = max(self.memory, int(used or 0)), max(self.temporary, int(temporary or 0))
+
+    def report(self):
+        out = {'statements': self.count, 'statement_seconds': {k: round(v, 3) for k, v in self.seconds.items()},
+               'duckdb_memory_max_bytes': self.memory, 'duckdb_temporary_max_bytes': self.temporary}
+        try:
+            out['process_peak_rss_bytes'] = _peak_rss()
+        except ImportError:  # pragma: no cover - no `resource` module (Windows)
+            pass
+        self.reset()
+        return out
+
+
+def _create_table(db, name, columns):
+    db.execute(f'CREATE TABLE {name} ({", ".join(f"{c} {t}" for c, t in columns)})')
+
+
+def _derive(db, stage, parts, on_stage=None):
+    """Create the eight logical tables (plus a bucket column on partitioned ones) from the staging files.
+
+    Patient-keyed rows are derived one part at a time, bucket by bucket (D23). Every row of
+    `events`, `event_concepts`, `coverage`, `excluded_records` and `concept_postings` depends on
+    one patient's staged rows (and the closure and the patient index), and every patient is in
+    exactly one part, so the union of the parts' rows is the table a single statement over all
+    the staging gives; `source_concepts` is the distinct union of each part's distinct pairs.
+    `on_stage('derived:bucket=k', info)` reports each bucket's statement times and memory.
+    """
+    run = _Statements(db)
+    staged = lambda name, part=None: _read_json(stage / f'{name}.ndjson' if part is None else part_file(stage, name, part),
+                                                STAGED[name])
     # Dense index by sorted identifier; bucket from the identifier alone, so it never moves.
-    db.execute(f"""CREATE TABLE p AS SELECT
+    run('patient_index', f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
         (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {BUCKETS})::INTEGER AS bucket, clock_id
         FROM s_patients""")
-    db.execute('CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket FROM p')
-    db.execute(f"""CREATE TABLE events AS SELECT p.patient_idx, e.event_id, e.kind, e.source, p.clock_id,
-        e.start_lo, e.start_hi, e.end_lo, e.end_hi, (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing,
-        e.evidence, p.bucket FROM {staged('events')} e JOIN p USING (patient_id)""")
-    db.execute(f"""CREATE TABLE event_concepts AS SELECT p.patient_idx, c.event_id, c.concept, 'direct' AS basis,
-        p.bucket FROM {staged('concepts')} c JOIN p USING (patient_id)""")
-    db.execute(f'''CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version, concept_basis, ancestor_basis
-        FROM {staged('closure')}''')
-    db.execute("""CREATE TABLE concept_postings AS
-        WITH expanded AS (SELECT DISTINCT ec.patient_idx, ec.event_id, cc.ancestor AS concept
-                          FROM event_concepts ec JOIN concept_closure cc ON cc.concept = ec.concept)
-        SELECT x.concept, x.patient_idx, count(*)::BIGINT AS n, min(e.start_lo) AS min_start_lo,
-               max(e.start_hi) AS max_start_hi
-        FROM expanded x JOIN events e USING (patient_idx, event_id) GROUP BY x.concept, x.patient_idx""")
-    db.execute(f"""CREATE TABLE coverage AS SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
-        FROM {staged('coverage')} c JOIN p USING (patient_id)""")
-    # Which sources record each concept (through the closure), fixed at build time so that a
-    # comparability answer never depends on which patients a query happens to see.
-    db.execute("""CREATE TABLE source_concepts AS SELECT DISTINCT e.source, cc.ancestor AS concept,
-        'inferred_from_records' AS basis
-        FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
-        JOIN concept_closure cc ON cc.concept = ec.concept""")
-    # Identical excluded records (same patient, source, concept, start and reason) are one row with a count.
-    db.execute(f"""CREATE TABLE excluded_records AS SELECT p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi,
-        x.reason, count(*)::BIGINT AS n, p.bucket
-        FROM {staged('excluded')} x JOIN p USING (patient_id)
-        GROUP BY p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi, x.reason, p.bucket""")
-    db.execute('DROP TABLE p')
+    run('patients', 'CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket FROM p')
+    run('concept_closure', f'''CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version, concept_basis,
+        ancestor_basis FROM {staged('closure')}''')
+    for name in PARTITIONED:
+        _create_table(db, name, TABLES[name] + (('bucket', 'INTEGER'),))
+    _create_table(db, 'concept_postings', TABLES['concept_postings'])
+    _create_table(db, 'part_source_concepts', (('source', 'VARCHAR'), ('concept', 'VARCHAR')))
+    if on_stage:
+        on_stage('derived:whole', run.report())
+    # Rows inserted bucket by bucket keep each bucket's rows together, so `WHERE bucket = k` skips the rest.
+    for bucket in range(BUCKETS):
+        mine = [part for part in parts if part[0] == bucket]
+        for part in mine:
+            run('events', f"""CREATE TEMP TABLE part_events AS SELECT p.patient_idx, e.event_id, e.kind, e.source,
+                p.clock_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
+                (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing, e.evidence, p.bucket
+                FROM {staged('events', part)} e JOIN p USING (patient_id)""")
+            run('event_concepts', f"""CREATE TEMP TABLE part_concepts AS SELECT p.patient_idx, c.event_id, c.concept,
+                'direct' AS basis, p.bucket FROM {staged('concepts', part)} c JOIN p USING (patient_id)""")
+            run('concept_postings', """INSERT INTO concept_postings
+                WITH expanded AS (SELECT DISTINCT ec.patient_idx, ec.event_id, cc.ancestor AS concept
+                                  FROM part_concepts ec JOIN concept_closure cc ON cc.concept = ec.concept)
+                SELECT x.concept, x.patient_idx, count(*)::BIGINT AS n, min(e.start_lo) AS min_start_lo,
+                       max(e.start_hi) AS max_start_hi
+                FROM expanded x JOIN part_events e USING (patient_idx, event_id) GROUP BY x.concept, x.patient_idx""")
+            # Which sources record each concept (through the closure), fixed at build time so that a
+            # comparability answer never depends on which patients a query happens to see.
+            run('source_concepts', """INSERT INTO part_source_concepts SELECT DISTINCT e.source, cc.ancestor
+                FROM part_events e JOIN part_concepts ec USING (patient_idx, event_id)
+                JOIN concept_closure cc ON cc.concept = ec.concept""")
+            run('events', 'INSERT INTO events SELECT * FROM part_events')
+            run('event_concepts', 'INSERT INTO event_concepts SELECT * FROM part_concepts')
+            run('events', 'DROP TABLE part_events')
+            run('event_concepts', 'DROP TABLE part_concepts')
+            run('coverage', f"""INSERT INTO coverage SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
+                FROM {staged('coverage', part)} c JOIN p USING (patient_id)""")
+            # Identical excluded records (same patient, source, concept, start and reason) are one row with a count.
+            run('excluded_records', f"""INSERT INTO excluded_records SELECT p.patient_idx, x.source, x.concept,
+                x.start_lo, x.start_hi, x.reason, count(*)::BIGINT AS n, p.bucket
+                FROM {staged('excluded', part)} x JOIN p USING (patient_id)
+                GROUP BY p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi, x.reason, p.bucket""")
+        if on_stage:
+            on_stage(f'derived:bucket={bucket}', {'parts': len(mine), **run.report()})
+    run('source_concepts', """CREATE TABLE source_concepts AS SELECT DISTINCT source, concept,
+        'inferred_from_records' AS basis FROM part_source_concepts""")
+    run('source_concepts', 'DROP TABLE part_source_concepts')
+    run('patient_index', 'DROP TABLE p')
+    if on_stage:
+        on_stage('derived:source_concepts', run.report())
     _check_types(db)
 
 
@@ -463,11 +549,14 @@ def _write(db, snapshot):
         if name in PARTITIONED:
             target = snapshot / name
             target.mkdir()
-            if db.execute(f'SELECT count(*) FROM {name}').fetchone()[0] == 0:
+            filled = [b for b, in db.execute(f'SELECT DISTINCT bucket FROM {name} ORDER BY bucket').fetchall()]
+            if not filled:
                 db.execute(f"COPY (SELECT {cols}, bucket FROM {name}) TO {_lit(target / 'empty.parquet')} (FORMAT parquet)")
-            else:
-                db.execute(f"""COPY (SELECT {cols}, bucket FROM {name} ORDER BY {SORT[name]}) TO {_lit(target)}
-                               (FORMAT parquet, PARTITION_BY (bucket), WRITE_PARTITION_COLUMNS true)""")
+            # One bucket at a time, in the layout PARTITION_BY (bucket) writes, so each sort holds one bucket.
+            for bucket in filled:
+                (target / f'bucket={bucket}').mkdir()
+                db.execute(f"""COPY (SELECT {cols}, bucket FROM {name} WHERE bucket = {int(bucket)} ORDER BY {SORT[name]})
+                               TO {_lit(target / f'bucket={bucket}' / 'data_0.parquet')} (FORMAT parquet)""")
         else:
             db.execute(f"COPY (SELECT {cols} FROM {name} ORDER BY {SORT[name]}) TO {_lit(snapshot / (name + '.parquet'))} (FORMAT parquet)")
 
@@ -583,9 +672,11 @@ class StoreBuilder:
     Python holds one patient at a time. Duplicate patient ids, an empty stream and anything
     `validate_patient` refuses are refused by name, and nothing is written under `root` on any
     refusal. Used as a context manager, leaving the block unfinished discards the build.
-    `on_stage(name, info)`, when given, is called after each stage of `finish()`.
+    `on_stage(name, info)`, when given, is called after each stage of `finish()`, and after each
+    bucket of the derive with its statement times and DuckDB's memory accounting.
 
-    `work_dir`, when given, holds the staging files, the build database and DuckDB's spill files
+    `part_rows` bounds the staged rows of one derive part; it changes how the work is cut, never
+    the snapshot. `work_dir`, when given, holds the staging files, the build database and DuckDB's spill files
     (for example on another disk); the snapshot itself is always written under `root`, so that
     publishing it is one rename. Each build works in `.building-*` directories, removed when the
     build ends however it ends; a killed process leaves them behind, and `sweep_stale_builds`
@@ -593,12 +684,15 @@ class StoreBuilder:
     """
 
     def __init__(self, root, header, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS,
-                 on_stage=None, work_dir=None):
+                 on_stage=None, work_dir=None, part_rows=PART_ROWS):
         self.header = validate_header(header)  # before anything is written
         self.ancestors = header['closure']['ancestors']
         self.threads, self.memory_limit, self.fetch_rows = threads, _memory_limit(memory_limit), fetch_rows
         if type(fetch_rows) is not int or fetch_rows < 1:
             raise StoreError('INVALID_FETCH_ROWS', repr(fetch_rows))
+        if type(part_rows) is not int or part_rows < 1:
+            raise StoreError('INVALID_PART_ROWS', repr(part_rows))
+        self.part_rows = part_rows
         self.on_stage = on_stage
         self.root = Path(root)
         # Directories this builder creates, so that a refusal leaves no trace of them.
@@ -613,7 +707,10 @@ class StoreBuilder:
             self.work = Path(tempfile.mkdtemp(prefix='.building-', dir=work_dir))
         self.stage = self.work / 'stage'
         self.stage.mkdir()
-        self._files = {name: open(self.stage / f'{name}.ndjson', 'w', encoding='utf-8') for name in STAGED}
+        self._files = {name: open(self.stage / f'{name}.ndjson', 'w', encoding='utf-8')
+                       for name in STAGED if name not in PART_STAGED}
+        # Every part staged so far, in order, and each bucket's open part: (part, {name: file}, staged rows).
+        self.parts, self._current = [], {}
         self.patients = 0
         self.events = 0
         self._open = True
@@ -629,8 +726,21 @@ class StoreBuilder:
         if not self._open:
             raise StoreError('BUILDER_CLOSED', str(self.root))
 
-    def _put(self, name, row):
-        self._files[name].write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
+    def _put(self, name, row, files=None):
+        (files or self._files)[name].write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
+
+    def _part(self, bucket):
+        """The bucket's open part, opened when the bucket has none."""
+        if bucket not in self._current:
+            part = (bucket, sum(1 for b, _ in self.parts if b == bucket))
+            self.parts.append(part)
+            self._current[bucket] = [part, {name: open(part_file(self.stage, name, part), 'w', encoding='utf-8')
+                                            for name in PART_STAGED}, 0]
+        return self._current[bucket]
+
+    def _close_part(self, bucket):
+        for f in self._current.pop(bucket)[1].values():
+            f.close()
 
     def add(self, patient):
         """Validate one patient, stage its rows and its digest. Refusal discards the whole build."""
@@ -641,18 +751,26 @@ class StoreBuilder:
             pid = canonical['patient_id']
             self._put('patients', {'patient_id': pid, 'clock_id': canonical['clock_id'],
                                    'digest': _sha256(_json(canonical))})
+            bucket = bucket_of(pid)
+            current = self._part(bucket)
+            files, rows = current[1], 0
             for e in canonical['events']:
                 end = e.get('end') or [None, None]
                 self._put('events', {'patient_id': pid, 'event_id': e['event_id'], 'kind': e['kind'],
                                      'source': e['source'], 'start_lo': e['start'][0], 'start_hi': e['start'][1],
-                                     'end_lo': end[0], 'end_hi': end[1], 'evidence': _json(e['evidence'])})
+                                     'end_lo': end[0], 'end_hi': end[1], 'evidence': _json(e['evidence'])}, files)
                 for c in e['concepts']:
-                    self._put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c})
+                    self._put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c}, files)
+                rows += 1 + len(e['concepts'])
             for c in canonical['coverage']:
-                self._put('coverage', {'patient_id': pid, **c})
+                self._put('coverage', {'patient_id': pid, **c}, files)
             for x in canonical.get('excluded', []):
                 self._put('excluded', {'patient_id': pid, 'source': x['source'], 'concept': x['concept'],
-                                       'start_lo': x['start'][0], 'start_hi': x['start'][1], 'reason': x['reason']})
+                                       'start_lo': x['start'][0], 'start_hi': x['start'][1], 'reason': x['reason']},
+                          files)
+            current[2] += rows + len(canonical['coverage']) + len(canonical.get('excluded', []))
+            if current[2] >= self.part_rows:  # parts end between patients: a patient is in exactly one part
+                self._close_part(bucket)
             self.patients += 1
             self.events += len(canonical['events'])
         except BaseException:
@@ -677,7 +795,9 @@ class StoreBuilder:
                 self._put('closure', row)
             for f in self._files.values():
                 f.close()
-            self._stage_done('staged', patients=self.patients, events=self.events,
+            for bucket in list(self._current):
+                self._close_part(bucket)
+            self._stage_done('staged', patients=self.patients, events=self.events, parts=len(self.parts),
                              staged_bytes=sum(f.stat().st_size for f in self.stage.iterdir()))
             spill = self.work / 'spill'
             spill.mkdir()
@@ -687,7 +807,7 @@ class StoreBuilder:
                 _load_patients(db, self.stage)
                 input_digest = _input_digest(db, self.header, provenance, self.fetch_rows)
                 self._stage_done('patients_loaded_and_input_digest')
-                _derive(db, self.stage)
+                _derive(db, self.stage, self.parts, self.on_stage)
                 db.execute('DROP TABLE s_patients')
                 shutil.rmtree(self.stage)
                 self._stage_done('derived', database_bytes=(self.work / 'build.duckdb').stat().st_size)
@@ -738,6 +858,8 @@ class StoreBuilder:
         self._open = False
         for f in self._files.values():
             f.close()
+        for bucket in list(self._current):
+            self._close_part(bucket)
         shutil.rmtree(self.work, ignore_errors=True)
         shutil.rmtree(self.publish, ignore_errors=True)
         if not keep_root:
@@ -754,11 +876,11 @@ class StoreBuilder:
 
 
 def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None,
-          work_dir=None):
+          work_dir=None, part_rows=PART_ROWS):
     """Validate, derive and write one immutable snapshot of a whole ingest document under `root`;
     return its directory. A wrapper over `StoreBuilder`: the patients are streamed from the list."""
     header = _validate_document(ingest)
-    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir) as builder:
+    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows) as builder:
         for p in ingest['patients']:
             builder.add(p)
         return builder.finish(ingest.get('provenance'))

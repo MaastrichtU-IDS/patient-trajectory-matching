@@ -763,6 +763,163 @@ class DeterminismTests(unittest.TestCase):
               f'{growth / 1024:.0f} KiB', file=sys.stderr)
 
 
+def main_derive(db, stage):
+    """`_derive` as at main fdd6e97, frozen: every table in one statement over whole staging files (D23)."""
+    staged = lambda name: es._read_json(stage / f'{name}.ndjson', es.STAGED[name])
+    db.execute(f"""CREATE TABLE p AS SELECT
+        (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
+        (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {es.BUCKETS})::INTEGER AS bucket, clock_id
+        FROM s_patients""")
+    db.execute('CREATE TABLE patients AS SELECT patient_idx, patient_id, bucket FROM p')
+    db.execute(f"""CREATE TABLE events AS SELECT p.patient_idx, e.event_id, e.kind, e.source, p.clock_id,
+        e.start_lo, e.start_hi, e.end_lo, e.end_hi, (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing,
+        e.evidence, p.bucket FROM {staged('events')} e JOIN p USING (patient_id)""")
+    db.execute(f"""CREATE TABLE event_concepts AS SELECT p.patient_idx, c.event_id, c.concept, 'direct' AS basis,
+        p.bucket FROM {staged('concepts')} c JOIN p USING (patient_id)""")
+    db.execute(f'''CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version, concept_basis, ancestor_basis
+        FROM {staged('closure')}''')
+    db.execute("""CREATE TABLE concept_postings AS
+        WITH expanded AS (SELECT DISTINCT ec.patient_idx, ec.event_id, cc.ancestor AS concept
+                          FROM event_concepts ec JOIN concept_closure cc ON cc.concept = ec.concept)
+        SELECT x.concept, x.patient_idx, count(*)::BIGINT AS n, min(e.start_lo) AS min_start_lo,
+               max(e.start_hi) AS max_start_hi
+        FROM expanded x JOIN events e USING (patient_idx, event_id) GROUP BY x.concept, x.patient_idx""")
+    db.execute(f"""CREATE TABLE coverage AS SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
+        FROM {staged('coverage')} c JOIN p USING (patient_id)""")
+    db.execute("""CREATE TABLE source_concepts AS SELECT DISTINCT e.source, cc.ancestor AS concept,
+        'inferred_from_records' AS basis
+        FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
+        JOIN concept_closure cc ON cc.concept = ec.concept""")
+    db.execute(f"""CREATE TABLE excluded_records AS SELECT p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi,
+        x.reason, count(*)::BIGINT AS n, p.bucket
+        FROM {staged('excluded')} x JOIN p USING (patient_id)
+        GROUP BY p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi, x.reason, p.bucket""")
+    db.execute('DROP TABLE p')
+
+
+def main_path_digests(ingest, tmp):
+    """(input digest, table digests) of main's single-statement derive over this ingest's staging,
+    gathered from the parts into one file per staged table, as main staged it."""
+    tmp = Path(tmp)
+    header = {k: ingest[k] for k in ('profile', 'dataset_id', 'closure')}
+    whole = tmp / 'whole'
+    whole.mkdir(parents=True)
+    with es.StoreBuilder(tmp / 'unused', header, part_rows=1) as builder:  # left unfinished: discarded
+        for p in ingest['patients']:
+            builder.add(p)
+        for row in es._closure_rows(header['closure']):
+            builder._put('closure', row)
+        for f in builder._files.values():
+            f.close()
+        for bucket in list(builder._current):
+            builder._close_part(bucket)
+        for name in es.STAGED:
+            sources = [es.part_file(builder.stage, name, part) for part in builder.parts] \
+                if name in es.PART_STAGED else [builder.stage / f'{name}.ndjson']
+            with open(whole / f'{name}.ndjson', 'w', encoding='utf-8') as out:
+                for source in sources:
+                    out.write(source.read_text(encoding='utf-8'))
+    (tmp / 'spill').mkdir()
+    db = es._connect(tmp / 'main.duckdb', 1, '1GB', tmp / 'spill')
+    try:
+        es._load_patients(db, whole)
+        input_digest = es._input_digest(db, header, ingest.get('provenance', {}), 1000)
+        main_derive(db, whole)
+        es._check_types(db)
+        return input_digest, es.content_digests(db)
+    finally:
+        db.close()
+
+
+def tables_of(manifest):
+    return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in manifest['tables'].items()}
+
+
+class PerBucketDeriveTests(unittest.TestCase):
+    """D23: deriving one part (a run of whole patients of one bucket) at a time gives the tables and
+    digests main's single-statement derive gave, for any part size."""
+    RECORDED = ROOT / 'patterns/fixtures/execution_store_content_digests.json'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.recorded = json.loads(cls.RECORDED.read_text())['cases']
+
+    def build(self, ingest, tmp, **options):
+        return json.loads((es.build(ingest, Path(tmp) / 'store', **options) / 'manifest.json').read_text())
+
+    def test_the_digests_recorded_before_the_change_are_reproduced_at_any_part_size(self):
+        ingest = _STATE['ingest']
+        times_ten = {**ingest, 'dataset_id': 'synthetic-x10',
+                     'patients': [{**p, 'patient_id': f"{p['patient_id']}~{k}"} if k else p
+                                  for k in range(10) for p in ingest['patients']]}
+        cases = [('synthetic', ingest, {}), ('synthetic', ingest, {'part_rows': 1}),
+                 ('synthetic_x10', times_ten, {}), ('synthetic_x10', times_ten, {'part_rows': 5000}),
+                 ('fixture', fixture(), {}), ('fixture', fixture(), {'part_rows': 1})]
+        for name, case, options in cases:
+            with self.subTest(case=name, **options), tempfile.TemporaryDirectory() as tmp:
+                manifest = self.build(case, tmp, **options)
+                want = self.recorded[name]
+                self.assertEqual(manifest['input_digest'], want['input_digest'])
+                self.assertEqual(tables_of(manifest), want['tables'])
+
+    def test_the_per_part_derive_equals_mains_single_statement_derive(self):
+        g = fixture()
+        g['patients'][0]['excluded'] = [{'source': 'ehr', 'concept': 'seizure', 'start': [day(3), day(4)],
+                                         'reason': 'DROPPED'}] * 2
+        g['patients'][2]['excluded'] = [{'source': 'diary', 'concept': 'valproate', 'start': [day(5), day(5)],
+                                         'reason': 'NOT_ADMITTED'}]
+        g['patients'].append({'patient_id': 'Ünïcode-😀', 'clock_id': 'c', 'coverage': [cover('ehr', day(0), day(9))],
+                              'events': [ev('é', ['dravet', 'valproate'], (day(1), day(2)), (day(3), None))]})
+        for label, ingest in (('synthetic', _STATE['ingest']), ('fixture with excluded records', g)):
+            with tempfile.TemporaryDirectory() as tmp:
+                input_digest, tables = main_path_digests(ingest, Path(tmp) / 'main')
+            for options in ({}, {'part_rows': 1}, {'part_rows': 700}):
+                with self.subTest(case=label, **options), tempfile.TemporaryDirectory() as tmp:
+                    manifest = self.build(ingest, tmp, **options)
+                    self.assertEqual(manifest['input_digest'], input_digest)
+                    self.assertEqual(tables_of(manifest), tables)
+        self.assertGreater(tables['excluded_records']['rows'], 0)
+
+    def test_parts_hold_whole_patients_of_one_bucket_and_each_bucket_is_reported(self):
+        stages = []
+        header = {k: _STATE['ingest'][k] for k in ('profile', 'dataset_id', 'closure')}
+        with tempfile.TemporaryDirectory() as tmp:
+            with es.StoreBuilder(Path(tmp) / 's', header, part_rows=2000,
+                                 on_stage=lambda name, info: stages.append((name, info))) as builder:
+                for p in _STATE['ingest']['patients']:
+                    builder.add(p)
+                for bucket in list(builder._current):
+                    builder._close_part(bucket)
+                seen = Counter()
+                for bucket, index in builder.parts:
+                    ids = {json.loads(line)['patient_id'] for name in ('events', 'coverage')
+                           for line in es.part_file(builder.stage, name, (bucket, index)).read_text().splitlines()}
+                    self.assertTrue(ids and {es.bucket_of(pid) for pid in ids} == {bucket}, (bucket, index))
+                    seen.update(ids)
+                self.assertEqual(set(seen.values()), {1})  # no patient in two parts
+                self.assertGreater(len(builder.parts), es.BUCKETS)
+                snapshot = builder.finish(_STATE['ingest']['provenance'])
+            with es.open_store(snapshot) as store:
+                for idx, pid, bucket in store.rows('patients'):
+                    self.assertEqual(bucket, es.bucket_of(pid))
+                    self.assertEqual(bucket, ref.bucket_of(pid))
+        names = [n for n, _ in stages]
+        self.assertEqual([n for n in names if n.startswith('derived:bucket=')],
+                         [f'derived:bucket={b}' for b in range(es.BUCKETS)])
+        info = dict(stages)
+        self.assertEqual(sum(info[f'derived:bucket={b}']['parts'] for b in range(es.BUCKETS)), info['staged']['parts'])
+        for b in range(es.BUCKETS):
+            row = info[f'derived:bucket={b}']
+            self.assertEqual(set(row['statement_seconds']),
+                             {'events', 'event_concepts', 'concept_postings', 'source_concepts', 'coverage',
+                              'excluded_records'})
+            self.assertGreater(row['duckdb_memory_max_bytes'], 0)
+        self.assertEqual(info['derived:whole']['statements'], 3)
+        with self.assertRaises(es.StoreError) as caught:
+            es.StoreBuilder(Path(tempfile.gettempdir()) / 'never', header, part_rows=0)
+        self.assertEqual(caught.exception.code, 'INVALID_PART_ROWS')
+
+
 class PlantedDefectTests(unittest.TestCase):
     def test_a_dropped_closure_row_fails_the_table_comparison(self):
         original = es._closure_rows

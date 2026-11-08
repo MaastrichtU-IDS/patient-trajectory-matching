@@ -418,6 +418,21 @@ class MatchingTests(unittest.TestCase):
         self.assertGreater(check['status_mix'].get('exact', 0), 0)
 
 
+class PerBucketDeriveTests(unittest.TestCase):
+    def test_the_snapshot_holds_the_digests_recorded_before_the_per_bucket_derive_at_any_part_size(self):
+        """D23: the per-bucket derive gives the fixture's tables, excluded records included, exactly
+        as main's single-statement derive did (`patterns/fixtures/execution_store_content_digests.json`)."""
+        want = json.loads((ei.ROOT / 'patterns/fixtures/execution_store_content_digests.json').read_text())['cases']['mimic']
+        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()}
+        self.assertGreater(want['tables']['excluded_records']['rows'], 0)
+        manifests = [STATE['store'].manifest]
+        with tempfile.TemporaryDirectory() as tmp:
+            manifests.append(json.loads((es.build(result()['ingest'], tmp, part_rows=1) / 'manifest.json').read_text()))
+        for manifest in manifests:
+            self.assertEqual(manifest['input_digest'], want['input_digest'])
+            self.assertEqual(tables(manifest), want['tables'])
+
+
 class CommandLineTests(unittest.TestCase):
     def test_the_fixture_builds_into_the_output_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
