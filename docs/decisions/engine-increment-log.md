@@ -37,6 +37,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D23 | Per-bucket derive: the store builds at 1M patients | Decided; 1,000,000 patients build and verify under a 4 GB limit; verification memory follow-up done in D24 |
 | D24 | Shared variables end to end: strict intervals in the engine; the store holds shared variables | Decided |
 | D25 | D24 review follow-ups; time pruning on the posting summaries, under a rule fixed before measuring | Decided; pruning kept: exact, arm B −18.4% per candidate at 300,000, 8-worker p95 8.41 s; ranged Parquet write not done |
+| D26 | Execution store 3.0: typed event columns and an evidence table; end summaries for `during`; typed staging; D25 follow-ups, under rules fixed before measuring | Rules fixed; in progress |
 
 ## D1 Package with hatchling, in place
 
@@ -569,3 +570,22 @@ D22 passed shared source variables to the engine and left three follow-ups. Firs
 - `_prune` relies on its candidates being sorted (its `BETWEEN` bound); `_candidates` sorts them, but a cheap assertion would protect other callers.
 - The worker in `tools/benchmark_matcher.py` does not close its store and pool if a query raises (the scratch directory is still removed).
 - Ranging the Parquet-write sort (the build peak) needs control over DuckDB's writer that `COPY` does not give.
+
+## D26 Execution store 3.0: typed event columns and an evidence table; end summaries; typed staging
+
+One store-format increment with four parts, bundled so that the heavy reports are regenerated once:
+1. the D5 event fields (status, selection state, recorded and available times, claim identifier and digest, source table, record and file digest) leave `events.evidence` for typed columns, and the remaining free-form evidence moves to its own patient-partitioned table, which matching does not read;
+2. per-concept end summaries in `concept_postings`, so that a `during` relation's grace can prune;
+3. typed staging in place of ndjson;
+4. the D25 review's follow-ups in `tools/benchmark_matcher.py` and `_prune`.
+
+**Pre-committed rules** (written and committed before any measurement of this increment, as D25's were).
+- *Exactness, for every part.* No matcher result may change at any `detail` level: every per-query result digest in the regenerated matcher comparison must equal arm A's and arm B's counterparts, the 300 recorded match digests (`patterns/fixtures/execution_store_match_digests.json`) must be unchanged, and every figure of the MIMIC demo report other than identifiers, digests and timings must be unchanged, unless a recorded result is shown to have been wrong.
+- *End-summary pruning.* Keep it only if all three hold:
+  1. it is exact: pruning on against off byte-identical (`json.dumps` without sorting keys) on the synthetic cohort, the shared-variable fuzz cohorts and the differential suites, at 1 and 2 workers; the D25 reviewer's fuzz (`/tmp/rv25/`), adapted to end summaries, finds no difference; and planted defects in the end test fail;
+  2. arm B's end-to-end cost per candidate at 300,000 patients, in the regenerated matcher comparison's main run (ten queries, `per_candidate_microseconds.end_to_end`), is at most 3% above D25's 279.6 µs, that is at most 288.0 µs;
+  3. the share of candidates with a window that pruning proves `none`, over the 30 confirmation queries, is higher with end summaries than with start summaries alone, both counted in the same run.
+
+  Otherwise the summaries and the code that reads them are removed, and the numbers are recorded here. Pilot first: arm B on a few queries at 300,000 patients, end summaries on and off, before the full regeneration.
+- *Typed staging.* Keep it only if, at 1,000,000 patients in the regenerated scaling report, the build time (`build_seconds`, add to publish) or the staged bytes are at least 20% below the D25 report's (4,958 s; 120.1 GB), and the build process's peak resident memory is at most 5% above the D25 report's (8.135 GiB, so at most 8.54 GiB). Otherwise revert to ndjson staging and record the numbers. Pilot first at 100,000 to 300,000 patients, typed against ndjson staging in the same tree. The 1,000,000-patient comparison is against a report of the 2.1 format, so it includes the format change of part 1; the pilot's same-tree comparison separates staging from format, and is reported beside it.
+- *Typed columns and the evidence table* are a design change, not an experiment, and stay whatever the measurements show. Their effect on event loading (arm B's loading cost per candidate), digest time (content verification), snapshot size and build time is reported against D25, and a regression is stated as one.
