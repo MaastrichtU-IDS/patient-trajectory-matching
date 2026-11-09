@@ -286,6 +286,8 @@ def worker(args):
         if not hasattr(es, '_PRUNE'):
             raise RuntimeError(f'{es.__file__} has no time pruning to turn off')
         es._PRUNE = False
+    if args.no_prune_ends:  # time pruning on the start summaries alone (D26), for a pilot
+        es._PRUNE_ENDS = False
     store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
     pool = None
     try:  # the store and any pool are closed however the queries end (D25 review)
@@ -641,6 +643,7 @@ def main(argv=None):
     parser.add_argument('--detail', default='full', help=argparse.SUPPRESS)
     parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)
     parser.add_argument('--no-prune', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--no-prune-ends', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--build-worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--work-dir', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
