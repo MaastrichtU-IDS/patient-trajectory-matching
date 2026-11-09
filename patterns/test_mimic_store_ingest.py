@@ -119,8 +119,16 @@ class MappingTests(unittest.TestCase):
             facts = [c['concept'] for c in r['concepts'] if any(b['kind'] == 'semantic_fact' for b in c['basis'])]
             for concept in {r['kind_class'], *facts}:
                 expected_concepts.add((i, r['event_id'], concept, 'direct'))
-        self.assertEqual({row[:-1] for row in store.rows('events')}, expected_events)
+        self.assertEqual({row[:13] for row in store.rows('events')}, expected_events)
         self.assertEqual(set(store.rows('event_concepts')), expected_concepts)
+        # The record columns (D26): the row's status and selection state, its claim, the source table.
+        by_event = {r['event_id']: r for r in rows}
+        for row in store.rows('events'):
+            record = dict(zip([c for c, _ in es.TABLES['events']], row))
+            r = by_event[record['event_id']]
+            self.assertEqual((record['status'], record['selection_state'], record['claim_id'], record['source_table']),
+                             (r['record_status'], r['selection_state'], 'claim_' + r['event_id'], msi.SOURCE_TABLE))
+            self.assertIsNone(record['available_at'])
 
     def test_every_table_equals_the_reference_row_for_row(self):
         store, ingest = STATE['store'], result()['ingest']
@@ -160,20 +168,31 @@ class MappingTests(unittest.TestCase):
                 self.assertEqual(e['start'][0], e['evidence']['clock_origin_us'] + e['evidence']['declared_start_us'][0])
         self.assertEqual(msi.micros('0001-01-02T00:00:00'), 86_400_000_000)
 
-    def test_evidence_carries_claim_identity_and_recorded_time(self):
-        by_key = segments()
+    def test_record_fields_carry_claim_identity_and_recorded_time(self):
+        """The D5 record fields are the event's typed fields (D26), and the evidence keeps the rest of the row's
+        provenance without repeating them."""
+        by_key, rows = segments(), {r['event_id']: r for r in result()['rows']}
         for p in result()['ingest']['patients']:
             for e in p['events']:
                 ev, segment = e['evidence'], by_key[e['evidence']['source_key']]
                 claim = importer.describe(segment, msi.FIXTURE_DATASET)
-                self.assertEqual(ev['claim_id'], claim['id'])
-                self.assertEqual(ev['claim_sha256'], cr.digest(claim))
-                self.assertEqual(ev['recorded_at_us'], msi.micros(segment['recorded_at']['raw_value']))
-                self.assertIsNone(ev['available_at_us'])
+                self.assertEqual(e['claim_id'], claim['id'])
+                self.assertEqual(e['claim_sha256'], cr.digest(claim))
+                self.assertEqual(e['recorded_at'], msi.micros(segment['recorded_at']['raw_value']))
+                self.assertNotIn('available_at', e)  # MIMIC gives no availability time
+                self.assertEqual(e['record_sha256'], segment['source']['row_sha256'])
+                self.assertEqual(e['file_sha256'], segment['source']['file_sha256'])
+                self.assertEqual((e['selection_state'], e['source_table']), ('accepted', msi.SOURCE_TABLE))
+                self.assertEqual(e['status'], rows[e['event_id']]['record_status'])
                 self.assertEqual(ev['history_mode'], 'retrospective')
                 self.assertFalse(ev['clinical_mapping_verified'])
-                self.assertEqual(ev['source_row_sha256'], segment['source']['row_sha256'])
-                self.assertEqual(ev['selection_state'], 'accepted')
+                self.assertFalse(set(es.RECORD_FIELDS) & set(ev))
+                self.assertFalse({'record_status', 'recorded_at_us', 'available_at_us', 'source_row_sha256',
+                                  'source_file_sha256'} & set(ev))
+        # The store keeps them as columns, and the evidence as given, in its own table.
+        store = STATE['store']
+        for p in result()['ingest']['patients'][:5]:
+            self.assertEqual(store.evidence(p['patient_id']), {e['event_id']: e['evidence'] for e in p['events']})
 
 
 class LabelTests(unittest.TestCase):
@@ -460,23 +479,27 @@ class MatchingTests(unittest.TestCase):
 
 class PerBucketDeriveTests(unittest.TestCase):
     def test_the_snapshot_holds_the_digests_recorded_before_the_per_bucket_derive_at_any_part_size(self):
-        """D23: the per-bucket derive gives the fixture's tables, excluded records included, exactly
-        as main's single-statement derive did (`patterns/fixtures/execution_store_content_digests.json`),
-        at any part size. D24 changed the events (their variables and `proper`, and the adapter profile in
-        their evidence), the patients (`shared_variables`) and so the input digest; every other table is
-        the one recorded."""
-        want = json.loads((ei.ROOT / 'patterns/fixtures/execution_store_content_digests.json').read_text())['cases']['mimic']
-        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()
-                            if n not in ('patients', 'events')}
+        """D23 and D26: at any part size the snapshot holds the input digest and every table recorded for 3.0 with
+        ndjson staging (`patterns/fixtures/execution_store_content_digests_3_0.json`), and, read as 2.0's tables,
+        the fixture's tables, excluded records included, exactly as main's single-statement derive gave them
+        (`execution_store_content_digests.json`), but for `events`: D24 gave the events their variables and
+        `proper` and put the adapter profile in their evidence, and D26 their record fields."""
+        from .test_execution_store import digests_2_0
+        recorded = lambda name: json.loads((ei.ROOT / 'patterns/fixtures' / name).read_text())['cases']['mimic']
+        want, want_3_0 = recorded('execution_store_content_digests.json'), recorded('execution_store_content_digests_3_0.json')
+        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()}
         self.assertGreater(want['tables']['excluded_records']['rows'], 0)
-        manifests = [STATE['store'].manifest]
         with tempfile.TemporaryDirectory() as tmp:
-            manifests.append(json.loads((es.build(result()['ingest'], tmp, part_rows=1) / 'manifest.json').read_text()))
-        for manifest in manifests:
-            self.assertEqual(tables(manifest), {n: t for n, t in want['tables'].items() if n not in ('patients', 'events')})
-            self.assertEqual(manifest['tables']['events']['rows'], want['tables']['events']['rows'])
-        self.assertEqual(manifests[0]['input_digest'], manifests[1]['input_digest'])
-        self.assertEqual(manifests[0]['tables'], manifests[1]['tables'])
+            for options in ({}, {'part_rows': 1}):
+                snapshot = es.build(result()['ingest'], Path(tmp) / str(len(options)), **options)
+                manifest = json.loads((snapshot / 'manifest.json').read_text())
+                self.assertEqual({'input_digest': manifest['input_digest'], 'tables': tables(manifest)},
+                                 {k: want_3_0[k] for k in ('input_digest', 'tables')})
+                old = digests_2_0(snapshot)
+                self.assertEqual({n: t for n, t in old.items() if n != 'events'},
+                                 {n: t for n, t in want['tables'].items() if n != 'events'})
+                self.assertEqual(old['events']['rows'], want['tables']['events']['rows'])
+        self.assertEqual(STATE['store'].manifest['tables'], manifest['tables'])
 
 
 class CommandLineTests(unittest.TestCase):

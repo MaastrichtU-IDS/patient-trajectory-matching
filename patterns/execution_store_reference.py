@@ -19,13 +19,18 @@ import json
 from . import trajectory_graph as tg
 
 BUCKET_COUNT = 8
+# The record fields an event may carry (D26), each its own column, null where the event does not say.
+RECORD = ['status', 'selection_state', 'recorded_at', 'available_at', 'claim_id', 'claim_sha256', 'source_table',
+          'record_sha256', 'file_sha256']
 COLUMNS = {
     'patients': ['patient_idx', 'patient_id', 'bucket', 'shared_variables'],
     'events': ['patient_idx', 'event_id', 'kind', 'source', 'clock_id', 'start_lo', 'start_hi', 'end_lo', 'end_hi',
-               'ongoing', 'start_var', 'end_var', 'proper', 'evidence'],
+               'ongoing', 'start_var', 'end_var', 'proper', 'status', 'selection_state', 'recorded_at', 'available_at',
+               'claim_id', 'claim_sha256', 'source_table', 'record_sha256', 'file_sha256'],
+    'event_evidence': ['patient_idx', 'event_id', 'evidence'],
     'event_concepts': ['patient_idx', 'event_id', 'concept', 'basis'],
     'concept_closure': ['concept', 'ancestor', 'basis', 'version', 'concept_basis', 'ancestor_basis'],
-    'concept_postings': ['concept', 'patient_idx', 'n', 'min_start_lo', 'max_start_hi'],
+    'concept_postings': ['concept', 'patient_idx', 'n', 'min_start_lo', 'max_start_hi', 'max_end_hi'],
     'coverage': ['patient_idx', 'source', 'clock_id', 'lo', 'hi', 'basis'],
     'source_concepts': ['source', 'concept', 'basis'],
     'excluded_records': ['patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason', 'n'],
@@ -108,17 +113,22 @@ def build_tables(ingest):
                 end_lo, end_hi = e['end']
             else:
                 end_lo = end_hi = None
-            tables['events'].append((i, e['event_id'], e['kind'], e['source'], clock, lo, hi, end_lo, end_hi,
-                                     end_lo is not None and end_hi is None, e.get('start_var'), e.get('end_var'),
-                                     bool(e.get('proper', False)), evidence_text(e['evidence'])))
+            ongoing = end_lo is not None and end_hi is None
+            tables['events'].append((i, e['event_id'], e['kind'], e['source'], clock, lo, hi, end_lo, end_hi, ongoing,
+                                     e.get('start_var'), e.get('end_var'), bool(e.get('proper', False)),
+                                     *(e.get(f) for f in RECORD)))
+            tables['event_evidence'].append((i, e['event_id'], evidence_text(e['evidence'])))
             for c in e['concepts']:
                 tables['event_concepts'].append((i, e['event_id'], c, 'direct'))
+            # The latest the event can end: a point ends when it starts; an ongoing exposure has no bound (None).
+            finish = None if ongoing else (hi if end_lo is None else end_hi)
             for c in expanded(e['concepts'], ancestors):
-                n, first, last = postings.get(c, (0, lo, hi))
-                postings[c] = (n + 1, min(first, lo), max(last, hi))
+                n, first, last, latest = postings.get(c, (0, lo, hi, finish))
+                postings[c] = (n + 1, min(first, lo), max(last, hi),
+                               None if latest is None or finish is None else max(latest, finish))
                 recorded.add((e['source'], c))
-        for c, (n, first, last) in postings.items():
-            tables['concept_postings'].append((c, i, n, first, last))
+        for c, (n, first, last, latest) in postings.items():
+            tables['concept_postings'].append((c, i, n, first, last, latest))
         for period in p['coverage']:
             tables['coverage'].append((i, period['source'], clock, period['lo'], period['hi'], period['basis']))
         excluded = {}
@@ -132,8 +142,8 @@ def build_tables(ingest):
 
 
 # Which tables are split by bucket, and the columns that order each table's rows (unique in it).
-SPLIT_BY_BUCKET = {'events', 'event_concepts', 'coverage', 'excluded_records'}
-ORDER = {'patients': ['patient_idx'], 'events': ['patient_idx', 'event_id'],
+SPLIT_BY_BUCKET = {'events', 'event_evidence', 'event_concepts', 'coverage', 'excluded_records'}
+ORDER = {'patients': ['patient_idx'], 'events': ['patient_idx', 'event_id'], 'event_evidence': ['patient_idx', 'event_id'],
          'event_concepts': ['patient_idx', 'event_id', 'concept'], 'concept_closure': ['concept', 'ancestor'],
          'concept_postings': ['concept', 'patient_idx'], 'coverage': ['patient_idx', 'source', 'lo', 'hi', 'basis'],
          'source_concepts': ['source', 'concept'],

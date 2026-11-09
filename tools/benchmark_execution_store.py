@@ -197,7 +197,8 @@ def stream_patients(path, pool_size, size):
 
 
 def shifted(patient, k):
-    """Copy k of a pool patient: new id, whole-day shift, evidence shared with the source object."""
+    """Copy k of a pool patient: new id, whole-day shift of every time (record times included), evidence shared
+    with the source object."""
     delta = shift_for(k)
     pid = f"{patient['patient_id']}~r{k}"
     def move(pair):
@@ -207,6 +208,9 @@ def shifted(patient, k):
         copy = {**e, 'start': move(e['start'])}
         if e.get('end') is not None:
             copy['end'] = move(e['end'])
+        for field in ('recorded_at', 'available_at'):  # record times are on the patient's clock too (D26)
+            if field in e:
+                copy[field] = e[field] + delta
         events.append(copy)
     coverage = [{**c, 'lo': c['lo'] + delta, 'hi': c['hi'] + delta} for c in patient['coverage']]
     out = {**patient, 'patient_id': pid, 'clock_id': f'patient_{pid}', 'events': events, 'coverage': coverage}

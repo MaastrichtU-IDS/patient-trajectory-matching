@@ -320,12 +320,14 @@ class TableTests(unittest.TestCase):
     def test_postings_count_each_event_once_through_the_closure(self):
         with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(fixture(), tmp), verify='content') as store:
             idx = {pid: i for i, pid, *_ in store.rows("patients")}
-            postings = {(c, p): (n, lo, hi) for c, p, n, lo, hi in store.rows('concept_postings')}
+            postings = {(c, p): (n, lo, hi, end) for c, p, n, lo, hi, end in store.rows('concept_postings')}
             # One event coded dee and dravet: one posting each for dee and epilepsy, not two.
-            self.assertEqual(postings[('dee', idx['P2'])], (1, day(10), day(10)))
-            self.assertEqual(postings[('epilepsy', idx['P2'])], (1, day(10), day(10)))
-            self.assertEqual(postings[('seizure', idx['P1'])], (2, day(0), day(120)))
-            self.assertEqual(postings[('antiseizure', idx['P1'])], (1, day(30), day(30)))
+            self.assertEqual(postings[('dee', idx['P2'])], (1, day(10), day(10), day(10)))
+            self.assertEqual(postings[('epilepsy', idx['P2'])], (1, day(10), day(10), day(10)))
+            self.assertEqual(postings[('seizure', idx['P1'])], (2, day(0), day(120), day(120)))
+            # The latest end (D26): an exposure's recorded end; none when an exposure is ongoing.
+            self.assertEqual(postings[('antiseizure', idx['P1'])], (1, day(30), day(30), day(70)))
+            self.assertEqual(postings[('antiseizure', idx['P2'])], (1, day(5), day(5), None))
             self.assertNotIn('unused', {c for c, _ in postings})
             events = {(store.rows('patients')[i][1], e): (elo, ehi, ongoing)
                       for i, e, _, _, _, _, _, elo, ehi, ongoing, *_ in store.rows("events")}
@@ -864,8 +866,10 @@ class DeterminismTests(unittest.TestCase):
 
 def main_derive(db, stage):
     """`_derive` as at main fdd6e97, frozen: every table in one statement over whole staging files (D23).
-    The only change since is the 2.1 columns (D24): `patients.shared_variables` and the events' variables
-    and `proper`, each a copy of its staged value (false where the staging leaves it out)."""
+    The only changes since are the 2.1 columns (D24): `patients.shared_variables` and the events' variables
+    and `proper`, each a copy of its staged value (false where the staging leaves it out); and 3.0's (D26): the
+    events' record fields, copies of their staged values, the evidence in its own table, and the postings'
+    latest end."""
     staged = lambda name: es._read_json(stage / f'{name}.ndjson', es.STAGED[name])
     db.execute(f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
@@ -876,7 +880,10 @@ def main_derive(db, stage):
     db.execute(f"""CREATE TABLE events AS SELECT p.patient_idx, e.event_id, e.kind, e.source, p.clock_id,
         e.start_lo, e.start_hi, e.end_lo, e.end_hi, (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing,
         e.start_var, e.end_var, coalesce(e.proper, false) AS proper,
-        e.evidence, p.bucket FROM {staged('events')} e JOIN p USING (patient_id)""")
+        e.status, e.selection_state, e.recorded_at, e.available_at, e.claim_id, e.claim_sha256, e.source_table,
+        e.record_sha256, e.file_sha256, p.bucket FROM {staged('events')} e JOIN p USING (patient_id)""")
+    db.execute(f"""CREATE TABLE event_evidence AS SELECT p.patient_idx, x.event_id, x.evidence, p.bucket
+        FROM {staged('evidence')} x JOIN p USING (patient_id)""")
     db.execute(f"""CREATE TABLE event_concepts AS SELECT p.patient_idx, c.event_id, c.concept, 'direct' AS basis,
         p.bucket FROM {staged('concepts')} c JOIN p USING (patient_id)""")
     db.execute(f'''CREATE TABLE concept_closure AS SELECT concept, ancestor, basis, version, concept_basis, ancestor_basis
@@ -885,7 +892,8 @@ def main_derive(db, stage):
         WITH expanded AS (SELECT DISTINCT ec.patient_idx, ec.event_id, cc.ancestor AS concept
                           FROM event_concepts ec JOIN concept_closure cc ON cc.concept = ec.concept)
         SELECT x.concept, x.patient_idx, count(*)::BIGINT AS n, min(e.start_lo) AS min_start_lo,
-               max(e.start_hi) AS max_start_hi
+               max(e.start_hi) AS max_start_hi,
+               CASE WHEN bool_or(e.ongoing) THEN NULL ELSE max(coalesce(e.end_hi, e.start_hi)) END AS max_end_hi
         FROM expanded x JOIN events e USING (patient_idx, event_id) GROUP BY x.concept, x.patient_idx""")
     db.execute(f"""CREATE TABLE coverage AS SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
         FROM {staged('coverage')} c JOIN p USING (patient_id)""")
@@ -938,41 +946,58 @@ def tables_of(manifest):
     return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in manifest['tables'].items()}
 
 
-# The 2.0 columns of the two tables 2.1 widened (D24), in their 2.0 order.
+# The 2.0 columns of the tables 2.1 (D24) and 3.0 (D26) changed, in their 2.0 order: `events` with its evidence,
+# which 3.0 keeps in `event_evidence`, and without the variables, `proper` and the record fields.
 COLUMNS_2_0 = {'patients': es.TABLES['patients'][:3],
-               'events': es.TABLES['events'][:10] + es.TABLES['events'][13:]}
+               'events': es.TABLES['events'][:10] + (('evidence', 'VARCHAR'),),
+               'concept_postings': es.TABLES['concept_postings'][:5]}
 
 
 def digests_2_0(snapshot):
-    """Content digests of a 2.1 snapshot with `patients` and `events` read as their 2.0 columns: the
-    canonical form is unchanged, so on an ingest without shared variables or `proper` these must be the
-    digests 2.0 recorded, and the other tables' digests too."""
+    """Content digests of a 3.0 snapshot with its tables read as 2.0's: `patients` and `concept_postings` as
+    their 2.0 columns, and `events` joined to `event_evidence` as 2.0 held it. The canonical form is unchanged,
+    so on an ingest without shared variables, `proper` or record fields these must be the digests 2.0 recorded
+    for the same document, and the other tables' digests too."""
     assert [c for c, _ in COLUMNS_2_0['events']][-2:] == ['ongoing', 'evidence']
-    with es.open_store(snapshot, verify=False) as store, patch.dict(es.TABLES, COLUMNS_2_0):
+    tables = {n: COLUMNS_2_0.get(n, c) for n, c in es.TABLES.items() if n != 'event_evidence'}
+    with es.open_store(snapshot, verify=False) as store, patch.dict(es.TABLES, tables, clear=True):
+        store.db.execute('ALTER VIEW events RENAME TO events_3_0')
+        store.db.execute("""CREATE VIEW events AS SELECT e.*, x.evidence FROM events_3_0 e
+                            JOIN event_evidence x ON x.patient_idx = e.patient_idx AND x.event_id = e.event_id""")
         return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')}
                 for n, t in es.content_digests(store.db).items()}
+
+
+def x10(ingest):
+    """The synthetic cohort ten times over, with relabelled patients."""
+    return {**ingest, 'dataset_id': 'synthetic-x10',
+            'patients': [{**p, 'patient_id': f"{p['patient_id']}~{k}"} if k else p
+                         for k in range(10) for p in ingest['patients']]}
 
 
 class PerBucketDeriveTests(unittest.TestCase):
     """D23: deriving one part (a run of whole patients of one bucket) at a time gives the tables and
     digests main's single-statement derive gave, for any part size."""
     RECORDED = ROOT / 'patterns/fixtures/execution_store_content_digests.json'
+    RECORDED_3_0 = ROOT / 'patterns/fixtures/execution_store_content_digests_3_0.json'
 
     @classmethod
     def setUpClass(cls):
         cls.recorded = json.loads(cls.RECORDED.read_text())['cases']
+        cls.recorded_3_0 = json.loads(cls.RECORDED_3_0.read_text())['cases']
 
     def build(self, ingest, tmp, **options):
         return json.loads((es.build(ingest, Path(tmp) / 'store', **options) / 'manifest.json').read_text())
 
     def test_the_digests_recorded_before_the_change_are_reproduced_at_any_part_size(self):
-        """The digests recorded at main fdd6e97 (2.0). 2.1 adds columns to `patients` and `events` (D24), so
-        those two tables' 2.1 digests differ; read as their 2.0 columns they are the recorded ones, every
-        other table's digest is unchanged, and so is the input digest. The new columns hold nothing here."""
+        """Two records. `RECORDED_3_0` holds the input digest and every table's digests the 3.0 builder (D26) gave
+        with ndjson staging, before typed staging: they must be reproduced at any part size. `RECORDED` holds
+        2.0's, at main fdd6e97 before the per-bucket derive: 3.0's tables read as 2.0's (`digests_2_0`, `events`
+        joined to its evidence) give them all for the fixture, whose document 3.0 leaves as it was, input digest
+        included; for the synthetic cohorts, whose converter now gives each event its record fields (D26), every
+        table but `events` gives 2.0's. The 2.1 columns hold nothing here."""
         ingest = _STATE['ingest']
-        times_ten = {**ingest, 'dataset_id': 'synthetic-x10',
-                     'patients': [{**p, 'patient_id': f"{p['patient_id']}~{k}"} if k else p
-                                  for k in range(10) for p in ingest['patients']]}
+        times_ten = x10(ingest)
         cases = [('synthetic', ingest, {}), ('synthetic', ingest, {'part_rows': 1}),
                  ('synthetic_x10', times_ten, {}), ('synthetic_x10', times_ten, {'part_rows': 5000}),
                  ('fixture', fixture(), {}), ('fixture', fixture(), {'part_rows': 1})]
@@ -980,14 +1005,15 @@ class PerBucketDeriveTests(unittest.TestCase):
             with self.subTest(case=name, **options), tempfile.TemporaryDirectory() as tmp:
                 snapshot = es.build(case, Path(tmp) / 'store', **options)
                 manifest = json.loads((snapshot / 'manifest.json').read_text())
-                want = self.recorded[name]
-                self.assertEqual(manifest['input_digest'], want['input_digest'])
-                widened = {'patients', 'events'}
-                self.assertEqual({n: t for n, t in tables_of(manifest).items() if n not in widened},
-                                 {n: t for n, t in want['tables'].items() if n not in widened})
-                for n in widened:
-                    self.assertNotEqual(tables_of(manifest)[n]['content_digest'], want['tables'][n]['content_digest'])
-                self.assertEqual(digests_2_0(snapshot), want['tables'])
+                self.assertEqual({'input_digest': manifest['input_digest'], 'tables': tables_of(manifest)},
+                                 {k: self.recorded_3_0[name][k] for k in ('input_digest', 'tables')})
+                want, mine = self.recorded[name], digests_2_0(snapshot)
+                changed = set() if name == 'fixture' else {'events'}
+                self.assertEqual(manifest['input_digest'] == want['input_digest'], name == 'fixture')
+                self.assertEqual({n: t for n, t in mine.items() if n not in changed},
+                                 {n: t for n, t in want['tables'].items() if n not in changed})
+                for n in changed:
+                    self.assertNotEqual(mine[n]['content_digest'], want['tables'][n]['content_digest'])
                 with es.open_store(snapshot) as store:
                     self.assertEqual(store.query('SELECT count(*) FROM patients WHERE shared_variables')[0][0], 0)
                     self.assertEqual(store.query('SELECT count(*) FROM events WHERE start_var IS NOT NULL OR '
@@ -1044,8 +1070,8 @@ class PerBucketDeriveTests(unittest.TestCase):
         for b in range(es.BUCKETS):
             row = info[f'derived:bucket={b}']
             self.assertEqual(set(row['statement_seconds']),
-                             {'events', 'event_concepts', 'concept_postings', 'source_concepts', 'coverage',
-                              'excluded_records'})
+                             {'events', 'event_concepts', 'concept_postings', 'source_concepts', 'event_evidence',
+                              'coverage', 'excluded_records'})
             self.assertGreater(row['duckdb_memory_max_bytes'], 0)
         self.assertEqual(info['derived:whole']['statements'], 3)
         with self.assertRaises(es.StoreError) as caught:
@@ -1217,19 +1243,20 @@ class SharedVariableStoreTests(unittest.TestCase):
 
 
 class TimePruningTests(unittest.TestCase):
-    """Time pruning on the posting summaries (D25) changes no byte of any result: pruning on against off, at
-    both detail levels and at 1 and 2 workers, on the synthetic cohort, two shared-variable fuzz cohorts and the
-    fixture with shared-variable patients. The existing differentials (exhaustive matching, the recorded digests,
-    workers, the MIMIC fixture) run with pruning on."""
+    """Time pruning on the posting summaries (D25), with the end summaries (D26), changes no byte of any result:
+    pruning on against off, at both detail levels and at 1 and 2 workers, on the synthetic cohort, two
+    shared-variable fuzz cohorts and the fixture with shared-variable patients. The existing differentials
+    (exhaustive matching, the recorded digests, workers, the MIMIC fixture) run with pruning on."""
 
     @classmethod
     def tearDownClass(cls):
         es.close_pools()
 
-    def compare(self, store, cases, decided=(), parallel=()):
+    def compare(self, store, cases, decided=(), parallel=(), totals=None):
         """(pruned candidates, candidates with a window, pruned patients that share variables) over `cases`,
         asserting that pruning on and off give the same bytes for every case, also with `detail='decided'` for
-        the indices in `decided` and with `workers=2` (chunk 3, both details) for those in `parallel`."""
+        the indices in `decided` and with `workers=2` (chunk 3, both details) for those in `parallel`. Without the
+        end summaries (D26) pruning must prune a subset; `totals`, when given, counts what they add (`by_ends`)."""
         linked = {i for i, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')}
         ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
         pruned = live = pruned_linked = 0
@@ -1244,13 +1271,22 @@ class TimePruningTests(unittest.TestCase):
             by_idx = {ids[pid]: v for pid, v in w.items()}
             mine = [i for i in es._candidates(store, pq)['patient_idx'] if by_idx.get(i) is not None]
             gone = es._prune(store, pq, mine, by_idx)
+            with patch.object(es, '_PRUNE_ENDS', False):
+                starts_only = es._prune(store, pq, mine, by_idx)
+            self.assertLessEqual(starts_only, gone, k)
+            if totals is not None:
+                totals['by_ends'] += len(gone - starts_only)
+                totals['during'] += any(r['kind'] == 'during' for r in q.get('relations', []))
             pruned, live, pruned_linked = pruned + len(gone), live + len(mine), pruned_linked + len(gone & linked)
         return pruned, live, pruned_linked
 
     def test_pruning_on_and_off_give_the_same_bytes_on_the_synthetic_cohort(self):
         cases = [MatcherScalingTests.case(seed) for seed in range(SEEDS)]
-        pruned, live, _ = self.compare(_STATE['store'], cases, decided=range(0, SEEDS, 3), parallel=range(0, SEEDS, 6))
-        print(f'\n  time pruning: {pruned} of {live} candidates with a window pruned over {SEEDS} queries', file=sys.stderr)
+        totals = Counter()
+        pruned, live, _ = self.compare(_STATE['store'], cases, decided=range(0, SEEDS, 3), parallel=range(0, SEEDS, 6),
+                                       totals=totals)
+        print(f"\n  time pruning: {pruned} of {live} candidates with a window pruned over {SEEDS} queries, "
+              f"{totals['by_ends']} of them by end summaries ({totals['during']} queries with `during`)", file=sys.stderr)
         self.assertGreater(pruned, live // 10)  # not vacuous
 
     def test_pruning_on_and_off_give_the_same_bytes_with_shared_variables_and_proper_events(self):
@@ -1266,14 +1302,15 @@ class TimePruningTests(unittest.TestCase):
                 for q in range(150):
                     rng = random.Random(f'fuzz-{seed}-{q}')
                     cases.append((random_query(rng, pool, ingest), random_windows(rng, ingest)))
-                pruned, live, linked = self.compare(store, cases, decided=range(0, 150, 3), parallel=range(0, 150, 10))
+                pruned, live, linked = self.compare(store, cases, decided=range(0, 150, 3), parallel=range(0, 150, 10),
+                                                    totals=totals)
                 totals.update(pruned=pruned, live=live, linked=linked)
                 # Pruning on, against exhaustive matching over every patient's whole record.
                 mismatches, dropped, _, _ = differential(store, ingest, reference, seeds=60)
                 self.assertEqual((mismatches, dropped), ([], []), seed)
                 es.close_pools()
         print(f"\n  time pruning, shared-variable cohorts: {totals['pruned']} of {totals['live']} pruned, "
-              f"{totals['linked']} of them sharing variables", file=sys.stderr)
+              f"{totals['linked']} of them sharing variables, {totals['by_ends']} by end summaries", file=sys.stderr)
         self.assertGreater(totals['pruned'], totals['live'] // 10)
         self.assertGreater(totals['linked'], 0)  # sharing patients were pruned too
 
@@ -1299,10 +1336,77 @@ class TimePruningTests(unittest.TestCase):
             rng = random.Random(f'fixture-{seed}')
             cases.append((random_query(rng, pool, g), random_windows(rng, g)))
         cases.append((FIXTURE_QUERY, {p['patient_id']: {'start': day(-30), 'end': day(400)} for p in g['patients']}))
+        totals = Counter()
         with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp)) as store:
-            pruned, live, _ = self.compare(store, cases, decided=range(0, 201, 2), parallel=range(0, 201, 20))
+            pruned, live, _ = self.compare(store, cases, decided=range(0, 201, 2), parallel=range(0, 201, 20),
+                                           totals=totals)
             es.close_pools()
         self.assertGreater(pruned, 0)
+        self.assertGreater(totals['by_ends'], 0)  # the end summaries prune here too
+
+    def during(self, grace, start=('A', 'febrile_seizure'), within=('B', 'carbamazepine'), scope='any'):
+        """A query whose step `start[0]` (concept `start[1]`) starts during step `within[0]`'s event, up to `grace`
+        after it ends."""
+        return {'profile': tg.PROFILE_ID, 'scope': scope,
+                'steps': [{'id': within[0], 'concept': within[1]}, {'id': start[0], 'concept': start[1]}],
+                'relations': [{'id': 'D', 'kind': 'during', 'from': within[0], 'to': start[0], 'grace': grace}]}
+
+    def test_end_summaries_prune_at_the_grace_and_never_before_it(self):
+        """D26. G1's carbamazepine exposure ends between day 60 and day 70 and its seizure diary entry starts from
+        day 90, so an entry during the exposure needs a grace of at least 20 days: with 20 days the engine finds it
+        possible, and the summaries must not prune; with 19 it is `none`, and they prune it without loading its
+        events. P2's valproate exposure is ongoing, so no grace is too short for its summaries to prove anything.
+        Planted defects fail: the grace's bound off by one, an exposure's start read as its end, and an ongoing
+        exposure read as ending when it starts."""
+        g = fixture()
+        g['patients'].append({'patient_id': 'G1', 'clock_id': 'patient_G1',
+                              'coverage': [cover('pharmacy', day(-30), day(400)), cover('diary', day(-30), day(400))],
+                              'events': [ev('cbz', ['carbamazepine'], (day(30), day(30)), (day(60), day(70)),
+                                            'pharmacy', 'exposure'),
+                                         ev('sf', ['seizure_frequency'], (day(90), day(120)), source='diary',
+                                            kind='diary_summary')]})
+        windows = {p['patient_id']: {'start': day(-30), 'end': day(400)} for p in g['patients']}
+        original = es._impossible
+
+        def off_by_one(spec, idx, window):
+            for x, y, k, sense in spec[2]:
+                a, b = x[idx], y[idx]
+                if a is not None and b is not None and sense == -1 and b - a >= k:
+                    return True
+            return original(spec, idx, window)
+
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp)) as store:
+            ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+            by_idx = {ids[pid]: w for pid, w in windows.items()}
+            status = lambda q: {r['patient_id']: r['status'] for r in es.match(store, q, windows)['results']}
+            def pruned(q, ends=True):
+                pq = tg.PreparedQuery(q)
+                live = [i for i in es._candidates(store, pq)['patient_idx'] if by_idx.get(i) is not None]
+                with patch.object(es, '_PRUNE_ENDS', ends):
+                    return {pid for pid, i in ids.items() if i in es._prune(store, pq, live, by_idx)}
+            at, below = (self.during(k * DAY, ('A', 'seizure_frequency')) for k in (20, 19))
+            self.assertEqual(status(at)['G1'], 'possible')
+            self.assertEqual(status(below)['G1'], 'none')
+            self.assertNotIn('G1', pruned(at))
+            self.assertIn('G1', pruned(below))
+            self.assertNotIn('G1', pruned(below, ends=False))  # the start summaries alone cannot see it
+            with patch.object(es, '_PRUNE', False):
+                self.assertEqual(json.dumps(es.match(store, below, windows)), json.dumps(es.match(store, below, windows)))
+            # The bound off by one prunes the possible match at exactly the grace.
+            with patch.object(es, '_impossible', off_by_one):
+                self.assertEqual(status(at)['G1'], 'none')
+            # An exposure's start read as its end (`max_start_hi` for `max_end_hi`): the grace looks too short.
+            with patch.dict(es._SUMMARY, {('f', 'hi'): 1}):
+                self.assertEqual(status(at)['G1'], 'none')
+            # P2: diagnosis on day 10 during valproate from day 5, ongoing: possible with no grace at all.
+            ongoing = self.during(0, ('A', 'dravet'), ('B', 'valproate'))
+            self.assertEqual(status(ongoing)['P2'], 'possible')
+            self.assertNotIn('P2', pruned(ongoing))
+            # Summaries that read an ongoing exposure as ending when it starts prune it.
+            store.db.execute('ALTER VIEW concept_postings RENAME TO postings_as_built')
+            store.db.execute("""CREATE VIEW concept_postings AS SELECT concept, patient_idx, n, min_start_lo,
+                                max_start_hi, coalesce(max_end_hi, max_start_hi) AS max_end_hi FROM postings_as_built""")
+            self.assertEqual(status(ongoing)['P2'], 'none')
 
     def test_an_unsound_pruning_fails_the_comparison(self):
         """Planted defects: pruning on the unrelaxed query alone (a relaxation set could still match), and a bound
@@ -1313,7 +1417,7 @@ class TimePruningTests(unittest.TestCase):
             return original_plan(pq)[:1]
 
         def off_by_one(spec, idx, window):
-            steps, _ = spec
+            steps, _, _ = spec
             anchor = {'START': window['start'], 'END': window['end']}
             for postings, lows, highs in steps:
                 found = postings.get(idx)
@@ -1369,6 +1473,19 @@ class TimePruningTests(unittest.TestCase):
                 self.assertTrue(part and any(set(part) <= c for c in cut), (seed, part))
                 checked += 1
         self.assertGreater(checked, 50)
+
+    def test_pruning_refuses_candidates_out_of_order(self):
+        """The summaries are read between the first and the last candidate, so `_prune` takes them only sorted."""
+        store = _STATE['store']
+        q, w = MatcherScalingTests.case(0)
+        ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+        by_idx = {ids[pid]: v for pid, v in w.items()}
+        live = [i for i in es._candidates(store, tg.PreparedQuery(q))['patient_idx'] if by_idx.get(i) is not None]
+        self.assertGreater(len(live), 2)
+        for wrong in (live[::-1], live[:1] + live):
+            with self.assertRaises(es.StoreError) as caught:
+                es._prune(store, tg.PreparedQuery(q), wrong, by_idx)
+            self.assertEqual(caught.exception.code, 'PRUNE_CANDIDATES_NOT_SORTED')
 
     def test_the_slice_size_changes_nothing(self):
         """Summaries are read one slice of candidates at a time, to bound memory; any slice gives the same set."""
@@ -1485,7 +1602,7 @@ class ContractTests(unittest.TestCase):
         schema = json.loads((ROOT / es.SCHEMA_PATH).read_text())
         Draft202012Validator.check_schema(schema)
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(manifest)), [])
-        self.assertEqual(manifest['profile'], 'execution-store-2.1')
+        self.assertEqual(manifest['profile'], 'execution-store-3.0')
         self.assertEqual(set(manifest['builder']['artifacts']), {es.MODULE_PATH, es.SCHEMA_PATH})
         self.assertEqual(manifest['builder']['memory_limit'], es.DEFAULT_MEMORY_LIMIT)
         self.assertEqual(sorted(manifest['files']), sorted(es.file_digests(_STATE['snapshot'])))
@@ -1690,6 +1807,13 @@ class ContractTests(unittest.TestCase):
             'UNSUPPORTED_INGEST_PROFILE': lambda g: g.update(profile='other'),
             'INGEST_PATIENT_NOT_BOX_REPRESENTABLE': lambda g: patient(g, 'P3').update(box_representable=False),
             'INVALID_SELECTION': lambda g: g.update(provenance={'selection': {'mode': 'retrospective'}}),
+            # The record fields (D26): a string, a sha256 or a time of the patient's clock, or absent.
+            'INVALID_RECORD_FIELD': lambda g: patient(g)['events'][0].update(claim_sha256='ABC'),
+            'INVALID_RECORD_FIELD ': lambda g: patient(g)['events'][0].update(status=''),
+            'INVALID_RECORD_FIELD  ': lambda g: patient(g)['events'][0].update(selection_state=None),
+            'INVALID_TIME ': lambda g: patient(g)['events'][0].update(recorded_at=day(1) + 0.5),
+            'TIME_OUT_OF_RANGE ': lambda g: patient(g)['events'][0].update(available_at=-1),
+            'INVALID_EVENT': lambda g: patient(g)['events'][0].update(recorded_at_us=day(1)),
         }
         for code, mutate in cases.items():
             g = fixture()
@@ -1697,7 +1821,7 @@ class ContractTests(unittest.TestCase):
             with self.subTest(code=code), tempfile.TemporaryDirectory() as tmp:
                 with self.assertRaises(es.IngestError) as caught:
                     es.build(g, Path(tmp) / 'store')
-                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(caught.exception.code, code.strip())
                 self.assertFalse((Path(tmp) / 'store').exists())
         g = fixture()
         patient(g)['coverage'][0].update(lo=day(500))
@@ -1747,6 +1871,74 @@ class ContractTests(unittest.TestCase):
             with es.StoreBuilder(Path(tmp) / 'store', header) as builder:
                 builder.add(g['patients'][0])
             self.assertEqual(os.listdir(tmp), [])
+
+
+class RecordFieldTests(unittest.TestCase):
+    """Store 3.0 (D26): the D5 record fields are typed event columns, and the free-form evidence its own table."""
+
+    def test_record_fields_are_columns_and_evidence_comes_back_as_given(self):
+        g = fixture()
+        sha = hashlib.sha256(b'row').hexdigest()
+        g['patients'][0]['events'][0].update(status='final', selection_state='accepted', recorded_at=day(2),
+                                             available_at=day(3), claim_id='claim-1', claim_sha256=sha,
+                                             source_table='diagnoses', record_sha256=sha, file_sha256=sha)
+        g['patients'][1]['events'][0]['evidence']['nested'] = {'list': [1, None, 'é'], 'flag': False}
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp), verify='content') as store:
+            self.assertEqual(table_mismatches(store, ref.build_tables(g)), {})
+            names = [c for c, _ in es.TABLES['events']]
+            rows = {(r[0], r[1]): dict(zip(names, r)) for r in store.rows('events')}
+            ids = {pid: i for i, pid, *_ in store.rows('patients')}
+            first = rows[(ids['P1'], 'fs')]
+            self.assertEqual({f: first[f] for f in es.RECORD_FIELDS},
+                             {'status': 'final', 'selection_state': 'accepted', 'recorded_at': day(2),
+                              'available_at': day(3), 'claim_id': 'claim-1', 'claim_sha256': sha,
+                              'source_table': 'diagnoses', 'record_sha256': sha, 'file_sha256': sha})
+            self.assertTrue(all(v is None for f, v in rows[(ids['P1'], 'cbz')].items() if f in es.RECORD_FIELDS))
+            self.assertNotIn('evidence', names)
+            # The evidence table holds each event's evidence as given: the same object, the same canonical text.
+            for p in g['patients']:
+                stored = store.evidence(p['patient_id'])
+                self.assertEqual(stored, {e['event_id']: e['evidence'] for e in p['events']})
+                for e in p['events']:
+                    self.assertEqual(es._json(stored[e['event_id']]), es._json(e['evidence']))
+            self.assertEqual(store.evidence('NOBODY'), {})
+            self.assertEqual(store.manifest['tables']['event_evidence']['rows'], store.manifest['tables']['events']['rows'])
+
+    def test_matching_never_reads_the_evidence(self):
+        """`match` reads no row of `event_evidence`: with the table replaced by a view that fails when read, every
+        result is the same, byte for byte."""
+        store = _STATE['store']
+        want = [json.dumps(es.match(store, *MatcherScalingTests.case(seed))) for seed in range(30)]
+        store.db.execute('ALTER VIEW event_evidence RENAME TO event_evidence_kept')
+        try:
+            store.db.execute("""CREATE VIEW event_evidence AS SELECT error('event_evidence was read')::INTEGER AS
+                                patient_idx, NULL::VARCHAR AS event_id, NULL::VARCHAR AS evidence, 0 AS bucket""")
+            with self.assertRaises(Exception):
+                store.query('SELECT * FROM event_evidence')
+            for seed in range(30):
+                self.assertEqual(json.dumps(es.match(store, *MatcherScalingTests.case(seed))), want[seed], seed)
+        finally:
+            store.db.execute('DROP VIEW IF EXISTS event_evidence')
+            store.db.execute('ALTER VIEW event_evidence_kept RENAME TO event_evidence')
+
+    def test_the_synthetic_converter_gives_each_event_its_record_fields(self):
+        cohort, ingest = _STATE['cohort'], _STATE['ingest']
+        records = {f"{r['source']}/{r['record_id']}": r for p in cohort['patients'] for r in p['records']}
+        events = [e for p in ingest['patients'] for e in p['events']]
+        for e in events:
+            r = records[e['event_id'].split('#')[0]]
+            want = {'recorded_at': si.micros(r['recorded_at']), 'available_at': si.micros(r['available_at'])}
+            if r.get('status') is not None:
+                want['status'] = r['status']
+            self.assertEqual({f: e[f] for f in es.RECORD_FIELDS if f in e}, want)
+            self.assertFalse({'recorded_at', 'available_at', 'status'} & set(e['evidence']))
+        late = sum(1 for e in events if e['available_at'] > e['start'][1])
+        self.assertGreater(late, len(events) // 2)  # availability is kept, though selection does not apply it
+        closed = [e for e in events if e['kind'] == 'medication_exposure' and e['end'][1] is not None]
+        self.assertTrue(all({'recorded_at', 'available_at', 'status'} <= set(e['evidence']['stop']) for e in closed))
+        store = _STATE['store']
+        for p in ingest['patients'][:6]:
+            self.assertEqual(store.evidence(p['patient_id']), {e['event_id']: e['evidence'] for e in p['events']})
 
 
 class SyntheticConverterTests(unittest.TestCase):

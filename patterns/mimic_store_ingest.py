@@ -31,6 +31,10 @@ store or across a patient's stores, share it in the store too (D24). A patient t
 box-representable (a source constraint the tightened box does not imply) is refused
 (`INGEST_PATIENT_NOT_BOX_REPRESENTABLE`) and counted by the adapter's reason.
 
+Record fields (D26). Each event carries the row's status and selection state, its claim's identifier and digest,
+the source table, the source row's and file's sha256 and, where MIMIC gives one, the time the row was recorded,
+as the store's typed record fields; the rest of the row's provenance is the event's free-form `evidence`.
+
 The admitted subset. Admission keeps continuous IV and medication segments with four statuses, so
 the store's source is `inputevents:continuous_segments`, and the labels list what was admitted.
 Coverage is one period per ICU stay, intime to outtime (`inferred:icustay`), widened to the stay's
@@ -271,28 +275,34 @@ def _closure(concepts, vocabulary, categories):
     return ancestors, bases
 
 
-def _evidence(row, claim, origin_us):
+def _record_and_evidence(row, claim, origin_us):
+    """(record fields, evidence) of one adapter row. The record fields are the store's typed event columns (D26):
+    the row's status and selection state, the claim's identifier and digest, the source table, the source row's
+    and file's digests, and the time the row was recorded on the patient's clock when MIMIC gives one (no
+    availability time is known, so none is given). The evidence is the rest of the row's provenance, free-form."""
     supports = row['claim_supports']
     require(len(supports) == 1 and supports[0]['assertion_id'] == 'claim_' + row['event_id'], 'CLAIM_SUPPORT_MISMATCH')
     claim_id, claim_sha256 = supports[0]['assertion_id'], supports[0]['claim_sha256']
     require(claim is not None and claim['claim_sha256'] == claim_sha256, 'CLAIM_DIGEST_MISMATCH')
     recorded = claim['recorded_at']['raw_value']
-    return {
+    record = {'status': row['record_status'], 'selection_state': row['selection_state'], 'claim_id': claim_id,
+              'claim_sha256': claim_sha256, 'source_table': SOURCE_TABLE,
+              'record_sha256': claim['source']['row_sha256'], 'file_sha256': claim['source']['file_sha256']}
+    if recorded:
+        record['recorded_at'] = micros(recorded)
+    return record, {
         'adapter_profile': row['profile'], 'snapshot_context_id': row['snapshot_context_id'],
         'time_domain': row['time_domain'], 'evidence_id': row['evidence_id'],
-        'evidence_context_id': row['evidence_context_id'], 'claim': row['claim'], 'claim_id': claim_id,
-        'claim_sha256': claim_sha256, 'patient_bearer': row['patient_bearer'], 'source_record': row['source_record'],
+        'evidence_context_id': row['evidence_context_id'], 'claim': row['claim'],
+        'patient_bearer': row['patient_bearer'], 'source_record': row['source_record'],
         'source_hash': row['source_hash'], 'source_key': row['source_key'], 'record_id': row['record_id'],
-        'record_status': row['record_status'], 'episode_id': row['episode_id'],
-        'selection_state': row['selection_state'], 'claim_supports': supports,
+        'episode_id': row['episode_id'], 'claim_supports': supports,
         'clock_policy': row['clock_policy'], 'clock_origin': row['clock_origin'], 'clock_origin_us': origin_us,
         'declared_start_us': row['declared_start_us'], 'declared_end_us': row['declared_end_us'],
         'start_var': row['start_var'], 'end_var': row['end_var'],
         'concept_bases': {c['concept']: sorted({b['kind'] for b in c['basis']}) for c in row['concepts']},
         'entailment': row['entailment'], 'vocabulary_disjointness': row['vocabulary_disjointness'],
-        'source_table': SOURCE_TABLE, 'source_record_number': claim['source']['record_number'],
-        'source_row_sha256': claim['source']['row_sha256'], 'source_file_sha256': claim['source']['file_sha256'],
-        'recorded_at_us': micros(recorded) if recorded else None, 'available_at_us': None,
+        'source_record_number': claim['source']['record_number'],
         'history_mode': 'retrospective', 'source_history_verified': False, 'clinical_mapping_verified': False}
 
 
@@ -416,11 +426,12 @@ def store_patients(rows, *, claim_provenance, stays, items, excluded=None):
             carried = {c['concept'] for c in r['concepts']}
             # The closure must reach exactly the adapter's concepts, plus the declared groupings.
             require({c for c in expanded if not c.startswith(GROUP_NS)} == carried, 'CONCEPT_CLOSURE_MISMATCH')
+            record, evidence = _record_and_evidence(r, claim_provenance.get('claim_' + r['event_id']), origin_us)
             events.append({'event_id': r['event_id'], 'kind': r['event_kind'], 'source': SOURCE, 'concepts': direct,
                            'start': [origin_us + r['start_us'][0], origin_us + r['start_us'][1]],
                            'end': [origin_us + r['end_us'][0], origin_us + r['end_us'][1]],
                            'start_var': r['start_var'], 'end_var': r['end_var'], 'proper': r['proper'],
-                           'evidence': _evidence(r, claim_provenance.get('claim_' + r['event_id']), origin_us)})
+                           **record, 'evidence': evidence})
         coverage, missing, beyond = _patient_coverage(stays_of.get(pid, []), events)
         skipped.update(missing)
         outside += beyond
