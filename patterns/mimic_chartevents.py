@@ -51,6 +51,7 @@ from . import mimic_claim_import as interval_importer
 from . import mimic_inputevents as source
 from . import mimic_measurement_import as importer
 from . import patient_local as local
+from . import series_values
 
 PROFILE = 'mimic-chartevents-route-b-1.0'
 SOURCE_TABLE = 'chartevents'
@@ -80,7 +81,7 @@ LABELS = {'clinical_mapping_verified': False, 'concept_basis': CONCEPT_BASIS, 'a
                    'the measurement graph route',
           'value_policy': 'exported decimal spelling kept; exact decimal and micro-unit integer; no unit conversion',
           'excluded_records': 'excluded_records table; a none they could change is not_comparable'}
-FILES = tuple(sorted(set(('patterns/mimic_chartevents.py',) + importer.FILES)))
+FILES = tuple(sorted(set(('patterns/mimic_chartevents.py', 'patterns/series_values.py') + importer.FILES)))
 
 
 class ChartError(ValueError):
@@ -250,31 +251,8 @@ def closure(itemids, items):
 
 # ---------------------------------------------------------------- values
 
-BIGINT_MIN, BIGINT_MAX = -2 ** 63, 2 ** 63 - 1
-
-
-def micro_value(d):
-    """The value times 10**6 as an int, by integer arithmetic on the decimal's digits and exponent, or
-    None when that is not an exact integer or falls outside BIGINT.
-
-    No decimal context is involved. `Decimal.scaleb` rounds to the context's 28 digits, so it turned
-    '1000000000000.0000000000000000001' into exactly 10**18. A value outside BIGINT is None, not a
-    refusal: its exact decimal text is still stored, and only comparisons on the integer are lost.
-    """
-    sign, digits, exponent = d.as_tuple()
-    require(isinstance(exponent, int), 'INVALID_MEASUREMENT_DECIMAL')
-    n = int(''.join(map(str, digits))) if digits else 0
-    shift = exponent + 6
-    if shift >= 0:
-        if n and shift > 19:  # n * 10**20 already exceeds BIGINT; never build a huge integer
-            return None
-        value = n * 10 ** shift
-    else:
-        value, remainder = divmod(n, 10 ** -shift)  # decimal_value bounds |exponent| by 308
-        if remainder:
-            return None
-    value = -value if sign else value
-    return value if BIGINT_MIN <= value <= BIGINT_MAX else None
+# The value columns' rules live in `series_values`, which the store's validator also uses (D27).
+micro_value = series_values.micro_value
 
 
 def value_columns(value_lexical):
@@ -391,6 +369,10 @@ def claim_fields(claim, clock):
 def store_row(fields, provenance):
     """(store event, series row) from a claim's fields: a point event on the patient-local calendar.
 
+    The D5 record fields are the store's typed event fields (D26): the claim's status and identifier and digest,
+    the selection state, the source table, the source row's and file's sha256 and, where the row has a storetime,
+    the time it was recorded; the rest of the provenance is the free-form evidence. No availability time is known.
+
     The event's time is the clock origin's coordinate plus the claim variable's offset from it, as
     the interval route computes `origin_us + start_us`. The event names its claim time variable,
     is never proper (a point cannot be) and has no end.
@@ -399,17 +381,22 @@ def store_row(fields, provenance):
     lo, hi = (fields['clock_origin_us'] + v for v in fields['start_offset_us'])
     require(fields['event_kind'] == KIND, 'UNEXPECTED_EVENT_KIND')
     decimal, micro = value_columns(fields['value_lexical'])
+    record = {'status': fields['record_status'], 'selection_state': 'accepted', 'claim_id': fields['claim_id'],
+              'claim_sha256': fields['claim_sha256'], 'source_table': SOURCE_TABLE,
+              'record_sha256': provenance['source_row_sha256'], 'file_sha256': provenance['source_file_sha256']}
+    if provenance['recorded_at_us'] is not None:
+        record['recorded_at'] = provenance['recorded_at_us']
     event = {'event_id': fields['event_id'], 'kind': KIND, 'source': SOURCE, 'concepts': [concept],
-             'start': [lo, hi], 'start_var': fields['time_var'],
-             'evidence': {'claim_id': fields['claim_id'], 'claim_sha256': fields['claim_sha256'],
-                          'source_record': fields['source_record'], 'record_id': fields['record_id'],
-                          'source_key': fields['source_key'], 'record_status': fields['record_status'],
-                          'episode_id': fields['episode_id'], 'selection_state': 'accepted',
+             'start': [lo, hi], 'start_var': fields['time_var'], **record,
+             'evidence': {'source_record': fields['source_record'], 'record_id': fields['record_id'],
+                          'source_key': fields['source_key'], 'episode_id': fields['episode_id'],
                           'acceptance_policy_id': POLICY_ID, 'clock_id': fields['clock_id'],
                           'clock_origin': fields['clock_origin'], 'clock_origin_us': fields['clock_origin_us'],
-                          'concept_bases': {concept: [ITEM_FIELD_BASIS]}, 'source_table': SOURCE_TABLE,
-                          **provenance, 'available_at_us': None, 'history_mode': 'retrospective',
-                          'source_history_verified': False, 'clinical_mapping_verified': False}}
+                          'concept_bases': {concept: [ITEM_FIELD_BASIS]},
+                          'source_record_number': provenance['source_record_number'],
+                          'origin_source_record_id': provenance['origin_source_record_id'],
+                          'history_mode': 'retrospective', 'source_history_verified': False,
+                          'clinical_mapping_verified': False}}
     series = {'event_id': fields['event_id'], 'item_class': concept, 'value_lexical': fields['value_lexical'],
               'value_decimal': decimal, 'value_micro': micro, 'unit': fields['unit_lexical']}
     return event, series
@@ -491,7 +478,7 @@ class Run:
     """One conversion's fixed inputs: the manifests, dimensions, closure and context."""
 
     def __init__(self, input_dir, dataset_id):
-        self.paths = source_paths(input_dir)
+        self.input_dir, self.paths = Path(input_dir), source_paths(input_dir)
         self.dataset_id = dataset_id
         self.manifest, itemids = read_manifest(self.paths['chartevents'])
         self.stays, self.items, self.dimension_manifests = dimensions(self.paths)

@@ -86,3 +86,36 @@ def write(directory, variant='full'):
             writer.writerow(header)
             writer.writerows(rows)
     return directory
+
+
+def write_combined(directory, store_fixture):
+    """The MIMIC store fixture (inputevents, icustays, d_items) plus chartevents for its own patients and stays,
+    with the chartevents items appended to its dictionary: synthetic, for the combined route (D27). Patient 14 gets
+    no chart row, so chartevents does not cover its stay; patient 13 only rows admission leaves out."""
+    import shutil
+    directory, store_fixture = Path(directory), Path(store_fixture)
+    directory.mkdir(parents=True, exist_ok=True)
+    shutil.copy(store_fixture / 'inputevents.csv', directory / 'inputevents.csv')
+    shutil.copy(store_fixture / 'icustays.csv', directory / 'icustays.csv')
+    text = (store_fixture / 'd_items.csv').read_text(encoding='utf-8')
+    with (directory / 'd_items.csv').open('w', encoding='utf-8', newline='') as handle:
+        handle.write(text if text.endswith('\n') else text + '\n')
+        csv.writer(handle, lineterminator='\n').writerows(r for r in ITEM_ROWS if r[3] == 'chartevents')
+    rows = []
+    for i in range(36):  # 36 readings in one stay: two claim stores
+        t = f'2150-01-01 {9 + i // 6:02d}:{(i % 6) * 10:02d}:00'
+        rows.append(_row('11', '110', '1101', t, '910001', str(70 + i), str(70 + i), 'per min'))
+    rows += [
+        _row('11', '110', '1101', '2150-01-01 07:45:00', '910002', '7.35', '7.35', 'unit-b'),  # before intime
+        _row('11', '111', '1102', '2150-03-01 09:00:00', '910005', '-0.5', '-0.5', 'unit-e', storetime=None),
+        _row('11', '111', '1102', '2150-03-01 09:05:00', '910003', 'Alert', '', ''),
+        _row('12', '120', '1201', '2151-06-10 07:00:00', '910001', '88', '88', 'per min'),
+        _row('12', '120', '1201', '2151-06-10 08:00:00', '910002', '1e-7', '1e-7', 'unit-b'),
+        _row('12', '120', '1201', '2151-06-10 08:30:00', '910001', '90', '90', 'per min', warning='1'),
+        _row('13', '130', '1301', '2149-02-01 11:00:00', '910003', 'Drowsy', '', ''),
+    ]
+    with (directory / 'chartevents.csv').open('w', encoding='utf-8', newline='') as handle:
+        writer = csv.writer(handle, lineterminator='\n')
+        writer.writerow(CHART)
+        writer.writerows(rows[::2] + rows[1::2])
+    return directory

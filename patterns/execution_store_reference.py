@@ -34,6 +34,8 @@ COLUMNS = {
     'coverage': ['patient_idx', 'source', 'clock_id', 'lo', 'hi', 'basis'],
     'source_concepts': ['source', 'concept', 'basis'],
     'excluded_records': ['patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason', 'n'],
+    'series': ['patient_idx', 'event_id', 'item_class', 'start_lo', 'start_hi', 'value_lexical', 'value_decimal',
+               'value_micro', 'unit'],
 }
 
 
@@ -137,17 +139,24 @@ def build_tables(ingest):
             excluded[key] = excluded.get(key, 0) + 1
         for (source, concept, lo, hi, reason), n in excluded.items():
             tables['excluded_records'].append((i, source, concept, lo, hi, reason, n))
+        # Measurement values (D27), each at its event's time.
+        starts = {e['event_id']: e['start'] for e in p['events']}
+        for r in p.get('series', []):
+            lo, hi = starts[r['event_id']]
+            tables['series'].append((i, r['event_id'], r['item_class'], lo, hi, r['value_lexical'], r['value_decimal'],
+                                     r['value_micro'], r['unit']))
     tables['source_concepts'] = [(source, concept, 'inferred_from_records') for source, concept in recorded]
     return {name: sorted(rows, key=lambda r: json.dumps(list(r), ensure_ascii=False)) for name, rows in tables.items()}
 
 
 # Which tables are split by bucket, and the columns that order each table's rows (unique in it).
-SPLIT_BY_BUCKET = {'events', 'event_evidence', 'event_concepts', 'coverage', 'excluded_records'}
+SPLIT_BY_BUCKET = {'events', 'event_evidence', 'event_concepts', 'coverage', 'excluded_records', 'series'}
 ORDER = {'patients': ['patient_idx'], 'events': ['patient_idx', 'event_id'], 'event_evidence': ['patient_idx', 'event_id'],
          'event_concepts': ['patient_idx', 'event_id', 'concept'], 'concept_closure': ['concept', 'ancestor'],
          'concept_postings': ['concept', 'patient_idx'], 'coverage': ['patient_idx', 'source', 'lo', 'hi', 'basis'],
          'source_concepts': ['source', 'concept'],
-         'excluded_records': ['patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason']}
+         'excluded_records': ['patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason'],
+         'series': ['patient_idx', 'item_class', 'start_lo', 'start_hi', 'event_id']}
 
 
 def sha(data):
@@ -167,6 +176,8 @@ def patient_digest(patient):
     p['coverage'] = sorted(patient['coverage'], key=lambda c: [c['source'], c['lo'], c['hi'], c['basis']])
     if 'excluded' in patient:
         p['excluded'] = sorted(patient['excluded'], key=lambda x: [x['source'], x['concept'], x['start'], x['reason']])
+    if 'series' in patient:
+        p['series'] = sorted(patient['series'], key=lambda r: r['event_id'])
     return sha(compact(p, sort=True).encode('utf-8'))
 
 
@@ -290,6 +301,30 @@ def admission_check(query, per_step, result, patient, events, ancestors, window)
     return result
 
 
+def coverage_rule(query, per_step, recorders, coverage, window, result):
+    """The coverage rule on an engine `none`, written again from docs/execution-store.md: a step none of whose
+    concepts any source records, or whose recording sources do not cover the window, makes it not comparable.
+    The one copy, used by `exhaustive_match` and `prepared_reference`."""
+    uncovered, unrecorded = [], []
+    for step in (s['id'] for s in query['steps']):
+        able = set()
+        for c in per_step[step]:
+            able |= recorders.get(c, set())
+        if not able:
+            unrecorded.append(step)
+        covered = any(period['source'] in able and period['lo'] <= window['end'] and period['hi'] >= window['start']
+                      for period in coverage)
+        if not covered:
+            uncovered.append(step)
+    if not uncovered:
+        return result
+    out = {'patient_id': result['patient_id'], 'status': 'not_comparable',
+           'reason': 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE', 'uncovered_steps': uncovered}
+    if unrecorded:
+        out['unrecorded_steps'] = unrecorded
+    return out
+
+
 def exhaustive_match(ingest, query, windows):
     """The engine on every patient's full, closure-expanded events; then the coverage rule on `none`,
     then the excluded-records rule on whatever the engine decided."""
@@ -313,23 +348,7 @@ def exhaustive_match(ingest, query, windows):
             events.append(event)
         result = tg.match(query, {'patient_id': p['patient_id'], 'window': window, 'events': events})
         if result['status'] == 'none':
-            uncovered, unrecorded = [], []
-            for step in (s['id'] for s in query['steps']):
-                able = set()
-                for c in per_step[step]:
-                    able |= recorders.get(c, set())
-                if not able:
-                    unrecorded.append(step)
-                covered = any(period['source'] in able and period['lo'] <= window['end'] and period['hi'] >= window['start']
-                              for period in p['coverage'])
-                if not covered:
-                    uncovered.append(step)
-            if uncovered:
-                result = {'patient_id': p['patient_id'], 'status': 'not_comparable',
-                          'reason': 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE',
-                          'uncovered_steps': uncovered}
-                if unrecorded:
-                    result['unrecorded_steps'] = unrecorded
+            result = coverage_rule(query, per_step, recorders, p['coverage'], window, result)
         if window is not None and result['status'] != 'not_comparable':
             result = admission_check(query, per_step, result, p, events, ancestors, window)
         results.append(result)

@@ -34,30 +34,7 @@ from . import execution_store_reference as ref
 from . import trajectory_graph as tg
 
 
-def coverage_rule(query, per_step, recorders, coverage, window, result):
-    """The coverage rule on an engine `none`, as `exhaustive_match` applies it (written there inline).
-
-    Integration should make this the reference's one copy and call it from `exhaustive_match` too
-    (`execution_store_reference.py` is not edited on this branch).
-    """
-    uncovered, unrecorded = [], []
-    for step in (s['id'] for s in query['steps']):
-        able = set()
-        for c in per_step[step]:
-            able |= recorders.get(c, set())
-        if not able:
-            unrecorded.append(step)
-        covered = any(period['source'] in able and period['lo'] <= window['end'] and period['hi'] >= window['start']
-                      for period in coverage)
-        if not covered:
-            uncovered.append(step)
-    if not uncovered:
-        return result
-    out = {'patient_id': result['patient_id'], 'status': 'not_comparable',
-           'reason': 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE', 'uncovered_steps': uncovered}
-    if unrecorded:
-        out['unrecorded_steps'] = unrecorded
-    return out
+coverage_rule = ref.coverage_rule  # the reference's one copy
 
 
 class PreparedReference:

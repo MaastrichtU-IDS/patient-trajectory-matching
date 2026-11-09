@@ -8,7 +8,8 @@ over **every** row of the file. It imports nothing from `mimic_chartevents`, `mi
 
 - the item class, written again as a literal namespace plus the row's `itemid`;
 - the time, by `datetime` arithmetic from 0001-01-01T00:00 on the raw `charttime`;
-- the recorded time from `storetime` the same way (null when empty);
+- the recorded time from `storetime` the same way (absent when empty; the typed `recorded_at`, D26);
+- the source row's sha256 (`record_sha256`), as sorted-key compact JSON of the row;
 - the value spelling (`valuenum`), the unit (`valueuom`), and the micro-unit integer by string parsing
   and integer arithmetic on the spelling (no `Decimal`);
 - the record number in the event identifier, and the event's kind and source.
@@ -30,6 +31,7 @@ from datetime import datetime
 import gzip
 import hashlib
 import io
+import json
 from pathlib import Path
 import re
 
@@ -102,7 +104,7 @@ class RawRowCheck:
             self.repeated += number in self.events
             self.events[number] = (pid, e['event_id'], e['kind'], e['source'], tuple(e['concepts']), tuple(e['start']),
                                    'end' in e, s.get('item_class'), s.get('value_lexical'), s.get('unit'),
-                                   s.get('value_micro'), e['evidence'].get('recorded_at_us'))
+                                   s.get('value_micro'), e.get('recorded_at'), e.get('record_sha256'))
         for x in patient.get('excluded', []):
             self.excluded[(pid, x['source'], x['concept'], x['start'][0], x['start'][1])] += 1
 
@@ -121,7 +123,7 @@ class RawRowCheck:
             if number in self.events:
                 counts['events_checked'] += 1
                 (epid, eid, kind, source, concepts, start, has_end, item_class, value_lexical, unit, micro,
-                 recorded) = self.events.pop(number)
+                 recorded, row_sha) = self.events.pop(number)
                 t = raw_us(row['charttime'])
                 stored = raw_us(row['storetime']) if row['storetime'] else None
                 want_class = ITEM_NAMESPACE + row['itemid']
@@ -131,7 +133,9 @@ class RawRowCheck:
                                  ('start', t is not None and start == (t, t)), ('point', not has_end),
                                  ('value_lexical', value_lexical == row['valuenum']), ('unit', unit == row['valueuom']),
                                  ('value_micro', micro == raw_micro(row['valuenum'])),
-                                 ('recorded_at_us', recorded == stored)):
+                                 ('recorded_at', recorded == stored),
+                                 ('record_sha256', row_sha == hashlib.sha256(json.dumps(
+                                     row, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')).hexdigest())):
                     if not ok:
                         fields[name] += 1
             elif not first:

@@ -487,19 +487,32 @@ class PerBucketDeriveTests(unittest.TestCase):
         from .test_execution_store import digests_2_0
         recorded = lambda name: json.loads((ei.ROOT / 'patterns/fixtures' / name).read_text())['cases']['mimic']
         want, want_3_0 = recorded('execution_store_content_digests.json'), recorded('execution_store_content_digests_3_0.json')
-        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()}
+        tables = lambda m: {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in m['tables'].items()
+                            if n != 'series'}
         self.assertGreater(want['tables']['excluded_records']['rows'], 0)
+        # D27 changed the converter, whose own sha256 names its run context, and through the claim stores' snapshot
+        # ids every event's evidence. Converting with the converter digest the 3.0 record was made with (main
+        # 0c6dcea) gives the recorded input digest and every recorded table; `series` is new and empty.
+        real = msi.artifacts
+        old = '70482376995c614970e956afe5ee82dad9427b674a41eb52d414bc9b5946383b'
+        as_before = lambda paths=msi.FILES: {k: (old if k == 'patterns/mimic_store_ingest.py' else v)
+                                             for k, v in real(paths).items()}
+        with mock.patch.object(msi, 'artifacts', as_before):
+            ingest = msi.convert(ei.ROOT / msi.FIXTURE, msi.FIXTURE_DATASET)['ingest']
         with tempfile.TemporaryDirectory() as tmp:
             for options in ({}, {'part_rows': 1}):
-                snapshot = es.build(result()['ingest'], Path(tmp) / str(len(options)), **options)
+                snapshot = es.build(ingest, Path(tmp) / str(len(options)), **options)
                 manifest = json.loads((snapshot / 'manifest.json').read_text())
                 self.assertEqual({'input_digest': manifest['input_digest'], 'tables': tables(manifest)},
                                  {k: want_3_0[k] for k in ('input_digest', 'tables')})
+                self.assertEqual(manifest['tables']['series']['rows'], 0)
                 old = digests_2_0(snapshot)
                 self.assertEqual({n: t for n, t in old.items() if n != 'events'},
                                  {n: t for n, t in want['tables'].items() if n != 'events'})
                 self.assertEqual(old['events']['rows'], want['tables']['events']['rows'])
-        self.assertEqual(STATE['store'].manifest['tables'], manifest['tables'])
+        # Only the evidence names the run context.
+        drop = lambda t: {n: v for n, v in t.items() if n != 'event_evidence'}
+        self.assertEqual(drop(STATE['store'].manifest['tables']), drop(manifest['tables']))
 
 
 class CommandLineTests(unittest.TestCase):
@@ -536,14 +549,106 @@ class CommittedReportTests(unittest.TestCase):
         self.assertEqual(report['raw_source_time_check'], {'events_checked': report['counts']['events'], 'mismatches': 0})
         self.assertEqual(report['counts']['excluded']['rows'], report['counts']['admission_outcomes']['UNSUPPORTED_ROW']
                          + report['counts']['admission_outcomes']['INVALID_ROW'])
-        self.assertEqual(report['snapshot']['labels']['source'], 'inputevents:continuous_segments')
+        self.assertEqual(report['snapshot']['labels']['sources'],
+                         'chartevents:numeric_measurements|inputevents:continuous_segments')
         self.assertIn('ADMISSION_EXCLUDED_RECORDS', report['differential']['not_comparable_by_reason'])
         # No event, claim or record identifiers, item IRIs or patient keys: counts only.
         text = json.dumps(report)
-        self.assertIsNone(re.search(r'(input|row|claim_input)_[0-9a-f]{64}_[0-9]+', text))
+        self.assertIsNone(re.search(r'(input|row|claim_input|chart|claim_chart)_[0-9a-f]{64}_[0-9]+', text))
         for marker in (ITEM, GROUP, '"patient_id"', '"event_id"'):
             self.assertNotIn(marker, text)
-        self.assertEqual(report['counts']['events'], report['snapshot']['tables']['events'])
+        chart = report['chartevents']
+        self.assertEqual(report['counts']['events'] + chart['counts']['events'], report['snapshot']['tables']['events'])
+        self.assertEqual(chart['counts']['events'], report['snapshot']['tables']['series'])
+        # D27: the demo's chartevents check is a census, and the raw-row check covers every chart row.
+        self.assertEqual(chart['route']['check'], 'census')
+        self.assertTrue(chart['raw_row_check']['passed'])
+        self.assertEqual(chart['raw_row_check']['rows'], chart['pin']['rows'])
+        census = chart['census']
+        self.assertEqual(census['stores_graph_checked'], census['stores_round_tripped'])
+        self.assertEqual(census['stores_graph_checked'], chart['counts']['claim_stores'])
+        self.assertEqual((census['mismatched_stores'], census['round_trip_failures']), (0, 0))
+        self.assertEqual(chart['built_store_comparison']['stores_mismatched'], 0)
+        self.assertEqual(chart['built_store_comparison']['events_compared'], chart['counts']['events'])
+        self.assertIn('census', chart['statement'])
+        self.assertEqual(report['differential']['exhaustive_slice']['prepared_reference_mismatches'], 0)
+        self.assertNotIn('merkle', text)
+
+
+class CharteventsTests(unittest.TestCase):
+    """D27: inputevents (route a) and chartevents (route b) in one store, on a synthetic combined fixture."""
+    FIXTURE = ei.ROOT / 'examples/mimic-store-ingest-chartevents'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = Path(tempfile.mkdtemp(prefix='mimic-chart-test-'))
+        cls.result = msi.convert(cls.FIXTURE, 'synthetic-combined', chartevents=True)
+        cls.snapshot = es.build(cls.result['ingest'], cls.tmp / 'store')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_the_committed_fixture_is_the_generators(self):
+        from . import chartevents_fixture as fx
+        made = fx.write_combined(self.tmp / 'fixture', ei.ROOT / msi.FIXTURE)
+        for name in ('chartevents.csv', 'icustays.csv', 'd_items.csv', 'inputevents.csv'):
+            self.assertEqual((made / name).read_bytes(), (self.FIXTURE / name).read_bytes(), name)
+
+    def test_merge_and_clocks(self):
+        ingest = self.result['ingest']
+        by_id = {p['patient_id']: p for p in ingest['patients']}
+        self.assertEqual(sorted(by_id), ['11', '12', '13', '14'])
+        for p in ingest['patients']:
+            self.assertEqual(p['clock_id'], 'patient_' + p['patient_id'])
+            origins = {e['evidence']['clock_origin'] for e in p['events']}
+            sources = {e['source'] for e in p['events']}
+            if sources == {msi.SOURCE, 'chartevents:numeric_measurements'}:
+                # Each importer chose its own origin; store times are absolute, so both stand side by side.
+                self.assertEqual(len(origins), 2)
+        p11 = by_id['11']
+        self.assertEqual({c['source'] for c in p11['coverage']}, {msi.SOURCE, 'chartevents:numeric_measurements'})
+        self.assertEqual(len(p11['series']), 38)
+        self.assertNotIn('chartevents:numeric_measurements', {c['source'] for c in by_id['14']['coverage']})
+        labels = ingest['provenance']['labels']
+        self.assertEqual(labels['sources'], 'chartevents:numeric_measurements|inputevents:continuous_segments')
+        self.assertNotIn('source', labels)
+        self.assertEqual(labels['chartevents_admission_profile'], 'mimic-measurement-import-1.0')
+        self.assertFalse(labels['clinical_mapping_verified'])
+
+    def test_store_equals_the_reference_and_the_streamed_build(self):
+        from .test_execution_store import table_mismatches
+        with es.open_store(self.snapshot, verify='content') as store:
+            self.assertEqual(table_mismatches(store, ref.build_tables(self.result['ingest'])), {})
+            self.assertEqual(store.manifest['tables']['series']['rows'], 40)
+        streamed = msi.stream_build(self.FIXTURE, 'synthetic-combined', self.tmp / 'streamed')
+        self.assertEqual(streamed.name, self.snapshot.name)
+
+    def test_census_built_store_comparison_raw_check_and_differential(self):
+        from . import mimic_chartevents_check as check
+        result = self.result
+        raw = verify.chart_raw_check(result)
+        self.assertTrue(raw['passed'])
+        self.assertEqual(raw['events_checked'], 40)
+        selected = {s['key']: ['census'] for s in result['chart_stores']}
+        digests = {s['key']: s['rows_sha256'] for s in result['chart_stores']}
+        outcomes = check.check_selected(result['chart_run'], selected, digests, self.tmp / 'census', workers=2)
+        summary = check.summarise(outcomes)
+        self.assertEqual((summary['stores_graph_checked'], summary['mismatched_stores']), (4, 0))
+        with es.open_store(self.snapshot) as store:
+            stored = verify.built_store_comparison(store, outcomes)
+            self.assertEqual(stored, {'stores_compared': 4, 'events_compared': 40, 'stores_mismatched': 0})
+            # A store row that differs from the graph's is caught.
+            bad = deepcopy(outcomes)
+            bad[0]['stored_digest'] = '0' * 64
+            self.assertEqual(verify.built_store_comparison(store, bad)['stores_mismatched'], 1)
+            chart_events = [(o['key'][0], *e) for o in outcomes for e in o['engine_events']]
+            engine_input = verify.adapter_engine_input(result['rows'], result['prepared']['items'], chart_events)
+            found = verify.differential(store, result['ingest'], engine_input, seeds=40, exhaustive_seeds=15)
+        self.assertEqual((found['mismatches'], found['adapter_row_mismatches'], found['dropped_matches']), (0, 0, 0))
+        self.assertEqual(found['exhaustive_slice']['prepared_reference_mismatches'], 0)
+        self.assertEqual(found['exhaustive_slice']['queries'], 15)
+        self.assertGreater(found['status_mix'].get('exact', 0), 0)
 
 
 if __name__ == '__main__':

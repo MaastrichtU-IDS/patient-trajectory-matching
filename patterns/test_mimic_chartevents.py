@@ -197,7 +197,7 @@ class BulkRowTests(unittest.TestCase):
                 self.assertEqual(e['start'], [msi.micros(row[4])] * 2)
                 self.assertEqual(s['value_lexical'], row[8])
                 self.assertEqual(s['unit'], row[9])
-                self.assertEqual(e['evidence']['recorded_at_us'], msi.micros(row[5]) if row[5] else None)
+                self.assertEqual(e.get('recorded_at'), msi.micros(row[5]) if row[5] else None)
 
     def test_values(self):
         values = {s['value_lexical']: (s['value_decimal'], s['value_micro'])
@@ -471,13 +471,13 @@ class RawRowCheckTests(unittest.TestCase):
             def shifted(entry, origin):
                 out = original(entry, origin)
                 if out['recorded_at_us'] is not None:
-                    out['recorded_at_us'] += 1
+                    out['recorded_at_us'] += 1  # becomes the typed recorded_at
                 return out
             return mock.patch.object(chart, 'provenance_of', shifted)
         return mock.patch.object(chart, 'ITEM_NS', 'https://example.org/trajectory/other-item/')
 
     def test_raw_check_catches_each_planted_defect(self):
-        fields = {'micros': 'start', 'value_micro': 'value_micro', 'recorded_at_us': 'recorded_at_us',
+        fields = {'micros': 'start', 'value_micro': 'value_micro', 'recorded_at_us': 'recorded_at',
                   'item_namespace': 'item_class'}
         for defect in self.PLANTED:
             with self.subTest(defect=defect), self.planted(defect):

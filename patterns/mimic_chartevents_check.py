@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import hashlib
 import heapq
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -209,7 +210,60 @@ def compare(bulk, graph):
     return not fields, sorted(fields)
 
 
-def check_patient(run, pid, rows, selected, recorded_digests, graph=True):
+EVENT_COLUMNS = ('event_id', 'kind', 'source', 'clock_id', 'start_lo', 'start_hi', 'end_lo', 'end_hi', 'ongoing',
+                 'start_var', 'end_var', 'proper', 'status', 'selection_state', 'recorded_at', 'available_at',
+                 'claim_id', 'claim_sha256', 'source_table', 'record_sha256', 'file_sha256')
+SERIES_COLUMNS = ('item_class', 'start_lo', 'start_hi', 'value_lexical', 'value_decimal', 'value_micro', 'unit')
+
+
+def stored_form(event, series, clock_id):
+    """One route row as the store holds it (D26 typed columns, evidence as canonical text, direct concepts, the D27
+    series columns), so graph rows can be compared with the rows read back from a built store."""
+    end = event.get('end') or [None, None]
+    values = {'event_id': event['event_id'], 'kind': event['kind'], 'source': event['source'], 'clock_id': clock_id,
+              'start_lo': event['start'][0], 'start_hi': event['start'][1], 'end_lo': end[0], 'end_hi': end[1],
+              'ongoing': end[0] is not None and end[1] is None, 'start_var': event.get('start_var'),
+              'end_var': event.get('end_var'), 'proper': bool(event.get('proper', False))}
+    values.update({f: event.get(f) for f in EVENT_COLUMNS[12:]})
+    evidence = json.dumps(event['evidence'], sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
+    series_values = None if series is None else [series['item_class'], event['start'][0], event['start'][1]] + [
+        series[c] for c in SERIES_COLUMNS[3:]]
+    return [[values[c] for c in EVENT_COLUMNS], evidence, sorted(event['concepts']), series_values]
+
+
+def store_forms(store, patient_id, event_ids):
+    """{event_id: stored form} read back from a built store for one patient's events."""
+    found = store.query('SELECT patient_idx, bucket FROM patients WHERE patient_id = ?', [patient_id])
+    if not found:
+        return {}
+    (idx, bucket), = found
+    wanted = sorted(set(event_ids))
+    store.db.execute('CREATE OR REPLACE TEMP TABLE wanted_events (event_id VARCHAR)')
+    store.db.executemany('INSERT INTO wanted_events VALUES (?)', [[e] for e in wanted])
+    cols = ', '.join('e.' + c for c in EVENT_COLUMNS)
+    rows = store.query(f"""SELECT {cols}, x.evidence, s.item_class, s.start_lo, s.start_hi, s.value_lexical,
+            s.value_decimal, s.value_micro, s.unit, s.event_id IS NOT NULL
+        FROM events e JOIN wanted_events w USING (event_id)
+        JOIN event_evidence x ON x.bucket = e.bucket AND x.patient_idx = e.patient_idx AND x.event_id = e.event_id
+        LEFT JOIN series s ON s.bucket = e.bucket AND s.patient_idx = e.patient_idx AND s.event_id = e.event_id
+        WHERE e.bucket = ? AND e.patient_idx = ?""", [bucket, idx])
+    concepts = {}
+    for eid, concept in store.query("""SELECT c.event_id, c.concept FROM event_concepts c JOIN wanted_events w USING (event_id)
+                                       WHERE c.bucket = ? AND c.patient_idx = ?""", [bucket, idx]):
+        concepts.setdefault(eid, []).append(concept)
+    store.db.execute('DROP TABLE wanted_events')
+    n = len(EVENT_COLUMNS)
+    return {r[0]: [list(r[:n]), r[n], sorted(concepts.get(r[0], [])), list(r[n + 1:n + 8]) if r[n + 8] else None]
+            for r in rows}
+
+
+def forms_digest(forms):
+    """sha256 over stored forms in event order."""
+    return hashlib.sha256(json.dumps(sorted(forms, key=lambda f: f[0][0]), ensure_ascii=False,
+                                     separators=(',', ':')).encode('utf-8')).hexdigest()
+
+
+def check_patient(run, pid, rows, selected, recorded_digests, graph=True, collect=False):
     """The round trip, and route (a) unless `graph` is false, on this patient's selected stores, against
     bulk rows rebuilt from the same rows.
 
@@ -228,11 +282,57 @@ def check_patient(run, pid, rows, selected, recorded_digests, graph=True):
             equal, fields = compare(bulk, rows_a)
             outcome.update(equal=equal and rederived and outcome['round_trip'], differing_fields=fields,
                            isolation_status=facts['isolation_status'])
+            if collect:  # for the built-store comparison (§3.6) and the route-(a) engine input of the differential
+                outcome['stored_digest'] = forms_digest([stored_form(e, x, 'patient_' + pid) for e, x in rows_a])
+                outcome['event_ids'] = [e['event_id'] for e, _ in rows_a]
+                outcome['engine_events'] = [(e['event_id'], x['item_class'], e['start'][0], e['start'][1])
+                                            for e, x in rows_a]
         else:
             outcome.update(equal=rederived and outcome['round_trip'], differing_fields=[], isolation_status=None)
         out.append(outcome)
     require(len(out) == len(selected), 'SAMPLED_STORE_NOT_FOUND')
     return out
+
+
+_WORKER = {}
+
+
+def _init_worker(input_dir, dataset_id):
+    _WORKER['run'] = chart.Run(input_dir, dataset_id)
+
+
+def _job(args):
+    pid, rows, selected, digests, graph = args
+    return check_patient(_WORKER['run'], pid, rows, selected, digests, graph=graph, collect=True)
+
+
+def check_selected(run, selected, digests, work_dir, *, graph=True, workers=1, shards=16):
+    """The round trip, and route (a) unless `graph` is false, on every selected store (a sample, or every store for a
+    census), patient by patient, in `workers` processes; outcomes with each store's stored-form digest, its event
+    ids and its route-(a) engine events."""
+    from concurrent.futures import ProcessPoolExecutor
+    if not selected:
+        return []
+    work_dir = Path(work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    paths = chart.spill(run.paths['chartevents'], run.manifest, work_dir, shards, {k[0] for k in selected})
+    by_patient = {}
+    for key, reasons in selected.items():
+        by_patient.setdefault(key[0], {})[key] = reasons
+
+    def jobs():
+        for pid, rows in chart.patient_rows(paths, run.manifest['columns']):
+            mine = by_patient.get(pid)
+            if mine:
+                yield pid, rows, mine, {k: digests.get(k) for k in mine}, graph
+
+    if workers > 1:
+        with ProcessPoolExecutor(max_workers=workers, initializer=_init_worker,
+                                 initargs=(run.input_dir, run.dataset_id)) as pool:
+            results = list(pool.map(_job, jobs(), chunksize=1))
+    else:
+        results = [check_patient(run, pid, rows, mine, d, graph=g, collect=True) for pid, rows, mine, d, g in jobs()]
+    return [o for r in results for o in r]
 
 
 def summarise(outcomes, sampler=None):
