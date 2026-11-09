@@ -92,9 +92,11 @@ Cautions on the matching rows:
 - **Data use.** Whether the credentialed MIMIC-IV agreement allows committing row-level digests (D17, D-DATA).
 - **Publishing.** The wheel is unpublished. Publishing, and renaming the `patterns` import before it, are yours to decide.
 
-## 7. In progress at the time of writing
+## 7. Since the briefing was written
 
-*This section is provisional. Neither item has a decision entry in the log yet, which ends at D25. Update it when D26 lands.*
-
-- **D26, store format 3.0.** Planned: typed event columns and an evidence table, so evidence leaves the events table that dominates digests and loads (listed as next on the store page); end-time summaries for pruning, so `during`'s grace can prune; typed staging in place of ndjson; and the benchmark follow-ups listed above. A format change means every snapshot identifier changes again.
-- **Chartevents preparation (D16, route (b)).** Preparing the bulk route for the demo's 668,862 chartevents rows. Not built as of the log.
+- **D26, execution store 3.0 (merged after this briefing; see the log).**
+  - *Format.* The D5 record fields are now typed columns, and the remaining free-form evidence moved to an `event_evidence` table that matching never reads. The expected speed gain did not happen: event loading is unchanged, the build is 17 to 20% slower, content verification is 24% slower at 1,000,000, and the 1,000,000 snapshot is 56% larger, mostly a replication effect of the synthetic record times. The format was kept for its typed, validated record fields, which a selection mode on availability times needs. A review recommended keeping it.
+  - *End-time summaries.* These let `during`'s grace prune. They were kept under a rule fixed before measuring, but the gain is small: 36.22% of candidates pruned against 36.10%.
+  - *Typed staging* (Parquet). Staged bytes at 1,000,000 fell from 120 GB to 13 GB, with peak memory up 1.2%.
+  - *Unchanged.* Results are unchanged everywhere. The D21 target still holds: p95 8.53 s at 8 workers and 7.71 s at 14.
+- **Chartevents (D16, route (b)), in progress.** The design and modules are built and reviewed on a branch. Integration into store 3.0 and the full demo run follow D26. The design draft is `docs/decisions/chartevents-route-b.md` on that branch.

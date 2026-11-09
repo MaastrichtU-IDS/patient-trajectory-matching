@@ -265,8 +265,8 @@ def raw_time_check(ingest, segments):
             start, end = msi.micros(segment['start']['raw_value']), msi.micros(segment['end']['raw_value'])
             recorded = segment['recorded_at']['raw_value']
             ok = (e['start'] == [start, start] and e['end'] == [end, end]
-                  and e['evidence']['recorded_at_us'] == (msi.micros(recorded) if recorded else None)
-                  and e['evidence']['source_row_sha256'] == segment['source']['row_sha256'])
+                  and e.get('recorded_at') == (msi.micros(recorded) if recorded else None)
+                  and e['record_sha256'] == segment['source']['row_sha256'])
             mismatched += not ok
     return {'events_checked': checked, 'mismatches': mismatched}
 

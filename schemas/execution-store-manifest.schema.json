@@ -43,7 +43,7 @@
     }
   },
   "properties": {
-    "profile": {"const": "execution-store-2.1"},
+    "profile": {"const": "execution-store-3.0"},
     "snapshot_id": {"$ref": "#/$defs/sha256"},
     "dataset_id": {"type": "string", "minLength": 1},
     "input_digest": {"$ref": "#/$defs/sha256"},
@@ -90,11 +90,12 @@
     "tables": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["patients", "events", "event_concepts", "concept_closure", "concept_postings", "coverage",
-                   "source_concepts", "excluded_records"],
+      "required": ["patients", "events", "event_evidence", "event_concepts", "concept_closure", "concept_postings",
+                   "coverage", "source_concepts", "excluded_records"],
       "properties": {
         "patients": {"$ref": "#/$defs/table"},
         "events": {"$ref": "#/$defs/table"},
+        "event_evidence": {"$ref": "#/$defs/table"},
         "event_concepts": {"$ref": "#/$defs/table"},
         "concept_closure": {"$ref": "#/$defs/table"},
         "concept_postings": {"$ref": "#/$defs/table"},

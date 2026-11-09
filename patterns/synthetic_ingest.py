@@ -5,7 +5,7 @@ the records the sources hold. This converter reads only the records, as a real s
 adapter would (docs/execution-store.md, "Synthetic converter"):
 
 - Selection is retrospective and takes the latest version: a record another record supersedes
-  is dropped, and `available_at` does not select (it stays in the evidence). The mode is
+  is dropped, and `available_at` does not select (it is kept as the event's `available_at`). The mode is
   recorded in the ingest's `provenance.selection` and carried into the snapshot manifest.
 - A record whose status does not assert performance (`ordered` tests and procedures) is
   skipped and counted, so a requested EEG never matches a step asking for an EEG.
@@ -18,7 +18,9 @@ adapter would (docs/execution-store.md, "Synthetic converter"):
 - Event identifiers are `source/record_id`, with `#m<i>` for a letter's i-th mention: the source is
   kept in the key as a safeguard, and the store refuses duplicate event ids.
 - Times are the record's `occurred` earliest and latest, read as patient-local wall-clock
-  times and counted in microseconds from 0001-01-01T00:00.
+  times and counted in microseconds from 0001-01-01T00:00. The record's `recorded_at`,
+  `available_at` and `status` become the event's typed record fields (D26), the rest of the
+  record's provenance its free-form `evidence`; a stop's evidence keeps its own fields as written.
 - A medication order is an exposure from the order. A later `stopped` order for the same
   medication closes the latest open order before it; an order never closed is ongoing.
   A stop with no order to close is skipped and counted. Dispensings are point events.
@@ -44,7 +46,7 @@ MENTION_KINDS = ('note',)
 PERFORMED = (None, 'active', 'final', 'amended', 'stopped')
 SELECTION = {'mode': 'retrospective', 'version': 'latest', 'available_at': 'not_applied',
              'note': ('every record held at the cohort snapshot, superseded versions dropped; availability '
-                      'times are kept in evidence but do not select records')}
+                      'times are kept as each event\'s available_at but do not select records')}
 CONVERTER = Path(__file__).resolve()
 
 
@@ -84,11 +86,23 @@ def _key(record):
     return f"{record['source']}/{record['record_id']}"
 
 
-def _evidence(record, **extra):
+def _record(record):
+    """The record fields the store keeps as typed event columns (D26): when the source wrote the record down and
+    when a researcher's system could first see it, on the patient-local clock, and its status where it has one."""
+    out = {'recorded_at': micros(record['recorded_at']), 'available_at': micros(record['available_at'])}
+    if record.get('status') is not None:
+        out['status'] = record['status']
+    return out
+
+
+def _evidence(record, own=True, **extra):
+    """Free-form provenance of a record. For the event's own record (`own`), the fields `_record` types are left
+    out; the evidence of another record (a stop) keeps them, as its source wrote them."""
     out = {'record_id': record['record_id'], 'source': record['source'], 'record_kind': record['kind'],
-           'occurred': {k: record['occurred'][k] for k in ('earliest', 'latest', 'precision', 'as_written')},
-           'recorded_at': record['recorded_at'], 'available_at': record['available_at']}
-    for key in ('coding', 'status', 'value', 'unit', 'supersedes'):
+           'occurred': {k: record['occurred'][k] for k in ('earliest', 'latest', 'precision', 'as_written')}}
+    if not own:
+        out.update(recorded_at=record['recorded_at'], available_at=record['available_at'])
+    for key in ('coding', 'value', 'unit', 'supersedes') + (() if own else ('status',)):
         if record.get(key) is not None:
             out[key] = record[key]
     out.update(extra)
@@ -116,7 +130,7 @@ def convert_patient(patient, codes):
                     skip(f"mention_{m['assertion']}_{m['experiencer']}")
                     continue
                 events.append({'event_id': f"{_key(record)}#m{i}", 'kind': 'mention', 'source': record['source'],
-                               'concepts': [m['concept']], 'start': bounds(record),
+                               'concepts': [m['concept']], 'start': bounds(record), **_record(record),
                                'evidence': _evidence(record, mention={'span': m['span'], 'text': m['text'],
                                                                      'assertion': m['assertion'],
                                                                      'experiencer': m['experiencer']})})
@@ -133,7 +147,7 @@ def convert_patient(patient, codes):
             (stops if record.get('status') == 'stopped' else orders).append((concept, record))
             continue
         events.append({'event_id': _key(record), 'kind': record['kind'], 'source': record['source'],
-                       'concepts': [concept], 'start': bounds(record), 'evidence': _evidence(record)})
+                       'concepts': [concept], 'start': bounds(record), **_record(record), 'evidence': _evidence(record)})
     # Exposures: each stop closes the latest still-open order for the same medication before it.
     open_orders = sorted(orders, key=lambda o: (bounds(o[1]), o[1]['record_id']))
     closing = {}
@@ -153,9 +167,11 @@ def convert_patient(patient, codes):
         else:
             lo, hi = bounds(stop)
             end_lo = max(lo, start[0])
-            end, extra = [end_lo, max(hi, end_lo)], {'stop': _evidence(stop, attributes=stop.get('attributes'))}
+            end = [end_lo, max(hi, end_lo)]
+            extra = {'stop': _evidence(stop, own=False, attributes=stop.get('attributes'))}
         events.append({'event_id': _key(order), 'kind': 'medication_exposure', 'source': order['source'],
-                       'concepts': [concept], 'start': start, 'end': end, 'evidence': _evidence(order, **extra)})
+                       'concepts': [concept], 'start': start, 'end': end, **_record(order),
+                       'evidence': _evidence(order, **extra)})
     spans = {}
     for record in patient['records']:
         lo, hi = bounds(record)

@@ -159,6 +159,7 @@ class ReportTests(unittest.TestCase):
         for a, b in zip(source['events'], copy['events']):
             self.assertEqual(b['start'], [t + delta for t in a['start']])
             self.assertEqual(b['concepts'], a['concepts'])
+            self.assertEqual((b['recorded_at'], b['available_at']), (a['recorded_at'] + delta, a['available_at'] + delta))
 
 
 if __name__ == '__main__':

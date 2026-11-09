@@ -93,70 +93,81 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(sha, matcher.digest(path), path)
         self.assertFalse(self.report['contains_patient_level_data'])
         self.assertTrue(self.report['limitations'])
-        self.assertNotIn('snapshot_view', entry['arms']['A'])  # the same profile: the snapshot as it is
+        self.assertNotIn('arm_a_snapshot', entry)  # the same profile: arm A reads the snapshot as it is
+
+    def test_pruned_candidates_and_pruning_time_are_recorded_per_query(self):
+        """D25 review, done in D26: the pruned share is bound evidence, with what the start summaries alone prune."""
+        entry = self.report['sizes'][0]
+        b = entry['arms']['B']
+        pruning = b['pruning']
+        self.assertEqual(pruning['pruned'], sum(q['pruned'] for q in b['per_query']))
+        self.assertEqual(pruning['candidates_with_window'], sum(q['candidates_with_window'] for q in b['per_query']))
+        self.assertLessEqual(pruning['pruned_by_start_summaries_alone'], pruning['pruned'])
+        self.assertEqual(pruning['pruned_only_by_end_summaries'],
+                         pruning['pruned'] - pruning['pruned_by_start_summaries_alone'])
+        self.assertTrue(all(q['prune_seconds'] >= 0 and q['candidates_with_window'] <= q['candidates']
+                            for q in b['per_query']))
+        self.assertNotIn('pruning', entry['arms']['B_unpruned'])  # pruning off: nothing to count
+        self.assertEqual(entry['arms']['C_w2']['pruning']['pruned'], pruning['pruned'])  # the parent prunes
 
 
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
 class OlderArmTests(unittest.TestCase):
-    """Arm A's code may read an older store profile than the snapshots' (2.0 against 2.1, D24): it opens the
-    same files under a relabelled manifest and must decide byte for byte as this tree does."""
+    """Arm A's code may read an older store profile than the snapshots' (2.0 against 3.0, D26, which moved columns): it
+    reads its own snapshot of the same cohort, built by its own builder, which must hold the same rows in every column
+    matching reads, and decides byte for byte as this tree does."""
     REF = '0a18b9a'  # main before D24: execution store 2.0
 
-    def test_an_older_arm_reads_the_snapshot_through_a_relabelled_view_and_agrees(self):
+    def test_an_older_arm_reads_its_own_snapshot_of_the_same_cohort_and_agrees(self):
+        import io
+        from contextlib import redirect_stdout
         from patterns import execution_store as es
         with tempfile.TemporaryDirectory(prefix='matcher-older-') as tmp:
             snapshot = es.build(bench.replicate(bench.pool_ingest(96)[0], 96), Path(tmp) / 'store')
             output = Path(tmp) / 'report.json'
             try:
-                matcher.main(['--snapshots', f'96={snapshot}', '--arm-a-ref', self.REF, '--arms', 'A', 'B',
-                              '--queries', '4', '--repeats', '1', '--workers', '1', '--output', str(output)])
+                with redirect_stdout(io.StringIO()) as printed:
+                    matcher.main(['--build-arm-a', f'96={Path(tmp) / "arm-a"}', '--arm-a-ref', self.REF])
             except (OSError, matcher.subprocess.CalledProcessError) as exc:  # no git, or a clone without the ref
                 raise unittest.SkipTest(f'git archive {self.REF} unavailable: {exc}')
-            entry = json.loads(output.read_text())['sizes'][0]
+            size, _, own = printed.getvalue().strip().splitlines()[-1].partition('=')
+            self.assertEqual(json.loads((Path(own) / 'manifest.json').read_text())['profile'], 'execution-store-2.0')
+            matcher.main(['--snapshots', f'96={snapshot}', '--arm-a-snapshots', f'96={own}', '--arm-a-ref', self.REF,
+                          '--arms', 'A', 'B', '--queries', '4', '--repeats', '1', '--workers', '1',
+                          '--output', str(output)])
+            report = json.loads(output.read_text())
+            # Without its own snapshot, arm A is not run on a snapshot of another profile.
+            matcher.main(['--snapshots', f'96={snapshot}', '--arm-a-ref', self.REF, '--arms', 'A', '--queries', '1',
+                          '--repeats', '1', '--workers', '1', '--output', str(output)])
+            alone = json.loads(output.read_text())['sizes'][0]
+        entry = report['sizes'][0]
+        self.assertEqual(size, '96')
         self.assertEqual(entry['byte_identity_B_against_A'], {'compared': 4, 'identical': 4, 'mismatching_seeds': []})
-        self.assertEqual(entry['arms']['A']['snapshot_view']['snapshot_profile'], es.PROFILE)
-        self.assertEqual(entry['arms']['A']['snapshot_view']['read_as_profile'], 'execution-store-2.0')
-        self.assertEqual((entry['arms']['A']['snapshot_view']['patients_sharing_variables'],
-                          entry['arms']['A']['snapshot_view']['events_proper_or_naming_variables']), (0, 0))
-        self.assertNotIn('snapshot_view', entry['arms']['B'])
+        same = entry['arm_a_snapshot']['same_rows']
+        self.assertTrue(same['all_equal'], same)
+        self.assertEqual(set(same['tables']), set(matcher.READ_COLUMNS))
+        self.assertGreater(same['tables']['events']['rows'], 0)
+        self.assertEqual(entry['arm_a_snapshot']['profile'], 'execution-store-2.0')
+        self.assertEqual(report['arms']['A']['store_profile'], 'execution-store-2.0')
+        self.assertEqual((entry['arms']['A']['store_profile'], entry['arms']['B']['store_profile']),
+                         ('execution-store-2.0', es.PROFILE))
+        self.assertEqual(alone['arms']['A']['status'], 'not_run')
+        self.assertIn('ARM_A_SNAPSHOT_PROFILE', alone['arms']['A']['reason'])
 
-    def test_a_view_is_refused_where_older_code_would_misread_the_snapshot(self):
-        """The relabelled view is equivalent only when no patient shares variables and no event is proper or names
-        a variable (D25, after the D24 review). Otherwise, or for any other pair of profiles, it is refused, and
-        its scratch directory is removed however the block ends."""
-        from types import SimpleNamespace
+    def test_different_rows_are_reported(self):
+        """The rows check compares the columns matching reads: a snapshot with one event moved by a microsecond
+        differs in `events` and the postings, and in nothing else."""
         from patterns import execution_store as es
-        from patterns import test_execution_store as tes
-        old = SimpleNamespace(PROFILE='execution-store-2.0', snapshot_identity=es.snapshot_identity)
-        plain = tes.fixture()
-        proper = tes.fixture()
-        proper['patients'][0]['events'][1]['proper'] = True  # P1's carbamazepine exposure
-        named = tes.fixture()
-        named['patients'][0]['events'][0]['start_var'] = 'own'  # a name nobody shares
-        shared = tes.fixture()
-        shared['patients'] += tes.shared_variable_patients()
-        with tempfile.TemporaryDirectory(prefix='matcher-view-test-') as tmp:
-            scratch = Path(tmp) / 'scratch'
-            for label, ingest, refused in (('plain', plain, False), ('proper', proper, True), ('named', named, True),
-                                           ('shared', shared, True)):
-                snapshot = es.build(ingest, Path(tmp) / label)
-                with self.subTest(label), mock.patch.object(matcher.tempfile, 'mkdtemp',
-                                                            lambda prefix: str(scratch.mkdir() or scratch)):
-                    if refused:
-                        with self.assertRaises(matcher.SnapshotViewError):
-                            with matcher.snapshot_view(old, snapshot):
-                                pass
-                    else:
-                        with self.assertRaisesRegex(RuntimeError, 'later failure'):
-                            with matcher.snapshot_view(old, snapshot) as (view, note):
-                                self.assertEqual(json.loads((view / 'manifest.json').read_text())['profile'],
-                                                 'execution-store-2.0')
-                                self.assertEqual(note['patients_sharing_variables'], 0)
-                                raise RuntimeError('later failure')
-                    self.assertFalse(scratch.exists())
-            with self.assertRaisesRegex(matcher.SnapshotViewError, 'no view'):
-                matcher.readable_snapshot(SimpleNamespace(PROFILE='execution-store-1.0'), snapshot, tmp)
-            self.assertEqual(matcher.readable_snapshot(es, snapshot, tmp), (snapshot, None))
+        ingest = bench.replicate(bench.pool_ingest(96)[0], 96)
+        moved = json.loads(json.dumps(ingest))
+        e = moved['patients'][3]['events'][0]
+        e['start'] = [e['start'][0], e['start'][1] + 1]
+        with tempfile.TemporaryDirectory(prefix='matcher-rows-') as tmp:
+            a, b = es.build(ingest, Path(tmp) / 'a'), es.build(moved, Path(tmp) / 'b')
+            self.assertTrue(matcher.same_rows(a, a, '1GB')['all_equal'])
+            got = matcher.same_rows(a, b, '1GB')
+        self.assertFalse(got['all_equal'])
+        self.assertEqual({n for n, t in got['tables'].items() if not t['equal']}, {'events', 'concept_postings'})
 
 
 if __name__ == '__main__':

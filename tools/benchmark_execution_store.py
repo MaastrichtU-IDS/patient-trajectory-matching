@@ -197,7 +197,8 @@ def stream_patients(path, pool_size, size):
 
 
 def shifted(patient, k):
-    """Copy k of a pool patient: new id, whole-day shift, evidence shared with the source object."""
+    """Copy k of a pool patient: new id, whole-day shift of every time (record times included), evidence shared
+    with the source object."""
     delta = shift_for(k)
     pid = f"{patient['patient_id']}~r{k}"
     def move(pair):
@@ -207,6 +208,9 @@ def shifted(patient, k):
         copy = {**e, 'start': move(e['start'])}
         if e.get('end') is not None:
             copy['end'] = move(e['end'])
+        for field in ('recorded_at', 'available_at'):  # record times are on the patient's clock too (D26)
+            if field in e:
+                copy[field] = e[field] + delta
         events.append(copy)
     coverage = [{**c, 'lo': c['lo'] + delta, 'hi': c['hi'] + delta} for c in patient['coverage']]
     out = {**patient, 'patient_id': pid, 'clock_id': f'patient_{pid}', 'events': events, 'coverage': coverage}
@@ -274,7 +278,7 @@ def progress(path, phase, **extra):
     Path(path).write_text(json.dumps({'phase': phase, 'peak_rss_bytes_so_far': peak, **extra}))
 
 
-def build_worker(size, work, threads, memory_limit, marker):
+def build_worker(size, work, threads, memory_limit, marker, staging=None):
     """Generate the distinct pool to disk, then stream every patient into `StoreBuilder`."""
     from patterns import execution_store as es
     work = Path(work)
@@ -293,7 +297,9 @@ def build_worker(size, work, threads, memory_limit, marker):
     started = time.perf_counter()
     adding, add_rss = 0.0, []
     root = work / 'store'
-    with es.StoreBuilder(root, header, threads=threads, memory_limit=memory_limit, on_stage=mark) as builder:
+    # `staging` (D26) only where asked, so that an older builder without the option can run this worker too.
+    options = {} if staging is None else {'staging': staging}
+    with es.StoreBuilder(root, header, threads=threads, memory_limit=memory_limit, on_stage=mark, **options) as builder:
         for i, patient in enumerate(stream_patients(pool_path, len(per_patient), size)):
             t = time.perf_counter()
             builder.add(patient)
@@ -553,7 +559,8 @@ def run_size(size, args, work):
     scratch.mkdir(parents=True)
     started = time.monotonic()
     entry = {'size': size, 'status': 'completed'}
-    built, record = run_phase('build', ['--size', str(size), '--work-dir', str(scratch), '--threads', str(args.threads),
+    built, record = run_phase('build', ['--size', str(size), '--work-dir', str(scratch), '--staging', args.staging,
+                                        '--threads', str(args.threads),
                                         '--memory-limit', args.memory_limit],
                               scratch / 'build.json', args.budget_seconds, RSS_LIMIT_BYTES)
     entry['build_phase'] = {k: v for k, v in record.items() if k != 'failure'}
@@ -654,7 +661,7 @@ def benchmark(args):
                            'profile_max_size': args.profile_max_size, 'large_queries': args.large_queries,
                            'large_repeats': args.large_repeats,
                            'budget_seconds_per_size': args.budget_seconds, 'rss_limit_bytes': RSS_LIMIT_BYTES,
-                           'threads': args.threads, 'memory_limit': args.memory_limit,
+                           'threads': args.threads, 'memory_limit': args.memory_limit, 'staging': args.staging,
                            'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT},
             'environment': environment(args.threads, args.memory_limit),
             'cohort_construction': {
@@ -686,6 +693,8 @@ def main(argv=None):
     parser.add_argument('--exhaustive', type=int, default=5, help='queries compared with exhaustive matching at small sizes')
     parser.add_argument('--exhaustive-max-size', type=int, default=1000)
     parser.add_argument('--keep', action='store_true', help='keep each size\'s snapshot')
+    parser.add_argument('--staging', choices=('parquet', 'ndjson'), default='parquet',
+                        help='how the builder stages rows (D26); parquet is the store\'s default')
     parser.add_argument('--profile-max-size', type=int, default=10000,
                         help='sizes up to this get the full query set and a cProfile of one match; larger ones get '
                              '--large-queries and --large-repeats')
@@ -699,7 +708,7 @@ def main(argv=None):
     if args.worker:
         marker = args.worker_output.with_suffix('.progress')
         if args.worker == 'build':
-            result = build_worker(args.size, args.work_dir, args.threads, args.memory_limit, marker)
+            result = build_worker(args.size, args.work_dir, args.threads, args.memory_limit, marker, args.staging)
         elif args.worker == 'verify':
             result = verify_profile_worker(args.snapshot, args.threads, args.memory_limit)
         elif args.worker == 'cprofile':

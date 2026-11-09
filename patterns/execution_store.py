@@ -5,11 +5,11 @@ at a time, and a relaxation-sound candidate filter in front of the trajectory-gr
 patient per `add()`, then the provenance in `finish()`. Each `add()` validates the patient against
 the closure, appends its rows to the staging files of its bucket's current part (a run of whole
 patients of one bucket) and its digest to a staged patient list, so Python holds one patient at a
-time. `finish()` derives eight tables in a file-backed DuckDB database under a memory limit, one part
+time. `finish()` derives nine tables in a file-backed DuckDB database under a memory limit, one part
 at a time and bucket by bucket, so the derive's working set does not grow with the cohort, and
 writes them as Parquet under `root/<snapshot_id>/`, with a `manifest.json` that
 `schemas/execution-store-manifest.schema.json` validates. `build(ingest, root)` does the same for a
-whole ingest document. Docs: docs/execution-store.md; decisions D19, D20 and D23.
+whole ingest document. Docs: docs/execution-store.md; decisions D19, D20, D23 and D26.
 
 Identity is content, never Parquet bytes. The input digest hashes the header and a sorted list of
 per-patient digests. Each table's content digest hashes its per-bucket digests, and each bucket
@@ -23,9 +23,9 @@ content digests; `finish()` always checks content before it publishes.
 steps, rarest first. Each step's postings are the union over its concept and every concept a
 `widen_concept` relaxation within the budget could put in its place, so a patient the
 engine could match under any tried relaxation set is never dropped. `match(store, query,
-windows)` runs `trajectory_graph.match` on the survivors, except those the postings' start summaries
-prove `none` (time pruning, D25: the engine's own `none`, its events never loaded), reports the rest as `none` with
-reason `FILTERED`, and turns `none` into `not_comparable` when, for some step, no source
+windows)` runs `trajectory_graph.match` on the survivors, except those the postings' start and end
+summaries prove `none` (time pruning, D25 and D26: the engine's own `none`, its events never loaded),
+reports the rest as `none` with reason `FILTERED`, and turns `none` into `not_comparable` when, for some step, no source
 that records the step's concepts (table `source_concepts`) covers the patient's window, or
 when the patient holds excluded records (table `excluded_records`) a step could have bound. Its
 output carries the snapshot's labels and a `context` (snapshot, query and window digests,
@@ -56,9 +56,11 @@ from . import trajectory_graph as tg
 from ._resources import ROOT
 
 # 2.1 (D24): events hold their time variables and `proper`, and patients whether their events share variables.
-PROFILE = 'execution-store-2.1'
-# The ingest profile is unchanged: the event fields 2.1 reads (start_var, end_var, proper) are optional, so a
-# document without them is read, and digested, exactly as before.
+# 3.0 (D26): the D5 record fields are typed event columns, free-form evidence is its own table (`event_evidence`),
+# and postings keep each concept's latest end (`max_end_hi`).
+PROFILE = 'execution-store-3.0'
+# The ingest profile is unchanged: the event fields 2.1 and 3.0 read (start_var, end_var, proper and the record
+# fields) are optional, so a document without them is read, and digested, exactly as before (D25, D26).
 INGEST_PROFILE = 'execution-store-ingest-2.0'
 MATCH_PROFILE = 'execution-store-match-2.0'
 SCHEMA_PATH = 'schemas/execution-store-manifest.schema.json'
@@ -96,13 +98,16 @@ TABLES = {
     'events': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('kind', 'VARCHAR'), ('source', 'VARCHAR'),
                ('clock_id', 'VARCHAR'), ('start_lo', 'BIGINT'), ('start_hi', 'BIGINT'), ('end_lo', 'BIGINT'),
                ('end_hi', 'BIGINT'), ('ongoing', 'BOOLEAN'), ('start_var', 'VARCHAR'), ('end_var', 'VARCHAR'),
-               ('proper', 'BOOLEAN'), ('evidence', 'VARCHAR')),
+               ('proper', 'BOOLEAN'), ('status', 'VARCHAR'), ('selection_state', 'VARCHAR'), ('recorded_at', 'BIGINT'),
+               ('available_at', 'BIGINT'), ('claim_id', 'VARCHAR'), ('claim_sha256', 'VARCHAR'),
+               ('source_table', 'VARCHAR'), ('record_sha256', 'VARCHAR'), ('file_sha256', 'VARCHAR')),
+    'event_evidence': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('evidence', 'VARCHAR')),
     'event_concepts': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('concept', 'VARCHAR'),
                        ('basis', 'VARCHAR')),
     'concept_closure': (('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR'),
                         ('concept_basis', 'VARCHAR'), ('ancestor_basis', 'VARCHAR')),
     'concept_postings': (('concept', 'VARCHAR'), ('patient_idx', 'INTEGER'), ('n', 'BIGINT'),
-                         ('min_start_lo', 'BIGINT'), ('max_start_hi', 'BIGINT')),
+                         ('min_start_lo', 'BIGINT'), ('max_start_hi', 'BIGINT'), ('max_end_hi', 'BIGINT')),
     'coverage': (('patient_idx', 'INTEGER'), ('source', 'VARCHAR'), ('clock_id', 'VARCHAR'), ('lo', 'BIGINT'),
                  ('hi', 'BIGINT'), ('basis', 'VARCHAR')),
     'source_concepts': (('source', 'VARCHAR'), ('concept', 'VARCHAR'), ('basis', 'VARCHAR')),
@@ -114,15 +119,17 @@ ALLOWED_TYPES = ('INTEGER', 'BIGINT', 'BOOLEAN', 'VARCHAR')
 # Each table's key: unique within the table, so ordering by it is total. Every column follows as a
 # tie-break, so that even a file with a repeated key digests the same in any row order.
 KEYS = {'patients': ('patient_idx',), 'events': ('patient_idx', 'event_id'),
-        'event_concepts': ('patient_idx', 'event_id', 'concept'), 'concept_closure': ('concept', 'ancestor'),
+        'event_evidence': ('patient_idx', 'event_id'), 'event_concepts': ('patient_idx', 'event_id', 'concept'),
+        'concept_closure': ('concept', 'ancestor'),
         'concept_postings': ('concept', 'patient_idx'), 'coverage': ('patient_idx', 'source', 'lo', 'hi', 'basis'),
         'source_concepts': ('source', 'concept'),
         'excluded_records': ('patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason')}
 # Patient-keyed tables are written as hive-style bucket partitions; the others as one file.
-PARTITIONED = ('events', 'event_concepts', 'coverage', 'excluded_records')
+PARTITIONED = ('events', 'event_evidence', 'event_concepts', 'coverage', 'excluded_records')
 # Row order inside the Parquet files, for reads by patient or concept. Identity never depends on it.
 SORT = {'patients': 'patient_idx', 'events': 'patient_idx, start_lo, event_id',
-        'event_concepts': 'patient_idx, concept, event_id', 'concept_closure': 'concept, ancestor',
+        'event_evidence': 'patient_idx, event_id', 'event_concepts': 'patient_idx, concept, event_id',
+        'concept_closure': 'concept, ancestor',
         'concept_postings': 'concept, patient_idx', 'coverage': 'patient_idx, source, lo',
         'source_concepts': 'concept, source', 'excluded_records': 'patient_idx, concept, start_lo, reason'}
 VERIFY_LEVELS = ('files', 'content', False)
@@ -220,7 +227,14 @@ def validate_provenance(provenance):
     return provenance
 
 
-EVENT_FIELDS = {'event_id', 'kind', 'source', 'concepts', 'start', 'end', 'evidence', 'start_var', 'end_var', 'proper'}
+# The D5 record fields (D26): optional, typed, and stored as event columns, not in the free-form evidence. Each
+# maps to its kind: a non-empty string, a time on the patient's clock (microseconds from ORIGIN), or a sha256.
+RECORD_FIELDS = {'status': 'text', 'selection_state': 'text', 'recorded_at': 'time', 'available_at': 'time',
+                 'claim_id': 'text', 'claim_sha256': 'sha256', 'source_table': 'text', 'record_sha256': 'sha256',
+                 'file_sha256': 'sha256'}
+EVENT_FIELDS = {'event_id', 'kind', 'source', 'concepts', 'start', 'end', 'evidence', 'start_var', 'end_var',
+                'proper'} | set(RECORD_FIELDS)
+_SHA256 = re.compile(r'[0-9a-f]{64}')
 
 
 def engine_event(event_id, concepts, start, end, start_var, end_var, proper):
@@ -309,6 +323,15 @@ def validate_patient(p, ancestors):
         _require('end_var' not in e or 'end' in e, 'INVALID_EVENT_VARIABLE', where)
         _require('proper' not in e or (type(e['proper']) is bool and 'end' in e), 'INVALID_EVENT_PROPER', where)
         named = named or 'start_var' in e or 'end_var' in e or 'proper' in e
+        # The record fields (D26): present only with a value of their kind; an unknown value is left out.
+        for field, kind in RECORD_FIELDS.items():
+            if field in e:
+                value = e[field]
+                if kind == 'time':
+                    _time(value, f'{where} {field}')
+                else:
+                    _require(type(value) is str and value and (kind == 'text' or _SHA256.fullmatch(value)),
+                             'INVALID_RECORD_FIELD', f'{where} {field}')
         _require(isinstance(e['evidence'], dict), 'INVALID_EVIDENCE', where)
         try:
             json.dumps(e['evidence'], allow_nan=False)
@@ -454,19 +477,69 @@ def _lit(path):
     return "'" + str(path).replace("'", "''") + "'"
 
 
-def _read_json(path, columns):
+def _read_json(paths, columns):
     spec = '{' + ', '.join(f"'{k}': '{v}'" for k, v in columns) + '}'
-    return f"read_json({_lit(path)}, format='newline_delimited', columns={spec})"
+    return f"read_json([{', '.join(_lit(p) for p in paths)}], format='newline_delimited', columns={spec})"
+
+
+def _staged_sql(staging, paths, columns):
+    """A relation over staged files of one staged table, with its columns in STAGED order and types: ndjson lines
+    read with those columns (a missing key is null), or typed Parquet files (D26); no files is no rows."""
+    if not paths:
+        return '(SELECT ' + ', '.join(f'NULL::{t} AS {c}' for c, t in columns) + ' WHERE false)'
+    if staging == 'ndjson':
+        return _read_json(paths, columns)
+    return (f"(SELECT {', '.join(c for c, _ in columns)} FROM read_parquet([{', '.join(_lit(p) for p in paths)}]))")
+
+
+# How `add()` stages rows (D26): typed Parquet files written through DuckDB, or newline-delimited JSON. Either gives
+# the same tables and digests; see `StoreBuilder`.
+STAGINGS = ('parquet', 'ndjson')
+STAGING = 'parquet'
+# Rows one Parquet staging file holds: each staged table of each open part buffers this many rows in Python, as typed
+# columns, before they are written (the last file of a part may hold fewer). Any number gives the same tables.
+STAGE_ROWS = 10_000
+
+
+class _ParquetStage:
+    """One staged table's rows for one part (or the whole build), buffered as typed columns and written to Parquet
+    files of `rows` rows each through DuckDB (`COPY (SELECT unnest(?), ...)`), so no Python object outlives a file."""
+
+    def __init__(self, db, stem, columns, rows):
+        self.db, self.stem, self.columns, self.rows = db, stem, columns, rows
+        self.names = [c for c, _ in columns]
+        self.select = ', '.join(f'unnest(CAST(? AS {t}[])) AS {c}' for c, t in columns)
+        self.paths, self.n = [], 0
+        self.data = [[] for _ in columns]
+
+    def write(self, row):
+        for column, name in zip(self.data, self.names):
+            column.append(row.get(name))
+        self.n += 1
+        if self.n >= self.rows:
+            self.flush()
+
+    def flush(self):
+        if self.n:
+            path = f'{self.stem}.f{len(self.paths):05d}.parquet'
+            self.db.execute(f'COPY (SELECT {self.select}) TO {_lit(path)} (FORMAT parquet)', self.data)
+            self.paths.append(path)
+            self.n, self.data = 0, [[] for _ in self.columns]
+
+    def close(self):
+        self.flush()
 
 
 STAGED = {
-    # A staged line leaves out `shared_variables`, `start_var`, `end_var` and `proper` when they are false or
-    # absent; the reader takes a missing key as null.
+    # A staged line leaves out `shared_variables`, `start_var`, `end_var`, `proper` and the record fields when they
+    # are false or absent; the reader takes a missing key as null.
     'patients': [('patient_id', 'VARCHAR'), ('clock_id', 'VARCHAR'), ('digest', 'VARCHAR'),
                  ('shared_variables', 'BOOLEAN')],
     'events': [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('kind', 'VARCHAR'), ('source', 'VARCHAR'),
                ('start_lo', 'BIGINT'), ('start_hi', 'BIGINT'), ('end_lo', 'BIGINT'), ('end_hi', 'BIGINT'),
-               ('evidence', 'VARCHAR'), ('start_var', 'VARCHAR'), ('end_var', 'VARCHAR'), ('proper', 'BOOLEAN')],
+               ('start_var', 'VARCHAR'), ('end_var', 'VARCHAR'), ('proper', 'BOOLEAN')]
+              + [(f, 'BIGINT' if kind == 'time' else 'VARCHAR') for f, kind in RECORD_FIELDS.items()],
+    'evidence': [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('evidence', 'VARCHAR')],
     'concepts': [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('concept', 'VARCHAR')],
     'closure': [('concept', 'VARCHAR'), ('ancestor', 'VARCHAR'), ('basis', 'VARCHAR'), ('version', 'VARCHAR'),
                 ('concept_basis', 'VARCHAR'), ('ancestor_basis', 'VARCHAR')],
@@ -492,16 +565,17 @@ def _connect(path, threads, memory_limit, temp_directory):
 
 
 # Staged per derive part (a run of whole patients of one bucket); the patient list and the closure are one file each.
-PART_STAGED = ('events', 'concepts', 'coverage', 'excluded')
+PART_STAGED = ('events', 'evidence', 'concepts', 'coverage', 'excluded')
 
 
-def part_file(stage, name, part):
+def part_file(stage, name, part, suffix='.ndjson'):
+    """A part's staging file of one staged table (its stem, with suffix '', for Parquet's numbered files)."""
     bucket, index = part
-    return Path(stage) / f'{name}.b{bucket}.p{index:05d}.ndjson'
+    return Path(stage) / f'{name}.b{bucket}.p{index:05d}{suffix}'
 
 
-def _load_patients(db, stage):
-    db.execute(f"CREATE TABLE s_patients AS SELECT * FROM {_read_json(stage / 'patients.ndjson', STAGED['patients'])}")
+def _load_patients(db, relation):
+    db.execute(f"CREATE TABLE s_patients AS SELECT * FROM {relation('patients')}")
     duplicate = db.execute('SELECT patient_id FROM s_patients GROUP BY patient_id HAVING count(*) > 1 '
                            'ORDER BY patient_id LIMIT 1').fetchone()
     _require(duplicate is None, 'DUPLICATE_PATIENT_ID', duplicate[0] if duplicate else '')
@@ -542,19 +616,19 @@ def _create_table(db, name, columns):
     db.execute(f'CREATE TABLE {name} ({", ".join(f"{c} {t}" for c, t in columns)})')
 
 
-def _derive(db, stage, parts, on_stage=None):
-    """Create the eight logical tables (plus a bucket column on partitioned ones) from the staging files.
+def _derive(db, relation, parts, on_stage=None):
+    """Create the nine logical tables (plus a bucket column on partitioned ones) from the staging files.
 
     Patient-keyed rows are derived one part at a time, bucket by bucket (D23). Every row of
-    `events`, `event_concepts`, `coverage`, `excluded_records` and `concept_postings` depends on
+    `events`, `event_evidence`, `event_concepts`, `coverage`, `excluded_records` and `concept_postings` depends on
     one patient's staged rows (and the closure and the patient index), and every patient is in
     exactly one part, so the union of the parts' rows is the table a single statement over all
     the staging gives; `source_concepts` is the distinct union of each part's distinct pairs.
-    `on_stage('derived:bucket=k', info)` reports each bucket's statement times and memory.
+    `on_stage('derived:bucket=k', info)` reports each bucket's statement times and memory. `relation(name,
+    parts)` is the SQL relation over the staged rows of one staged table, for the given parts (`StoreBuilder.relation`).
     """
     run = _Statements(db)
-    staged = lambda name, part=None: _read_json(stage / f'{name}.ndjson' if part is None else part_file(stage, name, part),
-                                                STAGED[name])
+    staged = lambda name, part=None: relation(name, () if part is None else (part,))
     # Dense index by sorted identifier; bucket from the identifier alone, so it never moves.
     run('patient_index', f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
@@ -566,7 +640,7 @@ def _derive(db, stage, parts, on_stage=None):
         ancestor_basis FROM {staged('closure')}''')
     for name in PARTITIONED:
         _create_table(db, name, TABLES[name] + (('bucket', 'INTEGER'),))
-    _create_table(db, 'concept_postings', TABLES['concept_postings'])
+    _create_table(db, 'concept_postings', TABLES['concept_postings'])  # max_end_hi: null when some event is ongoing
     _create_table(db, 'part_source_concepts', (('source', 'VARCHAR'), ('concept', 'VARCHAR')))
     if on_stage:
         on_stage('derived:whole', run.report())
@@ -577,7 +651,7 @@ def _derive(db, stage, parts, on_stage=None):
             run('events', f"""CREATE TEMP TABLE part_events AS SELECT p.patient_idx, e.event_id, e.kind, e.source,
                 p.clock_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
                 (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing, e.start_var, e.end_var,
-                coalesce(e.proper, false) AS proper, e.evidence, p.bucket
+                coalesce(e.proper, false) AS proper, {', '.join('e.' + f for f in RECORD_FIELDS)}, p.bucket
                 FROM {staged('events', part)} e JOIN p USING (patient_id)""")
             run('event_concepts', f"""CREATE TEMP TABLE part_concepts AS SELECT p.patient_idx, c.event_id, c.concept,
                 'direct' AS basis, p.bucket FROM {staged('concepts', part)} c JOIN p USING (patient_id)""")
@@ -585,7 +659,8 @@ def _derive(db, stage, parts, on_stage=None):
                 WITH expanded AS (SELECT DISTINCT ec.patient_idx, ec.event_id, cc.ancestor AS concept
                                   FROM part_concepts ec JOIN concept_closure cc ON cc.concept = ec.concept)
                 SELECT x.concept, x.patient_idx, count(*)::BIGINT AS n, min(e.start_lo) AS min_start_lo,
-                       max(e.start_hi) AS max_start_hi
+                       max(e.start_hi) AS max_start_hi,
+                       CASE WHEN bool_or(e.ongoing) THEN NULL ELSE max(coalesce(e.end_hi, e.start_hi)) END AS max_end_hi
                 FROM expanded x JOIN part_events e USING (patient_idx, event_id) GROUP BY x.concept, x.patient_idx""")
             # Which sources record each concept (through the closure), fixed at build time so that a
             # comparability answer never depends on which patients a query happens to see.
@@ -596,6 +671,8 @@ def _derive(db, stage, parts, on_stage=None):
             run('event_concepts', 'INSERT INTO event_concepts SELECT * FROM part_concepts')
             run('events', 'DROP TABLE part_events')
             run('event_concepts', 'DROP TABLE part_concepts')
+            run('event_evidence', f"""INSERT INTO event_evidence SELECT p.patient_idx, x.event_id, x.evidence, p.bucket
+                FROM {staged('evidence', part)} x JOIN p USING (patient_id)""")
             run('coverage', f"""INSERT INTO coverage SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
                 FROM {staged('coverage', part)} c JOIN p USING (patient_id)""")
             # Identical excluded records (same patient, source, concept, start and reason) are one row with a count.
@@ -788,10 +865,14 @@ class StoreBuilder:
     publishing it is one rename. Each build works in `.building-*` directories, removed when the
     build ends however it ends; a killed process leaves them behind, and `sweep_stale_builds`
     removes old ones.
+
+    `staging` (D26) is how `add()` stages rows: `'parquet'` (the default, `STAGING`) buffers each staged table's rows
+    as typed columns, `stage_rows` at a time, and writes each batch as a Parquet file through an in-memory DuckDB
+    connection; `'ndjson'` writes one JSON line per row. Both give the same tables, digests and snapshot.
     """
 
     def __init__(self, root, header, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS,
-                 on_stage=None, work_dir=None, part_rows=PART_ROWS):
+                 on_stage=None, work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS):
         self.header = validate_header(header)  # before anything is written
         self.ancestors = header['closure']['ancestors']
         self.threads, self.memory_limit, self.fetch_rows = threads, _memory_limit(memory_limit), fetch_rows
@@ -800,6 +881,12 @@ class StoreBuilder:
         if type(part_rows) is not int or part_rows < 1:
             raise StoreError('INVALID_PART_ROWS', repr(part_rows))
         self.part_rows = part_rows
+        self.staging = STAGING if staging is None else staging
+        if self.staging not in STAGINGS:
+            raise StoreError('INVALID_STAGING', repr(staging))
+        if type(stage_rows) is not int or stage_rows < 1:
+            raise StoreError('INVALID_STAGE_ROWS', repr(stage_rows))
+        self.stage_rows = stage_rows
         self.on_stage = on_stage
         self.root = Path(root)
         # Directories this builder creates, so that a refusal leaves no trace of them.
@@ -814,10 +901,15 @@ class StoreBuilder:
             self.work = Path(tempfile.mkdtemp(prefix='.building-', dir=work_dir))
         self.stage = self.work / 'stage'
         self.stage.mkdir()
-        self._files = {name: open(self.stage / f'{name}.ndjson', 'w', encoding='utf-8')
-                       for name in STAGED if name not in PART_STAGED}
+        # Parquet staging writes through its own small in-memory connection; the build database opens at finish().
+        self._stage_db = None
+        if self.staging != 'ndjson':
+            (self.work / 'stage-spill').mkdir()
+            self._stage_db = _connect(':memory:', 1, '256MB', self.work / 'stage-spill')
+        self._files = {name: self._writer(name, self.stage / name) for name in STAGED if name not in PART_STAGED}
         # Every part staged so far, in order, and each bucket's open part: (part, {name: file}, staged rows).
         self.parts, self._current = [], {}
+        self._stages = {}  # Parquet staging: (name, part) -> its stage, which lists its files
         self.patients = 0
         self.events = 0
         self._open = True
@@ -833,16 +925,43 @@ class StoreBuilder:
         if not self._open:
             raise StoreError('BUILDER_CLOSED', str(self.root))
 
+    def _writer(self, name, stem):
+        """Where one staged table's rows go: an ndjson file, or a Parquet stage of numbered files."""
+        if self.staging == 'ndjson':
+            return open(f'{stem}.ndjson', 'w', encoding='utf-8')
+        return _ParquetStage(self._stage_db, stem, STAGED[name], self.stage_rows)
+
     def _put(self, name, row, files=None):
-        (files or self._files)[name].write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
+        target = (files or self._files)[name]
+        if self.staging == 'ndjson':
+            target.write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
+        else:
+            target.write(row)
+
+    def staged_paths(self, name, parts=()):
+        """The staging files of one staged table: the whole build's for the patient list and the closure, the given
+        parts' for the others. Writers must be closed first."""
+        if self.staging == 'ndjson':
+            if name not in PART_STAGED:
+                return [self.stage / f'{name}.ndjson']
+            return [part_file(self.stage, name, part) for part in parts]
+        if name not in PART_STAGED:
+            return list(self._files[name].paths)
+        return [path for part in parts for path in self._stages[name, part].paths]
+
+    def relation(self, name, parts=()):
+        """The SQL relation over one staged table's rows (`staged_paths`), with its STAGED columns."""
+        return _staged_sql(self.staging, self.staged_paths(name, parts), STAGED[name])
 
     def _part(self, bucket):
         """The bucket's open part, opened when the bucket has none."""
         if bucket not in self._current:
             part = (bucket, sum(1 for b, _ in self.parts if b == bucket))
             self.parts.append(part)
-            self._current[bucket] = [part, {name: open(part_file(self.stage, name, part), 'w', encoding='utf-8')
-                                            for name in PART_STAGED}, 0]
+            writers = {name: self._writer(name, part_file(self.stage, name, part, '')) for name in PART_STAGED}
+            self._current[bucket] = [part, writers, 0]
+            if self.staging != 'ndjson':
+                self._stages.update({(name, part): w for name, w in writers.items()})
         return self._current[bucket]
 
     def _close_part(self, bucket):
@@ -866,17 +985,18 @@ class StoreBuilder:
             for e in canonical['events']:
                 end = e.get('end') or [None, None]
                 row = {'patient_id': pid, 'event_id': e['event_id'], 'kind': e['kind'], 'source': e['source'],
-                       'start_lo': e['start'][0], 'start_hi': e['start'][1], 'end_lo': end[0], 'end_hi': end[1],
-                       'evidence': _json(e['evidence'])}
-                for field in ('start_var', 'end_var'):
+                       'start_lo': e['start'][0], 'start_hi': e['start'][1], 'end_lo': end[0], 'end_hi': end[1]}
+                for field in ('start_var', 'end_var', *RECORD_FIELDS):
                     if field in e:
                         row[field] = e[field]
                 if e.get('proper'):
                     row['proper'] = True
                 self._put('events', row, files)
+                self._put('evidence', {'patient_id': pid, 'event_id': e['event_id'], 'evidence': _json(e['evidence'])},
+                          files)
                 for c in e['concepts']:
                     self._put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c}, files)
-                rows += 1 + len(e['concepts'])
+                rows += 1 + len(e['concepts'])  # an event and its evidence count as one row, as before D26
             for c in canonical['coverage']:
                 self._put('coverage', {'patient_id': pid, **c}, files)
             for x in canonical.get('excluded', []):
@@ -912,17 +1032,21 @@ class StoreBuilder:
                 f.close()
             for bucket in list(self._current):
                 self._close_part(bucket)
+            if self._stage_db is not None:
+                self._stage_db.close()
+                self._stage_db = None
             self._stage_done('staged', patients=self.patients, events=self.events, parts=len(self.parts),
-                             staged_bytes=sum(f.stat().st_size for f in self.stage.iterdir()))
+                             staged_bytes=sum(f.stat().st_size for f in self.stage.iterdir()),
+                             staged_files=sum(1 for _ in self.stage.iterdir()), staging=self.staging)
             spill = self.work / 'spill'
             spill.mkdir()
             duckdb = _duckdb()
             db = _connect(self.work / 'build.duckdb', self.threads, self.memory_limit, spill)
             try:
-                _load_patients(db, self.stage)
+                _load_patients(db, self.relation)
                 input_digest = _input_digest(db, self.header, provenance, self.fetch_rows)
                 self._stage_done('patients_loaded_and_input_digest')
-                _derive(db, self.stage, self.parts, self.on_stage)
+                _derive(db, self.relation, self.parts, self.on_stage)
                 db.execute('DROP TABLE s_patients')
                 shutil.rmtree(self.stage)
                 self._stage_done('derived', database_bytes=(self.work / 'build.duckdb').stat().st_size)
@@ -971,10 +1095,16 @@ class StoreBuilder:
 
     def _close(self, keep_root):
         self._open = False
-        for f in self._files.values():
-            f.close()
-        for bucket in list(self._current):
-            self._close_part(bucket)
+        if self.staging == 'ndjson':
+            for f in self._files.values():
+                f.close()
+            for bucket in list(self._current):
+                self._close_part(bucket)
+        else:  # a Parquet stage's buffered rows are dropped, not written
+            self._current.clear()
+            if self._stage_db is not None:
+                self._stage_db.close()
+                self._stage_db = None
         shutil.rmtree(self.work, ignore_errors=True)
         shutil.rmtree(self.publish, ignore_errors=True)
         if not keep_root:
@@ -991,11 +1121,12 @@ class StoreBuilder:
 
 
 def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None,
-          work_dir=None, part_rows=PART_ROWS):
+          work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS):
     """Validate, derive and write one immutable snapshot of a whole ingest document under `root`;
     return its directory. A wrapper over `StoreBuilder`: the patients are streamed from the list."""
     header = _validate_document(ingest)
-    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows) as builder:
+    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows, staging,
+                      stage_rows) as builder:
         for p in ingest['patients']:
             builder.add(p)
         return builder.finish(ingest.get('provenance'))
@@ -1134,6 +1265,17 @@ class Store:
     def query(self, sql, params=()):
         return self.db.execute(sql, list(params)).fetchall()
 
+    def evidence(self, patient_id):
+        """{event_id: evidence} of one patient's events, each the object the ingest gave, read from `event_evidence`
+        (D26), which matching never reads. An unknown patient has none."""
+        found = self.query('SELECT patient_idx, bucket FROM patients WHERE patient_id = ?', [patient_id])
+        if not found:
+            return {}
+        (idx, bucket), = found
+        return {eid: json.loads(text) for eid, text in self.query(
+            'SELECT event_id, evidence FROM event_evidence WHERE bucket = ? AND patient_idx = ? ORDER BY event_id',
+            [bucket, idx])}
+
 
 def open_store(path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS, expected_snapshot_id=None):
     return Store(path, threads, verify, memory_limit, fetch_rows, expected_snapshot_id)
@@ -1185,7 +1327,7 @@ def candidates(store, query):
 
     Sound, not exact: for each step, the union of postings over its concept and its
     widenings; intersected across steps, rarest first. By concept only: `match` then prunes on the
-    postings' start summaries (`_prune`, D25).
+    postings' summaries (`_prune`, D25, D26).
     """
     return _candidates(store, tg.PreparedQuery(query))
 
@@ -1210,21 +1352,32 @@ def _candidates(store, pq):
             'plan': [{'step': s['step'], 'concepts': s['concepts'], 'patients': len(s['patients'])} for s in plan]}
 
 
-# Time pruning on the posting summaries (D25). `match` drops a candidate before loading its events when the
-# summaries prove the engine's answer is `none`, complete; `_PRUNE = False` turns it off (the tests compare both).
+# Time pruning on the posting summaries (D25, D26). `match` drops a candidate before loading its events when the
+# summaries prove the engine's answer is `none`, complete; `_PRUNE = False` turns it off (the tests compare both), and
+# `_PRUNE_ENDS = False` leaves out the tests on ends (D26), which the benchmark uses to count what they add.
 _PRUNE = True
+_PRUNE_ENDS = True
 _NONE = lambda pid: {'patient_id': pid, 'status': 'none', 'complete': True}  # tg.match_prepared's own `none`
+# Where a posting summary keeps each range end: (min_start_lo, max_start_hi, max_end_hi). The lower end of an end
+# is not stored, so a test needing it is left out.
+_SUMMARY = {('s', 'lo'): 0, ('s', 'hi'): 1, ('f', 'hi'): 2}
 
 
-def _prune_plan(pq):
+def _prune_plan(pq, ends=None):
     """For the unrelaxed query and each relaxation set the engine would try, in its order, what a patient must
     have for that set to be possible: per step, its concept and the bounds its unary constraints put on the start
-    of an event of that concept; per related step pair, the bounds on the difference of their starts.
+    of an event of that concept; per related step pair, the bounds on the difference of their starts; and, with
+    `ends` (default `_PRUNE_ENDS`), the bounds a constraint on an end puts on its difference with a start (D26).
 
-    Each entry is (steps, pairs): steps as (concept, lows, highs), where lows are (anchor, k) meaning some event's
-    latest start >= anchor + k and highs (anchor, k) meaning its earliest start <= anchor + k; pairs as
-    (concept of x, concept of y, lo, hi), meaning start(y) - start(x) in [lo, hi] for some pair of events.
-    A constraint on an end (`during`'s grace) is left out, which only weakens the test."""
+    Each entry is (steps, pairs, gaps): steps as (concept, lows, highs), where lows are (anchor, k) meaning some
+    event's latest start >= anchor + k and highs (anchor, k) meaning its earliest start <= anchor + k; pairs as
+    (concept of x, concept of y, lo, hi), meaning start(y) - start(x) in [lo, hi] for some pair of events; gaps as
+    (concept of x, end of x, concept of y, end of y, k, sense), meaning summary[y][end of y] - summary[x][end of x]
+    >= k (sense 1) or <= k (sense -1) for some pair, with ends indexing a summary (`_SUMMARY`). In
+    trajectory-graph-1.0 the only constraint on an end is `during`'s grace, start(to) - end(from) <= grace, whose
+    gap is min_start_lo(to) - max_end_hi(from) <= grace. A test that would need a summary not stored is left out,
+    which only weakens the test."""
+    ends = _PRUNE_ENDS if ends is None else ends
     out = []
     for chosen in [()] + [chosen for _, chosen in pq.sets]:
         plan = pq.plan(chosen)
@@ -1241,29 +1394,45 @@ def _prune_plan(pq):
                     lows += [(c.y[0], -c.hi)] if c.hi != tg.INF else []
                     highs += [(c.y[0], -c.lo)] if c.lo != -tg.INF else []
             steps.append((plan.concepts[s], tuple(lows), tuple(highs)))
-        pairs = tuple((plan.concepts[c.x[0]], plan.concepts[c.y[0]], c.lo, c.hi)
-                      for cs in plan.binary.values() for c in cs if c.x[1] == 's' and c.y[1] == 's')
-        out.append((tuple(steps), pairs))
+        pairs, gaps = [], []
+        for cs in plan.binary.values():
+            for c in cs:
+                cx, cy = plan.concepts[c.x[0]], plan.concepts[c.y[0]]
+                if (c.x[1] == 's' and c.y[1] == 's') or c.lo > c.hi:  # an empty constraint is impossible either way
+                    pairs.append((cx, cy, c.lo, c.hi))
+                    continue
+                if not ends:
+                    continue
+                # `plausible` needs hi(y) - lo(x) >= lo and lo(y) - hi(x) <= hi, over the engine's ranges, which lie
+                # inside the summaries' ends; each half is tested only where both summaries are stored.
+                if c.lo != -tg.INF and (c.x[1], 'lo') in _SUMMARY and (c.y[1], 'hi') in _SUMMARY:
+                    gaps.append((cx, _SUMMARY[c.x[1], 'lo'], cy, _SUMMARY[c.y[1], 'hi'], c.lo, 1))
+                if c.hi != tg.INF and (c.x[1], 'hi') in _SUMMARY and (c.y[1], 'lo') in _SUMMARY:
+                    gaps.append((cx, _SUMMARY[c.x[1], 'hi'], cy, _SUMMARY[c.y[1], 'lo'], c.hi, -1))
+        out.append((tuple(steps), tuple(pairs), tuple(gaps)))
     return out
 
 
 def _impossible(spec, idx, window):
     """Whether one relaxation set cannot be possible for patient `idx`, given its index window. `spec` is one
     entry of `_prune_plan` with each concept replaced by its posting summaries, {patient_idx: (min_start_lo,
-    max_start_hi)}.
+    max_start_hi)}, and each gap's two summary ends by {patient_idx: value} (max_end_hi is None when some event of
+    the concept is ongoing).
 
     Why this is sound. The engine's candidate events for a step are the patient's events carrying the step's
     concept (one of them, under `first` or `last`), which are exactly the events the concept's posting counts, so
-    each has start_lo >= min_start_lo and start_hi <= max_start_hi. The engine decides each start over the
-    tightest range the patient's own facts leave it (`Times.dom`), never wider than the recorded bounds; shared
-    variables and `proper` only narrow it. A step's unary constraints are on its start, and `plausible`, which
-    `certain` implies, passes an event only if its start can reach each bound (latest start >= anchor + lo,
-    earliest start <= anchor + hi). Between two steps, `plausible` needs start(y) - start(x) to reach [lo, hi]
-    within the patient's distances, which are at most the bounds' differences (zero for one event). So when a step
-    has no posting for its concept, or its posting cannot reach a bound, or a pair's postings cannot reach a gap,
+    each has start_lo >= min_start_lo and start_hi <= max_start_hi, and its end, a point's being its start, at most
+    max_end_hi (unbounded for an ongoing exposure, which the summary records as None, and is then never tested).
+    The engine decides each start and end over the tightest range the patient's own facts leave it (`Times.dom`),
+    never wider than the recorded bounds; shared variables and `proper` only narrow it. A step's unary constraints
+    are on its start, and `plausible`, which `certain` implies, passes an event only if its start can reach each
+    bound (latest start >= anchor + lo, earliest start <= anchor + hi). Between two steps, `plausible` needs
+    value(y) - value(x) to reach [lo, hi] within the patient's distances, which are at most the bounds' differences
+    (zero for one variable): hi(y) - lo(x) >= lo and lo(y) - hi(x) <= hi, for starts and ends alike. So when a step
+    has no posting for its concept, or its posting cannot reach a bound, or a pair's summaries cannot reach a gap,
     every candidate domain or arc of that set empties under both `certain` and `plausible`: exact and possible
     are not found, by arc consistency, with `complete: true`, before any search."""
-    steps, pairs = spec
+    steps, pairs, gaps = spec
     anchor = {'START': window['start'], 'END': window['end']}
     for postings, lows, highs in steps:
         found = postings.get(idx)
@@ -1276,18 +1445,28 @@ def _impossible(spec, idx, window):
         (xlo, xhi), (ylo, yhi) = x[idx], y[idx]
         if lo > hi or yhi - xlo < lo or ylo - xhi > hi:
             return True
+    for x, y, k, sense in gaps:
+        a, b = x[idx], y[idx]
+        if a is not None and b is not None and (b - a < k if sense == 1 else b - a > k):
+            return True
     return False
 
 
 def _prune(store, pq, live, windows_by_idx, slice_size=None):
-    """The candidates in `live` (sorted) whose result the posting summaries prove: every set the engine would try
-    is impossible (`_impossible`), so its answer is `none` with `complete: true`, byte for byte, whatever the
-    patient's events. The summaries are read for these candidates only, one concept and one slice of
-    `slice_size` candidates at a time, so memory is bounded by a slice, not the candidate set."""
+    """The candidates in `live` (sorted, strictly increasing: the summaries are read between the first and the last)
+    whose result the posting summaries prove: every set the engine would try is impossible (`_impossible`), so its
+    answer is `none` with `complete: true`, byte for byte, whatever the patient's events. The summaries are read for
+    these candidates only, one concept and one slice of `slice_size` candidates at a time, so memory is bounded by a
+    slice, not the candidate set."""
     if not live:
         return set()
+    if any(a >= b for a, b in zip(live, live[1:])):
+        raise StoreError('PRUNE_CANDIDATES_NOT_SORTED', f'{len(live)} candidates')
     plan = _prune_plan(pq)
-    concepts = sorted({c for steps, _ in plan for c, _, _ in steps})
+    concepts = sorted({c for steps, _, _ in plan for c, _, _ in steps})
+    # The summary ends the gaps read, each as its own {patient_idx: value}; none without a constraint on an end.
+    ends = sorted({(c, e) for _, _, gaps in plan for x, xe, y, ye, _, _ in gaps for c, e in ((x, xe), (y, ye))})
+    columns = 'p.patient_idx, p.min_start_lo, p.max_start_hi' + (', p.max_end_hi' if ends else '')
     slice_size = CHUNK_PATIENTS * SET_CHUNK_FACTOR if slice_size is None else slice_size
     pruned = set()
     for k in range(0, len(live), slice_size):
@@ -1296,7 +1475,7 @@ def _prune(store, pq, live, windows_by_idx, slice_size=None):
         try:
             _temp(store, '_m_live', [('idx', 'INTEGER')], part)
             for concept in concepts:
-                cursor = store.db.execute("""SELECT p.patient_idx, p.min_start_lo, p.max_start_hi
+                cursor = store.db.execute(f"""SELECT {columns}
                     FROM concept_postings p JOIN _m_live l ON l.idx = p.patient_idx
                     WHERE p.concept = ? AND p.patient_idx BETWEEN ? AND ?""", [concept, part[0], part[-1]])
                 mine = summaries[concept] = {}
@@ -1304,11 +1483,16 @@ def _prune(store, pq, live, windows_by_idx, slice_size=None):
                     rows = cursor.fetchmany(store.fetch_rows)
                     if not rows:
                         break
-                    mine.update({idx: (lo, hi) for idx, lo, hi in rows})
+                    mine.update({row[0]: row[1:] for row in rows})
         finally:
             _drop(store, '_m_live')
+        values = {(c, e): {idx: row[e] for idx, row in summaries[c].items()} for c, e in ends}
+        if ends:
+            summaries = {c: {idx: row[:2] for idx, row in rows.items()} for c, rows in summaries.items()}
         specs = [([(summaries[c], lows, highs) for c, lows, highs in steps],
-                  [(summaries[x], summaries[y], lo, hi) for x, y, lo, hi in pairs]) for steps, pairs in plan]
+                  [(summaries[x], summaries[y], lo, hi) for x, y, lo, hi in pairs],
+                  [(values[x, xe], values[y, ye], k, sense) for x, xe, y, ye, k, sense in gaps])
+                 for steps, pairs, gaps in plan]
         pruned.update(idx for idx in part if all(_impossible(spec, idx, windows_by_idx[idx]) for spec in specs))
     return pruned
 
