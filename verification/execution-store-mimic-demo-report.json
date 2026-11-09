@@ -206,7 +206,7 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "8d4b66f1b4821084aa9449bf2c9a0dcb3bcb396562f89408924ba804b5471afc",
+    "snapshot_id": "68d58f61a477cd80dd6f296a7481efad25ed548d6027b5378efa650056dd7c23",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
     "input_digest": "8e24100f8d8e95a49d52112640d6895ecf5407a980957f84f9900110ac3578d3",
     "closure_version": "mimic-store-ingest-1.0:eaf0778bb0fde1e0566d331da7a2a58f073e585f859c9767f391b786ad05f5f2",
@@ -296,13 +296,13 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 62.21,
-    "admission_and_claims": 0.67,
-    "differential": 161.74,
+    "adapter": 62.15,
+    "admission_and_claims": 0.7,
+    "differential": 154.27,
     "mapping": 0.27,
     "store_build": 2.0,
     "store_open_and_verify": 0.02,
-    "total": 226.99
+    "total": 219.51
   },
   "artifacts": {
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
@@ -321,8 +321,8 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "771cfd89997a557904cbaaea49a7262233b8780d43bf0d1506ac684bf26b32d3",
-    "patterns/execution_store_reference.py": "4725898923adfe4a58761ea0ccc276396f797ed85af368bdc79abecb5fc47ac9",
+    "patterns/execution_store.py": "c211b76c0ef8857179d9ee9d21224f8590bcb52c716863438e354af0a6ff3da1",
+    "patterns/execution_store_reference.py": "5c0d031215b87ee0669d9762d84ceb64f843d272779c94bb1440aa52802a62ba",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
@@ -336,8 +336,8 @@
     "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
     "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
-    "patterns/trajectory_graph.py": "cc42e96a6e7c4e247445f80dcb7ac38ac9f276baa89b502cb3e3cd3d62165c5a",
-    "patterns/trajectory_graph_sulo.py": "4ac1434b1129d2b3b534248387c7672ed52b6e87a24e330da21d47f00dbee14f",
+    "patterns/trajectory_graph.py": "afc5eb1c0544224528062341b973b47ea458f8b6cd2c4d84ea06036bf042a5ad",
+    "patterns/trajectory_graph_sulo.py": "5e77832e4c9997ac9bd74db02dde34521249ecfaef2a82ba8c1c01576f77d100",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
     "patterns/verify_mimic_store_ingest.py": "57219c2e97d4a01ab686b86201491b55871b7f691e331c2b22f89b4decac3515",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
