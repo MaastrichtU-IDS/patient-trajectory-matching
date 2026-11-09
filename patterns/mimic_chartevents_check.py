@@ -1,31 +1,39 @@
-"""The sampled graph check for chartevents route (b): a deterministic sample of claim stores through
-the measurement graph route, with a row-equality differential against the bulk rows (D16; draft D27).
+"""Graph-route checks for chartevents route (b): a sample (or a census) of claim stores through the
+measurement graph route, with a row-equality differential against the bulk rows (D16; draft D27).
 
 Route (a) for a measurement claim store is the repository's measurement graph route:
 - the store, as the importer builds it, validated (`measurement_claims.validate_store`);
-- encoded as a closed claim-description graph (`claim_rdf.encode`, measurement fields) and given the
-  importer's isolation certificate (`claim_isolation.check(..., local=True, measurement=True)`);
+- encoded as a closed claim-description graph (`claim_rdf.encode`, measurement fields);
 - accepted by a caller-declared accept-all analysis policy (not clinical review), bound to the store's
   digest and the fixed empty measurement semantic policy;
-- selected by `measurement_claims.select` from the graph, which decodes it, so the policy's store digest
-  only matches if the graph round trip gave the store back exactly; each selected record carries its
-  clock, its time variable's offsets from the clock origin and its claim support (claim digest).
+- selected by `measurement_claims.select` from the graph. It decodes the graph (so the policy's store
+  digest only matches if the round trip gave the store back exactly) and runs the importer's isolation
+  certificate (`claim_isolation.check(..., local=True, measurement=True)`) on the decoded store; each
+  selected record carries its clock, its time variable's offsets from the clock origin and its claim
+  support (claim digest). The isolation result is read from the selection, not computed twice.
 
-The row a record gives (`record_fields`, then the same `store_row` as route (b)) must equal the bulk row
-field for field, for every claim of a sampled store. So bulk rows are tied to the graph by claim
-identity and checked on a sample; they are not each validated through the graph.
+**What this check exercises independently, and what it does not.** The route-(a) row is built by
+`record_fields` from the selected record and then by the *same* `store_row` as route (b), with the same
+`value_columns`, `provenance_of`, `micros` and item namespace, from the *same* `describe()` claim. So the
+differential tests: `claim_fields` against `record_fields` (reading a claim dict against reading a
+selected record); the RDF encode and decode round trip; validation, isolation and selection accepting
+the store; the selection's own time offsets (`patient_local.coordinate` inside the selection) against
+route (b)'s; and the selection's decimal rendering against `value_columns`. It does not test the shared
+mapping: a defect in `micros`, the micro-unit value, the recorded time or the item namespace reaches
+both routes alike and passes. `patterns/mimic_chartevents_raw_check.py` is the independent check of
+that mapping, required over every chart row.
 
-There is no bounded snapshot for points (the bounded profile requires start + 1 <= end), so the SULO
-adapter's `from_claims` and `ingest_rows` do not apply to measurement claims; the graph route ends at
-`measurement_claims.select`. The decision note discusses what a point route through the adapter would add.
+Sample (`Sampler`, the design for full MIMIC-IV): every store has a rank, the sha256 of the sample salt,
+the dataset and its key (patient, stay, part). The key's part is D15's cut of a stay's admitted rows into
+claim stores of 32, so changing that cut changes keys and the sample. A store is sampled if (1) its rank
+falls below `rate` (a Bernoulli draw fixed by the hash), (2) it is among the `per_batch` lowest-ranked
+stores of its batch (the execution-store bucket of its patient), or (3) it is the lowest-ranked store
+holding some stratum (`mimic_chartevents.strata`). Each rule is a function of the whole set of stores,
+never of ingest order, shard count or the store builder's part size (D23's `part_rows`). Memory: one
+entry per stratum, `per_batch` per bucket, and the rate-drawn keys, which grow with rate times stores.
 
-Sample (`Sampler`): every store has a rank, the sha256 of the sample salt, the dataset and its key
-(patient, stay, part). A store is sampled if (1) its rank falls below `rate` (a Bernoulli draw fixed by
-the hash), (2) it is among the `per_batch` lowest-ranked stores of its batch (the store bucket of its
-patient, so every bucket of the two-level input digest is backed by checked stores), or (3) it is the
-lowest-ranked store holding some stratum (`mimic_chartevents.strata`). Each rule is a function of the
-whole set of stores, never of ingest order, shard count or part size, and is computed streaming in
-memory bounded by the number of strata and batches.
+Census (`census`, the design for the demo): the round trip (`round_trip`) on every store, route (a) on
+every store when asked, and the raw-row check over every row.
 """
 from __future__ import annotations
 
@@ -34,27 +42,32 @@ import heapq
 from collections import Counter
 from pathlib import Path
 
-from . import claim_isolation
 from . import claim_projection as cp
 from . import claim_rdf as cr
 from . import execution_store_reference as ref
 from . import measurement_claims as claims
 from . import mimic_chartevents as chart
+from . import mimic_chartevents_raw_check as raw_check
 
-PROFILE = 'mimic-chartevents-graph-check-1.0'
+PROFILE = 'mimic-chartevents-graph-check-1.1'
 SALT = 'chartevents-graph-sample-1'
 RATE = 0.01
 PER_BATCH = 2
 POLICY_REASON = 'Caller-declared accept-all analysis policy over pending source records; no clinical review.'
-FILES = tuple(sorted(set(('patterns/mimic_chartevents_check.py', 'patterns/mimic_chartevents.py')
-                         + claims.FILES + chart.FILES)))
+FILES = tuple(sorted(set(('patterns/mimic_chartevents_check.py', 'patterns/mimic_chartevents.py',
+                          'patterns/mimic_chartevents_raw_check.py') + claims.FILES + chart.FILES)))
 ROUTE_STEPS = ('measurement_claims.validate_store', 'claim_rdf.encode:measurement_fields',
-               'claim_isolation.check:local+measurement', 'accept_all:' + chart.POLICY_ID,
-               'measurement_claims.select:from_graph', 'mimic_chartevents.store_row')
+               'accept_all:' + chart.POLICY_ID,
+               'measurement_claims.select:from_graph(decode, isolation local+measurement)',
+               'record_fields', 'mimic_chartevents.store_row (shared with route b)')
+STATEMENT = ('Bulk rows are built from describe() claim identity and tied to the graph by it. Claim stores sent '
+             'through the measurement graph route gave rows equal field for field; that comparison shares the row '
+             'mapping with the bulk route, which the raw-row check verifies independently over every chart row. '
+             'Rows of stores outside a sample were not each validated through the graph.')
 
 
 class CheckError(ValueError):
-    """The sampled check refuses; the message is a stable code."""
+    """The check refuses; the message is a stable code."""
 
 
 def require(condition, code):
@@ -137,6 +150,13 @@ def accept_all(store):
     return policy
 
 
+def round_trip(store):
+    """The cheap check for every store: validate, encode, decode, and the decoded store's digest equal."""
+    claims.validate_store(store)
+    decoded = cr.decode(cr.encode(store, fields=cr.MEASUREMENT_FIELDS), fields=cr.MEASUREMENT_FIELDS)
+    return cr.digest(decoded) == cr.digest(store)
+
+
 def record_fields(record):
     """Route (a): the fields a store row needs, read from one selected measurement record."""
     event, variable, clock = record['event'], record['time_variable'], record['clock']
@@ -157,8 +177,7 @@ def graph_rows(store, provenance):
     """One claim store through route (a); its store rows in claim order, and the route's facts."""
     claims.validate_store(store)
     graph = cr.encode(store, fields=cr.MEASUREMENT_FIELDS)
-    certificate = claim_isolation.check(graph, local=True, measurement=True)
-    view = claims.select(graph, accept_all(store))
+    view = claims.select(graph, accept_all(store))  # decodes the graph and runs the isolation certificate
     require(view['status'] == 'SELECTED_MEASUREMENT_RECORDS', 'GRAPH_ROUTE_NOT_SELECTED:' + view['status'])
     records = {r['event']['id']: r for r in view['records']}
     require(len(records) == len(store['claims']), 'GRAPH_ROUTE_RECORD_COUNT')
@@ -169,8 +188,9 @@ def graph_rows(store, provenance):
         # The decimal the selection renders is the value the series row keeps.
         require(record['numeric_value'] == chart.value_columns(fields['value_lexical'])[0], 'GRAPH_DECIMAL_MISMATCH')
         rows.append(chart.store_row(fields, provenance[fields['claim_id']]))
-    return rows, {'selection_context_id': view['context_id'], 'isolation_status': certificate.get('status'),
-                  'axioms': certificate.get('logical_axioms_checked')}
+    isolation = view['isolation'] or {}
+    return rows, {'selection_context_id': view['context_id'], 'isolation_status': isolation.get('status'),
+                  'axioms': isolation.get('logical_axioms_checked')}
 
 
 def compare(bulk, graph):
@@ -189,81 +209,120 @@ def compare(bulk, graph):
     return not fields, sorted(fields)
 
 
-def check_patient(run, pid, rows, selected, recorded_digests):
-    """Route (a) on this patient's sampled stores, against bulk rows rebuilt from the same rows.
+def check_patient(run, pid, rows, selected, recorded_digests, graph=True):
+    """The round trip, and route (a) unless `graph` is false, on this patient's selected stores, against
+    bulk rows rebuilt from the same rows.
 
-    `recorded_digests` maps each store key to the digest of the bulk rows the ingest emitted, so the
-    rows compared are shown to be the rows that went to the store. Returns per-store outcomes.
+    `recorded_digests` maps each store key to the digest of the bulk rows the converter emitted, so the
+    rows compared are shown to be re-derivable: the same rows the converter produced. (That they are the
+    rows the store holds is for integration to show, against the built store.)
     """
     out = []
     for key, item in sorted(run.claim_stores(pid, rows, set(selected)).items()):
         bulk = chart.bulk_rows(item['chunk'], item['origin'], pid, run.dataset_id)
-        same_rows = chart.rows_digest(bulk) == recorded_digests.get(key)
-        graph, facts = graph_rows(item['store'], item['provenance'])
-        equal, fields = compare(bulk, graph)
-        out.append({'key': key, 'claims': len(item['chunk']), 'equal': equal and same_rows,
-                    'bulk_rows_match_ingest': same_rows, 'differing_fields': fields, 'reasons': selected[key],
-                    'isolation_status': facts['isolation_status']})
+        rederived = chart.rows_digest(bulk) == recorded_digests.get(key)
+        outcome = {'key': key, 'claims': len(item['chunk']), 'round_trip': round_trip(item['store']),
+                   'bulk_rows_rederived': rederived, 'reasons': selected[key], 'graph_checked': graph}
+        if graph:
+            rows_a, facts = graph_rows(item['store'], item['provenance'])
+            equal, fields = compare(bulk, rows_a)
+            outcome.update(equal=equal and rederived and outcome['round_trip'], differing_fields=fields,
+                           isolation_status=facts['isolation_status'])
+        else:
+            outcome.update(equal=rederived and outcome['round_trip'], differing_fields=[], isolation_status=None)
+        out.append(outcome)
     require(len(out) == len(selected), 'SAMPLED_STORE_NOT_FOUND')
     return out
 
+
+def summarise(outcomes, sampler=None):
+    differing = Counter(f for o in outcomes for f in o['differing_fields'])
+    graphed = [o for o in outcomes if o['graph_checked']]
+    return {'profile': PROFILE, 'route_steps': list(ROUTE_STEPS),
+            'sample': sampler.summary() if sampler else 'census: every claim store',
+            'stores_round_tripped': len(outcomes), 'round_trip_failures': sum(not o['round_trip'] for o in outcomes),
+            'stores_graph_checked': len(graphed), 'claims_graph_checked': sum(o['claims'] for o in graphed),
+            'stores_equal': sum(o['equal'] for o in outcomes),
+            'stores_not_rederived': sum(not o['bulk_rows_rederived'] for o in outcomes),
+            'mismatched_stores': sum(not o['equal'] for o in outcomes),
+            'differing_fields': dict(sorted(differing.items())),
+            'isolation_statuses': dict(sorted(Counter(str(o['isolation_status']) for o in graphed).items())),
+            'statement': STATEMENT}
+
+
+# ---------------------------------------------------------------- runs
 
 def patient_subset(patients, n, salt=SALT):
     """The n patients of lowest sha256(salt, id): a deterministic subset for small runs."""
     return set(sorted(patients, key=lambda p: hashlib.sha256((salt + '\t' + p).encode('utf-8')).digest())[:n])
 
 
-def sampled_run(input_dir, dataset_id, *, patients=None, rate=RATE, per_batch=PER_BATCH, shards=16, graph=True):
-    """Route (b) over the chosen patients, the sample, and route (a) on it. Aggregate counts only."""
+def _phase_one(run, work, shards, chosen, offer):
+    totals, checker = Counter(), raw_check.RawRowCheck()
+    for batch in run.batches(work, shards, chosen):
+        totals.update(batch['counts'])
+        totals['excluded_records'] += len(batch['patient'].get('excluded', []))
+        totals['coverage_periods'] += len(batch['patient']['coverage'])
+        checker.add(batch['patient'], batch['series'])
+        for s in batch['stores']:
+            offer(s)
+    return totals, checker
+
+
+def _counts(run, totals):
+    return {'source_rows_in_file': run.manifest['rows'], 'counts': dict(sorted(totals.items())),
+            'closure': {'item_classes': sum(b == chart.CONCEPT_BASIS for b in run.bases.values()),
+                        'groupings': sum(b == chart.GROUP_BASIS for b in run.bases.values()),
+                        'unknown_items': run.unknown_items}}
+
+
+def sampled_run(input_dir, dataset_id, *, patients=None, rate=RATE, per_batch=PER_BATCH, shards=16, graph=True,
+                census=False):
+    """Route (b) over the chosen patients, the raw-row check over every one of their rows, and the
+    round trip plus route (a) on the sample (or on every store with `census`). Aggregate counts only;
+    no digest of row-level data is returned (D17)."""
     import tempfile
     import time
-    from . import merkle_patients as mp
     timings, started = {}, time.perf_counter()
     run = chart.Run(input_dir, dataset_id)
     timings['pass_one_and_dimensions'] = time.perf_counter() - started
     chosen = None if patients is None else patient_subset(run.patients(), patients)
-    sampler, digests, totals, leaves, outside = Sampler(dataset_id, rate, per_batch), {}, Counter(), [], []
+    sampler, digests, keys = Sampler(dataset_id, rate, per_batch), {}, []
+
+    def offer(store):
+        sampler.offer(store['key'], store['strata'])
+        digests[store['key']] = store['rows_sha256']
+        keys.append(store['key'])
+
     with tempfile.TemporaryDirectory() as work:
         t = time.perf_counter()
-        for batch in run.batches(work, shards, chosen):
-            totals.update(batch['counts'])
-            outside += batch['outside_us']
-            leaves.append((batch['patient_id'], ref.patient_digest(batch['patient'])))
-            totals['excluded_records'] += len(batch['patient'].get('excluded', []))
-            totals['coverage_periods'] += len(batch['patient']['coverage'])
-            for s in batch['stores']:
-                sampler.offer(s['key'], s['strata'])
-                digests[s['key']] = s['rows_sha256']
+        totals, checker = _phase_one(run, work, shards, chosen, offer)
         timings['route_b_bulk'] = time.perf_counter() - t
         t = time.perf_counter()
-        root, count = mp.streaming_patient_root(sorted(leaves))
-        timings['merkle_root'] = time.perf_counter() - t
-        selected = sampler.selected()
+        raw = checker.verify(run.paths['chartevents'], run.paths['d_items'])
+        timings['raw_row_check'] = time.perf_counter() - t
+        selected = {k: ['census'] for k in keys} if census else sampler.selected()
         outcomes = []
-        if graph and selected:
+        if selected:
             t = time.perf_counter()
-            holders = {k[0] for k in selected}
-            (Path(work) / 'graph').mkdir()
-            paths = chart.spill(run.paths['chartevents'], run.manifest, Path(work) / 'graph', shards, holders)
+            (Path(work) / 'second').mkdir()
+            paths = chart.spill(run.paths['chartevents'], run.manifest, Path(work) / 'second', shards,
+                                {k[0] for k in selected})
             for pid, rows in chart.patient_rows(paths, run.manifest['columns']):
-                outcomes += check_patient(run, pid, rows, {k: v for k, v in selected.items() if k[0] == pid}, digests)
-            timings['route_a_sample'] = time.perf_counter() - t
+                mine = {k: v for k, v in selected.items() if k[0] == pid}
+                if mine:
+                    outcomes += check_patient(run, pid, rows, mine, digests, graph=graph)
+            timings['route_a' if graph else 'round_trip_only'] = time.perf_counter() - t
     timings['total'] = time.perf_counter() - started
-    summary = summarise(outcomes, sampler) if graph else {'sample': sampler.summary()}
     return {'profile': PROFILE, 'dataset_id': dataset_id, 'patient_rows_included': False,
-            'patients_requested': patients if patients is not None else 'all', 'patients': count,
-            'source_rows_in_file': run.manifest['rows'], 'counts': dict(sorted(totals.items())),
-            'closure': {'item_classes': sum(b == chart.CONCEPT_BASIS for b in run.bases.values()),
-                        'groupings': sum(b == chart.GROUP_BASIS for b in run.bases.values()),
-                        'unknown_items': run.unknown_items},
-            'merkle': {'form': 'flat', 'leaves': count, 'root_computed': True},
-            'graph_check': summary,
-            'timings_seconds': {k: round(v, 2) for k, v in timings.items()},
-            '_merkle_root_local_only': root.hex()}
+            'patients_requested': patients if patients is not None else 'all',
+            'patients': len(checker.patients), **_counts(run, totals), 'raw_row_check': raw,
+            'graph_check': summarise(outcomes, None if census else sampler),
+            'timings_seconds': {k: round(v, 2) for k, v in timings.items()}}
 
 
 def main(argv=None):
-    """A sampled run over local files; prints aggregate counts (and the Merkle root, never committed)."""
+    """A sampled run, or a census, over local files; prints aggregate counts only."""
     import argparse
     import json
     parser = argparse.ArgumentParser(description=main.__doc__)
@@ -273,27 +332,14 @@ def main(argv=None):
     parser.add_argument('--rate', type=float, default=RATE)
     parser.add_argument('--per-batch', type=int, default=PER_BATCH)
     parser.add_argument('--shards', type=int, default=16)
-    parser.add_argument('--no-graph', action='store_true', help='compute the sample but skip route (a)')
+    parser.add_argument('--census', action='store_true', help='every claim store, not a sample')
+    parser.add_argument('--no-graph', action='store_true', help='round trip only, without route (a)')
     args = parser.parse_args(argv)
     result = sampled_run(args.input_dir, args.dataset_id, patients=args.patients, rate=args.rate,
-                         per_batch=args.per_batch, shards=args.shards, graph=not args.no_graph)
+                         per_batch=args.per_batch, shards=args.shards, graph=not args.no_graph, census=args.census)
     print(json.dumps(result, indent=2))
-    return 0 if not result['graph_check'].get('mismatched_stores') else 1
-
-
-def summarise(outcomes, sampler):
-    differing = Counter(f for o in outcomes for f in o['differing_fields'])
-    return {'profile': PROFILE, 'route_steps': list(ROUTE_STEPS), 'sample': sampler.summary(),
-            'stores_checked': len(outcomes), 'claims_checked': sum(o['claims'] for o in outcomes),
-            'stores_equal': sum(o['equal'] for o in outcomes),
-            'stores_with_bulk_digest_mismatch': sum(not o['bulk_rows_match_ingest'] for o in outcomes),
-            'mismatched_stores': sum(not o['equal'] for o in outcomes),
-            'differing_fields': dict(sorted(differing.items())),
-            'isolation_statuses': dict(sorted(Counter(str(o['isolation_status']) for o in outcomes).items())),
-            'statement': ('Bulk rows are built from describe() claim identity and tied to the graph by it; a '
-                          'deterministic sample of claim stores was sent through the measurement graph route and '
-                          'its rows compared field for field. Rows outside the sample were not each validated '
-                          'through the graph.')}
+    failed = result['graph_check']['mismatched_stores'] or not result['raw_row_check']['passed']
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':

@@ -23,11 +23,41 @@ patient's coverage. The excluded-records rule (`admission_check`, called unchang
 whose expanded concepts meet a step's concepts, so the records it drops are records it would ignore;
 it looks up bound events, which are among those kept. The tests compare `match` with
 `exhaustive_match` on seeded queries over interval, point, excluded-record and shared-variable ingests.
+
+The store's candidate loading makes the same event-filter argument, so a differential against this
+reference alone does not test that argument independently: the demo verifier keeps `exhaustive_match`
+(every event, no filter) on a deterministic slice of its queries.
 """
 from __future__ import annotations
 
 from . import execution_store_reference as ref
 from . import trajectory_graph as tg
+
+
+def coverage_rule(query, per_step, recorders, coverage, window, result):
+    """The coverage rule on an engine `none`, as `exhaustive_match` applies it (written there inline).
+
+    Integration should make this the reference's one copy and call it from `exhaustive_match` too
+    (`execution_store_reference.py` is not edited on this branch).
+    """
+    uncovered, unrecorded = [], []
+    for step in (s['id'] for s in query['steps']):
+        able = set()
+        for c in per_step[step]:
+            able |= recorders.get(c, set())
+        if not able:
+            unrecorded.append(step)
+        covered = any(period['source'] in able and period['lo'] <= window['end'] and period['hi'] >= window['start']
+                      for period in coverage)
+        if not covered:
+            uncovered.append(step)
+    if not uncovered:
+        return result
+    out = {'patient_id': result['patient_id'], 'status': 'not_comparable',
+           'reason': 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE', 'uncovered_steps': uncovered}
+    if unrecorded:
+        out['unrecorded_steps'] = unrecorded
+    return out
 
 
 class PreparedReference:
@@ -73,23 +103,7 @@ class PreparedReference:
             events = self.engine_events(p, wanted)
             result = tg.match_prepared(pq, {'patient_id': pid, 'window': window, 'events': events})
             if result['status'] == 'none':
-                uncovered, unrecorded = [], []
-                for step in (s['id'] for s in query['steps']):
-                    able = set()
-                    for c in per_step[step]:
-                        able |= self.recorders.get(c, set())
-                    if not able:
-                        unrecorded.append(step)
-                    covered = any(period['source'] in able and period['lo'] <= window['end']
-                                  and period['hi'] >= window['start'] for period in p['coverage'])
-                    if not covered:
-                        uncovered.append(step)
-                if uncovered:
-                    result = {'patient_id': pid, 'status': 'not_comparable',
-                              'reason': 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE',
-                              'uncovered_steps': uncovered}
-                    if unrecorded:
-                        result['unrecorded_steps'] = unrecorded
+                result = coverage_rule(query, per_step, self.recorders, p['coverage'], window, result)
             if window is not None and result['status'] != 'not_comparable':
                 positions = sorted({i for c in wanted for i in p['excluded_index'].get(c, ())})
                 relevant = {'patient_id': pid, 'excluded': [p['excluded'][i] for i in positions]}

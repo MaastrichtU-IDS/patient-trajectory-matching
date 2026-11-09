@@ -17,9 +17,10 @@ the graph route, costs about 0.2 CPU-seconds a claim, so a bulk source cannot ta
    claim identity, and the store row is computed from that claim and its provenance alone
    (`claim_fields`, then `store_row`): one point event and one series row. No graph is built.
    `patterns/mimic_chartevents_check.py` sends a deterministic sample of the claim stores through
-   the measurement graph route and requires its rows to equal these, field for field.
+   the measurement graph route and requires its rows to equal these, field for field; that check shares
+   the row mapping, so `patterns/mimic_chartevents_raw_check.py` verifies every row against the raw CSV.
 4. Rows admission leaves out are excluded records (D18), each with its item class and charttime;
-   coverage is one period per ICU stay, widened to the stay's own records.
+   coverage is one period per ICU stay that holds any chart row, widened to the stay's own records.
 
 Concepts are source item classes (`mimic-record-item/<itemid>`, the namespace inputevents uses; d_items
 item ids are unique across tables), each with its d_items category as its one ancestor (D14). They
@@ -67,9 +68,8 @@ CLAIMS_PER_STORE = importer.MAX_CLAIMS
 ORIGIN = '0001-01-01T00:00:00'
 MAX_TIME = 315_537_897_599_999_999  # as execution_store.MAX_TIME: 9999-12-31T23:59:59.999999
 MICRO = 10 ** 6
-BIGINT = 2 ** 63
 POLICY_ID = 'caller_declared_accept_all'
-SERIES_COLUMNS = ('event_id', 'concept', 'value_lexical', 'value_decimal', 'value_micro', 'unit')
+SERIES_COLUMNS = ('event_id', 'item_class', 'value_lexical', 'value_decimal', 'value_micro', 'unit')
 LABELS = {'clinical_mapping_verified': False, 'concept_basis': CONCEPT_BASIS, 'ancestor_basis': GROUP_BASIS,
           'coverage_basis': COVERAGE_BASIS, 'extended_coverage_basis': EXTENDED_COVERAGE_BASIS,
           'history_mode': 'retrospective', 'acceptance': 'caller_declared_accept_all_analysis_not_clinical_review',
@@ -147,37 +147,54 @@ def _records(path):
 def read_manifest(path):
     """Pass one: the file's manifest (as the importer's `read_observations` gives it, unbounded) and
     the set of item ids the rows name."""
-    itemids = set()
+    itemids, column = set(), None
     for number, header, values in _records(path):
         if number is None:
             return values, itemids
-        itemids.add(values[header.index('itemid')])
+        if column is None:
+            column = header.index('itemid')
+        itemids.add(values[column])
 
 
 def shard_of(patient_id, shards):
     return int.from_bytes(hashlib.sha256(patient_id.encode('utf-8')).digest()[:4], 'big') % shards
 
 
-def spill(path, manifest, work_dir, shards, patients=None):
+MAX_OPEN_SHARDS = 64  # well under macOS's default limit of 256 descriptors
+
+
+def spill(path, manifest, work_dir, shards, patients=None, max_open=MAX_OPEN_SHARDS):
     """Pass two: each row to its patient's shard file, as a JSON line [record number, values...].
 
     Only patients in `patients` (a set) are kept when it is given. The file's digests must equal
-    pass one's. Returns the shard paths that hold rows.
+    pass one's. At most `max_open` shard files are open at once (least recently used closed first,
+    then reopened to append), so any shard count works. Sizing: one shard is grouped in memory, and
+    Python holds roughly 5 to 10 times a shard's bytes, so choose `shards` of about the expanded CSV
+    size over the memory a shard may take. The demo (65 MB) fits in one; full MIMIC-IV chartevents
+    (about 30 GB expanded) wants several hundred. Returns the shard paths that hold rows.
     """
+    from collections import OrderedDict
     work_dir = Path(work_dir)
-    handles, out = {}, {}
+    handles, out, column = OrderedDict(), {}, None
     try:
         for number, header, values in _records(path):
             if number is None:
                 require(values == manifest, 'SOURCE_CHANGED_DURING_RUN:chartevents')
                 break
-            pid = values[header.index('subject_id')]
+            if column is None:
+                column = header.index('subject_id')
+            pid = values[column]
             if patients is not None and pid not in patients:
                 continue
             k = shard_of(pid, shards)
-            if k not in handles:
-                out[k] = work_dir / f'chartevents-shard-{k:04d}.jsonl'
-                handles[k] = out[k].open('w', encoding='utf-8')
+            if k in handles:
+                handles.move_to_end(k)
+            else:
+                if len(handles) >= max_open:
+                    handles.popitem(last=False)[1].close()
+                first = k not in out
+                out.setdefault(k, work_dir / f'chartevents-shard-{k:04d}.jsonl')
+                handles[k] = out[k].open('w' if first else 'a', encoding='utf-8')
             handles[k].write(json.dumps([number] + values, ensure_ascii=False, separators=(',', ':')) + '\n')
     finally:
         for h in handles.values():
@@ -233,21 +250,53 @@ def closure(itemids, items):
 
 # ---------------------------------------------------------------- values
 
+BIGINT_MIN, BIGINT_MAX = -2 ** 63, 2 ** 63 - 1
+
+
+def micro_value(d):
+    """The value times 10**6 as an int, by integer arithmetic on the decimal's digits and exponent, or
+    None when that is not an exact integer or falls outside BIGINT.
+
+    No decimal context is involved. `Decimal.scaleb` rounds to the context's 28 digits, so it turned
+    '1000000000000.0000000000000000001' into exactly 10**18. A value outside BIGINT is None, not a
+    refusal: its exact decimal text is still stored, and only comparisons on the integer are lost.
+    """
+    sign, digits, exponent = d.as_tuple()
+    require(isinstance(exponent, int), 'INVALID_MEASUREMENT_DECIMAL')
+    n = int(''.join(map(str, digits))) if digits else 0
+    shift = exponent + 6
+    if shift >= 0:
+        if n and shift > 19:  # n * 10**20 already exceeds BIGINT; never build a huge integer
+            return None
+        value = n * 10 ** shift
+    else:
+        value, remainder = divmod(n, 10 ** -shift)  # decimal_value bounds |exponent| by 308
+        if remainder:
+            return None
+    value = -value if sign else value
+    return value if BIGINT_MIN <= value <= BIGINT_MAX else None
+
+
 def value_columns(value_lexical):
-    """(exact decimal text, value in micro-units or None). The micro-unit integer is given only when
-    it is exact and fits a BIGINT, so a comparison on it never rounds; the decimal text always is."""
+    """(decimal text, value in micro-units or None).
+
+    The decimal text is `format(Decimal, 'f')`, exactly as `measurement_claims.select` renders the
+    value: exact and scale-preserving, but not a value key ('1.5' and '1.50' differ, '-0' stays).
+    Equality, grouping and comparison use `value_micro`, exact whenever it is not null; a null
+    `value_micro` (finer than 10**-6, or beyond BIGINT) must be compared by exact decimal arithmetic.
+    """
     d = claims.decimal_value(value_lexical)
-    scaled = d.scaleb(6)
-    micro = int(scaled) if scaled == scaled.to_integral_value() and abs(scaled) < BIGINT else None
-    return format(d, 'f'), micro
+    return format(d, 'f'), micro_value(d)
 
 
 def value_shape(value_lexical):
     """A lexical class of an exported number, used to stratify the graph-route sample."""
     v = value_lexical
+    mantissa = v.lower().split('e')[0]
     return ('-' if v.startswith('-') else '+' if v.startswith('+') else '') + (
         'e' if 'e' in v.lower() else '') + ('.x' if v.lstrip('+-').startswith('.') else '') + (
-        'x.' if v.endswith('.') else '') + ('frac' if '.' in v.strip('.') else 'int')
+        'x.' if v.endswith('.') else '') + ('frac' if '.' in v.strip('.') else 'int') + (
+        '0' if '.' in mantissa and mantissa.endswith('0') else '')
 
 
 # ---------------------------------------------------------------- one patient: admission, claims, rows
@@ -361,7 +410,7 @@ def store_row(fields, provenance):
                           'concept_bases': {concept: [ITEM_FIELD_BASIS]}, 'source_table': SOURCE_TABLE,
                           **provenance, 'available_at_us': None, 'history_mode': 'retrospective',
                           'source_history_verified': False, 'clinical_mapping_verified': False}}
-    series = {'event_id': fields['event_id'], 'concept': concept, 'value_lexical': fields['value_lexical'],
+    series = {'event_id': fields['event_id'], 'item_class': concept, 'value_lexical': fields['value_lexical'],
               'value_decimal': decimal, 'value_micro': micro, 'unit': fields['unit_lexical']}
     return event, series
 
@@ -377,7 +426,9 @@ def bulk_rows(chunk, origin, pid, dataset_id):
 
 
 def rows_digest(rows):
-    """sha256 of a store's rows (events and series), so a later pass can show it rechecked the same rows."""
+    """sha256 of a claim store's bulk rows (events and series) as this converter emits them, so a later
+    pass can show it re-derived the same rows. It is taken before any merge or store mapping, so it does
+    not show that these are the rows the store holds; integration compares with the built store."""
     return cr.digest([[event, series] for event, series in rows])
 
 
@@ -482,7 +533,11 @@ class Run:
                 events.append(event)
                 series.append(s)
         excluded, excluded_counts = excluded_records(entries, self.items)
-        periods, skipped, outside = coverage(self.stays_of.get(pid, []), events)
+        # A stay with no chart row at all is not covered by chartevents: no row shows the source
+        # recording there. (D15 covers stays without *admitted* inputevents rows; this is stricter.)
+        recorded = {e['raw']['stay_id'] for e in entries}
+        stays = self.stays_of.get(pid, [])
+        periods, skipped, outside = coverage([s for s in stays if s['stay_id'] in recorded], events)
         events.sort(key=lambda e: e['event_id'])
         series.sort(key=lambda s: s['event_id'])
         patient = {'patient_id': pid, 'clock_id': 'patient_' + pid, 'box_representable': True,
@@ -495,6 +550,7 @@ class Run:
         counts.update({'excluded:' + k: v for k, v in excluded_counts.items()})
         counts.update({'coverage_skipped:' + k: v for k, v in skipped.items()})
         counts['events_outside_own_stay'] += len(outside)
+        counts['stays_without_chart_rows'] += sum(s['stay_id'] not in recorded for s in stays)
         counts['series_without_micro_value'] += sum(s['value_micro'] is None for s in series)
         return {'patient_id': pid, 'patient': patient, 'series': series, 'stores': stores, 'counts': counts,
                 'outside_us': outside}
@@ -526,12 +582,13 @@ class Run:
 
 
 def strata(chunk, part, origin):
-    """The sample strata a claim store covers: each (item, unit), each value shape, whether a row lacks
-    a storetime, whether the store is a stay's first or a later part, and whether it holds the
-    patient's clock origin row."""
+    """The sample strata a claim store covers: each (item, unit), each value shape (trailing zeros
+    included), whether some value has no exact micro-unit integer, whether the store is a stay's first
+    or a later part, and whether it holds the patient's clock-origin row. These steer the graph route
+    to claim-field and RDF round-trip variety; they are not a test of the shared row mapping."""
     out = {('item_unit', e['raw']['itemid'], e['raw']['valueuom']) for e in chunk}
     out |= {('value_shape', value_shape(e['raw']['valuenum'])) for e in chunk}
-    out |= {('storetime', bool(e['raw']['storetime'])) for e in chunk}
+    out |= {('value_micro_null', micro_value(claims.decimal_value(e['raw']['valuenum'])) is None) for e in chunk}
     out.add(('part', 'first' if part == 0 else 'later'))
     out.add(('origin_row', any(e['record_id'] == origin['source_record_id'] for e in chunk)))
     return sorted(out)

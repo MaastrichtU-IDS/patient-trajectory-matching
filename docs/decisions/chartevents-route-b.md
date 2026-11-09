@@ -1,220 +1,237 @@
-# D27 (draft): chartevents by route (b), with a sampled graph check
+# D27 (draft): chartevents by route (b), with a graph check and a raw-row check
 
-*Status: draft for the engine-increment log. Code on `feature/chartevents-route-b`, not yet integrated into the store (it waits for store 3.0, D26). Integration hooks: [chartevents-integration-notes.md](chartevents-integration-notes.md).*
+*Status: draft for the engine-increment log. Code on `feature/chartevents-route-b`, not yet integrated into the store; integration waits for store 3.0 (D26). Integration hooks: [chartevents-integration-notes.md](chartevents-integration-notes.md). Revised after an independent review: three must-fixes and the project lead's decisions below.*
 
-D16 decided that chartevents and later bulk sources take route (b). It also required five things: bulk rows from the importer's pure claim identity; a deterministic sample of stores per batch through the full graph route, with a row-equality differential; point measurements and a series table; per-patient sharding with a Merkle input digest; and a differential that builds engine inputs once per patient. This entry records how each is met, the alternatives, and what stage 1 does not do.
+D16 decided that chartevents and later bulk sources take route (b). It required five things:
+- bulk rows from the importer's pure claim identity;
+- a deterministic sample of stores per batch through the full graph route, with a row-equality differential;
+- point measurements and a series table;
+- per-patient sharding, with a Merkle input digest;
+- a differential that builds engine inputs once per patient.
+
+This entry records how each is met, the alternatives, what was decided, and what stage 1 does not do.
+
+## Decisions taken by the project lead (2026-11-09)
+
+1. **Input digest: D20's flat digest stays the identity.** `merkle_patients.py` stays unwired: no root is recorded that nobody verifies, and no run writes one. It is wired in only when incremental appends exist. D16's Merkle requirement is deferred to then; the module and its tests are ready for it.
+2. **Census on the demo: yes, in three parts.**
+   - (i) The raw-row check over **every** chart row.
+   - (ii) The round trip (validate, encode, decode, digest compare) on **every** claim store.
+   - (iii) One full route-(a) census on every store, now that the isolation certificate is no longer computed twice.
+
+   The sampler stays the design for full MIMIC-IV.
+3. **Sample defaults for full MIMIC-IV** (1%, 2 per bucket, strata) are accepted for now, and revisited if full MIMIC-IV is ever run. A per-patient minimum stays declined.
+4. **Unitless and textual rows are stage 3.** They stay excluded records until then.
+5. **The series design is accepted**, with the fixes recorded under decision 6 below.
+6. **Stage-2 value conditions** go in the store's match request, compiled into per-query tag concepts.
+   - Tags are not part of the snapshot identity.
+   - A value relaxation must widen to a tag whose events include the first tag's events.
 
 ## What the data and the code showed first
 
 All counts here are aggregates over the open MIMIC-IV demo 2.2 (D11, D17).
 
-- **The measurement importer cannot read the demo.** `mimic_measurement_import.read_observations` stops at 100,000 rows. The demo's `chartevents` has 668,862 rows and expands to 64.7 MB, just under the importer's 64 MiB limit. So route (b) needs its own streaming reader. It produces the importer's manifest exactly (a test compares them), with no row limit.
-- **Only 150,051 rows are admissible measurements.** These are rows the importer's own admission rule (`admit`) accepts: a numeric value equal to its text, an explicit unit, and `warning = 0`. The other rows break down as follows:
-  - 518,809 unsupported rows. A row can have several of these reasons:
-    - 411,388 have no numeric value (textual items);
-    - 468,721 are textual or qualified;
-    - 506,291 have no unit;
-    - 14,592 are flagged with a warning;
-    - 1,159 have an unknown warning.
-  - 2 invalid rows.
-  - No exact duplicates.
+- **The measurement importer cannot read the demo.** `mimic_measurement_import.read_observations` stops at 100,000 rows. The demo's `chartevents` has 668,862 rows (64.7 MB expanded, just under the importer's 64 MiB limit). Route (b) streams the file instead, and reproduces the importer's manifest exactly; a test compares the two.
+- **150,051 rows are admissible measurements** under the importer's own rule (`admit`): a numeric value equal to its text, an explicit unit, and `warning = 0`.
+  - 518,809 rows are unsupported. A row can have several reasons:
 
-  Of the 257,474 rows with a `valuenum`, 107,423 are not admitted:
-  - 57,903 scored texts such as "15 Alert";
-  - 35,965 rows whose only defect is a missing unit, over 194 items;
-  - about 13,500 flagged with a warning.
+    | Reason | Rows |
+    |---|---|
+    | `MISSING_UNIT` | 506,291 |
+    | `TEXTUAL_OR_QUALIFIED_VALUE` | 468,721 |
+    | `MISSING_NUMERIC_VALUE` (all with a text value) | 411,388 |
+    | `SOURCE_WARNING_FLAGGED` | 14,592 |
+    | `SOURCE_WARNING_UNKNOWN` | 1,159 |
+    | `MISSING_VALUE_TEXT` | 0 |
 
-  Rows name 1,318 item classes in 29 dictionary groupings. 292 items have admitted rows, each with exactly one unit. The admitted rows make 4,753 claim stores of at most 32 claims (140 stays, 100 patients).
-- **Route (a) for a point is the measurement graph route, not the SULO adapter.** Measurement claims (`patient-local-measurement-claim-store-1.0`) have one point variable. The bounded profile requires start + 1 ≤ end, so no bounded snapshot holds them, and `trajectory_graph_sulo.from_claims` / `ingest_rows` do not apply. The repository's graph route for measurements runs through four steps:
+  - 2 rows are invalid (`VALUE_NUMERIC_DISAGREEMENT`). There are no exact duplicates.
+  - Of the 257,474 rows that have a `valuenum`, 107,423 are not admitted:
+
+    | Reason set | Rows |
+    |---|---|
+    | Missing unit, textual (scored text such as "15 Alert") | 57,903 |
+    | Missing unit only (over 194 items) | 35,965 |
+    | Warning flagged | 12,520 |
+    | Missing unit, warning flagged | 806 |
+    | Missing unit, warning flagged, textual | 227 |
+    | Missing unit, value disagreement | 2 |
+
+  - The rows name 1,318 item classes in 29 dictionary groupings. 292 items have admitted rows, each with exactly one unit.
+  - The admitted rows make 4,753 claim stores of at most 32 claims, over 140 stays and 100 patients.
+- **Route (a) for a point is the measurement graph route, not the SULO adapter.** A measurement claim (`patient-local-measurement-claim-store-1.0`) has one point variable. The bounded profile requires start + 1 ≤ end, so no bounded snapshot holds it, and `trajectory_graph_sulo.from_claims` and `ingest_rows` do not apply. The graph route for measurements is:
   - `claim_rdf.encode` with measurement fields;
-  - the importer's isolation certificate (`claim_isolation.check(..., local=True, measurement=True)`);
   - an accept-all analysis policy;
-  - `measurement_claims.select` from the graph. It decodes the graph, so a lossy round trip changes the store digest and the policy no longer matches.
-- **Route (a) is cheaper than D16 estimated, but still not for full MIMIC.** Measured single-process on this machine: 56 demo stores (1,718 claims) took 61 s, about **1.1 s a full store, or 36 ms a claim**.
-  - For the demo's 150,051 admitted rows, that is about 1.5 CPU-hours. D16's "37 CPU-hours" assumed every one of the 668,862 rows at 0.2 s.
-  - Full MIMIC-IV has on the order of 10⁸ admissible chart rows. At this rate that is weeks of CPU, so route (b) stands.
-  - For the demo alone, a **census** (every store through route (a)) would take about 7 minutes on 14 workers. This is offered as an option (open question 2).
-- **Route (b) is cheap.** 64,550 rows of 10 patients took 2.3 s, including the second streaming pass over the whole file. That is about 36 µs a row, so about 25 s for the demo.
+  - `measurement_claims.select` from the graph, which decodes it and runs the importer's isolation certificate.
+- **Costs, measured ad hoc, single process, on this machine.**
+  - **Route (a), first measurement.** 56 stratum-chosen stores of 10 patients (1,718 claims) took 61 s, about 1.1 s a store. That code computed the isolation certificate twice.
+  - **Route (a), after removing the duplicate.** 38 stores of 3 patients (1,207 claims) took 27 s with the round trip included: about **0.71 s a store, or 22 ms a claim**.
+  - **Round trip.** On all 172 stores of those 3 patients, 87 ms a store.
+  - **Route (b).** About 50 µs a row (23,352 rows in 1.2 s, including a streaming pass over the whole file).
+  - **Raw-row check.** It reads the whole file each time: 0.75 s.
+  - **Route (a) and D16's estimate.** D16's 0.2 s a claim was the SULO interval route (per-store bounded-snapshot graphs), a different route. For the measurement graph route the demo's admitted rows would take about 56 CPU-minutes. Full MIMIC-IV has on the order of 10⁸ admissible chart rows, weeks of CPU, so route (b) stands there.
 
 ## Decisions
 
 ### 1. Bulk rows are a function of the `describe()` claim
 
-Each admitted row becomes one claim by `mimic_measurement_import.describe`, exactly as the importer builds it:
-- the importer's ledger, duplicate rule and origin rule (earliest admitted charttime, ties broken by record id);
-- each stay's admitted rows cut, in record order, into stores of at most 32 (D15's rule).
+Each admitted row becomes one claim by `mimic_measurement_import.describe`, exactly as the importer builds it. The importer's ledger, duplicate rule and origin rule (earliest admitted charttime, ties broken by record id) apply. Each stay's admitted rows are cut, in record order, into stores of at most 32 (D15).
 
-The store row is computed from three things only: the claim, the patient clock (origin label) and the row's source provenance (record number, row and file digests, storetime). The steps are `claim_fields(claim, clock)` and then `store_row(fields, provenance)`.
-- The point event's time is the origin's coordinate plus the claim variable's offset from it. This is the same arithmetic as the interval route's `origin_us + start_us`.
-- The evidence carries the claim id and `cr.digest(claim)`, which is the digest the graph route's claim support carries.
+The store row is computed only from the claim, the patient clock (its origin label) and the row's source provenance (record number, row and file digests, storetime), by `claim_fields` and then `store_row`. The point's time is the origin's coordinate plus the claim variable's offset from it. The evidence carries the claim id and `cr.digest(claim)`.
 
-Where the importer can import a file whole (no stay over 32 rows, at most 16 items), a test requires our ledger, origins, claim stores and claim digests to equal the importer's. Only the store's `snapshot_id` differs: it names our run context and the store part, as D15's converter already does.
+Where the importer can import a file whole, a test requires our ledger, origins, claim stores and claim digests to equal the importer's. Only the store's `snapshot_id` differs, because it names our run context and the store's part, as in D15.
 
-*Alternatives:*
-- **Rows straight from the CSV.** Cheaper still, but not tied to any claim, so the graph check would compare unrelated code paths.
-- **Every row through the graph.** This is route (a), costed above.
+*Alternatives:* rows straight from the CSV, which are tied to no claim; every row through the graph, which is route (a).
 
-### 2. The sample: three rules, order-free
+### 2. What the graph route checks, and what it cannot
 
-Every claim store has a rank: sha256 of a salt, the dataset id and its key (patient, stay, part). A store goes through route (a) if any of these holds:
+The route-(a) row is built by `record_fields` from the selected record, then by the same `store_row` as route (b), with the same `value_columns`, `provenance_of`, `micros` and item namespace, from the same `describe()` claim. So the differential independently exercises only these:
+- `claim_fields` against `record_fields`, that is, reading a claim against reading a selected record;
+- the RDF encode and decode round trip;
+- validation, isolation and selection accepting the store;
+- the selection's own time offsets (`patient_local.coordinate`) against route (b)'s;
+- the selection's decimal rendering against `value_columns`.
 
-| Rule | Default | Why |
+It does not test the shared mapping. A review planted defects in `micros`, in the micro-unit value, in `recorded_at_us` and in the item namespace, and a full census of the graph route still found 0 mismatches. A test now records that blindness.
+
+### 3. The raw-row check, required over every row
+
+`patterns/mimic_chartevents_raw_check.py` imports nothing from the converter, the importer, `patient_local` or `measurement_claims`. It reads the CSV itself and recomputes each row with its own code:
+- the item class, from a literal namespace and the row's `itemid`;
+- the time, by `datetime` arithmetic from 0001-01-01 on `charttime`;
+- the recorded time, the same way from `storetime`;
+- the value spelling and the unit;
+- `value_micro`, by string parsing and integer arithmetic, with no `Decimal`;
+- the record number inside the event id, and the event's kind, source and point form.
+
+It accounts for every row exactly once: as an event (a first occurrence whose item is known), as an exact duplicate, as a row naming an unknown item, or as an excluded record. Excluded records are compared as a multiset of (patient, source, item class, start).
+
+Which rows admission keeps is the importer's rule and is not recomputed. What the check verifies is that every row is accounted for once, and that every event and every excluded record carries the raw row's own content.
+
+A test plants each of the four defects above, and the raw check catches each one on the expected field. On 3 demo patients it checked 23,352 rows (5,435 events, 17,917 excluded records) with no difference. Integration must refuse a conversion that fails it.
+
+### 4. The sample and the census
+
+**The sample (the design for full MIMIC-IV).** Every claim store has a rank: the sha256 of a salt, the dataset id and its key (patient, stay, part). The part is D15's cut into stores of 32, so changing that cut changes keys and the sample. A store goes through the round trip and route (a) if any of these holds:
+
+| Rule | Default | Purpose |
 |---|---|---|
-| `rate`: rank below `rate` · 2²⁵⁶ (a Bernoulli draw fixed by the hash) | 1% | Catches defects spread at random. If a fraction *p* of stores were defective independently of the hash, *n* sampled stores all miss with probability (1 − *p*)ⁿ: about 5% for *p* = 2% and *n* = 150, and 0.05% for *p* = 5% |
-| `batch_minimum`: the lowest-ranked stores of each batch | 2 per batch | Every batch is backed by checked stores. **A batch is the execution-store bucket of the patient** (8 buckets), which is also a leaf group of the two-level Merkle tree (decision 4). So every bucket root covers rows that were checked against the graph |
-| `stratum`: for each stratum, the lowest-ranked store holding it | on | Catches systematic defects, which are keyed to a value, not random. The strata are each (item, unit); each lexical shape of the value (sign, fraction, exponent, leading or trailing point); storetime present or missing; first or later part of a stay; and whether the store holds the patient's clock-origin row |
+| `rate`: rank below `rate` · 2²⁵⁶ | 1% | A Bernoulli draw fixed by the hash. If a fraction *p* of stores failed the graph route independently of the hash, *n* sampled stores all miss with probability (1 − *p*)ⁿ: about 5% for *p* = 2% and *n* = 150 |
+| `batch_minimum`: the lowest ranks of each batch | 2 | Every batch, the execution-store bucket of the patient, has graph-checked stores |
+| `stratum`: the lowest-ranked store holding each stratum | on | Steers the graph route to variety in claim fields and RDF round trips: each (item, unit); each lexical shape of the value (sign, fraction, exponent, leading or trailing point, trailing zeros); whether a value has no exact micro-unit integer; first or later part of a stay; and the store holding the clock-origin row. Strata do not test the shared row mapping, since the raw-row check does that. The earlier `storetime` stratum was dropped: storetime feeds only the shared mapping |
 
-Each rule is a function of the whole set of stores. None depends on ingest order, shard count or part size, and each is computed streaming, in memory bounded by the number of strata and batches. The run is two-phase:
-1. The bulk pass offers every store's key and strata, and records the digest of the rows it emitted.
-2. The selected stores' patients are re-read. Their claim stores are rebuilt and their bulk rows recomputed, and these must have the recorded digest, so the rows checked are the rows ingested. Then route (a) runs on them, and the differential compares every field of every event, its evidence and its series row. It reports only the names of differing fields, never values.
+The rules are free of ingest order, shard count and the store builder's part size (D23's `part_rows`). Memory holds one entry per stratum, `per_batch` entries per bucket, and the rate-drawn keys, which grow with rate × stores.
 
-*Measured on 10 demo patients* (a deterministic subset; an ad hoc run, not a committed report): 56 of 474 stores were sampled (53 by stratum, 12 batch minima, 3 by rate), covering 1,718 claims. 56 of 56 were equal, with no digest mismatch, and 56 isolation certificates verified. *Estimated for the whole demo:* strata grow to about 300 (292 item–unit pairs plus shapes), so about 130 to 180 stores, or 2.5 to 3.5 minutes single-process.
+*Measured* (ad hoc, 10 demo patients): 56 of 474 stores sampled, 53 of them by stratum, with 0 mismatches. *Estimated for the whole demo:* 130 to 180 stores.
 
-*What every row gets, and what only the sample gets.*
-- **Every row** is admitted by the importer's `admit`, described by the importer's `describe()`, and validated by the store's ingest.
-- **Only sampled stores** get the RDF round trip, the isolation certificate and the selection.
-- So a defect confined to a few rows in unsampled stores, which no stratum isolates, would not be caught by the sample. It could only be caught by construction (shared code) or by a census.
+**The census (the design for the demo, decision 2).** It runs the raw-row check over every row, the round trip on every store (about 4,753 × 87 ms ≈ 7 minutes), and route (a) on every store (about 4,753 × 0.71 s ≈ 56 CPU-minutes, roughly 4 to 5 minutes on 14 workers when integration runs it). The command is `python -m patterns.mimic_chartevents_check --census`, with `--no-graph` for parts (i) and (ii) alone.
 
-Reports must say: *rows are tied to the graph by claim identity and checked on a sample, not each validated through the graph.* `summarise` writes that sentence into the check's output.
+**Re-derivable, not yet "ingested".** The check recomputes each selected store's bulk rows and requires the digest the converter recorded. That shows the rows are re-derivable. The digest is taken before any merge or store mapping, so it does not show these are the rows the store holds. Integration must compare graph rows against the built store's rows for those event ids (integration notes, §3.6).
+
+Reports say: *rows are tied to the graph by claim identity; graph-route rows equal bulk rows on the stores checked (every store on the demo, a sample beyond it); the shared row mapping is verified independently against every raw row.*
 
 *Alternatives:*
 - **A fixed count per batch**, which ignores strata.
-- **A minimum of one store per patient.** For full MIMIC-IV that is about 50,000 stores, or about 15 CPU-hours. Declined as a default.
-- **A per-shard minimum.** It ties the sample to the execution plan.
-- **A census.** Affordable for the demo only.
+- **A minimum of one store per patient.** For full MIMIC-IV that is about 50,000 stores.
+- **A per-shard minimum**, which ties the sample to the execution plan.
 
-### 3. Sharding
+### 5. Sharding
 
-The file is read twice, streaming:
-- **Pass one** checks the header and every record's shape, hashes the compressed and decompressed bytes (record identifiers contain the CSV digest, so they are needed before any claim) and collects the item ids. The closure must be known before `StoreBuilder` takes its first patient.
-- **Pass two** hashes again, refuses a file that changed between the passes (`SOURCE_CHANGED_DURING_RUN:chartevents`), and spills each row to one of `shards` files by a hash of its patient.
+**Two streaming passes.**
+- Pass one checks the header and record shape, hashes the compressed and decompressed bytes (record identifiers contain the CSV digest) and collects the item ids, since the closure precedes the first `StoreBuilder.add`.
+- Pass two hashes again, refuses a changed file (`SOURCE_CHANGED_DURING_RUN:chartevents`), and spills each row to its patient's hash shard.
 
-Each shard is then grouped by patient. Python holds one shard, and every patient is one batch. The order of patients does not matter: the store's identity and the Merkle root are order-free, and a test shows identical patients, series and store summaries at 1, 3 and 7 shards. A file sorted any way gives the same result (the fixture interleaves patients).
+**Bounded open files.** At most 64 shard files are open at once (least recently used closed first, reopened to append), well under macOS's default of 256 descriptors.
 
-### 4. A Merkle tree over patients for the input digest
+**Shard sizing.** A shard is grouped in memory, and Python holds roughly 5 to 10 times its bytes. So the shard count should be about the expanded CSV size divided by the memory a shard may use. One shard suffices for the demo; full MIMIC-IV (about 30 GB expanded) wants several hundred.
 
-The construction is RFC 6962 / RFC 9162, the Certificate Transparency tree (`patterns/merkle_patients.py`):
-- **Leaves** are sha256(0x00 ‖ patient_id ‖ TAB ‖ patient digest), in code-point order of patient id.
-- **Inner nodes** are sha256(0x01 ‖ left ‖ right), split at the largest power of two.
-- **The empty tree** is sha256("").
-- **Two-level form:** one tree per store bucket, then a tree over the 8 bucket roots, with empty buckets as the empty root.
-- **The input digest** is sha256 of `merkle-patients-1 TAB form`, the caller's canonical header, the root and the patient count.
+**What order affects.** Shard count and the order patients come out in change nothing; a test compares 1, 3 and 7 shards, and a bounded-handle spill. Rows need not be grouped by patient. The file's row order does matter: record numbers name claims, events and stores, so a reordered file is a different input.
 
-It ships with a streaming form (O(log n) hashes, for DuckDB's `ORDER BY` output) and inclusion proofs. The tests pass the Certificate Transparency reference vectors for 1 to 8 leaves and check the streaming, batch and naive roots on many sizes. They also check that adding a patient changes only its bucket's root and the top.
+### 6. Point measurements and the series table
 
-- **Why RFC 6962.** Domain-separated leaves and nodes, and no duplicated last node, so distinct leaf lists cannot share a root (unlike Bitcoin's tree). It is also a public specification that another implementation can be checked against.
-- **Why two levels.** Buckets are already the store's partitions. An append rehashes one bucket and the top, and each bucket's root can be computed by whoever holds it. This is the "bucket-level roots" item the store's *Next* list deferred (D20).
-- **Why the patient digest is the caller's.** The module never sees the store's canonical form, so the store and its reference each supply their own digests.
+**Points need nothing new.** The engine takes points natively. The store holds them with a null end. A test builds today's store from route-(b) patients, matches points, and agrees with `exhaustive_match`. Coverage is widened to a stay's own points.
 
-*Alternatives:*
-- **Keep D20's flat sorted list.** Equally order-free, but it has no proofs and no incremental rehash.
-- **A sparse Merkle tree keyed by hash(patient id).** It supports non-membership proofs, but costs 256 hashes a leaf.
-- **Trees per execution shard.** They put the shard plan into the identity.
+**Coverage.** Chartevents covers only stays in which it holds at least one row, admitted or not. A stay without a single chart row is not covered, so a query there is `not_comparable` (`NO_SOURCE_COVERAGE`), not `none`. This is stricter than D15's inputevents rule, which covers stays without *admitted* rows.
 
-*Identity.* Switching the input digest changes every snapshot id. D26 changes canonical forms anyway, so the switch should land in the same integration, so that identities change once (open question 1). Under D17, a Merkle root is a digest of row-level data: it is committed for the open demo and not for credentialed MIMIC-IV.
+**Event kind.** `recorded_measurement` has no ontology class, so a measurement event carries its item class only.
 
-### 5. Point measurements in the engine and the store
-
-Nothing new is needed in the engine. Points are a native event form: there is no `end`, the end is the start, and a point cannot be `proper`. The point-forest method applies when every step is a point.
-
-The store contract already accepts points (null `end_lo` and `end_hi`). A test builds today's store from the route-(b) patients and matches two queries, where the store agrees with `exhaustive_match` in status and, where it ran the engine, in full:
-- a first lab followed by a rate within two hours;
-- a grouping followed by an item that only excluded rows hold, which is `NO_SOURCE_RECORDS_CONCEPT`.
-
-The other store rules carry over:
-- **Time pruning (D25)** reads start summaries, which a point fills.
-- **Coverage** is widened to a stay's own points, as for inputevents. There are 52 such points in the 10-patient subset.
-- **Excluded records (D18)** carry item class and charttime.
-
-The event kind `recorded_measurement` has no class in the bounded-interval ontology, so a measurement event carries only its item class, with no structural concept. Adding an ontology class touches report-bound ontology files, so it is left to stage 3.
-
-### 6. The series table
-
-There is one row per measurement event, beside `events`, partitioned by bucket:
+**The series table.** One row per measurement event, partitioned by bucket:
 
 | Column | Type | Meaning |
 |---|---|---|
 | `patient_idx` | BIGINT | as in `events` |
 | `event_id` | VARCHAR | the point event |
-| `concept` | VARCHAR | the item class (the event's direct concept) |
-| `start_lo`, `start_hi` | BIGINT | the event's time, copied, so a series scan needs no join |
+| `item_class` | VARCHAR | the source item class (`mimic-record-item/<itemid>`), the event's direct concept |
+| `start_lo`, `start_hi` | BIGINT | the event's time, copied so that a series scan needs no join |
 | `value_lexical` | VARCHAR | the exported spelling (`valuenum`), as the claim holds it |
-| `value_decimal` | VARCHAR | exact decimal text, `format(Decimal, 'f')`, as `measurement_claims.select` renders it |
-| `value_micro` | BIGINT, nullable | the value × 10⁶ when that is an exact integer within BIGINT; otherwise null |
+| `value_decimal` | VARCHAR | `format(Decimal, 'f')`, as `measurement_claims.select` renders it |
+| `value_micro` | BIGINT, nullable | the value × 10⁶ if that is an exact integer within BIGINT, else null |
 | `unit` | VARCHAR | the literal unit, with no conversion |
 
-- **Key:** `patient_idx, concept, start_lo, start_hi, event_id`. This is total, since event ids are unique within a patient, and it orders a (patient, item) series by time for content digests and scans.
-- **Types:** only D20's canonical types. DOUBLE and DECIMAL are refused, because their text forms are not canonical and doubles round.
-- **`value_micro`:** gives exact integer comparison in SQL. It was non-null for all 14,957 values in the 10-patient subset. A value it cannot hold (more than six decimals, or beyond BIGINT) keeps its exact decimal, and any comparison on it must fall back to exact decimal arithmetic.
-- **Postings stay small.** They remain one row per (concept, patient), and values never enter them.
+**Key.** `patient_idx, item_class, start_lo, start_hi, event_id`. It is total, and it orders a (patient, item) series by time. Only D20's canonical types are used.
 
-*Alternatives:*
-- **Values in the event's evidence.** They are not queryable, and D26 moves evidence out of `events`.
-- **A (mantissa, exponent) pair.** Exact for every value, but SQL comparison needs alignment. Kept as the fallback if `value_micro`'s gaps matter.
-- **A 10⁻⁹ scale.** It narrows the range.
-- **A series-only representation, with no events.** The engine binds events, so it would see no measurement.
+**Fix: `value_micro` is integer arithmetic.** The first version used `Decimal.scaleb(6)` under the default 28-digit context, while `decimal_value` admits 64 characters. So '1000000000000.0000000000000000001' became exactly 10¹⁸, and '9000000000000.00000000000000000049' became 9 × 10¹⁸, both labelled exact. `micro_value` now works on `as_tuple()`:
+- when *e* + 6 ≥ 0, the value is *n* · 10^(*e*+6);
+- otherwise it is exact only if 10^−(*e*+6) divides *n*, and null if not;
+- outside BIGINT it is **null, not a refusal**: the exact decimal text is still stored, and only comparisons on the integer are lost.
 
-### 7. Measurement conditions: values and units, staged
+The raw-row check recomputes it independently, and the tests cover both overflow edges, ±2⁶³, exponents of ±308, '-0', and the two inputs above. The integration validator must use `micro_value`.
 
-Full value-based conditions are too big for one increment alongside the ingest, so the work is staged.
+**`value_decimal` is exact and scale-preserving, but not a value key.** '1.5' and '1.50' differ, and '-0' stays as written. Equality, grouping and comparison use `value_micro`. Where it is null (finer than 10⁻⁶, or beyond BIGINT), they use exact decimal arithmetic. Normalising `value_decimal` was declined, because it would stop matching the selection's rendering, which the graph check compares.
+
+*Alternatives:* values in evidence, which are not queryable; a (mantissa, exponent) pair, kept as the fallback; a 10⁻⁹ scale; series without events, which the engine could not bind.
+
+### 7. Measurement conditions, staged
 
 **Stage 1 (this increment).**
-- **Ingest:** chartevents rows become point events with source item classes and groupings, plus the series table, inside the snapshot identity and content-verified.
-- **Queries** match by item class and grouping, with every existing relation, relaxation, coverage and exclusion rule.
-- **Values** are stored, digested and readable through a store accessor (for display and audit), but `match` takes no value condition.
-- **Proof:** the sampled graph check, the Merkle digest, and the prepared-reference differential.
+- Point events with item classes and groupings.
+- The series table inside the snapshot identity.
+- Queries by item class and grouping, with every existing rule.
+- Values stored, digested and readable through a store accessor, but no value condition in `match`.
+- The census and raw-row check on the demo, and the sampled design for beyond it.
 
-**Stage 2: value conditions without changing the engine.**
-- **The request.** The store's match request (not the engine query) gains `conditions: {step_id: {unit, op, value}}`. `op` is one of `lt le eq ge gt` and `value` is an exact decimal string: the predicate vocabulary of `mixed-record-query-1.0`, so the two profiles agree.
-- **Compilation.** The store compiles each condition into a per-query tag concept:
-  - the events of the step's concept closure whose series row has that unit and satisfies the op (exactly: on `value_micro`, or by Decimal where it is null) carry the tag;
-  - the step's concept is replaced by the tag;
-  - a value relaxation (a threshold moved, with a cost) becomes a `widen_concept` to a second tag. So the engine, its reference and the trajectory page are untouched.
-- **Candidates and pruning:** SQL over `series`, with the qualifying rows' earliest and latest start.
-- **Exclusions:** an excluded record of the item reaches the step whatever its value, since admission dropped it and its value is not trusted. This is conservative.
-- **The differential** applies the same conditions in Python in `PreparedReference`.
-- *Declined for stage 2:* native value predicates in the engine. The semantics would be cleaner, but it changes the engine profile, the reference, the page parity test and every prepared query.
+**Stage 2 (decision 6).** The store's match request gains `conditions: {step_id: {unit, op, value}}`, with `op` one of `lt le eq ge gt` and an exact decimal value. This is `mixed-record-query-1.0`'s vocabulary.
+- **Compilation.** Each condition becomes a per-query tag concept carried by the events of the step's concept closure whose series row has that unit and satisfies the op, compared exactly on `value_micro` or by Decimal where it is null. The step's concept becomes the tag.
+- **Identity.** Tags are not part of the snapshot identity.
+- **Relaxation.** A value relaxation is a `widen_concept` to a second tag whose events include the first tag's events: a threshold widened, never moved. So relaxation stays monotone, and the engine is untouched.
+- **Candidates and pruning** use SQL over `series`.
+- **Excluded records** of the item reach the step whatever their value.
+- **The reference** applies the same conditions in Python.
 
 **Stage 3.**
-- **Reviewed unit equivalence and conversions** (a review question, D-CLINICAL).
-- **A textual or categorical measurement claim profile.** It would turn most of the 411,388 textual rows from excluded records into events, and with them most of the `not_comparable` results D18 will produce.
-- **Unitless numeric values** (35,965 rows) with an explicit `unit: none`. This needs a measurement-claim schema version.
-- **Reviewed item-to-concept mappings** through `reviewed_measurement_mappings` (`measurement-record-item/` targets).
-- **Series aggregates**, such as "two consecutive readings below".
-- **A point route through the SULO adapter**, which needs a bounded point profile and ontology class.
+- Reviewed unit equivalence.
+- Textual and categorical measurement claims (411,388 rows).
+- Unitless numeric values (35,965 rows), which need a measurement-claim schema version.
+- Reviewed item mappings.
+- Series aggregates.
+- A SULO point route.
 
-### 8. What the trajectory-graph query language needs
+### 8. The trajectory-graph query language
 
-Stage 1 needs nothing: the query is `trajectory-graph-1.0` unchanged. Stage 2, as proposed, needs nothing in the engine either: conditions live in the store request and compile to concepts. A native value predicate on steps would be a `trajectory-graph-1.1`, which is declined above.
+Stage 1 needs nothing. Stage 2, as decided, needs nothing in the engine either. Native value predicates would make a `trajectory-graph-1.1`; that is declined.
 
 ### 9. Item ids to concepts
 
-- **The item class is `mimic-record-item/<itemid>`**, the namespace inputevents uses. d_items item ids are unique across tables (`linksto` says which), so one closure serves both sources.
-- **The d_items category is its one ancestor** (D14, `source_dictionary_grouping`). An item with an empty category has none.
-- **The closure** holds the item classes chart rows name, admitted or excluded, intersected with the dictionary. An unknown item has no concept and is counted; the demo has none.
-- **Labels:** `concept_basis: source_item_class` and `clinical_mapping_verified: false`. The concept basis of a measurement's item is `claim_item_field`, since the measurement claim carries the item as a field, not as a class fact.
+- **The item class** is `mimic-record-item/<itemid>`, the same namespace as inputevents; d_items ids are unique across tables.
+- **Ancestor.** The item's d_items category is its one ancestor (D14). An empty category gives none.
+- **The closure** holds the item classes chart rows name, intersected with the dictionary. An unknown item has no concept and is counted.
+- **Labels and basis.** These are never clinical concepts. The concept basis of a measurement's item is `claim_item_field`.
 
-### 10. A differential that builds engine inputs once per patient
+### 10. A differential with engine inputs built once per patient
 
-`patterns/prepared_reference.py` builds the following once per ingest:
-- each patient's closure-expanded engine events;
+`patterns/prepared_reference.py` builds the following once:
+- each patient's closure-expanded events;
 - a concept-to-events index;
-- the shared-variable flag;
-- a concept-to-excluded-records index;
-- the recorders map.
+- whether the patient shares variables;
+- an excluded-records index;
+- the recorders.
 
-Per query it sends the engine only events carrying a step concept. A patient with shared variables keeps every event, because an unbindable event can link two bindable ones (D24). A test shows a filtered patient going from `none` to a wrong `possible`, and that mutation fails the test. It then applies the same coverage rule and calls `admission_check` unchanged.
+Per query it sends the engine only events carrying a step concept. A patient with shared variables keeps every event (D24), and a test shows that filtering such a patient turns `none` into a wrong `possible`. Its results equal `exhaustive_match` on seeded queries. On 10 demo patients it was 5 times faster (ad hoc).
 
-Its results equal `exhaustive_match` on seeded queries over the synthetic cohort, a shared-variable fuzz cohort and the chartevents fixture. On 10 demo patients it was 5 times faster: 22 ms against 110 ms a query, on an ad hoc run with 0 mismatches.
-
-For chartevents there are no adapter rows for the bulk: that is what route (b) means. So the three-way differential becomes three comparisons:
-- the store against the prepared reference, on every patient;
-- route-(a) rows against bulk rows, on the sample;
-- inputevents adapter rows, as before.
+It makes the same event-filter argument as the store's candidate loading, so it cannot test that argument on its own. The demo verifier therefore keeps `exhaustive_match` on a deterministic slice of its queries. The coverage rule is factored into one function, to become the reference's only copy at integration.
 
 ## Consequences and limits
 
-- **Many chart results will be `not_comparable`.** Most rows of the 1,318 items are excluded records: 518,809 against 150,051 events. Under D18, most `none` results on chart items will be `not_comparable`. As in D18, that is honest about what a numeric subset can rule out, and stage 3's textual profile is the lever.
-- **Stage 1 does not answer value questions.** "MAP below 65" is stage 2.
-- **Rows outside the sample are not each graph-checked** (decision 2).
-- **Measured on part of the demo only.** All measurements are single-process on one machine, over a 10-patient subset. The whole demo waits for D26, by agreement.
+- **Most chart results will be `not_comparable`.** Excluded records outnumber events by 518,809 to 150,051, so under D18 most `none` results on chart items become `not_comparable`.
+- **Stage 1 answers no value question.**
+- **Beyond the demo, the graph route is a sample.**
+- **Measurements are ad hoc.** All are single-process, on one machine, on subsets of 3 to 10 patients. The full demo waits for D26, by agreement.

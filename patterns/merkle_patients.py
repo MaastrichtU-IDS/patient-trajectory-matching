@@ -1,5 +1,8 @@
 """A Merkle tree over patients, for the execution store's input digest (D16; draft D27).
 
+Not wired in: by the project lead's decision (D27 draft, decision 1) the store keeps D20's flat input
+digest as its identity, and no root is recorded or written by any run until incremental appends exist.
+
 Pure functions over `(patient_id, patient_digest)` pairs. Nothing here reads the store: the
 caller supplies each patient's digest (the store's own canonical-JSON sha256, or the reference's)
 and, for the two-level form, the bucket function. So the store, its reference and a sharded

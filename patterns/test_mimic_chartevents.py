@@ -184,7 +184,7 @@ class BulkRowTests(unittest.TestCase):
                 self.assertNotIn('end', e)
                 self.assertNotIn('proper', e)
                 self.assertEqual(e['start'][0], e['start'][1])
-                self.assertEqual(e['concepts'], [s['concept']])
+                self.assertEqual(e['concepts'], [s['item_class']])
                 self.assertEqual(e['kind'], chart.KIND)
                 self.assertEqual(e['source'], chart.SOURCE)
                 self.assertEqual(set(s), set(chart.SERIES_COLUMNS))
@@ -210,6 +210,25 @@ class BulkRowTests(unittest.TestCase):
         self.assertEqual(values['1e-7'], ('0.0000001', None))  # not exact in micro-units: decimal text only
         self.assertEqual(chart.value_columns('1e20'), ('100000000000000000000', None))  # beyond BIGINT
 
+    def test_micro_values_are_exact_or_null(self):
+        from decimal import Decimal
+        from . import mimic_chartevents_raw_check as raw
+        cases = {
+            # Beyond the 28-digit decimal context: Decimal.scaleb rounded these to exact-looking integers.
+            '1000000000000.0000000000000000001': None, '9000000000000.00000000000000000049': None,
+            '1000000000000.000000': 10 ** 18, '9223372036854.775807': 2 ** 63 - 1,
+            '9223372036854.775808': None, '-9223372036854.775808': -2 ** 63, '-9223372036854.775809': None,
+            '9.223372036854775807e12': 2 ** 63 - 1, '1e13': None, '1e308': None, '1e-308': None, '0e-308': 0,
+            '0e308': 0, '-0': 0, '0.0000005': None, '0.000001': 1, '-0.000001': -1, '1.10': 1_100_000,
+            '+.5': 500_000, '5.': 5_000_000, '12E2': 1_200_000_000, '1.0000000': 1_000_000,
+            '1.0000001': None, '00012.500': 12_500_000,
+        }
+        for text, want in cases.items():
+            self.assertEqual(chart.value_columns(text)[1], want, text)
+            self.assertEqual(raw.raw_micro(text), want, text)  # the raw check's independent arithmetic
+            self.assertEqual(chart.micro_value(Decimal(text)), want, text)
+        self.assertEqual(chart.value_columns('1.50')[0], '1.50')  # scale kept: not a value key
+
     def test_excluded_records_and_counts(self):
         p1 = self.batches['5000001']
         reasons = sorted(x['reason'] for x in p1['patient']['excluded'])
@@ -231,7 +250,10 @@ class BulkRowTests(unittest.TestCase):
         self.assertEqual(widened[0]['lo'], msi.micros('2190-03-01 07:30:00'))
         p2 = self.batches['5000002']['patient']['coverage']
         self.assertEqual(p2[0]['hi'], msi.micros('2185-01-02 03:00:00'))
-        self.assertEqual(len(self.batches['5000004']['patient']['coverage']), 1)
+        # A stay without a single chart row is not covered by chartevents.
+        self.assertEqual(self.batches['5000004']['patient']['coverage'], [])
+        self.assertEqual(self.batches['5000004']['counts']['stays_without_chart_rows'], 1)
+        self.assertEqual(len(self.batches['5000003']['patient']['coverage']), 1)  # only excluded rows, still covered
         self.assertEqual(self.batches['5000001']['counts']['events_outside_own_stay'], 1)
 
     def test_closure(self):
@@ -250,7 +272,10 @@ class BulkRowTests(unittest.TestCase):
         for batch in self.batches.values():
             es.validate_patient(copy.deepcopy(batch['patient']), self.conv.ancestors)
 
-    def test_shard_count_and_file_order_do_not_matter(self):
+    def test_shard_count_does_not_matter(self):
+        # Shards and the order patients come out in do not change any patient. The file's row order does
+        # matter: record numbers name claims, events and stores. The fixture interleaves patients, so the
+        # converter does not rely on rows being grouped by patient.
         one = {b['patient_id']: b for b in batches(self.conv, shards=1)}
         many = {b['patient_id']: b for b in batches(self.conv, shards=7)}
         for pid in self.batches:
@@ -280,10 +305,12 @@ class GraphCheckTests(unittest.TestCase):
 
     def test_every_store_equal_through_the_graph(self):
         s = self.summary
-        self.assertEqual(s['stores_checked'], 4)
-        self.assertEqual(s['claims_checked'], 50)
+        self.assertEqual(s['stores_graph_checked'], 4)
+        self.assertEqual(s['stores_round_tripped'], 4)
+        self.assertEqual(s['round_trip_failures'], 0)
+        self.assertEqual(s['claims_graph_checked'], 50)
         self.assertEqual((s['stores_equal'], s['mismatched_stores']), (4, 0))
-        self.assertEqual(s['stores_with_bulk_digest_mismatch'], 0)
+        self.assertEqual(s['stores_not_rederived'], 0)
         self.assertEqual(s['isolation_statuses'], {'VERIFIED_EMPTY_PROCESS_MODEL': 4})
         self.assertIn('not each validated through the graph', s['statement'])
 
@@ -325,7 +352,7 @@ class GraphCheckTests(unittest.TestCase):
         paths = chart.spill(self.conv.paths['chartevents'], self.conv.manifest, work, 1)
         pid, rows = next((p, r) for p, r in chart.patient_rows(paths, self.conv.manifest['columns']) if p == '5000002')
         (result,) = check.check_patient(self.conv, pid, rows, {(pid, '7000003', 0): ['rate']}, digests)
-        self.assertFalse(result['bulk_rows_match_ingest'])
+        self.assertFalse(result['bulk_rows_rederived'])
         self.assertFalse(result['equal'])
 
     def test_graph_route_refuses_a_changed_store(self):
@@ -396,6 +423,111 @@ class SamplerTests(unittest.TestCase):
             check.Sampler(DATASET, rate=2)
 
 
+def raw_check(run, patients=None):
+    from . import mimic_chartevents_raw_check as raw
+    checker = raw.RawRowCheck()
+    for b in batches(run, patients=patients):
+        checker.add(b['patient'], b['series'])
+    return checker.verify(run.paths['chartevents'], run.paths['d_items'])
+
+
+class RawRowCheckTests(unittest.TestCase):
+    """The independent check over every row, and the defects the graph check cannot see."""
+
+    def test_every_row_accounted_for(self):
+        result = raw_check(chart.Run(fixture(), DATASET))
+        self.assertTrue(result['passed'], result)
+        self.assertEqual(result['rows'], len(fx.chart_rows('full')))
+        self.assertEqual(result['events_checked'], 50)
+        self.assertEqual(result['duplicate_rows'], 1)
+        self.assertEqual(result['unknown_item_rows'], 1)
+        self.assertEqual(result['rows'], result['events_checked'] + result['duplicate_rows']
+                         + result['unknown_item_rows'] + result['excluded_records_checked'])
+        some = raw_check(chart.Run(fixture(), DATASET), patients={'5000002'})
+        self.assertTrue(some['passed'])
+        self.assertEqual(some['rows'], 4)
+
+    def test_raw_helpers(self):
+        from . import mimic_chartevents_raw_check as raw
+        self.assertEqual(raw.raw_us('2190-03-01 07:30:00'), msi.micros('2190-03-01 07:30:00'))
+        self.assertEqual(raw.raw_us('0001-01-01 00:00:01'), 1_000_000)
+        self.assertIsNone(raw.raw_us('2190-02-30 00:00:00'))
+        self.assertIsNone(raw.raw_us('2190-03-01T07:30:00'))
+        self.assertEqual(raw.ITEM_NAMESPACE, chart.ITEM_NS)
+
+    PLANTED = ('micros', 'value_micro', 'recorded_at_us', 'item_namespace')
+
+    def planted(self, defect):
+        """A patch that plants one defect in the mapping route (b) and route (a) share."""
+        if defect == 'micros':
+            original = chart.micros
+            return mock.patch.object(chart, 'micros', lambda label: original(label) + 60_000_000)
+        if defect == 'value_micro':
+            original = chart.micro_value
+            return mock.patch.object(chart, 'micro_value', lambda d: None if original(d) is None else original(d) + 1)
+        if defect == 'recorded_at_us':
+            original = chart.provenance_of
+
+            def shifted(entry, origin):
+                out = original(entry, origin)
+                if out['recorded_at_us'] is not None:
+                    out['recorded_at_us'] += 1
+                return out
+            return mock.patch.object(chart, 'provenance_of', shifted)
+        return mock.patch.object(chart, 'ITEM_NS', 'https://example.org/trajectory/other-item/')
+
+    def test_raw_check_catches_each_planted_defect(self):
+        fields = {'micros': 'start', 'value_micro': 'value_micro', 'recorded_at_us': 'recorded_at_us',
+                  'item_namespace': 'item_class'}
+        for defect in self.PLANTED:
+            with self.subTest(defect=defect), self.planted(defect):
+                result = raw_check(chart.Run(fixture(), DATASET))
+            self.assertFalse(result['passed'], defect)
+            self.assertGreater(result['event_field_mismatches'].get(fields[defect], 0), 0, (defect, result))
+
+    def test_graph_check_is_blind_to_the_shared_mapping(self):
+        # Documented, not desired: the graph route reuses store_row, so these defects pass it. This is
+        # why the raw-row check over every row is required.
+        for defect in self.PLANTED:
+            with self.subTest(defect=defect), self.planted(defect):
+                summary, _, _ = run_check(chart.Run(fixture(), DATASET), {'rate': 1.0})
+            self.assertEqual(summary['mismatched_stores'], 0, defect)
+
+
+class CensusTests(unittest.TestCase):
+    def test_census_on_every_store(self):
+        result = check.sampled_run(fixture(), DATASET, census=True, shards=2)
+        g = result['graph_check']
+        self.assertEqual(g['sample'], 'census: every claim store')
+        self.assertEqual((g['stores_round_tripped'], g['stores_graph_checked'], g['mismatched_stores']), (4, 4, 0))
+        self.assertTrue(result['raw_row_check']['passed'])
+        cheap = check.sampled_run(fixture(), DATASET, census=True, graph=False, shards=2)['graph_check']
+        self.assertEqual((cheap['stores_round_tripped'], cheap['stores_graph_checked'], cheap['round_trip_failures']),
+                         (4, 0, 0))
+
+    def test_round_trip_detects_a_lossy_store(self):
+        work = Path(tempfile.mkdtemp(dir=TMP))
+        conv = chart.Run(fixture(), DATASET)
+        paths = chart.spill(conv.paths['chartevents'], conv.manifest, work, 1)
+        pid, rows = next((p, r) for p, r in chart.patient_rows(paths, conv.manifest['columns']) if p == '5000002')
+        (_, item), = conv.claim_stores(pid, rows, {(pid, '7000003', 0)}).items()
+        self.assertTrue(check.round_trip(item['store']))
+        lossy = copy.deepcopy(item['store'])
+        with mock.patch.object(check.cr, 'decode', lambda g, fields: dict(lossy, snapshot_id='changed')):
+            self.assertFalse(check.round_trip(lossy))
+
+
+class SpillTests(unittest.TestCase):
+    def test_bounded_open_files(self):
+        conv = chart.Run(fixture(), DATASET)
+        many = batches(conv, shards=7)
+        work = Path(tempfile.mkdtemp(dir=TMP))
+        paths = chart.spill(conv.paths['chartevents'], conv.manifest, work, 7, max_open=1)
+        bounded = [conv.patient_batch(pid, rows) for pid, rows in chart.patient_rows(paths, conv.manifest['columns'])]
+        self.assertEqual({b['patient_id']: b['patient'] for b in bounded},
+                         {b['patient_id']: b['patient'] for b in many if b['counts']['rows']})
+
+
 class StoreSmokeTests(unittest.TestCase):
     """The route-(b) patients build into today's store (without the series table, which waits for the
     store hook) and match as the reference matches them, points included."""
@@ -434,7 +566,8 @@ class StoreSmokeTests(unittest.TestCase):
                         self.assertEqual(g, w)
             first = [r['status'] for r in es.match(store, queries[0], windows)['results']]
             second = es.match(store, queries[1], windows)['results']
-        self.assertEqual(first, ['exact', 'exact', 'none', 'none'])  # a lab, then a rate within two hours
+        # A lab, then a rate within two hours; the last patient has no chart row, so chartevents does not cover it.
+        self.assertEqual(first, ['exact', 'exact', 'none', 'not_comparable'])
         # Item 910003 appears only in rows admission left out: no source records it.
         self.assertEqual({r['status'] for r in second}, {'not_comparable'})
         self.assertEqual({r['reason'] for r in second}, {'NO_SOURCE_RECORDS_CONCEPT'})
@@ -454,11 +587,14 @@ class CommandLineTests(unittest.TestCase):
     def test_sampled_run(self):
         result = check.sampled_run(fixture(), DATASET, rate=0.0, per_batch=1, shards=2)
         g = result['graph_check']
-        self.assertEqual((g['stores_checked'], g['mismatched_stores']), (g['stores_equal'], 0))
-        self.assertGreaterEqual(g['stores_checked'], 2)
+        self.assertEqual((g['stores_graph_checked'], g['mismatched_stores']), (g['stores_equal'], 0))
+        self.assertGreaterEqual(g['stores_graph_checked'], 2)
+        self.assertTrue(result['raw_row_check']['passed'])
+        self.assertEqual(result['raw_row_check']['rows'], len(fx.chart_rows('full')))
         self.assertEqual(result['counts']['events'], 50)
         self.assertEqual(result['patients'], 4)
-        text = json.dumps({k: v for k, v in result.items() if k != '_merkle_root_local_only'})
+        text = json.dumps(result)
+        self.assertNotIn('merkle', text)  # no digest of row-level data in a run's output (D17)
         for pid in ('5000001', '5000002', '7000001', '2190-03'):
             self.assertNotIn(pid, text)
         some = check.sampled_run(fixture(), DATASET, patients=2, graph=False)
