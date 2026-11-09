@@ -1,0 +1,7 @@
+itemid,label,abbreviation,linksto,category,unitname,param_type,lownormalvalue,highnormalvalue
+910001,Synthetic rate A,,chartevents,Synthetic Vitals,per min,Numeric,,
+910002,Synthetic level B,,chartevents,Synthetic Labs,unit-b,Numeric,,
+910003,Synthetic scale C,,chartevents,Synthetic Scales,,Text,,
+910004,Synthetic uncategorised D,,chartevents,,unit-d,Numeric,,
+910005,Synthetic signed E,,chartevents,Synthetic Labs,unit-e,Numeric,,
+920001,Synthetic input F,,inputevents,Synthetic Inputs,mL,Solution,,
