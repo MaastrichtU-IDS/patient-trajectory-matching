@@ -83,7 +83,7 @@ with StoreBuilder(root, {'profile': ..., 'dataset_id': ..., 'closure': ...}, thr
 - **Refusals.** Any refusal in `add()` or `finish()`, or leaving the `with` block unfinished, discards the build: staging, database and unpublished snapshot, and the root directory if the builder created it. A refused builder takes nothing more (`BUILDER_CLOSED`).
 - **`build(ingest, root, threads=1, memory_limit='4GB')`** is a wrapper that streams `ingest['patients']` through the builder, so callers holding a whole document keep working. `synthetic_ingest.iter_patients(cohort, skipped)` streams the synthetic converter, with `synthetic_header` and `synthetic_provenance` around it; the MIMIC converter still hands over a document.
 - **`memory_limit`** is DuckDB's (default `4GB`). It is recorded in the manifest as `builder.memory_limit`, outside the identity: 256 MB and 4 GB give the same snapshot.
-- **`work_dir`**, optional, holds the staging files, the build database and DuckDB's spill files, for example on another disk (the staging is about 0.7 KB per event: 120 GB for 1,000,000 synthetic patients, and the build database 24 GB). The snapshot itself is always written under the root, so publishing it is one rename.
+- **`work_dir`**, optional, holds the staging files, the build database and DuckDB's spill files, for example on another disk (the Parquet staging is about 76 bytes per event, 13.1 GB for 1,000,000 synthetic patients, against 0.69 KB and 120 GB as ndjson before D26; the build database is 26.6 GB). The snapshot itself is always written under the root, so publishing it is one rename.
 - **Leftovers.** Each build works in `.building-*` directories under the root (and `work_dir`), removed when the build ends, however it ends. A killed process cannot remove them; `sweep_stale_builds(directory, older_than_seconds=86400)` removes those older than the threshold and returns their paths. Choose a threshold longer than any build, since a live build that stalls past it would be swept too.
 
 ## Tables
@@ -341,6 +341,29 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
 
 **Regenerated for D25** (`--work-dir /tmp/store-d25-scaling`, 9,047 s). The build path is unchanged except for the ingest's normal form, which leaves these cohorts as they are: every size's Parquet files have the same sha256 as the D24 run's, and so do the content digests and the input digests; only the snapshot identifiers changed, through the builder's digest. Build, verification and open figures reproduced the D24 run's within about 1% (build 1,493 s against 1,482 s at 300,000 and 4,958 against 4,968 s at 1,000,000; build peaks 8.08 and 8.14 GiB; content verification 251 and 818 s at 2.60 and 2.51 GiB), so the build rows below are left as the D24 run's. The query rows are the D25 run's: time pruning (D25) in `match()`, with the same status mix and candidate counts at every size and 5,000 results equal to exhaustive matching at 1,000.
 
+**Regenerated for D26** (store 3.0 with typed staging; `--work-dir /tmp/store-d26-scaling`, 10,580 s). The cohorts are the same, but the snapshots are a different format: `events` holds the record fields instead of the evidence, `event_evidence` holds the evidence, the postings hold `max_end_hi`, and the staging is Parquet. Query results are unchanged: the status mix and every query's candidate count equal the D25 run's at every size, and 5,000 results equal exhaustive matching at 1,000. The build, verification and snapshot figures changed, as below; the larger table under Results is the D24 and D25 runs' (store 2.1, ndjson staging), kept for the history it records.
+
+| D26 against D25 | 100,000 | 300,000 | 1,000,000 |
+|---|---|---|---|
+| Build, add to publish | 598 s (500 s) | 1,746 s (1,493 s) | 5,854 s (4,958 s), +18% |
+| of which `add()` | 278 s (235 s) | 828 s (707 s) | 2,760 s (2,336 s) |
+| of which the derive | 41 s (42 s) | 109 s (117 s) | 384 s (411 s) |
+| Peak memory, build process | 4.60 GiB (5.13) | 8.01 GiB (8.08) | 8.24 GiB (8.14), +1.2% |
+| Staged bytes (Parquet; ndjson before) | 1.31 GB (11.97 GB) | 3.93 GB (36.0 GB) | 13.09 GB (120.1 GB), −89% |
+| Build database | 2.66 GB (2.38) | 7.96 GB (7.16) | 26.6 GB (24.0) |
+| Snapshot on disk | 1.25 GB (1.34) | 3.58 GB (3.86) | 5.49 GB (3.51), +56% |
+| Rows content verification reads | 53.8 M (36.5 M) | 161.5 M (109.5 M) | 538.2 M (365.1 M) |
+| Content verification, separate process: time, peak | 102 s, 1.73 GiB (84 s, 2.40) | 305 s, 1.76 GiB (251 s, 2.43) | 1,013 s, 1.72 GiB (818 s, 2.34) |
+| Open with the `files` check, warm | 0.44 s (0.46) | 1.20 s (1.30) | 1.85 s (1.18) |
+| `match()` p50 / max, one process | 1.02 / 18.6 s (1.03 / 18.6) | 2.46 / 59.2 s (2.47 / 59.9) | 7.56 / 244 s (7.52 / 245) |
+| Query process peak | 1.19 GiB (1.19) | 2.36 GiB (2.33) | 6.99 GiB (6.86) |
+
+- **The build is 16 to 20% slower** (17 to 20% from 100,000 up), and that is mostly the format, not the staging. A same-tree pilot (ndjson against Parquet staging, build only, store 3.0) gave 567 against 583 s at 100,000 and 1,710 against 1,737 s at 300,000: Parquet staging costs 1.6 to 3% (its `add()` is 6 to 8% slower, converting each batch of Python lists to typed columns; its derive 10 to 16% faster, reading typed files instead of parsing JSON), while 3.0 with ndjson staging was already 13 to 15% slower than 2.1. The new `event_evidence` table adds a derive statement per part (155 s at 1,000,000), a table to digest, write and verify (as many rows as `events`), and the record fields make every event row wider.
+- **Staging is 89% smaller** (13.1 against 120.1 GB at 1,000,000; about 76 bytes per event against 694), in 5,287 files at 100,000 and about 15,800 at 300,000.
+- **Memory** is unchanged in shape: the build peak is set by writing and verifying the Parquet files, about 2.2 times the 4 GB limit (8.24 GiB at 1,000,000, against 8.14 before). Content verification in its own process fell to 1.7 GiB (from 2.3 to 2.4), each table's sort being narrower, but takes 21 to 24% longer, reading 47% more rows (the evidence table repeats each event's key) at 530,000 rows a second (440,000 before).
+- **The snapshot** is 7% smaller at 100,000 and 300,000 and 56% larger at 1,000,000. The synthetic converter now stores each event's `recorded_at` and `available_at` as typed microseconds: 2.03 GB of the 4.11 GB `events` table at 1,000,000 (318 and 288 MB at 300,000), shifted with every copy so that they never repeat. Before, they were ISO strings inside the evidence, and replication (copies of a patient sort together) let Parquet's dictionary encoding take whole evidence strings; `events` without the record times is 2.08 GB, against 3.10 GB for 2.1's `events` with its evidence. `event_evidence` is 0.90 GB at 1,000,000 and 2.00 GB at 300,000. The 1,000,000 figure is thus an artefact of replication more than of the format; with distinct patients the snapshot would grow linearly from 300,000 (about 12 GB).
+- **Opening** with the `files` check took 1.85 s warm at 1,000,000 (1.18 s before), reading 56% more bytes.
+
 ### Method
 
 - **Machine.** Apple M4 Pro, 14 logical CPUs, 64 GB, macOS, CPython 3.12.15, DuckDB 2.0.0. DuckDB had one thread and a 4 GB memory limit for build and open (DuckDB reads `4GB` as 4 × 10⁹ bytes, 3.73 GiB). Matching is single-threaded Python.
@@ -404,7 +427,7 @@ The derive rows above are from this run: 4.13 GiB, 42 s at 100,000; 5.18 GiB, 11
 - **The peak is now in writing the Parquet files.** Before D24 each bucket's events were sorted whole by the canonical key (21.6 million rows per bucket at 1,000,000) for the content digests, which took the process to 7.92 GiB at 300,000 and 8.05 GiB at 1,000,000. The digests now sort one `patient_idx` range at a time and stay near 5.6 GiB. Writing each bucket sorted for reads (`COPY ... ORDER BY`) still sorts a whole bucket, and takes the process to 7.9 GiB; ranging that sort too is possible, since files may hold several row groups, but it is not done.
 - **Resident memory against `memory_limit`.** DuckDB keeps to its own accounting (at most 3.71 GB against the 4 GB limit). The process holds about 1.5 times the limit through the derive and about 2.2 times at the peak, at 300,000 and 1,000,000 alike; under a 1.2 GB limit at 300,000 (a pilot run of this code) the build peaked at 2.84 GiB, 2.5 times, and its derive at 2.45 GiB with DuckDB at 0.82 GiB. The limit is a lever on resident memory, and now also a cap independent of the cohort, but the factor between them (allocation outside the buffer manager, or freed memory the macOS allocator keeps) is not resolved.
 - **Time is linear**: 4.85 to 4.90 s per 1,000 patients at 100,000, 300,000 and 1,000,000. `add()` is 47% of it (validation, canonical form, staging and the patient digest, all in Python); the content digests 17%, content verification 17%, the derive 8% and writing 3%.
-- **Disk.** Staging is about 0.69 KB per event (120 GB at 1,000,000), deleted once derived; the build database is 24 GB at 1,000,000. Both live in `work_dir`.
+- **Disk.** Staging was about 0.69 KB per event as ndjson (120 GB at 1,000,000), deleted once derived; the build database is 24 GB at 1,000,000. Both live in `work_dir`. Since D26 the staging is Parquet, about 76 bytes per event (13.1 GB), and the build database 26.6 GB.
 - **Content verification runs at about 424,000 to 445,000 rows a second** from 10,000 patients up; at 1,000,000 its 365 million rows took 819 s. Its process peaked at 2.33 GiB (7.85 GiB before D24). Time, not memory, is why the default check on open is `files`, which takes 1.2 s at 1,000,000.
 
 ### 1,000,000 patients: before and after D23
@@ -540,6 +563,20 @@ The largest worker's peak was 1.06 GiB at 8 workers and 0.96 GiB at 14. Per-quer
 
 At 300,000 the summaries prove `none` for 36% of the candidates with a window over the thirty queries (912,210 of 2,526,690), from none (scope `any` with open relations: seeds 2, 7, 12, 24) to 99.6% (seed 0), at 1.2 to 3.7 µs each in the query process. These pruned counts and costs are from ad hoc instrumented runs on the same snapshots, not in the matcher report, which records candidates per query but not pruned counts. Per candidate, arm B costs 18% less over ten queries and 26% less over thirty; engine and loading time both fall, since pruned candidates take neither. The maximum of the ten-query run does not move (seed 7 prunes nothing), and the confirmation's maximum falls from 82 to 56 s because seed 19, the slowest of the thirty, loses 60% of its candidates. In the confirmation every C arm's p95 and maximum fall too; **the D21 target is met again at 8 workers** (p95 8.41 s, every repeat under 8.5 s; max 10.3 s) and with a wider margin at 14 (p95 7.81 s, max 9.2 s). C at 1 to 14 workers, ten queries at 300,000: 280.1, 152.4, 95.8, 70.4 and 61.5 µs per candidate against 342.0, 181.7, 111.1, 79.3 and 68.3 in D24.
 
+**Regenerated for D26 (store 3.0).** The report was regenerated on the snapshots of the D26 scaling run (store 3.0, Parquet staging; same cohorts). Arm A, the matcher at 7dc3364, reads store 2.0, and 3.0 moved `evidence` out of `events`, so no relabelled view of the same files can serve it: arm A now reads its own 2.0 snapshot of each size, built by its own builder and converter from the same generator output (`benchmark_matcher.py --build-arm-a`, `--arm-a-snapshots`; `readable_snapshot` and its guard are gone with the view). The report checks that both snapshots hold the same rows in every column matching reads, table by table (`arm_a_snapshot.same_rows`): equal at every size (1, 12, 116 and 344 s to check). Every per-query digest of arm B equals arm A's, `B_unpruned`'s and every C arm's at every size (50, 50, 10, 10), and candidate counts and listed results equal the D25 report's query by query. The report now also records, per query, the candidates time pruning proved `none`, the time it took, and how many the start summaries alone prove (`pruning` in each arm entry).
+
+| 300,000 patients, ten queries | D25 report | D26 |
+|---|---|---|
+| B: µs per candidate end to end (engine, loading) | 279.6 (83.9, 162.5) | 280.3 (83.5, 163.6) |
+| `B_unpruned` | 343.9 (108.3, 203.7) | 345.5 (108.5, 205.0) |
+| A, on its own 2.0 snapshot | 762.2 (388.7, 239.6) | 756.4 (385.6, 238.1) |
+| C at 8 and 14 workers | 70.4, 61.5 | 70.7, 61.4 |
+| B: pruned, of candidates with a window; by the start summaries alone; µs per candidate pruned | (not recorded) | 138,690 of 324,120 (42.8%); 138,360; 2.76 |
+
+Taking `evidence` out of `events` did not make event loading cheaper: B's loading cost is 163.6 against 162.5 µs per candidate at 300,000 (+0.7%, within run-to-run spread), since the loader never selected that column and Parquet reads only the columns asked for. Over the ten queries the end summaries prune 330 more candidates (one query); per candidate, B costs 0.25% more than in D25.
+
+*Confirmation (30 queries, 3 repeats, D26).* All 30 results byte-identical between B, `B_unpruned` and every C arm. Arm B 188.3 µs per candidate (D25: 189.9), p50 / p95 / max 9.3 / 49.9 / 55.8 s. C at 8 workers: p95 8.53 s (8.50 to 8.58 over the repeats), max 10.4 s (D25: 8.41 s, 10.3 s); at 14 workers: p95 7.71 s (7.09 to 7.94), max 9.0 s, query process 0.82 GiB (D25: 7.81 s, 9.2 s). The D21 target is met at both counts. Over the thirty queries pruning proves `none` for 915,060 of 2,526,690 candidates with a window (36.22%), 912,210 of them by the start summaries alone, the figure D25 measured ad hoc: the end summaries add 2,850.
+
 **Regenerated for D24.** The report was regenerated on the snapshots of the D24 scaling run (execution store 2.1, same cohorts, new identifiers). Arm A's code reads store 2.0; it opens the 2.1 snapshots as the same Parquet files under a manifest relabelled 2.0 (`snapshot_view` in its arm entries, `readable_snapshot` in the benchmark; 2.1 only added columns), and its results equal arm B's byte for byte for every query and size. C equals B at every worker count and in the confirmation. Candidate counts and listed results equal the previous report's query by query. Arm B's cost per candidate at 300,000 is unchanged (342.7 against 344.5 µs; loading 204.0 against 206.7 µs). The confirmation at 14 workers gave p95 9.35 s (9.06 to 9.89 over the repeats), max 13.4 s and a 0.79 GiB query process, so the target is still met. At 8 workers p95 was 10.56 s (one repeat at 11.6 s) against 9.40 s before, on identical results and with 3.6% more cost per candidate, so **at 8 workers the target is no longer met**; the cause is not established. The recommended count stays 14.
 
 ### Limits of this evidence
@@ -633,9 +670,9 @@ So every dropped row is kept in `excluded_records`, as its item class, its start
 | Excluded records (table rows, identical ones counted once), patients holding some | 9,424 (9,398), 99 |
 | Item classes (only in excluded records), groupings | 159 (83), 6 |
 | Refused patients | 0 |
-| Table rows: `event_concepts`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 1,412, 330, 84 |
+| Table rows: `event_concepts`, `event_evidence`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 10,980, 1,412, 330, 84 |
 
-The snapshot identifier is `68d58f61a477cd80dd6f296a7481efad25ed548d6027b5378efa650056dd7c23` (profile `execution-store-2.1`). It changes whenever the converter or the store builder changes, or the rows they produce do. Regenerated for D24, every figure of the report is unchanged; only the identifiers changed (the snapshot id, the input digest, the adapter's ingest profile and the bound artifacts' digests), since the events now carry their variables and `proper`. Regenerated for D25 (time pruning, ingest normalisation, `EMPTY_PROPER_EVENT`), every figure is unchanged again, the input digest included (`8e24100f…`: the demo's events name source variables and are all proper, so normalisation leaves them as they are); only the snapshot identifier and the bound artifacts' digests changed. The 500-query differential ran with time pruning on, with no mismatch.
+The snapshot identifier is `54dbd42faf5c53759eee8d3fa6045ac540839452f1eb450b04b55c1dd188bf4b` (profile `execution-store-3.0`). It changes whenever the converter or the store builder changes, or the rows they produce do. Regenerated for D24, every figure of the report is unchanged; only the identifiers changed (the snapshot id, the input digest, the adapter's ingest profile and the bound artifacts' digests), since the events now carry their variables and `proper`. Regenerated for D25 (time pruning, ingest normalisation, `EMPTY_PROPER_EVENT`), every figure is unchanged again, the input digest included (`8e24100f…`: the demo's events name source variables and are all proper, so normalisation leaves them as they are); only the snapshot identifier and the bound artifacts' digests changed. The 500-query differential ran with time pruning on, with no mismatch. Regenerated for D26 (store 3.0), every figure is unchanged again; the snapshot gains the `event_evidence` table (10,980 rows, one per event), and the input digest changed (`ec0612b1…`), since each event now carries its record fields beside an evidence object that no longer repeats them. The differential ran with the end summaries on, with no mismatch.
 
 **Raw times.** Every one of the 10,980 events has its start, end and recorded time checked against its raw source row, to the microsecond, with no mismatch.
 
@@ -678,7 +715,7 @@ Most `none` results become `not_comparable`, and most relaxed ones `unresolved`.
 | Mapping, excluded records and coverage | 0.3 s |
 | Building the snapshot, content check included | 2.1 s |
 | Opening it with the file check | 0.02 s |
-| Differential (500 queries, three paths) | 154 s (D25 run; 162 s in the D24 run) |
+| Differential (500 queries, three paths) | 155 s (D26 run; 154 s in the D25 run, 162 s in the D24 run) |
 
 ### Chartevents path
 
