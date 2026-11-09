@@ -1347,6 +1347,29 @@ class TimePruningTests(unittest.TestCase):
                     wrong = {r['patient_id']: r['status'] for r in es.match(store, q, w)['results']}
                 self.assertEqual(wrong['P3'], 'none', scope)
 
+    def test_each_loaded_chunk_lies_inside_a_chunk_cut_before_pruning(self):
+        """The loader scans a chunk's index range, so chunks are cut from the candidates before pruning and
+        pruned patients are dropped from them: no chunk spans more indices than it would without pruning."""
+        store, original = _STATE['store'], es._load_events
+        ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+        seen = []
+        def recording(s, idxs, per_step, linked=()):
+            seen.append(list(idxs))
+            return original(s, idxs, per_step, linked)
+        checked = 0
+        for seed in range(60):
+            q, w = MatcherScalingTests.case(seed)
+            by_idx = {ids[pid]: v for pid, v in w.items()}
+            live = [i for i in es._candidates(store, tg.PreparedQuery(q))['patient_idx'] if by_idx.get(i) is not None]
+            cut = [set(live[k:k + 3]) for k in range(0, len(live), 3)]
+            seen.clear()
+            with patch.object(es, '_load_events', recording):
+                es.match(store, q, w, chunk=3)
+            for part in seen:
+                self.assertTrue(part and any(set(part) <= c for c in cut), (seed, part))
+                checked += 1
+        self.assertGreater(checked, 50)
+
     def test_the_slice_size_changes_nothing(self):
         """Summaries are read one slice of candidates at a time, to bound memory; any slice gives the same set."""
         store = _STATE['store']

@@ -1815,13 +1815,16 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     per_step = _step_concepts(query)
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
     results = {}  # the engine's results, and what a rule then changed; patients absent are filtered or windowless
+    parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
     if _PRUNE:
         # Candidates the posting summaries prove `none` get the engine's own `none`, and no events are loaded (D25).
+        # Chunks are cut before pruning, so a chunk's index range, which bounds the loader's scan, is never wider
+        # than without it; chunks of survivors cut afterwards would be sparse, and one load of 200 survivors
+        # spread over 1,000,000 patients held 1.5 GiB.
         pruned = _prune(store, pq, live, windows_by_idx)
         for idx in pruned:
             results[idx] = _NONE(pid_of[idx])
-        live = [i for i in live if i not in pruned]
-    parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
+        parts = [kept for part in parts if (kept := [i for i in part if i not in pruned])]
     if workers > 1 and parts:
         key = _digest(given)
         units = [(key, given, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part],
