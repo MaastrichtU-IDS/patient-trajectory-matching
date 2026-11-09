@@ -1279,30 +1279,38 @@ def _impossible(spec, idx, window):
     return False
 
 
-def _prune(store, pq, live, windows_by_idx):
-    """The candidates in `live` whose result the posting summaries prove: every set the engine would try is
-    impossible (`_impossible`), so its answer is `none` with `complete: true`, byte for byte, whatever the
-    patient's events. The summaries are read for these candidates only, one concept at a time."""
+def _prune(store, pq, live, windows_by_idx, slice_size=None):
+    """The candidates in `live` (sorted) whose result the posting summaries prove: every set the engine would try
+    is impossible (`_impossible`), so its answer is `none` with `complete: true`, byte for byte, whatever the
+    patient's events. The summaries are read for these candidates only, one concept and one slice of
+    `slice_size` candidates at a time, so memory is bounded by a slice, not the candidate set."""
     if not live:
         return set()
-    specs = _prune_plan(pq)
-    summaries = {}
-    try:
-        _temp(store, '_m_live', [('idx', 'INTEGER')], live)
-        for concept in sorted({c for steps, _ in specs for c, _, _ in steps}):
-            cursor = store.db.execute("""SELECT p.patient_idx, p.min_start_lo, p.max_start_hi FROM concept_postings p
-                JOIN _m_live l ON l.idx = p.patient_idx WHERE p.concept = ?""", [concept])
-            mine = summaries[concept] = {}
-            while True:
-                rows = cursor.fetchmany(store.fetch_rows)
-                if not rows:
-                    break
-                mine.update({idx: (lo, hi) for idx, lo, hi in rows})
-    finally:
-        _drop(store, '_m_live')
-    specs = [([(summaries[c], lows, highs) for c, lows, highs in steps],
-              [(summaries[x], summaries[y], lo, hi) for x, y, lo, hi in pairs]) for steps, pairs in specs]
-    return {idx for idx in live if all(_impossible(spec, idx, windows_by_idx[idx]) for spec in specs)}
+    plan = _prune_plan(pq)
+    concepts = sorted({c for steps, _ in plan for c, _, _ in steps})
+    slice_size = CHUNK_PATIENTS * SET_CHUNK_FACTOR if slice_size is None else slice_size
+    pruned = set()
+    for k in range(0, len(live), slice_size):
+        part = live[k:k + slice_size]
+        summaries = {}
+        try:
+            _temp(store, '_m_live', [('idx', 'INTEGER')], part)
+            for concept in concepts:
+                cursor = store.db.execute("""SELECT p.patient_idx, p.min_start_lo, p.max_start_hi
+                    FROM concept_postings p JOIN _m_live l ON l.idx = p.patient_idx
+                    WHERE p.concept = ? AND p.patient_idx BETWEEN ? AND ?""", [concept, part[0], part[-1]])
+                mine = summaries[concept] = {}
+                while True:
+                    rows = cursor.fetchmany(store.fetch_rows)
+                    if not rows:
+                        break
+                    mine.update({idx: (lo, hi) for idx, lo, hi in rows})
+        finally:
+            _drop(store, '_m_live')
+        specs = [([(summaries[c], lows, highs) for c, lows, highs in steps],
+                  [(summaries[x], summaries[y], lo, hi) for x, y, lo, hi in pairs]) for steps, pairs in plan]
+        pruned.update(idx for idx in part if all(_impossible(spec, idx, windows_by_idx[idx]) for spec in specs))
+    return pruned
 
 
 CHUNK_PATIENTS = 2_000  # candidates loaded and matched at a time

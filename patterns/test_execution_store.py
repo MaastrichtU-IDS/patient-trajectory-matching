@@ -1347,6 +1347,18 @@ class TimePruningTests(unittest.TestCase):
                     wrong = {r['patient_id']: r['status'] for r in es.match(store, q, w)['results']}
                 self.assertEqual(wrong['P3'], 'none', scope)
 
+    def test_the_slice_size_changes_nothing(self):
+        """Summaries are read one slice of candidates at a time, to bound memory; any slice gives the same set."""
+        store = _STATE['store']
+        ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+        for seed in range(40):
+            q, w = MatcherScalingTests.case(seed)
+            pq, by_idx = tg.PreparedQuery(q), {ids[pid]: v for pid, v in w.items()}
+            live = [i for i in es._candidates(store, pq)['patient_idx'] if by_idx.get(i) is not None]
+            whole = es._prune(store, pq, live, by_idx)
+            for size in (1, 7):
+                self.assertEqual(es._prune(store, pq, live, by_idx, slice_size=size), whole, (seed, size))
+
     def test_a_pruned_candidate_carries_the_engines_own_none(self):
         """A pruned candidate's result is the dict the engine returns for it on its loaded events, key order
         included."""
