@@ -1,5 +1,7 @@
 # Engine increment: decision log
 
+A short reader's guide to this log is in the [owner briefing, November 2026](briefing-2026-11.md).
+
 From 2026-11-06 the project lead delegated three workstreams and every decision in them:
 
 1. package the engine in place;
