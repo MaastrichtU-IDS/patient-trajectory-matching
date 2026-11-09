@@ -1,6 +1,6 @@
 {
-  "profile": "execution-store-mimic-demo-verification-1.0",
-  "scope": "Public-demo inputevents through the SULO adapter into the execution store. Concepts are source item classes with their dictionary groupings, not clinical concepts. Aggregates only; no patient rows, identifiers or times.",
+  "profile": "execution-store-mimic-demo-verification-1.1",
+  "scope": "Public-demo inputevents through the SULO adapter and chartevents numeric measurements by route (b) into the execution store. Concepts are source item classes with their dictionary groupings, not clinical concepts. Aggregates only; no patient rows, identifiers or times.",
   "full_mimic_analyzed": false,
   "patient_rows_included": false,
   "clinical_mapping_verified": false,
@@ -25,7 +25,8 @@
     },
     "isolation_certified": 424,
     "accepted_claims": 10980,
-    "workers": 8
+    "workers": 8,
+    "source": "inputevents:continuous_segments"
   },
   "admission": {
     "source_url": "https://physionet.org/content/mimic-iv-demo/2.2/",
@@ -206,10 +207,10 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "54dbd42faf5c53759eee8d3fa6045ac540839452f1eb450b04b55c1dd188bf4b",
+    "snapshot_id": "cbc08b3a7872af4a8ae1a68caf3a16a42f804f9fbe9279e241560ab56906eac9",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
-    "input_digest": "ec0612b121141de263426e900a275f78bf44c16db277154ae977b71051213ba0",
-    "closure_version": "mimic-store-ingest-1.0:eaf0778bb0fde1e0566d331da7a2a58f073e585f859c9767f391b786ad05f5f2",
+    "input_digest": "6e856e9ec52e04e8eaa8a3cec7e3e9926862d5d46275bf144b92255fe05b1f12",
+    "closure_version": "mimic-store-ingest-1.0:dad9c04bb57098a51a7c383b896934463b5a7e057ee71e8ec0814402317b3ba1",
     "labels": {
       "acceptance": "caller_declared_accept_all_analysis_not_clinical_review",
       "admission_exclusions": "one-minute boluses, missing or non-positive rate or amount, other statuses and order categories, invalid and duplicate rows",
@@ -217,37 +218,44 @@
       "admitted_order_categories": "Continuous IV|Continuous Med",
       "admitted_statuses": "ChangeDose/Rate|FinishedRunning|Paused|Stopped",
       "ancestor_basis": "source_dictionary_grouping",
+      "chartevents_admission_profile": "mimic-measurement-import-1.0",
+      "chartevents_admission_rule": "numeric value equal to its text, explicit unit, warning 0; textual or qualified values, missing units, flagged or unknown warnings, invalid and duplicate rows left out",
+      "chartevents_route": "b: rows from describe() claim identity; a deterministic sample of claim stores checked through the measurement graph route",
+      "chartevents_source": "chartevents:numeric_measurements",
+      "chartevents_source_table": "chartevents",
+      "chartevents_value_policy": "exported decimal spelling kept; exact decimal and micro-unit integer; no unit conversion",
       "clinical_mapping_verified": false,
       "concept_basis": "source_item_class",
       "coverage_basis": "inferred:icustay",
       "excluded_records": "excluded_records table; a none they could change is not_comparable",
       "extended_coverage_basis": "inferred:icustay+records",
       "history_mode": "retrospective",
-      "source": "inputevents:continuous_segments",
       "source_table": "inputevents",
+      "sources": "chartevents:numeric_measurements|inputevents:continuous_segments",
       "structural_concept_basis": "ontology_closure"
     },
     "selection": {
       "available_at": "not_applied",
       "mode": "retrospective",
-      "note": "every admitted inputevents row of the release as read, all accepted for analysis; the release carries no revision history or source availability times, so neither selects records",
+      "note": "every admitted inputevents row and every admitted chartevents numeric measurement of the release as read, all accepted for analysis; the release carries no revision history or source availability times, so neither selects records",
       "version": "as_released"
     },
     "ancestor_bases": {
       "ontology_closure": 3,
-      "source_dictionary_grouping": 6,
-      "source_item_class": 159
+      "source_dictionary_grouping": 35,
+      "source_item_class": 1477
     },
     "tables": {
-      "concept_closure": 330,
-      "concept_postings": 1412,
-      "coverage": 140,
-      "event_concepts": 21960,
-      "event_evidence": 10980,
-      "events": 10980,
-      "excluded_records": 9398,
+      "concept_closure": 2995,
+      "concept_postings": 8891,
+      "coverage": 280,
+      "event_concepts": 172011,
+      "event_evidence": 161031,
+      "events": 161031,
+      "excluded_records": 448419,
       "patients": 100,
-      "source_concepts": 84
+      "series": 150051,
+      "source_concepts": 393
     },
     "duckdb_version": "2.0.0"
   },
@@ -259,59 +267,72 @@
     "queries": 500,
     "first_seed": 0,
     "patient_results": 50000,
+    "reference": "prepared_reference (engine inputs once per patient) on every query; exhaustive_match and an unfiltered adapter path on the first queries",
+    "exhaustive_slice": {
+      "queries": 50,
+      "patient_results": 5000,
+      "prepared_reference_mismatches": 0
+    },
     "mismatches": 0,
     "adapter_row_mismatches": 0,
     "dropped_matches": 0,
-    "filtered_by_candidate_filter": 33790,
+    "filtered_by_candidate_filter": 24228,
     "status_mix": {
-      "exact": 1288,
-      "excluded": 2509,
-      "none": 10262,
-      "not_comparable": 35325,
-      "relaxed": 22,
-      "unresolved": 594
+      "exact": 3287,
+      "excluded": 2507,
+      "none": 9891,
+      "not_comparable": 33233,
+      "relaxed": 44,
+      "unresolved": 1038
     },
     "adapter_row_status_mix": {
-      "exact": 1644,
-      "excluded": 2509,
-      "none": 45027,
-      "relaxed": 818,
-      "unresolved": 2
+      "exact": 3991,
+      "excluded": 2507,
+      "none": 42254,
+      "relaxed": 1244,
+      "unresolved": 4
     },
-    "adapter_row_bindings_compared": 1902,
+    "adapter_row_bindings_compared": 4365,
     "not_comparable_by_reason": {
-      "ADMISSION_EXCLUDED_RECORDS": 27817,
-      "NO_SOURCE_COVERAGE": 7508
+      "ADMISSION_EXCLUDED_RECORDS": 26081,
+      "NO_SOURCE_COVERAGE": 7152
     },
     "admission_exclusion_cases": {
-      "none_not_comparable": 27257,
-      "first_or_last_displaced": 560,
-      "relaxed_unresolved": 592,
+      "none_not_comparable": 25211,
+      "first_or_last_displaced": 870,
+      "relaxed_unresolved": 1034,
       "possible_incomplete": 0
     },
     "relaxations_used_by_status_and_kind": {
-      "relaxed:widen_concept": 24,
-      "unresolved:extend_max": 31,
-      "unresolved:widen_concept": 582
+      "relaxed:extend_max": 2,
+      "relaxed:widen_concept": 42,
+      "unresolved:extend_max": 23,
+      "unresolved:widen_concept": 1034
     },
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 62.17,
-    "admission_and_claims": 0.75,
-    "differential": 154.51,
-    "mapping": 0.27,
-    "store_build": 1.99,
-    "store_open_and_verify": 0.02,
-    "total": 219.8
+    "adapter": 61.95,
+    "admission_and_claims": 0.66,
+    "chartevents_built_store_comparison": 9.02,
+    "chartevents_census": 527.24,
+    "chartevents_raw_row_check": 2.94,
+    "chartevents_route_b": 20.21,
+    "differential": 531.18,
+    "mapping": 0.28,
+    "store_build": 17.71,
+    "store_open_and_verify": 0.04,
+    "total": 1171.37
   },
   "artifacts": {
+    "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
     "data/mimic-inputevents-demo-pin.json": "0bf3ab05079405cec7b84683214b90426f875ba46aa32710a461b424c80a67ee",
     "ontology/bounded-interval-profile.ttl": "c3da9965ab88c7f9c42ed0cd75e2723ff1ecbdf9ecbe38c6c29900f0d8a4a6de",
     "ontology/bounded-rdf-profile.ttl": "bc2138bef60f9a6935dde69006cb87e3292b7d4ef5862c21e19fe0ba85074966",
     "ontology/claim-description-profile.ttl": "194584ef61ca01d3862d4408bd86f6c4fa7e276a565b62fe1b6ae7c9f107cdb3",
     "ontology/exact-interval-profile.ttl": "87200ced32bdd20a57ed3d3328853aeb1feaecb1b1bb9c748463f76da02ac0f7",
     "ontology/local-claim-description-profile.ttl": "aadc0aea40ceae0c8293ec93c15895b53e33f22ab599456e4c6c72e1b1c1ac82",
+    "ontology/measurement-claim-description-profile.ttl": "7bdc5a2bc3a5ad49a180e6af549b65dbedc9f3a50d12661b4994802aa8638975",
     "ontology/patient-local-profile.ttl": "9c1b6d13976b03a1aec9761e239654d09fd537936f9862e1dec36c3a9364b80a",
     "ontology/pro-solid-profile.ttl": "f526e94dbdda7d28a472cf8cc8f14f1424f2feec02be58e35bb956fc5d95f387",
     "ontology/vendor/sulo-0.2.14.ttl": "433c83980ff2c37f241f8150d5525b84caeed9fa87825ff30341716c93c25a5e",
@@ -322,33 +343,135 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "bf4b92550b3b39c5b1bbbb023f59083d028e89d697a803503569b9a1ca9ae164",
-    "patterns/execution_store_reference.py": "488b1636f1197c203869a447ec6392ffc88afd7a1163404f8ca18255984838ee",
+    "patterns/execution_store.py": "4280f52430b99e1be7cf025954d84f027d895f5be79725f70900b9194cbea2be",
+    "patterns/execution_store_reference.py": "8942259a2880459c6ee5237d4e67d232813cb94e853e2318c3f4860e5d52080f",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
+    "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
+    "patterns/mimic_chartevents.py": "fe4ca734744949f406e853f498d48790a2af39c01e606ec94c326b82fab99f1a",
+    "patterns/mimic_chartevents_check.py": "e23806accb1c64201910e71c19bdeab9df22d10d86b5ed1e9fb94b05b1c3df2c",
+    "patterns/mimic_chartevents_raw_check.py": "4d2f9448d39d8a9268164d76ef82c34215b0ae1916a0b09365489b3abecfc003",
     "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
     "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
-    "patterns/mimic_store_ingest.py": "70482376995c614970e956afe5ee82dad9427b674a41eb52d414bc9b5946383b",
+    "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
+    "patterns/mimic_store_ingest.py": "9bbd66e897ec194003e860f91952c33b877c5532da49cd14a453205408a05305",
     "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
+    "patterns/prepared_reference.py": "01a5881b22ec5beff42efe7c98c63287df5befcafa0a2c5a5c086dccee8c5303",
     "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
     "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
     "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
     "patterns/rustdl_worker.py": "5e7683d64c606414032f22e7dee863d38f651b85feb4075a1c198b9962ef2ce4",
     "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
     "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
+    "patterns/series_values.py": "6c0ed200c4271b29d1601fedd188391e0442b9ed739d0e68a1893db2b5baf2ab",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
     "patterns/trajectory_graph.py": "afc5eb1c0544224528062341b973b47ea458f8b6cd2c4d84ea06036bf042a5ad",
     "patterns/trajectory_graph_sulo.py": "5e77832e4c9997ac9bd74db02dde34521249ecfaef2a82ba8c1c01576f77d100",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
-    "patterns/verify_mimic_store_ingest.py": "dccf7ce277793ff5d0f3a9a891b61e38a483fbe3ac69f1d76d2936eafd097b24",
+    "patterns/verify_mimic_store_ingest.py": "a208e1f44e8999aeccfaaef3dacbd0ee62ddc57caeba15b8c573de723dc65bfa",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
     "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
-    "schemas/execution-store-manifest.schema.json": "fa0c6cc4f7c6484aa7825fa6aee908abef0008e1f53c55390d5d8b011e4df3f0",
+    "schemas/execution-store-manifest.schema.json": "70c85f458538863fb1ffe4601ee866c28b362a393e8d01b0351ff2f9a0299f12",
     "schemas/joint-evidence.schema.json": "3efbcd141519ff82305a86ee3532ca4f315d4b76d36e06242993750df8f00133",
     "schemas/local-claim-store.schema.json": "89f8467cec013d2d34b99cf15a9ac54d02c141f88062e7ee814b07431e87a321",
     "schemas/local-record-claim-store.schema.json": "d768d07370f34b243ed602696ead1fa1278d6e0e6bccba190fa30790a5e6cb54",
+    "schemas/measurement-claim-store.schema.json": "65ad1409741fb1ab563a208930420d93c47325d732074bf16c2320c194a38170",
     "schemas/mimic-claim-import.schema.json": "503485df46f59cbbbc1cc53383864a8e952d7eec62defe2a542973b75236d460",
+    "schemas/mimic-measurement-import.schema.json": "bff31307d9a3350645ced5b5f07a6bd2d5be87140f6e1d143125d21fe28517c0",
     "schemas/patient-local-record.schema.json": "2632a449800a57708cb8c6322a59a01881a5af550c2f84f09a8c8403fb0cc10a",
     "schemas/patient-local.schema.json": "f9af7f965f3ed9851aa787f22a857a4c2e033a276349d45a082398fb6d4a973a"
+  },
+  "chartevents": {
+    "route": {
+      "choice": "b",
+      "check": "census",
+      "steps": [
+        "measurement_claims.validate_store",
+        "claim_rdf.encode:measurement_fields",
+        "accept_all:caller_declared_accept_all",
+        "measurement_claims.select:from_graph(decode, isolation local+measurement)",
+        "record_fields",
+        "mimic_chartevents.store_row (shared with route b)"
+      ],
+      "description": "each admitted chartevents row a point event computed from its describe() claim, with a series row; claim stores of at most 32 claims per ICU stay; rows admission leaves out are excluded records"
+    },
+    "pin": {
+      "file_sha256_matches_pin": true,
+      "rows": 668862
+    },
+    "counts": {
+      "claim_stores": 4753,
+      "coverage_periods": 140,
+      "coverage_periods_extended_by_records": 134,
+      "events": 150051,
+      "events_outside_own_stay": 1200,
+      "excluded:rows": 518811,
+      "excluded_records": 518811,
+      "outcome:ADMITTED_MEASUREMENT": 150051,
+      "outcome:INVALID_ROW": 2,
+      "outcome:UNSUPPORTED_ROW": 518809,
+      "reason:MISSING_NUMERIC_VALUE": 411388,
+      "reason:MISSING_UNIT": 506291,
+      "reason:SOURCE_WARNING_FLAGGED": 14592,
+      "reason:SOURCE_WARNING_UNKNOWN": 1159,
+      "reason:TEXTUAL_OR_QUALIFIED_VALUE": 468721,
+      "reason:VALUE_NUMERIC_DISAGREEMENT": 2,
+      "rows": 668862,
+      "series_without_micro_value": 0,
+      "stays_without_chart_rows": 0
+    },
+    "closure": {
+      "item_classes": 1318,
+      "groupings": 29,
+      "unknown_items": 0
+    },
+    "raw_row_check": {
+      "rows": 668862,
+      "events_checked": 150051,
+      "excluded_records_checked": 518811,
+      "duplicate_rows": 0,
+      "unknown_item_rows": 0,
+      "event_field_mismatches": {},
+      "excluded_record_differences": 0,
+      "events_without_raw_row": 0,
+      "events_naming_one_row_twice": 0,
+      "passed": true
+    },
+    "census": {
+      "profile": "mimic-chartevents-graph-check-1.1",
+      "route_steps": [
+        "measurement_claims.validate_store",
+        "claim_rdf.encode:measurement_fields",
+        "accept_all:caller_declared_accept_all",
+        "measurement_claims.select:from_graph(decode, isolation local+measurement)",
+        "record_fields",
+        "mimic_chartevents.store_row (shared with route b)"
+      ],
+      "sample": "census: every claim store",
+      "stores_round_tripped": 4753,
+      "round_trip_failures": 0,
+      "stores_graph_checked": 4753,
+      "claims_graph_checked": 150051,
+      "stores_equal": 4753,
+      "stores_not_rederived": 0,
+      "mismatched_stores": 0,
+      "differing_fields": {},
+      "isolation_statuses": {
+        "VERIFIED_EMPTY_PROCESS_MODEL": 4753
+      },
+      "statement": "Bulk rows are built from describe() claim identity and tied to the graph by it. Claim stores sent through the measurement graph route gave rows equal field for field; that comparison shares the row mapping with the bulk route, which the raw-row check verifies independently over every chart row. Rows of stores outside a sample were not each validated through the graph."
+    },
+    "built_store_comparison": {
+      "stores_compared": 4753,
+      "events_compared": 150051,
+      "stores_mismatched": 0
+    },
+    "sample_design_for_full_mimic": {
+      "rate": 0.01,
+      "per_batch": 2,
+      "batch": "execution-store bucket of the patient",
+      "stratified": true
+    },
+    "statement": "Chartevents rows are built from describe() claim identity (route b). On the demo every claim store was sent through the measurement graph route (a census): its rows equalled the bulk rows field for field, and the rows read back from the built store. That comparison shares the row mapping with the bulk route, which the raw-row check verifies independently over every chart row. For full MIMIC-IV the design is a deterministic sample of claim stores, not a census: rows outside the sample would be tied to the graph by claim identity only."
   }
 }

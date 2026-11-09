@@ -1,6 +1,6 @@
 # D27 (draft): chartevents by route (b), with a graph check and a raw-row check
 
-*Status: draft for the engine-increment log. Code on `feature/chartevents-route-b`, not yet integrated into the store; integration waits for store 3.0 (D26). Integration hooks: [chartevents-integration-notes.md](chartevents-integration-notes.md). Revised after an independent review: three must-fixes and the project lead's decisions below.*
+*Status: superseded by D27 in [the engine-increment log](engine-increment-log.md), which records the integration into store 3.1 and the demo census. This draft is kept for its alternatives and reasoning; where they differ, the log wins.*
 
 D16 decided that chartevents and later bulk sources take route (b). It required five things:
 - bulk rows from the importer's pure claim identity;

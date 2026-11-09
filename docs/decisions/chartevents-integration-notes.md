@@ -1,5 +1,7 @@
 # Chartevents route (b): integration notes for after D26
 
+*Status: done in D27 (see [the engine-increment log](engine-increment-log.md)). Kept as the record of the hooks; the code is the reference now.*
+
 The branch `feature/chartevents-route-b` adds only new files:
 
 | File | Contents |

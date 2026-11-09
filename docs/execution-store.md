@@ -592,7 +592,7 @@ Taking `evidence` out of `events` did not make event loading cheaper: B's loadin
 
 ## Stage 2: the MIMIC-IV demo through the SULO adapter
 
-`python -m patterns.mimic_store_ingest --input-dir DIR --dataset-id mimic-iv-demo-2.2 --workers 8` builds a snapshot from local `inputevents`, `icustays` and `d_items` files into the git-ignored `verification/execution-store-mimic-run/`. With no arguments it builds the synthetic fixture, [`examples/mimic-store-ingest/`](../examples/mimic-store-ingest/). `chartevents` is not read.
+`python -m patterns.mimic_store_ingest --input-dir DIR --dataset-id mimic-iv-demo-2.2 --workers 8` builds a snapshot from local `inputevents`, `icustays` and `d_items` files into the git-ignored `verification/execution-store-mimic-run/`. With no arguments it builds the synthetic fixture, [`examples/mimic-store-ingest/`](../examples/mimic-store-ingest/). With `--chartevents` it also reads `chartevents` by route (b) and streams the merged patients into the builder ([Chartevents](#chartevents-d27)); the synthetic combined fixture is [`examples/mimic-store-ingest-chartevents/`](../examples/mimic-store-ingest-chartevents/).
 
 ### Route
 
@@ -733,7 +733,8 @@ This is not built. `chartevents` has 668,862 demo rows. At about 0.2 CPU-seconds
   - an evidence table and the D5 typed event columns: done in D26. The expected gain did not happen: event loading is unchanged (the loader never selected `evidence`, and Parquet reads only selected columns), and content verification is 24% slower at 1,000,000 because the evidence table adds rows. What 3.0 gains is typed, validated record fields for selection modes and status filtering;
   - bucket-level roots so that an append rebuilds and rehashes only the buckets it touches (the per-bucket derive of D23, which lets 1,000,000 patients build, is done: [Scaling](#1000000-patients-before-and-after-d23));
   - matching, the next wall per D19 step 3.
-- **`chartevents`**, by the path above.
+- **`chartevents`**: done in D27 by route (b), with a census on the demo ([Chartevents](#chartevents-d27)). Next for it: value conditions in the match request (stage 2), then textual and unitless measurements, unit equivalence and reviewed item mappings (stage 3).
+- **A Merkle input digest** (`patterns/merkle_patients.py`, built and tested, D27): wired in only when incremental appends exist; until then the flat D20 digest stays the identity.
 - **Time pruning** on the posting summaries: done in D25, with a differential of pruning on against off, and on end summaries for a `during` relation's grace in D26 ([Time pruning](#time-pruning-d25-d26)).
 - **Per-bucket joins.** The candidate patient and event lookups are `IN` lists over the candidate set today. At full scale they become joins against a candidate table, one bucket partition at a time.
 - **Event columns and an evidence table:** done in D26 (store 3.0, [Tables](#tables)).
@@ -745,7 +746,7 @@ This is not built. `chartevents` has 668,862 demo rows. At about 0.2 CPU-seconds
 - **Not in stage 1:**
   - bitmaps;
   - anchor tables;
-  - series;
+  - value conditions on the `series` table (stored since 3.1, D27; matching does not read it yet);
   - bitemporal selection (`available_at` is recorded, not applied);
   - partition-parallel workers;
   - streaming results.
