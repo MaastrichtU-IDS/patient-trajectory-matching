@@ -451,6 +451,20 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(report['counts']['events'], 50)
         self.assertNotIn('5000001', out.getvalue())
 
+    def test_sampled_run(self):
+        result = check.sampled_run(fixture(), DATASET, rate=0.0, per_batch=1, shards=2)
+        g = result['graph_check']
+        self.assertEqual((g['stores_checked'], g['mismatched_stores']), (g['stores_equal'], 0))
+        self.assertGreaterEqual(g['stores_checked'], 2)
+        self.assertEqual(result['counts']['events'], 50)
+        self.assertEqual(result['patients'], 4)
+        text = json.dumps({k: v for k, v in result.items() if k != '_merkle_root_local_only'})
+        for pid in ('5000001', '5000002', '7000001', '2190-03'):
+            self.assertNotIn(pid, text)
+        some = check.sampled_run(fixture(), DATASET, patients=2, graph=False)
+        self.assertEqual(some['patients'], 2)
+        self.assertEqual(check.patient_subset(['a', 'b', 'c', 'd'], 2), check.patient_subset(['d', 'c', 'b', 'a'], 2))
+
 
 if __name__ == '__main__':
     unittest.main()
