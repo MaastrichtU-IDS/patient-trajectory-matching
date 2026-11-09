@@ -1,5 +1,5 @@
 {
- "about": "Input digests and per-table, per-bucket content digests of execution-store 3.0 snapshots (D26: typed record columns, the event_evidence table, the postings' max_end_hi) built by patterns/execution_store.py with ndjson staging, on top of e8131db, before typed staging: the committed synthetic cohort, that cohort ten times over with relabelled patients, the hand-built fixture and the MIMIC-shaped fixture. PerBucketDeriveTests in patterns/test_execution_store.py and patterns/test_mimic_store_ingest.py require the builder to reproduce them.",
+ "about": "Input digests and per-table, per-bucket content digests of execution-store 3.0 snapshots (D26: typed record columns, the event_evidence table, the postings' max_end_hi) built by patterns/execution_store.py with ndjson staging at a81ef03, before typed staging: the committed synthetic cohort, that cohort ten times over with relabelled patients, the hand-built fixture and the MIMIC-shaped fixture. PerBucketDeriveTests in patterns/test_execution_store.py and patterns/test_mimic_store_ingest.py require the builder to reproduce them.",
  "cases": {
   "fixture": {
    "input_digest": "09c452dbb5d2c75a88410a2b8eed1faf3606acbd3c986c932d22924208a4a96e",

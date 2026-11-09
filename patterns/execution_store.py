@@ -477,9 +477,57 @@ def _lit(path):
     return "'" + str(path).replace("'", "''") + "'"
 
 
-def _read_json(path, columns):
+def _read_json(paths, columns):
     spec = '{' + ', '.join(f"'{k}': '{v}'" for k, v in columns) + '}'
-    return f"read_json({_lit(path)}, format='newline_delimited', columns={spec})"
+    return f"read_json([{', '.join(_lit(p) for p in paths)}], format='newline_delimited', columns={spec})"
+
+
+def _staged_sql(staging, paths, columns):
+    """A relation over staged files of one staged table, with its columns in STAGED order and types: ndjson lines
+    read with those columns (a missing key is null), or typed Parquet files (D26); no files is no rows."""
+    if not paths:
+        return '(SELECT ' + ', '.join(f'NULL::{t} AS {c}' for c, t in columns) + ' WHERE false)'
+    if staging == 'ndjson':
+        return _read_json(paths, columns)
+    return (f"(SELECT {', '.join(c for c, _ in columns)} FROM read_parquet([{', '.join(_lit(p) for p in paths)}]))")
+
+
+# How `add()` stages rows (D26): typed Parquet files written through DuckDB, or newline-delimited JSON. Either gives
+# the same tables and digests; see `StoreBuilder`.
+STAGINGS = ('parquet', 'ndjson')
+STAGING = 'parquet'
+# Rows one Parquet staging file holds: each staged table of each open part buffers this many rows in Python, as typed
+# columns, before they are written (the last file of a part may hold fewer). Any number gives the same tables.
+STAGE_ROWS = 10_000
+
+
+class _ParquetStage:
+    """One staged table's rows for one part (or the whole build), buffered as typed columns and written to Parquet
+    files of `rows` rows each through DuckDB (`COPY (SELECT unnest(?), ...)`), so no Python object outlives a file."""
+
+    def __init__(self, db, stem, columns, rows):
+        self.db, self.stem, self.columns, self.rows = db, stem, columns, rows
+        self.names = [c for c, _ in columns]
+        self.select = ', '.join(f'unnest(CAST(? AS {t}[])) AS {c}' for c, t in columns)
+        self.paths, self.n = [], 0
+        self.data = [[] for _ in columns]
+
+    def write(self, row):
+        for column, name in zip(self.data, self.names):
+            column.append(row.get(name))
+        self.n += 1
+        if self.n >= self.rows:
+            self.flush()
+
+    def flush(self):
+        if self.n:
+            path = f'{self.stem}.f{len(self.paths):05d}.parquet'
+            self.db.execute(f'COPY (SELECT {self.select}) TO {_lit(path)} (FORMAT parquet)', self.data)
+            self.paths.append(path)
+            self.n, self.data = 0, [[] for _ in self.columns]
+
+    def close(self):
+        self.flush()
 
 
 STAGED = {
@@ -520,13 +568,14 @@ def _connect(path, threads, memory_limit, temp_directory):
 PART_STAGED = ('events', 'evidence', 'concepts', 'coverage', 'excluded')
 
 
-def part_file(stage, name, part):
+def part_file(stage, name, part, suffix='.ndjson'):
+    """A part's staging file of one staged table (its stem, with suffix '', for Parquet's numbered files)."""
     bucket, index = part
-    return Path(stage) / f'{name}.b{bucket}.p{index:05d}.ndjson'
+    return Path(stage) / f'{name}.b{bucket}.p{index:05d}{suffix}'
 
 
-def _load_patients(db, stage):
-    db.execute(f"CREATE TABLE s_patients AS SELECT * FROM {_read_json(stage / 'patients.ndjson', STAGED['patients'])}")
+def _load_patients(db, relation):
+    db.execute(f"CREATE TABLE s_patients AS SELECT * FROM {relation('patients')}")
     duplicate = db.execute('SELECT patient_id FROM s_patients GROUP BY patient_id HAVING count(*) > 1 '
                            'ORDER BY patient_id LIMIT 1').fetchone()
     _require(duplicate is None, 'DUPLICATE_PATIENT_ID', duplicate[0] if duplicate else '')
@@ -567,7 +616,7 @@ def _create_table(db, name, columns):
     db.execute(f'CREATE TABLE {name} ({", ".join(f"{c} {t}" for c, t in columns)})')
 
 
-def _derive(db, stage, parts, on_stage=None):
+def _derive(db, relation, parts, on_stage=None):
     """Create the nine logical tables (plus a bucket column on partitioned ones) from the staging files.
 
     Patient-keyed rows are derived one part at a time, bucket by bucket (D23). Every row of
@@ -575,11 +624,11 @@ def _derive(db, stage, parts, on_stage=None):
     one patient's staged rows (and the closure and the patient index), and every patient is in
     exactly one part, so the union of the parts' rows is the table a single statement over all
     the staging gives; `source_concepts` is the distinct union of each part's distinct pairs.
-    `on_stage('derived:bucket=k', info)` reports each bucket's statement times and memory.
+    `on_stage('derived:bucket=k', info)` reports each bucket's statement times and memory. `relation(name,
+    parts)` is the SQL relation over the staged rows of one staged table, for the given parts (`StoreBuilder.relation`).
     """
     run = _Statements(db)
-    staged = lambda name, part=None: _read_json(stage / f'{name}.ndjson' if part is None else part_file(stage, name, part),
-                                                STAGED[name])
+    staged = lambda name, part=None: relation(name, () if part is None else (part,))
     # Dense index by sorted identifier; bucket from the identifier alone, so it never moves.
     run('patient_index', f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
@@ -816,10 +865,14 @@ class StoreBuilder:
     publishing it is one rename. Each build works in `.building-*` directories, removed when the
     build ends however it ends; a killed process leaves them behind, and `sweep_stale_builds`
     removes old ones.
+
+    `staging` (D26) is how `add()` stages rows: `'parquet'` (the default, `STAGING`) buffers each staged table's rows
+    as typed columns, `stage_rows` at a time, and writes each batch as a Parquet file through an in-memory DuckDB
+    connection; `'ndjson'` writes one JSON line per row. Both give the same tables, digests and snapshot.
     """
 
     def __init__(self, root, header, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS,
-                 on_stage=None, work_dir=None, part_rows=PART_ROWS):
+                 on_stage=None, work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS):
         self.header = validate_header(header)  # before anything is written
         self.ancestors = header['closure']['ancestors']
         self.threads, self.memory_limit, self.fetch_rows = threads, _memory_limit(memory_limit), fetch_rows
@@ -828,6 +881,12 @@ class StoreBuilder:
         if type(part_rows) is not int or part_rows < 1:
             raise StoreError('INVALID_PART_ROWS', repr(part_rows))
         self.part_rows = part_rows
+        self.staging = STAGING if staging is None else staging
+        if self.staging not in STAGINGS:
+            raise StoreError('INVALID_STAGING', repr(staging))
+        if type(stage_rows) is not int or stage_rows < 1:
+            raise StoreError('INVALID_STAGE_ROWS', repr(stage_rows))
+        self.stage_rows = stage_rows
         self.on_stage = on_stage
         self.root = Path(root)
         # Directories this builder creates, so that a refusal leaves no trace of them.
@@ -842,10 +901,15 @@ class StoreBuilder:
             self.work = Path(tempfile.mkdtemp(prefix='.building-', dir=work_dir))
         self.stage = self.work / 'stage'
         self.stage.mkdir()
-        self._files = {name: open(self.stage / f'{name}.ndjson', 'w', encoding='utf-8')
-                       for name in STAGED if name not in PART_STAGED}
+        # Parquet staging writes through its own small in-memory connection; the build database opens at finish().
+        self._stage_db = None
+        if self.staging != 'ndjson':
+            (self.work / 'stage-spill').mkdir()
+            self._stage_db = _connect(':memory:', 1, '256MB', self.work / 'stage-spill')
+        self._files = {name: self._writer(name, self.stage / name) for name in STAGED if name not in PART_STAGED}
         # Every part staged so far, in order, and each bucket's open part: (part, {name: file}, staged rows).
         self.parts, self._current = [], {}
+        self._stages = {}  # Parquet staging: (name, part) -> its stage, which lists its files
         self.patients = 0
         self.events = 0
         self._open = True
@@ -861,16 +925,43 @@ class StoreBuilder:
         if not self._open:
             raise StoreError('BUILDER_CLOSED', str(self.root))
 
+    def _writer(self, name, stem):
+        """Where one staged table's rows go: an ndjson file, or a Parquet stage of numbered files."""
+        if self.staging == 'ndjson':
+            return open(f'{stem}.ndjson', 'w', encoding='utf-8')
+        return _ParquetStage(self._stage_db, stem, STAGED[name], self.stage_rows)
+
     def _put(self, name, row, files=None):
-        (files or self._files)[name].write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
+        target = (files or self._files)[name]
+        if self.staging == 'ndjson':
+            target.write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
+        else:
+            target.write(row)
+
+    def staged_paths(self, name, parts=()):
+        """The staging files of one staged table: the whole build's for the patient list and the closure, the given
+        parts' for the others. Writers must be closed first."""
+        if self.staging == 'ndjson':
+            if name not in PART_STAGED:
+                return [self.stage / f'{name}.ndjson']
+            return [part_file(self.stage, name, part) for part in parts]
+        if name not in PART_STAGED:
+            return list(self._files[name].paths)
+        return [path for part in parts for path in self._stages[name, part].paths]
+
+    def relation(self, name, parts=()):
+        """The SQL relation over one staged table's rows (`staged_paths`), with its STAGED columns."""
+        return _staged_sql(self.staging, self.staged_paths(name, parts), STAGED[name])
 
     def _part(self, bucket):
         """The bucket's open part, opened when the bucket has none."""
         if bucket not in self._current:
             part = (bucket, sum(1 for b, _ in self.parts if b == bucket))
             self.parts.append(part)
-            self._current[bucket] = [part, {name: open(part_file(self.stage, name, part), 'w', encoding='utf-8')
-                                            for name in PART_STAGED}, 0]
+            writers = {name: self._writer(name, part_file(self.stage, name, part, '')) for name in PART_STAGED}
+            self._current[bucket] = [part, writers, 0]
+            if self.staging != 'ndjson':
+                self._stages.update({(name, part): w for name, w in writers.items()})
         return self._current[bucket]
 
     def _close_part(self, bucket):
@@ -941,17 +1032,21 @@ class StoreBuilder:
                 f.close()
             for bucket in list(self._current):
                 self._close_part(bucket)
+            if self._stage_db is not None:
+                self._stage_db.close()
+                self._stage_db = None
             self._stage_done('staged', patients=self.patients, events=self.events, parts=len(self.parts),
-                             staged_bytes=sum(f.stat().st_size for f in self.stage.iterdir()))
+                             staged_bytes=sum(f.stat().st_size for f in self.stage.iterdir()),
+                             staged_files=sum(1 for _ in self.stage.iterdir()), staging=self.staging)
             spill = self.work / 'spill'
             spill.mkdir()
             duckdb = _duckdb()
             db = _connect(self.work / 'build.duckdb', self.threads, self.memory_limit, spill)
             try:
-                _load_patients(db, self.stage)
+                _load_patients(db, self.relation)
                 input_digest = _input_digest(db, self.header, provenance, self.fetch_rows)
                 self._stage_done('patients_loaded_and_input_digest')
-                _derive(db, self.stage, self.parts, self.on_stage)
+                _derive(db, self.relation, self.parts, self.on_stage)
                 db.execute('DROP TABLE s_patients')
                 shutil.rmtree(self.stage)
                 self._stage_done('derived', database_bytes=(self.work / 'build.duckdb').stat().st_size)
@@ -1000,10 +1095,16 @@ class StoreBuilder:
 
     def _close(self, keep_root):
         self._open = False
-        for f in self._files.values():
-            f.close()
-        for bucket in list(self._current):
-            self._close_part(bucket)
+        if self.staging == 'ndjson':
+            for f in self._files.values():
+                f.close()
+            for bucket in list(self._current):
+                self._close_part(bucket)
+        else:  # a Parquet stage's buffered rows are dropped, not written
+            self._current.clear()
+            if self._stage_db is not None:
+                self._stage_db.close()
+                self._stage_db = None
         shutil.rmtree(self.work, ignore_errors=True)
         shutil.rmtree(self.publish, ignore_errors=True)
         if not keep_root:
@@ -1020,11 +1121,12 @@ class StoreBuilder:
 
 
 def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None,
-          work_dir=None, part_rows=PART_ROWS):
+          work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS):
     """Validate, derive and write one immutable snapshot of a whole ingest document under `root`;
     return its directory. A wrapper over `StoreBuilder`: the patients are streamed from the list."""
     header = _validate_document(ingest)
-    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows) as builder:
+    with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows, staging,
+                      stage_rows) as builder:
         for p in ingest['patients']:
             builder.add(p)
         return builder.finish(ingest.get('provenance'))

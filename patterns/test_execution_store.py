@@ -864,13 +864,13 @@ class DeterminismTests(unittest.TestCase):
               f'{growth / 1024:.0f} KiB', file=sys.stderr)
 
 
-def main_derive(db, stage):
+def main_derive(db, relation):
     """`_derive` as at main fdd6e97, frozen: every table in one statement over whole staging files (D23).
     The only changes since are the 2.1 columns (D24): `patients.shared_variables` and the events' variables
     and `proper`, each a copy of its staged value (false where the staging leaves it out); and 3.0's (D26): the
     events' record fields, copies of their staged values, the evidence in its own table, and the postings'
-    latest end."""
-    staged = lambda name: es._read_json(stage / f'{name}.ndjson', es.STAGED[name])
+    latest end. `relation(name)` reads one staged table's rows over the whole build (D26: staging may be Parquet)."""
+    staged = relation
     db.execute(f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
         (('0x' || substr(sha256(patient_id), 1, 8))::UBIGINT % {es.BUCKETS})::INTEGER AS bucket, clock_id,
@@ -908,14 +908,13 @@ def main_derive(db, stage):
     db.execute('DROP TABLE p')
 
 
-def main_path_digests(ingest, tmp):
-    """(input digest, table digests) of main's single-statement derive over this ingest's staging,
-    gathered from the parts into one file per staged table, as main staged it."""
+def main_path_digests(ingest, tmp, staging=None):
+    """(input digest, table digests) of main's single-statement derive over this ingest's staging, every part of
+    each staged table read at once, as main staged it in one file."""
     tmp = Path(tmp)
     header = {k: ingest[k] for k in ('profile', 'dataset_id', 'closure')}
-    whole = tmp / 'whole'
-    whole.mkdir(parents=True)
-    with es.StoreBuilder(tmp / 'unused', header, part_rows=1) as builder:  # left unfinished: discarded
+    (tmp / 'spill').mkdir(parents=True)
+    with es.StoreBuilder(tmp / 'unused', header, part_rows=1, staging=staging) as builder:  # left unfinished
         for p in ingest['patients']:
             builder.add(p)
         for row in es._closure_rows(header['closure']):
@@ -924,22 +923,16 @@ def main_path_digests(ingest, tmp):
             f.close()
         for bucket in list(builder._current):
             builder._close_part(bucket)
-        for name in es.STAGED:
-            sources = [es.part_file(builder.stage, name, part) for part in builder.parts] \
-                if name in es.PART_STAGED else [builder.stage / f'{name}.ndjson']
-            with open(whole / f'{name}.ndjson', 'w', encoding='utf-8') as out:
-                for source in sources:
-                    out.write(source.read_text(encoding='utf-8'))
-    (tmp / 'spill').mkdir()
-    db = es._connect(tmp / 'main.duckdb', 1, '1GB', tmp / 'spill')
-    try:
-        es._load_patients(db, whole)
-        input_digest = es._input_digest(db, header, ingest.get('provenance', {}), 1000)
-        main_derive(db, whole)
-        es._check_types(db)
-        return input_digest, es.content_digests(db)
-    finally:
-        db.close()
+        relation = lambda name, parts=(): builder.relation(name, builder.parts)
+        db = es._connect(tmp / 'main.duckdb', 1, '1GB', tmp / 'spill')
+        try:
+            es._load_patients(db, relation)
+            input_digest = es._input_digest(db, header, ingest.get('provenance', {}), 1000)
+            main_derive(db, relation)
+            es._check_types(db)
+            return input_digest, es.content_digests(db)
+        finally:
+            db.close()
 
 
 def tables_of(manifest):
@@ -1032,7 +1025,8 @@ class PerBucketDeriveTests(unittest.TestCase):
                               ('fixture with excluded records and shared variables', g)):
             with tempfile.TemporaryDirectory() as tmp:
                 input_digest, tables = main_path_digests(ingest, Path(tmp) / 'main')
-            for options in ({}, {'part_rows': 1}, {'part_rows': 700}):
+                self.assertEqual(main_path_digests(ingest, Path(tmp) / 'json', staging='ndjson'), (input_digest, tables))
+            for options in ({}, {'part_rows': 1}, {'part_rows': 700}, {'staging': 'ndjson', 'part_rows': 700}):
                 with self.subTest(case=label, **options), tempfile.TemporaryDirectory() as tmp:
                     manifest = self.build(ingest, tmp, **options)
                     self.assertEqual(manifest['input_digest'], input_digest)
@@ -1050,9 +1044,10 @@ class PerBucketDeriveTests(unittest.TestCase):
                 for bucket in list(builder._current):
                     builder._close_part(bucket)
                 seen = Counter()
+                import duckdb
                 for bucket, index in builder.parts:
-                    ids = {json.loads(line)['patient_id'] for name in ('events', 'coverage')
-                           for line in es.part_file(builder.stage, name, (bucket, index)).read_text().splitlines()}
+                    ids = {pid for name in ('events', 'coverage') for pid, in duckdb.sql(
+                        f'SELECT patient_id FROM {builder.relation(name, [(bucket, index)])}').fetchall()}
                     self.assertTrue(ids and {es.bucket_of(pid) for pid in ids} == {bucket}, (bucket, index))
                     seen.update(ids)
                 self.assertEqual(set(seen.values()), {1})  # no patient in two parts
@@ -1661,6 +1656,37 @@ class ContractTests(unittest.TestCase):
                 context = es.match(store, FIXTURE_QUERY, {})['context']
                 want = hashlib.sha256(es._json(store.manifest['files']).encode('utf-8')).hexdigest()
                 self.assertEqual(context['files_digest'], want)
+
+    def test_typed_staging_gives_the_snapshot_ndjson_staging_gives(self):
+        """D26: Parquet staging (the default) and ndjson staging give one snapshot, for any number of rows per Parquet
+        file; staging's options are refused by name; a refused build leaves nothing, Parquet files included."""
+        g = fixture()
+        g['patients'] += shared_variable_patients()
+        g['patients'][0]['excluded'] = [{'source': 'ehr', 'concept': 'seizure', 'start': [day(3), day(4)],
+                                         'reason': 'DROPPED'}]
+        g['patients'][0]['events'][0].update(status='final', recorded_at=day(1), claim_sha256='0' * 64)
+        sizes = []
+        with tempfile.TemporaryDirectory() as tmp:
+            names = set()
+            for k, options in enumerate(({}, {'staging': 'ndjson'}, {'stage_rows': 1}, {'stage_rows': 7},
+                                         {'staging': 'parquet', 'part_rows': 1})):
+                watch = lambda name, info: sizes.append((options.get('staging', es.STAGING), info['staged_files']
+                                                         )) if name == 'staged' else None
+                names.add(es.build(g, Path(tmp) / str(k), on_stage=watch, **options).name)
+            self.assertEqual(len(names), 1)
+            self.assertEqual(es.STAGING, 'parquet')
+            for options, code in (({'staging': 'csv'}, 'INVALID_STAGING'), ({'stage_rows': 0}, 'INVALID_STAGE_ROWS')):
+                with self.subTest(code=code), self.assertRaises(es.StoreError) as caught:
+                    es.StoreBuilder(Path(tmp) / 'never', {k: g[k] for k in ('profile', 'dataset_id', 'closure')},
+                                    **options)
+                self.assertEqual(caught.exception.code, code)
+            root = Path(tmp) / 'refused'
+            bad = deepcopy(g)
+            bad['patients'][-1]['events'][0]['concepts'] = ['nowhere']
+            with self.assertRaises(es.IngestError):
+                es.build(bad, root, stage_rows=1)
+            self.assertFalse(root.exists())
+        self.assertTrue(all(n > 0 for _, n in sizes))
 
     def test_staging_can_live_elsewhere_and_stale_builds_are_swept(self):
         with tempfile.TemporaryDirectory() as tmp:
