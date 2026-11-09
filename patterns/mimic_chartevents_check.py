@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import heapq
 from collections import Counter
+from pathlib import Path
 
 from . import claim_isolation
 from . import claim_projection as cp
@@ -207,6 +208,79 @@ def check_patient(run, pid, rows, selected, recorded_digests):
     return out
 
 
+def patient_subset(patients, n, salt=SALT):
+    """The n patients of lowest sha256(salt, id): a deterministic subset for small runs."""
+    return set(sorted(patients, key=lambda p: hashlib.sha256((salt + '\t' + p).encode('utf-8')).digest())[:n])
+
+
+def sampled_run(input_dir, dataset_id, *, patients=None, rate=RATE, per_batch=PER_BATCH, shards=16, graph=True):
+    """Route (b) over the chosen patients, the sample, and route (a) on it. Aggregate counts only."""
+    import tempfile
+    import time
+    from . import merkle_patients as mp
+    timings, started = {}, time.perf_counter()
+    run = chart.Run(input_dir, dataset_id)
+    timings['pass_one_and_dimensions'] = time.perf_counter() - started
+    chosen = None if patients is None else patient_subset(run.patients(), patients)
+    sampler, digests, totals, leaves, outside = Sampler(dataset_id, rate, per_batch), {}, Counter(), [], []
+    with tempfile.TemporaryDirectory() as work:
+        t = time.perf_counter()
+        for batch in run.batches(work, shards, chosen):
+            totals.update(batch['counts'])
+            outside += batch['outside_us']
+            leaves.append((batch['patient_id'], ref.patient_digest(batch['patient'])))
+            totals['excluded_records'] += len(batch['patient'].get('excluded', []))
+            totals['coverage_periods'] += len(batch['patient']['coverage'])
+            for s in batch['stores']:
+                sampler.offer(s['key'], s['strata'])
+                digests[s['key']] = s['rows_sha256']
+        timings['route_b_bulk'] = time.perf_counter() - t
+        t = time.perf_counter()
+        root, count = mp.streaming_patient_root(sorted(leaves))
+        timings['merkle_root'] = time.perf_counter() - t
+        selected = sampler.selected()
+        outcomes = []
+        if graph and selected:
+            t = time.perf_counter()
+            holders = {k[0] for k in selected}
+            (Path(work) / 'graph').mkdir()
+            paths = chart.spill(run.paths['chartevents'], run.manifest, Path(work) / 'graph', shards, holders)
+            for pid, rows in chart.patient_rows(paths, run.manifest['columns']):
+                outcomes += check_patient(run, pid, rows, {k: v for k, v in selected.items() if k[0] == pid}, digests)
+            timings['route_a_sample'] = time.perf_counter() - t
+    timings['total'] = time.perf_counter() - started
+    summary = summarise(outcomes, sampler) if graph else {'sample': sampler.summary()}
+    return {'profile': PROFILE, 'dataset_id': dataset_id, 'patient_rows_included': False,
+            'patients_requested': patients if patients is not None else 'all', 'patients': count,
+            'source_rows_in_file': run.manifest['rows'], 'counts': dict(sorted(totals.items())),
+            'closure': {'item_classes': sum(b == chart.CONCEPT_BASIS for b in run.bases.values()),
+                        'groupings': sum(b == chart.GROUP_BASIS for b in run.bases.values()),
+                        'unknown_items': run.unknown_items},
+            'merkle': {'form': 'flat', 'leaves': count, 'root_computed': True},
+            'graph_check': summary,
+            'timings_seconds': {k: round(v, 2) for k, v in timings.items()},
+            '_merkle_root_local_only': root.hex()}
+
+
+def main(argv=None):
+    """A sampled run over local files; prints aggregate counts (and the Merkle root, never committed)."""
+    import argparse
+    import json
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument('--input-dir', type=Path, required=True)
+    parser.add_argument('--dataset-id', required=True)
+    parser.add_argument('--patients', type=int, help='a deterministic subset of this many patients')
+    parser.add_argument('--rate', type=float, default=RATE)
+    parser.add_argument('--per-batch', type=int, default=PER_BATCH)
+    parser.add_argument('--shards', type=int, default=16)
+    parser.add_argument('--no-graph', action='store_true', help='compute the sample but skip route (a)')
+    args = parser.parse_args(argv)
+    result = sampled_run(args.input_dir, args.dataset_id, patients=args.patients, rate=args.rate,
+                         per_batch=args.per_batch, shards=args.shards, graph=not args.no_graph)
+    print(json.dumps(result, indent=2))
+    return 0 if not result['graph_check'].get('mismatched_stores') else 1
+
+
 def summarise(outcomes, sampler):
     differing = Counter(f for o in outcomes for f in o['differing_fields'])
     return {'profile': PROFILE, 'route_steps': list(ROUTE_STEPS), 'sample': sampler.summary(),
@@ -220,3 +294,7 @@ def summarise(outcomes, sampler):
                           'deterministic sample of claim stores was sent through the measurement graph route and '
                           'its rows compared field for field. Rows outside the sample were not each validated '
                           'through the graph.')}
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
