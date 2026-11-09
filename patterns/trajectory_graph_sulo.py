@@ -64,8 +64,9 @@ RDF_FILES = ('patterns/bounded_rdf.py', 'ontology/bounded-rdf-profile.ttl')
 INF = math.inf
 # Adapter statuses, beside the engine's exact/possible/relaxed/unresolved/none/excluded.
 REFUSED, INCOMPARABLE = 'refused', 'incomparable'
-# Engine refusals of one patient's shared variables, reported as that patient's refusal (D22).
-ENGINE_PATIENT_REFUSALS = ('SHARED_VARIABLE_COMPONENT_LIMIT', 'EMPTY_SHARED_VARIABLE')
+# Engine refusals of one patient's time network, reported as that patient's refusal: its shared variables (D22),
+# or a proper event that cannot end after it starts (D25).
+ENGINE_PATIENT_REFUSALS = ('SHARED_VARIABLE_COMPONENT_LIMIT', 'EMPTY_SHARED_VARIABLE', 'EMPTY_PROPER_EVENT')
 
 
 class AdapterError(ValueError):

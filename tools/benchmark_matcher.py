@@ -8,8 +8,9 @@ peak resident memory is the query process's alone:
   A  the matcher as it stood before D21 (a git ref, extracted to a scratch directory and imported
      from there): one query loads every candidate's events with an IN list, then matches.
   B  this tree: candidates loaded and matched in chunks, a prepared query, trusted events, windows
-     checked as plain integers, comparability in SQL, and the engine's rewritten pairwise kernel (results
-     unchanged).  `B_decided` is B with `detail='decided'`.
+     checked as plain integers, comparability in SQL, the engine's rewritten pairwise kernel, and time
+     pruning on the posting summaries (D25) (results unchanged).  `B_decided` is B with `detail='decided'`;
+     `B_unpruned` is B with the pruning turned off, a same-run baseline whose digests must equal B's.
   C  this tree with `workers=N` (N = 1, 2, 4, 8, 14): the engine's work units run in a persistent pool of
      spawned processes; recorded as `C_w1` ... `C_w14`.  `C_w1` is the unchanged single-process path (a
      control).  The pool is started and warmed before the first query (its start-up is recorded
@@ -31,6 +32,7 @@ The report holds aggregates only. It is evidence for one machine and synthetic d
 from __future__ import annotations
 
 import argparse
+import contextlib
 import gc
 import hashlib
 import importlib.util
@@ -55,8 +57,12 @@ ARMS = {
     'A': 'matcher before D21: one IN-list load of every candidate, validate every patient, one result dict per patient',
     'B': 'D21 step 1: chunked load and match, PreparedQuery, trusted events, integer window checks, SQL comparability; '
          'then the engine kernel: closed-form pair and unary tests over per-patient records, Times and events built '
-         "without per-call overhead (results unchanged); detail='full'",
+         "without per-call overhead (results unchanged); then time pruning on the posting summaries (D25): a candidate "
+         "the summaries prove `none` gets the engine's own `none` without loading its events (results unchanged); "
+         "detail='full'",
     'B_decided': "arm B with detail='decided'",
+    'B_unpruned': 'arm B with time pruning on the posting summaries (D25) turned off (`execution_store._PRUNE = False`): '
+                  'the same tree, as a same-run baseline; its results must equal B\'s byte for byte',
 }
 WORKER_COUNTS = (1, 2, 4, 8, 14)
 ARMS['C'] = ('D21 arm C: B plus partition-parallel matching in a persistent pool of spawned worker processes, '
@@ -80,7 +86,8 @@ LIMITATIONS = (
     'Arm A is the code of the stated git ref extracted and imported from a scratch directory; both arms read the same '
     'snapshot files. The snapshots were built by the builder at the ref the report states, not by the final tree. '
     'Arm A\'s code reads execution store 2.0; it opens the 2.1 snapshots (D24, which only added columns) as the same '
-    'files under a manifest relabelled 2.0 (`snapshot_view` in its arm entries).',
+    'files under a manifest relabelled 2.0 (`snapshot_view` in its arm entries), which is refused unless no patient '
+    'shares variables and no event is proper or names a variable; the synthetic cohorts use none of them.',
     'Peak memory is the query process\'s maximum resident set size. It includes the interpreter, DuckDB buffers, the '
     'caller\'s windows dictionary (one entry per patient, rebuilt for each query) and the full result, which for '
     "detail='full' is one dict per patient and is part of what the caller asked for.",
@@ -122,15 +129,48 @@ def result_digest(result):
 
 # The worker: one arm, one snapshot.
 
+# The only relabelling `readable_snapshot` makes: store 2.1 (D24) read by code of store 2.0.
+RELABEL = {'execution-store-2.1': 'execution-store-2.0'}
+
+
+def snapshot_uses_2_1(snapshot):
+    """(patients with shared variables, events that are proper or name a variable) in a 2.1 snapshot's files."""
+    import duckdb
+    lit = lambda path: "'" + str(path).replace("'", "''") + "'"
+    db = duckdb.connect(':memory:')
+    try:
+        shared = db.execute(f"SELECT count(*) FROM read_parquet({lit(Path(snapshot) / 'patients.parquet')}) "
+                            'WHERE shared_variables').fetchone()[0]
+        named = db.execute(f"SELECT count(*) FROM read_parquet({lit(Path(snapshot) / 'events' / '**' / '*.parquet')}, "
+                           'hive_partitioning = false) WHERE proper OR start_var IS NOT NULL OR end_var IS NOT NULL'
+                           ).fetchone()[0]
+    finally:
+        db.close()
+    return shared, named
+
+
 def readable_snapshot(es, snapshot, scratch):
-    """The snapshot as the arm's code can open it: itself, or, when its profile is newer than the code's, a
-    view of the same Parquet files (each linked, none copied) under a manifest relabelled with the code's
-    profile and the identifier the code computes for it. Execution store 2.1 (D24) only added columns, which
-    older code never selects, so the old code reads the same rows of its own columns; the files, their
-    digests, the tables' content digests and the input digest are the snapshot's. Returns (path, note)."""
+    """The snapshot as the arm's code can open it: itself, or, for a 2.1 snapshot read by code of store 2.0, a
+    view of the same Parquet files (each linked, none copied) under a manifest relabelled 2.0, with the identifier
+    the code computes for it. Returns (path, note).
+
+    The view is refused (`SnapshotViewError`) unless no patient has `shared_variables` and no event is `proper` or
+    names a `start_var` or `end_var`. Only then is it equivalent: 2.1 (D24) added those columns, which 2.0 code
+    never selects, and with them empty or false every 2.1 event means what the same row means in 2.0, so the
+    old code reads the same rows of its own columns and decides as it would on a 2.0 build of the same input. The
+    files and their sha256 are the snapshot's, so 2.0 code opens the view with `verify='files'`, as the worker
+    does. The copied manifest's content digests (and input digest) are 2.1's, computed over 2.1's columns: they
+    are not what 2.0 code would compute for the same rows, so the view cannot be opened with `verify='content'`.
+    Any other pair of profiles is refused."""
     manifest = json.loads((Path(snapshot) / 'manifest.json').read_text())
     if manifest['profile'] == es.PROFILE:
         return snapshot, None
+    if RELABEL.get(manifest['profile']) != es.PROFILE:
+        raise SnapshotViewError(f'no view of a {manifest["profile"]} snapshot for code of {es.PROFILE}')
+    shared, named = snapshot_uses_2_1(snapshot)
+    if shared or named:
+        raise SnapshotViewError(f'{shared} patients share variables and {named} events are proper or name a '
+                                f'variable: {es.PROFILE} code would not read them as {manifest["profile"]} does')
     view = Path(scratch) / f'snapshot-as-{es.PROFILE}'  # not a 64-hex name, so no directory check applies
     for rel in manifest['files']:
         (view / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -139,7 +179,24 @@ def readable_snapshot(es, snapshot, scratch):
     relabelled['snapshot_id'] = es.snapshot_identity(relabelled)
     (view / 'manifest.json').write_text(json.dumps(relabelled, indent=2, sort_keys=True) + '\n')
     return view, {'snapshot_profile': manifest['profile'], 'read_as_profile': es.PROFILE,
-                  'method': 'the same Parquet files, linked, under a manifest relabelled with the code\'s profile'}
+                  'method': 'the same Parquet files, linked, under a manifest relabelled with the code\'s profile; '
+                            'refused unless no patient shares variables and no event is proper or names a variable',
+                  'patients_sharing_variables': shared, 'events_proper_or_naming_variables': named}
+
+
+class SnapshotViewError(RuntimeError):
+    """A snapshot the arm's code could not read as its own profile without changing what it means."""
+
+
+@contextlib.contextmanager
+def snapshot_view(es, snapshot):
+    """`readable_snapshot` in a scratch directory that is removed when the block ends, however it ends (a
+    refused view, a failed open or a failed query included)."""
+    scratch = tempfile.mkdtemp(prefix='matcher-view-')
+    try:
+        yield readable_snapshot(es, snapshot, scratch)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
 
 
 def rss_now():
@@ -179,66 +236,69 @@ def worker(args):
             loading['seconds'] += time.perf_counter() - t
     es._load_events = timed_load
     inputs, _ = bench.query_inputs(args.queries)
-    view_dir = tempfile.mkdtemp(prefix='matcher-view-')
-    snapshot, view = readable_snapshot(es, args.snapshot, view_dir)
-    store = es.open_store(snapshot, 1, 'files', args.memory_limit)
-    ids = [r[0] for r in store.query('SELECT patient_id FROM patients ORDER BY patient_idx')]
-    bounds = {pid: (lo, hi) for pid, lo, hi in store.query(
-        "SELECT p.patient_id, min(c.lo), max(c.hi) FROM patients p LEFT JOIN coverage c USING (patient_idx) "
-        "WHERE p.patient_id NOT LIKE '%~r%' GROUP BY p.patient_id")}
-    kwargs = {'detail': args.detail} if args.detail != 'full' else {}
-    pool_info = None
-    if args.arm_workers > 1:
-        kwargs['workers'] = args.arm_workers
-        pool = es.get_pool(store, args.arm_workers)
-        pool.warm()
-        pool_info = {'workers': args.arm_workers, 'start_seconds_cold': pool.start_seconds}
-    baseline = rss_now()
-    pooled, runs = {}, []
-    for repeat in range(args.repeats):
-        rows = []
-        for seed, query in inputs:
-            if seed not in pooled:
-                pooled[seed] = bench.pool_windows(seed, bounds)
-            windows = bench.expand_windows(pooled[seed], ids)
-            found = es.candidates(store, query)
-            candidates = len(found['patient_idx'])
-            del found
-            gc.collect()
-            engine['seconds'] = loading['seconds'] = 0.0
-            started = time.perf_counter()
-            result = es.match(store, query, windows, **kwargs)
-            seconds = time.perf_counter() - started
-            row = {'seed': seed, 'match_seconds': seconds, 'engine_seconds': engine['seconds'],
-                   'load_seconds': loading['seconds'], 'candidates': candidates, 'counts': result['counts'],
-                   'listed_results': len(result['results'])}
-            if repeat == 0:
-                row['digest'] = result_digest(result) if args.detail == 'full' else None
-            rows.append(row)
-            del result, windows
-            gc.collect()
-        runs.append(rows)
-    out = {'runs': runs, 'rss_after_open_bytes': baseline, 'code': es.__file__,
-           'engine_wrapper': name, 'detail': args.detail}
-    if view:
-        out['snapshot_view'] = view
-    if pool_info:
-        pool_info['worker_peak_rss_bytes'] = pool.worker_peak_rss
-        pool_info['worker_memory_limit'] = pool.memory_limit
-        pool_info['parent_peak_rss_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (
-            1 if sys.platform == 'darwin' else 1024)
-        out['pool'] = pool_info
-        es.close_pools()
-    store.close()
-    shutil.rmtree(view_dir, ignore_errors=True)
+    if args.no_prune:
+        if not hasattr(es, '_PRUNE'):
+            raise RuntimeError(f'{es.__file__} has no time pruning to turn off')
+        es._PRUNE = False
+    with snapshot_view(es, args.snapshot) as (snapshot, view):
+        store = es.open_store(snapshot, 1, 'files', args.memory_limit)
+        ids = [r[0] for r in store.query('SELECT patient_id FROM patients ORDER BY patient_idx')]
+        bounds = {pid: (lo, hi) for pid, lo, hi in store.query(
+            "SELECT p.patient_id, min(c.lo), max(c.hi) FROM patients p LEFT JOIN coverage c USING (patient_idx) "
+            "WHERE p.patient_id NOT LIKE '%~r%' GROUP BY p.patient_id")}
+        kwargs = {'detail': args.detail} if args.detail != 'full' else {}
+        pool_info = None
+        if args.arm_workers > 1:
+            kwargs['workers'] = args.arm_workers
+            pool = es.get_pool(store, args.arm_workers)
+            pool.warm()
+            pool_info = {'workers': args.arm_workers, 'start_seconds_cold': pool.start_seconds}
+        baseline = rss_now()
+        pooled, runs = {}, []
+        for repeat in range(args.repeats):
+            rows = []
+            for seed, query in inputs:
+                if seed not in pooled:
+                    pooled[seed] = bench.pool_windows(seed, bounds)
+                windows = bench.expand_windows(pooled[seed], ids)
+                found = es.candidates(store, query)
+                candidates = len(found['patient_idx'])
+                del found
+                gc.collect()
+                engine['seconds'] = loading['seconds'] = 0.0
+                started = time.perf_counter()
+                result = es.match(store, query, windows, **kwargs)
+                seconds = time.perf_counter() - started
+                row = {'seed': seed, 'match_seconds': seconds, 'engine_seconds': engine['seconds'],
+                       'load_seconds': loading['seconds'], 'candidates': candidates, 'counts': result['counts'],
+                       'listed_results': len(result['results'])}
+                if repeat == 0:
+                    row['digest'] = result_digest(result) if args.detail == 'full' else None
+                rows.append(row)
+                del result, windows
+                gc.collect()
+            runs.append(rows)
+        out = {'runs': runs, 'rss_after_open_bytes': baseline, 'code': es.__file__,
+               'engine_wrapper': name, 'detail': args.detail}
+        if view:
+            out['snapshot_view'] = view
+        if pool_info:
+            pool_info['worker_peak_rss_bytes'] = pool.worker_peak_rss
+            pool_info['worker_memory_limit'] = pool.memory_limit
+            pool_info['parent_peak_rss_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (
+                1 if sys.platform == 'darwin' else 1024)
+            out['pool'] = pool_info
+            es.close_pools()
+        store.close()
     return out
 
 
-def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_limit, budget, workers=1):
+def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_limit, budget, workers=1, prune=True):
     out = Path(tempfile.mkdtemp(prefix='matcher-bench-')) / 'out.json'
     command = [sys.executable, str(Path(__file__).resolve()), '--worker', '--code-root', str(code_root), '--snapshot',
                str(snapshot), '--size', str(size), '--queries', str(queries), '--repeats', str(repeats), '--detail', detail,
                '--memory-limit', memory_limit, '--arm-workers', str(workers), '--worker-output', str(out)]
+    command += [] if prune else ['--no-prune']
     started = time.monotonic()
     child = subprocess.Popen(command, cwd=ROOT, stderr=subprocess.PIPE, text=True, start_new_session=True)
     failure = None
@@ -361,14 +421,15 @@ def benchmark(args):
         queries, repeats = (args.queries, args.repeats) if small else (args.large_queries, args.large_repeats)
         entry = {'size': size, 'snapshot_id': manifest['snapshot_id'], 'queries': queries, 'repeats': repeats, 'arms': {}}
         per_arm = {}
-        plan = [('A', scratch, 'full', 1), ('B', ROOT, 'full', 1), ('B_decided', ROOT, 'decided', 1)]
-        plan += [(f'C_w{n}', ROOT, 'full', n) for n in WORKER_COUNTS if n in args.workers]
-        for arm, root, detail, workers in plan:
+        plan = [('A', scratch, 'full', 1, True), ('B', ROOT, 'full', 1, True), ('B_unpruned', ROOT, 'full', 1, False),
+                ('B_decided', ROOT, 'decided', 1, True)]
+        plan += [(f'C_w{n}', ROOT, 'full', n, True) for n in WORKER_COUNTS if n in args.workers]
+        for arm, root, detail, workers, prune in plan:
             if arm not in args.arms and not (arm.startswith('C_w') and 'C' in args.arms):
                 continue
             print(f'size {size} arm {arm} ...', file=sys.stderr, flush=True)
             result, record = run_worker(arm, root, path, size, queries, repeats, detail, args.memory_limit,
-                                        args.budget_seconds, workers)
+                                        args.budget_seconds, workers, prune)
             if result is None:
                 entry['arms'][arm] = {'status': 'failed', **record}
                 continue
@@ -377,6 +438,8 @@ def benchmark(args):
                   f'peak {record["peak_rss_bytes"] / 2**30:.2f} GiB', file=sys.stderr, flush=True)
         if 'A' in per_arm and 'B' in per_arm:
             entry['byte_identity_B_against_A'] = identity(per_arm['A'], per_arm['B'])
+        if 'B_unpruned' in per_arm and 'B' in per_arm:
+            entry['byte_identity_B_against_B_unpruned'] = identity(per_arm['B_unpruned'], per_arm['B'])
         entry['byte_identity_C_against_B'] = {
             arm: identity(per_arm['B'], per_arm[arm]) for arm in per_arm if arm.startswith('C_w') and 'B' in per_arm}
         for future in (*FUTURE_ARMS, ):
@@ -392,6 +455,7 @@ def benchmark(args):
                            'chunk_patients': args.chunk_patients, 'arm_c_workers': sorted(args.workers)},
             'environment': bench.environment(1, args.memory_limit),
             'arms': {'A': arm_a, 'B': {'description': ARMS['B'], 'git_ref': 'this tree'},
+                     'B_unpruned': {'description': ARMS['B_unpruned'], 'git_ref': 'this tree'},
                      'B_decided': {'description': ARMS['B_decided']},
                      'C': {'description': ARMS['C'], 'git_ref': 'this tree', 'workers': list(WORKER_COUNTS)},
                      **{k: {'status': 'not_run', 'description': v} for k, v in FUTURE_ARMS.items()}},
@@ -413,12 +477,14 @@ def confirm(args):
     if manifest['snapshot_id'] != entry['snapshot_id']:
         raise SystemExit(f'snapshot {manifest["snapshot_id"]} is not the report\'s {entry["snapshot_id"]}')
     arms, per_arm = {}, {}
-    plan = [('B', 1)] + [(f'C_w{n}', n) for n in args.workers]
-    for arm, workers in plan:
-        repeats = 1 if arm == 'B' else args.large_repeats
+    plan = [('B', 1, True), ('B_unpruned', 1, False)] + [(f'C_w{n}', n, True) for n in args.workers]
+    for arm, workers, prune in plan:
+        if arm == 'B_unpruned' and 'B_unpruned' not in args.arms:
+            continue
+        repeats = 1 if arm.startswith('B') else args.large_repeats
         print(f'confirm size {size} arm {arm} ...', file=sys.stderr, flush=True)
         result, record = run_worker(arm, ROOT, path, size, args.large_queries, repeats, 'full', args.memory_limit,
-                                    args.budget_seconds, workers)
+                                    args.budget_seconds, workers, prune)
         if result is None:
             arms[arm] = {'status': 'failed', **record}
             continue
@@ -438,9 +504,12 @@ def confirm(args):
                            'memory_met': a['query_process']['peak_rss_bytes'] < t['query_process_peak_rss_bytes_below']}
     report['confirmation'] = {
         'size': size, 'queries': args.large_queries, 'repeats': args.large_repeats, 'seeds': f'0..{args.large_queries - 1}',
-        'note': 'Arm B ran once (digests and per-candidate reference); arm C at each count with the repeats stated. '
-                '"all_runs" pools every (query, repeat) measurement; per-query figures elsewhere are medians over repeats.',
+        'note': 'Arms B and B_unpruned ran once (digests and per-candidate reference); arm C at each count with the '
+                'repeats stated. "all_runs" pools every (query, repeat) measurement; per-query figures elsewhere are medians '
+                'over repeats.',
         'arms': arms, 'byte_identity_C_against_B': {a: identity(per_arm['B'], per_arm[a]) for a in per_arm if a.startswith('C_w') and 'B' in per_arm},
+        **({'byte_identity_B_against_B_unpruned': identity(per_arm['B_unpruned'], per_arm['B'])}
+           if 'B_unpruned' in per_arm and 'B' in per_arm else {}),
         'target_check': checks}
     report['artifacts'] = {p: digest(p) for p in ARTIFACTS}
     args.output.write_text(json.dumps(report, indent=2) + '\n')
@@ -451,7 +520,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshots', nargs='+', help='SIZE=SNAPSHOT_DIRECTORY, one per size')
     parser.add_argument('--arm-a-ref', default='7dc3364', help='git ref of the matcher before D21')
-    parser.add_argument('--arms', nargs='+', default=['A', 'B', 'B_decided', 'C'])
+    parser.add_argument('--arms', nargs='+', default=['A', 'B', 'B_unpruned', 'B_decided', 'C'])
     parser.add_argument('--workers', nargs='+', type=int, default=list(WORKER_COUNTS), help='arm C worker counts')
     parser.add_argument('--queries', type=int, default=50)
     parser.add_argument('--repeats', type=int, default=3)
@@ -470,6 +539,7 @@ def main(argv=None):
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--detail', default='full', help=argparse.SUPPRESS)
     parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)
+    parser.add_argument('--no-prune', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.worker:
         args.worker_output.write_text(json.dumps(worker(args)))

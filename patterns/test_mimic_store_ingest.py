@@ -133,6 +133,16 @@ class MappingTests(unittest.TestCase):
             self.assertEqual({k: recorded[k] for k in ('rows', 'content_digest', 'buckets')}, digests[name], name)
         self.assertEqual(store.manifest['input_digest'], ref.input_digest(ingest))
 
+    def test_ingest_normalisation_leaves_every_event_as_it_is(self):
+        """The events name source variables, never the engine's defaults, and are all proper, so the store's
+        normalisation (D25) changes none of them and the input digest is the one before it."""
+        for p in result()['ingest']['patients']:
+            for e in p['events']:
+                self.assertEqual(es.normal_event(e), e, (p['patient_id'], e['event_id']))
+                self.assertEqual(ref.normalised(e), e)
+                self.assertNotIn(e['start_var'], (e['event_id'] + '.s', e['event_id'] + '.f'))
+                self.assertIs(e['proper'], True)
+
     def test_closure_reaches_exactly_the_adapter_concepts_plus_groupings(self):
         ancestors = result()['ingest']['closure']['ancestors']
         for r in result()['rows']:

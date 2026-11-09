@@ -564,10 +564,18 @@ class ProperIntervalTests(unittest.TestCase):
                 ('INVALID_EVENT_PROPER', [{**event('a', 'x', (1, 1)), 'proper': True}]),  # a point
                 ('INVALID_EVENT_PROPER', [{**event('a', 'x', (1, 1)), 'proper': False}]),
                 ('INVALID_EVENT_PROPER', [{**event('a', 'x', (1, 1), (2, 2)), 'proper': 1}]),
-                # It cannot end after it starts: both at 5.
-                ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (5, 5), (5, 5)), 'proper': True}]),
+                # It cannot end after it starts: both at 5. Nothing is shared (D25).
+                ('EMPTY_PROPER_EVENT', [{**event('a', 'x', (5, 5), (5, 5)), 'proper': True}]),
+                # The same with names of its own, and beside an unrelated pair of events that do share a variable.
+                ('EMPTY_PROPER_EVENT', [{**event('a', 'x', (5, 5), (5, 5)), 'start_var': 'p', 'end_var': 'q',
+                                         'proper': True},
+                                        {**event('b', 'x', (0, 9)), 'start_var': 'w'},
+                                        {**event('c', 'x', (0, 9)), 'start_var': 'w'}]),
                 # One variable for start and end ends as it starts.
-                ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (1, 5), (1, 5)), 'end_var': 'a.s', 'proper': True}]),
+                ('EMPTY_PROPER_EVENT', [{**event('a', 'x', (1, 5), (1, 5)), 'end_var': 'a.s', 'proper': True}]),
+                # Proper, and sharing its end with another event's start whose range leaves it no room: shared.
+                ('EMPTY_SHARED_VARIABLE', [{**event('a', 'x', (5, 9), (5, 20)), 'proper': True},
+                                           {**event('b', 'x', (0, 5)), 'start_var': 'a.f'}]),
                 # Y starts when X ends and X when Y ends, each strictly after it starts.
                 ('EMPTY_SHARED_VARIABLE', [{**event('X', 'x', (0, 9), (0, 9)), 'start_var': 'u', 'end_var': 'v',
                                             'proper': True},
@@ -579,7 +587,7 @@ class ProperIntervalTests(unittest.TestCase):
         tg.validate_patient(patient([event('a', 'x', (5, 5), (5, 5))]))
         tg.validate_patient(patient([{**event('a', 'x', (1, 5), (1, 5)), 'end_var': 'a.s'}]))
         # The store's trusted path builds the same network, so it refuses the same records.
-        with self.assertRaisesRegex(tg.TrajectoryError, 'EMPTY_SHARED_VARIABLE'):
+        with self.assertRaisesRegex(tg.TrajectoryError, 'EMPTY_PROPER_EVENT'):
             tg.match_prepared(tg.PreparedQuery(query([{'id': 'a', 'concept': 'x'}])),
                               patient([{**event('a', 'x', (5, 5), (5, 5)), 'proper': True}]), trusted=True)
 
@@ -601,8 +609,8 @@ class ProperIntervalTests(unittest.TestCase):
                  for shape in ('chain', 'tree', 'graph') for seed in range(300)]
         for q, p in cases:
             changed += ref.match(q, p) != ref.match(q, without_proper(p))
-        tg.Times._solve = lambda self, root, members, bounds, orders, strict=(): original_solve(
-            self, root, members, bounds, orders)
+        tg.Times._solve = lambda self, root, members, bounds, orders, strict=(), empty='EMPTY_SHARED_VARIABLE': \
+            original_solve(self, root, members, bounds, orders, (), empty)
         try:
             wrong = sum(tg.match(q, p)['status'] != ref.match(q, p)['status'] for q, p in cases)
         finally:
