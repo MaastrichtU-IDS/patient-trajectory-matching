@@ -1601,10 +1601,9 @@ class BuildLeverTests(unittest.TestCase):
         g['patients'].append(series_patient())
         ids = set()
         with tempfile.TemporaryDirectory() as tmp:
-            for k, (fast, stage, staging) in enumerate([(True, 'own', None), (False, 'own', None),
-                                                        (True, 'events', None), (False, 'events', 'ndjson')]):
+            for k, (fast, staging) in enumerate([(True, None), (False, None), (True, 'ndjson'), (False, 'ndjson')]):
                 with patch.object(es, '_FAST_ROWS', fast):
-                    snapshot = es.build(g, Path(tmp) / str(k), evidence_stage=stage, staging=staging, stage_rows=2)
+                    snapshot = es.build(g, Path(tmp) / str(k), staging=staging, stage_rows=2)
                     with es.open_store(snapshot, verify='content') as store:
                         self.assertEqual(table_mismatches(store, ref.build_tables(g)), {})
                 ids.add(json.loads((snapshot / 'manifest.json').read_text())['snapshot_id'])
