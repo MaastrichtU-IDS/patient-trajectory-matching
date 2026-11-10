@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Results · execution store and matching</title>
+<style>
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; color: #172B3A; background: #F4F7F9; margin: 0; }
+  main { max-width: 980px; margin: 0 auto; padding: 36px 24px 60px; }
+  a { color: #174EA6; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; font-weight: 750; color: #475569; }
+  h1 { font-size: 28px; letter-spacing: -.02em; margin: 10px 0 10px; }
+  h2 { font-size: 19px; margin: 34px 0 6px; }
+  p, li { line-height: 1.6; color: #334155; }
+  .note { font-size: 13px; background: #FBF1DE; border: 1px solid #E9D3A6; color: #5C3D00; border-radius: 8px; padding: 10px 14px; }
+  .muted { color: #64748B; font-size: 13px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+  .tile { background: #fff; border: 1px solid #D9E1E8; border-radius: 12px; padding: 14px 16px; }
+  .tile .k { font-size: 12px; color: #475569; font-weight: 650; }
+  .tile .v { font-size: 28px; font-weight: 750; letter-spacing: -.02em; margin: 4px 0 2px; color: #0F1F2C; }
+  .tile .s { font-size: 12.5px; color: #475569; line-height: 1.45; }
+  .card { background: #fff; border: 1px solid #D9E1E8; border-radius: 12px; padding: 16px 18px; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid #E6ECF1; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #475569; font-weight: 650; font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  .viz-root { --surface-1: #ffffff; --text-primary: #0F1F2C; --text-secondary: #475569; --grid: #E6ECF1; --series-1: #2a78d6; }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .chart-head h3 { margin: 0; font-size: 15px; }
+  .toggle { font: inherit; font-size: 12.5px; border: 1px solid #C9D4DE; background: #fff; border-radius: 6px; padding: 4px 10px; cursor: pointer; color: #172B3A; }
+  svg text { font-family: inherit; }
+  .tip { position: absolute; pointer-events: none; background: #0F1F2C; color: #fff; font-size: 12px; line-height: 1.5; padding: 7px 10px; border-radius: 6px; opacity: 0; transition: opacity .08s; white-space: nowrap; }
+  .chart-wrap { position: relative; }
+  .ok { font-weight: 650; }
+  .src code { font-size: 11.5px; }
+  ul.tight li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">PATIENT TRAJECTORY MATCHING · RESULTS</div>
+  <h1>Execution store and matching: what the evidence shows</h1>
+  <p class="note">Every figure on this page is read from a committed verification report, listed at the bottom with its digest. Scale figures use <b>synthetic</b> patients on <b>one machine</b>; beyond 10,000 patients the cohort replicates a pool of 10,000 distinct patients. The MIMIC-IV figures use the open demo (100 patients) and show aggregate counts only. Nothing here is a clinical claim.</p>
+  <p><a href="../">← all mockups</a> · decisions and reasoning: <code>docs/decisions/briefing-2026-11.md</code> and <code>docs/decisions/engine-increment-log.md</code></p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Matching speed at 300,000 patients</h2>
+  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, each repeated <span data-k="m.repeats"></span> times, with the engine's work spread over worker processes. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. Because it is met in Python, no Rust engine was built.</p>
+  <div class="card viz-root">
+    <div class="chart-head">
+      <h3>95th-percentile query time by worker count</h3>
+      <button class="toggle" id="toggleTable" aria-pressed="false">Show table</button>
+    </div>
+    <div class="chart-wrap" id="chartWrap">
+      <svg id="chart" role="img" aria-label="Bar chart of 95th-percentile match time at 300,000 patients by number of worker processes, with the 10 second target marked" width="100%" viewBox="0 0 900 300"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="scroll" id="armTable" hidden></div>
+    <p class="muted" id="identity"></p>
+  </div>
+
+  <h2>Building and verifying the store as the cohort grows</h2>
+  <p>DuckDB writes immutable Parquet snapshots under a <span data-k="s.limit"></span> memory limit with one database thread. Each snapshot is identified by a digest of its canonical rows, and every build is verified by content. Single-process match times are over the main run's queries at each size (50 at 1,000 and 10,000; 10 above).</p>
+  <div class="card"><div class="scroll" id="scaleTable"></div>
+    <p class="muted">Build peak is the whole process's resident memory, about twice DuckDB's limit; the factor is unresolved (DuckDB or the allocator). The 1,000,000 snapshot is shaped by replication of the 10,000-patient pool, so its size is not a linear extrapolation.</p>
+  </div>
+
+  <h2>MIMIC-IV demo: inputevents and chartevents in one store</h2>
+  <p>The open MIMIC-IV demo, fetched locally and checksum-verified, never committed. Input events go through the full graph route; chart events are built in bulk from the importer's claim identity (route b), and on the demo every row and every store was also checked, not a sample.</p>
+  <div class="card"><div class="scroll" id="mimicTable"></div></div>
+  <div class="card"><div class="scroll" id="censusTable"></div>
+    <p class="muted">The raw-row check recomputes every chart row from the source file with code independent of the converter. The graph route shares code with the bulk route, so on its own it checks the claim's round trip and acceptance, not the shared conversion.</p>
+  </div>
+  <div class="card"><div class="scroll" id="diffTable"></div>
+    <p class="muted">Most results are <i>not comparable</i>: only numeric chart rows with a unit are admitted, and an excluded row of the same item might have changed the answer, so the store does not claim <i>none</i> there (D18).</p>
+  </div>
+
+  <h2>Limits of this evidence</h2>
+  <ul class="tight">
+    <li>One machine (<span data-k="m.target.machine"></span>), one DuckDB thread, one memory limit.</li>
+    <li>Synthetic data, replicated beyond 10,000 patients: candidate counts and outcomes multiply exactly, and a million distinct patients was never built.</li>
+    <li>Latency at 100,000 patients and above in the main runs rests on ten queries; the target is judged on the 30-query, 3-repeat confirmation.</li>
+    <li>Run-to-run spread between benchmark runs is not fully explained; the decision log records each instance.</li>
+    <li>Parallel matching at 1,000,000 patients was not measured.</li>
+    <li>The MIMIC store indexes source item classes, not reviewed clinical concepts.</li>
+  </ul>
+
+  <h2>Sources</h2>
+  <div class="src muted" id="sources"></div>
+</main>
+<script>
+const fmt = (n, d = 0) => Number(n).toLocaleString('en-GB', { minimumFractionDigits: d, maximumFractionDigits: d });
+const dur = s => s >= 3600 ? `${fmt(s / 3600, 1)} h` : s >= 120 ? `${fmt(s / 60, 0)} min` : `${fmt(s, s < 10 ? 2 : 1)} s`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function table(head, rows) {
+  return `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
+    rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+fetch('results.json').then(r => r.json()).then(render).catch(e => {
+  document.getElementById('tiles').innerHTML = `<p class="note">Could not load results.json (${esc(e)}). Serve this page over HTTP with demos/mockups/server.py.</p>`;
+});
+
+function render(d) {
+  const S = d.scaling, M = d.matching, X = d.mimic_demo;
+  const big = S.sizes[S.sizes.length - 1];
+  const best = M.arms[M.arms.length - 1];
+  const fill = {
+    'm.queries': M.queries, 'm.repeats': M.repeats, 'm.target.p95': fmt(M.target.p95_seconds),
+    'm.target.max': fmt(M.target.max_seconds), 'm.target.mem': fmt(M.target.memory_gib),
+    'm.target.machine': esc(M.target.machine || 'one machine'), 's.limit': esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2')),
+  };
+  document.querySelectorAll('[data-k]').forEach(el => { el.textContent = fill[el.dataset.k] ?? ''; });
+
+  const tiles = [
+    ['Largest store built', fmt(big.patients), `synthetic patients, ${fmt(big.events / 1e6, 0)} million events; built in ${dur(big.build_seconds)} and verified by content under a ${esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2'))} DuckDB limit`],
+    ['Matching at 300,000 patients', `${fmt(best.p95_seconds, 2)} s`, `95th-percentile full-detail query with ${best.workers} workers (target ≤ ${fmt(M.target.p95_seconds)} s); slowest ${fmt(best.max_seconds, 1)} s, ${fmt(best.query_peak_gib, 2)} GiB`],
+    ['Parallel equals single-process', `${M.identical_results.identical} / ${M.identical_results.compared}`, 'query results byte-identical across 1, 2, 4, 8 and 14 workers in the confirmation'],
+    ['MIMIC-IV demo census', `${fmt(X.census.mismatched_stores + X.census.built_store_mismatches)} mismatches`, `${fmt(X.census.raw_rows_checked)} chart rows checked against the raw file; ${fmt(X.census.stores_graph_checked)} claim stores through the graph route; ${fmt(X.differential.results)} differential results, ${fmt(X.differential.mismatches)} mismatches`],
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(([k, v, s]) =>
+    `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+
+  drawChart(M);
+  document.getElementById('armTable').innerHTML = table(
+    ['Workers', 'p95 (s)', 'p95 per repeat (s)', 'Slowest (s)', 'Query memory (GiB)', 'µs per candidate', 'Target'],
+    M.arms.map(a => [a.workers, fmt(a.p95_seconds, 2), a.p95_by_repeat.map(x => fmt(x, 2)).join(' · '),
+      fmt(a.max_seconds, 2), fmt(a.query_peak_gib, 2), fmt(a.per_candidate_us, 1), a.meets_target ? '<span class="ok">met</span>' : 'missed']));
+  document.getElementById('identity').textContent =
+    `Single process: ${fmt(M.single_process_per_candidate_us, 1)} µs per candidate. Results at every worker count are byte-identical to the single-process matcher's (${M.identical_results.identical} of ${M.identical_results.compared} query comparisons).`;
+  const tb = document.getElementById('toggleTable');
+  tb.onclick = () => {
+    const show = document.getElementById('armTable').hidden;
+    document.getElementById('armTable').hidden = !show;
+    document.getElementById('chartWrap').hidden = show;
+    tb.textContent = show ? 'Show chart' : 'Show table';
+    tb.setAttribute('aria-pressed', String(show));
+  };
+
+  document.getElementById('scaleTable').innerHTML = table(
+    ['Patients', 'Events', 'Build', 'Build peak (GiB)', 'Snapshot (GB)', 'Content check', 'Check peak (GiB)', 'Open (warm)', 'Match p50', 'Match max'],
+    S.sizes.map(z => [fmt(z.patients), fmt(z.events), dur(z.build_seconds), fmt(z.build_peak_gib, 2), fmt(z.snapshot_gb, 2),
+      dur(z.verify_content_seconds), fmt(z.verify_peak_gib, 2), `${fmt(z.open_seconds_warm, 2)} s`, dur(z.match_p50_seconds), dur(z.match_max_seconds)]));
+
+  document.getElementById('mimicTable').innerHTML = table(
+    ['Source', 'Rows in file', 'Admitted as events', 'Kept as excluded records', 'Claim stores'],
+    [['inputevents (continuous segments)', fmt(X.inputevents.rows), fmt(X.inputevents.admitted), fmt(X.inputevents.rows - X.inputevents.admitted), fmt(X.inputevents.claim_stores)],
+     ['chartevents (numeric, with a unit)', fmt(X.chartevents.rows), fmt(X.chartevents.admitted), fmt(X.chartevents.excluded), fmt(X.chartevents.claim_stores)]]) +
+    `<p class="muted">${fmt(X.patients)} patients, ${fmt(X.icu_stays)} ICU stays. Store tables: ${Object.entries(X.store_tables).map(([k, v]) => `${esc(k)} ${fmt(v)}`).join(' · ')}.</p>`;
+
+  const C = X.census;
+  document.getElementById('censusTable').innerHTML = table(['Check on the demo', 'Covered', 'Result'], [
+    ['Every chart row recomputed from the raw file, coverage included', fmt(C.raw_rows_checked) + ' rows', C.raw_row_check_passed ? 'passed' : 'failed'],
+    ['Round trip through the graph format', fmt(C.stores_round_tripped) + ' stores', '0 failures'],
+    ['Full graph route, field by field', fmt(C.stores_graph_checked) + ' stores', `${fmt(C.mismatched_stores)} mismatched`],
+    ['Graph rows against the built store', fmt(C.events_compared_with_built_store) + ' events', `${fmt(C.built_store_mismatches)} mismatched`],
+  ]);
+
+  const D = X.differential, order = ['exact', 'relaxed', 'unresolved', 'none', 'not_comparable', 'excluded'];
+  document.getElementById('diffTable').innerHTML =
+    `<p style="margin:0 0 8px"><b>Differential:</b> ${fmt(D.queries)} random queries over every patient, ${fmt(D.results)} results compared with an independent reference: <b>${fmt(D.mismatches)} mismatches</b>.</p>` +
+    table(['Result status', 'Results', 'Share'], order.filter(k => k in D.status_mix).map(k =>
+      [k.replace('_', ' '), fmt(D.status_mix[k]), `${fmt(100 * D.status_mix[k] / D.results, 1)}%`]));
+
+  document.getElementById('sources').innerHTML = Object.values(d.sources).map(s =>
+    `<div><code>${esc(s.path)}</code> · sha256 <code>${esc(s.sha256.slice(0, 16))}…</code></div>`).join('') +
+    `<div>Gathered by <code>${esc(d.generator)}</code>.</div>`;
+}
+
+function drawChart(M) {
+  const svg = document.getElementById('chart'), tip = document.getElementById('tip'), wrap = document.getElementById('chartWrap');
+  const W = 900, H = 300, L = 56, R = 120, T = 18, B = 44;
+  const ymax = Math.ceil(Math.max(...M.arms.map(a => a.p95_seconds)) / 10) * 10;
+  const y = v => T + (H - T - B) * (1 - v / ymax);
+  const n = M.arms.length, band = (W - L - R) / n, bw = Math.min(56, band * 0.5);
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; };
+  for (let v = 0; v <= ymax; v += 10) {
+    el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-width': 1 });
+    el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 12, fill: 'var(--text-secondary)' }, `${v} s`);
+  }
+  M.arms.forEach((a, i) => {
+    const cx = L + band * (i + 0.5), x0 = cx - bw / 2, top = y(a.p95_seconds), base = y(0), r = Math.min(4, base - top);
+    const d = `M${x0},${base} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + bw - r} Q${x0 + bw},${top} ${x0 + bw},${top + r} V${base} Z`;
+    el('path', { d, fill: 'var(--series-1)' });
+    el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', 'font-size': 12.5, fill: 'var(--text-primary)' }, String(a.workers));
+    const hit = el('rect', { x: cx - band / 2, y: T, width: band, height: H - T - B, fill: 'transparent', tabindex: 0,
+      'aria-label': `${a.workers} workers: p95 ${a.p95_seconds} seconds` });
+    const show = () => {
+      tip.innerHTML = `<b>${a.workers} worker${a.workers > 1 ? 's' : ''}</b><br>p95 ${fmt(a.p95_seconds, 2)} s · slowest ${fmt(a.max_seconds, 2)} s<br>${fmt(a.per_candidate_us, 1)} µs per candidate · ${fmt(a.query_peak_gib, 2)} GiB<br>target ${a.meets_target ? 'met' : 'missed'}`;
+      const box = wrap.getBoundingClientRect(), sx = box.width / W;
+      tip.style.left = `${Math.min(cx * sx + 12, box.width - 200)}px`; tip.style.top = `${Math.max(top * sx - 10, 0)}px`; tip.style.opacity = 1;
+    };
+    hit.addEventListener('mouseenter', show); hit.addEventListener('focus', show);
+    hit.addEventListener('mouseleave', () => tip.style.opacity = 0); hit.addEventListener('blur', () => tip.style.opacity = 0);
+  });
+  const ty = y(M.target.p95_seconds);
+  el('line', { x1: L, x2: W - R, y1: ty, y2: ty, stroke: 'var(--text-primary)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' });
+  el('text', { x: W - R + 8, y: ty + 4, 'font-size': 12.5, fill: 'var(--text-primary)' }, `target ${fmt(M.target.p95_seconds)} s`);
+  el('text', { x: L + (W - L - R) / 2, y: H - 6, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--text-secondary)' }, 'worker processes');
+}
+</script>
+</body>
+</html>
