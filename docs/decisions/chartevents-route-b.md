@@ -1,6 +1,6 @@
 # D27 (draft): chartevents by route (b), with a graph check and a raw-row check
 
-*Status: superseded by D27 in [the engine-increment log](engine-increment-log.md), which records the integration into store 3.1 and the demo census. This draft is kept for its alternatives and reasoning; where they differ, the log wins.*
+*Status: superseded by D27 in [the engine-increment log](engine-increment-log.md), which records the integration into store 3.1 and the demo census, and, for stage 2 (value conditions), by D28. This draft is kept for its alternatives and reasoning; where they differ, the log wins. D28 departs from section 7's stage-2 sketch in two places: a condition is a unit with up to two bounds rather than one `op`, and its value relaxations are their own relaxation kind (`widen_value`) in the request.*
 
 D16 decided that chartevents and later bulk sources take route (b). It required five things:
 - bulk rows from the importer's pure claim identity;

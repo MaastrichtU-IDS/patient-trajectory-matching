@@ -23,6 +23,13 @@ the measurement graph route, whose rows must equal the bulk rows field for field
 built store. The third differential path then holds every chart event as route (a) gave it. The reference path is
 `PreparedReference` (engine inputs built once per patient); `exhaustive_match`, which filters nothing, runs on the
 first `EXHAUSTIVE_SEEDS` queries, where the prepared reference and an unfiltered adapter path must agree with it.
+
+Value conditions (D28). `VALUE_SEEDS` further queries carry value conditions on measured steps, drawn around recorded
+values (on a value, so a threshold off by one micro-unit changes the answer; in another unit one time in ten), and value
+relaxations. The store must equal the prepared reference with the request on every query and `exhaustive_match` on the
+first `VALUE_EXHAUSTIVE_SEEDS`, result for result; each relaxation must widen to a tag holding the stricter tag's events;
+and planted defects (a threshold off by one, the unit ignored, null micro-unit values read as matching or not) must
+produce mismatches where the demo holds a row they affect. The adapter rows carry no values, so they are not a third path.
 """
 from __future__ import annotations
 
@@ -313,6 +320,190 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0, exhaust
             'mismatch_examples': examples[:5]}
 
 
+# ---------------------------------------------------------------- value conditions (D28, chartevents stage 2)
+
+VALUE_SEEDS = 200
+VALUE_EXHAUSTIVE_SEEDS = 20
+VALUE_DEFECT_SEEDS = 40
+VALUE_FIRST_SEED = 100_000  # value queries draw from their own seeds, apart from the 500 above
+
+
+def series_pool(ingest):
+    """{concept: [(unit, spelling)]}: every series row's unit and value under its item class and the item's grouping,
+    the values a condition is drawn around."""
+    ancestors = ingest['closure']['ancestors']
+    out = defaultdict(list)
+    for p in ingest['patients']:
+        for r in p.get('series', []):
+            for c in (r['item_class'], *ancestors[r['item_class']]):
+                out[c].append((r['unit'], r['value_lexical']))
+    return {c: sorted(v) for c, v in out.items()}
+
+
+def _value_bounds(rng, values, text):
+    """Bounds around a value: on it (so a threshold off by one micro-unit moves the answer), or a range to another."""
+    from . import series_values as sv
+    op = rng.choice(('ge', 'gt', 'le', 'lt', 'eq', 'range', 'range'))
+    if op == 'eq':
+        return {'eq': text}
+    if op != 'range':
+        return {op: text}
+    a, b = sorted((text, rng.choice(values)), key=sv.decimal_of)
+    if sv.decimal_of(a) == sv.decimal_of(b):
+        return {'ge': a, 'le': b}
+    return {rng.choice(('ge', 'gt')): a, rng.choice(('le', 'lt')): b}
+
+
+def _value_wider(rng, values, condition):
+    """A condition containing `condition`: each bound kept, loosened from strict to inclusive, or moved outwards to
+    another value of the concept; a bound dropped leaves the other, and a condition left with none is widened instead."""
+    from . import series_values as sv
+    if 'eq' in condition:
+        sides = [('ge', condition['eq']), ('le', condition['eq'])]
+    else:
+        sides = [(k, condition[k]) for k in ('gt', 'ge', 'lt', 'le') if k in condition]
+    out = {'unit': condition['unit']}
+    for key, text in sides:
+        mode = rng.choice(('keep', 'loosen', 'move', 'move'))
+        if mode == 'loosen':
+            key = {'gt': 'ge', 'lt': 'le'}.get(key, key)
+        elif mode == 'move':
+            v = sv.decimal_of(text)
+            lower = key in ('gt', 'ge')
+            pool = [x for x in values if (sv.decimal_of(x) < v if lower else sv.decimal_of(x) > v)]
+            if pool:
+                text = rng.choice(pool)
+        out[key] = text
+    return out
+
+
+def random_value_request(rng, pool, ingest, values):
+    """A seeded query (`random_query`) with value conditions on the steps whose concept has measured values: each drawn
+    around one of the concept's recorded values, in that value's unit or, one time in ten, in another unit of the demo;
+    one time in three with a value relaxation. Returns (query, conditions or None, windows)."""
+    query, windows = random_query(rng, pool, ingest), random_windows(rng, ingest)
+    units = sorted({u for rows in values.values() for u, _ in rows})
+    steps, relaxations = {}, []
+    for step in query['steps']:
+        rows = values.get(step['concept'])
+        if not rows or rng.random() < 0.15:
+            continue
+        unit, text = rng.choice(rows)
+        if rng.random() < 0.1:
+            unit = rng.choice(units)
+        mine = [t for u, t in rows if u == unit] or [text]
+        condition = {'unit': unit, **_value_bounds(rng, mine, text)}
+        steps[step['id']] = condition
+        if rng.random() < 0.33:
+            relaxations.append({'id': f"v{step['id']}", 'kind': 'widen_value', 'step': step['id'],
+                                'cost': rng.choice(COSTS), 'condition': _value_wider(rng, mine, condition)})
+    if not steps:
+        return query, None, windows
+    conditions = {'profile': es.CONDITIONS_PROFILE, 'steps': steps}
+    if relaxations:
+        conditions['relaxations'] = relaxations
+    return query, conditions, windows
+
+
+def value_cases(ingest, seeds, first_seed=VALUE_FIRST_SEED):
+    """The seeded value requests, one per seed (a seed whose query has no measured step draws again)."""
+    pool, values = concept_pool(ingest), series_pool(ingest)
+    for seed in range(first_seed, first_seed + seeds):
+        rng = random.Random(seed)
+        while True:
+            query, conditions, windows = random_value_request(rng, pool, ingest, values)
+            if conditions is not None:
+                yield seed, query, conditions, windows
+                break
+
+
+def _unfiltered(result):
+    """A store result as the reference writes it: the candidate filter's `none` is the engine's complete `none`."""
+    return {k: v for k, v in result.items() if k != 'reason'} if result.get('reason') == 'FILTERED' else result
+
+
+def _value_mismatches(store, prepared, cases, ingest=None, exhaustive_seeds=0):
+    wrong, mix, compared, examples = 0, Counter(), 0, []
+    for k, (seed, query, conditions, windows) in enumerate(cases):
+        got = es.match(store, query, windows, conditions=conditions)['results']
+        wants = [prepared.match(query, windows, conditions)]
+        if k < exhaustive_seeds:
+            wants.append(ref.exhaustive_match(ingest, query, windows, conditions))
+        for want in wants:
+            for g, w in zip(got, want, strict=True):
+                assert g['patient_id'] == w['patient_id'], (seed, g['patient_id'], w['patient_id'])
+                compared += 1
+                if json.dumps(_unfiltered(g)) != json.dumps(w):
+                    wrong += 1
+                    examples.append({'seed': seed, 'store': g['status'], 'reference': w['status']})
+        mix.update(g['status'] for g in got)
+    return wrong, mix, compared, examples
+
+
+def value_planted_defects():
+    """The planted defects of the value conditions (as in `patterns/test_value_conditions.py`), as patches."""
+    real = es._micro_bounds
+
+    def off_by_one(condition):  # `ge t` read as `gt t` on exact micro-unit values
+        lo, hi = real(condition)
+        return (None if lo is None else lo + 1 if condition[1][1] else lo), hi
+    return {'threshold_off_by_one': ('_micro_bounds', off_by_one),
+            'unit_ignored': ('_tag_where', lambda spec: ('cc.ancestor = ? AND ? IS NOT NULL', [spec[0], spec[1][0]])),
+            'null_micro_value_as_matching': ('_decimal_satisfies', lambda condition, text: True),
+            'null_micro_value_as_not_matching': ('_decimal_satisfies', lambda condition, text: False)}
+
+
+def value_differential(store, ingest, seeds=VALUE_SEEDS, exhaustive_seeds=VALUE_EXHAUSTIVE_SEEDS,
+                       defect_seeds=VALUE_DEFECT_SEEDS):
+    """Value requests (D28): the store against the prepared reference on every query and `exhaustive_match` on the
+    first, result for result; every value relaxation checked to widen to a tag holding the stricter tag's events; and
+    each planted defect run on the first `defect_seeds` queries, where it must produce mismatches unless the demo holds
+    no row it could affect (counted)."""
+    from unittest.mock import patch
+    prepared = pr.PreparedReference(ingest)
+    cases = list(value_cases(ingest, seeds))
+    wrong, mix, compared, examples = _value_mismatches(store, prepared, cases, ingest, exhaustive_seeds)
+    shapes, relaxations, violations = Counter(), 0, 0
+    values = series_pool(ingest)
+    for seed, query, conditions, _ in cases:
+        request = es.Request(query, conditions)
+        concept = {s['id']: s['concept'] for s in query['steps']}
+        for sid, condition in conditions['steps'].items():
+            shapes['conditions'] += 1
+            recorded = {t for u, t in values.get(concept[sid], ()) if u == condition['unit']}
+            shapes['on_a_recorded_value'] += any(condition.get(k) in recorded for k in ('eq', 'ge', 'gt', 'le', 'lt'))
+            shapes['unit_not_recorded_for_concept'] += not recorded
+            shapes['grouping'] += concept[sid].startswith(msi.GROUP_NS)
+        tags = {s['id']: s['concept'] for s in request.query['steps']}
+        for x in conditions.get('relaxations', []):
+            wide = next(r['concept'] for r in request.query['relaxations'] if r['id'] == x['id'])
+            strict, wider = (set(sum(es._tag_rows(store, request.tags[t], 's.patient_idx, s.event_id'), []))
+                             for t in (tags[x['step']], wide))
+            relaxations += 1
+            violations += not strict <= wider
+    nulls = store.query('SELECT count(*) FROM series WHERE value_micro IS NULL')[0][0]
+    defects = {}
+    for name, (target, replacement) in value_planted_defects().items():
+        with patch.object(es, target, replacement):
+            found = _value_mismatches(store, prepared, cases[:defect_seeds])[0]
+        defects[name] = {'queries': min(defect_seeds, len(cases)), 'mismatches': found,
+                         'caught': found > 0}
+    return {'queries': len(cases), 'first_seed': VALUE_FIRST_SEED, 'patient_results': sum(mix.values()),
+            'results_compared': compared,
+            'reference': ('prepared_reference with the request (engine inputs once per patient) on every query; '
+                          'exhaustive_match with the request on the first queries; each reads conditions independently '
+                          'of the store (execution_store_reference.ValueQuery: Decimal on the spelling, the unit letter '
+                          'for letter)'),
+            'exhaustive_queries': min(exhaustive_seeds, len(cases)), 'mismatches': wrong,
+            'status_mix': dict(sorted(mix.items())), 'condition_shapes': dict(sorted(shapes.items())),
+            'value_relaxations_checked': relaxations, 'value_relaxation_containment_violations': violations,
+            'series_rows_with_null_micro_value': nulls,
+            'planted_defects': defects,
+            'note': ('a planted defect in reading null micro-unit values cannot fail on a snapshot holding none; the '
+                     'synthetic fixtures of patterns/test_value_conditions.py hold many'),
+            'mismatch_examples': examples[:5]}
+
+
 def raw_time_check(ingest, segments):
     """Every event's times against the raw source row: start, end and recorded time, to the microsecond."""
     by_key = {s['id']: s for s in segments}
@@ -386,7 +577,7 @@ def built_store_comparison(store, outcomes):
 
 
 def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, census_workers=None,
-           exhaustive_seeds=EXHAUSTIVE_SEEDS):
+           exhaustive_seeds=EXHAUSTIVE_SEEDS, value_seeds=VALUE_SEEDS):
     started = time.perf_counter()
     result = msi.convert(input_dir, DATASET, workers=workers, chartevents=chartevents)
     admission = demo.verify_summary(result['prepared']['admission']['summary'])
@@ -439,6 +630,11 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
             engine_input = adapter_engine_input(result['rows'], result['prepared']['items'], chart_events)
             check = differential(store, result['ingest'], engine_input, seeds, exhaustive_seeds=exhaustive_seeds)
             timings['differential'] = time.perf_counter() - t
+            values = None
+            if chartevents and value_seeds:
+                t = time.perf_counter()
+                values = value_differential(store, result['ingest'], value_seeds)
+                timings['value_differential'] = time.perf_counter() - t
     times = raw_time_check(result['ingest'], result['prepared']['admission']['segments'])
     timings['total'] = time.perf_counter() - started
     import resource
@@ -451,8 +647,14 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
                and check['exhaustive_slice']['prepared_reference_mismatches'] == 0, 'DEMO_STORE_DIFFERENTIAL_MISMATCH')
     ei.require(times['mismatches'] == 0 and times['events_checked'] == result['counts']['events'],
                'DEMO_RAW_TIME_MISMATCH')
+    if values is not None:
+        defects = values['planted_defects']
+        ei.require(values['mismatches'] == 0 and values['value_relaxation_containment_violations'] == 0
+                   and defects['threshold_off_by_one']['caught'] and defects['unit_ignored']['caught']
+                   and (values['series_rows_with_null_micro_value'] == 0
+                        or all(d['caught'] for d in defects.values())), 'DEMO_VALUE_DIFFERENTIAL_MISMATCH')
     report = {
-        'profile': 'execution-store-mimic-demo-verification-1.1' if chartevents else
+        'profile': 'execution-store-mimic-demo-verification-1.2' if chartevents else
                    'execution-store-mimic-demo-verification-1.0',
         'scope': ('Public-demo inputevents through the SULO adapter and chartevents numeric measurements by route (b) '
                   'into the execution store. Concepts are source item classes with their dictionary groupings, not '
@@ -484,6 +686,8 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
     }
     if chart_report is not None:
         report['chartevents'] = chart_report
+    if values is not None:
+        report['value_differential'] = values
         report['route'] = {**report['route'], 'source': msi.SOURCE}
     return report
 
@@ -498,12 +702,13 @@ def main(argv=None):
     parser.add_argument('--store-root', type=Path, help='keep the snapshot here (default: a temporary directory)')
     parser.add_argument('--census-workers', type=int, help='processes for the chartevents census (default: --workers)')
     parser.add_argument('--no-chartevents', action='store_true', help='inputevents only, as before D27')
+    parser.add_argument('--value-seeds', type=int, default=VALUE_SEEDS, help='value-condition queries (D28); 0 for none')
     args = parser.parse_args(argv)
     try:
         inputs = {p.resolve() for p in importer.source_paths(args.input_dir).values()}
         ei.require(args.output.resolve() not in inputs, 'OUTPUT_OVERWRITES_INPUT')
         report = verify(args.input_dir, args.seeds, args.workers, args.store_root, chartevents=not args.no_chartevents,
-                        census_workers=args.census_workers)
+                        census_workers=args.census_workers, value_seeds=args.value_seeds)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.output.with_suffix(args.output.suffix + '.tmp')
         temporary.write_text(json.dumps(report, indent=2) + '\n')

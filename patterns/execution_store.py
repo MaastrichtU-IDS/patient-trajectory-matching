@@ -31,6 +31,11 @@ when the patient holds excluded records (table `excluded_records`) a step could 
 output carries the snapshot's labels and a `context` (snapshot, query and window digests,
 engine artifact digests, rules, verification level, labels) and that context's digest, `context_id`.
 
+A match request may carry value `conditions` (D28): per step, a comparison or range on the values of the step's
+concept's `series` rows in one literal unit, and value relaxations that widen one. Each is compiled into a per-query
+tag concept (`Request`), which the engine sees as the step's concept; the engine is unchanged, and the candidate
+filter, time pruning, loading, coverage and excluded records each read tags as docs/execution-store.md says.
+
 `patterns/execution_store_reference.py` builds the same tables and digests in pure Python, and
 `patterns/test_execution_store.py` compares them table by table and bucket by bucket. DuckDB is
 imported lazily, here only, so nothing else in the engine needs it.
@@ -39,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import copy
 import hashlib
 import json
 import os
@@ -1434,7 +1440,7 @@ class Store:
 
     def series(self, patient_id, event_ids=None):
         """One patient's series rows (D27) as dicts in key order (item class, time, event), all of them or those of
-        the given events; for display and audit. Matching does not read the table in this profile."""
+        the given events; for display and audit. Matching reads the table only for value conditions (D28)."""
         found = self.query('SELECT patient_idx, bucket FROM patients WHERE patient_id = ?', [patient_id])
         if not found:
             return []
@@ -1491,25 +1497,280 @@ def _visible_to_exclusions(store, concepts):
         raise StoreError('STRUCTURAL_CONCEPT_EXCLUSION_UNKNOWN', ', '.join(structural))
 
 
-def candidates(store, query):
+# Value conditions (D28, chartevents stage 2). A store match request may carry `conditions`: per step, a comparison or
+# a range on the values of the step's concept's `series` rows, in one literal unit, and value relaxations that widen
+# one. Each condition is compiled into a per-query tag concept: an event carries the tag when it has a series row whose
+# item class the step's concept covers (reflexively, through the closure), whose unit equals the condition's unit
+# exactly, and whose value satisfies the condition, compared exactly. The engine receives the tag as the step's
+# concept and is unchanged; tags are not in any table, so they are outside the snapshot identity.
+
+CONDITIONS_PROFILE = 'execution-store-conditions-1.0'
+VALUE_RULE = 'series_unit_exact_value_v1'
+_LOWER, _UPPER = ('gt', 'ge'), ('lt', 'le')
+_TAG_PREFIX = 'value-condition:'
+
+
+def _bound_value(text, where):
+    from . import series_values as sv
+    try:
+        return sv.decimal_of(text)
+    except sv.SeriesValueError:
+        raise StoreError('INVALID_CONDITION_VALUE', where) from None
+
+
+def _condition(raw, where):
+    """(unit, lower, upper) of a condition, each bound (Decimal, closed) or None, refused by name when malformed or
+    empty. A condition is `{unit, eq}` or `{unit}` with at most one of `gt`, `ge` and at most one of `lt`, `le`, at least
+    one bound in all; values are exact decimal strings in the measurement decimal rule (`series_values.decimal_of`)."""
+    if not (isinstance(raw, dict) and 'unit' in raw and set(raw) <= {'unit', 'eq', *_LOWER, *_UPPER}):
+        raise StoreError('INVALID_CONDITION', where)
+    unit = raw['unit']
+    if not (type(unit) is str and unit and unit.strip() == unit):
+        raise StoreError('INVALID_CONDITION', f'{where}: unit')
+    lows, highs = [k for k in _LOWER if k in raw], [k for k in _UPPER if k in raw]
+    if 'eq' in raw:
+        if lows or highs:
+            raise StoreError('INVALID_CONDITION', f'{where}: eq with another bound')
+        value = _bound_value(raw['eq'], where)
+        return unit, (value, True), (value, True)
+    if len(lows) > 1 or len(highs) > 1 or not (lows or highs):
+        raise StoreError('INVALID_CONDITION', f'{where}: bounds')
+    lower = (_bound_value(raw[lows[0]], where), lows[0] == 'ge') if lows else None
+    upper = (_bound_value(raw[highs[0]], where), highs[0] == 'le') if highs else None
+    if lower and upper and (lower[0] > upper[0] or (lower[0] == upper[0] and not (lower[1] and upper[1]))):
+        raise StoreError('EMPTY_CONDITION', where)
+    return unit, lower, upper
+
+
+def _decimal_text(value):
+    return format(value.normalize(), 'f')
+
+
+def condition_form(condition):
+    """A compiled condition as a normal request condition: `eq` for a point, else `ge`/`gt` and `le`/`lt`, with each
+    value in its shortest exact decimal form."""
+    unit, lower, upper = condition
+    if lower and upper and lower == upper:
+        return {'unit': unit, 'eq': _decimal_text(lower[0])}
+    out = {'unit': unit}
+    if lower:
+        out['ge' if lower[1] else 'gt'] = _decimal_text(lower[0])
+    if upper:
+        out['le' if upper[1] else 'lt'] = _decimal_text(upper[0])
+    return out
+
+
+def contains(outer, inner):
+    """Whether every value `inner` admits, `outer` admits too, in the same unit: so the tag of `outer` holds every event
+    the tag of `inner` holds, for one concept (the containment a value relaxation needs)."""
+    if outer[0] != inner[0]:
+        return False
+    (_, olo, ohi), (_, ilo, ihi) = outer, inner
+    lower_ok = olo is None or (ilo is not None and (olo[0] < ilo[0] or (olo[0] == ilo[0] and (olo[1] or not ilo[1]))))
+    upper_ok = ohi is None or (ihi is not None and (ohi[0] > ihi[0] or (ohi[0] == ihi[0] and (ohi[1] or not ihi[1]))))
+    return lower_ok and upper_ok
+
+
+def tag_name(concept, condition):
+    """A tag's concept name: a digest of the concept and the condition's normal form, so equal conditions share one."""
+    return _TAG_PREFIX + _sha256(_json([concept, condition_form(condition)]))
+
+
+class Request:
+    """A store match request compiled: the engine query, with each conditioned step's concept and widenings replaced by
+    tags and each value relaxation by a `widen_concept` to a tag; `tags` maps each tag to (concept, condition);
+    `base` maps each step to the concepts the engine may bind it by, read as concepts (a tag by its concept), which
+    the excluded-records rule and the concept checks use; `conditions` is the request's own, for the context."""
+
+    def __init__(self, query, conditions):
+        tg.validate_query(query)
+        if not (isinstance(conditions, dict) and conditions.get('profile') == CONDITIONS_PROFILE
+                and set(conditions) <= {'profile', 'steps', 'relaxations'} and 'steps' in conditions):
+            raise StoreError('INVALID_CONDITIONS', 'profile, steps and relaxations')
+        steps = {s['id']: s for s in query['steps']}
+        given = conditions['steps']
+        if not (isinstance(given, dict) and given):
+            raise StoreError('INVALID_CONDITIONS', 'steps')
+        unknown = sorted(str(k) for k in set(given) - set(steps))
+        if unknown:
+            raise StoreError('UNKNOWN_CONDITION_STEP', ', '.join(unknown))
+        own = {sid: _condition(raw, sid) for sid, raw in given.items()}
+        self.tags = {}
+
+        def tag(concept, condition):
+            name = tag_name(concept, condition)
+            self.tags[name] = (concept, condition)
+            return name
+        compiled = copy.deepcopy(query)
+        for step in compiled['steps']:
+            if step['id'] in own:
+                step['concept'] = tag(steps[step['id']]['concept'], own[step['id']])
+        relaxations = []
+        for x in compiled.get('relaxations', []):
+            if x['kind'] == 'widen_concept' and x['step'] in own:
+                x = {**x, 'concept': tag(x['concept'], own[x['step']])}  # the step's condition on the wider concept
+            relaxations.append(x)
+        ids = {x['id'] for x in relaxations}
+        given = conditions.get('relaxations', [])
+        if not isinstance(given, list):
+            raise StoreError('INVALID_CONDITIONS', 'relaxations')
+        for x in given:
+            if not (isinstance(x, dict) and set(x) == {'id', 'kind', 'step', 'cost', 'condition'}
+                    and x['kind'] == 'widen_value' and type(x['id']) is str and x['id']):
+                raise StoreError('INVALID_VALUE_RELAXATION', repr(x)[:120])
+            if x['id'] in ids:
+                raise StoreError('DUPLICATE_RELAXATION', x['id'])
+            ids.add(x['id'])
+            if x['step'] not in own:
+                raise StoreError('VALUE_RELAXATION_STEP_NOT_CONDITIONED', str(x['step']))
+            wider = _condition(x['condition'], x['id'])
+            if not contains(wider, own[x['step']]):
+                raise StoreError('VALUE_RELAXATION_MUST_WIDEN', x['id'])
+            relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
+                                'concept': tag(steps[x['step']]['concept'], wider)})
+        if relaxations or 'relaxations' in compiled:
+            compiled['relaxations'] = relaxations
+        self.query = tg.validate_query(compiled)
+        self.conditions = conditions
+        per_step = _step_concepts(self.query)
+        self.base = {sid: list(dict.fromkeys(self.tags[c][0] if c in self.tags else c for c in cs))
+                     for sid, cs in per_step.items()}
+        # The tags some relaxation set the engine would try names (a relaxation beyond the budget is never tried).
+        used = {c for cs in per_step.values() for c in cs}
+        self.used = {name: spec for name, spec in self.tags.items() if name in used}
+
+    def describe(self):
+        """The tags, for the match output: each tag's concept and condition in normal form."""
+        return {'profile': CONDITIONS_PROFILE, 'rule': VALUE_RULE,
+                'tags': {name: {'concept': c, 'condition': condition_form(k)} for name, (c, k) in sorted(self.tags.items())}}
+
+
+def _micro_bounds(condition):
+    """The integer bounds [lo, hi] (None where open) that a series row with a micro-unit value m must meet, m an exact
+    integer: m >= ceil(t * 10**6) for `ge t`, m >= floor(t * 10**6) + 1 for `gt t`, m <= floor(t * 10**6) for `le t`
+    and m <= ceil(t * 10**6) - 1 for `lt t`, by exact rational arithmetic; clamped to just outside BIGINT, which every
+    stored micro-unit value lies inside, so the bounds are SQL parameters of any size."""
+    from fractions import Fraction
+    import math
+    from . import series_values as sv
+    _, lower, upper = condition
+    clamp = lambda v: max(sv.BIGINT_MIN - 1, min(sv.BIGINT_MAX + 1, v))
+    lo = hi = None
+    if lower:
+        scaled = Fraction(lower[0]) * 10 ** 6
+        lo = clamp(math.ceil(scaled) if lower[1] else math.floor(scaled) + 1)
+    if upper:
+        scaled = Fraction(upper[0]) * 10 ** 6
+        hi = clamp(math.floor(scaled) if upper[1] else math.ceil(scaled) - 1)
+    return lo, hi
+
+
+def _decimal_satisfies(condition, text):
+    """Whether an exact decimal (a series row's `value_decimal`) satisfies a condition: Decimal comparisons are exact,
+    whatever the context's precision."""
+    from decimal import Decimal
+    value = Decimal(text)
+    _, lower, upper = condition
+    if lower and not (value > lower[0] or (lower[1] and value == lower[0])):
+        return False
+    if upper and not (value < upper[0] or (upper[1] and value == upper[0])):
+        return False
+    return True
+
+
+def _tag_where(spec):
+    """The SQL test (over `series s` joined to `concept_closure cc` on its item class) of a tag's concept and unit."""
+    concept, (unit, _, _) = spec
+    return 'cc.ancestor = ? AND s.unit = ?', [concept, unit]
+
+
+def _tag_rows(store, spec, columns, loose_columns=None, join='', where='', params=(), group=''):
+    """The series rows carrying the tag `spec` = (concept, condition), in two parts: rows whose micro-unit value is
+    exact, tested in SQL against `_micro_bounds`, as `columns` (over `series s`, grouped by `group` if given), and rows
+    whose micro-unit value is null (finer than 10**-6, or beyond BIGINT), each tested on its exact decimal by
+    `_decimal_satisfies`, as `loose_columns` (default `columns`; never grouped: the caller merges them). Returns (exact
+    rows, null rows). `join` takes no parameters; `params` are `where`'s."""
+    test, test_params = _tag_where(spec)
+    lo, hi = _micro_bounds(spec[1])
+    bounds = (' AND s.value_micro >= ?' if lo is not None else '') + (' AND s.value_micro <= ?' if hi is not None else '')
+    head = f'FROM series s JOIN concept_closure cc ON cc.concept = s.item_class {join} WHERE {test} {where}'
+    exact = store.db.execute(f'SELECT {columns} {head} AND s.value_micro IS NOT NULL{bounds} {group}',
+                             test_params + list(params) + [b for b in (lo, hi) if b is not None]).fetchall()
+    loose = [row[:-1] for row in store.db.execute(
+        f'SELECT {loose_columns or columns}, s.value_decimal {head} AND s.value_micro IS NULL', test_params + list(params)).fetchall()
+        if _decimal_satisfies(spec[1], row[-1])]
+    return exact, loose
+
+
+def _tag_patients(store, spec):
+    """The patients holding some event that carries the tag: its candidates, exactly."""
+    exact, loose = _tag_rows(store, spec, 's.patient_idx', group='GROUP BY s.patient_idx')
+    return {r[0] for r in exact} | {r[0] for r in loose}
+
+
+def _tag_summaries(store, spec, part):
+    """{patient_idx: (min start_lo, max start_hi, max end)} over the tag's events of the candidates in `part` (sorted;
+    the temporary table `_m_live` holds them): the posting summaries a tag would have. Every tagged event is a point
+    (series rows are of points only), so its latest end is its latest start."""
+    exact, loose = _tag_rows(store, spec, 's.patient_idx, min(s.start_lo), max(s.start_hi)',
+                             's.patient_idx, s.start_lo, s.start_hi', 'JOIN _m_live l ON l.idx = s.patient_idx',
+                             'AND s.patient_idx BETWEEN ? AND ?', [part[0], part[-1]], 'GROUP BY s.patient_idx')
+    out = {idx: (lo, hi) for idx, lo, hi in exact}
+    for idx, lo, hi in loose:
+        have = out.get(idx)
+        out[idx] = (lo, hi) if have is None else (min(have[0], lo), max(have[1], hi))
+    return {idx: (lo, hi, hi) for idx, (lo, hi) in out.items()}
+
+
+def _tag_sources(store, spec):
+    """The sources holding, anywhere in the snapshot, a series row of an item class the tag's concept covers, in the
+    tag's unit, whatever its value: the sources that record the tag, for the coverage rule (as `source_concepts` is for
+    a concept)."""
+    test, params = _tag_where(spec)
+    return {r[0] for r in store.query(
+        f'''SELECT DISTINCT e.source FROM series s JOIN concept_closure cc ON cc.concept = s.item_class
+            JOIN events e ON e.bucket = s.bucket AND e.patient_idx = s.patient_idx AND e.event_id = s.event_id
+            WHERE {test}''', params)}
+
+
+def _check_tag_names(store, request):
+    if request is not None:
+        taken = sorted(r[0] for r in store.query(
+            f'SELECT DISTINCT concept FROM concept_closure WHERE concept IN {_in(list(request.tags))}', list(request.tags)))
+        if taken:
+            raise StoreError('VALUE_TAG_NAME_TAKEN', ', '.join(taken))
+
+
+def candidates(store, query, conditions=None):
     """Patients who could match under some relaxation set the engine would try.
 
     Sound, not exact: for each step, the union of postings over its concept and its
     widenings; intersected across steps, rarest first. By concept only: `match` then prunes on the
     postings' summaries (`_prune`, D25, D26).
+
+    With value `conditions` (D28) a conditioned step's concepts are tags, which have no postings: a tag's patients are
+    those holding an event that carries it, read from `series` exactly (`_tag_patients`).
     """
-    return _candidates(store, tg.PreparedQuery(query))
+    request = None if conditions is None else Request(query, conditions)
+    return _candidates(store, tg.PreparedQuery(query if request is None else request.query), request)
 
 
-def _candidates(store, pq):
+def _candidates(store, pq, request=None):
     query = pq.query
     per_step = _step_concepts(query)
-    _known(store, sorted({c for cs in per_step.values() for c in cs}))
-    _visible_to_exclusions(store, sorted({c for cs in per_step.values() for c in cs}))
+    base = per_step if request is None else request.base
+    _known(store, sorted({c for cs in base.values() for c in cs}))
+    _visible_to_exclusions(store, sorted({c for cs in base.values() for c in cs}))
+    _check_tag_names(store, request)
+    tags = {} if request is None else request.tags
     plan = []
     for step, concepts in per_step.items():
+        plain = [c for c in concepts if c not in tags]
         patients = {r[0] for r in store.query(
-            f'SELECT DISTINCT patient_idx FROM concept_postings WHERE concept IN {_in(concepts)}', concepts)}
+            f'SELECT DISTINCT patient_idx FROM concept_postings WHERE concept IN {_in(plain)}', plain)} if plain else set()
+        for c in concepts:
+            if c in tags:
+                patients |= _tag_patients(store, tags[c])
         plan.append({'step': step, 'concepts': concepts, 'patients': patients})
     plan.sort(key=lambda s: (len(s['patients']), s['step']))
     survivors = None
@@ -1621,12 +1882,17 @@ def _impossible(spec, idx, window):
     return False
 
 
-def _prune(store, pq, live, windows_by_idx, slice_size=None):
+def _prune(store, pq, live, windows_by_idx, slice_size=None, tags=None):
     """The candidates in `live` (sorted, strictly increasing: the summaries are read between the first and the last)
     whose result the posting summaries prove: every set the engine would try is impossible (`_impossible`), so its
     answer is `none` with `complete: true`, byte for byte, whatever the patient's events. The summaries are read for
     these candidates only, one concept and one slice of `slice_size` candidates at a time, so memory is bounded by a
-    slice, not the candidate set."""
+    slice, not the candidate set.
+
+    `tags` (D28) maps each tag of a value request to (concept, condition). A tag has no posting; its summaries are
+    computed from the series rows carrying it (`_tag_summaries`), over exactly the events the engine lists under it,
+    so the argument of `_impossible` holds for it unchanged."""
+    tags = tags or {}
     if not live:
         return set()
     if any(a >= b for a, b in zip(live, live[1:])):
@@ -1644,6 +1910,10 @@ def _prune(store, pq, live, windows_by_idx, slice_size=None):
         try:
             _temp(store, '_m_live', [('idx', 'INTEGER')], part)
             for concept in concepts:
+                if concept in tags:
+                    summaries[concept] = {idx: row if ends else row[:2]
+                                          for idx, row in _tag_summaries(store, tags[concept], part).items()}
+                    continue
                 cursor = store.db.execute(f"""SELECT {columns}
                     FROM concept_postings p JOIN _m_live l ON l.idx = p.patient_idx
                     WHERE p.concept = ? AND p.patient_idx BETWEEN ? AND ?""", [concept, part[0], part[-1]])
@@ -1683,7 +1953,7 @@ def _drop(store, *names):
         store.db.execute(f'DROP TABLE IF EXISTS {name}')
 
 
-def _load_events(store, idxs, per_step, linked=()):
+def _load_events(store, idxs, per_step, linked=(), tags=None):
     """{patient_idx: [events]} of these candidates' events that carry any step's concept or widening
     through the closure, as engine events listing only those concepts. `idxs` is sorted and meant to
     be one chunk: it goes into a temporary table that the events are joined to, and the query reads
@@ -1692,7 +1962,11 @@ def _load_events(store, idxs, per_step, linked=()):
     `linked` lists the candidates whose events share time variables (`patients.shared_variables`). Their
     events are matched together: an event no step can bind may still link two that can, so each such
     patient gets every event, those carrying no step concept with no concepts (D24). Any other event
-    links only its own two variables, so leaving it out changes no decision."""
+    links only its own two variables, so leaving it out changes no decision.
+
+    `tags` (D28) maps each tag of a value request to (concept, condition): see `_load_tagged`."""
+    if tags:
+        return _load_tagged(store, idxs, per_step, linked, tags)
     concepts = sorted({c for cs in per_step.values() for c in cs})
     if not idxs:
         return {}
@@ -1740,7 +2014,38 @@ def _load_events(store, idxs, per_step, linked=()):
     return out
 
 
-def _comparability(store, per_step, nones, windows_by_idx, chunk=CHUNK_PATIENTS * SET_CHUNK_FACTOR):
+def _load_tagged(store, idxs, per_step, linked, tags):
+    """`_load_events` for a value request (D28): each event lists the request's plain concepts it carries through the
+    closure and the tags it carries (`_tag_rows` over this chunk's series rows), sorted. An event carrying a tag
+    carries the tag's concept (its series row's item class is one of its direct concepts, and the concept covers it),
+    so the events are loaded as for the plain concepts and the tags' concepts, and each keeps only the plain concepts
+    and tags it carries; an event left with none is dropped, unless its patient shares variables (then every event is
+    kept, as in `_load_events`)."""
+    if not idxs:
+        return {}
+    plain = sorted({c for cs in per_step.values() for c in cs if c not in tags})
+    loaded = _load_events(store, idxs, {'': sorted(set(plain) | {concept for concept, _ in tags.values()})}, linked)
+    carried = {}
+    try:
+        _temp(store, '_m_tagged', [('idx', 'INTEGER')], list(idxs))
+        for name, spec in tags.items():
+            exact, loose = _tag_rows(store, spec, 's.patient_idx, s.event_id', join='JOIN _m_tagged c ON c.idx = s.patient_idx',
+                                     where='AND s.patient_idx BETWEEN ? AND ?', params=[min(idxs), max(idxs)])
+            for idx, eid in exact + loose:
+                carried.setdefault((idx, eid), set()).add(name)
+    finally:
+        _drop(store, '_m_tagged')
+    keep, mine = set(plain), set(linked)
+    out = {}
+    for idx, events in loaded.items():
+        for event in events:
+            concepts = sorted({c for c in event['concepts'] if c in keep} | carried.get((idx, event['id']), set()))
+            if concepts or idx in mine:
+                out.setdefault(idx, []).append({**event, 'concepts': concepts})
+    return out
+
+
+def _comparability(store, per_step, nones, windows_by_idx, chunk=CHUNK_PATIENTS * SET_CHUNK_FACTOR, tags=None):
     """Yield (patient_idx, reason, uncovered steps, unrecorded steps) for patients in `nones` a `none` cannot stand for.
 
     Rule COVERAGE_RULE: a step is covered for a patient when some source that records any of the
@@ -1749,14 +2054,20 @@ def _comparability(store, per_step, nones, windows_by_idx, chunk=CHUNK_PATIENTS 
     reason is then NO_SOURCE_RECORDS_CONCEPT, otherwise NO_SOURCE_COVERAGE.
 
     The overlap test runs in SQL against a temporary table of the windows, `chunk` patients at a time.
+
+    A tag of a value request (D28; `tags` maps each to (concept, condition)) is recorded by the sources holding a series
+    row of its concept in its unit (`_tag_sources`), never more than record its concept.
     """
     if not nones:
         return
-    concepts = sorted({c for cs in per_step.values() for c in cs})
+    tags = tags or {}
+    concepts = sorted({c for cs in per_step.values() for c in cs if c not in tags})
     sources = {}
     for source, concept in store.query(
-            f'SELECT source, concept FROM source_concepts WHERE concept IN {_in(concepts)}', concepts):
+            f'SELECT source, concept FROM source_concepts WHERE concept IN {_in(concepts)}', concepts) if concepts else ():
         sources.setdefault(concept, set()).add(source)
+    for name, spec in tags.items():
+        sources[name] = _tag_sources(store, spec)
     able = {step: set().union(*(sources.get(c, set()) for c in cs)) for step, cs in per_step.items()}
     unrecorded = [step for step in per_step if not able[step]]
     reason = 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE'
@@ -1942,17 +2253,18 @@ def _peak_rss():
 
 def _worker_unit(unit):
     """Run the engine over one unit: ('ok', [(idx, result)], peak RSS) or ('error', type, message)."""
-    key, query, idxs, pids, windows, linked, fault = unit
+    key, query, conditions, idxs, pids, windows, linked, fault = unit
     try:
         if fault == 'exit':
             os._exit(3)
         if fault == 'raise':
             raise RuntimeError('injected failure')
         if _W['key'] != key:
-            pq = tg.PreparedQuery(query)
-            _W.update(key=key, pq=pq, per_step=_step_concepts(pq.query))
+            request = None if conditions is None else Request(query, conditions)
+            pq = tg.PreparedQuery(query if request is None else request.query)
+            _W.update(key=key, pq=pq, per_step=_step_concepts(pq.query), tags=None if request is None else request.used)
         pq, per_step, store = _W['pq'], _W['per_step'], _W['store']
-        events = _load_events(store, idxs, per_step, linked)
+        events = _load_events(store, idxs, per_step, linked, _W['tags'])
         out = [(idx, tg.match_prepared(pq, {'patient_id': pid, 'window': w, 'events': events.get(idx, [])}, trusted=True))
                for idx, pid, w in zip(idxs, pids, windows)]
         return ('ok', out, _peak_rss())
@@ -2075,14 +2387,17 @@ def close_pools():
 atexit.register(close_pools)
 
 
-def match_context(store, query, windows):
+def match_context(store, query, windows, conditions=None):
     """What a result depends on, and its digest: snapshot, query, windows, engine code, rules, verification
-    level and the digest of the manifest's file list (which exact files were read)."""
+    level and the digest of the manifest's file list (which exact files were read); with value conditions (D28), also
+    their digest and the value rule."""
     context = {'snapshot_id': store.snapshot_id, 'query_digest': _digest(query),
                'windows_digest': _digest(dict(sorted(windows.items()))),
                'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ENGINE_ARTIFACTS},
                'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE, 'verified': store.verified,
                'files_digest': store.files_digest, 'labels': store.manifest.get('labels')}
+    if conditions is not None:
+        context.update(conditions_digest=_digest(conditions), value_rule=VALUE_RULE)
     return context, _digest(context)
 
 
@@ -2116,7 +2431,7 @@ def _bound_starts(store, idxs):
     return out
 
 
-def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1):
+def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1, conditions=None):
     """Every patient's result: the engine on candidates, `none` (FILTERED) for the rest, and
     `not_comparable` where a `none` rests on a step no covering source could have recorded, or on a
     step whose concepts the source recorded in records the ingest left out (ADMISSION_EXCLUDED_RECORDS).
@@ -2143,12 +2458,18 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     in the result is the level this store was opened at). Units merge by patient index, so the
     result equals `workers=1` byte for byte; a worker failure raises `MatchWorkerError`. The pools
     outlive `store` and are shared per (snapshot path, workers): call `close_pools()` when done.
+
+    `conditions` (D28), when given, holds value conditions on steps and value relaxations (`Request`): each is compiled
+    into a tag concept for the engine. The output then also carries `value_conditions` (the tags, their concepts and
+    conditions) and the context their digest and the value rule; without it, nothing in the output differs.
     """
     if not (type(workers) is int and workers >= 1):
         raise StoreError('INVALID_WORKERS', repr(workers))
     if detail not in DETAILS:
         raise StoreError('INVALID_DETAIL', repr(detail))
-    pq = tg.PreparedQuery(query)
+    request = None if conditions is None else Request(query, conditions)
+    tags = None if request is None else request.used
+    pq = tg.PreparedQuery(query if request is None else request.query)
     given, query = query, pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')
     # Patients whose events share time variables: their events are loaded whole (`_load_events`).
@@ -2164,8 +2485,10 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
             _check_window(pid, w)
         windows_by_idx[idx] = w
     pid_of = dict(patients)
-    found = _candidates(store, pq)
+    found = _candidates(store, pq, request)
     per_step = _step_concepts(query)
+    # The concepts each step's engine concepts stand for (a tag by its concept): what excluded records are matched by.
+    base = per_step if request is None else request.base
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
     results = {}  # the engine's results, and what a rule then changed; patients absent are filtered or windowless
     parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
@@ -2174,19 +2497,19 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
         # Chunks are cut before pruning, so a chunk's index range, which bounds the loader's scan, is never wider
         # than without it; chunks of survivors cut afterwards would be sparse, and one load of 200 survivors
         # spread over 1,000,000 patients held 1.5 GiB.
-        pruned = _prune(store, pq, live, windows_by_idx)
+        pruned = _prune(store, pq, live, windows_by_idx, tags=tags) if tags else _prune(store, pq, live, windows_by_idx)
         for idx in pruned:
             results[idx] = _NONE(pid_of[idx])
         parts = [kept for part in parts if (kept := [i for i in part if i not in pruned])]
     if workers > 1 and parts:
-        key = _digest(given)
-        units = [(key, given, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part],
+        key = _digest(given if conditions is None else [given, conditions])
+        units = [(key, given, conditions, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part],
                   [i for i in part if i in linked]) for part in parts]
         for unit in get_pool(store, workers).run(units):
             results.update(unit)
     else:
         for part in parts:
-            events = _load_events(store, part, per_step, [i for i in part if i in linked])
+            events = _load_events(store, part, per_step, [i for i in part if i in linked], tags)
             for idx in part:
                 results[idx] = tg.match_prepared(
                     pq, {'patient_id': pid_of[idx], 'window': windows_by_idx[idx], 'events': events.get(idx, [])}, trusted=True)
@@ -2195,7 +2518,7 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     filtered_result = lambda idx: {'patient_id': pid_of[idx], 'status': 'none', 'reason': 'FILTERED', 'complete': True}
     nones = sorted(filtered + [idx for idx, r in results.items() if r['status'] == 'none'])
     for idx, reason, missing, unrecorded in _comparability(store, per_step, nones, windows_by_idx,
-                                                           chunk * SET_CHUNK_FACTOR):
+                                                           chunk * SET_CHUNK_FACTOR, tags):
         results[idx] = {'patient_id': pid_of[idx], 'status': 'not_comparable', 'reason': reason,
                         'uncovered_steps': missing}
         if unrecorded:
@@ -2203,7 +2526,7 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
     # Records the ingest left out can change any engine decision, not only a `none`.
     decided = {idx for idx, w in windows_by_idx.items()
                if w is not None and (results[idx]['status'] in DECIDED if idx in results else True)}
-    touched = _excluded_starts(store, query, per_step, decided, windows_by_idx)
+    touched = _excluded_starts(store, query, base, decided, windows_by_idx)
     # Event ids are unique within a patient only, so each patient's own events give its starts.
     starts = _bound_starts(store, [idx for idx in touched if idx in results and (
         results[idx].get('binding') or results[idx].get('relaxed_match', {}).get('binding'))])
@@ -2219,11 +2542,13 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1)
         counts['none'] = counts.get('none', 0) + implicit_filtered
     if windowless:
         counts['excluded'] = counts.get('excluded', 0) + windowless
-    context, context_id = match_context(store, query, windows)
+    context, context_id = match_context(store, given, windows, conditions)
     out = {'profile': MATCH_PROFILE, 'engine': tg.PROFILE_ID, 'snapshot_id': store.snapshot_id,
            'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE,
            'labels': store.manifest.get('labels'), 'context': context, 'context_id': context_id,
            'plan': found['plan'], 'candidates': len(found['patient_idx']), 'counts': dict(sorted(counts.items()))}
+    if request is not None:
+        out['value_conditions'] = request.describe()
     if detail == 'decided':
         out['detail'] = 'decided'
         out['implicit'] = {'FILTERED': implicit_filtered, 'NO_INDEX_WINDOW': windowless}
