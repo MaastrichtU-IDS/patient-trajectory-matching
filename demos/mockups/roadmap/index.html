@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roadmap · patient trajectory matching</title>
+<style>
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; color: #172B3A; background: #F4F7F9; margin: 0; }
+  main { max-width: 980px; margin: 0 auto; padding: 36px 24px 60px; }
+  a { color: #174EA6; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; font-weight: 750; color: #475569; }
+  h1 { font-size: 28px; letter-spacing: -.02em; margin: 10px 0 10px; }
+  h2 { font-size: 19px; margin: 34px 0 4px; display: flex; align-items: center; gap: 10px; }
+  p, li { line-height: 1.6; color: #334155; }
+  .note { font-size: 13px; background: #FBF1DE; border: 1px solid #E9D3A6; color: #5C3D00; border-radius: 8px; padding: 10px 14px; }
+  .lede { color: #475569; margin: 2px 0 10px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+  .item { background: #fff; border: 1px solid #D9E1E8; border-radius: 12px; padding: 14px 16px; }
+  .item h3 { margin: 0 0 6px; font-size: 15px; }
+  .item p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+  .item .ref { margin-top: 8px; font-size: 12px; color: #64748B; }
+  .item .ref a { color: #475569; }
+  .badge { font-size: 11.5px; font-weight: 700; letter-spacing: .02em; border-radius: 999px; padding: 3px 10px; border: 1px solid; display: inline-flex; gap: 6px; align-items: center; }
+  .b-now { color: #14532D; background: #EAF6EE; border-color: #B7DEC4; }
+  .b-wip { color: #1E3A8A; background: #EAF0FB; border-color: #BCCDF0; }
+  .b-next { color: #3F3F46; background: #F1F1F3; border-color: #D4D4D8; }
+  .b-later { color: #52525B; background: #FAFAFA; border-color: #E4E4E7; border-style: dashed; }
+  .b-you { color: #7C2D12; background: #FDF0E6; border-color: #F1C9A8; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 10px 0 0; }
+  .fact { background: #fff; border: 1px solid #D9E1E8; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #334155; }
+  .fact b { display: block; font-size: 20px; color: #0F1F2C; letter-spacing: -.01em; }
+  code { font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">PATIENT TRAJECTORY MATCHING · ROADMAP</div>
+  <h1>What exists, what is in progress, and what comes next</h1>
+  <p class="note">As of 10 November 2026. This is a research codebase, not a product: the completion register records full-product completion as false, and nothing here is a clinical claim. Scale evidence is synthetic data on one machine. Each item names the decisions (D-numbers in <code>docs/decisions/engine-increment-log.md</code>) or documents behind it.</p>
+  <p><a href="../">← all mockups</a> · <a href="../results/">results and evidence</a> · plain-language summary: <code>docs/decisions/briefing-2026-11.md</code></p>
+
+  <div class="legend" aria-label="Status labels">
+    <span class="badge b-now">✓ Built</span>
+    <span class="badge b-wip">◐ In progress</span>
+    <span class="badge b-next">→ Next</span>
+    <span class="badge b-later">○ Later, only if needed</span>
+    <span class="badge b-you">? Needs a decision from the project</span>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><b data-r="patients">1,000,000</b>synthetic patients built and verified in one store, under a 4 GB database limit</div>
+    <div class="fact"><b data-r="p95">7.05 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
+    <div class="fact"><b data-r="rows">668,862</b>MIMIC-IV demo chart rows ingested and every one checked, <span data-r="mism">0</span> mismatches</div>
+    <div class="fact"><b>1,220</b>contract checks run on every push</div>
+  </div>
+
+  <h2><span class="badge b-now">✓ Built</span></h2>
+  <p class="lede">Working code with tests and committed evidence.</p>
+  <div class="grid">
+    <div class="item"><h3>Trajectory matching engine</h3>
+      <p>A trajectory is steps plus timing constraints, as a sequence, a tree or a graph. Every patient gets a result, and the kinds stay apart: exact, possible, relaxed, unresolved, none and not comparable. Relaxations are priced within budgets, each event has one time, and an event can be marked as ending strictly after it starts.</p>
+      <p class="ref">D13, D21, D24 · <code>docs/trajectory-graph-profile.md</code> · mockup: <a href="../trajectory/">Define a trajectory</a></p></div>
+    <div class="item"><h3>Patient-first similarity</h3>
+      <p>Start from one patient's history and rank others. Concept similarity offers simGIC (the default), ancestor-Jaccard and best-match Resnik, with a selector.</p>
+      <p class="ref">mockup: <a href="../patient-first/">B · Start from a patient</a></p></div>
+    <div class="item"><h3>SULO source adapter</h3>
+      <p>Turns bounded, patient-local and claim sources into the engine's input and checks every answer against the source's own time network. Shared source times are kept exactly. What it cannot represent it refuses, rather than guessing.</p>
+      <p class="ref">D8, D9, D22, D24 · <code>docs/trajectory-graph-sulo-adapter.md</code></p></div>
+    <div class="item"><h3>Execution store</h3>
+      <p>DuckDB writing immutable Parquet snapshots. A snapshot is identified by a digest of its rows, and every build is verified by content. Patients stream in, so memory stays bounded. Candidates are pruned on stored time summaries before events are loaded, and matching runs in parallel worker processes, in Python.</p>
+      <p class="ref">D4–D7, D19–D26 · <code>docs/execution-store.md</code> · <a href="../results/">results</a></p></div>
+    <div class="item"><h3>MIMIC-IV demo pipeline</h3>
+      <p>The open demo's input events go through the full graph route. Chart events are built in bulk from the importer's claim identity, with every row and every store also checked on the demo. Rows that cannot be admitted are kept as excluded records, so the store says <i>not comparable</i> rather than a false <i>none</i>. Committed reports carry aggregate counts only.</p>
+      <p class="ref">D11, D14–D18, D27 · <code>docs/execution-store.md</code></p></div>
+    <div class="item"><h3>Packaging</h3>
+      <p>The engine and store install as a Python wheel, and installed code reads the same files as a checkout. Not published.</p>
+      <p class="ref">D1–D3</p></div>
+    <div class="item"><h3>Research workspace</h3>
+      <p>A bounded research workspace runs an integrated synthetic research journey. Against the full specification it is partial: the completion audit records 10 requirements supported, 64 partial, 4 blocked and 26 specification-only.</p>
+      <p class="ref"><code>app/</code> · <code>docs/status.md</code> · <code>docs/completion.md</code></p></div>
+  </div>
+
+  <h2><span class="badge b-wip">◐ In progress</span></h2>
+  <p class="lede">Being built and benchmarked now; it merges after independent review.</p>
+  <div class="grid">
+    <div class="item"><h3>Queries on measurement values</h3>
+      <p>A step can carry a condition such as "heart rate above 120 per minute" or "MAP below 65 mmHg", matched on the stored values with the unit matched exactly. Relaxing a threshold only ever adds patients, an inexact value never silently counts either way, and excluded rows of the same item make a result <i>not comparable</i>. The matching engine itself is unchanged.</p>
+      <p class="ref">D28 (chartevents stage 2)</p></div>
+    <div class="item"><h3>Faster store builds</h3>
+      <p>Store 3.0 made builds 17–20% slower. One change saved 12.7% at 300,000 patients with identical results; it is kept only if it is at least 8% faster at 1,000,000 patients, under a rule set before measuring.</p>
+      <p class="ref">D26, D28</p></div>
+  </div>
+
+  <h2><span class="badge b-next">→ Next</span></h2>
+  <p class="lede">Listed as next steps in the design documents; not started.</p>
+  <div class="grid">
+    <div class="item"><h3>Richer measurements</h3>
+      <p>Textual and unitless measurements (most of the 518,809 demo chart rows excluded today are one or both), unit equivalence, and reviewed item mappings.</p>
+      <p class="ref">D27 stage 3</p></div>
+    <div class="item"><h3>Selection "as known at" a date</h3>
+      <p>Records carry when they became available, but selection uses the latest version today. Applying availability would let a study see only what was known at its index date. The typed record fields of store 3.0 are what this needs.</p>
+      <p class="ref">D26 · <code>docs/execution-store.md</code>, "Deliberately not done"</p></div>
+    <div class="item"><h3>Incremental appends</h3>
+      <p>Adding patients without rebuilding the whole store: per-bucket digests, so an append rehashes only what it touches, with a per-patient (Merkle) input digest wired in at that point.</p>
+      <p class="ref">D23, D27</p></div>
+    <div class="item"><h3>Fewer "not comparable" answers</h3>
+      <p>The exclusion rule reads only a query's scope. Reading its anchor relations too would turn fewer results incomparable, once differential tests cover it.</p>
+      <p class="ref"><code>docs/execution-store.md</code>, "Next"</p></div>
+    <div class="item"><h3>More source shapes</h3>
+      <p>Sources whose time constraints link events to each other, beyond what per-event bounds express. These need the engine to take constraints between events.</p>
+      <p class="ref">D22</p></div>
+    <div class="item"><h3>Interface mockups A and C</h3>
+      <p>Sketching a trajectory directly, and a live cohort funnel.</p>
+      <p class="ref"><a href="../">mockups</a></p></div>
+  </div>
+
+  <h2><span class="badge b-later">○ Later, only if needed</span></h2>
+  <p class="lede">Deliberately deferred, each with the condition that would bring it back.</p>
+  <div class="grid">
+    <div class="item"><h3>A Rust matching engine</h3>
+      <p>Built only if Python misses the latency target. It meets it at 300,000 patients, so none was built; it would be a second implementation over the same snapshots, with the Python path as its reference.</p>
+      <p class="ref">D7, D21</p></div>
+    <div class="item"><h3>Embeddings and a nearest-neighbour index</h3>
+      <p>Added only if recall at full scale needs it. Concept information content comes from the stored counts.</p>
+      <p class="ref">D7</p></div>
+    <div class="item"><h3>Postgres</h3>
+      <p>Kept for jobs, results and audit, not for the patient store.</p>
+      <p class="ref">D7 · FR-060, FR-061, FR-081</p></div>
+  </div>
+
+  <h2><span class="badge b-you">? Needs a decision from the project</span></h2>
+  <p class="lede">Not engineering choices; these need the project's owners or reviewers.</p>
+  <div class="grid">
+    <div class="item"><h3>Hosting and deployment</h3><p>Where the store and matcher run, and who operates them. Nothing is deployed.</p></div>
+    <div class="item"><h3>Clinical review</h3><p>The MIMIC store indexes the source's own item classes, not clinical concepts. Clinical mappings wait for a qualified reviewer.</p></div>
+    <div class="item"><h3>Full MIMIC-IV</h3><p>Whether the credentialed data-use agreement allows what the demo reports commit; until then only aggregate counts.</p><p class="ref">D17</p></div>
+    <div class="item"><h3>Publishing</h3><p>Whether and when to publish the package, and its import name before that.</p><p class="ref">D1–D3</p></div>
+  </div>
+</main>
+<script>
+// The report-based figures follow results.json (built from the committed reports); the static text is the fallback.
+fetch('../results/results.json').then(r => r.json()).then(d => {
+  const f = n => Number(n).toLocaleString('en-GB'), S = d.scaling.sizes, A = d.matching.arms, C = d.mimic_demo.census;
+  const best = A[A.length - 1], set = (k, v) => document.querySelectorAll(`[data-r="${k}"]`).forEach(e => { e.textContent = v; });
+  set('patients', f(S[S.length - 1].patients)); set('p95', `${best.p95_seconds.toFixed(2)} s`); set('workers', best.workers);
+  set('rows', f(C.raw_rows_checked)); set('mism', f(C.mismatched_stores + C.built_store_mismatches));
+}).catch(() => {});
+</script>
+</body>
+</html>

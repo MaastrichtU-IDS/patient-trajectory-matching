@@ -16,6 +16,10 @@ Opening the HTML files directly will not work; the pages fetch the dataset over 
 
 `results/` summarises the execution-store and matching evidence: scale, matching latency at 300,000 patients against the D21 target, and the MIMIC-IV demo census. Every figure is read from a committed report in `verification/` by `results/build.py`, which writes `results/results.json`; run it again after those reports are regenerated (`--check` reports a stale file). The page lists each source report's digest.
 
+## Roadmap page
+
+`roadmap/` lists the key capabilities by status (built, in progress, next, later only if needed, needs a decision from the project), each with the decisions or documents behind it. It is written by hand and dated; its four headline figures follow `results/results.json`. Update it when a decision lands.
+
 ## The synthetic cohort
 
 `synthetic/generate.py` is standard-library Python and deterministic for a given seed (`--check` regenerates and compares). It writes 48 invented children across Dravet syndrome, GEFS+, febrile seizures, PCDH19 clustering epilepsy, CDKL5 deficiency disorder, tuberous sclerosis complex, Rett syndrome and spinal muscular atrophy.
