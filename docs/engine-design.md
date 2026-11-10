@@ -208,7 +208,7 @@ A stateless API, a job queue and workers that scale to zero (FR-081, FR-082); re
 | Source windows, partition plans, prepared sessions, result cache | Implemented at single-machine scale on the MIMIC-IV demo |
 | Availability modes and revision chains | Implemented on small bundles (evidence selection) |
 | Trajectory-graph matcher for sequences, trees and graphs | Implemented as a profile over projected JSON (`trajectory_graph`), checked against an exhaustive reference; the trajectory mockup matches through it; no SULO adapter yet |
-| Partitioned event store, concept postings, coverage tables | Stage 1 implemented on the synthetic cohort: DuckDB with immutable Parquet snapshots, a pure-Python reference and a store-versus-exhaustive differential ([execution store](execution-store.md)); MIMIC-IV demo ingest through the SULO adapter is stage 2 |
+| Partitioned event store, concept postings, coverage tables | Stage 1 implemented on the synthetic cohort: DuckDB with immutable Parquet snapshots, a pure-Python reference and a store-versus-exhaustive differential ([execution store](execution-store.md)); stage 2 loads the MIMIC-IV demo: inputevents through the SULO adapter, chartevents by route (b) with a `series` table of measurement values (D27) |
 | Compiler with relaxation-sound filters | A relaxation-sound concept filter is implemented in the store; time-based pruning on posting summaries is not |
 | Distributed workers, job queue, streaming results | Not implemented |
 | IC-weighted similarity (simGIC, best-match Resnik) | Implemented over the admitted snapshot, scored exhaustively; simGIC is the default for new queries, with a measure selector in the workspace; benchmarked on the synthetic cohort (§5.3) |

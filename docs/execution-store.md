@@ -345,6 +345,11 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
 
 **Regenerated for D26** (store 3.0 with typed staging; `--work-dir /tmp/store-d26-scaling`, 10,580 s). The cohorts are the same, but the snapshots are a different format: `events` holds the record fields instead of the evidence, `event_evidence` holds the evidence, the postings hold `max_end_hi`, and the staging is Parquet. Query results are unchanged: the status mix and every query's candidate count equal the D25 run's at every size, and 5,000 results equal exhaustive matching at 1,000. The build, verification and snapshot figures changed, as below; the larger table under Results is the D24 and D25 runs' (store 2.1, ndjson staging), kept for the history it records.
 
+**Regenerated for D27** (store 3.1; `--work-dir /tmp/store-d27-scaling`, 10,627 s). The synthetic cohorts carry no series, so 3.1 adds an empty `series` table and otherwise builds the same snapshots:
+- *Unchanged.* At every size, every table's row count, the snapshot's bytes to within 0.03%, every query's candidate count, the status mix and the content rows verified (538,208,758 at 1,000,000) equal the D26 run's. 5,000 results equal exhaustive matching at 1,000.
+- *Within run-to-run spread.* Build time is 5,898 against 5,854 s at 1,000,000 (+0.75%) and 1,758 against 1,746 s at 300,000. The build peak is 8.27 against 8.24 GiB at 1,000,000 and 8.01 GiB at 300,000. Staged bytes are 13.09 GB at 1,000,000. Content verification takes 1,013 s at 1,000,000 with a 1.72 GiB peak, and the warm file check 1.85 s. Single-process `match()` has p50 7.61 s and maximum 244.8 s at 1,000,000 (D26: 7.56 s, 244.1 s).
+- *Not changed by the character cap.* The evidence stage's new character cap does not bind on these cohorts: their evidence is a few hundred characters an event.
+
 | D26 against D25 | 100,000 | 300,000 | 1,000,000 |
 |---|---|---|---|
 | Build, add to publish | 598 s (500 s) | 1,746 s (1,493 s) | 5,854 s (4,958 s), +18% |
@@ -567,6 +572,11 @@ At 300,000 the summaries prove `none` for 36% of the candidates with a window ov
 
 **Regenerated for D26 (store 3.0).** The report was regenerated on the snapshots of the D26 scaling run (store 3.0, Parquet staging; same cohorts). Arm A, the matcher at 7dc3364, reads store 2.0, and 3.0 moved `evidence` out of `events`, so no relabelled view of the same files can serve it: arm A now reads its own 2.0 snapshot of each size, built by its own builder and converter from the same generator output (`benchmark_matcher.py --build-arm-a`, `--arm-a-snapshots`; `readable_snapshot` and its guard are gone with the view). The report checks that both snapshots hold the same rows in every column arm A's matcher reads, table by table (`arm_a_snapshot.same_rows`): equal at every size (1, 12, 116 and 344 s to check). Every per-query digest of arm B equals arm A's, `B_unpruned`'s and every C arm's at every size (50, 50, 10, 10), and candidate counts and listed results equal the D25 report's query by query. The report now also records, per query, the candidates time pruning proved `none`, the time it took, and how many the start summaries alone prove (`pruning` in each arm entry).
 
+**Regenerated for D27 (store 3.1).** The report was regenerated on the snapshots of the D27 scaling run, with arm A on its own 2.0 snapshots (`same_rows` true at every size):
+- *Results.* Every per-query digest of every arm, at every size and in the confirmation, equals the D26 report's.
+- *Cost.* Arm B costs 279.1 µs per candidate at 300,000 (D26: 280.3), and 188.4 µs in the confirmation (188.3).
+- *Confirmation.* C at 8 workers has p95 8.41 s (8.33 to 8.59 over the repeats) and max 10.3 s; at 14 workers p95 7.05 s (7.01 to 7.90) and max 8.1 s; the query process holds 0.86 GiB. The D21 target holds at both counts.
+
 | 300,000 patients, ten queries | D25 report | D26 |
 |---|---|---|
 | B: µs per candidate end to end (engine, loading) | 279.6 (83.9, 162.5) | 280.3 (83.5, 163.6) |
@@ -660,9 +670,9 @@ So every dropped row is kept in `excluded_records`, as its item class, its start
 
 ### The demo
 
-[`verification/execution-store-mimic-demo-report.json`](../verification/execution-store-mimic-demo-report.json) holds aggregates only. It is regenerated from the verified demo files (D11) by `python -m patterns.verify_mimic_store_ingest --input-dir data/local-mimic/icu --workers 8`, which also checks the pinned file digests. The report binds its artifacts by digest for the provenance gate.
+[`verification/execution-store-mimic-demo-report.json`](../verification/execution-store-mimic-demo-report.json) holds aggregates only. It is regenerated from the verified demo files (D11) by `python -m patterns.verify_mimic_store_ingest --input-dir data/local-mimic/icu --workers 8 --census-workers 14`, which also checks the pinned file digests. The report binds its artifacts by digest for the provenance gate. Since D27 it also holds chartevents (`chartevents` in the report; see [Chartevents](#chartevents-d27)); `--no-chartevents` gives the inputevents-only run. The table below is the inputevents part, which D27 left unchanged figure for figure.
 
-| | Count |
+| inputevents | Count |
 |---|---|
 | Source rows, admitted | 20,404, 10,980 |
 | Claims, claim stores | 10,980, 424 |
@@ -672,13 +682,13 @@ So every dropped row is kept in `excluded_records`, as its item class, its start
 | Excluded records (table rows, identical ones counted once), patients holding some | 9,424 (9,398), 99 |
 | Item classes (only in excluded records), groupings | 159 (83), 6 |
 | Refused patients | 0 |
-| Table rows: `event_concepts`, `event_evidence`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 10,980, 1,412, 330, 84 |
+| Table rows before D27 (inputevents alone): `event_concepts`, `event_evidence`, `concept_postings`, `concept_closure`, `source_concepts` | 21,960, 10,980, 1,412, 330, 84 |
 
-The snapshot identifier is `54dbd42faf5c53759eee8d3fa6045ac540839452f1eb450b04b55c1dd188bf4b` (profile `execution-store-3.0`). It changes whenever the converter or the store builder changes, or the rows they produce do. Regenerated for D24, every figure of the report is unchanged; only the identifiers changed (the snapshot id, the input digest, the adapter's ingest profile and the bound artifacts' digests), since the events now carry their variables and `proper`. Regenerated for D25 (time pruning, ingest normalisation, `EMPTY_PROPER_EVENT`), every figure is unchanged again, the input digest included (`8e24100f…`: the demo's events name source variables and are all proper, so normalisation leaves them as they are); only the snapshot identifier and the bound artifacts' digests changed. The 500-query differential ran with time pruning on, with no mismatch. Regenerated for D26 (store 3.0), every figure is unchanged again; the snapshot gains the `event_evidence` table (10,980 rows, one per event), and the input digest changed (`ec0612b1…`), since each event now carries its record fields beside an evidence object that no longer repeats them. The differential ran with the end summaries on, with no mismatch.
+The snapshot identifier is `54dbd42faf5c53759eee8d3fa6045ac540839452f1eb450b04b55c1dd188bf4b` (profile `execution-store-3.0`). It changes whenever the converter or the store builder changes, or the rows they produce do. Regenerated for D24, every figure of the report is unchanged; only the identifiers changed (the snapshot id, the input digest, the adapter's ingest profile and the bound artifacts' digests), since the events now carry their variables and `proper`. Regenerated for D25 (time pruning, ingest normalisation, `EMPTY_PROPER_EVENT`), every figure is unchanged again, the input digest included (`8e24100f…`: the demo's events name source variables and are all proper, so normalisation leaves them as they are); only the snapshot identifier and the bound artifacts' digests changed. The 500-query differential ran with time pruning on, with no mismatch. Regenerated for D26 (store 3.0), every figure is unchanged again; the snapshot gains the `event_evidence` table (10,980 rows, one per event), and the input digest changed (`ec0612b1…`), since each event now carries its record fields beside an evidence object that no longer repeats them. The differential ran with the end summaries on, with no mismatch. Regenerated for D27 (store 3.1, chartevents joined): the snapshot identifier is `cbc08b3a…`, the input digest `6e856e9e…`; the inputevents figures above are unchanged, and the store's tables, the differential and the timings below now include chartevents (the D26 run's figures follow, for the record).
 
 **Raw times.** Every one of the 10,980 events has its start, end and recorded time checked against its raw source row, to the microsecond, with no mismatch.
 
-**Differential.** The verifier runs 500 seeded queries of 2 to 4 steps over source item classes and their groupings. Each query is shaped around one anchor patient's events, with gaps in minutes, first and last occurrences, widenings, `extend_max`, cycles and `during`. Every query runs over all 100 patients three ways:
+**Differential** (the D26 run, inputevents alone; for D27's, with chartevents, see [Chartevents](#chartevents-d27)). The verifier runs 500 seeded queries of 2 to 4 steps over source item classes and their groupings. Each query is shaped around one anchor patient's events, with gaps in minutes, first and last occurrences, widenings, `extend_max`, cycles and `during`. Every query runs over all 100 patients three ways:
 - the store path;
 - `exhaustive_match` over the whole ingest;
 - the engine over each patient's adapter rows directly, without the store mapping or either comparability rule.
@@ -719,13 +729,58 @@ Most `none` results become `not_comparable`, and most relaxed ones `unresolved`.
 | Opening it with the file check | 0.02 s |
 | Differential (500 queries, three paths) | 155 s (D26 run; 154 s in the D25 run, 162 s in the D24 run) |
 
-### Chartevents path
+### Chartevents (D27)
 
-This is not built. `chartevents` has 668,862 demo rows. At about 0.2 CPU-seconds per claim, route (a) would take about 37 CPU-hours for the demo alone, and more for full MIMIC-IV. The planned path:
-- **Route (b).** Bulk rows come from pure `describe()` identity, the measurement importer's claim description, without the graph route. For each batch, a deterministic sample of stores goes through the full graph route, and a differential requires its store rows to equal the bulk rows exactly. The report must then say that bulk rows are tied to the graph by claim identity and checked on a sample, not each validated through the graph.
-- **Measurements are points.** A chart value is a point event with a value and unit, not an interval. The values go into a series table keyed by patient, item and time, beside the events table, so that the matcher's concept postings stay small.
-- **Per-patient streaming.** Done for the store in 2.0 (D20): the builder takes one patient at a time and the input digest is over per-patient digests. The MIMIC converter still builds a whole document; it should yield patients to `StoreBuilder` instead.
-- **The differential at scale.** The exhaustive and adapter-row engine inputs are built once per patient and reused across queries, not rebuilt for every query.
+`chartevents` joins by route (b). `python -m patterns.mimic_store_ingest --input-dir DIR --dataset-id … --chartevents` streams the merged patients into `StoreBuilder`. The demo verifier runs a census on top of that.
+
+- **Rows from claim identity.** `mimic_chartevents` reads the file in two streaming passes. The first hashes the compressed and decompressed bytes and collects item ids. The second refuses a changed file and spills rows to per-patient shards, with at most 64 files open at once. Each patient's rows are then admitted by the measurement importer's rule (`admit`) and cut, per ICU stay and in record order, into claim stores of at most 32. Each admitted row's `describe()` claim gives its store row through `claim_fields` and `store_row`:
+  - a point event at the clock origin's coordinate plus the claim variable's offset;
+  - D26's record fields (status `recorded`, selection state `accepted`, claim id and digest, source table `chartevents`, the source row's and file's sha256, and the recorded time where there is a storetime);
+  - free-form evidence, with the clock origin, record number and keys;
+  - one series row.
+
+  The source is `chartevents:numeric_measurements`, and the concept is the item class `mimic-record-item/<itemid>` with its d_items category as its only ancestor (D14).
+- **Excluded records and coverage.** A row admission leaves out is an excluded record: its item class and charttime, or all time if the charttime is unreadable, with its reasons. Exact duplicates and rows naming an unknown item are only counted. Coverage is one period per ICU stay that holds any chart row, widened to the stay's own points. A stay without a single chart row is not covered by chartevents.
+- **The merge.** Each patient's inputevents and chartevents parts are joined: events (ids disjoint by prefix), coverage and excluded records per source, and series. Both sources name the clock `patient_<id>`, each with its importer's origin. Store times are absolute, and each event's origin is provenance in `event_evidence`, so nothing is rebased. With chartevents, the labels say `sources` instead of `source`, chartevents' own labels carry a `chartevents_` prefix, and the labels both sources set must agree.
+- **Checks.**
+  - The **raw-row check** (`mimic_chartevents_raw_check`) recomputes every chart row from the raw CSV, independently of the converter: item class, time, recorded time, spelling, unit, micro-unit value, row digest and record number. It accounts for every row exactly once.
+  - The **round trip** (validate, encode, decode, digest) runs on every claim store.
+  - **Route (a)** sends every claim store through the measurement graph route, and its rows must equal the bulk rows field for field and the rows read back from the built store.
+
+  Route (a) shares the row mapping with route (b), so its agreement says nothing about that mapping. The raw-row check is the evidence for it. For full MIMIC-IV the design is a deterministic sample of stores (`mimic_chartevents_check.Sampler`): 1% by hash, 2 per bucket, and one per stratum. The demo is a census.
+
+**The demo** (`verification/execution-store-mimic-demo-report.json`, regenerated with `--workers 8 --census-workers 14`). All figures are aggregates.
+
+| Chartevents | Count |
+|---|---|
+| Source rows (pinned file), admitted as events | 668,862, 150,051 |
+| Unsupported, invalid, duplicate rows | 518,809, 2, 0 |
+| Excluded records (table rows after identical ones are merged, with inputevents' 9,398) | 518,811 (448,419) |
+| Claim stores (at most 32 claims) | 4,753 |
+| Item classes (rows name), groupings | 1,318, 29 |
+| Coverage periods (widened by own records), chart events outside their stay | 140 (134), 1,200 |
+| Series rows (micro-unit value null) | 150,051 (0) |
+
+| Check | Result |
+|---|---|
+| Raw-row check, every row | 668,862 rows: 150,051 events and 518,811 excluded records, each the raw row's own content; no field mismatch, no excluded-record difference |
+| Round trip, every store | 4,753 of 4,753 |
+| Route (a), every store | 4,753 stores, 150,051 claims; every row equal field for field; isolation verified on all 4,753 |
+| Graph rows against the built store | 4,753 stores, 150,051 events, 0 mismatched |
+| Differential, 500 queries × 100 patients | 50,000 results: store against reference 0 mismatches, against the route-(a) engine rows 0, dropped matches 0; 4,365 bindings compared |
+| Exhaustive slice, first 50 queries | 5,000 results; `prepared_reference` equals `exhaustive_match` on all of them |
+
+- **Store tables.** events 161,031 (10,980 inputevents, 150,051 chartevents); event_concepts 172,011; concept_postings 8,891; concept_closure 2,995; source_concepts 393; coverage 280; excluded_records 448,419; series 150,051.
+- **Identity.** The snapshot identifier is `cbc08b3a…` (profile `execution-store-3.1`), and the input digest is `6e856e9e…`.
+- **Inputevents is unchanged.** Its counts, refusals, admission summary and raw-time check equal D26's report figure for figure.
+- **Why the differential's mix is not comparable with D26's.** The query generator now draws from the item classes of both sources, and coverage includes chartevents. The status mix is: exact 3,287; relaxed 44; unresolved 1,038 (1,034 of them for `ADMISSION_EXCLUDED_RECORDS`); none 9,891; not_comparable 33,233 (26,081 `ADMISSION_EXCLUDED_RECORDS`, 7,152 `NO_SOURCE_COVERAGE`); excluded 2,507.
+- **Exclusions dominate, as D18 predicts.** Excluded chart rows turned 25,211 `none` results not comparable, displaced 870 first or last targets and made 1,034 relaxed results unresolved.
+- **Timings** (one run, M4 Pro):
+  - route (b) 20.2 s; raw-row check 2.9 s;
+  - census 527 s on 14 workers (the round trip and route (a) on every store; the tail is the largest patient's stores, run in one worker);
+  - store build 17.7 s; graph rows against the store 9.0 s;
+  - differential 531 s (D26: 155 s, without chart events);
+  - whole run 1,171 s, 6,288 CPU-seconds, peak resident memory 2.1 GB.
 
 ### Next
 
