@@ -484,6 +484,48 @@ def row_line(row):
     return json.dumps(list(row), ensure_ascii=False, separators=(',', ':')) + '\n'
 
 
+# The string escaper `json.dumps(..., ensure_ascii=False)` itself uses (C when available): `rows_text` builds the same
+# text as `row_line` from it, column by column (D28).
+_ENCODE_STRING = json.encoder.encode_basestring
+_CONSTANT_TEXT = {True: 'true', False: 'false', None: 'null'}
+_NONE_TYPE = type(None)
+# D28, part 3: whether `content_digests` builds a batch's canonical lines column by column (`rows_text`) or row by row
+# (`row_line`). Both give the same bytes; the switch exists for the build-time experiment.
+_FAST_ROWS = True
+
+
+def _column_text(column):
+    """Each value of one column as `json.dumps` writes it inside an array, or None for a type it is not meant for."""
+    kinds = set(map(type, column))
+    if kinds == {str}:
+        return list(map(_ENCODE_STRING, column))
+    if kinds == {int}:
+        return list(map(int.__repr__, column))
+    if kinds <= {bool, _NONE_TYPE}:
+        return list(map(_CONSTANT_TEXT.__getitem__, column))
+    if kinds == {str, _NONE_TYPE}:
+        return ['null' if v is None else _ENCODE_STRING(v) for v in column]
+    if kinds == {int, _NONE_TYPE}:
+        return ['null' if v is None else int.__repr__(v) for v in column]
+    if kinds <= {str, int, bool, _NONE_TYPE}:
+        return [_CONSTANT_TEXT[v] if v is None or type(v) is bool else int.__repr__(v) if type(v) is int
+                else _ENCODE_STRING(v) for v in column]
+    return None
+
+
+def rows_text(rows):
+    """`''.join(row_line(r) for r in rows)`, built a column at a time: the table types (INTEGER, BIGINT, BOOLEAN,
+    VARCHAR and null) are written as `json.dumps(ensure_ascii=False)` writes them (`int.__repr__`, `true`, `false`,
+    `null`, and its own string escaper), so the bytes are the same. A batch holding any other type is written row by
+    row."""
+    if not _FAST_ROWS or not rows:
+        return ''.join(row_line(r) for r in rows)
+    columns = [_column_text(c) for c in zip(*rows)]
+    if not columns or any(c is None for c in columns):
+        return ''.join(row_line(r) for r in rows)
+    return '[' + ']\n['.join(map(','.join, zip(*columns))) + ']\n'
+
+
 def bucket_labels(name):
     return [str(b) for b in range(BUCKETS)] if name in PARTITIONED else [WHOLE]
 
@@ -551,6 +593,11 @@ STAGE_ROWS = 10_000
 # follow-up): evidence is free-form, several KB an event for MIMIC rows, and the buffer is Python's, outside DuckDB's
 # memory limit. Like `stage_rows`, it changes how rows are cut into files, never the tables.
 STAGE_EVIDENCE_CHARS = 32 * 2 ** 20
+# D28, part 3 (an experiment): where an event's evidence is staged, in its own staged table ('own') or as a column of
+# the event's staged row ('events'), from which `event_evidence` is then derived. Both give the same tables.
+EVIDENCE_STAGES = ('own', 'events')
+EVIDENCE_STAGE = 'own'
+EVIDENCE_COLUMN = [('evidence', 'VARCHAR')]
 
 
 class _ParquetStage:
@@ -674,7 +721,7 @@ def _create_table(db, name, columns):
     db.execute(f'CREATE TABLE {name} ({", ".join(f"{c} {t}" for c, t in columns)})')
 
 
-def _derive(db, relation, parts, on_stage=None):
+def _derive(db, relation, parts, on_stage=None, evidence_stage='own'):
     """Create the ten logical tables (plus a bucket column on partitioned ones) from the staging files.
 
     Patient-keyed rows are derived one part at a time, bucket by bucket (D23). Every row of
@@ -684,8 +731,11 @@ def _derive(db, relation, parts, on_stage=None):
     the staging gives; `source_concepts` is the distinct union of each part's distinct pairs.
     `on_stage('derived:bucket=k', info)` reports each bucket's statement times and memory. `relation(name,
     parts)` is the SQL relation over the staged rows of one staged table, for the given parts (`StoreBuilder.relation`).
+    With `evidence_stage='events'` (D28, part 3) each event's evidence is staged in its events row, and `event_evidence`
+    is derived from the part's events, not from its own staged table.
     """
     run = _Statements(db)
+    joint = evidence_stage == 'events'
     staged = lambda name, part=None: relation(name, () if part is None else (part,))
     # Dense index by sorted identifier; bucket from the identifier alone, so it never moves.
     run('patient_index', f"""CREATE TABLE p AS SELECT
@@ -710,7 +760,7 @@ def _derive(db, relation, parts, on_stage=None):
                 p.clock_id, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
                 (e.end_lo IS NOT NULL AND e.end_hi IS NULL) AS ongoing, e.start_var, e.end_var,
                 coalesce(e.proper, false) AS proper, {', '.join('e.' + f for f in RECORD_FIELDS)}, p.bucket
-                FROM {staged('events', part)} e JOIN p USING (patient_id)""")
+                {', e.evidence' if joint else ''} FROM {staged('events', part)} e JOIN p USING (patient_id)""")
             run('event_concepts', f"""CREATE TEMP TABLE part_concepts AS SELECT p.patient_idx, c.event_id, c.concept,
                 'direct' AS basis, p.bucket FROM {staged('concepts', part)} c JOIN p USING (patient_id)""")
             run('concept_postings', """INSERT INTO concept_postings
@@ -741,12 +791,15 @@ def _derive(db, relation, parts, on_stage=None):
                 raise StoreError('SERIES_ROWS_NOT_OF_THEIR_EVENTS', str(orphan))
             run('series', 'INSERT INTO series SELECT * FROM part_series')
             run('series', 'DROP TABLE part_series')
-            run('events', 'INSERT INTO events SELECT * FROM part_events')
+            run('events', f"INSERT INTO events SELECT * {'EXCLUDE (evidence) ' if joint else ''}FROM part_events")
             run('event_concepts', 'INSERT INTO event_concepts SELECT * FROM part_concepts')
+            if joint:
+                run('event_evidence', 'INSERT INTO event_evidence SELECT patient_idx, event_id, evidence, bucket FROM part_events')
+            else:
+                run('event_evidence', f"""INSERT INTO event_evidence SELECT p.patient_idx, x.event_id, x.evidence, p.bucket
+                    FROM {staged('evidence', part)} x JOIN p USING (patient_id)""")
             run('events', 'DROP TABLE part_events')
             run('event_concepts', 'DROP TABLE part_concepts')
-            run('event_evidence', f"""INSERT INTO event_evidence SELECT p.patient_idx, x.event_id, x.evidence, p.bucket
-                FROM {staged('evidence', part)} x JOIN p USING (patient_id)""")
             run('coverage', f"""INSERT INTO coverage SELECT p.patient_idx, c.source, p.clock_id, c.lo, c.hi, c.basis, p.bucket
                 FROM {staged('coverage', part)} c JOIN p USING (patient_id)""")
             # Identical excluded records (same patient, source, concept, start and reason) are one row with a count.
@@ -857,7 +910,7 @@ def content_digests(db, fetch_rows=FETCH_ROWS, on_table=None, span=None):
                     if not rows:
                         break
                     n += len(rows)
-                    h.update(''.join(row_line(r) for r in rows).encode('utf-8'))
+                    h.update(rows_text(rows).encode('utf-8'))
             buckets[label] = {'rows': n, 'content_digest': h.hexdigest()}
         out[name] = {'rows': sum(b['rows'] for b in buckets.values()), 'content_digest': table_digest(buckets),
                      'buckets': buckets}
@@ -947,7 +1000,7 @@ class StoreBuilder:
 
     def __init__(self, root, header, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS,
                  on_stage=None, work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS,
-                 stage_evidence_chars=STAGE_EVIDENCE_CHARS):
+                 stage_evidence_chars=STAGE_EVIDENCE_CHARS, evidence_stage=None):
         self.header = validate_header(header)  # before anything is written
         self.ancestors = header['closure']['ancestors']
         self.threads, self.memory_limit, self.fetch_rows = threads, _memory_limit(memory_limit), fetch_rows
@@ -965,6 +1018,9 @@ class StoreBuilder:
         if type(stage_evidence_chars) is not int or stage_evidence_chars < 1:
             raise StoreError('INVALID_STAGE_EVIDENCE_CHARS', repr(stage_evidence_chars))
         self.stage_evidence_chars = stage_evidence_chars
+        self.evidence_stage = EVIDENCE_STAGE if evidence_stage is None else evidence_stage
+        if self.evidence_stage not in EVIDENCE_STAGES:
+            raise StoreError('INVALID_EVIDENCE_STAGE', repr(evidence_stage))
         self.on_stage = on_stage
         self.root = Path(root)
         # Directories this builder creates, so that a refusal leaves no trace of them.
@@ -1003,12 +1059,17 @@ class StoreBuilder:
         if not self._open:
             raise StoreError('BUILDER_CLOSED', str(self.root))
 
+    def _columns(self, name):
+        """A staged table's columns: STAGED's, and the evidence in the events rows with `evidence_stage='events'`."""
+        return STAGED[name] + (EVIDENCE_COLUMN if name == 'events' and self.evidence_stage == 'events' else [])
+
     def _writer(self, name, stem):
         """Where one staged table's rows go: an ndjson file, or a Parquet stage of numbered files."""
         if self.staging == 'ndjson':
             return open(f'{stem}.ndjson', 'w', encoding='utf-8')
-        if name == 'evidence':
-            return _ParquetStage(self._stage_db, stem, STAGED[name], self.stage_rows, 'evidence', self.stage_evidence_chars)
+        if name == 'evidence' or (name == 'events' and self.evidence_stage == 'events'):
+            return _ParquetStage(self._stage_db, stem, self._columns(name), self.stage_rows, 'evidence',
+                                 self.stage_evidence_chars)
         return _ParquetStage(self._stage_db, stem, STAGED[name], self.stage_rows)
 
     def _put(self, name, row, files=None):
@@ -1031,7 +1092,7 @@ class StoreBuilder:
 
     def relation(self, name, parts=()):
         """The SQL relation over one staged table's rows (`staged_paths`), with its STAGED columns."""
-        return _staged_sql(self.staging, self.staged_paths(name, parts), STAGED[name])
+        return _staged_sql(self.staging, self.staged_paths(name, parts), self._columns(name))
 
     def _part(self, bucket):
         """The bucket's open part, opened when the bucket has none."""
@@ -1071,9 +1132,13 @@ class StoreBuilder:
                         row[field] = e[field]
                 if e.get('proper'):
                     row['proper'] = True
-                self._put('events', row, files)
-                self._put('evidence', {'patient_id': pid, 'event_id': e['event_id'], 'evidence': _json(e['evidence'])},
-                          files)
+                if self.evidence_stage == 'events':
+                    row['evidence'] = _json(e['evidence'])
+                    self._put('events', row, files)
+                else:
+                    self._put('events', row, files)
+                    self._put('evidence', {'patient_id': pid, 'event_id': e['event_id'],
+                                           'evidence': _json(e['evidence'])}, files)
                 for c in e['concepts']:
                     self._put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c}, files)
                 rows += 1 + len(e['concepts'])  # an event and its evidence count as one row, as before D26
@@ -1135,7 +1200,7 @@ class StoreBuilder:
                 _load_patients(db, self.relation)
                 input_digest = _input_digest(db, self.header, provenance, self.fetch_rows)
                 self._stage_done('patients_loaded_and_input_digest')
-                _derive(db, self.relation, self.parts, self.on_stage)
+                _derive(db, self.relation, self.parts, self.on_stage, self.evidence_stage)
                 db.execute('DROP TABLE s_patients')
                 shutil.rmtree(self.stage)
                 self._stage_done('derived', database_bytes=(self.work / 'build.duckdb').stat().st_size)
@@ -1211,12 +1276,12 @@ class StoreBuilder:
 
 def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None,
           work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS,
-          stage_evidence_chars=STAGE_EVIDENCE_CHARS):
+          stage_evidence_chars=STAGE_EVIDENCE_CHARS, evidence_stage=None):
     """Validate, derive and write one immutable snapshot of a whole ingest document under `root`;
     return its directory. A wrapper over `StoreBuilder`: the patients are streamed from the list."""
     header = _validate_document(ingest)
     with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows, staging,
-                      stage_rows, stage_evidence_chars) as builder:
+                      stage_rows, stage_evidence_chars, evidence_stage) as builder:
         for p in ingest['patients']:
             builder.add(p)
         return builder.finish(ingest.get('provenance'))
