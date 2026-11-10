@@ -39,6 +39,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D25 | D24 review follow-ups; time pruning on the posting summaries, under a rule fixed before measuring | Decided; pruning kept: exact, arm B −18.4% per candidate at 300,000, 8-worker p95 8.41 s; ranged Parquet write not done |
 | D26 | Execution store 3.0: typed event columns and an evidence table; end summaries for `during`; typed staging; D25 follow-ups, under rules fixed before measuring | Decided; end summaries kept (exact, 280.3 µs per candidate, small gain); typed staging kept (staging −89% at 1,000,000, peak +1.2%, build +18% mostly from the format); evidence table did not cheapen loading |
 | D27 | Chartevents by route (b): store 3.1 with a series table; a census on the demo, a sample beyond it | Decided; demo census clean (4,753 of 4,753 claim stores through route (a), every chart row through the raw-row check, 0 differential mismatches); Merkle digest built, not wired |
+| D28 | Value conditions in the match request (chartevents stage 2); the D26 and D27 follow-ups; an experiment on the store 3.0 build regression, under rules fixed before measuring | In progress |
 
 ## D1 Package with hatchling, in place
 
@@ -836,3 +837,25 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
 - **The Merkle digest**, when appends exist.
 - **In `execution_store.py`** (left for the next store change, since editing it forces the six-hour scaling and matcher regeneration): `validate_series` raises a bare `TypeError` on an unhashable `event_id` instead of a named refusal; `series: []` and an absent `series` give different input digests (normalise it, as D25 normalised defaults); the derive check's comment ("this guards the copy") should say it guards the event link only.
 - **`measurement_claims.select` re-reads its artifact files on every call.** That is a few milliseconds per store, left alone.
+
+## D28 Value conditions in the match request; the D26 and D27 follow-ups; the store 3.0 build regression
+
+Three parts, bundled because each edits `patterns/execution_store.py`, which forces the six-hour regeneration of the scaling and matcher reports once:
+1. chartevents stage 2: value conditions in the store's match request, compiled into per-query tag concepts, with no engine change (decided in D27, decision 6);
+2. the follow-ups listed at the end of D26 and D27;
+3. an experiment on the build time store 3.0 lost to the `event_evidence` table (D26: 17 to 20% slower).
+
+**Pre-committed rules** (written and committed before any measurement of this increment, as D25's and D26's were).
+- *Exactness for every request without value conditions.* No result may change at any `detail` level. Every per-query result digest in the regenerated matcher comparison must equal the D27 report's, query by query, for every arm and size and in the confirmation (B equal to A on A's own snapshots, to `B_unpruned` and to every C arm); the 300 recorded match digests (`patterns/fixtures/execution_store_match_digests.json`) must be unchanged; the scaling report's table row counts, candidate counts and status mixes must equal D27's; and every figure of the MIMIC demo report other than identifiers, digests, timings and the new value-query differential must equal D27's. A request without `conditions` must produce the same output, key for key, as before this change, apart from the context's artifact digests.
+- *Value conditions ship only if all of these hold.*
+  1. The store's results equal an independently written reference's, result for result (`json.dumps` without sorting keys), with 0 mismatches: on seeded random value queries over synthetic fixtures with series (values on and next to every threshold, several units per item, micro-unit values that are null, excluded records, shared variables), at 1 and 2 workers and both detail levels; and on the MIMIC demo, as an extension of its differential with value queries.
+  2. Each planted defect makes that differential fail: a threshold off by one micro-unit, the unit ignored, and a null `value_micro` read as matching (and, for symmetry, as not matching).
+  3. Every value relaxation the differential draws is checked to widen to a tag whose events contain the stricter tag's events.
+  4. Time pruning stays exact for tagged steps: pruning on against off byte for byte on the value differential.
+
+  A failure is fixed, never tuned away; the fixtures are not narrowed to pass.
+- *The build-regression experiment (part 3).* A lever is kept only if
+  1. the snapshot identity and every content digest are byte-identical with and without it, in the same tree (the lever is a builder option during the experiment, so the builder artifacts are equal); and
+  2. the build at 1,000,000 patients in the regenerated scaling report (`build_seconds`) is at least 8% faster than D27's 5,898 s, that is at most 5,426 s, with the build process's peak resident memory not more than 5% above D27's 8.27 GiB (`build_phase.peak_rss_bytes` 8,880,553,984 bytes, so at most 9,324,581,683 bytes).
+
+  Otherwise the lever is reverted and the numbers recorded here. Pilot first, at 100,000 and 300,000 patients, with and without the lever in the same tree, one build at a time. The pilot decides whether the 1,000,000-patient measurement is attempted: if the lever saves less than 8% of the build at 300,000, or raises its peak by more than 5%, it is reverted before the regeneration and the pilot's numbers are the recorded result, since the 1,000,000 build is dominated by the same stages.
