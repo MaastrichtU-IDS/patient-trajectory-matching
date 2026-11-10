@@ -42,6 +42,15 @@ own admitted records where they fall outside it (`inferred:icustay+records`). Ev
 leaves out is kept as an excluded record, its item class and start, so that the store reports a
 `none` such a row could have changed as `not_comparable` (`ADMISSION_EXCLUDED_RECORDS`). See
 docs/execution-store.md, "Stage 2".
+
+Chartevents (D27, `chartevents=True`). `mimic_chartevents` builds chartevents rows by route (b): each admitted
+row's store row from its `describe()` claim, a point event with a series row; rows admission leaves out are
+excluded records; coverage is per ICU stay holding a chart row. `merge_patient` joins each patient's two sources:
+events (ids disjoint by prefix), coverage and excluded records per source, series. Both sources name the
+patient's clock `patient_<id>`; each importer chooses its own origin, but store times are absolute microseconds
+from 0001-01-01 and each event's origin is provenance in its evidence, so the two need no rebasing, and the
+`CLOCKS_NOT_REBASABLE` check stays on the inputevents adapter rows it was written for. `stream_build` streams the
+merged patients into `StoreBuilder`; `convert` returns the whole document, which the verifier needs.
 """
 from __future__ import annotations
 
@@ -68,6 +77,7 @@ from . import mimic_claim_import as importer
 from . import mimic_inputevents as admission
 from . import patient_local as local
 from . import trajectory_graph_sulo as tgs
+from . import mimic_chartevents as chart
 
 PROFILE = 'mimic-store-ingest-1.0'
 INGEST_PROFILE = 'execution-store-ingest-2.0'
@@ -106,6 +116,15 @@ FILES = tuple(sorted(set(
      'patterns/claim_isolation.py', 'patterns/claim_rdf.py', 'ontology/claim-description-profile.ttl',
      'ontology/local-claim-description-profile.ttl')
     + importer.FILES + tgs.FILES + tgs.RDF_FILES + lcp.FILES + joint.FILES)))
+# With chartevents (D27): its converter, checks and the measurement claim route.
+CHART_FILES = tuple(sorted(set(FILES + chart.FILES + ('patterns/mimic_chartevents_check.py',
+                                                      'patterns/mimic_chartevents_raw_check.py',
+                                                      'patterns/series_values.py'))))
+# Labels both sources must agree on, kept unprefixed when chartevents joins (D27).
+# The coverage bases differ on purpose: chartevents covers only stays holding a chart row, so its bases are its own
+# (`chartevents_coverage_basis`).
+SHARED_LABELS = ('clinical_mapping_verified', 'concept_basis', 'ancestor_basis', 'history_mode', 'acceptance',
+                 'excluded_records')
 
 
 class MimicStoreError(ValueError):
@@ -453,15 +472,105 @@ def store_patients(rows, *, claim_provenance, stays, items, excluded=None):
     return patients, ancestors, bases, refusals, counts
 
 
-def ingest_document(patients, ancestors, bases, *, dataset_id, provenance):
-    """The execution-store ingest, with each concept's basis and a closure version binding both."""
+def labels(chartevents=False):
+    """The manifest labels: inputevents' alone, or with chartevents' under a `chartevents_` prefix (D27); the keys
+    both sources set must agree, and `source` becomes `sources`."""
+    if not chartevents:
+        return LABELS
+    for key in SHARED_LABELS:
+        require(LABELS[key] == chart.LABELS[key], 'LABEL_DISAGREEMENT:' + key)
+    out = {k: v for k, v in LABELS.items() if k != 'source'}
+    out['sources'] = '|'.join(sorted((SOURCE, chart.SOURCE)))
+    out.update({'chartevents_' + k: v for k, v in chart.LABELS.items() if k not in SHARED_LABELS})
+    return dict(sorted(out.items()))
+
+
+SELECTION_WITH_CHARTEVENTS = {**SELECTION, 'note': (
+    'every admitted inputevents row and every admitted chartevents numeric measurement of the release as read, all '
+    'accepted for analysis; the release carries no revision history or source availability times, so neither '
+    'selects records')}
+
+
+def header(ancestors, bases, *, dataset_id):
+    """The store header: profile, dataset and closure, with a version binding each concept's ancestors and basis."""
     closure = {c: sorted(a) for c, a in sorted(ancestors.items())}
     bases = dict(sorted(bases.items()))
     version = PROFILE + ':' + ei.digest(ei.canonical({'ancestors': closure, 'bases': bases}))
     return {'profile': INGEST_PROFILE, 'dataset_id': dataset_id + ':' + CONCEPT_BASIS,
-            'provenance': {**provenance, 'selection': SELECTION, 'labels': LABELS,
-                           'ancestor_bases': dict(sorted(Counter(bases.values()).items()))},
-            'closure': {'version': version, 'ancestors': closure, 'bases': bases}, 'patients': patients}
+            'closure': {'version': version, 'ancestors': closure, 'bases': bases}}
+
+
+def full_provenance(provenance, bases, chartevents=False):
+    return {**provenance, 'selection': SELECTION_WITH_CHARTEVENTS if chartevents else SELECTION,
+            'labels': labels(chartevents), 'ancestor_bases': dict(sorted(Counter(bases.values()).items()))}
+
+
+def ingest_document(patients, ancestors, bases, *, dataset_id, provenance, chartevents=False):
+    """The execution-store ingest, with each concept's basis and a closure version binding both."""
+    head = header(ancestors, bases, dataset_id=dataset_id)
+    return {'profile': head['profile'], 'dataset_id': head['dataset_id'],
+            'provenance': full_provenance(provenance, head['closure']['bases'], chartevents),
+            'closure': head['closure'], 'patients': patients}
+
+
+def union_closure(ancestors, bases, chart_ancestors, chart_bases):
+    """inputevents' closure with chartevents' (D27): the same namespaces, so a concept both define must agree."""
+    out_a, out_b = dict(ancestors), dict(bases)
+    for c, above in chart_ancestors.items():
+        if c in out_a:
+            require(sorted(out_a[c]) == sorted(above) and out_b[c] == chart_bases[c], 'CLOSURE_DISAGREEMENT:' + c)
+        out_a[c], out_b[c] = list(above), chart_bases[c]
+    return out_a, out_b
+
+
+def merge_patient(inputs, charted):
+    """One patient's inputevents part (or None) and chartevents batch (or None) as one store patient (D27)."""
+    base = inputs or {'patient_id': charted['patient_id'], 'clock_id': charted['patient']['clock_id'],
+                      'box_representable': True, 'events': [], 'coverage': []}
+    if charted is None:
+        return base
+    part = charted['patient']
+    require(base['clock_id'] == part['clock_id'], 'CLOCK_ID_MISMATCH')
+    out = {**base, 'events': base['events'] + part['events'], 'coverage': base['coverage'] + part['coverage']}
+    excluded = base.get('excluded', []) + part.get('excluded', [])
+    if excluded:
+        out['excluded'] = excluded
+    if charted['series']:
+        out['series'] = charted['series']
+    return out
+
+
+def merged_patients(batches, inputs, refused_ids, totals, stores):
+    """Each store patient, merging inputevents' part (`inputs`, consumed) with each chartevents batch, then the
+    inputevents patients no batch named. A patient inputevents refused (`refused_ids`) is refused as a whole: its
+    chart batch is left out and counted, never stored as a chart-only patient, which would read as a source that
+    recorded nothing where the patient was in fact refused. Counts go to `totals`, claim stores to `stores`."""
+    for batch in batches:
+        if batch['patient_id'] in refused_ids:
+            totals['patients_refused_by_inputevents'] += 1
+            totals['rows_of_refused_patients'] += batch['counts']['rows']
+            continue
+        totals.update(batch['counts'])
+        totals['excluded_records'] += len(batch['patient'].get('excluded', []))
+        totals['coverage_periods'] += len(batch['patient']['coverage'])
+        totals['coverage_periods_extended_by_records'] += sum(
+            c['basis'] == chart.EXTENDED_COVERAGE_BASIS for c in batch['patient']['coverage'])
+        stores += batch['stores']
+        yield merge_patient(inputs.pop(batch['patient_id'], None), batch)
+    for pid in sorted(inputs):
+        yield inputs.pop(pid)
+
+
+def chartevents_provenance(run, totals, sampler_summary=None):
+    return {'converter': chart.PROFILE, 'context_id': run.context_id, 'context': run.context,
+            'route': {'choice': 'b', 'steps': ['mimic_chartevents.read (two streaming passes)',
+                                               'mimic_measurement_import.admit', 'mimic_measurement_import.describe',
+                                               'mimic_chartevents.claim_fields', 'mimic_chartevents.store_row'],
+                      'claims_per_store': chart.CLAIMS_PER_STORE},
+            'counts': dict(sorted(totals.items())),
+            'closure': {'item_classes': sum(b == chart.CONCEPT_BASIS for b in run.bases.values()),
+                        'groupings': sum(b == chart.GROUP_BASIS for b in run.bases.values()),
+                        'unknown_items': run.unknown_items}}
 
 
 def exclusion_summary(patients, ancestors):
@@ -481,8 +590,10 @@ def exclusion_summary(patients, ancestors):
                                                                         for p in patients)}
 
 
-def convert(input_dir, dataset_id, workers=1, isolation=True):
-    """Local MIMIC files to a store ingest through the canonical route; with counts and timings."""
+def convert(input_dir, dataset_id, workers=1, isolation=True, chartevents=False, work_dir=None, shards=16):
+    """Local MIMIC files to a store ingest through the canonical route; with counts and timings. With `chartevents`,
+    chartevents joins by route (b) (D27), and the result also holds its run, every claim store's summary and
+    its counts."""
     timings = {}
     t = time.perf_counter()
     prepared = prepare(input_dir, dataset_id)
@@ -525,10 +636,55 @@ def convert(input_dir, dataset_id, workers=1, isolation=True):
                             'adapter_ingest_profile': tgs.INGEST_PROFILE, 'claims_per_store': CLAIMS_PER_STORE,
                             **{k: v for k, v in route.items() if k != 'route_files'}},
                   'refused': refused, 'counts': counts}
-    ingest = ingest_document(patients, ancestors, bases, dataset_id=dataset_id, provenance=provenance)
     timings['mapping'] = time.perf_counter() - t
-    return {'ingest': ingest, 'rows': rows, 'prepared': prepared, 'counts': counts, 'refused': refused,
-            'route': route, 'timings_seconds': timings}
+    # Patients `store_patients` left out (refused as a whole): never re-admitted through another source (D27).
+    everyone = {s['subject_id'] for s in prepared['stays']} | {r['patient_id'] for r in rows}
+    refused_ids = sorted(everyone - {p['patient_id'] for p in patients})
+    result = {'rows': rows, 'prepared': prepared, 'counts': counts, 'refused': refused, 'route': route,
+              'timings_seconds': timings, 'refused_patient_ids': refused_ids}
+    if not chartevents:
+        result['ingest'] = ingest_document(patients, ancestors, bases, dataset_id=dataset_id, provenance=provenance)
+        return result
+    import tempfile
+    t = time.perf_counter()
+    run = chart.Run(input_dir, dataset_id)
+    ancestors, bases = union_closure(ancestors, bases, run.ancestors, run.bases)
+    inputs = {p['patient_id']: p for p in patients}
+    merged, stores, totals = [], [], Counter()
+    with tempfile.TemporaryDirectory(dir=work_dir) as work:
+        merged = list(merged_patients(run.batches(work, shards), inputs, set(refused_ids), totals, stores))
+    provenance['chartevents'] = chartevents_provenance(run, totals)
+    timings['chartevents_route_b'] = time.perf_counter() - t
+    result.update(ingest=ingest_document(merged, ancestors, bases, dataset_id=dataset_id, provenance=provenance,
+                                         chartevents=True),
+                  chart_run=run, chart_stores=stores, chart_counts=dict(sorted(totals.items())))
+    return result
+
+
+def stream_build(input_dir, dataset_id, root, *, workers=1, threads=1, isolation=True, work_dir=None, shards=16,
+                 memory_limit=None):
+    """inputevents (route a) and chartevents (route b) streamed into `StoreBuilder` one merged patient at a time
+    (D27): the header first (the union closure, known before any patient: inputevents' from its adapter rows,
+    chartevents' from pass one), then patients as chartevents batches arrive, then the provenance. Gives the
+    snapshot `build(convert(..., chartevents=True)['ingest'])` gives, without holding the document."""
+    import tempfile
+    base = convert(input_dir, dataset_id, workers, isolation)
+    inputs = {p['patient_id']: p for p in base['ingest']['patients']}
+    refused_ids = set(base['refused_patient_ids'])
+    provenance = {k: v for k, v in base['ingest']['provenance'].items()
+                  if k not in ('selection', 'labels', 'ancestor_bases')}
+    run = chart.Run(input_dir, dataset_id)
+    ancestors, bases = union_closure(base['ingest']['closure']['ancestors'], base['ingest']['closure']['bases'],
+                                     run.ancestors, run.bases)
+    head = header(ancestors, bases, dataset_id=dataset_id)
+    totals = Counter()
+    options = {} if memory_limit is None else {'memory_limit': memory_limit}
+    with es.StoreBuilder(root, head, threads=threads, work_dir=work_dir, **options) as builder, \
+            tempfile.TemporaryDirectory(dir=work_dir) as work:
+        for patient in merged_patients(run.batches(work, shards), inputs, refused_ids, totals, []):
+            builder.add(patient)
+        provenance['chartevents'] = chartevents_provenance(run, totals)
+        return builder.finish(full_provenance(provenance, head['closure']['bases'], chartevents=True))
 
 
 # ---------------------------------------------------------------- command line
@@ -542,6 +698,8 @@ def main(argv=None):
                         help='git-ignored directory for the snapshot and the run summary')
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--threads', type=int, default=1, help='DuckDB threads')
+    parser.add_argument('--chartevents', action='store_true',
+                        help='also chartevents by route (b), streamed into the store builder (D27)')
     args = parser.parse_args(argv)
     from . import execution_store as es
     try:
@@ -553,10 +711,16 @@ def main(argv=None):
         inputs = {p.resolve() for p in importer.source_paths(args.input_dir).values()}
         require(not any(args.output.resolve() == p or args.output.resolve() in p.parents for p in inputs),
                 'OUTPUT_OVERWRITES_INPUT')
-        result = convert(args.input_dir, dataset_id, workers=args.workers)
-        t = time.perf_counter()
-        snapshot = es.build(result['ingest'], args.output / 'store', threads=args.threads)
-        result['timings_seconds']['store_build'] = time.perf_counter() - t
+        if args.chartevents:
+            t = time.perf_counter()
+            snapshot = stream_build(args.input_dir, dataset_id, args.output / 'store', workers=args.workers,
+                                    threads=args.threads)
+            result = {'counts': None, 'refused': None, 'timings_seconds': {'streamed_build': time.perf_counter() - t}}
+        else:
+            result = convert(args.input_dir, dataset_id, workers=args.workers)
+            t = time.perf_counter()
+            snapshot = es.build(result['ingest'], args.output / 'store', threads=args.threads)
+            result['timings_seconds']['store_build'] = time.perf_counter() - t
     except (ValueError, LookupError, OSError, EOFError, csv.Error, zlib.error) as error:
         print(json.dumps({'status': 'INVALID_INPUT', 'reason': str(error)}), file=sys.stderr)
         return 2

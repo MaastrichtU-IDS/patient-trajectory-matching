@@ -82,7 +82,7 @@ Cautions on the matching rows:
 - **Build peak memory.** About 8.1 GiB resident under a 4 GB limit. The factor of about two between limit and resident memory is DuckDB's or the allocator's, and is unresolved. Writing the Parquet files sorts each whole bucket and sets the peak. A ranged write does not give the same Parquet bytes, so it was not done. Staging and the build database need about 144 GB of disk at 1,000,000 patients.
 - **Parallel matching at 1,000,000** was not measured. Single-process matching there holds 6.86 GiB and takes up to 245 s.
 - **Deferred D25 follow-ups.** Record pruned candidates per query in the matcher benchmark, so the pruned share is bound evidence and not an ad hoc measurement. Add a sortedness assertion in `_prune`. Close the benchmark worker's store and pool if a query raises. Per-concept end summaries would let `during`'s grace prune, but need a format change.
-- **Not built.** Chartevents (668,862 demo rows; route (b) of D16, point-measurement support, a series table, per-patient streaming in the MIMIC converter). Non-box source networks in the adapter. Bucket-level roots for incremental appends. Embeddings, Postgres and Rust.
+- **Not built.** Value conditions on chart measurements (D27 stage 2; chartevents itself was built after this briefing, see section 7). Non-box source networks in the adapter. Bucket-level roots for incremental appends. Embeddings, Postgres and Rust.
 - **Hosting.** Nothing is deployed or hosted. This waits on you.
 
 ## 6. What needs you
@@ -99,4 +99,12 @@ Cautions on the matching rows:
   - *End-time summaries.* These let `during`'s grace prune. They were kept under a rule fixed before measuring, but the gain is small: 36.22% of candidates pruned against 36.10%.
   - *Typed staging* (Parquet). Staged bytes at 1,000,000 fell from 120 GB to 13 GB, with peak memory up 1.2%.
   - *Unchanged.* Results are unchanged everywhere. The D21 target still holds: p95 8.53 s at 8 workers and 7.71 s at 14.
-- **Chartevents (D16, route (b)), in progress.** The design and modules are built and reviewed on a branch. Integration into store 3.0 and the full demo run follow D26. The design draft is `docs/decisions/chartevents-route-b.md` on that branch.
+- **D27, chartevents by route (b), and store 3.1.** Chartevents now joins the MIMIC demo store.
+  - *Route (b).* Each admitted chart row becomes a point event computed from the measurement importer's own claim description, with no graph built per row. Its value and unit go into a new `series` table. That table is the store format change, so the profile is `execution-store-3.1`.
+  - *Census.* Every chart row is checked against the raw file by independent code, and every one of the 4,753 claim stores went through the full measurement graph route. Their rows equal the bulk rows and the rows the built store holds. The graph route shares its row mapping with route (b), so on that mapping the raw-row check is the evidence.
+  - *Differential.* The 500-query differential has no mismatch, and `exhaustive_match` agrees with the faster reference on the first 50 queries.
+  - *What it costs.* Admission keeps only numeric rows with a unit and no warning: 150,051 of 668,862. The rest are excluded records, so most `none` results on chart items are `not_comparable` (D18).
+  - *Not yet.* Value conditions (such as "a mean arterial pressure below 65") are stage 2. Textual and unitless rows, unit equivalence and reviewed mappings are stage 3.
+  - *Merkle digest.* The Merkle input digest of D16 is built but deliberately left out of the store until incremental appends exist.
+  - *Review fixes.* An independent review found that a patient the inputevents route refuses could come back through chartevents as a chart-only patient and read `none`; refusal is now whole-patient (the demo has no refusals, so no figure moved). The raw-row check now also recomputes chartevents' coverage, which decides `none` against `NO_SOURCE_COVERAGE`.
+  - *Unchanged elsewhere.* The scaling report (to 1,000,000) and the matcher comparison were regenerated on store 3.1. Every result digest equals D26's, the 300 recorded match digests are unchanged, and build, verification and matching costs are within run-to-run spread (build +0.75% at 1,000,000). The D21 target still holds: p95 8.41 s at 8 workers and 7.05 s at 14.

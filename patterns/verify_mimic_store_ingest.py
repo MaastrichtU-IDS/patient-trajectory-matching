@@ -16,6 +16,13 @@ differs where the store ran the engine; or whose decision differs from the adapt
 (status, binding, relaxations, cost, certainty), reading the store's `not_comparable` as the
 adapter's `none`. The report requires none. Separately, every event's times and recorded time are
 checked against its raw source row.
+
+Chartevents (D27). Chartevents joins by route (b): bulk rows from `describe()` claims. On the demo the check is a
+census: every chart row through the independent raw-row check, and every claim store through the round trip and
+the measurement graph route, whose rows must equal the bulk rows field for field and the rows read back from the
+built store. The third differential path then holds every chart event as route (a) gave it. The reference path is
+`PreparedReference` (engine inputs built once per patient); `exhaustive_match`, which filters nothing, runs on the
+first `EXHAUSTIVE_SEEDS` queries, where the prepared reference and an unfiltered adapter path must agree with it.
 """
 from __future__ import annotations
 
@@ -25,6 +32,7 @@ import csv
 import json
 from pathlib import Path
 import random
+import sys
 import tempfile
 import time
 import zlib
@@ -33,12 +41,24 @@ from . import exact_intervals as ei
 from . import execution_store as es
 from . import execution_store_reference as ref
 from . import mimic_claim_import as importer
+from . import mimic_chartevents as chart
+from . import mimic_chartevents_check as chart_check
+from . import mimic_chartevents_raw_check as raw_check
 from . import mimic_store_ingest as msi
+from . import prepared_reference as pr
 from . import trajectory_graph as tg
 from . import verify_mimic_demo as demo
 
 DATASET = 'mimic-iv-demo-2.2'
 SEEDS = 500
+EXHAUSTIVE_SEEDS = 50
+CHART_PIN = ei.ROOT / 'data/clinical-source-demo-pin.json'
+STATEMENT = ('Chartevents rows are built from describe() claim identity (route b). On the demo every claim store was '
+             'sent through the measurement graph route (a census): its rows equalled the bulk rows field for field, and '
+             'the rows read back from the built store. That comparison shares the row mapping with the bulk route, '
+             'which the raw-row check verifies independently over every chart row. For full MIMIC-IV the design is a '
+             'deterministic sample of claim stores, not a census: rows outside the sample would be tied to the graph '
+             'by claim identity only.')
 MINUTE = 60_000_000
 DAY = 1440 * MINUTE
 COSTS = ('0.25', '0.5', '0.75', '1')
@@ -48,6 +68,8 @@ REPORT = ei.ROOT / 'verification/execution-store-mimic-demo-report.json'
 FILES = tuple(sorted(set(msi.FILES + (
     'patterns/verify_mimic_store_ingest.py', 'patterns/verify_mimic_demo.py', 'patterns/mimic_store_ingest.py',
     'patterns/execution_store_reference.py', 'data/mimic-inputevents-demo-pin.json'))))
+CHART_FILES = tuple(sorted(set(FILES + msi.CHART_FILES + (
+    'patterns/prepared_reference.py', 'data/clinical-source-demo-pin.json'))))
 
 
 # ---------------------------------------------------------------- seeded queries over source item classes
@@ -101,7 +123,7 @@ def random_query(rng, pool, ingest):
             carrying = [x for x in anchor['events'] if any(concept == c or concept in ancestors[c] for c in x['concepts'])]
             if carrying:
                 pick = min if step['occurrence'] == 'first' else max
-                chosen[i] = pick(carrying, key=lambda x: (x['start'][0], x['end'][0], x['event_id']))
+                chosen[i] = pick(carrying, key=lambda x: (x['start'][0], x.get('end', x['start'])[0], x['event_id']))
         if rng.random() < 0.2:  # decoy: only the widening reaches the anchor's event
             relaxations.append({'id': f'wS{i}', 'kind': 'widen_concept', 'step': step['id'], 'concept': concept,
                                 'cost': rng.choice(COSTS)})
@@ -146,13 +168,20 @@ def random_query(rng, pool, ingest):
 
 # ---------------------------------------------------------------- the adapter rows as engine input
 
-def adapter_engine_input(rows, items):
-    """{patient: engine events} straight from `ingest_rows`, without the store mapping.
+def adapter_engine_input(rows, items, chart_events=()):
+    """{patient: engine events} straight from `ingest_rows`, without the store mapping, and, with chartevents, every
+    chart event as route (a) gave it: (patient, event id, item class, start lo, start hi) points (D27).
 
     Times are the clock origin's coordinate plus the tightened bounds; concepts are the rows' own,
     plus each item class's dictionary grouping (D14), which the adapter does not know.
     """
     out = defaultdict(list)
+    for pid, eid, item_class, lo, hi in chart_events:
+        concepts = {item_class}
+        category = items[item_class[len(importer.ITEM_NS):]]['category']
+        if category:
+            concepts.add(msi.group_iri(category))
+        out[pid].append({'id': eid, 'concepts': sorted(concepts), 'start': [lo, hi]})
     for r in rows:
         origin = msi.micros(r['clock_origin'])
         concepts = {c['concept'] for c in r['concepts']}
@@ -197,7 +226,12 @@ def agrees(g, a, case):
     return same, 'binding' in a
 
 
-def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
+def _filtered(events, index, wanted):
+    """The engine events carrying a wanted concept, in order (what any step could bind)."""
+    return [events[i] for i in sorted({i for c in wanted for i in index.get(c, ())})]
+
+
+def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0, exhaustive_seeds=EXHAUSTIVE_SEEDS):
     """The store path against exhaustive matching and against the adapter rows, over every patient.
 
     Against the reference, every status must agree, and every result the store's engine decided must
@@ -208,6 +242,17 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
     """
     pool = concept_pool(ingest)
     ids = {i: p for i, p, *_ in store.rows("patients")}
+    prepared = pr.PreparedReference(ingest)
+    index, linked = {}, {}
+    for pid, events in engine_input.items():
+        index[pid] = {}
+        for k, e in enumerate(events):
+            for c in e['concepts']:
+                index[pid].setdefault(c, []).append(k)
+        linked[pid] = ref.shares_variables({'events': [{'event_id': e['id'], 'start_var': e.get('start_var', e['id'] + '.s'),
+                                                         **({'end': e['end'], 'end_var': e.get('end_var', e['id'] + '.f')}
+                                                            if 'end' in e else {})} for e in events]})
+    slice_results, prepared_mismatches = 0, 0
     mix, adapter_mix, reasons, relaxed_by_kind = Counter(), Counter(), Counter(), Counter()
     bindings_compared, cases = 0, Counter()
     mismatches, adapter_mismatches, dropped, filtered, examples = 0, 0, 0, 0, []
@@ -217,7 +262,14 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
         kinds = {x['id']: x['kind'] for x in query['relaxations']}
         kept = {ids[i] for i in es.candidates(store, query)['patient_idx']}
         got = es.match(store, query, windows)['results']
-        want = ref.exhaustive_match(ingest, query, windows)
+        exhaustive = seed - first_seed < exhaustive_seeds
+        want = prepared.match(query, windows)
+        if exhaustive:  # the reference that filters nothing, for the event-filter argument the others share
+            full = ref.exhaustive_match(ingest, query, windows)
+            slice_results += len(full)
+            prepared_mismatches += sum(a != b for a, b in zip(want, full, strict=True))
+            want = full
+        wanted = set().union(*ref.step_concepts(query).values())
         for g, w in zip(got, want, strict=True):
             assert g['patient_id'] == w['patient_id'], (seed, g['patient_id'], w['patient_id'])
             pid = w['patient_id']
@@ -233,7 +285,10 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
             if g['status'] != w['status'] or (g.get('reason') != 'FILTERED' and g != w):
                 mismatches += 1
                 examples.append({'seed': seed, 'store': g['status'], 'reference': w['status']})
-            a = tg.match(query, {'patient_id': pid, 'window': windows.get(pid), 'events': engine_input.get(pid, [])})
+            events = engine_input.get(pid, [])
+            if not exhaustive and not linked.get(pid):
+                events = _filtered(events, index.get(pid, {}), wanted)
+            a = tg.match(query, {'patient_id': pid, 'window': windows.get(pid), 'events': events})
             adapter_mix[a['status']] += 1
             case = admission_case(g, a)
             if case:
@@ -244,6 +299,10 @@ def differential(store, ingest, engine_input, seeds=SEEDS, first_seed=0):
                 adapter_mismatches += 1
                 examples.append({'seed': seed, 'store': g['status'], 'adapter_rows': a['status']})
     return {'queries': seeds, 'first_seed': first_seed, 'patient_results': sum(mix.values()),
+            'reference': ('prepared_reference (engine inputs once per patient) on every query; exhaustive_match and an '
+                          'unfiltered adapter path on the first queries'),
+            'exhaustive_slice': {'queries': min(seeds, exhaustive_seeds), 'patient_results': slice_results,
+                                 'prepared_reference_mismatches': prepared_mismatches},
             'mismatches': mismatches, 'adapter_row_mismatches': adapter_mismatches, 'dropped_matches': dropped,
             'filtered_by_candidate_filter': filtered, 'status_mix': dict(sorted(mix.items())),
             'adapter_row_status_mix': dict(sorted(adapter_mix.items())),
@@ -260,6 +319,8 @@ def raw_time_check(ingest, segments):
     checked = mismatched = 0
     for p in ingest['patients']:
         for e in p['events']:
+            if e['source'] != msi.SOURCE:
+                continue
             segment = by_key[e['evidence']['source_key']]
             checked += 1
             start, end = msi.micros(segment['start']['raw_value']), msi.micros(segment['end']['raw_value'])
@@ -273,32 +334,130 @@ def raw_time_check(ingest, segments):
 
 # ---------------------------------------------------------------- the report
 
-def verify(input_dir, seeds=SEEDS, workers=1, root=None):
+def chartevents_pin(run):
+    """The chartevents file against its published pin (D11): byte digest and rows."""
+    pin = json.loads(CHART_PIN.read_text())['files']['chartevents']
+    ei.require(run.manifest['file_sha256'] == pin['file_sha256'] and run.manifest['rows'] == pin['rows'],
+               'CHARTEVENTS_PIN_MISMATCH')
+    return {'file_sha256_matches_pin': True, 'rows': run.manifest['rows']}
+
+
+def store_chart_coverage(store):
+    """{patient_id: [(lo, hi, basis)]}: the chartevents coverage rows of a built store."""
+    out = defaultdict(list)
+    for pid, lo, hi, basis in store.query('SELECT p.patient_id, c.lo, c.hi, c.basis FROM coverage c '
+                                          'JOIN patients p USING (patient_idx) WHERE c.source = ?', [chart.SOURCE]):
+        out[pid].append((lo, hi, basis))
+    return dict(out)
+
+
+def chart_raw_check(result, store=None):
+    """The independent raw-row check over every chart row (D27), with chartevents coverage recomputed from the raw
+    rows and icustays and compared with the ingest's and, given a built store, the store's. Rows of patients
+    inputevents refused are not in the store, and are left out of the count."""
+    checker = raw_check.RawRowCheck()
+    for p in result['ingest']['patients']:
+        mine = {'patient_id': p['patient_id'], 'events': [e for e in p['events'] if e['source'] == chart.SOURCE],
+                'excluded': [x for x in p.get('excluded', []) if x['source'] == chart.SOURCE],
+                'coverage': [c for c in p['coverage'] if c['source'] == chart.SOURCE]}
+        checker.add(mine, p.get('series', []))
+    run = result['chart_run']
+    out = checker.verify(run.paths['chartevents'], run.paths['d_items'], run.paths['icustays'],
+                         store_chart_coverage(store) if store is not None else None)
+    expected_rows = run.manifest['rows'] - result['chart_counts'].get('rows_of_refused_patients', 0)
+    ei.require(out['passed'] and out['rows'] == expected_rows, 'CHARTEVENTS_RAW_ROW_CHECK_FAILED')
+    return out
+
+
+def built_store_comparison(store, outcomes):
+    """Every graph-checked store's route-(a) rows against the rows read back from the built store (D27, §3.6)."""
+    by_patient = defaultdict(list)
+    for o in outcomes:
+        by_patient[o['key'][0]].append(o)
+    compared = mismatched = events = 0
+    for pid, mine in by_patient.items():
+        forms = chart_check.store_forms(store, pid, [eid for o in mine for eid in o['event_ids']])
+        for o in mine:
+            compared += 1
+            events += len(o['event_ids'])
+            found = [forms.get(eid) for eid in o['event_ids']]
+            mismatched += None in found or chart_check.forms_digest(found) != o['stored_digest']
+    return {'stores_compared': compared, 'events_compared': events, 'stores_mismatched': mismatched}
+
+
+def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, census_workers=None,
+           exhaustive_seeds=EXHAUSTIVE_SEEDS):
     started = time.perf_counter()
-    result = msi.convert(input_dir, DATASET, workers=workers)
+    result = msi.convert(input_dir, DATASET, workers=workers, chartevents=chartevents)
     admission = demo.verify_summary(result['prepared']['admission']['summary'])
     timings = dict(result['timings_seconds'])
+    chart_report, outcomes, chart_events = None, [], []
     with tempfile.TemporaryDirectory() as tmp:
+        if chartevents:
+            run = result['chart_run']
+            pin = chartevents_pin(run)
+            t = time.perf_counter()
+            selected = {s['key']: ['census'] for s in result['chart_stores']}
+            digests = {s['key']: s['rows_sha256'] for s in result['chart_stores']}
+            outcomes = chart_check.check_selected(run, selected, digests, Path(tmp) / 'census', graph=True,
+                                                  workers=census_workers or workers)
+            census = chart_check.summarise(outcomes)
+            timings['chartevents_census'] = time.perf_counter() - t
+            ei.require(census['stores_round_tripped'] == len(selected) == census['stores_graph_checked']
+                       and census['round_trip_failures'] == 0 and census['mismatched_stores'] == 0,
+                       'CHARTEVENTS_GRAPH_CHECK_MISMATCH')
+            chart_events = [(o['key'][0], *e) for o in outcomes for e in o['engine_events']]
         t = time.perf_counter()
-        snapshot = es.build(result['ingest'], Path(root or tmp))
+        snapshot = es.build(result['ingest'], Path(root or tmp) / 'store')
         timings['store_build'] = time.perf_counter() - t
         t = time.perf_counter()
         with es.open_store(snapshot) as store:
             timings['store_open_and_verify'] = time.perf_counter() - t
             manifest = store.manifest
+            if chartevents:
+                t = time.perf_counter()
+                raw = chart_raw_check(result, store)
+                timings['chartevents_raw_row_check'] = time.perf_counter() - t
+                t = time.perf_counter()
+                stored = built_store_comparison(store, outcomes)
+                timings['chartevents_built_store_comparison'] = time.perf_counter() - t
+                ei.require(stored['stores_mismatched'] == 0 and stored['stores_compared'] == len(outcomes),
+                           'CHARTEVENTS_BUILT_STORE_MISMATCH')
+                chart_report = {
+                    'route': {'choice': 'b', 'check': 'census', 'steps': chart_check.ROUTE_STEPS,
+                              'description': ('each admitted chartevents row a point event computed from its describe() '
+                                              'claim, with a series row; claim stores of at most 32 claims per ICU '
+                                              'stay; rows admission leaves out are excluded records')},
+                    'pin': pin, 'counts': result['chart_counts'],
+                    'closure': result['ingest']['provenance']['chartevents']['closure'],
+                    'raw_row_check': raw, 'census': census, 'built_store_comparison': stored,
+                    'sample_design_for_full_mimic': {'rate': chart_check.RATE, 'per_batch': chart_check.PER_BATCH,
+                                                     'batch': 'execution-store bucket of the patient',
+                                                     'stratified': True},
+                    'statement': STATEMENT}
             t = time.perf_counter()
-            engine_input = adapter_engine_input(result['rows'], result['prepared']['items'])
-            check = differential(store, result['ingest'], engine_input, seeds)
+            engine_input = adapter_engine_input(result['rows'], result['prepared']['items'], chart_events)
+            check = differential(store, result['ingest'], engine_input, seeds, exhaustive_seeds=exhaustive_seeds)
             timings['differential'] = time.perf_counter() - t
     times = raw_time_check(result['ingest'], result['prepared']['admission']['segments'])
     timings['total'] = time.perf_counter() - started
-    ei.require(check['mismatches'] == 0 and check['adapter_row_mismatches'] == 0 and check['dropped_matches'] == 0,
-               'DEMO_STORE_DIFFERENTIAL_MISMATCH')
+    import resource
+    own, children = resource.getrusage(resource.RUSAGE_SELF), resource.getrusage(resource.RUSAGE_CHILDREN)
+    resources = {'cpu_seconds': round(own.ru_utime + own.ru_stime + children.ru_utime + children.ru_stime, 1),
+                 # ru_maxrss is bytes on macOS and kilobytes on Linux.
+                 'peak_rss_bytes_main_process': own.ru_maxrss * (1 if sys.platform == 'darwin' else 1024),
+                 'note': 'this run, this machine: CPU time of the verifier and its worker processes'}
+    ei.require(check['mismatches'] == 0 and check['adapter_row_mismatches'] == 0 and check['dropped_matches'] == 0
+               and check['exhaustive_slice']['prepared_reference_mismatches'] == 0, 'DEMO_STORE_DIFFERENTIAL_MISMATCH')
     ei.require(times['mismatches'] == 0 and times['events_checked'] == result['counts']['events'],
                'DEMO_RAW_TIME_MISMATCH')
-    return {
-        'profile': 'execution-store-mimic-demo-verification-1.0',
-        'scope': ('Public-demo inputevents through the SULO adapter into the execution store. Concepts are source item '
+    report = {
+        'profile': 'execution-store-mimic-demo-verification-1.1' if chartevents else
+                   'execution-store-mimic-demo-verification-1.0',
+        'scope': ('Public-demo inputevents through the SULO adapter and chartevents numeric measurements by route (b) '
+                  'into the execution store. Concepts are source item classes with their dictionary groupings, not '
+                  'clinical concepts. Aggregates only; no patient rows, identifiers or times.') if chartevents else
+                 ('Public-demo inputevents through the SULO adapter into the execution store. Concepts are source item '
                   'classes with their dictionary groupings, not clinical concepts. Aggregates only; no patient rows, '
                   'identifiers or times.'),
         'full_mimic_analyzed': False, 'patient_rows_included': False,
@@ -320,8 +479,13 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None):
         'raw_source_time_check': times,
         'differential': check,
         'timings_seconds': {k: round(v, 2) for k, v in sorted(timings.items())},
-        'artifacts': msi.artifacts(FILES),
+        'resources': resources,
+        'artifacts': msi.artifacts(CHART_FILES if chartevents else FILES),
     }
+    if chart_report is not None:
+        report['chartevents'] = chart_report
+        report['route'] = {**report['route'], 'source': msi.SOURCE}
+    return report
 
 
 def main(argv=None):
@@ -332,11 +496,14 @@ def main(argv=None):
     parser.add_argument('--seeds', type=int, default=SEEDS)
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--store-root', type=Path, help='keep the snapshot here (default: a temporary directory)')
+    parser.add_argument('--census-workers', type=int, help='processes for the chartevents census (default: --workers)')
+    parser.add_argument('--no-chartevents', action='store_true', help='inputevents only, as before D27')
     args = parser.parse_args(argv)
     try:
         inputs = {p.resolve() for p in importer.source_paths(args.input_dir).values()}
         ei.require(args.output.resolve() not in inputs, 'OUTPUT_OVERWRITES_INPUT')
-        report = verify(args.input_dir, args.seeds, args.workers, args.store_root)
+        report = verify(args.input_dir, args.seeds, args.workers, args.store_root, chartevents=not args.no_chartevents,
+                        census_workers=args.census_workers)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.output.with_suffix(args.output.suffix + '.tmp')
         temporary.write_text(json.dumps(report, indent=2) + '\n')

@@ -869,7 +869,8 @@ def main_derive(db, relation):
     The only changes since are the 2.1 columns (D24): `patients.shared_variables` and the events' variables
     and `proper`, each a copy of its staged value (false where the staging leaves it out); and 3.0's (D26): the
     events' record fields, copies of their staged values, the evidence in its own table, and the postings'
-    latest end. `relation(name)` reads one staged table's rows over the whole build (D26: staging may be Parquet)."""
+    latest end; and 3.1's (D27): the series rows, copies of their staged values. `relation(name)` reads one staged
+    table's rows over the whole build (D26: staging may be Parquet)."""
     staged = relation
     db.execute(f"""CREATE TABLE p AS SELECT
         (row_number() OVER (ORDER BY patient_id ASC) - 1)::INTEGER AS patient_idx, patient_id,
@@ -905,6 +906,9 @@ def main_derive(db, relation):
         x.reason, count(*)::BIGINT AS n, p.bucket
         FROM {staged('excluded')} x JOIN p USING (patient_id)
         GROUP BY p.patient_idx, x.source, x.concept, x.start_lo, x.start_hi, x.reason, p.bucket""")
+    db.execute(f"""CREATE TABLE series AS SELECT p.patient_idx, s.event_id, s.item_class, s.start_lo, s.start_hi,
+        s.value_lexical, s.value_decimal, s.value_micro, s.unit, p.bucket
+        FROM {staged('series')} s JOIN p USING (patient_id)""")
     db.execute('DROP TABLE p')
 
 
@@ -935,8 +939,24 @@ def main_path_digests(ingest, tmp, staging=None):
             db.close()
 
 
+def series_patient():
+    """A patient with measured points (D27): exact micro-unit values, one finer than 10**-6, and an interval."""
+    def value(eid, text, decimal, micro, unit='per day'):
+        return {'event_id': eid, 'item_class': 'seizure_frequency', 'value_lexical': text, 'value_decimal': decimal,
+                'value_micro': micro, 'unit': unit}
+    return {'patient_id': 'S-series', 'clock_id': 'patient_S', 'coverage': [cover('diary', day(0), day(30))],
+            'events': [ev('m1', ['seizure_frequency'], (day(1), day(1)), source='diary', kind='measurement'),
+                       ev('m2', ['seizure_frequency'], (day(2), day(2) + 5), source='diary', kind='measurement'),
+                       ev('m3', ['seizure_frequency', 'seizure'], (day(3), day(3)), source='diary', kind='measurement'),
+                       ev('x', ['valproate'], (day(1), day(1)), (day(4), day(4)), 'pharmacy', 'exposure')],
+            'series': [value('m2', '1e-7', '0.0000001', None), value('m1', '7.350', '7.350', 7_350_000),
+                       value('m3', '-12', '-12', -12_000_000, 'count')]}
+
+
 def tables_of(manifest):
-    return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in manifest['tables'].items()}
+    """Every table's digests but `series` (D27), which the 3.0 records predate; callers check it is empty."""
+    return {n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')} for n, t in manifest['tables'].items()
+            if n != 'series'}
 
 
 # The 2.0 columns of the tables 2.1 (D24) and 3.0 (D26) changed, in their 2.0 order: `events` with its evidence,
@@ -952,7 +972,7 @@ def digests_2_0(snapshot):
     so on an ingest without shared variables, `proper` or record fields these must be the digests 2.0 recorded
     for the same document, and the other tables' digests too."""
     assert [c for c, _ in COLUMNS_2_0['events']][-2:] == ['ongoing', 'evidence']
-    tables = {n: COLUMNS_2_0.get(n, c) for n, c in es.TABLES.items() if n != 'event_evidence'}
+    tables = {n: COLUMNS_2_0.get(n, c) for n, c in es.TABLES.items() if n not in ('event_evidence', 'series')}
     with es.open_store(snapshot, verify=False) as store, patch.dict(es.TABLES, tables, clear=True):
         store.db.execute('ALTER VIEW events RENAME TO events_3_0')
         store.db.execute("""CREATE VIEW events AS SELECT e.*, x.evidence FROM events_3_0 e
@@ -1000,6 +1020,7 @@ class PerBucketDeriveTests(unittest.TestCase):
                 manifest = json.loads((snapshot / 'manifest.json').read_text())
                 self.assertEqual({'input_digest': manifest['input_digest'], 'tables': tables_of(manifest)},
                                  {k: self.recorded_3_0[name][k] for k in ('input_digest', 'tables')})
+                self.assertEqual(manifest['tables']['series']['rows'], 0)  # 3.1 adds an empty table here
                 want, mine = self.recorded[name], digests_2_0(snapshot)
                 changed = set() if name == 'fixture' else {'events'}
                 self.assertEqual(manifest['input_digest'] == want['input_digest'], name == 'fixture')
@@ -1021,8 +1042,9 @@ class PerBucketDeriveTests(unittest.TestCase):
         g['patients'].append({'patient_id': 'Ünïcode-😀', 'clock_id': 'c', 'coverage': [cover('ehr', day(0), day(9))],
                               'events': [ev('é', ['dravet', 'valproate'], (day(1), day(2)), (day(3), None))]})
         g['patients'] += shared_variable_patients()
+        g['patients'].append(series_patient())
         for label, ingest in (('synthetic', _STATE['ingest']),
-                              ('fixture with excluded records and shared variables', g)):
+                              ('fixture with excluded records, shared variables and series', g)):
             with tempfile.TemporaryDirectory() as tmp:
                 input_digest, tables = main_path_digests(ingest, Path(tmp) / 'main')
                 self.assertEqual(main_path_digests(ingest, Path(tmp) / 'json', staging='ndjson'), (input_digest, tables))
@@ -1030,8 +1052,10 @@ class PerBucketDeriveTests(unittest.TestCase):
                 with self.subTest(case=label, **options), tempfile.TemporaryDirectory() as tmp:
                     manifest = self.build(ingest, tmp, **options)
                     self.assertEqual(manifest['input_digest'], input_digest)
-                    self.assertEqual(tables_of(manifest), tables)
+                    self.assertEqual({n: {k: t[k] for k in ('rows', 'content_digest', 'buckets')}
+                                      for n, t in manifest['tables'].items()}, tables)
         self.assertGreater(tables['excluded_records']['rows'], 0)
+        self.assertEqual(tables['series']['rows'], 3)
 
     def test_parts_hold_whole_patients_of_one_bucket_and_each_bucket_is_reported(self):
         stages = []
@@ -1066,7 +1090,7 @@ class PerBucketDeriveTests(unittest.TestCase):
             row = info[f'derived:bucket={b}']
             self.assertEqual(set(row['statement_seconds']),
                              {'events', 'event_concepts', 'concept_postings', 'source_concepts', 'event_evidence',
-                              'coverage', 'excluded_records'})
+                              'coverage', 'excluded_records', 'series'})
             self.assertGreater(row['duckdb_memory_max_bytes'], 0)
         self.assertEqual(info['derived:whole']['statements'], 3)
         with self.assertRaises(es.StoreError) as caught:
@@ -1591,13 +1615,107 @@ class PlantedDefectTests(unittest.TestCase):
                                 'the planted defect went unnoticed')
 
 
+class SeriesTests(unittest.TestCase):
+    """Store 3.1 (D27): the `series` table of measurement values."""
+
+    def ingest(self):
+        g = fixture()
+        g['patients'].append(series_patient())
+        return g
+
+    def test_store_equals_the_reference_and_the_accessor_reads_it(self):
+        g = self.ingest()
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(g, tmp), verify='content') as store:
+            self.assertEqual(table_mismatches(store, ref.build_tables(g)), {})
+            reference = ref.table_digests(ref.build_tables(g))
+            self.assertEqual({n: (t['rows'], t['content_digest']) for n, t in store.manifest['tables'].items()},
+                             {n: (t['rows'], t['content_digest']) for n, t in reference.items()})
+            self.assertEqual(store.manifest['input_digest'], ref.input_digest(g))
+            rows = store.series('S-series')
+            self.assertEqual([r['event_id'] for r in rows], ['m1', 'm2', 'm3'])
+            self.assertEqual(rows[1], {'event_id': 'm2', 'item_class': 'seizure_frequency', 'start_lo': day(2),
+                                       'start_hi': day(2) + 5, 'value_lexical': '1e-7', 'value_decimal': '0.0000001',
+                                       'value_micro': None, 'unit': 'per day'})
+            self.assertEqual(store.series('S-series', ['m3'])[0]['value_micro'], -12_000_000)
+            self.assertEqual(store.series('P1'), [])
+            self.assertEqual(store.series('nobody'), [])
+
+    def test_series_changes_no_other_table_and_order_does_not_matter(self):
+        g = self.ingest()
+        without = deepcopy(g)
+        del without['patients'][-1]['series']
+        shuffled = deepcopy(g)
+        shuffled['patients'][-1]['series'].reverse()
+        with tempfile.TemporaryDirectory() as tmp:
+            a = json.loads((es.build(g, Path(tmp) / 'a') / 'manifest.json').read_text())
+            b = json.loads((es.build(without, Path(tmp) / 'b') / 'manifest.json').read_text())
+            c = json.loads((es.build(shuffled, Path(tmp) / 'c', staging='ndjson', part_rows=1) / 'manifest.json').read_text())
+            # The evidence stage's character cap only cuts staging files (one event a file here).
+            d = json.loads((es.build(g, Path(tmp) / 'd', stage_evidence_chars=1) / 'manifest.json').read_text())
+        self.assertEqual(a['snapshot_id'], c['snapshot_id'])
+        self.assertEqual(a['snapshot_id'], d['snapshot_id'])
+        self.assertNotEqual(a['input_digest'], b['input_digest'])
+        self.assertEqual({n: t['content_digest'] for n, t in a['tables'].items() if n != 'series'},
+                         {n: t['content_digest'] for n, t in b['tables'].items() if n != 'series'})
+        self.assertEqual((a['tables']['series']['rows'], b['tables']['series']['rows']), (3, 0))
+
+    def test_refusals(self):
+        def refused(code, change):
+            g = self.ingest()
+            change(g['patients'][-1])
+            with tempfile.TemporaryDirectory() as tmp, self.assertRaises(es.IngestError) as raised:
+                es.build(g, tmp)
+            self.assertEqual(raised.exception.code, code)
+
+        def at(i, **fields):
+            return lambda p: p['series'][i].update(fields)
+        refused('SERIES_UNKNOWN_EVENT', at(0, event_id='nope'))
+        refused('SERIES_EVENT_NOT_POINT', at(0, event_id='x', item_class='valproate'))
+        refused('DUPLICATE_SERIES_EVENT', at(0, event_id='m1'))
+        refused('SERIES_ITEM_CLASS_MISMATCH', at(2, item_class='epilepsy'))
+        refused('INVALID_SERIES_VALUE', at(1, value_lexical='<5'))
+        refused('INVALID_SERIES_VALUE', at(1, value_decimal='1e-7'))
+        refused('INVALID_SERIES_VALUE', at(1, value_micro=0))
+        refused('INVALID_SERIES_VALUE', at(0, value_micro=7_350_001))
+        refused('INVALID_SERIES_VALUE', at(0, value_micro=7350000.0))
+        refused('INVALID_SERIES_UNIT', at(0, unit=' per day'))
+        refused('INVALID_SERIES_UNIT', at(0, unit=''))
+        refused('INVALID_SERIES', at(0, extra=1))
+        refused('INVALID_SERIES', lambda p: p.update(series={}))
+        # Spellings beyond the 28-digit decimal context: the micro-unit integer must be null, not rounded.
+        for text, decimal in (('1000000000000.0000000000000000001', '1000000000000.0000000000000000001'),
+                              ('9000000000000.00000000000000000049', '9000000000000.00000000000000000049')):
+            refused('INVALID_SERIES_VALUE', at(0, value_lexical=text, value_decimal=decimal, value_micro=10 ** 18))
+            g = self.ingest()
+            g['patients'][-1]['series'][0].update(value_lexical=text, value_decimal=decimal, value_micro=None)
+            es.validate_ingest(g)
+
+    def test_series_values_agrees_with_the_measurement_decimal_rule(self):
+        from decimal import Decimal
+        from . import measurement_claims as mc
+        from . import series_values as sv
+        for text in ('58', '58.00', '-1.25', '+.5', '5.', '1e-7', '12E2', '1e308', '1e309', '1e-309', '', '.', 'e5',
+                     '1.2.3', ' 1', '0x1', 'NaN', 'Infinity', '1' * 64, '1' * 65, '<5', '15 Alert'):
+            try:
+                want = ('ok', mc.decimal_value(text))
+            except Exception as exc:  # noqa: BLE001 - the code is what is compared
+                want = ('refused', str(exc))
+            try:
+                got = ('ok', sv.decimal_of(text))
+            except sv.SeriesValueError as exc:
+                got = ('refused', str(exc))
+            self.assertEqual(got, want, text)
+        self.assertEqual(sv.micro_value(Decimal('9223372036854.775807')), 2 ** 63 - 1)
+        self.assertIsNone(sv.micro_value(Decimal('9223372036854.775808')))
+
+
 class ContractTests(unittest.TestCase):
     def test_the_manifest_validates_and_tampering_is_refused(self):
         manifest = _STATE['store'].manifest
         schema = json.loads((ROOT / es.SCHEMA_PATH).read_text())
         Draft202012Validator.check_schema(schema)
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(manifest)), [])
-        self.assertEqual(manifest['profile'], 'execution-store-3.0')
+        self.assertEqual(manifest['profile'], 'execution-store-3.1')
         self.assertEqual(set(manifest['builder']['artifacts']), {es.MODULE_PATH, es.SCHEMA_PATH})
         self.assertEqual(manifest['builder']['memory_limit'], es.DEFAULT_MEMORY_LIMIT)
         self.assertEqual(sorted(manifest['files']), sorted(es.file_digests(_STATE['snapshot'])))

@@ -75,6 +75,9 @@ LABELS = {
     'test_packaging': 'Packaging resource-locator tests',
     'test_execution_store': 'Execution store, reference and differential matching tests',
     'test_mimic_store_ingest': 'MIMIC store ingest through the SULO adapter tests',
+    'test_mimic_chartevents': 'MIMIC chartevents route (b), graph and raw-row check tests',
+    'test_prepared_reference': 'Prepared reference matcher tests',
+    'test_merkle_patients': 'Merkle tree over patients tests',
 }
 
 

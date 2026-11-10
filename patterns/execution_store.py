@@ -5,7 +5,7 @@ at a time, and a relaxation-sound candidate filter in front of the trajectory-gr
 patient per `add()`, then the provenance in `finish()`. Each `add()` validates the patient against
 the closure, appends its rows to the staging files of its bucket's current part (a run of whole
 patients of one bucket) and its digest to a staged patient list, so Python holds one patient at a
-time. `finish()` derives nine tables in a file-backed DuckDB database under a memory limit, one part
+time. `finish()` derives ten tables in a file-backed DuckDB database under a memory limit, one part
 at a time and bucket by bucket, so the derive's working set does not grow with the cohort, and
 writes them as Parquet under `root/<snapshot_id>/`, with a `manifest.json` that
 `schemas/execution-store-manifest.schema.json` validates. `build(ingest, root)` does the same for a
@@ -58,7 +58,9 @@ from ._resources import ROOT
 # 2.1 (D24): events hold their time variables and `proper`, and patients whether their events share variables.
 # 3.0 (D26): the D5 record fields are typed event columns, free-form evidence is its own table (`event_evidence`),
 # and postings keep each concept's latest end (`max_end_hi`).
-PROFILE = 'execution-store-3.0'
+# 3.1 (D27): a `series` table holds measurement values (exact decimal text, micro-unit integer, literal unit) for
+# point events, beside `events`; a document without series gives the same rows in every other table.
+PROFILE = 'execution-store-3.1'
 # The ingest profile is unchanged: the event fields 2.1 and 3.0 read (start_var, end_var, proper and the record
 # fields) are optional, so a document without them is read, and digested, exactly as before (D25, D26).
 INGEST_PROFILE = 'execution-store-ingest-2.0'
@@ -89,7 +91,8 @@ INPUT_FORM = ('sha256 over the canonical JSON of {profile, dataset_id, closure, 
               '"<patient_id>\\t<sha256 of the patient\'s canonical JSON>\\n" for each patient in code-point order of '
               'patient_id; a patient is canonical with events sorted by event_id, each event\'s concepts sorted, '
               'coverage and excluded records sorted, and keys sorted, and each event without proper: false, a '
-              'start_var equal to "<event_id>.s" or an end_var equal to "<event_id>.f"')
+              'start_var equal to "<event_id>.s" or an end_var equal to "<event_id>.f"; series rows, when given, '
+              'sorted by event_id')
 
 # Logical tables: column names and DuckDB types, in canonical column order.
 TABLES = {
@@ -113,6 +116,10 @@ TABLES = {
     'source_concepts': (('source', 'VARCHAR'), ('concept', 'VARCHAR'), ('basis', 'VARCHAR')),
     'excluded_records': (('patient_idx', 'INTEGER'), ('source', 'VARCHAR'), ('concept', 'VARCHAR'),
                          ('start_lo', 'BIGINT'), ('start_hi', 'BIGINT'), ('reason', 'VARCHAR'), ('n', 'BIGINT')),
+    # D27: one row per measured point event; the time is the event's, copied so a series scan needs no join.
+    'series': (('patient_idx', 'INTEGER'), ('event_id', 'VARCHAR'), ('item_class', 'VARCHAR'), ('start_lo', 'BIGINT'),
+               ('start_hi', 'BIGINT'), ('value_lexical', 'VARCHAR'), ('value_decimal', 'VARCHAR'),
+               ('value_micro', 'BIGINT'), ('unit', 'VARCHAR')),
 }
 # The only column types a table may have: no floats or decimals, whose text forms are not canonical.
 ALLOWED_TYPES = ('INTEGER', 'BIGINT', 'BOOLEAN', 'VARCHAR')
@@ -123,15 +130,17 @@ KEYS = {'patients': ('patient_idx',), 'events': ('patient_idx', 'event_id'),
         'concept_closure': ('concept', 'ancestor'),
         'concept_postings': ('concept', 'patient_idx'), 'coverage': ('patient_idx', 'source', 'lo', 'hi', 'basis'),
         'source_concepts': ('source', 'concept'),
-        'excluded_records': ('patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason')}
+        'excluded_records': ('patient_idx', 'source', 'concept', 'start_lo', 'start_hi', 'reason'),
+        'series': ('patient_idx', 'item_class', 'start_lo', 'start_hi', 'event_id')}
 # Patient-keyed tables are written as hive-style bucket partitions; the others as one file.
-PARTITIONED = ('events', 'event_evidence', 'event_concepts', 'coverage', 'excluded_records')
+PARTITIONED = ('events', 'event_evidence', 'event_concepts', 'coverage', 'excluded_records', 'series')
 # Row order inside the Parquet files, for reads by patient or concept. Identity never depends on it.
 SORT = {'patients': 'patient_idx', 'events': 'patient_idx, start_lo, event_id',
         'event_evidence': 'patient_idx, event_id', 'event_concepts': 'patient_idx, concept, event_id',
         'concept_closure': 'concept, ancestor',
         'concept_postings': 'concept, patient_idx', 'coverage': 'patient_idx, source, lo',
-        'source_concepts': 'concept, source', 'excluded_records': 'patient_idx, concept, start_lo, reason'}
+        'source_concepts': 'concept, source', 'excluded_records': 'patient_idx, concept, start_lo, reason',
+        'series': 'patient_idx, item_class, start_lo, event_id'}
 VERIFY_LEVELS = ('files', 'content', False)
 # The basis a concept has when the ingest's closure does not name one.
 DEFAULT_CONCEPT_BASIS = 'declared'
@@ -277,7 +286,7 @@ def shares_variables(events):
 def validate_patient(p, ancestors):
     """One patient against the closure's concepts. Duplicate patient ids are a whole-stream check."""
     _require(isinstance(p, dict) and {'patient_id', 'clock_id', 'events', 'coverage'} <= set(p)
-             and set(p) <= {'patient_id', 'clock_id', 'events', 'coverage', 'box_representable', 'excluded'},
+             and set(p) <= {'patient_id', 'clock_id', 'events', 'coverage', 'box_representable', 'excluded', 'series'},
              'INVALID_PATIENT')
     pid = p['patient_id']
     _require(type(pid) is str and pid and not any(c in pid for c in _ID_DELIMITERS), 'INVALID_PATIENT_ID')
@@ -364,7 +373,40 @@ def validate_patient(p, ancestors):
         _require(isinstance(x['start'], list) and len(x['start']) == 2, 'INVALID_TIME', f'{pid} excluded')
         lo, hi = (_time(v, f'{pid} excluded') for v in x['start'])
         _require(lo <= hi, 'INVERTED_BOUNDS', f'{pid} excluded')
+    validate_series(p)
     return p
+
+
+SERIES_FIELDS = {'event_id', 'item_class', 'value_lexical', 'value_decimal', 'value_micro', 'unit'}
+
+
+def validate_series(p):
+    """A patient's measurement values (D27): at most one row per point event, for one of its direct concepts, with
+    the exact decimal text and micro-unit integer `series_values` gives for the spelling, and a literal unit."""
+    from . import series_values as sv
+    pid = p['patient_id']
+    _require(isinstance(p.get('series', []), list), 'INVALID_SERIES', pid)
+    if not p.get('series'):
+        return
+    events = {e['event_id']: e for e in p['events']}
+    seen = set()
+    for r in p['series']:
+        _require(isinstance(r, dict) and set(r) == SERIES_FIELDS, 'INVALID_SERIES', pid)
+        where = f"{pid}/{r['event_id']}"
+        event = events.get(r['event_id'])
+        _require(event is not None, 'SERIES_UNKNOWN_EVENT', where)
+        _require('end' not in event, 'SERIES_EVENT_NOT_POINT', where)
+        _require(r['event_id'] not in seen, 'DUPLICATE_SERIES_EVENT', where)
+        seen.add(r['event_id'])
+        _require(type(r['item_class']) is str and r['item_class'] in event['concepts'], 'SERIES_ITEM_CLASS_MISMATCH', where)
+        try:
+            value = sv.decimal_of(r['value_lexical'])
+        except sv.SeriesValueError:
+            raise IngestError('INVALID_SERIES_VALUE', where) from None
+        micro = r['value_micro']
+        _require(r['value_decimal'] == sv.decimal_text(value)
+                 and (micro is None or type(micro) is int) and micro == sv.micro_value(value), 'INVALID_SERIES_VALUE', where)
+        _require(type(r['unit']) is str and r['unit'] and r['unit'].strip() == r['unit'], 'INVALID_SERIES_UNIT', where)
 
 
 def _validate_document(ingest):
@@ -422,6 +464,8 @@ def canonical_patient(p):
            'coverage': sorted(p['coverage'], key=lambda c: (c['source'], c['lo'], c['hi'], c['basis']))}
     if 'excluded' in p:
         out['excluded'] = sorted(p['excluded'], key=lambda x: (x['source'], x['concept'], x['start'], x['reason']))
+    if 'series' in p:
+        out['series'] = sorted(p['series'], key=lambda r: r['event_id'])
     return out
 
 
@@ -499,24 +543,31 @@ STAGING = 'parquet'
 # Rows one Parquet staging file holds: each staged table of each open part buffers this many rows in Python, as typed
 # columns, before they are written (the last file of a part may hold fewer). Any number gives the same tables.
 STAGE_ROWS = 10_000
+# The evidence stage is also flushed once its buffered evidence text reaches this many characters (D27; a D26 review
+# follow-up): evidence is free-form, several KB an event for MIMIC rows, and the buffer is Python's, outside DuckDB's
+# memory limit. Like `stage_rows`, it changes how rows are cut into files, never the tables.
+STAGE_EVIDENCE_CHARS = 32 * 2 ** 20
 
 
 class _ParquetStage:
     """One staged table's rows for one part (or the whole build), buffered as typed columns and written to Parquet
     files of `rows` rows each through DuckDB (`COPY (SELECT unnest(?), ...)`), so no Python object outlives a file."""
 
-    def __init__(self, db, stem, columns, rows):
+    def __init__(self, db, stem, columns, rows, measure=None, max_chars=None):
         self.db, self.stem, self.columns, self.rows = db, stem, columns, rows
         self.names = [c for c, _ in columns]
         self.select = ', '.join(f'unnest(CAST(? AS {t}[])) AS {c}' for c, t in columns)
-        self.paths, self.n = [], 0
+        self.paths, self.n, self.chars = [], 0, 0
+        self.measure, self.max_chars = measure, max_chars  # a text column whose buffered length also bounds a file
         self.data = [[] for _ in columns]
 
     def write(self, row):
         for column, name in zip(self.data, self.names):
             column.append(row.get(name))
         self.n += 1
-        if self.n >= self.rows:
+        if self.measure is not None:
+            self.chars += len(row[self.measure])
+        if self.n >= self.rows or (self.measure is not None and self.chars >= self.max_chars):
             self.flush()
 
     def flush(self):
@@ -524,7 +575,7 @@ class _ParquetStage:
             path = f'{self.stem}.f{len(self.paths):05d}.parquet'
             self.db.execute(f'COPY (SELECT {self.select}) TO {_lit(path)} (FORMAT parquet)', self.data)
             self.paths.append(path)
-            self.n, self.data = 0, [[] for _ in self.columns]
+            self.n, self.chars, self.data = 0, 0, [[] for _ in self.columns]
 
     def close(self):
         self.flush()
@@ -546,6 +597,9 @@ STAGED = {
     'coverage': [('patient_id', 'VARCHAR'), ('source', 'VARCHAR'), ('lo', 'BIGINT'), ('hi', 'BIGINT'), ('basis', 'VARCHAR')],
     'excluded': [('patient_id', 'VARCHAR'), ('source', 'VARCHAR'), ('concept', 'VARCHAR'), ('start_lo', 'BIGINT'),
                  ('start_hi', 'BIGINT'), ('reason', 'VARCHAR')],
+    'series': [('patient_id', 'VARCHAR'), ('event_id', 'VARCHAR'), ('item_class', 'VARCHAR'), ('start_lo', 'BIGINT'),
+               ('start_hi', 'BIGINT'), ('value_lexical', 'VARCHAR'), ('value_decimal', 'VARCHAR'),
+               ('value_micro', 'BIGINT'), ('unit', 'VARCHAR')],
 }
 
 
@@ -565,7 +619,7 @@ def _connect(path, threads, memory_limit, temp_directory):
 
 
 # Staged per derive part (a run of whole patients of one bucket); the patient list and the closure are one file each.
-PART_STAGED = ('events', 'evidence', 'concepts', 'coverage', 'excluded')
+PART_STAGED = ('events', 'evidence', 'concepts', 'coverage', 'excluded', 'series')
 
 
 def part_file(stage, name, part, suffix='.ndjson'):
@@ -617,7 +671,7 @@ def _create_table(db, name, columns):
 
 
 def _derive(db, relation, parts, on_stage=None):
-    """Create the nine logical tables (plus a bucket column on partitioned ones) from the staging files.
+    """Create the ten logical tables (plus a bucket column on partitioned ones) from the staging files.
 
     Patient-keyed rows are derived one part at a time, bucket by bucket (D23). Every row of
     `events`, `event_evidence`, `event_concepts`, `coverage`, `excluded_records` and `concept_postings` depends on
@@ -667,6 +721,20 @@ def _derive(db, relation, parts, on_stage=None):
             run('source_concepts', """INSERT INTO part_source_concepts SELECT DISTINCT e.source, cc.ancestor
                 FROM part_events e JOIN part_concepts ec USING (patient_idx, event_id)
                 JOIN concept_closure cc ON cc.concept = ec.concept""")
+            run('series', f"""CREATE TEMP TABLE part_series AS SELECT p.patient_idx, s.event_id, s.item_class, s.start_lo,
+                s.start_hi, s.value_lexical, s.value_decimal, s.value_micro, s.unit, p.bucket
+                FROM {staged('series', part)} s JOIN p USING (patient_id)""")
+            # Each series row is of a point event of the part, at that event's time, for one of its direct concepts.
+            # The ingest's checks and the staging make it so; this guards the copy.
+            orphan = db.execute("""SELECT count(*) FROM part_series s LEFT JOIN part_events e USING (patient_idx, event_id)
+                LEFT JOIN part_concepts c ON c.patient_idx = s.patient_idx AND c.event_id = s.event_id
+                     AND c.concept = s.item_class
+                WHERE e.event_id IS NULL OR c.concept IS NULL OR e.end_lo IS NOT NULL
+                   OR e.start_lo <> s.start_lo OR e.start_hi <> s.start_hi""").fetchone()[0]
+            if orphan:
+                raise StoreError('SERIES_ROWS_NOT_OF_THEIR_EVENTS', str(orphan))
+            run('series', 'INSERT INTO series SELECT * FROM part_series')
+            run('series', 'DROP TABLE part_series')
             run('events', 'INSERT INTO events SELECT * FROM part_events')
             run('event_concepts', 'INSERT INTO event_concepts SELECT * FROM part_concepts')
             run('events', 'DROP TABLE part_events')
@@ -872,7 +940,8 @@ class StoreBuilder:
     """
 
     def __init__(self, root, header, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS,
-                 on_stage=None, work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS):
+                 on_stage=None, work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS,
+                 stage_evidence_chars=STAGE_EVIDENCE_CHARS):
         self.header = validate_header(header)  # before anything is written
         self.ancestors = header['closure']['ancestors']
         self.threads, self.memory_limit, self.fetch_rows = threads, _memory_limit(memory_limit), fetch_rows
@@ -887,6 +956,9 @@ class StoreBuilder:
         if type(stage_rows) is not int or stage_rows < 1:
             raise StoreError('INVALID_STAGE_ROWS', repr(stage_rows))
         self.stage_rows = stage_rows
+        if type(stage_evidence_chars) is not int or stage_evidence_chars < 1:
+            raise StoreError('INVALID_STAGE_EVIDENCE_CHARS', repr(stage_evidence_chars))
+        self.stage_evidence_chars = stage_evidence_chars
         self.on_stage = on_stage
         self.root = Path(root)
         # Directories this builder creates, so that a refusal leaves no trace of them.
@@ -929,6 +1001,8 @@ class StoreBuilder:
         """Where one staged table's rows go: an ndjson file, or a Parquet stage of numbered files."""
         if self.staging == 'ndjson':
             return open(f'{stem}.ndjson', 'w', encoding='utf-8')
+        if name == 'evidence':
+            return _ParquetStage(self._stage_db, stem, STAGED[name], self.stage_rows, 'evidence', self.stage_evidence_chars)
         return _ParquetStage(self._stage_db, stem, STAGED[name], self.stage_rows)
 
     def _put(self, name, row, files=None):
@@ -997,6 +1071,15 @@ class StoreBuilder:
                 for c in e['concepts']:
                     self._put('concepts', {'patient_id': pid, 'event_id': e['event_id'], 'concept': c}, files)
                 rows += 1 + len(e['concepts'])  # an event and its evidence count as one row, as before D26
+            if canonical.get('series'):
+                starts = {e['event_id']: e['start'] for e in canonical['events']}
+                for r in canonical['series']:
+                    lo, hi = starts[r['event_id']]
+                    self._put('series', {'patient_id': pid, 'event_id': r['event_id'], 'item_class': r['item_class'],
+                                         'start_lo': lo, 'start_hi': hi, 'value_lexical': r['value_lexical'],
+                                         'value_decimal': r['value_decimal'], 'value_micro': r['value_micro'],
+                                         'unit': r['unit']}, files)
+                rows += len(canonical['series'])
             for c in canonical['coverage']:
                 self._put('coverage', {'patient_id': pid, **c}, files)
             for x in canonical.get('excluded', []):
@@ -1121,12 +1204,13 @@ class StoreBuilder:
 
 
 def build(ingest, root, threads=1, memory_limit=DEFAULT_MEMORY_LIMIT, fetch_rows=FETCH_ROWS, on_stage=None,
-          work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS):
+          work_dir=None, part_rows=PART_ROWS, staging=None, stage_rows=STAGE_ROWS,
+          stage_evidence_chars=STAGE_EVIDENCE_CHARS):
     """Validate, derive and write one immutable snapshot of a whole ingest document under `root`;
     return its directory. A wrapper over `StoreBuilder`: the patients are streamed from the list."""
     header = _validate_document(ingest)
     with StoreBuilder(root, header, threads, memory_limit, fetch_rows, on_stage, work_dir, part_rows, staging,
-                      stage_rows) as builder:
+                      stage_rows, stage_evidence_chars) as builder:
         for p in ingest['patients']:
             builder.add(p)
         return builder.finish(ingest.get('provenance'))
@@ -1275,6 +1359,20 @@ class Store:
         return {eid: json.loads(text) for eid, text in self.query(
             'SELECT event_id, evidence FROM event_evidence WHERE bucket = ? AND patient_idx = ? ORDER BY event_id',
             [bucket, idx])}
+
+
+    def series(self, patient_id, event_ids=None):
+        """One patient's series rows (D27) as dicts in key order (item class, time, event), all of them or those of
+        the given events; for display and audit. Matching does not read the table in this profile."""
+        found = self.query('SELECT patient_idx, bucket FROM patients WHERE patient_id = ?', [patient_id])
+        if not found:
+            return []
+        (idx, bucket), = found
+        names = [c for c, _ in TABLES['series']][1:]
+        rows = self.query(f"SELECT {', '.join(names)} FROM series WHERE bucket = ? AND patient_idx = ? "
+                          f"ORDER BY item_class, start_lo, start_hi, event_id", [bucket, idx])
+        wanted = None if event_ids is None else set(event_ids)
+        return [dict(zip(names, r)) for r in rows if wanted is None or r[0] in wanted]
 
 
 def open_store(path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS, expected_snapshot_id=None):
