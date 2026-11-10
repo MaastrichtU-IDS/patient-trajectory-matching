@@ -49,7 +49,7 @@
 
   <div class="facts">
     <div class="fact"><b data-r="patients">1,000,000</b>synthetic patients built and verified in one store, under a 4 GB database limit</div>
-    <div class="fact"><b data-r="p95">7.05 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
+    <div class="fact"><b data-r="p95">7.26 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
     <div class="fact"><b data-r="rows">668,862</b>MIMIC-IV demo chart rows ingested and every one checked, <span data-r="mism">0</span> mismatches</div>
     <div class="fact"><b>1,239</b>contract checks run on every push</div>
   </div>
@@ -82,7 +82,7 @@
       <p>A step can carry a condition such as "heart rate above 120 per minute" or "MAP below 65 mmHg", matched exactly on the stored values with the unit matched literally. Relaxing a threshold only ever adds patients, and excluded rows of the same item make a result <i>not comparable</i>. The matching engine itself is unchanged; the store compiles each condition into a tag for that query.</p>
       <p class="ref">D28 (chartevents stage 2) · <code>docs/execution-store.md</code></p></div>
     <div class="item"><h3>Faster builds and checks</h3>
-      <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 11.6% and its content check by 38%, with identical content digests (snapshot identifiers change with the builder), under a rule set before measuring.</p>
+      <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 12.0% and its content check by 38%, with identical content digests (snapshot identifiers change with the builder), under a rule set before measuring.</p>
       <p class="ref">D26, D28</p></div>
   </div>
 
