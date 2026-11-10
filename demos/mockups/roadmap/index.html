@@ -36,14 +36,13 @@
 <body>
 <main>
   <div class="eyebrow">PATIENT TRAJECTORY MATCHING · ROADMAP</div>
-  <h1>What exists, what is in progress, and what comes next</h1>
+  <h1>What exists and what comes next</h1>
   <p class="note">As of 10 November 2026. This is a research codebase, not a product: the completion register records full-product completion as false, and nothing here is a clinical claim. Scale evidence is synthetic data on one machine. Each item names the decisions (D-numbers in <code>docs/decisions/engine-increment-log.md</code>) or documents behind it.</p>
   <p><a href="../">← all mockups</a> · <a href="../results/">results and evidence</a> · plain-language summary: <code>docs/decisions/briefing-2026-11.md</code></p>
 
   <div class="legend" aria-label="Status labels">
     <span class="badge b-now">✓ Built</span>
-    <span class="badge b-wip">◐ In progress</span>
-    <span class="badge b-next">→ Next</span>
+        <span class="badge b-next">→ Next</span>
     <span class="badge b-later">○ Later, only if needed</span>
     <span class="badge b-you">? Needs a decision from the project</span>
   </div>
@@ -52,7 +51,7 @@
     <div class="fact"><b data-r="patients">1,000,000</b>synthetic patients built and verified in one store, under a 4 GB database limit</div>
     <div class="fact"><b data-r="p95">7.05 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
     <div class="fact"><b data-r="rows">668,862</b>MIMIC-IV demo chart rows ingested and every one checked, <span data-r="mism">0</span> mismatches</div>
-    <div class="fact"><b>1,220</b>contract checks run on every push</div>
+    <div class="fact"><b>1,239</b>contract checks run on every push</div>
   </div>
 
   <h2><span class="badge b-now">✓ Built</span></h2>
@@ -79,16 +78,11 @@
     <div class="item"><h3>Research workspace</h3>
       <p>A bounded research workspace runs an integrated synthetic research journey. Against the full specification it is partial: the completion audit records 10 requirements supported, 64 partial, 4 blocked and 26 specification-only.</p>
       <p class="ref"><code>app/</code> · <code>docs/status.md</code> · <code>docs/completion.md</code></p></div>
-  </div>
-
-  <h2><span class="badge b-wip">◐ In progress</span></h2>
-  <p class="lede">Being built and benchmarked now; it merges after independent review.</p>
-  <div class="grid">
     <div class="item"><h3>Queries on measurement values</h3>
-      <p>A step can carry a condition such as "heart rate above 120 per minute" or "MAP below 65 mmHg", matched on the stored values with the unit matched exactly. Relaxing a threshold only ever adds patients, an inexact value never silently counts either way, and excluded rows of the same item make a result <i>not comparable</i>. The matching engine itself is unchanged.</p>
-      <p class="ref">D28 (chartevents stage 2)</p></div>
-    <div class="item"><h3>Faster store builds</h3>
-      <p>Store 3.0 made builds 17–20% slower. One change saved 12.7% at 300,000 patients with identical results; it is kept only if it is at least 8% faster at 1,000,000 patients, under a rule set before measuring.</p>
+      <p>A step can carry a condition such as "heart rate above 120 per minute" or "MAP below 65 mmHg", matched exactly on the stored values with the unit matched literally. Relaxing a threshold only ever adds patients, and excluded rows of the same item make a result <i>not comparable</i>. The matching engine itself is unchanged; the store compiles each condition into a tag for that query.</p>
+      <p class="ref">D28 (chartevents stage 2) · <code>docs/execution-store.md</code></p></div>
+    <div class="item"><h3>Faster builds and checks</h3>
+      <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 11.6% and its content check by 38%, with identical snapshots, under a rule set before measuring.</p>
       <p class="ref">D26, D28</p></div>
   </div>
 
