@@ -12,6 +12,10 @@ Opening the HTML files directly will not work; the pages fetch the dataset over 
 
 `server.py` serves the pages as `python -m http.server` would, and adds the trajectory-graph engine (`patterns/trajectory_graph.py`, [profile](../../docs/trajectory-graph-profile.md)). The trajectory page then matches with the engine: it resolves each step's candidate events, including relaxed alternatives, and the engine decides timing, relaxation and search budgets. A toggle switches to the page's own in-browser search, which is also used wherever no engine is reachable, as on static hosting. `test_engine_parity.cjs` checks that both give every patient the same status, certainty and relaxation set.
 
+## Results page
+
+`results/` summarises the execution-store and matching evidence: scale, matching latency at 300,000 patients against the D21 target, and the MIMIC-IV demo census. Every figure is read from a committed report in `verification/` by `results/build.py`, which writes `results/results.json`; run it again after those reports are regenerated (`--check` reports a stale file). The page lists each source report's digest.
+
 ## The synthetic cohort
 
 `synthetic/generate.py` is standard-library Python and deterministic for a given seed (`--check` regenerates and compares). It writes 48 invented children across Dravet syndrome, GEFS+, febrile seizures, PCDH19 clustering epilepsy, CDKL5 deficiency disorder, tuberous sclerosis complex, Rett syndrome and spinal muscular atrophy.
