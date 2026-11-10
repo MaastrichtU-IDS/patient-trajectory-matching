@@ -106,7 +106,8 @@ LIMITATIONS = (
     'comparability, exclusions and the context digests.',
     'Latencies are wall-clock times of one Python thread and one DuckDB thread; no tuning was attempted.',
     'Byte identity is checked by a digest of canonical JSON of the plan, candidate count, counts and every patient result '
-    '(not the context block, whose snapshot and code digests change with the code); no exhaustive reference ran at scale.',
+    '(not the context block, whose snapshot and code digests change with the code); since D28 each arm\'s per-query digests are '
+    'kept in its `per_query` (null for `B_decided`, whose listing differs by design); no exhaustive reference ran at scale.',
     'Arm C: workers and the query process share one machine (10 performance and 4 efficiency cores): counts above 10 '
     'put work on efficiency cores. Workers are warm for the timings; start-up is one cold figure per count, with '
     'the page cache warm from earlier arms. The comparability and exclusion steps still run in the query process.',
@@ -481,7 +482,7 @@ def arm_statistics(result, record, patients):
             **({'pruning': pruning} if pruning else {}),
             'per_query': [{k: q[k] for k in ('seed', 'candidates', 'match_seconds', 'engine_seconds', 'load_seconds',
                                               'listed_results', 'prune_seconds', 'candidates_with_window', 'pruned',
-                                              'pruned_by_start_summaries') if k in q} for q in per_query]}, per_query
+                                              'pruned_by_start_summaries', 'digest') if k in q} for q in per_query]}, per_query
 
 
 def identity(a_queries, b_queries):

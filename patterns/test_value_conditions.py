@@ -476,6 +476,69 @@ class SemanticsTests(unittest.TestCase):
         got, _ = self.run_case(g, q, cond)
         self.assertEqual((got['P0']['status'], got['P0']['relaxations'], got['P0']['cost']), ('relaxed', ['v75'], '0.5'))
 
+    def test_conditions_differing_beyond_28_digits_never_share_a_tag(self):
+        """D28 review, must-fix: tag names came from `Decimal.normalize`, which rounds to 28 digits, so a condition
+        and a wider one differing at the 29th digit shared one tag (last write wins), and the store answered `exact`
+        where the answer is `relaxed`. The reviewer's case, and two steps on one concept."""
+        g = small([patient('P0', [point('m', 'i:map', 1)], [series_row('m', 'i:map', '1', 'u')])])
+        fine = '1.00000000000000000000000000001'
+        cond = {'profile': CP, 'steps': {'A': {'unit': 'u', 'ge': fine}},
+                'relaxations': [{'id': 'v', 'kind': 'widen_value', 'step': 'A', 'cost': '1',
+                                 'condition': {'unit': 'u', 'ge': '1'}}]}
+        got, out = self.run_case(g, {**one_step('i:map'), 'budget': '1'}, cond)
+        self.assertEqual((got['P0']['status'], got['P0']['relaxations'], got['P0']['cost']), ('relaxed', ['v'], '1'))
+        self.assertEqual(sorted(t['condition'].get('ge') for t in out['value_conditions']['tags'].values()), ['1', fine])
+        two = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'i:map'}, {'id': 'B', 'concept': 'i:map'}]}
+        got, out = self.run_case(g, two, {'profile': CP, 'steps': {'A': {'unit': 'u', 'ge': '1'},
+                                                                   'B': {'unit': 'u', 'gt': fine}}})
+        self.assertEqual(got['P0']['status'], 'none')
+        self.assertEqual(len(out['value_conditions']['tags']), 2)
+
+    def test_condition_forms_are_exact_and_name_equal_conditions_alike_and_unequal_ones_apart(self):
+        """The normal form of a condition round-trips exactly for values of up to 64 characters, so equal conditions
+        (as sets of values) share a tag and unequal ones never do."""
+        rng = random.Random(28)
+
+        def value():
+            digits = ''.join(rng.choice('0123456789') for _ in range(rng.randint(1, 40)))
+            point = rng.randint(0, len(digits))
+            text = rng.choice(('', '-', '+')) + digits[:point] + '.' + digits[point:] + '0' * rng.randint(0, 10)
+            if rng.random() < 0.3:
+                text += f'e{rng.randint(-60, 60)}'
+            return text[:64] if sv.decimal_of(text[:64]) is not None else '1'
+
+        seen = {}
+        for _ in range(4000):
+            a, b = sorted((value(), value()), key=sv.decimal_of)
+            raw = rng.choice(({'unit': 'u', 'eq': a}, {'unit': 'u', 'ge': a}, {'unit': 'u', 'gt': a, 'le': b},
+                              {'unit': 'u', 'ge': a, 'lt': b} if sv.decimal_of(a) < sv.decimal_of(b) else {'unit': 'u', 'lt': b}))
+            condition = es._condition(raw, 'x')
+            form = es.condition_form(condition)
+            # Exact: the form's values are the condition's, Decimal for Decimal, with the same closedness (the form
+            # writes every digit, so it may exceed the 64 characters a request value may have).
+            from decimal import Decimal
+            unit, lower, upper = condition
+            back = (form['unit'],
+                    (Decimal(form['eq']), True) if 'eq' in form else
+                    next(((Decimal(form[k]), k == 'ge') for k in ('ge', 'gt') if k in form), None),
+                    (Decimal(form['eq']), True) if 'eq' in form else
+                    next(((Decimal(form[k]), k == 'le') for k in ('le', 'lt') if k in form), None))
+            self.assertEqual(back, condition, raw)
+            self.assertLessEqual(max(len(v) for k, v in form.items() if k != 'unit'), 400)
+            name = es.tag_name('i:map', condition)
+            key = (condition[0],) + tuple(None if b is None else (b[0], b[1]) for b in condition[1:])
+            if name in seen:
+                self.assertEqual(seen[name], key, (raw, form))
+            seen[name] = key
+            # spelling the same condition otherwise gives the same tag
+            def respelled(v):
+                text = str(sv.decimal_of(v))  # Decimal's own spelling, scientific where it chooses
+                text = text + '0' if '.' in text and 'E' not in text else text
+                return text if len(text) <= 64 else v
+            again = {k: v if k == 'unit' else respelled(v) for k, v in raw.items()}
+            self.assertEqual(es.tag_name('i:map', es._condition(again, 'x')), name, (raw, again))
+        self.assertEqual(len(set(seen.values())), len(seen))
+
     def test_a_request_without_conditions_is_answered_as_before(self):
         ingest, store, _ = _STATE['plain']
         q, c, w = case(3)
@@ -517,6 +580,9 @@ class SemanticsTests(unittest.TestCase):
                     {'id': 'v', 'kind': 'widen_value', 'step': 'B', 'cost': '1', 'condition': good}]}],
             'INVALID_VALUE_RELAXATION': [
                 {'profile': CP, 'steps': {'A': good}, 'relaxations': [{'id': 'v', 'kind': 'widen_concept', 'step': 'A',
+                                                                       'cost': '1', 'condition': good}]},
+                # D28 review: an unhashable step is refused by name, not by a TypeError
+                {'profile': CP, 'steps': {'A': good}, 'relaxations': [{'id': 'v', 'kind': 'widen_value', 'step': ['A'],
                                                                        'cost': '1', 'condition': good}]}],
         }
         for code, requests in cases.items():

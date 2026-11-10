@@ -89,6 +89,12 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(entry['byte_identity_C_against_B'],
                          {w: {'compared': 3, 'identical': 3, 'mismatching_seeds': []} for w in ('C_w1', 'C_w2')})
         self.assertEqual(set(entry['target_check_arm_C']), {'C_w1', 'C_w2'})
+        # D28 review: every arm's per-query result digests are kept in the report, so arms and runs can be compared
+        # query by query from the report alone.
+        digests = {arm: [q['digest'] for q in entry['arms'][arm]['per_query']] for arm in ('A', 'B', 'B_unpruned', 'C_w2')}
+        self.assertTrue(all(len(d) == 3 and all(len(x) == 64 for x in d) for d in digests.values()))
+        self.assertEqual(len({tuple(d) for d in digests.values()}), 1)
+        self.assertIsNone(entry['arms']['B_decided']['per_query'][0]['digest'])
         for path, sha in self.report['artifacts'].items():
             self.assertEqual(sha, matcher.digest(path), path)
         self.assertFalse(self.report['contains_patient_level_data'])

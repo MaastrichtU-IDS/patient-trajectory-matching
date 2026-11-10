@@ -42,7 +42,7 @@
 
   <div class="legend" aria-label="Status labels">
     <span class="badge b-now">✓ Built</span>
-        <span class="badge b-next">→ Next</span>
+    <span class="badge b-next">→ Next</span>
     <span class="badge b-later">○ Later, only if needed</span>
     <span class="badge b-you">? Needs a decision from the project</span>
   </div>
@@ -82,7 +82,7 @@
       <p>A step can carry a condition such as "heart rate above 120 per minute" or "MAP below 65 mmHg", matched exactly on the stored values with the unit matched literally. Relaxing a threshold only ever adds patients, and excluded rows of the same item make a result <i>not comparable</i>. The matching engine itself is unchanged; the store compiles each condition into a tag for that query.</p>
       <p class="ref">D28 (chartevents stage 2) · <code>docs/execution-store.md</code></p></div>
     <div class="item"><h3>Faster builds and checks</h3>
-      <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 11.6% and its content check by 38%, with identical snapshots, under a rule set before measuring.</p>
+      <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 11.6% and its content check by 38%, with identical content digests (snapshot identifiers change with the builder), under a rule set before measuring.</p>
       <p class="ref">D26, D28</p></div>
   </div>
 
@@ -136,8 +136,8 @@
 // The report-based figures follow results.json (built from the committed reports); the static text is the fallback.
 fetch('../results/results.json').then(r => r.json()).then(d => {
   const f = n => Number(n).toLocaleString('en-GB'), S = d.scaling.sizes, A = d.matching.arms, C = d.mimic_demo.census;
-  const best = A[A.length - 1], set = (k, v) => document.querySelectorAll(`[data-r="${k}"]`).forEach(e => { e.textContent = v; });
-  set('patients', f(S[S.length - 1].patients)); set('p95', `${best.p95_seconds.toFixed(2)} s`); set('workers', best.workers);
+  const w14 = A.find(a => a.workers === 14), set = (k, v) => document.querySelectorAll(`[data-r="${k}"]`).forEach(e => { e.textContent = v; });
+  set('patients', f(S[S.length - 1].patients)); if (w14) { set('p95', `${w14.p95_seconds.toFixed(2)} s`); set('workers', w14.workers); }
   set('rows', f(C.raw_rows_checked)); set('mism', f(C.mismatched_stores + C.built_store_mismatches));
 }).catch(() => {});
 </script>

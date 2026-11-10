@@ -686,9 +686,9 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
     }
     if chart_report is not None:
         report['chartevents'] = chart_report
+        report['route'] = {**report['route'], 'source': msi.SOURCE}
     if values is not None:
         report['value_differential'] = values
-        report['route'] = {**report['route'], 'source': msi.SOURCE}
     return report
 
 

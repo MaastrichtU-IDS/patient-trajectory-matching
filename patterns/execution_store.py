@@ -1520,7 +1520,18 @@ def _condition(raw, where):
 
 
 def _decimal_text(value):
-    return format(value.normalize(), 'f')
+    """A value's shortest exact decimal text: trailing zeros stripped from its digits, then `format(..., 'f')`, which
+    does not round. `Decimal.normalize` would round to the context's 28 digits, while a condition's value may have 64,
+    so two different conditions could share one tag (D28 review). Every zero is '0'."""
+    from decimal import Decimal
+    sign, digits, exponent = value.as_tuple()
+    digits = list(digits)
+    while len(digits) > 1 and digits[-1] == 0:
+        digits.pop()
+        exponent += 1
+    if digits == [0]:
+        return '0'
+    return format(Decimal((sign, tuple(digits), exponent)), 'f')
 
 
 def condition_form(condition):
@@ -1593,7 +1604,7 @@ class Request:
             raise StoreError('INVALID_CONDITIONS', 'relaxations')
         for x in given:
             if not (isinstance(x, dict) and set(x) == {'id', 'kind', 'step', 'cost', 'condition'}
-                    and x['kind'] == 'widen_value' and type(x['id']) is str and x['id']):
+                    and x['kind'] == 'widen_value' and type(x['id']) is str and x['id'] and type(x['step']) is str):
                 raise StoreError('INVALID_VALUE_RELAXATION', repr(x)[:120])
             if x['id'] in ids:
                 raise StoreError('DUPLICATE_RELAXATION', x['id'])
