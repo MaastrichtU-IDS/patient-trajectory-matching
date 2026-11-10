@@ -121,8 +121,10 @@ CHART_FILES = tuple(sorted(set(FILES + chart.FILES + ('patterns/mimic_chartevent
                                                       'patterns/mimic_chartevents_raw_check.py',
                                                       'patterns/series_values.py'))))
 # Labels both sources must agree on, kept unprefixed when chartevents joins (D27).
+# The coverage bases differ on purpose: chartevents covers only stays holding a chart row, so its bases are its own
+# (`chartevents_coverage_basis`).
 SHARED_LABELS = ('clinical_mapping_verified', 'concept_basis', 'ancestor_basis', 'history_mode', 'acceptance',
-                 'excluded_records', 'coverage_basis', 'extended_coverage_basis')
+                 'excluded_records')
 
 
 class MimicStoreError(ValueError):
@@ -538,6 +540,27 @@ def merge_patient(inputs, charted):
     return out
 
 
+def merged_patients(batches, inputs, refused_ids, totals, stores):
+    """Each store patient, merging inputevents' part (`inputs`, consumed) with each chartevents batch, then the
+    inputevents patients no batch named. A patient inputevents refused (`refused_ids`) is refused as a whole: its
+    chart batch is left out and counted, never stored as a chart-only patient, which would read as a source that
+    recorded nothing where the patient was in fact refused. Counts go to `totals`, claim stores to `stores`."""
+    for batch in batches:
+        if batch['patient_id'] in refused_ids:
+            totals['patients_refused_by_inputevents'] += 1
+            totals['rows_of_refused_patients'] += batch['counts']['rows']
+            continue
+        totals.update(batch['counts'])
+        totals['excluded_records'] += len(batch['patient'].get('excluded', []))
+        totals['coverage_periods'] += len(batch['patient']['coverage'])
+        totals['coverage_periods_extended_by_records'] += sum(
+            c['basis'] == chart.EXTENDED_COVERAGE_BASIS for c in batch['patient']['coverage'])
+        stores += batch['stores']
+        yield merge_patient(inputs.pop(batch['patient_id'], None), batch)
+    for pid in sorted(inputs):
+        yield inputs.pop(pid)
+
+
 def chartevents_provenance(run, totals, sampler_summary=None):
     return {'converter': chart.PROFILE, 'context_id': run.context_id, 'context': run.context,
             'route': {'choice': 'b', 'steps': ['mimic_chartevents.read (two streaming passes)',
@@ -614,8 +637,11 @@ def convert(input_dir, dataset_id, workers=1, isolation=True, chartevents=False,
                             **{k: v for k, v in route.items() if k != 'route_files'}},
                   'refused': refused, 'counts': counts}
     timings['mapping'] = time.perf_counter() - t
+    # Patients `store_patients` left out (refused as a whole): never re-admitted through another source (D27).
+    everyone = {s['subject_id'] for s in prepared['stays']} | {r['patient_id'] for r in rows}
+    refused_ids = sorted(everyone - {p['patient_id'] for p in patients})
     result = {'rows': rows, 'prepared': prepared, 'counts': counts, 'refused': refused, 'route': route,
-              'timings_seconds': timings}
+              'timings_seconds': timings, 'refused_patient_ids': refused_ids}
     if not chartevents:
         result['ingest'] = ingest_document(patients, ancestors, bases, dataset_id=dataset_id, provenance=provenance)
         return result
@@ -626,15 +652,7 @@ def convert(input_dir, dataset_id, workers=1, isolation=True, chartevents=False,
     inputs = {p['patient_id']: p for p in patients}
     merged, stores, totals = [], [], Counter()
     with tempfile.TemporaryDirectory(dir=work_dir) as work:
-        for batch in run.batches(work, shards):
-            totals.update(batch['counts'])
-            totals['excluded_records'] += len(batch['patient'].get('excluded', []))
-            totals['coverage_periods'] += len(batch['patient']['coverage'])
-            totals['coverage_periods_extended_by_records'] += sum(
-                c['basis'] == chart.EXTENDED_COVERAGE_BASIS for c in batch['patient']['coverage'])
-            stores += batch['stores']
-            merged.append(merge_patient(inputs.pop(batch['patient_id'], None), batch))
-    merged += [inputs[pid] for pid in sorted(inputs)]
+        merged = list(merged_patients(run.batches(work, shards), inputs, set(refused_ids), totals, stores))
     provenance['chartevents'] = chartevents_provenance(run, totals)
     timings['chartevents_route_b'] = time.perf_counter() - t
     result.update(ingest=ingest_document(merged, ancestors, bases, dataset_id=dataset_id, provenance=provenance,
@@ -652,6 +670,7 @@ def stream_build(input_dir, dataset_id, root, *, workers=1, threads=1, isolation
     import tempfile
     base = convert(input_dir, dataset_id, workers, isolation)
     inputs = {p['patient_id']: p for p in base['ingest']['patients']}
+    refused_ids = set(base['refused_patient_ids'])
     provenance = {k: v for k, v in base['ingest']['provenance'].items()
                   if k not in ('selection', 'labels', 'ancestor_bases')}
     run = chart.Run(input_dir, dataset_id)
@@ -662,15 +681,8 @@ def stream_build(input_dir, dataset_id, root, *, workers=1, threads=1, isolation
     options = {} if memory_limit is None else {'memory_limit': memory_limit}
     with es.StoreBuilder(root, head, threads=threads, work_dir=work_dir, **options) as builder, \
             tempfile.TemporaryDirectory(dir=work_dir) as work:
-        for batch in run.batches(work, shards):
-            totals.update(batch['counts'])
-            totals['excluded_records'] += len(batch['patient'].get('excluded', []))
-            totals['coverage_periods'] += len(batch['patient']['coverage'])
-            totals['coverage_periods_extended_by_records'] += sum(
-                c['basis'] == chart.EXTENDED_COVERAGE_BASIS for c in batch['patient']['coverage'])
-            builder.add(merge_patient(inputs.pop(batch['patient_id'], None), batch))
-        for pid in sorted(inputs):
-            builder.add(inputs[pid])
+        for patient in merged_patients(run.batches(work, shards), inputs, refused_ids, totals, []):
+            builder.add(patient)
         provenance['chartevents'] = chartevents_provenance(run, totals)
         return builder.finish(full_provenance(provenance, head['closure']['bases'], chartevents=True))
 

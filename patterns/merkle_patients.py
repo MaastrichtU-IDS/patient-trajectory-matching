@@ -1,4 +1,4 @@
-"""A Merkle tree over patients, for the execution store's input digest (D16; draft D27).
+"""A Merkle tree over patients, for the execution store's input digest (D16; D27).
 
 Not wired in: by the project lead's decision (D27 draft, decision 1) the store keeps D20's flat input
 digest as its identity, and no root is recorded or written by any run until incremental appends exist.

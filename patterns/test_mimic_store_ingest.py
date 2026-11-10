@@ -620,16 +620,80 @@ class CharteventsTests(unittest.TestCase):
         from .test_execution_store import table_mismatches
         with es.open_store(self.snapshot, verify='content') as store:
             self.assertEqual(table_mismatches(store, ref.build_tables(self.result['ingest'])), {})
-            self.assertEqual(store.manifest['tables']['series']['rows'], 40)
+            self.assertEqual(store.manifest['tables']['series']['rows'], 41)
         streamed = msi.stream_build(self.FIXTURE, 'synthetic-combined', self.tmp / 'streamed')
         self.assertEqual(streamed.name, self.snapshot.name)
+
+    def test_a_patient_inputevents_refuses_is_refused_as_a_whole(self):
+        # After a review's reproduction (D27): a refused patient must not come back through chartevents as a
+        # chart-only patient, or a grouping both sources share would read `none` where the patient was refused.
+        fixture = self.tmp / 'refusal'
+        shutil.copytree(self.FIXTURE, fixture)
+        items = (fixture / 'd_items.csv').read_text().replace(
+            '910005,Synthetic signed E,,chartevents,Synthetic Labs', '910005,Synthetic signed E,,chartevents,Medications')
+        (fixture / 'd_items.csv').write_text(items)
+        real = msi._refusal
+        refuse = lambda prows: ('SOURCE_CONSTRAINTS_NOT_BOX_REPRESENTABLE' if prows and prows[0]['patient_id'] == '12'
+                                else real(prows))
+        with mock.patch.object(msi, '_refusal', refuse):
+            converted = msi.convert(fixture, 'synthetic-combined', chartevents=True)
+            streamed = msi.stream_build(fixture, 'synthetic-combined', self.tmp / 'refusal-streamed')
+        ingest = converted['ingest']
+        self.assertEqual(converted['refused'][msi.REFUSAL]['patients'], 1)
+        self.assertEqual(converted['refused_patient_ids'], ['12'])
+        self.assertNotIn('12', {p['patient_id'] for p in ingest['patients']})
+        counts = converted['chart_counts']
+        self.assertEqual((counts['patients_refused_by_inputevents'], counts['rows_of_refused_patients']), (1, 4))
+        self.assertFalse(any(s['key'][0] == '12' for s in converted['chart_stores']))
+        snapshot = es.build(ingest, self.tmp / 'refusal-store')
+        self.assertEqual(streamed.name, snapshot.name)
+        query = {'profile': tg.PROFILE_ID, 'scope': 'any', 'relations': [], 'relaxations': [], 'budget': 0,
+                 'steps': [{'id': 'A', 'concept': msi.group_iri('Medications'), 'occurrence': 'any'}]}
+        windows = {p['patient_id']: {'start': 0, 'end': es.MAX_TIME} for p in ingest['patients']}
+        with es.open_store(snapshot) as store:
+            got = es.match(store, query, windows)['results']
+            self.assertNotIn('12', {r['patient_id'] for r in got})
+            self.assertEqual([r['status'] for r in got], [r['status'] for r in ref.exhaustive_match(ingest, query, windows)])
+            # The raw-row check leaves the refused patient's rows out of its count, and still passes.
+            raw = verify.chart_raw_check(converted, store)
+        self.assertEqual(raw['rows'], 44 - 4)
+        self.assertTrue(raw['passed'])
+
+    def test_planted_coverage_defects_are_caught(self):
+        from . import mimic_chartevents as chart
+        real_coverage, real_merge = chart.coverage, msi.merge_patient
+
+        def not_widened(stays, events):
+            periods, skipped, outside = real_coverage(stays, [])
+            return periods, skipped, outside
+
+        def last_dropped(stays, events):
+            periods, skipped, outside = real_coverage(stays, events)
+            return periods[:-1], skipped, outside
+
+        def chart_coverage_dropped(inputs, charted):
+            out = real_merge(inputs, charted)
+            if inputs is not None and charted is not None:
+                out['coverage'] = [c for c in out['coverage'] if c['source'] != chart.SOURCE]
+            return out
+
+        planted = {'not widened to own records': mock.patch.object(chart, 'coverage', not_widened),
+                   'last period dropped': mock.patch.object(chart, 'coverage', last_dropped),
+                   'merge drops chart coverage': mock.patch.object(msi, 'merge_patient', chart_coverage_dropped)}
+        for name, patch in planted.items():
+            with self.subTest(defect=name):
+                with patch:
+                    converted = msi.convert(self.FIXTURE, 'synthetic-combined', chartevents=True)
+                with self.assertRaisesRegex(ei.ContractError, 'CHARTEVENTS_RAW_ROW_CHECK_FAILED'):
+                    verify.chart_raw_check(converted)
 
     def test_census_built_store_comparison_raw_check_and_differential(self):
         from . import mimic_chartevents_check as check
         result = self.result
         raw = verify.chart_raw_check(result)
         self.assertTrue(raw['passed'])
-        self.assertEqual(raw['events_checked'], 40)
+        self.assertEqual(raw['events_checked'], 41)
+        self.assertEqual(raw['coverage']['periods_expected'], 4)
         selected = {s['key']: ['census'] for s in result['chart_stores']}
         digests = {s['key']: s['rows_sha256'] for s in result['chart_stores']}
         outcomes = check.check_selected(result['chart_run'], selected, digests, self.tmp / 'census', workers=2)
@@ -637,7 +701,9 @@ class CharteventsTests(unittest.TestCase):
         self.assertEqual((summary['stores_graph_checked'], summary['mismatched_stores']), (4, 0))
         with es.open_store(self.snapshot) as store:
             stored = verify.built_store_comparison(store, outcomes)
-            self.assertEqual(stored, {'stores_compared': 4, 'events_compared': 40, 'stores_mismatched': 0})
+            self.assertEqual(stored, {'stores_compared': 4, 'events_compared': 41, 'stores_mismatched': 0})
+            with_store = verify.chart_raw_check(result, store)
+            self.assertEqual(with_store['coverage']['patients_differing_in_store'], 0)
             # A store row that differs from the graph's is caught.
             bad = deepcopy(outcomes)
             bad[0]['stored_digest'] = '0' * 64

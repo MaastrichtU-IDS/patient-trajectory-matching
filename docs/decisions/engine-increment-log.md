@@ -727,26 +727,27 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
   - the record number in the event id;
   - the kind, the source, and the point form.
 
-  It accounts for every row once: as an event, a duplicate, a row with an unknown item, or an excluded record (compared as a multiset). Planted defects in each of the four places are caught.
+  It accounts for every row once: as an event, a duplicate, a row with an unknown item, or an excluded record (compared as a multiset). Planted defects in each of the four places are caught. It also recomputes chartevents' coverage from the raw rows and `icustays` (one period per stay holding any chart row of the patient, widened to the stay's own events) and compares it with the ingest's and the built store's coverage rows. Coverage decides `none` against `NO_SOURCE_COVERAGE`; three planted coverage defects (no widening, the last period dropped, the merge dropping chart coverage beside inputevents) passed every other check and are now caught. It does not check an excluded record's `reason`, which is the importer's admission rule.
 - **The sample** (full MIMIC-IV) and **the census** (the demo). Every claim store has a rank, sha256(salt, dataset, patient, stay, part). A store is sampled if any of three rules picks it:
   - its rank is below 1% · 2²⁵⁶;
   - it is among the 2 lowest-ranked stores of its execution-store bucket;
   - it is the lowest-ranked store holding a stratum. The strata are item and unit, the value's lexical shape (trailing zeros included), a null micro-unit value, a stay's first or later part, and the clock-origin row.
 
   Each rule is free of ingest order, shard count and part size. On the demo, every store is selected instead.
-- **Point measurements in the store.** The engine and the store already take points. Chartevents covers a stay only where it holds a chart row; this is stricter than D15's rule for inputevents. The event kind `recorded_measurement` has no ontology class, so a chart event carries its item class only, with the d_items category as its one ancestor (D14).
+- **Point measurements in the store.** The engine and the store already take points. Chartevents covers a stay only where it holds a chart row; this is stricter than D15's rule for inputevents, so its bases have their own names (`inferred:icustay_with_chart_rows`, `…+records`, label `chartevents_coverage_basis`). The event kind `recorded_measurement` has no ontology class, so a chart event carries its item class only, with the d_items category as its one ancestor (D14).
 - **Store 3.1: the `series` table.**
   - *Columns.* patient_idx, event_id, item_class, start_lo, start_hi (copied from the event), value_lexical, value_decimal (`format(Decimal, 'f')`, exact and scale-preserving, not a value key), value_micro (the value × 10⁶ by integer arithmetic on the decimal's digits and exponent; null when inexact or outside BIGINT, never a refusal), unit (literal).
   - *Key and layout.* Keyed (patient_idx, item_class, start_lo, start_hi, event_id) and partitioned by bucket.
   - *Validation.* The ingest validates each row by name (`SERIES_UNKNOWN_EVENT`, `SERIES_EVENT_NOT_POINT`, `DUPLICATE_SERIES_EVENT`, `SERIES_ITEM_CLASS_MISMATCH`, `INVALID_SERIES_VALUE`, `INVALID_SERIES_UNIT`, `INVALID_SERIES`), using the rules in `patterns/series_values.py`, which the converter shares. A test keeps `decimal_of` equal to `measurement_claims.decimal_value`.
-  - *Derive check.* The derive refuses a row not of a point event of its part at that time with that direct concept (`SERIES_ROWS_NOT_OF_THEIR_EVENTS`).
+  - *Derive check.* The derive refuses a row not of a point event of its part at that time with that direct concept (`SERIES_ROWS_NOT_OF_THEIR_EVENTS`). That guards the event link only: a corrupted `value_micro` or `unit` between ingest and table is caught by the store-against-reference equality (tests) and, on the demo, by the graph rows against the built store, not by this check (its code comment says more than this; see the follow-ups).
   - *Reading.* Matching does not read the table; `Store.series` returns rows for display.
   - *Reference.* The reference builds the table independently.
 - **Why 3.1.** The series table is a new table in the snapshot, so every snapshot identifier changes, and a 3.0 reader would miss a table it does not know. It changes no existing column, though: a document without series gives the same rows in every other table, and a 3.0 reader of those tables is not misled. So this is a minor version. The ingest identifier stays `execution-store-ingest-2.0` by D25's reasoning (an optional, additive field; code from before 3.1 refuses it by name, `INVALID_PATIENT`). The manifest schema requires `series` and the 3.1 profile.
-- **The evidence stage is also cut by characters.** A D26 review follow-up: `_ParquetStage` bounded its buffer in rows only, and evidence is several KB per MIMIC event and held in Python, outside DuckDB's limit. The evidence stage now also flushes once its buffered evidence text reaches 32 Mi characters (`stage_evidence_chars`). Like `stage_rows`, this cuts files, never tables, and a test builds one snapshot with a cap of one character.
+- **The evidence stage is also cut by characters.** A D26 review follow-up: `_ParquetStage` bounded its buffer in rows only, and evidence is several KB per MIMIC event and held in Python, outside DuckDB's limit. The evidence stage now also flushes once its buffered evidence text reaches 32 Mi characters (`stage_evidence_chars`), per open part; with up to eight parts open (one per bucket) the bound is about 8 × 32 Mi characters. Like `stage_rows`, this cuts files, never tables, and a test builds one snapshot with a cap of one character.
 - **The MIMIC merge.** `mimic_store_ingest.convert(..., chartevents=True)` joins each patient's two sources: events (ids disjoint by prefix), coverage and excluded records per source, and series.
-  - *Clocks.* Both sources name the patient's clock `patient_<id>`, and each importer chooses its own origin. Store times are absolute, and each event's origin is provenance in `event_evidence` (D26 keeps no clock-level origin column), so nothing is rebased, and `CLOCKS_NOT_REBASABLE` stays on the inputevents adapter rows it was written for.
-  - *Labels.* `source` becomes `sources`, chartevents' own labels take a `chartevents_` prefix, and the labels both sources set must agree.
+  - *Refusal is whole-patient.* A patient inputevents refuses (`INGEST_PATIENT_NOT_BOX_REPRESENTABLE`, `CLOCKS_NOT_REBASABLE`) is left out of the chartevents merge too, and counted (`patients_refused_by_inputevents`, `rows_of_refused_patients`). A review found the first integration re-admitting such a patient as chart-only, which made a grouping both sources share ('Medications', 'Nutrition - Enteral' in the real dictionary) read `none` for a patient that was refused. A test reproduces the review's case. The demo has no refusals, so none of its figures moved.
+  - *Clocks.* Store times are coordinates on the patient's naive local calendar from 0001-01-01, not absolute instants. Both importers convert their labels with the same `patient_local.coordinate`, each from the origin it chose, and MIMIC applies one date shift per patient across all its tables, so the two sources' coordinates of one patient lie on one calendar. That is why both can name the clock `patient_<id>` and need no rebasing; each event keeps its importer's origin as provenance in `event_evidence` (D26 has no clock-level origin column). `CLOCKS_NOT_REBASABLE` is a different case: inside the inputevents route, two adapter rows of one patient naming different clock ids or origins on a policy the converter cannot rebase, which the converter cannot place on one calendar by construction, so it still refuses them.
+  - *Labels.* `source` becomes `sources`, chartevents' own labels take a `chartevents_` prefix, and the labels both sources set must agree (not the coverage bases, which differ on purpose).
   - *Streaming.* `stream_build` feeds `StoreBuilder` one merged patient at a time, with the union closure known in advance. A test shows it gives the snapshot of the document route.
 - **The differential.** It builds engine inputs once per patient (`patterns/prepared_reference.py`). The reference keeps every event of a patient with shared variables (D24), and a test shows filtering such a patient would turn `none` into a wrong `possible`. Filtering by step concept is the same argument the store's loader makes, so `exhaustive_match` (no filter) and an unfiltered route-(a) engine path run on the first 50 of the 500 queries, where the prepared reference must agree with `exhaustive_match` result for result. The coverage rule is one function in the reference. The third path holds every chart event as route (a) gave it, since the census covers every store.
 - **Graph rows against the built store.** For every graph-checked store, the route-(a) rows in the store's form are compared with the rows read back from the built snapshot for those event ids: typed columns, evidence, direct concepts and series. Without this, "re-derivable" (the converter re-derives the rows it recorded) would be the only claim.
@@ -762,7 +763,7 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
 |---|---|
 | Source rows (pinned file), admitted as events | 668,862, 150,051 |
 | Unsupported, invalid, duplicate rows | 518,809, 2, 0 |
-| Excluded records (table rows after identical ones are merged, with inputevents' 9,398) | 518,811 (448,419) |
+| Excluded records: 518,809 unsupported plus 2 invalid rows; table rows after identical records merge, inputevents' 9,398 included | 518,811; 448,419 |
 | Claim stores (at most 32 claims) | 4,753 |
 | Item classes (rows name), groupings | 1,318, 29 |
 | Coverage periods (widened by own records), chart events outside their stay | 140 (134), 1,200 |
@@ -770,7 +771,7 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
 
 | Check | Result |
 |---|---|
-| Raw-row check, every row | 668,862 rows: 150,051 events and 518,811 excluded records, each the raw row's own content; no field mismatch, no excluded-record difference |
+| Raw-row check, every row | 668,862 rows: 150,051 events and 518,811 excluded records, each the raw row's own content; no field mismatch, no excluded-record difference; chartevents coverage recomputed from the raw rows and icustays: 140 periods, equal to the ingest's and the built store's |
 | Round trip, every store | 4,753 of 4,753 |
 | Route (a), every store | 4,753 stores, 150,051 claims; every row equal field for field; isolation verified on all 4,753 |
 | Graph rows against the built store | 4,753 stores, 150,051 events, 0 mismatched |
@@ -778,16 +779,16 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
 | Exhaustive slice, first 50 queries | 5,000 results; `prepared_reference` equals `exhaustive_match` on all of them |
 
 - **Store tables.** events 161,031 (10,980 inputevents, 150,051 chartevents); event_concepts 172,011; concept_postings 8,891; concept_closure 2,995; source_concepts 393; coverage 280; excluded_records 448,419; series 150,051.
-- **Identity.** The snapshot identifier is `cbc08b3a…` (profile `execution-store-3.1`), and the input digest is `6e856e9e…`.
+- **Identity.** The snapshot identifier is `0eb0323b…` (profile `execution-store-3.1`), and the input digest is `7a0dd1fd…`.
 - **Inputevents is unchanged.** Its counts, refusals, admission summary and raw-time check equal D26's report figure for figure.
 - **Why the differential's mix is not comparable with D26's.** The query generator now draws from the item classes of both sources, and coverage includes chartevents. The status mix is: exact 3,287; relaxed 44; unresolved 1,038 (1,034 of them for `ADMISSION_EXCLUDED_RECORDS`); none 9,891; not_comparable 33,233 (26,081 `ADMISSION_EXCLUDED_RECORDS`, 7,152 `NO_SOURCE_COVERAGE`); excluded 2,507.
-- **Exclusions dominate, as D18 predicts.** Excluded chart rows turned 25,211 `none` results not comparable, displaced 870 first or last targets and made 1,034 relaxed results unresolved.
+- **Exclusions dominate, as D18 predicts.** Excluded records of the two sources together turned 25,211 `none` results not comparable, displaced 870 first or last targets and made 1,034 relaxed results unresolved; the report does not attribute them per source (D26 had 27,257 `none` results not comparable from inputevents' alone, on another query mix).
 - **Timings** (one run, M4 Pro):
-  - route (b) 20.2 s; raw-row check 2.9 s;
-  - census 527 s on 14 workers (the round trip and route (a) on every store; the tail is the largest patient's stores, run in one worker);
-  - store build 17.7 s; graph rows against the store 9.0 s;
-  - differential 531 s (D26: 155 s, without chart events);
-  - whole run 1,171 s, 6,288 CPU-seconds, peak resident memory 2.1 GB.
+  - route (b) 20.2 s;
+  - census 522 s on 14 workers (the round trip and route (a) on every store; the tail is the largest patient's stores, run in one worker);
+  - store build 17.8 s; graph rows against the store 8.9 s; raw-row check, coverage included, 3.0 s;
+  - differential 532 s (D26: 155 s, without chart events);
+  - whole run 1,166 s; 6,313 CPU-seconds of the verifier and its workers and a 2.2 GB main-process peak (the report's `resources`).
 
 **Regenerated reports, and exactness.** The reports were regenerated one at a time:
 1. the MIMIC demo (above);
@@ -815,14 +816,14 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
 | Query process, C at 14 workers | 0.82 GiB | 0.86 GiB |
 
 - **Store 3.1 costs the synthetic workloads nothing measurable.** The differences above are within run-to-run spread.
-- **The D21 target holds at 8 and 14 workers.** The fall in the 14-worker p95 is between two runs on identical results, and its cause is not established.
+- **The D21 target holds at 8 and 14 workers.** The 14-worker p95 (7.05 s pooled; 7.01, 7.05 and 7.90 s by repeat) lies inside D26's own spread over its repeats (7.09, 7.54 and 7.94 s): a fall between two runs on identical results, not a measured gain.
 
 *Limitations:*
 - Stage 1 answers no value question.
 - Beyond the demo, the graph route is a sample.
 - The graph route shares its mapping with route (b), so its agreement says nothing about that mapping, which the raw-row check verifies against the raw rows.
 - Admission's rule, not the raw check, decides which rows are events.
-- Excluded records outnumber chart events (518,809 to 150,051), so by D18 most `none` results on chart items are `not_comparable`. That is what a numeric subset can rule out.
+- Excluded chart rows outnumber chart events (518,811 to 150,051), so by D18 many `none` results become `not_comparable`; the share on chart items alone was not measured.
 - One machine.
 
 *Follow-ups:*
@@ -833,4 +834,5 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
   - series aggregates;
   - a SULO point route.
 - **The Merkle digest**, when appends exist.
+- **In `execution_store.py`** (left for the next store change, since editing it forces the six-hour scaling and matcher regeneration): `validate_series` raises a bare `TypeError` on an unhashable `event_id` instead of a named refusal; `series: []` and an absent `series` give different input digests (normalise it, as D25 normalised defaults); the derive check's comment ("this guards the copy") should say it guards the event link only.
 - **`measurement_claims.select` re-reads its artifact files on every call.** That is a few milliseconds per store, left alone.

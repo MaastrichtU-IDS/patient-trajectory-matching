@@ -112,6 +112,7 @@ def write_combined(directory, store_fixture):
         _row('12', '120', '1201', '2151-06-10 07:00:00', '910001', '88', '88', 'per min'),
         _row('12', '120', '1201', '2151-06-10 08:00:00', '910002', '1e-7', '1e-7', 'unit-b'),
         _row('12', '120', '1201', '2151-06-10 08:30:00', '910001', '90', '90', 'per min', warning='1'),
+        _row('12', '120', '1201', '2151-06-10 09:15:37', '910001', '91', '91', 'per min'),  # non-zero seconds
         _row('13', '130', '1301', '2149-02-01 11:00:00', '910003', 'Drowsy', '', ''),
     ]
     with (directory / 'chartevents.csv').open('w', encoding='utf-8', newline='') as handle:

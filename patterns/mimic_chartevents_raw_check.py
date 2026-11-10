@@ -14,6 +14,12 @@ over **every** row of the file. It imports nothing from `mimic_chartevents`, `mi
   and integer arithmetic on the spelling (no `Decimal`);
 - the record number in the event identifier, and the event's kind and source.
 
+It also recomputes chartevents' coverage from the raw rows and `icustays`: one period per ICU stay of the
+patient that holds any chart row of the patient (whatever admission made of it), intime to outtime, widened to
+the stay's own events (`inferred:icustay_with_chart_rows`, or `…+records` when widened); a stay whose times do
+not read, or whose outtime precedes its intime, has none. It compares these with the patient's chartevents
+coverage in the ingest and, when given, with the built store's coverage rows.
+
 It also accounts for every row: each is an event (its first occurrence, its item known), an exact
 duplicate of an earlier row, a row naming an item the dictionary does not hold, or an excluded
 record whose item class and start (all time when the charttime is unreadable) must appear in the
@@ -39,6 +45,7 @@ ITEM_NAMESPACE = 'https://example.org/trajectory/mimic-record-item/'
 SOURCE = 'chartevents:numeric_measurements'
 KIND = 'recorded_measurement'
 ALL_TIME = (0, 315_537_897_599_999_999)
+COVERAGE_BASIS, EXTENDED_COVERAGE_BASIS = 'inferred:icustay_with_chart_rows', 'inferred:icustay_with_chart_rows+records'
 _EPOCH = datetime(1, 1, 1)
 _LABEL = re.compile(r'([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})')
 _NUMBER = re.compile(r'([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]+))?')
@@ -93,6 +100,7 @@ class RawRowCheck:
 
     def __init__(self):
         self.events, self.excluded, self.patients, self.repeated = {}, Counter(), set(), 0
+        self.coverage = {}
 
     def add(self, patient, series):
         pid = patient['patient_id']
@@ -107,16 +115,22 @@ class RawRowCheck:
                                    s.get('value_micro'), e.get('recorded_at'), e.get('record_sha256'))
         for x in patient.get('excluded', []):
             self.excluded[(pid, x['source'], x['concept'], x['start'][0], x['start'][1])] += 1
+        self.coverage[pid] = sorted((c['lo'], c['hi'], c['basis']) for c in patient.get('coverage', [])
+                                    if c['source'] == SOURCE)
 
-    def verify(self, chartevents, d_items):
+    def verify(self, chartevents, d_items, icustays=None, store_coverage=None):
+        """Read the file once against what `add` collected. `icustays` enables the coverage check; `store_coverage`
+        ({patient_id: [(lo, hi, basis)]} of the chartevents source, read from a built store) adds the store's rows."""
         items = {row['itemid'] for _, row, _ in _rows(d_items)}
         seen, expected, fields = set(), Counter(), Counter()
         counts = Counter()
+        stays_with_rows, event_times = set(), {}
         for number, row, values in _rows(chartevents):
             pid = row['subject_id']
             if pid not in self.patients:
                 continue
             counts['rows'] += 1
+            stays_with_rows.add((pid, row['stay_id']))
             key = hashlib.blake2b('\x1f'.join(values).encode('utf-8'), digest_size=16).digest()
             first = key not in seen
             seen.add(key)
@@ -125,6 +139,8 @@ class RawRowCheck:
                 (epid, eid, kind, source, concepts, start, has_end, item_class, value_lexical, unit, micro,
                  recorded, row_sha) = self.events.pop(number)
                 t = raw_us(row['charttime'])
+                if t is not None:
+                    event_times.setdefault((pid, row['stay_id']), []).append(t)
                 stored = raw_us(row['storetime']) if row['storetime'] else None
                 want_class = ITEM_NAMESPACE + row['itemid']
                 for name, ok in (('patient', epid == pid), ('first_occurrence', first), ('item_known', row['itemid'] in items),
@@ -148,11 +164,32 @@ class RawRowCheck:
                 expected[(pid, SOURCE, ITEM_NAMESPACE + row['itemid'], lo, hi)] += 1
                 counts['excluded_expected'] += 1
         excluded_differences = sum(((expected - self.excluded) + (self.excluded - expected)).values())
+        coverage = {'checked': icustays is not None}
+        if icustays is not None:
+            want = {pid: [] for pid in self.patients}
+            for _, stay, _ in _rows(icustays):
+                pid = stay['subject_id']
+                if pid not in want or (pid, stay['stay_id']) not in stays_with_rows:
+                    continue
+                lo, hi = raw_us(stay['intime']), raw_us(stay['outtime'])
+                if lo is None or hi is None or lo > hi:
+                    continue
+                times = event_times.get((pid, stay['stay_id']), [])
+                first, last = min([lo] + times), max([hi] + times)
+                want[pid].append((first, last, COVERAGE_BASIS if (first, last) == (lo, hi) else EXTENDED_COVERAGE_BASIS))
+            want = {pid: sorted(set(v)) for pid, v in want.items()}
+            coverage['periods_expected'] = sum(len(v) for v in want.values())
+            coverage['patients_differing_in_ingest'] = sum(self.coverage.get(pid, []) != v for pid, v in want.items())
+            if store_coverage is not None:
+                coverage['patients_differing_in_store'] = sum(sorted(store_coverage.get(pid, [])) != v
+                                                              for pid, v in want.items())
         result = {'rows': counts['rows'], 'events_checked': counts['events_checked'],
                   'excluded_records_checked': counts['excluded_expected'],
                   'duplicate_rows': counts['duplicate_rows'], 'unknown_item_rows': counts['unknown_item_rows'],
                   'event_field_mismatches': dict(sorted(fields.items())),
                   'excluded_record_differences': excluded_differences,
-                  'events_without_raw_row': len(self.events), 'events_naming_one_row_twice': self.repeated}
-        result['passed'] = not (fields or excluded_differences or self.events or self.repeated)
+                  'events_without_raw_row': len(self.events), 'events_naming_one_row_twice': self.repeated,
+                  'coverage': coverage}
+        result['passed'] = not (fields or excluded_differences or self.events or self.repeated
+                                or coverage.get('patients_differing_in_ingest') or coverage.get('patients_differing_in_store'))
         return result

@@ -207,9 +207,9 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "cbc08b3a7872af4a8ae1a68caf3a16a42f804f9fbe9279e241560ab56906eac9",
+    "snapshot_id": "0eb0323b0a92e94933efa61a90d763f99623d71df39d919f65e4455d0d305c38",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
-    "input_digest": "6e856e9ec52e04e8eaa8a3cec7e3e9926862d5d46275bf144b92255fe05b1f12",
+    "input_digest": "7a0dd1fd4aeb8ace36507915ffd01830b6bc3e0909dc565878e7cd5d29695323",
     "closure_version": "mimic-store-ingest-1.0:dad9c04bb57098a51a7c383b896934463b5a7e057ee71e8ec0814402317b3ba1",
     "labels": {
       "acceptance": "caller_declared_accept_all_analysis_not_clinical_review",
@@ -220,7 +220,9 @@
       "ancestor_basis": "source_dictionary_grouping",
       "chartevents_admission_profile": "mimic-measurement-import-1.0",
       "chartevents_admission_rule": "numeric value equal to its text, explicit unit, warning 0; textual or qualified values, missing units, flagged or unknown warnings, invalid and duplicate rows left out",
-      "chartevents_route": "b: rows from describe() claim identity; a deterministic sample of claim stores checked through the measurement graph route",
+      "chartevents_coverage_basis": "inferred:icustay_with_chart_rows",
+      "chartevents_extended_coverage_basis": "inferred:icustay_with_chart_rows+records",
+      "chartevents_route": "b: rows from describe() claim identity; claim stores checked through the measurement graph route (every store, a census, on the MIMIC-IV demo; a deterministic sample by design beyond it); every row checked against the raw file",
       "chartevents_source": "chartevents:numeric_measurements",
       "chartevents_source_table": "chartevents",
       "chartevents_value_policy": "exported decimal spelling kept; exact decimal and micro-unit integer; no unit conversion",
@@ -312,17 +314,22 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 61.95,
-    "admission_and_claims": 0.66,
-    "chartevents_built_store_comparison": 9.02,
-    "chartevents_census": 527.24,
-    "chartevents_raw_row_check": 2.94,
+    "adapter": 61.96,
+    "admission_and_claims": 0.65,
+    "chartevents_built_store_comparison": 8.93,
+    "chartevents_census": 521.54,
+    "chartevents_raw_row_check": 2.98,
     "chartevents_route_b": 20.21,
-    "differential": 531.18,
-    "mapping": 0.28,
-    "store_build": 17.71,
+    "differential": 531.74,
+    "mapping": 0.27,
+    "store_build": 17.77,
     "store_open_and_verify": 0.04,
-    "total": 1171.37
+    "total": 1166.2
+  },
+  "resources": {
+    "cpu_seconds": 6312.9,
+    "peak_rss_bytes_main_process": 2214019072,
+    "note": "this run, this machine: CPU time of the verifier and its worker processes"
   },
   "artifacts": {
     "data/clinical-source-demo-pin.json": "f294892d6960d68a663b02c16f4341a38763606345213185145e2c44a222502e",
@@ -348,13 +355,13 @@
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
-    "patterns/mimic_chartevents.py": "fe4ca734744949f406e853f498d48790a2af39c01e606ec94c326b82fab99f1a",
-    "patterns/mimic_chartevents_check.py": "e23806accb1c64201910e71c19bdeab9df22d10d86b5ed1e9fb94b05b1c3df2c",
-    "patterns/mimic_chartevents_raw_check.py": "4d2f9448d39d8a9268164d76ef82c34215b0ae1916a0b09365489b3abecfc003",
+    "patterns/mimic_chartevents.py": "2a0a24fc54a6afb45f23767471b2d2a395e5135acac7a6112b9e216d72056ac7",
+    "patterns/mimic_chartevents_check.py": "32065d1ae1b9dd43310ae1226a9f3120f63c3dff0bed3fd34022efd0b067e45b",
+    "patterns/mimic_chartevents_raw_check.py": "f8ef5b5bf69b0531d720b4d0a04b73870057d3b4298bd1a90146bb73dbeb8e1b",
     "patterns/mimic_claim_import.py": "574c9a5ce5c0be410484392a84bf8881bd12493dcb7eaf9144942e8aa33bce1d",
     "patterns/mimic_inputevents.py": "6ccad4f19b2a3dbee9ed819c01e234ec061a41f40a5a6b9220578ad9f7c07c1f",
     "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
-    "patterns/mimic_store_ingest.py": "9bbd66e897ec194003e860f91952c33b877c5532da49cd14a453205408a05305",
+    "patterns/mimic_store_ingest.py": "8f9c2eba3708981b658239418d1795f90265cdcfd5eba0c9c7316586ba5ca21c",
     "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
     "patterns/prepared_reference.py": "01a5881b22ec5beff42efe7c98c63287df5befcafa0a2c5a5c086dccee8c5303",
     "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
@@ -368,7 +375,7 @@
     "patterns/trajectory_graph.py": "afc5eb1c0544224528062341b973b47ea458f8b6cd2c4d84ea06036bf042a5ad",
     "patterns/trajectory_graph_sulo.py": "5e77832e4c9997ac9bd74db02dde34521249ecfaef2a82ba8c1c01576f77d100",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
-    "patterns/verify_mimic_store_ingest.py": "a208e1f44e8999aeccfaaef3dacbd0ee62ddc57caeba15b8c573de723dc65bfa",
+    "patterns/verify_mimic_store_ingest.py": "15889e417417f87dfc4571750b78e44abc9ce0ca6df7875861d70b682233a980",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
     "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
     "schemas/execution-store-manifest.schema.json": "70c85f458538863fb1ffe4601ee866c28b362a393e8d01b0351ff2f9a0299f12",
@@ -435,6 +442,12 @@
       "excluded_record_differences": 0,
       "events_without_raw_row": 0,
       "events_naming_one_row_twice": 0,
+      "coverage": {
+        "checked": true,
+        "periods_expected": 140,
+        "patients_differing_in_ingest": 0,
+        "patients_differing_in_store": 0
+      },
       "passed": true
     },
     "census": {

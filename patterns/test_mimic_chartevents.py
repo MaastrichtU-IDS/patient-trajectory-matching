@@ -428,7 +428,7 @@ def raw_check(run, patients=None):
     checker = raw.RawRowCheck()
     for b in batches(run, patients=patients):
         checker.add(b['patient'], b['series'])
-    return checker.verify(run.paths['chartevents'], run.paths['d_items'])
+    return checker.verify(run.paths['chartevents'], run.paths['d_items'], run.paths['icustays'])
 
 
 class RawRowCheckTests(unittest.TestCase):
@@ -529,8 +529,8 @@ class SpillTests(unittest.TestCase):
 
 
 class StoreSmokeTests(unittest.TestCase):
-    """The route-(b) patients build into today's store (without the series table, which waits for the
-    store hook) and match as the reference matches them, points included."""
+    """The route-(b) patients (here without their series rows) build into the store and match as the reference
+    matches them, points included."""
 
     def test_build_and_match_points(self):
         from . import execution_store as es

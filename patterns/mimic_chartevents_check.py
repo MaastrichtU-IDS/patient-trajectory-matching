@@ -1,5 +1,5 @@
 """Graph-route checks for chartevents route (b): a sample (or a census) of claim stores through the
-measurement graph route, with a row-equality differential against the bulk rows (D16; draft D27).
+measurement graph route, with a row-equality differential against the bulk rows (D16, D27).
 
 Route (a) for a measurement claim store is the repository's measurement graph route:
 - the store, as the importer builds it, validated (`measurement_claims.validate_store`);

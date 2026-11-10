@@ -1,6 +1,6 @@
 """MIMIC-IV chartevents for the execution store by route (b): bulk rows from the importer's claim identity.
 
-Decision log D16 (draft D27, docs/decisions/chartevents-route-b.md). Route (a), every row through
+Decision log D16 and D27. Route (a), every row through
 the graph route, costs about 0.2 CPU-seconds a claim, so a bulk source cannot take it. Here:
 
 1. The file is read twice, streaming. The first pass checks the header and records, hashes the
@@ -27,8 +27,8 @@ item ids are unique across tables), each with its d_items category as its one an
 are never clinical concepts; `clinical_mapping_verified` is false. The event kind,
 `recorded_measurement`, has no ontology class, so a measurement event carries its item class only.
 
-The execution store does not take `series` yet: `patient_batch` returns it beside the store patient.
-docs/decisions/chartevents-integration-notes.md lists the store hooks.
+`patient_batch` returns the series rows beside the store patient; `mimic_store_ingest.merge_patient` puts them in
+the patient's `series` (store 3.1). Decision log D27.
 """
 from __future__ import annotations
 
@@ -63,8 +63,9 @@ GROUP_NS = 'https://example.org/trajectory/mimic-record-item-category/'  # as mi
 CONCEPT_BASIS = 'source_item_class'
 GROUP_BASIS = 'source_dictionary_grouping'
 ITEM_FIELD_BASIS = 'claim_item_field'
-COVERAGE_BASIS = 'inferred:icustay'
-EXTENDED_COVERAGE_BASIS = 'inferred:icustay+records'
+# Stricter than inputevents' `inferred:icustay` (a stay counts only if chartevents holds a row of it), so named apart.
+COVERAGE_BASIS = 'inferred:icustay_with_chart_rows'
+EXTENDED_COVERAGE_BASIS = 'inferred:icustay_with_chart_rows+records'
 CLAIMS_PER_STORE = importer.MAX_CLAIMS
 ORIGIN = '0001-01-01T00:00:00'
 MAX_TIME = 315_537_897_599_999_999  # as execution_store.MAX_TIME: 9999-12-31T23:59:59.999999
@@ -77,8 +78,9 @@ LABELS = {'clinical_mapping_verified': False, 'concept_basis': CONCEPT_BASIS, 'a
           'source': SOURCE, 'source_table': SOURCE_TABLE, 'admission_profile': importer.PROFILE,
           'admission_rule': ('numeric value equal to its text, explicit unit, warning 0; textual or qualified '
                              'values, missing units, flagged or unknown warnings, invalid and duplicate rows left out'),
-          'route': 'b: rows from describe() claim identity; a deterministic sample of claim stores checked through '
-                   'the measurement graph route',
+          'route': ('b: rows from describe() claim identity; claim stores checked through the measurement graph route '
+                    '(every store, a census, on the MIMIC-IV demo; a deterministic sample by design beyond it); every row '
+                    'checked against the raw file'),
           'value_policy': 'exported decimal spelling kept; exact decimal and micro-unit integer; no unit conversion',
           'excluded_records': 'excluded_records table; a none they could change is not_comparable'}
 FILES = tuple(sorted(set(('patterns/mimic_chartevents.py', 'patterns/series_values.py') + importer.FILES)))

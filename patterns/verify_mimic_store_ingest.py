@@ -32,6 +32,7 @@ import csv
 import json
 from pathlib import Path
 import random
+import sys
 import tempfile
 import time
 import zlib
@@ -341,18 +342,30 @@ def chartevents_pin(run):
     return {'file_sha256_matches_pin': True, 'rows': run.manifest['rows']}
 
 
-def chart_raw_check(result):
-    """The independent raw-row check over every chart row (D27)."""
+def store_chart_coverage(store):
+    """{patient_id: [(lo, hi, basis)]}: the chartevents coverage rows of a built store."""
+    out = defaultdict(list)
+    for pid, lo, hi, basis in store.query('SELECT p.patient_id, c.lo, c.hi, c.basis FROM coverage c '
+                                          'JOIN patients p USING (patient_idx) WHERE c.source = ?', [chart.SOURCE]):
+        out[pid].append((lo, hi, basis))
+    return dict(out)
+
+
+def chart_raw_check(result, store=None):
+    """The independent raw-row check over every chart row (D27), with chartevents coverage recomputed from the raw
+    rows and icustays and compared with the ingest's and, given a built store, the store's. Rows of patients
+    inputevents refused are not in the store, and are left out of the count."""
     checker = raw_check.RawRowCheck()
-    series = {}
     for p in result['ingest']['patients']:
         mine = {'patient_id': p['patient_id'], 'events': [e for e in p['events'] if e['source'] == chart.SOURCE],
-                'excluded': [x for x in p.get('excluded', []) if x['source'] == chart.SOURCE]}
-        series = p.get('series', [])
-        checker.add(mine, series)
+                'excluded': [x for x in p.get('excluded', []) if x['source'] == chart.SOURCE],
+                'coverage': [c for c in p['coverage'] if c['source'] == chart.SOURCE]}
+        checker.add(mine, p.get('series', []))
     run = result['chart_run']
-    out = checker.verify(run.paths['chartevents'], run.paths['d_items'])
-    ei.require(out['passed'] and out['rows'] == run.manifest['rows'], 'CHARTEVENTS_RAW_ROW_CHECK_FAILED')
+    out = checker.verify(run.paths['chartevents'], run.paths['d_items'], run.paths['icustays'],
+                         store_chart_coverage(store) if store is not None else None)
+    expected_rows = run.manifest['rows'] - result['chart_counts'].get('rows_of_refused_patients', 0)
+    ei.require(out['passed'] and out['rows'] == expected_rows, 'CHARTEVENTS_RAW_ROW_CHECK_FAILED')
     return out
 
 
@@ -384,9 +397,6 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
             run = result['chart_run']
             pin = chartevents_pin(run)
             t = time.perf_counter()
-            raw = chart_raw_check(result)
-            timings['chartevents_raw_row_check'] = time.perf_counter() - t
-            t = time.perf_counter()
             selected = {s['key']: ['census'] for s in result['chart_stores']}
             digests = {s['key']: s['rows_sha256'] for s in result['chart_stores']}
             outcomes = chart_check.check_selected(run, selected, digests, Path(tmp) / 'census', graph=True,
@@ -405,6 +415,9 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
             timings['store_open_and_verify'] = time.perf_counter() - t
             manifest = store.manifest
             if chartevents:
+                t = time.perf_counter()
+                raw = chart_raw_check(result, store)
+                timings['chartevents_raw_row_check'] = time.perf_counter() - t
                 t = time.perf_counter()
                 stored = built_store_comparison(store, outcomes)
                 timings['chartevents_built_store_comparison'] = time.perf_counter() - t
@@ -428,6 +441,12 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
             timings['differential'] = time.perf_counter() - t
     times = raw_time_check(result['ingest'], result['prepared']['admission']['segments'])
     timings['total'] = time.perf_counter() - started
+    import resource
+    own, children = resource.getrusage(resource.RUSAGE_SELF), resource.getrusage(resource.RUSAGE_CHILDREN)
+    resources = {'cpu_seconds': round(own.ru_utime + own.ru_stime + children.ru_utime + children.ru_stime, 1),
+                 # ru_maxrss is bytes on macOS and kilobytes on Linux.
+                 'peak_rss_bytes_main_process': own.ru_maxrss * (1 if sys.platform == 'darwin' else 1024),
+                 'note': 'this run, this machine: CPU time of the verifier and its worker processes'}
     ei.require(check['mismatches'] == 0 and check['adapter_row_mismatches'] == 0 and check['dropped_matches'] == 0
                and check['exhaustive_slice']['prepared_reference_mismatches'] == 0, 'DEMO_STORE_DIFFERENTIAL_MISMATCH')
     ei.require(times['mismatches'] == 0 and times['events_checked'] == result['counts']['events'],
@@ -460,6 +479,7 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
         'raw_source_time_check': times,
         'differential': check,
         'timings_seconds': {k: round(v, 2) for k, v in sorted(timings.items())},
+        'resources': resources,
         'artifacts': msi.artifacts(CHART_FILES if chartevents else FILES),
     }
     if chart_report is not None:
