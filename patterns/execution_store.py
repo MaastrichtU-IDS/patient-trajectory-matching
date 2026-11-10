@@ -92,7 +92,7 @@ INPUT_FORM = ('sha256 over the canonical JSON of {profile, dataset_id, closure, 
               'patient_id; a patient is canonical with events sorted by event_id, each event\'s concepts sorted, '
               'coverage and excluded records sorted, and keys sorted, and each event without proper: false, a '
               'start_var equal to "<event_id>.s" or an end_var equal to "<event_id>.f"; series rows, when given, '
-              'sorted by event_id')
+              'sorted by event_id, and an empty series left out')
 
 # Logical tables: column names and DuckDB types, in canonical column order.
 TABLES = {
@@ -392,6 +392,8 @@ def validate_series(p):
     seen = set()
     for r in p['series']:
         _require(isinstance(r, dict) and set(r) == SERIES_FIELDS, 'INVALID_SERIES', pid)
+        # Before it is hashed or looked up (D28, a D27 follow-up): an unhashable or non-string id is refused by name.
+        _require(type(r['event_id']) is str and r['event_id'], 'INVALID_SERIES', pid)
         where = f"{pid}/{r['event_id']}"
         event = events.get(r['event_id'])
         _require(event is not None, 'SERIES_UNKNOWN_EVENT', where)
@@ -464,8 +466,10 @@ def canonical_patient(p):
            'coverage': sorted(p['coverage'], key=lambda c: (c['source'], c['lo'], c['hi'], c['basis']))}
     if 'excluded' in p:
         out['excluded'] = sorted(p['excluded'], key=lambda x: (x['source'], x['concept'], x['start'], x['reason']))
-    if 'series' in p:
+    if p.get('series'):
         out['series'] = sorted(p['series'], key=lambda r: r['event_id'])
+    else:  # `series: []` says what an absent `series` says, so the two have one digest (D28, a D27 follow-up)
+        out.pop('series', None)
     return out
 
 
@@ -725,7 +729,9 @@ def _derive(db, relation, parts, on_stage=None):
                 s.start_hi, s.value_lexical, s.value_decimal, s.value_micro, s.unit, p.bucket
                 FROM {staged('series', part)} s JOIN p USING (patient_id)""")
             # Each series row is of a point event of the part, at that event's time, for one of its direct concepts.
-            # The ingest's checks and the staging make it so; this guards the copy.
+            # The ingest's checks and the staging make it so. This guards the event link only (the row's event, its
+            # time and its item class): a value or unit changed between ingest and table is not caught here, but by
+            # the store-against-reference equality in the tests and, on the demo, by the graph rows against the store.
             orphan = db.execute("""SELECT count(*) FROM part_series s LEFT JOIN part_events e USING (patient_idx, event_id)
                 LEFT JOIN part_concepts c ON c.patient_idx = s.patient_idx AND c.event_id = s.event_id
                      AND c.concept = s.item_class

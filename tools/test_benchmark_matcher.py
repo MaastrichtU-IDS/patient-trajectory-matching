@@ -145,6 +145,8 @@ class OlderArmTests(unittest.TestCase):
         self.assertEqual(entry['byte_identity_B_against_A'], {'compared': 4, 'identical': 4, 'mismatching_seeds': []})
         same = entry['arm_a_snapshot']['same_rows']
         self.assertTrue(same['all_equal'], same)
+        self.assertEqual(entry['arm_a_snapshot']['columns_2_1'],
+                         {'rows_set': {'start_var': 0, 'end_var': 0, 'proper': 0, 'shared_variables': 0}, 'all_zero': True})
         self.assertEqual(set(same['tables']), set(matcher.READ_COLUMNS))
         self.assertGreater(same['tables']['events']['rows'], 0)
         self.assertEqual(entry['arm_a_snapshot']['profile'], 'execution-store-2.0')
@@ -168,6 +170,39 @@ class OlderArmTests(unittest.TestCase):
             got = matcher.same_rows(a, b, '1GB')
         self.assertFalse(got['all_equal'])
         self.assertEqual({n for n, t in got['tables'].items() if not t['equal']}, {'events', 'concept_postings'})
+
+    def test_the_digest_reader_leaves_no_spill_directory(self):
+        """D28 (a D26 follow-up): `read_digests` removes the spill directory it creates, also when it fails."""
+        from patterns import execution_store as es
+        with tempfile.TemporaryDirectory(prefix='matcher-spill-') as tmp, \
+                mock.patch.object(matcher.tempfile, 'tempdir', tmp):
+            snapshot = es.build(bench.replicate(bench.pool_ingest(48)[0], 48), Path(tmp) / 'store')
+            before = set(Path(tmp).iterdir())
+            matcher.read_digests(snapshot, '1GB')
+            matcher.columns_2_1(snapshot, '1GB')
+            with self.assertRaises(Exception):
+                matcher.read_digests(Path(tmp) / 'absent', '1GB')
+            self.assertEqual(set(Path(tmp).iterdir()), before)
+
+    def test_the_2_1_columns_are_counted_and_must_be_unset_on_synthetic_cohorts(self):
+        """D28 (a D26 review follow-up): the rows check covers the columns arm A reads; B's 2.1 columns are counted
+        beside it, and each is 0 on a synthetic cohort and counted when set."""
+        from patterns import execution_store as es
+        ingest = bench.replicate(bench.pool_ingest(48)[0], 48)
+        named = json.loads(json.dumps(ingest))
+        p, exposure = next((p, e) for p in named['patients'] for e in p['events']
+                           if 'end' in e and e['end'][1] is not None and e['end'][0] > e['start'][1])
+        other = next(e for e in p['events'] if e is not exposure)
+        exposure.update(proper=True, start_var='shared.t')
+        other.update(start_var='shared.t', start=list(exposure['start']))
+        with tempfile.TemporaryDirectory(prefix='matcher-columns-') as tmp:
+            plain = matcher.columns_2_1(es.build(ingest, Path(tmp) / 'a'), '1GB')
+            set_ = matcher.columns_2_1(es.build(named, Path(tmp) / 'b'), '1GB')
+        self.assertEqual(plain, {'rows_set': {'start_var': 0, 'end_var': 0, 'proper': 0, 'shared_variables': 0},
+                                 'all_zero': True})
+        self.assertFalse(set_['all_zero'])
+        self.assertEqual((set_['rows_set']['start_var'], set_['rows_set']['proper'], set_['rows_set']['shared_variables']),
+                         (2, 1, 1))
 
 
 if __name__ == '__main__':

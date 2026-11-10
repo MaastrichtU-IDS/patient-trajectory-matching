@@ -176,8 +176,10 @@ def patient_digest(patient):
     p['coverage'] = sorted(patient['coverage'], key=lambda c: [c['source'], c['lo'], c['hi'], c['basis']])
     if 'excluded' in patient:
         p['excluded'] = sorted(patient['excluded'], key=lambda x: [x['source'], x['concept'], x['start'], x['reason']])
-    if 'series' in patient:
+    if patient.get('series'):
         p['series'] = sorted(patient['series'], key=lambda r: r['event_id'])
+    else:  # an empty series is no series (D28)
+        p.pop('series', None)
     return sha(compact(p, sort=True).encode('utf-8'))
 
 

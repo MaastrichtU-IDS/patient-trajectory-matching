@@ -1659,6 +1659,20 @@ class SeriesTests(unittest.TestCase):
                          {n: t['content_digest'] for n, t in b['tables'].items() if n != 'series'})
         self.assertEqual((a['tables']['series']['rows'], b['tables']['series']['rows']), (3, 0))
 
+    def test_an_empty_series_is_no_series(self):
+        """D28 (a D27 follow-up): `series: []` and an absent `series` have one input digest and one snapshot, in the
+        store and in the reference; a document without `series: []` keeps its digest."""
+        g = self.ingest()
+        empty = deepcopy(g)
+        for p in empty['patients']:
+            p.setdefault('series', [])
+        self.assertEqual(ref.input_digest(empty), ref.input_digest(g))
+        with tempfile.TemporaryDirectory() as tmp:
+            a = json.loads((es.build(g, Path(tmp) / 'a') / 'manifest.json').read_text())
+            b = json.loads((es.build(empty, Path(tmp) / 'b') / 'manifest.json').read_text())
+        self.assertEqual((a['input_digest'], a['snapshot_id']), (b['input_digest'], b['snapshot_id']))
+        self.assertEqual(a['input_digest'], ref.input_digest(g))
+
     def test_refusals(self):
         def refused(code, change):
             g = self.ingest()
@@ -1682,6 +1696,9 @@ class SeriesTests(unittest.TestCase):
         refused('INVALID_SERIES_UNIT', at(0, unit=''))
         refused('INVALID_SERIES', at(0, extra=1))
         refused('INVALID_SERIES', lambda p: p.update(series={}))
+        # D28 (a D27 follow-up): an event id that cannot be hashed, or is not a non-empty string, is refused by name.
+        for bad in (['m1'], {'m': 1}, 5, None, ''):
+            refused('INVALID_SERIES', at(0, event_id=bad))
         # Spellings beyond the 28-digit decimal context: the micro-unit integer must be null, not rounded.
         for text, decimal in (('1000000000000.0000000000000000001', '1000000000000.0000000000000000001'),
                               ('9000000000000.00000000000000000049', '9000000000000.00000000000000000049')):
