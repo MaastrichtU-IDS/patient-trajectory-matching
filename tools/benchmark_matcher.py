@@ -106,7 +106,8 @@ LIMITATIONS = (
     'comparability, exclusions and the context digests.',
     'Latencies are wall-clock times of one Python thread and one DuckDB thread; no tuning was attempted.',
     'Byte identity is checked by a digest of canonical JSON of the plan, candidate count, counts and every patient result '
-    '(not the context block, whose snapshot and code digests change with the code); no exhaustive reference ran at scale.',
+    '(not the context block, whose snapshot and code digests change with the code); since D28 each arm\'s per-query digests are '
+    'kept in its `per_query` (null for `B_decided`, whose listing differs by design); no exhaustive reference ran at scale.',
     'Arm C: workers and the query process share one machine (10 performance and 4 efficiency cores): counts above 10 '
     'put work on efficiency cores. Workers are warm for the timings; start-up is one cold figure per count, with '
     'the page cache warm from earlier arms. The comparability and exclusion steps still run in the query process.',
@@ -161,7 +162,12 @@ def read_digests(snapshot, memory_limit):
     from unittest.mock import patch
     from patterns import execution_store as es
     snapshot = Path(snapshot)
-    db = es._connect(':memory:', 1, memory_limit, tempfile.mkdtemp(prefix='matcher-digest-'))
+    spill = tempfile.mkdtemp(prefix='matcher-digest-')
+    try:
+        db = es._connect(':memory:', 1, memory_limit, spill)
+    except BaseException:
+        shutil.rmtree(spill, ignore_errors=True)
+        raise
     try:
         types = dict(c for cols in es.TABLES.values() for c in cols)
         for name, cols in READ_COLUMNS.items():
@@ -174,6 +180,36 @@ def read_digests(snapshot, memory_limit):
             return {name: {k: t[k] for k in ('rows', 'content_digest')} for name, t in es.content_digests(db).items()}
     finally:
         db.close()
+        shutil.rmtree(spill, ignore_errors=True)  # D28 (a D26 follow-up): the spill directory goes with the call
+
+
+# The columns B's store added in 2.1 (D24), which arm A neither reads nor writes: on the synthetic cohorts every one
+# is null or false, which is what makes A's results comparable with B's at all (a D26 review follow-up, D28).
+COLUMNS_2_1 = {'events': (('start_var', 'start_var IS NOT NULL'), ('end_var', 'end_var IS NOT NULL'),
+                          ('proper', 'proper')),
+               'patients': (('shared_variables', 'shared_variables'),)}
+
+
+def columns_2_1(snapshot, memory_limit):
+    """{column: rows where it is set} for B's 2.1 columns, counted in the snapshot's own Parquet files, and whether
+    every count is 0."""
+    from patterns import execution_store as es
+    snapshot = Path(snapshot)
+    spill = tempfile.mkdtemp(prefix='matcher-columns-')
+    try:
+        db = es._connect(':memory:', 1, memory_limit, spill)
+        try:
+            counts = {}
+            for name, columns in COLUMNS_2_1.items():
+                files = snapshot / name / '**' / '*.parquet' if name in es.PARTITIONED else snapshot / f'{name}.parquet'
+                for column, test in columns:
+                    counts[column] = db.execute(f'SELECT count(*) FROM read_parquet({es._lit(files)}, '
+                                                f'hive_partitioning = false) WHERE {test}').fetchone()[0]
+        finally:
+            db.close()
+    finally:
+        shutil.rmtree(spill, ignore_errors=True)
+    return {'rows_set': counts, 'all_zero': not any(counts.values())}
 
 
 def same_rows(arm_a_snapshot, snapshot, memory_limit):
@@ -446,7 +482,7 @@ def arm_statistics(result, record, patients):
             **({'pruning': pruning} if pruning else {}),
             'per_query': [{k: q[k] for k in ('seed', 'candidates', 'match_seconds', 'engine_seconds', 'load_seconds',
                                               'listed_results', 'prune_seconds', 'candidates_with_window', 'pruned',
-                                              'pruned_by_start_summaries') if k in q} for q in per_query]}, per_query
+                                              'pruned_by_start_summaries', 'digest') if k in q} for q in per_query]}, per_query
 
 
 def identity(a_queries, b_queries):
@@ -512,7 +548,8 @@ def benchmark(args):
                                        'input_digest': own['input_digest'],
                                        'built_by': f'arm A\'s own builder and converter at {args.arm_a_ref} '
                                                    '(benchmark_matcher.py --build-arm-a), from this tree\'s generator',
-                                       'same_rows': same_rows(arm_a_path, path, args.memory_limit)}
+                                       'same_rows': same_rows(arm_a_path, path, args.memory_limit),
+                                       'columns_2_1': columns_2_1(path, args.memory_limit)}
             entry['arm_a_snapshot']['same_rows']['seconds'] = time.monotonic() - started_check
         per_arm = {}
         plan = [('A', scratch, 'full', 1, True), ('B', ROOT, 'full', 1, True), ('B_unpruned', ROOT, 'full', 1, False),

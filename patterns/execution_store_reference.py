@@ -13,6 +13,7 @@ results with `exhaustive_match`.
 """
 from __future__ import annotations
 
+from decimal import Decimal
 import hashlib
 import json
 
@@ -176,8 +177,10 @@ def patient_digest(patient):
     p['coverage'] = sorted(patient['coverage'], key=lambda c: [c['source'], c['lo'], c['hi'], c['basis']])
     if 'excluded' in patient:
         p['excluded'] = sorted(patient['excluded'], key=lambda x: [x['source'], x['concept'], x['start'], x['reason']])
-    if 'series' in patient:
+    if patient.get('series'):
         p['series'] = sorted(patient['series'], key=lambda r: r['event_id'])
+    else:  # an empty series is no series (D28)
+        p.pop('series', None)
     return sha(compact(p, sort=True).encode('utf-8'))
 
 
@@ -325,22 +328,104 @@ def coverage_rule(query, per_step, recorders, coverage, window, result):
     return out
 
 
-def exhaustive_match(ingest, query, windows):
+# Value conditions (D28), written again from docs/execution-store.md ("Value conditions"), sharing no code with the
+# store: the store compiles conditions to tags it names by digest and tests micro-unit integers in SQL; this reads
+# each series row's spelling as a Decimal and tests it in Python, and names its tags by step and relaxation.
+
+def _bound(text):
+    return Decimal(text)
+
+
+def _admits(condition, unit, lexical):
+    """Whether a value spelled `lexical`, in `unit`, satisfies a request condition: the unit equal, letter for letter,
+    and the value compared exactly (Decimal comparisons do not round)."""
+    if unit != condition['unit']:
+        return False
+    v = Decimal(lexical)
+    if 'eq' in condition:
+        return v == _bound(condition['eq'])
+    checks = {'gt': lambda b: v > b, 'ge': lambda b: v >= b, 'lt': lambda b: v < b, 'le': lambda b: v <= b}
+    return all(checks[k](_bound(condition[k])) for k in checks if k in condition)
+
+
+class ValueQuery:
+    """A value request read independently: the engine query with a tag per conditioned step and per relaxation of
+    one, which events carry which tag, the concepts each step stands for, and which sources record each tag."""
+
+    def __init__(self, ingest, query, conditions):
+        ancestors = ingest['closure']['ancestors']
+        own = conditions['steps']
+        self.defs = {}  # tag -> (concept, condition)
+        concept_of = {s['id']: s['concept'] for s in query['steps']}
+        steps = []
+        for s in query['steps']:
+            if s['id'] in own:
+                name = f"#ref-value/{s['id']}/own"
+                self.defs[name] = (s['concept'], own[s['id']])
+                s = dict(s, concept=name)
+            steps.append(s)
+        relaxations = []
+        for x in query.get('relaxations', []):
+            if x['kind'] == 'widen_concept' and x['step'] in own:
+                name = f"#ref-value/{x['step']}/{x['id']}"
+                self.defs[name] = (x['concept'], own[x['step']])
+                x = dict(x, concept=name)
+            relaxations.append(x)
+        for x in conditions.get('relaxations', []):
+            name = f"#ref-value/{x['step']}/{x['id']}"
+            self.defs[name] = (concept_of[x['step']], x['condition'])
+            relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'concept': name,
+                                'cost': x['cost']})
+        self.query = dict(query, steps=steps)
+        if relaxations or 'relaxations' in query:
+            self.query['relaxations'] = relaxations
+        # Which (patient, event) carries each tag, and which sources record it.
+        self.carried, self.recorders = {}, {name: set() for name in self.defs}
+        for p in ingest['patients']:
+            source = {e['event_id']: e['source'] for e in p['events']}
+            for r in p.get('series', []):
+                covers = expanded([r['item_class']], ancestors)
+                for name, (concept, condition) in self.defs.items():
+                    if concept not in covers:
+                        continue
+                    if r['unit'] == condition['unit']:
+                        self.recorders[name].add(source[r['event_id']])
+                    if _admits(condition, r['unit'], r['value_lexical']):
+                        self.carried.setdefault(p['patient_id'], {}).setdefault(r['event_id'], set()).add(name)
+        # Each step's engine concepts, read as concepts: what its excluded records are matched by.
+        self.per_step = step_concepts(self.query)
+        self.base = {sid: {self.defs[c][0] if c in self.defs else c for c in cs} for sid, cs in self.per_step.items()}
+
+    def tags_of(self, patient_id, event_id):
+        return self.carried.get(patient_id, {}).get(event_id, set())
+
+
+def exhaustive_match(ingest, query, windows, conditions=None):
     """The engine on every patient's full, closure-expanded events; then the coverage rule on `none`,
-    then the excluded-records rule on whatever the engine decided."""
+    then the excluded-records rule on whatever the engine decided. With value `conditions` (D28) each event also
+    lists the tags it carries (`ValueQuery`), the engine gets the tagged query, a tag's recorders are the sources
+    holding its concept in its unit, and excluded records are matched by the concepts the tags stand for."""
     ancestors = ingest['closure']['ancestors']
     recorders = {}
     for p in ingest['patients']:
         for e in p['events']:
             for c in expanded(e['concepts'], ancestors):
                 recorders.setdefault(c, set()).add(e['source'])
+    value = None if conditions is None else ValueQuery(ingest, query, conditions)
+    if value is not None:
+        query = value.query
+        recorders.update(value.recorders)
     per_step = step_concepts(query)
+    base = per_step if value is None else value.base
     results = []
     for p in sorted(ingest['patients'], key=lambda p: p['patient_id']):
         window = windows.get(p['patient_id'])
         events = []
         for e in p['events']:
-            event = {'id': e['event_id'], 'concepts': sorted(expanded(e['concepts'], ancestors)), 'start': list(e['start'])}
+            concepts = expanded(e['concepts'], ancestors)
+            if value is not None:
+                concepts = concepts | value.tags_of(p['patient_id'], e['event_id'])
+            event = {'id': e['event_id'], 'concepts': sorted(concepts), 'start': list(e['start'])}
             if 'end' in e:
                 event['end'] = list(e['end'])
             # Every event of the patient, with the time variables and `proper` the ingest gave it.
@@ -350,6 +435,6 @@ def exhaustive_match(ingest, query, windows):
         if result['status'] == 'none':
             result = coverage_rule(query, per_step, recorders, p['coverage'], window, result)
         if window is not None and result['status'] != 'not_comparable':
-            result = admission_check(query, per_step, result, p, events, ancestors, window)
+            result = admission_check(query, base, result, p, events, ancestors, window)
         results.append(result)
     return results

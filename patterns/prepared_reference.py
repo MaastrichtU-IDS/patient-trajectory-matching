@@ -40,6 +40,7 @@ coverage_rule = ref.coverage_rule  # the reference's one copy
 class PreparedReference:
     def __init__(self, ingest):
         ancestors = ingest['closure']['ancestors']
+        self.ingest = ingest
         self.ancestors = ancestors
         self.recorders = {}
         self.patients = []
@@ -61,6 +62,7 @@ class PreparedReference:
                     excluded.setdefault(c, []).append(position)
             self.patients.append({'patient_id': p['patient_id'], 'coverage': p['coverage'], 'events': events,
                                   'index': index, 'shares': ref.shares_variables(p),
+                                  'position': {e['id']: i for i, e in enumerate(events)},
                                   'excluded': p.get('excluded', []), 'excluded_index': excluded})
 
     def engine_events(self, patient, wanted):
@@ -69,21 +71,44 @@ class PreparedReference:
         positions = sorted({i for c in wanted for i in patient['index'].get(c, ())})
         return [patient['events'][i] for i in positions]
 
-    def match(self, query, windows):
-        """`execution_store_reference.exhaustive_match(ingest, query, windows)`, from the prepared inputs."""
+    def tagged_events(self, patient, wanted, value):
+        """`engine_events` for a value request (D28): the events carrying a wanted concept or one of the request's
+        tags, each listing its expanded concepts and its tags; every event when the patient shares variables."""
+        pid = patient['patient_id']
+        tagged = {patient['position'][eid] for eid in value.carried.get(pid, ())}
+        if patient['shares']:
+            positions = range(len(patient['events']))
+        else:
+            positions = sorted({i for c in wanted for i in patient['index'].get(c, ())} | tagged)
+        out = []
+        for i in positions:
+            e = patient['events'][i]
+            tags = value.tags_of(pid, e['id'])
+            out.append({**e, 'concepts': sorted(set(e['concepts']) | tags)} if tags else e)
+        return out
+
+    def match(self, query, windows, conditions=None):
+        """`execution_store_reference.exhaustive_match(ingest, query, windows, conditions)`, from the prepared inputs."""
+        value = None if conditions is None else ref.ValueQuery(self.ingest, query, conditions)
+        recorders = self.recorders
+        if value is not None:
+            query = value.query
+            recorders = {**recorders, **value.recorders}
         pq = tg.PreparedQuery(query)
         per_step = ref.step_concepts(query)
+        base = per_step if value is None else value.base
         wanted = set().union(*per_step.values())
+        concepts = set().union(*base.values())
         results = []
         for p in self.patients:
             pid, window = p['patient_id'], windows.get(p['patient_id'])
-            events = self.engine_events(p, wanted)
+            events = self.engine_events(p, wanted) if value is None else self.tagged_events(p, wanted, value)
             result = tg.match_prepared(pq, {'patient_id': pid, 'window': window, 'events': events})
             if result['status'] == 'none':
-                result = coverage_rule(query, per_step, self.recorders, p['coverage'], window, result)
+                result = coverage_rule(query, per_step, recorders, p['coverage'], window, result)
             if window is not None and result['status'] != 'not_comparable':
-                positions = sorted({i for c in wanted for i in p['excluded_index'].get(c, ())})
+                positions = sorted({i for c in concepts for i in p['excluded_index'].get(c, ())})
                 relevant = {'patient_id': pid, 'excluded': [p['excluded'][i] for i in positions]}
-                result = ref.admission_check(query, per_step, result, relevant, events, self.ancestors, window)
+                result = ref.admission_check(query, base, result, relevant, events, self.ancestors, window)
             results.append(result)
         return results

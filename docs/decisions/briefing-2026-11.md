@@ -108,3 +108,17 @@ Cautions on the matching rows:
   - *Merkle digest.* The Merkle input digest of D16 is built but deliberately left out of the store until incremental appends exist.
   - *Review fixes.* An independent review found that a patient the inputevents route refuses could come back through chartevents as a chart-only patient and read `none`; refusal is now whole-patient (the demo has no refusals, so no figure moved). The raw-row check now also recomputes chartevents' coverage, which decides `none` against `NO_SOURCE_COVERAGE`.
   - *Unchanged elsewhere.* The scaling report (to 1,000,000) and the matcher comparison were regenerated on store 3.1. Every result digest equals D26's, the 300 recorded match digests are unchanged, and build, verification and matching costs are within run-to-run spread (build +0.75% at 1,000,000). The D21 target still holds: p95 8.41 s at 8 workers and 7.05 s at 14.
+- **D28, value conditions (chartevents stage 2), the D26 and D27 follow-ups, and the build regression.**
+  - *Value conditions.* A match request can now ask, for example, for "a mean arterial pressure below 65 mmHg". Each condition becomes a per-query tag concept for the engine, which is unchanged.
+    - Units are literal: there is no conversion until stage 3, and a unit nobody records makes a step not comparable.
+    - A value too fine or too large for the stored integer is compared exactly on its stored decimal.
+    - Excluded chart rows of the item count as possibly satisfying the condition (D18).
+    - A value relaxation must widen the condition, so its events contain the stricter condition's.
+  - *Evidence.* The store agrees with an independently written reference on every result: 26,880 synthetic results and 20,000 on the demo, with 0 mismatches. Four planted defects are caught: a threshold off by one, the unit ignored, and a too-fine value read as matching or as not matching. The demo has no too-fine values, so the last two are caught on the synthetic fixtures only.
+  - *Review fix.* An independent review found one must-fix: two conditions differing only beyond the 28th digit could share one tag, giving a wrong answer. Tag names are now exact, and a property test over long values checks it. The reports were regenerated again after the fix.
+  - *Build regression.* Profiling showed that D26's slower build was Python writing digest lines, not the evidence table itself. Writing them a column at a time, with identical bytes, makes the build at 1,000,000 12.0% faster (5,191 against 5,898 s) and content verification 38% faster. That passed a rule fixed before measuring. The store format itself is no cheaper: the digest code got faster for every table. The two levers D26 named saved 1.8% and about 0.2%: one was reverted, and the other was not built.
+  - *Follow-ups.* The five D26 and D27 follow-ups are done.
+  - *Unchanged.* Results are unchanged everywhere: the matcher arms agree, the 300 recorded match digests are unchanged, and every demo figure is unchanged. Every matcher arm's per-query result digests are now kept in the report. The D21 target still holds: p95 8.39 s at 8 workers and 7.26 s at 14.
+    - The first D28 run gave 8.95 s at 14 workers, slower than its own 8 workers.
+    - A scratch rerun then (7.11 s) was not committed and does not establish run-to-run spread.
+    - Why the two committed runs differ is not established.

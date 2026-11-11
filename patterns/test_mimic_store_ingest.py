@@ -716,6 +716,20 @@ class CharteventsTests(unittest.TestCase):
         self.assertEqual(found['exhaustive_slice']['queries'], 15)
         self.assertGreater(found['status_mix'].get('exact', 0), 0)
 
+    def test_the_value_differential_on_the_synthetic_chartevents(self):
+        """D28: value requests on the merged fixture equal the reference, each value relaxation widens, and the
+        planted defects the fixture's rows can show (an off-by-one threshold, an ignored unit) are caught."""
+        with es.open_store(self.snapshot) as store:
+            found = verify.value_differential(store, self.result['ingest'], seeds=40, exhaustive_seeds=10,
+                                              defect_seeds=40)
+        self.assertEqual((found['mismatches'], found['value_relaxation_containment_violations']), (0, 0))
+        self.assertEqual(found['queries'], 40)
+        self.assertGreater(found['value_relaxations_checked'], 0)
+        self.assertGreater(found['status_mix'].get('exact', 0), 0)
+        self.assertTrue(found['planted_defects']['threshold_off_by_one']['caught'])
+        self.assertTrue(found['planted_defects']['unit_ignored']['caught'])
+        self.assertEqual(found['series_rows_with_null_micro_value'], 1)  # the fixture holds one
+
 
 if __name__ == '__main__':
     unittest.main()

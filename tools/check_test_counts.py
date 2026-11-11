@@ -78,6 +78,7 @@ LABELS = {
     'test_mimic_chartevents': 'MIMIC chartevents route (b), graph and raw-row check tests',
     'test_prepared_reference': 'Prepared reference matcher tests',
     'test_merkle_patients': 'Merkle tree over patients tests',
+    'test_value_conditions': 'Execution-store value-condition tests',
 }
 
 

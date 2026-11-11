@@ -1577,6 +1577,39 @@ class IngestNormalisationTests(unittest.TestCase):
                 self.assertEqual(ref.normalised(e), e)
 
 
+class BuildLeverTests(unittest.TestCase):
+    """D28, part 3: the build levers change no byte of content and no identifier."""
+
+    def test_rows_text_writes_what_row_line_writes(self):
+        rng = random.Random(5)
+        texts = ['', 'a', 'é', 'é', '\U0001f600', '"', '\\', '\n\t\r\x00\x1f\x7f', '  ', '{"k":[1,"\\""]}',
+                 'Résumé de sortie', '퟿']
+        ints = [0, -1, 1, 2 ** 63 - 1, -2 ** 63, 10 ** 30, -(10 ** 30)]
+        kinds = [lambda: rng.choice(texts), lambda: rng.choice(ints), lambda: rng.choice((True, False)), lambda: None]
+        for trial in range(300):
+            width = rng.randint(1, 6)
+            columns = [rng.sample(range(4), rng.randint(1, 4)) for _ in range(width)]
+            rows = [tuple(kinds[rng.choice(c)]() for c in columns) for _ in range(rng.randint(1, 30))]
+            self.assertEqual(es.rows_text(rows), ''.join(es.row_line(r) for r in rows), rows)
+        # A type the tables never hold falls back to the row-by-row form, which is the definition.
+        odd = [(1.5, 'x'), (2, 'y')]
+        self.assertEqual(es.rows_text(odd), ''.join(es.row_line(r) for r in odd))
+        self.assertEqual(es.rows_text([]), '')
+
+    def test_the_levers_give_the_snapshot_without_them(self):
+        g = fixture()
+        g['patients'].append(series_patient())
+        ids = set()
+        with tempfile.TemporaryDirectory() as tmp:
+            for k, (fast, staging) in enumerate([(True, None), (False, None), (True, 'ndjson'), (False, 'ndjson')]):
+                with patch.object(es, '_FAST_ROWS', fast):
+                    snapshot = es.build(g, Path(tmp) / str(k), staging=staging, stage_rows=2)
+                    with es.open_store(snapshot, verify='content') as store:
+                        self.assertEqual(table_mismatches(store, ref.build_tables(g)), {})
+                ids.add(json.loads((snapshot / 'manifest.json').read_text())['snapshot_id'])
+        self.assertEqual(len(ids), 1)
+
+
 class PlantedDefectTests(unittest.TestCase):
     def test_a_dropped_closure_row_fails_the_table_comparison(self):
         original = es._closure_rows
@@ -1659,6 +1692,20 @@ class SeriesTests(unittest.TestCase):
                          {n: t['content_digest'] for n, t in b['tables'].items() if n != 'series'})
         self.assertEqual((a['tables']['series']['rows'], b['tables']['series']['rows']), (3, 0))
 
+    def test_an_empty_series_is_no_series(self):
+        """D28 (a D27 follow-up): `series: []` and an absent `series` have one input digest and one snapshot, in the
+        store and in the reference; a document without `series: []` keeps its digest."""
+        g = self.ingest()
+        empty = deepcopy(g)
+        for p in empty['patients']:
+            p.setdefault('series', [])
+        self.assertEqual(ref.input_digest(empty), ref.input_digest(g))
+        with tempfile.TemporaryDirectory() as tmp:
+            a = json.loads((es.build(g, Path(tmp) / 'a') / 'manifest.json').read_text())
+            b = json.loads((es.build(empty, Path(tmp) / 'b') / 'manifest.json').read_text())
+        self.assertEqual((a['input_digest'], a['snapshot_id']), (b['input_digest'], b['snapshot_id']))
+        self.assertEqual(a['input_digest'], ref.input_digest(g))
+
     def test_refusals(self):
         def refused(code, change):
             g = self.ingest()
@@ -1682,6 +1729,9 @@ class SeriesTests(unittest.TestCase):
         refused('INVALID_SERIES_UNIT', at(0, unit=''))
         refused('INVALID_SERIES', at(0, extra=1))
         refused('INVALID_SERIES', lambda p: p.update(series={}))
+        # D28 (a D27 follow-up): an event id that cannot be hashed, or is not a non-empty string, is refused by name.
+        for bad in (['m1'], {'m': 1}, 5, None, ''):
+            refused('INVALID_SERIES', at(0, event_id=bad))
         # Spellings beyond the 28-digit decimal context: the micro-unit integer must be null, not rounded.
         for text, decimal in (('1000000000000.0000000000000000001', '1000000000000.0000000000000000001'),
                               ('9000000000000.00000000000000000049', '9000000000000.00000000000000000049')):

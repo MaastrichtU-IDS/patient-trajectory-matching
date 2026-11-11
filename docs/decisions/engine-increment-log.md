@@ -39,6 +39,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D25 | D24 review follow-ups; time pruning on the posting summaries, under a rule fixed before measuring | Decided; pruning kept: exact, arm B −18.4% per candidate at 300,000, 8-worker p95 8.41 s; ranged Parquet write not done |
 | D26 | Execution store 3.0: typed event columns and an evidence table; end summaries for `during`; typed staging; D25 follow-ups, under rules fixed before measuring | Decided; end summaries kept (exact, 280.3 µs per candidate, small gain); typed staging kept (staging −89% at 1,000,000, peak +1.2%, build +18% mostly from the format); evidence table did not cheapen loading |
 | D27 | Chartevents by route (b): store 3.1 with a series table; a census on the demo, a sample beyond it | Decided; demo census clean (4,753 of 4,753 claim stores through route (a), every chart row through the raw-row check, 0 differential mismatches); Merkle digest built, not wired |
+| D28 | Value conditions in the match request (chartevents stage 2); the D26 and D27 follow-ups; an experiment on the store 3.0 build regression, under rules fixed before measuring | Decided; value conditions shipped (0 mismatches against an independent reference on 26,880 synthetic and 20,000 demo results; four planted defects caught); column-wise digest lines kept (build −12.0% at 1,000,000, identical content); a review's must-fix (conditions differing beyond 28 digits shared a tag) fixed before the final regeneration; evidence-in-events staging reverted (−1.8% at the pilot) |
 
 ## D1 Package with hatchling, in place
 
@@ -665,9 +666,9 @@ One store-format increment with four parts, bundled so that the heavy reports ar
 - *Clock origins (for the chartevents branch).* D26 adds no clock column: store times stay absolute microseconds from the fixed origin; `events.clock_id` is the patient's clock as before (D5), and no table holds a clock origin or assumes one origin per clock id. The MIMIC mapping keeps `clock_origin` and `clock_origin_us` per event, inside that event's free-form evidence (now `event_evidence`), as provenance; they are not record fields and nothing reads them.
 
 *Follow-ups* (not done here, because each touches a file a report binds):
-- `read_digests` in `tools/benchmark_matcher.py` creates a DuckDB spill directory per call (`matcher-digest-*` under the temporary directory) and does not remove it; harmless (they stay empty) but untidy.
-- The build is 17 to 20% slower in store 3.0, mostly from the evidence table (its derive statement, digest, write and verification). Deriving `event_evidence` from the events part instead of its own staged table, or skipping its in-process verification, are the obvious levers; neither is measured.
-- *From review:* the rows check covers the columns arm A reads, not B's 2.1 additions (`start_var`, `end_var`, `proper`, `shared_variables`). Those are null or false on every synthetic cohort, and the removed view guard used to assert it; record their counts in `arm_a_snapshot`.
+- `read_digests` in `tools/benchmark_matcher.py` creates a DuckDB spill directory per call (`matcher-digest-*` under the temporary directory) and does not remove it; harmless (they stay empty) but untidy. **Done in D28.**
+- The build is 17 to 20% slower in store 3.0, mostly from the evidence table (its derive statement, digest, write and verification). Deriving `event_evidence` from the events part instead of its own staged table, or skipping its in-process verification, are the obvious levers; neither is measured. **Measured in D28:** the evidence-in-events staging saved 1.8% (reverted) and a joint scan about 0.2% a pass (not built); the time was Python writing canonical lines, and writing them a column at a time cut the build at 1,000,000 by 12.0% (kept; the format's own cost is unchanged).
+- *From review:* the rows check covers the columns arm A reads, not B's 2.1 additions (`start_var`, `end_var`, `proper`, `shared_variables`). Those are null or false on every synthetic cohort, and the removed view guard used to assert it; record their counts in `arm_a_snapshot`. **Done in D28** (`arm_a_snapshot.columns_2_1`: all 0 at every size).
 - *From review:* `_ParquetStage` bounds its Python buffer in rows (stage rows × five tables × up to eight open parts), not bytes. With evidence of several KB per event (MIMIC, chartevents) that buffer sits outside DuckDB's memory limit; cap the evidence stage by bytes or document the sizing.
 - *From review:* an independent fuzz (200,000 engine cases, 92,121 pruned, 1,020 only by end summaries; 1,890 store matches in three pruning configurations, both stagings, several part sizes) found no difference, and a planted grace off-by-one was caught.
 - The record times of the synthetic converter cost 2 GB of snapshot at 1,000,000 patients; a delta encoding against `start_lo` would recover most of it, at the price of a less direct column.
@@ -827,12 +828,158 @@ The design was drafted on a branch while D26 ran (`docs/decisions/chartevents-ro
 - One machine.
 
 *Follow-ups:*
-- **Stage 2:** value conditions in the match request.
+- **Stage 2:** value conditions in the match request. **Done in D28.**
 - **Stage 3:**
   - textual and unitless measurement claims;
   - reviewed unit equivalence and item mappings;
   - series aggregates;
   - a SULO point route.
 - **The Merkle digest**, when appends exist.
-- **In `execution_store.py`** (left for the next store change, since editing it forces the six-hour scaling and matcher regeneration): `validate_series` raises a bare `TypeError` on an unhashable `event_id` instead of a named refusal; `series: []` and an absent `series` give different input digests (normalise it, as D25 normalised defaults); the derive check's comment ("this guards the copy") should say it guards the event link only.
+- **In `execution_store.py`** (left for the next store change, since editing it forces the six-hour scaling and matcher regeneration): `validate_series` raises a bare `TypeError` on an unhashable `event_id` instead of a named refusal; `series: []` and an absent `series` give different input digests (normalise it, as D25 normalised defaults); the derive check's comment ("this guards the copy") should say it guards the event link only. **All three done in D28.**
 - **`measurement_claims.select` re-reads its artifact files on every call.** That is a few milliseconds per store, left alone.
+
+## D28 Value conditions in the match request; the D26 and D27 follow-ups; the store 3.0 build regression
+
+Three parts, bundled because each edits `patterns/execution_store.py`, which forces the six-hour regeneration of the scaling and matcher reports once:
+1. chartevents stage 2: value conditions in the store's match request, compiled into per-query tag concepts, with no engine change (decided in D27, decision 6);
+2. the follow-ups listed at the end of D26 and D27;
+3. an experiment on the build time store 3.0 lost to the `event_evidence` table (D26: 17 to 20% slower).
+
+**Pre-committed rules** (written and committed before any measurement of this increment, as D25's and D26's were).
+- *Exactness for every request without value conditions.* No result may change at any `detail` level. Every per-query result digest in the regenerated matcher comparison must equal the D27 report's, query by query, for every arm and size and in the confirmation (B equal to A on A's own snapshots, to `B_unpruned` and to every C arm); the 300 recorded match digests (`patterns/fixtures/execution_store_match_digests.json`) must be unchanged; the scaling report's table row counts, candidate counts and status mixes must equal D27's; and every figure of the MIMIC demo report other than identifiers, digests, timings and the new value-query differential must equal D27's. A request without `conditions` must produce the same output, key for key, as before this change, apart from the context's artifact digests.
+- *Value conditions ship only if all of these hold.*
+  1. The store's results equal an independently written reference's, result for result (`json.dumps` without sorting keys), with 0 mismatches: on seeded random value queries over synthetic fixtures with series (values on and next to every threshold, several units per item, micro-unit values that are null, excluded records, shared variables), at 1 and 2 workers and both detail levels; and on the MIMIC demo, as an extension of its differential with value queries.
+  2. Each planted defect makes that differential fail: a threshold off by one micro-unit, the unit ignored, and a null `value_micro` read as matching (and, for symmetry, as not matching).
+  3. Every value relaxation the differential draws is checked to widen to a tag whose events contain the stricter tag's events.
+  4. Time pruning stays exact for tagged steps: pruning on against off byte for byte on the value differential.
+
+  A failure is fixed, never tuned away; the fixtures are not narrowed to pass.
+- *The build-regression experiment (part 3).* A lever is kept only if
+  1. the snapshot identity and every content digest are byte-identical with and without it, in the same tree (the lever is a builder option during the experiment, so the builder artifacts are equal); and
+  2. the build at 1,000,000 patients in the regenerated scaling report (`build_seconds`) is at least 8% faster than D27's 5,898 s, that is at most 5,426 s, with the build process's peak resident memory not more than 5% above D27's 8.27 GiB (`build_phase.peak_rss_bytes` 8,880,553,984 bytes, so at most 9,324,581,683 bytes).
+
+  Otherwise the lever is reverted and the numbers recorded here. Pilot first, at 100,000 and 300,000 patients, with and without the lever in the same tree, one build at a time. The pilot decides whether the 1,000,000-patient measurement is attempted: if the lever saves less than 8% of the build at 300,000, or raises its peak by more than 5%, it is reverted before the regeneration and the pilot's numbers are the recorded result, since the 1,000,000 build is dominated by the same stages.
+
+**1. Value conditions (chartevents stage 2).** D27 decided where they live: in the store's match request, compiled into per-query tag concepts, with no engine change; tags outside the snapshot identity; a value relaxation must widen to a tag whose events contain the first tag's. The design, decision by decision (the store doc's [Value conditions](../execution-store.md#value-conditions-d28) has the full contract):
+- *Request syntax.* `match(..., conditions={'profile': 'execution-store-conditions-1.0', 'steps': {step: condition}, 'relaxations': [widen_value ...]})`. A condition is a literal unit and either `eq` or at most one lower bound (`gt`, `ge`) and one upper bound (`lt`, `le`); values are exact decimal strings under the measurement decimal rule. Refusals are named (`INVALID_CONDITIONS`, `UNKNOWN_CONDITION_STEP`, `INVALID_CONDITION`, `INVALID_CONDITION_VALUE`, `EMPTY_CONDITION`, `VALUE_RELAXATION_MUST_WIDEN`, `VALUE_RELAXATION_STEP_NOT_CONDITIONED`, `INVALID_VALUE_RELAXATION`, `DUPLICATE_RELAXATION`, `VALUE_TAG_NAME_TAKEN`).
+  - *Declined:* the draft's single `{unit, op, value}` (ranges, such as a normal interval, are common, and a step holds one tag); floats (not exact); value predicates in the engine (`trajectory-graph-1.1`, declined in D27).
+- *What a tag holds.* An event carries the tag of (concept C, condition K) when it has a series row whose item class C covers (reflexively, through the closure), whose unit equals K's letter for letter, and whose value satisfies K exactly. A series row's item class is a direct concept of its event, so a tag's events are a subset of C's.
+- *Units: literal.* A row in another unit does not satisfy a condition (stage 2 has no conversion). A tag's recorders, for the coverage rule, are the sources holding a series row of C in K's unit anywhere in the snapshot; a unit no source records for C makes the step not comparable (`NO_SOURCE_RECORDS_CONCEPT`), not `none`.
+  - *Declined:* reading a row in another unit as unknown, D18-style. Without unit knowledge (stage 3) the store cannot tell `beats/min` from `mmHg`, so every other unit would have to count as possibly satisfying: every condition on a grouping that spans units would be not comparable, and on the demo, where each admitted item has one unit, item-level conditions would gain nothing. The literal reading is exact for what it says, and stage 3's reviewed unit equivalence is where commensurable units belong.
+- *Groupings.* A condition on a grouping reads every item class under it, in K's unit; an event of the grouping without a series row (an inputevents exposure under 'Medications') never carries the tag. *Declined:* refusing groupings (it would refuse a well-defined question), and requiring one unit per grouping (the unit is already the condition's).
+- *Null `value_micro`: compared exactly, neither refused nor unknown.* The stored `value_decimal` is exact (`format(Decimal, 'f')`, validated at ingest), so a row whose micro-unit integer is null (finer than 10⁻⁶ or beyond BIGINT) is compared by Decimal arithmetic on it, which does not round. Rows with an exact `value_micro` are compared in SQL against integer bounds derived from K by exact rational arithmetic (⌈t·10⁶⌉ for `ge`, ⌊t·10⁶⌋ + 1 for `gt`, ⌊t·10⁶⌋ for `le`, ⌈t·10⁶⌉ − 1 for `lt`), so a threshold finer than a micro-unit is exact too.
+  - *Declined:* refusing such rows (they hold a well-defined value; refusing the patient or the query would discard answerable questions), and treating them as unknown with D18's rule (sound, but it would make a `none` not comparable for a value the store holds exactly).
+- *Events without a value* do not carry a tag. The store does not know which events should have one; a source that drops a measurement's value must record the row as an excluded record, which the MIMIC route does (every admitted chart row has a series row: 150,051 of 150,051).
+- *`first` and `last`* choose among the tag's events: the first value satisfying the condition, which is the engine's own semantics for the compiled concept, and the natural reading of "the first MAP below 65".
+- *Compilation.* Each conditioned step's concept becomes its tag; a `widen_concept` on it becomes a `widen_concept` to the tag of the wider concept under the same condition; a `widen_value` becomes a `widen_concept` to the tag of the step's concept under the wider condition, appended after the query's relaxations with its own identifier and cost. On one step the two are alternatives, never combined (one relaxation per step, as the engine does). The tag's name is `value-condition:` and a digest of the concept and the condition's normal form.
+- *Relaxation containment.* `widen_value` is refused unless the wider condition is in the same unit and admits every value the stricter one admits, checked exactly on the bounds (`lt 65` to `le 65` widens; `le 64.9999999` does not). With one concept, the wider tag's events then contain the stricter tag's.
+- *Candidates and pruning, exactly.* Tags have no postings. A tag's candidates are the patients holding an event that carries it, read from `series` (`_tag_patients`); its posting summaries are computed from the series rows carrying it, per pruning slice (`_tag_summaries`): earliest start, latest start, and latest end equal to the latest start (series rows are of points only). Both cover exactly the events the engine lists under the tag, so D25's argument for the candidate filter and D25 and D26's for pruning hold unchanged.
+  - *Declined:* tag postings materialised per query in a temporary table (workers have their own connections and could not read it), and base-concept postings as a superset (sound, but it would prune nothing on the condition and load events that cannot bind).
+- *Excluded records (D18) and coverage.* Excluded records carry an item class and no value or unit, so a value step reaches them through the concepts its tags stand for, whatever its condition: an excluded row of the item might have satisfied the condition, and D18's rule already treats a record that might bind as if it could. So `none` becomes not comparable, `relaxed` unresolved, `possible` incomplete, a `first` or `last` target that an excluded record could displace not comparable, and an all-`any` match stands. This is sound for conditions for the reason it is sound for concepts: the rule assumes the worst of every reached record. Coverage reads the tag's recorders, never more than its concept's, so it fires at least as often. The structural-concept refusal and the concept checks read the tags' concepts.
+- *Output and identity.* A request without `conditions` gives the same output, key for key. With them, the output adds `value_conditions` (the rule `series_unit_exact_value_v1`, each tag's concept and condition), and the context adds `conditions_digest` and `value_rule`. Tags live in no table; the store profile stays `execution-store-3.1`, and the match profile `execution-store-match-2.0` (an additive field, read only by callers who sent conditions).
+- *Engine and profile.* Unchanged; `trajectory-graph-profile.md` says that the store supplies value conditions as derived concepts.
+
+**2. The D26 and D27 follow-ups.**
+- *`read_digests`* (`tools/benchmark_matcher.py`) removes its DuckDB spill directory however it ends; a test checks that no directory is left after a call, a `columns_2_1` call and a failing call.
+- *Arm A's rows check* now records, per size, the rows of B's snapshot in which each 2.1 column is set (`arm_a_snapshot.columns_2_1`: `start_var` and `end_var` not null, `proper` and `shared_variables` true), counted in its own Parquet files, and `all_zero`. Arm A neither reads nor writes these columns, so its results are comparable with B's only where they are all unset; a test shows 0 on a synthetic cohort and the counts on one with a proper exposure sharing a start.
+- *`validate_series`* refuses an event id that is not a non-empty string (`INVALID_SERIES`) before hashing or looking it up, where an unhashable one raised a bare `TypeError`.
+- *`series: []`* is normalised to an absent `series` at ingest, in the store (`canonical_patient`) and, independently, in the reference (`patient_digest`), so the two have one input digest and one snapshot (a test). The converters never write an empty series, so no recorded input digest moves: the synthetic, tenfold and fixture records and the MIMIC fixture's are reproduced, and the regenerated demo report's input digest is D27's (`7a0dd1fd…`).
+- *The derive check's comment* now says it guards the event link only (event, time and item class), and that a value or unit changed between ingest and table is caught by the reference equality and the demo's graph rows against the store.
+
+**3. The store 3.0 build regression (experiment).** D26 named two levers: derive `event_evidence` from the events staging, and verify it in the same pass. A profile came first. At 30,000 patients, digesting `events` took 11.4 s, of which only 3.8 s was DuckDB's ordered scan and fetch; the rest was Python writing each row's canonical line (`json.dumps` per row). For `event_evidence` the split was 2.2 s of 10.6 s, and for `event_concepts` 1.8 s of 7.0 s. The build digests every table twice: once in the build database, and once from the written files to verify them. So the evidence table's cost is mostly Python formatting, which neither named lever touches. Three levers were tried, each a switch in the same tree, so the builder artifacts and therefore the identity could be compared.
+- **L1, evidence in the events staging** (`evidence_stage='events'`, named by D26). Each event's evidence is staged in its events row, and `event_evidence` is derived from the part's events. This saves a staged table, its join to the patient index and a dictionary per event in `add()`.
+- **L2, events and evidence verified in one pass** (named by D26). This was measured without being built. On the 300,000-patient pilot snapshot, the DuckDB side of one ordered scan of both tables (joined on their key) took 57.8 s, against 61.2 s for the two separate scans. That saves about 3.4 s per digest pass, about 0.2% of the build per pass. Building it would also need a guard: the two keys must be shown to be a bijection before a joint scan can stand for two digests. It was not built.
+- **L3, canonical lines a column at a time** (`rows_text`, found by the profile). `content_digests` writes a batch's lines column by column. Strings go through `json.dumps`'s own escaper (`json.encoder.encode_basestring`), integers through `int.__repr__`, and booleans and nulls as `true`, `false` and `null`, so the text is `json.dumps(ensure_ascii=False)`'s byte for byte. A batch holding any other type falls back to the row-by-row form, which stays the definition. A test compares the two on 300 random batches of every allowed type, including non-ASCII, astral, control characters, quotes, backslashes and integers beyond BIGINT. Content digests, input digests and identifiers cannot move, and the identity tests reproduce every recorded digest.
+
+*Pilots* (build only, same tree, one build at a time, the scaling benchmark's cohort; ad hoc runs, not in a committed report). Every build of a size gave one snapshot identifier (100,000: `f8f1b3bf…`; 300,000: `a0e04619…`).
+
+| | 100,000: build | 300,000: build | 300,000: digests in the build, verification | 300,000: peak |
+|---|---|---|---|---|
+| Neither | 584.0 s | 1,767.9 s | 311.4 s, 309.5 s | 7.99 GiB |
+| L3 (column-wise lines) | 526.0 s (−9.9%) | 1,543.2 s (**−12.7%**) | 198.5 s, 196.3 s | 8.01 GiB (+0.2%) |
+| L1 (evidence in events staging) | 576.9 s (−1.2%) | 1,736.4 s (−1.8%) | 309.9 s, 306.4 s | 8.00 GiB |
+| L1 and L3 | 504.6 s (−13.6%) | | | |
+
+The 100,000 L3 build ran while the value-condition tests ran on other cores; its `add()` was 16 s slower than its neighbours'.
+- **L1: reverted before the regeneration**, by the pre-committed pilot gate: it saves 1.8% at 300,000, against 8%. Its gain is in `add()` and in the evidence derive (45.3 to 40.3 s at 300,000), partly offset by a wider events derive (31.7 to 35.7 s).
+- **L2: not built.** The measurement puts it far below the gate.
+- **L3: passes the pilot gate** (−12.7% at 300,000, peak +0.2%), so the regeneration used it, and the verdict is taken at 1,000,000 below.
+
+**Review fixes** (an independent review of the first D28 run; the reports were then regenerated again, and the figures below are from that second run).
+- **Must-fix: distinct conditions could share one tag.** A tag's name came from the condition's normal form, written by `Decimal.normalize`, which rounds to the context's 28 digits, while a condition's value may have 64 characters.
+  - So `ge 1.00000000000000000000000000001` and its widening `ge 1` shared one tag; the last one written won.
+  - On one point valued 1, the store answered `exact`, with no relaxation. The reference answered correctly: `relaxed` by `v`, cost 1. Two steps on one concept, with conditions differing only beyond the 28th digit, collided the same way.
+  - `value_conditions` also showed rounded conditions; the reviewer's round-trip fuzz found 6,434 of about 40,000.
+  - The normal form is now exact: trailing zeros are stripped from the digits, never rounded.
+  - Tests: the reviewer's case; two steps on one concept; and a round-trip property over 4,000 random conditions with values of up to 64 characters. The property checks that the form's values are the condition's, Decimal for Decimal, that equal conditions share a tag, and that unequal ones never do. All three fail with the old normaliser.
+  - Why the differentials missed it: their thresholds come from value pools with at most 22 significant digits, so no two differed beyond the 28th digit. The fixtures were not widened to hide this; the property test is the evidence for long values.
+- *A chartevents run with `--value-seeds 0` lost D27's `route.source`*: it had moved under the value-differential branch. It is restored, and the regenerated demo report has it.
+- *Per-query result digests are now in the matcher report*, for every arm, size and the confirmation; `B_decided` has none, since its listing differs by design. Before, the benchmark computed them but did not write them, so "equal to D27's" could only be inferred. See *Exactness* below.
+- *Other review points:*
+  - A `widen_value` with a non-string step is refused by name (`INVALID_VALUE_RELAXATION`), not by a `TypeError`.
+  - The mockups pick the 14-worker arm by its count, not its position.
+  - The roadmap says "identical content digests", not "identical snapshots", since snapshot identifiers change with the builder.
+
+**Measurement and verdicts.** Each regeneration ran one job at a time, after the pilots, twice: the first run, then the run after the review fixes. Each run consisted of:
+1. the MIMIC demo (`--workers 8 --census-workers 14`; 1,364 s both times);
+2. the scaling run to 1,000,000 with `--keep` (9,103 s, then 9,076 s);
+3. arm A's own 2.0 snapshots of 1,000 to 300,000 (`--build-arm-a`), with D27's snapshot identifiers both times;
+4. the matcher comparison with the committed settings, plus `--confirm --large-queries 30 --large-repeats 3` at 300,000.
+
+The committed reports are the second run's.
+
+| Rule | Measured | Required | Verdict |
+|---|---|---|---|
+| Value conditions: store against reference, synthetic | 0 mismatches. 560 requests (26,880 results) on three cohorts, against the prepared reference on every query and `exhaustive_match` on every fourth; also 0 at 2 workers, at `decided` and with pruning off. Long values: the round-trip property above | 0 | met (after the review's fix) |
+| Value conditions: store against reference, MIMIC demo | 0 mismatches. 200 requests (20,000 results; 22,000 comparisons with the exhaustive slice), in both runs | 0 | met |
+| Value conditions: planted defects | 160 synthetic queries: threshold off by one 20 wrong results, unit ignored 1,409, null `value_micro` as matching 199, as not matching 95. 40 demo queries: off by one 130, unit ignored 174, null defects 0 (the demo holds no null `value_micro`) | each fails the differential | met (on the synthetic fixtures for all four) |
+| Value conditions: relaxation containment | 349 synthetic and 176 demo value relaxations, each widening to a tag that contains the stricter tag's events | all | met |
+| Value conditions: pruning exact | Pruning on against off byte for byte on 400 synthetic requests, with candidates pruned | byte-identical | met |
+| Exactness without conditions: matcher | See *Exactness* below | equal to D27's | met as far as the evidence reaches (below) |
+| Exactness without conditions: other | The 300 recorded match digests are unchanged. The scaling report's table row counts, candidate counts and status mixes equal D27's at every size. Every demo figure but the profile label and the snapshot identifier equals D27's, the input digest included | unchanged | met |
+| Build lever L3: identity | Same snapshot identifier with and without it in the pilots at 100,000 and 300,000; every recorded content digest reproduced by the tests | byte-identical | met |
+| Build lever L3: build at 1,000,000 | 5,191 s against 5,898 s, −12.0% (first run: 5,215 s, −11.6%) | at most 5,426 s (−8%) | met |
+| Build lever L3: peak at 1,000,000 | 8,846,835,712 bytes (8.24 GiB) against 8,880,553,984 (8.27 GiB), −0.4% (first run: 8,843,771,904) | at most 9,324,581,683 (+5%) | met |
+
+*Exactness for requests without conditions, as the evidence allows.*
+- *Within the run.* Every arm's per-query result digests are equal: A, B, `B_unpruned` and C at 1, 2, 4, 8 and 14 workers, at every size (50, 50, 10, 10), and B, `B_unpruned` and every C arm in the confirmation (30 of 30).
+- *Against D27, per size.* Arm A's snapshots have D27's snapshot identifiers and arm A's code is unchanged, so arm A's results are D27's arm A results. D27 recorded B equal to A on them. So B's results equal D27's B, query by query, at every size.
+- *Against D27, in the confirmation.* The confirmation's B digests for seeds 0 to 9 equal the main run's digests at 300,000 (10 of 10), which tie them to arm A. For seeds 10 to 29 the evidence is that candidate counts and listed results equal D27's, query by query, and that the result counts are equal.
+- *Against D28's first run.* That report kept no digests, so the comparison is by candidate counts and listed results (equal), and arm A ties both runs to the same results. From this report on, runs can be compared digest for digest.
+
+- **Verdict: value conditions ship.** Every criterion is met once the review's must-fix is fixed. The first run's code had the tag-collision defect, which no differential draw reached; its reports were superseded.
+- **Verdict: keep L3** (column-wise canonical lines). The build at 1,000,000 is 12.0% faster with the same content. Content verification in its own process is 38% faster (625.8 against 1,013.1 s at 1,000,000), since it is the same function.
+  - The format's own cost has not shrunk: the digest code got faster, for every table.
+  - The 2.1 builds D26 compared against had the old digest code, so "3.0 is now +4.7% against 2.1" (5,191 against 4,958 s) compares unlike builds. The like-for-like statement is D26's: 3.0's format costs 13 to 15% at the same digest code, and it still does.
+- **L1 reverted and L2 not built**, as above.
+
+*Cost against D27, matching* (`verification/matcher-comparison-report.json`, second run):
+
+| | D27 | D28 |
+|---|---|---|
+| Arm B at 300,000, µs per candidate end to end (loading, engine) | 279.1 | 278.6 (162.8, 82.6) |
+| Arm B in the confirmation, µs per candidate | 188.4 | 189.2 |
+| C, 8 workers, confirmation: p95 (range over repeats); max | 8.41 s (8.33 to 8.59); 10.3 s | 8.39 s (8.35 to 8.72); 10.3 s |
+| C, 14 workers, confirmation: p95 (range over repeats); max; µs per candidate | 7.05 s (7.01 to 7.90); 8.1 s; 34.8 | 7.26 s (7.22 to 7.32); 8.8 s; 35.2 |
+| Query process, C at 14 workers | 0.86 GiB | 0.86 GiB |
+| Pruned share over the 30 confirmation queries | 36.22% | 36.22% |
+
+- **The first D28 run's 14-worker confirmation was slower.** It had p95 8.95 s (8.06 to 9.26), max 11.1 s and 40.1 µs per candidate, and so was slower than 8 workers in the same run (8.51 s). A rerun of that arm straight afterwards gave 7.11 s, but it went into a scratch copy, was not committed, and does not by itself establish run-to-run spread.
+  - The second run, on code that differs in that path only by the review fixes (none of which touches matching without conditions), gives 7.26 s, with 14 workers again faster than 8.
+  - What is measured: two committed runs of one tree's matching path gave 8.95 and 7.26 s. The cause of the difference is not established.
+- **Matching is otherwise unchanged in cost.** Arm B is within 1% at every size, C at 8 workers within 1%, and the pruned share is the same.
+
+*Limitations:*
+- One machine.
+- The synthetic data are replicated beyond 10,000 patients.
+- The value differentials are seeded, not exhaustive, and their thresholds have at most 22 significant digits. Longer values are covered by the round-trip property test and the review's cases, not by the differential.
+- On the demo, every item has one unit and no value has a null `value_micro`. So the unit rule is exercised there only through conditions in other units (36 conditions), and the null rule not at all; the synthetic fixtures carry both.
+- The value-query status mix on the demo is dominated by excluded chart rows (15,364 of 20,000 results not comparable), as D18 predicts for a source that admits 22% of its rows.
+- Unit conversion, textual values and a D18-style reading of other units are stage 3.
+- The L3 pilot at 100,000 shared the machine with a test run.
+
+*Follow-ups:*
+- Stage 3 as listed in D27: textual and unitless measurement claims, reviewed unit equivalence and item mappings, series aggregates, a SULO point route. Reviewed unit equivalence would let a condition name a set of commensurable units; until then a condition reads one literal unit.
+- A tag's candidates and recorders are computed with a whole-snapshot scan of `series` per tag and request. That is cheap on the demo (the value differential's 200 queries took 196 s, store and reference together) and unmeasured at full MIMIC-IV scale. Per-(concept, unit) value summaries or postings would be the store-format lever if it matters.
+- `excluded: []` and an absent `excluded` still give different input digests, as `series: []` did before D28 (review nit; out of scope here).
+- Ranging the Parquet-write sort (the build peak), still open since D24.

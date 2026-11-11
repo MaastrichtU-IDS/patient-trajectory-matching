@@ -15,5 +15,6 @@ jobs:
       - run: python -m unittest patterns.test_trajectory_graph
       - run: python -m unittest -v patterns.test_mimic_store_ingest
       - run: python -m unittest -v patterns.test_mimic_chartevents patterns.test_prepared_reference patterns.test_merkle_patients
+      - run: python -m unittest -v patterns.test_value_conditions
       - run: python -m unittest -v tools.test_benchmark_execution_store
       - run: python -m unittest -v tools.test_benchmark_matcher

@@ -108,7 +108,7 @@ The reference enumerates every binding. It shares no decision code with the engi
 ## Not in this profile
 
 - An adapter from SULO claims or the execution store. The SULO adapter is a separate module: see [trajectory-graph SULO adapter](trajectory-graph-sulo-adapter.md).
-- Event-count steps and measurement conditions; callers supply them as derived events.
+- Event-count steps and measurement conditions; callers supply them as derived concepts or events. The [execution store](execution-store.md#value-conditions-d28) does this for value conditions (D28): it compiles each condition on a step into a per-query tag concept, which the events satisfying the condition list, and a value relaxation into a `widen_concept` to a wider tag. The engine and this profile are unchanged by it, and a tag is a concept like any other here.
 - Distinct events across steps, disjunctive relations, nested "while taking" and absence (engine design §7.3).
 - Clocks: every time is on one comparable grid.
 

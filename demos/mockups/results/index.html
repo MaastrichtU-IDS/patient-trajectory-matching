@@ -106,7 +106,7 @@ fetch('results.json').then(r => r.json()).then(render).catch(e => {
 function render(d) {
   const S = d.scaling, M = d.matching, X = d.mimic_demo;
   const big = S.sizes[S.sizes.length - 1];
-  const best = M.arms[M.arms.length - 1];
+  const w14 = M.arms.find(a => a.workers === 14);  // the 14-worker figure (the recommended count, D21), not necessarily the fastest arm
   const fill = {
     'm.queries': M.queries, 'm.repeats': M.repeats, 'm.target.p95': fmt(M.target.p95_seconds),
     'm.target.max': fmt(M.target.max_seconds), 'm.target.mem': fmt(M.target.memory_gib),
@@ -116,7 +116,7 @@ function render(d) {
 
   const tiles = [
     ['Largest store built', fmt(big.patients), `synthetic patients, ${fmt(big.events / 1e6, 0)} million events; built in ${dur(big.build_seconds)} and verified by content under a ${esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2'))} DuckDB limit`],
-    ['Matching at 300,000 patients', `${fmt(best.p95_seconds, 2)} s`, `95th-percentile full-detail query with ${best.workers} workers (target ≤ ${fmt(M.target.p95_seconds)} s); slowest ${fmt(best.max_seconds, 1)} s, ${fmt(best.query_peak_gib, 2)} GiB`],
+    ['Matching at 300,000 patients', `${fmt(w14.p95_seconds, 2)} s`, `95th-percentile full-detail query with ${w14.workers} workers (target ≤ ${fmt(M.target.p95_seconds)} s); slowest ${fmt(w14.max_seconds, 1)} s, ${fmt(w14.query_peak_gib, 2)} GiB`],
     ['Parallel equals single-process', `${M.identical_results.identical} / ${M.identical_results.compared}`, 'query results byte-identical across 1, 2, 4, 8 and 14 workers in the confirmation'],
     ['MIMIC-IV demo census', `${fmt(X.census.mismatched_stores + X.census.built_store_mismatches)} mismatches`, `${fmt(X.census.raw_rows_checked)} chart rows checked against the raw file; ${fmt(X.census.stores_graph_checked)} claim stores through the graph route; ${fmt(X.differential.results)} differential results, ${fmt(X.differential.mismatches)} mismatches`],
   ];
