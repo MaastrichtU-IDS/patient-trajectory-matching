@@ -990,9 +990,16 @@ The committed reports are the second run's.
 The trajectory mockup resolves each step's candidate events in the browser, from the synthetic cohort, and the trajectory-graph engine decides timing and relaxations (`demos/mockups/server.py`). The store selects candidates itself, and its step language is smaller: occurrence any, first or last, and D28's absolute value conditions with a literal unit. The page also takes shortcuts the store does not take. It groups records into events by the generator's ground truth, times letter mentions from their wording, and builds medication courses from dispensings. So the store cannot simply replace the page's candidate resolution.
 
 **Three stages, each with its trigger, in this order:**
-1. *Real data: the store beside the pages (built here).* Real data cannot be shipped to a browser, so the first page that needs it queries the store on the server. The trajectory page is unchanged.
-2. *Scale: the store under the trajectory page (next).* When a cohort is too large to resolve in the browser, the page sends its query to the store and the store selects candidates. Every page feature then needs a store form, or a refusal by name. The inventory below is this stage's input.
-3. *Semantics: the browser search retired.* The page's record-level semantics move into the converters, or are declared as differences: reconciled events, timed mentions, inferred medication courses, and its comparability rule. Then the browser's candidate resolution can go.
+1. *The store beside the pages (built here).* Trigger: real data. Real data cannot be shipped to a browser as patient rows (D17), so the first page that needs it queries the store on the server and returns aggregates. The trajectory page is unchanged.
+2. *The store under the trajectory page, by default (next).* Trigger: the store can express everything the page offers, or refuses it by name, and the parity test is clean. Clean means every difference is either removed or accepted as a declared difference. The work:
+   - Nth occurrence and "at least N times within" in the store: small and well defined.
+   - Relative conditions (rises and falls against earlier values): a design decision first (what the baseline is, how uncertain times and excluded readings affect it), then a differential test.
+   - A decision on each record-level difference the parity test found: coverage, letter mentions, record reconciliation and medication courses. Each either moves into the converters or is declared.
+
+   The in-browser path stays as a labelled fallback for static hosting and offline demos, as the in-browser search already does when no engine is reachable.
+3. *The browser path retired, or kept only as a demo.* Trigger: the hosting decision. Once a server with the store is deployed, the page talks to it, and the research workspace reaches the store through a job API (counts interactively, full results as an asynchronous job). If hosting stays static, the in-browser path remains the demo path.
+
+Why this order: real data forces the switch first; a browser also stops scaling beyond thousands of patients; the page's richer step language is a feature to port, not a reason to stay in the browser.
 
 *Alternative declined:* putting the store under the trajectory page at once. The store cannot express half the page's templates (rises, counts), and the two disagree on 53 of 432 results for reasons that are the page's shortcuts. The page would have silently changed meaning.
 

@@ -76,7 +76,7 @@ How it works:
 - *Record reconciliation* (25). The store holds every record as an event. The page merges the records of one happening, grouped by the generator's ground truth (a shortcut listed below), and times the merged event by its most precise record. So the first or last event can differ, and so can whether a time is certain. In C004, for example, the most precise record of the first febrile seizure has a year typo, which moves the page's merged event to 2091. The store still holds the registry's record of that seizure.
 - *Medication records* (11). The store's exposures run from each order to its stop, and an ongoing one has an open end; dispensings and mentions are separate point events. The page builds one exposure per course, from the order or else the first dispensing. It ends at the stop or when the supply ran out, and an ongoing one ends at last contact or later.
 
-A patient can have several causes. None is a defect of either side: they come from the page's shortcuts and the store's literal records. They are documented here and in D29, not fixed. Closing them is stage 2 and 3 work: reconciled events and timed mentions in the converter, and the comparability rule.
+A patient can have several causes. None is a defect of either side: they come from the page's shortcuts and the store's literal records. They are documented here and in D29, not fixed. Deciding them is part of stage 2: each moves into the converter (reconciled events, timed mentions, medication courses) or is declared as a difference, as is the comparability rule.
 
 ### What the store cannot express yet (the stage 2 inventory)
 
