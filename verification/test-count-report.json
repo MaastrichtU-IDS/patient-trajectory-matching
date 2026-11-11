@@ -5,7 +5,7 @@
     "node_dom_suites": 8,
     "research_http_suite": 21
   },
-  "contract_checks": 1239,
+  "contract_checks": 1241,
   "method": "unittest loader; no tests executed",
   "node_suite_files": [
     "app/test_editor_ui.cjs",
@@ -20,7 +20,7 @@
   "oracle_cases": 16,
   "oracle_properties": 9,
   "profile": "test-count-report-1.0",
-  "suite_tests": 1214,
+  "suite_tests": 1216,
   "suites": {
     "test_bounded_intervals": 22,
     "test_bounded_rdf": 21,
@@ -69,6 +69,6 @@
     "test_trajectory_graph_sulo": 52,
     "test_unique_claim_review": 28,
     "test_use_case_conformance": 4,
-    "test_value_conditions": 15
+    "test_value_conditions": 17
   }
 }

@@ -320,7 +320,7 @@ A match request may carry conditions on measured values: `match(store, query, wi
   - an `exact` or `possible` match whose steps are all `any` stands.
 
   Coverage reads the tag's recorders, which are never more than its concept's. So each rule fires at least as often as for the concept alone.
-- **Identity and output.** Tags live in no table, so they are outside the snapshot identity. A tag's name is a digest of its concept and the condition in normal form, so equal conditions share one tag. The output adds `value_conditions`, holding the rule `series_unit_exact_value_v1` and each tag's concept and condition. The context adds `conditions_digest` and `value_rule`.
+- **Identity and output.** Tags live in no table, so they are outside the snapshot identity. A tag's name is a digest of its concept and the condition in an exact normal form (trailing zeros stripped from the digits, never rounded): equal conditions, as sets of values, share one tag, and unequal ones never do. A round-trip property test over values of up to 64 characters checks this, and so do the review's case of two conditions that differ beyond the 28th digit, which an earlier normal form rounded into one tag, and two steps on one concept. The output adds `value_conditions`, holding the rule `series_unit_exact_value_v1` and each tag's concept and condition. The context adds `conditions_digest` and `value_rule`.
 
 **Exactness evidence.**
 - *The reference.* `execution_store_reference.ValueQuery` reads conditions independently of the store: Decimal on each row's spelling (`value_lexical`, not the stored decimal or integer), the unit letter for letter, its own tag names, and its own recorders. `exhaustive_match` and `PreparedReference.match` take the request.
@@ -331,7 +331,7 @@ A match request may carry conditions on measured values: `match(store, query, wi
   - 480 conditions: 439 with a bound on a recorded value, 186 on a grouping, and 36 in a unit the concept is never recorded in;
   - 176 value relaxations.
 
-  The store equals the prepared reference on all 20,000 results and `exhaustive_match` on the first 20 queries, with 0 mismatches. The status mix is exact 516, relaxed 8, unresolved 173, none 2,955, not comparable 15,364 and excluded 984: excluded chart rows dominate, as D18 predicts. Every value relaxation widens to a containing tag. On the first 40 queries, the off-by-one threshold gives 130 wrong results and the ignored unit 174. The demo holds no null `value_micro`, so the two null defects cannot fail there (0 each); the synthetic fixtures are their evidence. The adapter rows carry no values, so value queries have no third path. The run takes 197 s.
+  The store equals the prepared reference on all 20,000 results and `exhaustive_match` on the first 20 queries, with 0 mismatches. The status mix is exact 516, relaxed 8, unresolved 173, none 2,955, not comparable 15,364 and excluded 984: excluded chart rows dominate, as D18 predicts. Every value relaxation widens to a containing tag. On the first 40 queries, the off-by-one threshold gives 130 wrong results and the ignored unit 174. The demo holds no null `value_micro`, so the two null defects cannot fail there (0 each); the synthetic fixtures are their evidence. The adapter rows carry no values, so value queries have no third path. The run takes 196 s.
 
 ## Match output
 
@@ -405,16 +405,16 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
 - *Within run-to-run spread.* Build time is 5,898 against 5,854 s at 1,000,000 (+0.75%) and 1,758 against 1,746 s at 300,000. The build peak is 8.27 against 8.24 GiB at 1,000,000 and 8.01 GiB at 300,000. Staged bytes are 13.09 GB at 1,000,000. Content verification takes 1,013 s at 1,000,000 with a 1.72 GiB peak, and the warm file check 1.85 s. Single-process `match()` has p50 7.61 s and maximum 244.8 s at 1,000,000 (D26: 7.56 s, 244.1 s).
 - *Not changed by the character cap.* The evidence stage's new character cap does not bind on these cohorts: their evidence is a few hundred characters an event.
 
-**Regenerated for D28** (column-wise canonical lines in `content_digests`; `--work-dir /tmp/store-d28-scaling`, 9,103 s). The lines a digest hashes are now built a column at a time with `json.dumps`'s own escaper. The bytes are the same, so no content digest moves, and only the identifiers change, through the builder's digest. At every size, every table's row count, every query's candidate count, the status mix and the content rows verified equal the D27 run's. Digesting is faster, both in the build, which digests twice (the derived tables and then the written files), and in a separate content verification:
+**Regenerated for D28** (column-wise canonical lines in `content_digests`; regenerated twice, the second time after a review fix that does not touch the build: `--work-dir /tmp/store-d28b-scaling`, 9,076 s; figures from the second run). The lines a digest hashes are now built a column at a time with `json.dumps`'s own escaper. The bytes are the same, so no content digest moves, and only the identifiers change, through the builder's digest. At every size, every table's row count, every query's candidate count, the status mix and the content rows verified equal the D27 run's. Digesting is faster, both in the build, which digests twice (the derived tables and then the written files), and in a separate content verification:
 
 | D28 against D27 | 100,000 | 300,000 | 1,000,000 |
 |---|---|---|---|
-| Build, add to publish | 511 s (590 s) | 1,545 s (1,758 s) | 5,215 s (5,898 s), −11.6% |
-| Peak memory, build process | 4.61 GiB (4.52) | 8.02 GiB (8.01) | 8.24 GiB (8.27), −0.4% |
-| `content` verification of the files, separate process | 64.5 s (102.4 s) | 191.4 s (302.6 s) | 628.5 s (1,013.1 s), −38% |
+| Build, add to publish | 513 s (590 s) | 1,535 s (1,758 s) | 5,191 s (5,898 s), −12.0% |
+| Peak memory, build process | 4.53 GiB (4.52) | 7.99 GiB (8.01) | 8.24 GiB (8.27), −0.4% |
+| `content` verification of the files, separate process | 64.5 s (102.4 s) | 191.7 s (302.6 s) | 625.8 s (1,013.1 s), −38% |
 | Content verification, rows a second | 835,000 (526,000) | 844,000 (534,000) | 856,000 (531,000) |
 
-Single-process `match()` is unchanged: p50 7.68 s and maximum 245.8 s at 1,000,000 (D27: 7.61 s, 244.8 s). The 3.0 regression D26 recorded (+18% at 1,000,000 against 2.1's 4,958 s) is now +5.2%.
+Single-process `match()` is unchanged: p50 7.72 s and maximum 246.1 s at 1,000,000 (D27: 7.61 s, 244.8 s). The format's own cost has not shrunk: the digest code got faster for every table, so the 3.0 build is still 13 to 15% dearer than 2.1's at the same digest code (D26's pilot).
 
 | D26 against D25 | 100,000 | 300,000 | 1,000,000 |
 |---|---|---|---|
@@ -643,10 +643,14 @@ At 300,000 the summaries prove `none` for 36% of the candidates with a window ov
 - *Cost.* Arm B costs 279.1 µs per candidate at 300,000 (D26: 280.3), and 188.4 µs in the confirmation (188.3).
 - *Confirmation.* C at 8 workers has p95 8.41 s (8.33 to 8.59 over the repeats) and max 10.3 s; at 14 workers p95 7.05 s (7.01 to 7.90) and max 8.1 s; the query process holds 0.86 GiB. The D21 target holds at both counts.
 
-**Regenerated for D28.** The report was regenerated on the snapshots of the D28 scaling run, with arm A on its own 2.0 snapshots, rebuilt; they have the same snapshot identifiers as D27's. `same_rows` is true at every size, and the new `arm_a_snapshot.columns_2_1` records 0 rows with `start_var`, `end_var`, `proper` or `shared_variables` set at every size.
-- *Results.* B equals A, `B_unpruned` and every C arm at every size (50, 50, 10, 10) and in the confirmation (30 of 30). Arm A's code and snapshots are D27's, so B's results equal D27's. The report does not store per-query digests; candidate counts and listed results equal D27's query by query.
-- *Cost.* Arm B costs 277.4 µs per candidate at 300,000 (loading 161.4, engine 83.0; D27: 279.1), and 189.5 µs in the confirmation (188.4).
-- *Confirmation.* At 8 workers, p95 is 8.51 s (8.40 to 8.54) and max 10.4 s. At 14 workers, p95 is 8.95 s (8.06 to 9.26) and max 11.1 s, at 40.1 µs per candidate against D27's 34.8, with a 0.85 GiB query process. The D21 target holds at both counts. A rerun of the 14-worker arm straight after, into a scratch copy, gave p95 7.11 s and 34.4 µs per candidate, so the committed figure is read as run-to-run spread (D28 in the decision log).
+**Regenerated for D28** (twice; figures from the second run, after the review fixes). The report was regenerated on the snapshots of the D28 scaling run, with arm A on its own 2.0 snapshots, rebuilt; they have D27's snapshot identifiers. `same_rows` is true at every size, and the new `arm_a_snapshot.columns_2_1` records 0 rows with `start_var`, `end_var`, `proper` or `shared_variables` set at every size.
+- *Results.* Every arm's per-query result digests are now kept in the report. They are equal across A, B, `B_unpruned` and every C arm at every size (50, 50, 10, 10), and across B, `B_unpruned` and every C arm in the confirmation (30 of 30).
+  - Arm A's code and snapshots are D27's, so B's results equal D27's at every size.
+  - In the confirmation, seeds 0 to 9 equal the main run's arm A digests. Seeds 10 to 29 equal D27's by candidate counts and listed results only, since D27's report kept no digests.
+- *Cost.* Arm B costs 278.6 µs per candidate at 300,000 (loading 162.8, engine 82.6; D27: 279.1), and 189.2 µs in the confirmation (188.4).
+- *Confirmation.* At 8 workers, p95 is 8.39 s (8.35 to 8.72) and max 10.3 s. At 14 workers, p95 is 7.26 s (7.22 to 7.32) and max 8.8 s, at 35.2 µs per candidate, with a 0.86 GiB query process. The D21 target holds at both counts.
+  - The first D28 run gave p95 8.95 s at 14 workers, slower than its own 8.51 s at 8 workers.
+  - A rerun then, into a scratch copy, was not committed and does not by itself establish run-to-run spread. The cause of the difference between the two committed runs is not established.
 
 | 300,000 patients, ten queries | D25 report | D26 |
 |---|---|---|
@@ -843,7 +847,7 @@ Most `none` results become `not_comparable`, and most relaxed ones `unresolved`.
 | Exhaustive slice, first 50 queries | 5,000 results; `prepared_reference` equals `exhaustive_match` on all of them |
 
 - **Store tables.** events 161,031 (10,980 inputevents, 150,051 chartevents); event_concepts 172,011; concept_postings 8,891; concept_closure 2,995; source_concepts 393; coverage 280; excluded_records 448,419; series 150,051.
-- **Identity.** The snapshot identifier is `c64a00bc…` (profile `execution-store-3.1`; D27: `0eb0323b…`), and the input digest is `7a0dd1fd…`. Regenerated for D28, every figure is unchanged, the input digest included; the report gains `value_differential` ([Value conditions](#value-conditions-d28)), and the whole run took 1,364 s.
+- **Identity.** The snapshot identifier is `9730e87b…` (profile `execution-store-3.1`; D27: `0eb0323b…`), and the input digest is `7a0dd1fd…`. Regenerated for D28, every figure is unchanged, the input digest included; the report gains `value_differential` ([Value conditions](#value-conditions-d28)), and the whole run took 1,364 s (regenerated twice; the second run, after the review fixes, also keeps `route.source`).
 - **Inputevents is unchanged.** Its counts, refusals, admission summary and raw-time check equal D26's report figure for figure.
 - **Why the differential's mix is not comparable with D26's.** The query generator now draws from the item classes of both sources, and coverage includes chartevents. The status mix is: exact 3,287; relaxed 44; unresolved 1,038 (1,034 of them for `ADMISSION_EXCLUDED_RECORDS`); none 9,891; not_comparable 33,233 (26,081 `ADMISSION_EXCLUDED_RECORDS`, 7,152 `NO_SOURCE_COVERAGE`); excluded 2,507.
 - **Exclusions dominate, as D18 predicts.** Excluded records of the two sources together turned 25,211 `none` results not comparable, displaced 870 first or last targets and made 1,034 relaxed results unresolved; the report does not attribute them per source.
