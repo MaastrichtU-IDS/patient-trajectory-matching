@@ -258,7 +258,7 @@ class StoreService:
             if self.store is None:
                 raise Unavailable(self.error)
             started = time.perf_counter()
-            query, conditions, windows, texts = self.compile(spec)
+            query, conditions, windows, declared = self.compile(spec)
             es = self.es
             try:
                 t = time.perf_counter()
@@ -269,7 +269,7 @@ class StoreService:
                 prune_seconds = time.perf_counter() - t
             except (es.StoreError, self.tg.TrajectoryError) as error:
                 raise QueryError(str(error).split(':')[0].strip() or 'REFUSED_BY_STORE')
-            payload = aggregate(out, texts, pruned, sum(1 for w in windows.values() if w is not None),
+            payload = aggregate(out, declared, pruned, sum(1 for w in windows.values() if w is not None),
                                 {'match_seconds': match_seconds, 'pruning_count_seconds': prune_seconds,
                                  'total_seconds': time.perf_counter() - started})
             return check_aggregate(payload, self.patient_ids)
@@ -289,7 +289,7 @@ class StoreService:
     # ---------------------------------------------------------------- the page's query, compiled for the store
 
     def compile(self, spec):
-        """(query, conditions or None, windows, relaxation texts) from the page's request, refusing anything else."""
+        """(query, conditions or None, windows, declared relaxation ids) from the page's request, refusing anything else."""
         require(isinstance(spec, dict) and set(spec) <= {'steps', 'relations', 'window', 'scope', 'budget'}
                 and {'steps', 'window', 'scope'} <= set(spec), 'REQUEST_FIELDS')
         require(spec['window'] in WINDOWS, 'UNKNOWN_WINDOW')
@@ -298,7 +298,7 @@ class StoreService:
         require(budget in BUDGETS, 'UNKNOWN_BUDGET')
         steps = spec['steps']
         require(isinstance(steps, list) and 1 <= len(steps) <= len(STEP_IDS), 'STEPS_MUST_BE_1_TO_6')
-        out_steps, relaxations, conditions, value_relaxations, texts = [], [], {}, [], {}
+        out_steps, relaxations, conditions, value_relaxations, declared = [], [], {}, [], set()
         ids = set()
         for s in steps:
             require(isinstance(s, dict) and set(s) <= {'id', 'concept', 'occurrence', 'condition', 'widen_value',
@@ -321,7 +321,7 @@ class StoreService:
                     rid = f'value:{sid}'
                     value_relaxations.append({'id': rid, 'kind': 'widen_value', 'step': sid, 'cost': cost(w['cost']),
                                               'condition': wider})
-                    texts[rid] = f'{sid}: threshold relaxed to {condition_text(wider)}'
+                    declared.add(rid)
             else:
                 require(s.get('widen_value') is None, 'WIDEN_VALUE_NEEDS_A_CONDITION')
             if s.get('widen_concept') is not None:
@@ -333,7 +333,7 @@ class StoreService:
                 rid = f'concept:{sid}'
                 relaxations.append({'id': rid, 'kind': 'widen_concept', 'step': sid, 'concept': wider['concept'],
                                     'cost': cost(w['cost'])})
-                texts[rid] = f'{sid}: any item in {wider["label"]}'
+                declared.add(rid)
         relations = spec.get('relations', [])
         require(isinstance(relations, list) and len(relations) <= MAX_RELATIONS, 'RELATIONS')
         out_relations = []
@@ -356,7 +356,7 @@ class StoreService:
                     require(wider > rel['max'], 'EXTEND_MAX_MUST_WIDEN')
                     relaxations.append({'id': f'gap:{rid}', 'kind': 'extend_max', 'relation': rid, 'max': wider,
                                         'cost': cost(x['cost'])})
-                    texts[f'gap:{rid}'] = f'{r["from"]}→{r["to"]}: latest gap up to {duration_text(x["max"])}'
+                    declared.add(f'gap:{rid}')
             else:
                 require(set(r) <= {'kind', 'from', 'to', 'grace', 'extend_grace'}, 'RELATION_FIELDS')
                 frm = self.entries[next(s['concept'] for s in out_steps if s['id'] == r['from'])]
@@ -370,7 +370,7 @@ class StoreService:
                     require(wider > rel['grace'], 'EXTEND_GRACE_MUST_WIDEN')
                     relaxations.append({'id': f'gap:{rid}', 'kind': 'extend_grace', 'relation': rid, 'grace': wider,
                                         'cost': cost(x['cost'])})
-                    texts[f'gap:{rid}'] = f'{r["from"]}→{r["to"]}: up to {duration_text(x["grace"])} after it stops'
+                    declared.add(f'gap:{rid}')
             out_relations.append(rel)
         query = {'profile': self.tg.PROFILE_ID, 'scope': spec['scope'], 'steps': out_steps,
                  'relations': out_relations, 'relaxations': relaxations, 'budget': budget,
@@ -381,7 +381,7 @@ class StoreService:
             if value_relaxations:
                 conds['relaxations'] = value_relaxations
         windows = {pid: self.windows[spec['window']].get(pid) for pid in self.patients}
-        return query, conds, windows, texts
+        return query, conds, windows, declared
 
 
 def decimal_string(value):
@@ -407,13 +407,6 @@ def condition(raw, entry):
     return out
 
 
-OP_TEXT = {'gt': '>', 'ge': '≥', 'lt': '<', 'le': '≤'}
-
-
-def condition_text(c):
-    return ' and '.join(f'{OP_TEXT[op]} {c[op]}' for op in ('gt', 'ge', 'lt', 'le') if op in c) + f' {c["unit"]}'
-
-
 def cost(value):
     require(type(value) is str and re.fullmatch(r'(0|[1-9][0-9]*)(\.[0-9]+)?', value) is not None
             and Decimal(value) <= 2, 'COST')
@@ -434,13 +427,9 @@ def duration(raw):
     return int(micros)
 
 
-def duration_text(raw):
-    return f'{raw["amount"]} {raw["unit"]}{"" if str(raw["amount"]) == "1" else "s"}'
-
-
 # ---------------------------------------------------------------- the answer: aggregate counts, checked
 
-def aggregate(out, texts, pruned, windows_placed, timing):
+def aggregate(out, declared, pruned, windows_placed, timing):
     """Counts only, built field by field from `execution_store.match`'s output; no result is copied."""
     counts = {s: 0 for s in STATUSES}
     for status, n in out['counts'].items():
@@ -468,7 +457,7 @@ def aggregate(out, texts, pruned, windows_placed, timing):
     candidates = int(out['candidates'])
     # Relaxations by the identifiers the server gave them; the page labels them from what it sent.
     relaxations = [{'id': rid, 'relaxed': used.get(rid, 0), 'beside_unresolved': beside.get(rid, 0)}
-                   for rid in sorted(set(texts) | set(used) | set(beside))]
+                   for rid in sorted(set(declared) | set(used) | set(beside))]
     return {
         'profile': PROFILE,
         'patients': sum(counts.values()),

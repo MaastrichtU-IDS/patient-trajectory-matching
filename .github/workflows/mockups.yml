@@ -17,6 +17,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: patterns/requirements-store.lock.txt
+      - name: Install the store's pinned dependencies (DuckDB), for the store query page and the parity check
+        run: python -m pip install -r patterns/requirements-store.lock.txt
       - name: Generate the synthetic cohort and confirm a second run reproduces it
         run: |
           python demos/mockups/synthetic/generate.py
@@ -26,10 +30,12 @@ jobs:
           node-version: '20'
       - name: Parse every page script
         run: |
-          for script in demos/mockups/shared/core.js demos/mockups/patient-first/app.js demos/mockups/trajectory/app.js; do
+          for script in demos/mockups/shared/core.js demos/mockups/patient-first/app.js demos/mockups/trajectory/app.js demos/mockups/store-query/app.js; do
             node --check "$script"
           done
-      - name: Mockup server serves the pages and the trajectory-graph engine
+      - name: Mockup server serves the pages, the trajectory-graph engine and the store query endpoints
         run: python -m unittest discover -s demos/mockups -p 'test_*.py'
       - name: The trajectory page agrees with the engine on every patient
         run: node demos/mockups/test_engine_parity.cjs
+      - name: The trajectory page and the execution store agree, or differ by a named cause
+        run: node demos/mockups/test_store_parity.cjs

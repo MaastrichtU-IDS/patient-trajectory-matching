@@ -40,6 +40,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D26 | Execution store 3.0: typed event columns and an evidence table; end summaries for `during`; typed staging; D25 follow-ups, under rules fixed before measuring | Decided; end summaries kept (exact, 280.3 µs per candidate, small gain); typed staging kept (staging −89% at 1,000,000, peak +1.2%, build +18% mostly from the format); evidence table did not cheapen loading |
 | D27 | Chartevents by route (b): store 3.1 with a series table; a census on the demo, a sample beyond it | Decided; demo census clean (4,753 of 4,753 claim stores through route (a), every chart row through the raw-row check, 0 differential mismatches); Merkle digest built, not wired |
 | D28 | Value conditions in the match request (chartevents stage 2); the D26 and D27 follow-ups; an experiment on the store 3.0 build regression, under rules fixed before measuring | Decided; value conditions shipped (0 mismatches against an independent reference on 26,880 synthetic and 20,000 demo results; four planted defects caught); column-wise digest lines kept (build −12.0% at 1,000,000, identical content); a review's must-fix (conditions differing beyond 28 digits shared a tag) fixed before the final regeneration; evidence-in-events staging reverted (−1.8% at the pilot) |
+| D29 | The mockups move onto the execution store in three stages; stage 1 puts the store beside the pages, with aggregate counts only and only the open MIMIC-IV demo | Decided; stage 1 built (a store query page on the demo; the synthetic cohort in a store agrees with the trajectory page on 379 of 432 results, each of the other 53 by a named cause); stage 2 inventory listed |
 
 ## D1 Package with hatchling, in place
 
@@ -983,3 +984,50 @@ The committed reports are the second run's.
 - A tag's candidates and recorders are computed with a whole-snapshot scan of `series` per tag and request. That is cheap on the demo (the value differential's 200 queries took 196 s, store and reference together) and unmeasured at full MIMIC-IV scale. Per-(concept, unit) value summaries or postings would be the store-format lever if it matters.
 - `excluded: []` and an absent `excluded` still give different input digests, as `series: []` did before D28 (review nit; out of scope here).
 - Ranging the Parquet-write sort (the build peak), still open since D24.
+
+## D29 The mockups move onto the execution store in three stages; stage 1 puts the store beside the pages
+
+The trajectory mockup resolves each step's candidate events in the browser, from the synthetic cohort, and the trajectory-graph engine decides timing and relaxations (`demos/mockups/server.py`). The store selects candidates itself, and its step language is smaller: occurrence any, first or last, and D28's absolute value conditions with a literal unit. The page also takes shortcuts the store does not take. It groups records into events by the generator's ground truth, times letter mentions from their wording, and builds medication courses from dispensings. So the store cannot simply replace the page's candidate resolution.
+
+**Three stages, each with its trigger, in this order:**
+1. *Real data: the store beside the pages (built here).* Real data cannot be shipped to a browser, so the first page that needs it queries the store on the server. The trajectory page is unchanged.
+2. *Scale: the store under the trajectory page (next).* When a cohort is too large to resolve in the browser, the page sends its query to the store and the store selects candidates. Every page feature then needs a store form, or a refusal by name. The inventory below is this stage's input.
+3. *Semantics: the browser search retired.* The page's record-level semantics move into the converters, or are declared as differences: reconciled events, timed mentions, inferred medication courses, and its comparability rule. Then the browser's candidate resolution can go.
+
+*Alternative declined:* putting the store under the trajectory page at once. The store cannot express half the page's templates (rises, counts), and the two disagree on 53 of 432 results for reasons that are the page's shortcuts. The page would have silently changed meaning.
+
+**Stage 1, as built** (`demos/mockups/store_query.py`, `store-query/`, `store_parity.py`, the tests; the README has the details).
+- *A store query page on the open MIMIC-IV demo.*
+  - The store is built locally from `data/local-mimic/` by `patterns.mimic_store_ingest --chartevents` and is never committed. `server.py` takes it from `--mimic-store` or `PTM_MIMIC_STORE`.
+  - Steps are item classes or dictionary categories, labelled from the demo's `d_items`, and the page says they are not clinical concepts.
+  - Value conditions take a unit from those recorded for the item, and thresholds are strings throughout.
+  - Relaxations are `widen_value`, the item's category, `extend_max` and `extend_grace`.
+  - The index period is placed on the server from the store's coverage periods (first ICU stay, its first 24 hours, or all stays). This is simpler than the demo differential's seeded windows and is stated on the page.
+  - Store and engine are unchanged.
+- *Data rules for the endpoint, enforced on the server.*
+  - **Aggregate counts only** (D17 and the demo convention). The answer is built from counts and checked against a closed schema before it is sent. It allows known keys, non-negative integer counts, and strings only from fixed vocabularies, none equal to a patient identifier. Nothing the page sent is echoed. A failing answer becomes `500 AGGREGATE_RULE_VIOLATION`.
+  - **Only the open demo.** A snapshot whose manifest does not name `mimic-iv-demo-2.2:source_item_class` is refused before DuckDB opens it, so a credentialed snapshot cannot be served.
+  - The tests use stores built from the synthetic MIMIC fixture under the demo's id and under a credentialed id. A leaky answer is planted, and the check refuses it.
+  - The pruned count comes from calling the store's own `_prune` on the inputs `match` used. It is read-only, but it is a private function, so a change to it can break this page.
+- *The synthetic cohort in a store, with a parity test* (`test_store_parity.cjs`, in CI).
+  - *Approach.* Node runs the page's own scripts, as `test_engine_parity.cjs` does, rather than a Python port that could drift from them. Locally a portable Node, checksum-verified, ran it from a scratch directory.
+  - *Series.* The synthetic converter stores no series, so the parity helper adds each measured record's value and unit as a `series` row. The converter is unchanged, so no recorded digest moves.
+  - *Results.* Over nine trajectories expressible in both, 379 of 432 results agree. A replay of the engine on the candidates the explanation reads gives the store's result for every patient. So the 53 differences come from candidate selection or the comparability rule, never from the query's translation or the windows. Each has a named cause, pinned per patient: coverage (19), letter mentions (27), record reconciliation (25) and medication records (11). Some patients have several.
+  - *Not fixed.* None is a defect of either side; all are documented.
+
+**The stage 2 inventory** (page features with no store form):
+1. Nth and Nth-from-last occurrence, for steps and the index period's event.
+2. "At least N times within a span" or "in the index period", and its one-fewer relaxation.
+3. Rises and falls against earlier values, and the smaller-factor relaxation.
+4. The page's "measurements do not cover the time around the earlier step".
+5. Gene steps as the first report that is not negative, timed by its recording, with reclassification.
+6. Free text as a query option (coded only, stated, or hedged).
+7. Reconciled events: one happening reported by several sources counts once.
+8. Medication courses inferred from dispensings and supply, and an ongoing course ending at last contact.
+9. Times from a letter's wording.
+10. Index periods placed per patient by rule.
+11. Values without a unit, or in another unit (D28 stage 3).
+
+Neither side expresses absence or alternatives.
+
+*Follow-ups:* stage 2 as above; converter options for items 6 to 9, if the page's semantics are to be kept; a public count of pruned candidates in `match`'s output, so the page need not call `_prune`.

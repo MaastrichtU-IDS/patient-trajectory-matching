@@ -24,6 +24,14 @@ const REASONS = {
   EXACT_SEARCH_STOPPED: 'the search for an exact match stopped at its budget',
   CHEAPER_RELAXATION_SEARCH_STOPPED: 'a cheaper relaxation may exist; its search stopped',
 };
+// Refusals a valid-looking query can still meet, in plain words; anything else is shown by its code.
+const REFUSALS = {
+  VALUE_RELAXATION_MUST_WIDEN: 'A relaxed threshold must admit every value the original threshold admits: lower a lower bound, raise an upper one.',
+  UNIT_NOT_RECORDED_FOR_THIS_ITEM: 'That unit is not recorded for this item in the store.',
+  DURING_NEEDS_AN_INTERVAL_STEP: '"Happens while" needs an infusion item as its first step.',
+  EXTEND_MAX_MUST_WIDEN: 'The relaxed latest gap must be larger than the latest gap.',
+  THRESHOLD_NOT_A_PLAIN_DECIMAL: 'Thresholds must be plain decimals such as 65 or 37.5.',
+};
 const OPS = {lower: [['', 'no lower bound'], ['ge', 'at least (≥)'], ['gt', 'above (>)']],
              upper: [['', 'no upper bound'], ['le', 'at most (≤)'], ['lt', 'below (<)']]};
 const SYMBOL = {ge: '≥', gt: '>', le: '≤', lt: '<'};
@@ -245,7 +253,7 @@ function itemOptions(selected, filter) {
 }
 
 function opSelect(side, value, k) {
-  return `<select data-step="${k}" data-f="${side}Op" aria-label="${side === 'lower' ? 'Lower bound' : 'Upper bound'}">${OPS[side].map(([v, t]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  return `<select data-step="${k}" data-f="cond.${side}Op" aria-label="${side === 'lower' ? 'Lower bound' : 'Upper bound'}">${OPS[side].map(([v, t]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
 }
 
 function renderSteps() {
@@ -258,13 +266,13 @@ function renderSteps() {
       ? `<p class="hint">No recorded values: ${e.interval ? 'infusion segments carry a start and an end only' : 'this item has no value in the store'}.</p>`
       : `<div class="row">
           <label for="unit-${k}">Unit</label>
-          <select id="unit-${k}" data-step="${k}" data-f="unit">${units.map(u => `<option value="${esc(u.unit)}" ${u.unit === s.cond.unit ? 'selected' : ''}>${esc(u.unit)} · ${fmt(u.rows)} values</option>`).join('')}</select>
+          <select id="unit-${k}" data-step="${k}" data-f="cond.unit">${units.map(u => `<option value="${esc(u.unit)}" ${u.unit === s.cond.unit ? 'selected' : ''}>${esc(u.unit)} · ${fmt(u.rows)} values</option>`).join('')}</select>
         </div>
         <div class="row" style="margin-top:6px">
           ${opSelect('lower', s.cond.lowerOp, k)}
-          ${s.cond.lowerOp ? `<input class="num" type="text" inputmode="decimal" value="${esc(s.cond.lowerValue)}" data-step="${k}" data-f="lowerValue" aria-label="Lower threshold" aria-invalid="${!DECIMAL.test(s.cond.lowerValue)}">` : ''}
+          ${s.cond.lowerOp ? `<input class="num" type="text" inputmode="decimal" value="${esc(s.cond.lowerValue)}" data-step="${k}" data-f="cond.lowerValue" aria-label="Lower threshold" aria-invalid="${!DECIMAL.test(s.cond.lowerValue)}">` : ''}
           ${opSelect('upper', s.cond.upperOp, k)}
-          ${s.cond.upperOp ? `<input class="num" type="text" inputmode="decimal" value="${esc(s.cond.upperValue)}" data-step="${k}" data-f="upperValue" aria-label="Upper threshold" aria-invalid="${!DECIMAL.test(s.cond.upperValue)}">` : ''}
+          ${s.cond.upperOp ? `<input class="num" type="text" inputmode="decimal" value="${esc(s.cond.upperValue)}" data-step="${k}" data-f="cond.upperValue" aria-label="Upper threshold" aria-invalid="${!DECIMAL.test(s.cond.upperValue)}">` : ''}
         </div>
         <p class="hint">Units listed are those recorded for this item in the store. Thresholds are exact decimals, sent as typed.</p>`;
     const relaxValue = e && valued && hasCond(s) ? `<label><input type="checkbox" data-step="${k}" data-f="widenValue.on" ${s.widenValue.on ? 'checked' : ''}> or relax the threshold to</label>
@@ -330,7 +338,11 @@ function renderReading() {
 function renderResults() {
   const box = $('#results');
   if (state.pending) { box.innerHTML = '<p class="muted">Running in the store…</p>'; return; }
-  if (state.error && state.status?.available) { box.innerHTML = `<div class="bad"><b>The store refused the query.</b> ${esc(state.error)}</div>`; return; }
+  if (state.error && state.status?.available) {
+    const why = REFUSALS[state.error];
+    box.innerHTML = `<div class="bad"><b>The store refused the query.</b> ${why ? esc(why) + ' ' : ''}<span class="muted">(${esc(state.error)})</span></div>`;
+    return;
+  }
   const r = state.result;
   if (!r) { box.innerHTML = '<p class="muted">Run a query or load an example.</p>'; return; }
   const def = state.ran;
@@ -393,9 +405,8 @@ function onChange(el) {
       state.filters[+el.dataset.step] = '';
     } else {
       setPath(s, f, value);
-      if (f === 'lowerOp' && value && !s.cond.lowerValue) s.cond.lowerValue = '';
-      if (f === 'upperOp' && value && !s.cond.upperValue) s.cond.upperValue = '';
-      if ((f === 'lowerOp' || f === 'upperOp') && !hasCond(s)) s.widenValue.on = false;
+      // With no bound left there is no threshold to relax.
+      if ((f === 'cond.lowerOp' || f === 'cond.upperOp') && !hasCond(s)) s.widenValue.on = false;
     }
     if (el.tagName === 'INPUT' && el.type === 'text') { el.setAttribute('aria-invalid', String(!DECIMAL.test(el.value))); return renderReading(); }
     return render();
