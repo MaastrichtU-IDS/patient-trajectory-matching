@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Store query · MIMIC-IV demo · patient trajectory matching</title>
+<style>
+  :root { --text: #172B3A; --muted: #475569; --line: #D9E1E8; --bg: #F4F7F9; --select: #174EA6;
+    --exact: #126B5D; --exact-soft: #E3F2EF; --relaxed: #805400; --relaxed-soft: #FBF1DE; --unresolved: #68449A;
+    --unresolved-soft: #F0EAF8; --error: #B42318; --error-soft: #FCE9E7; }
+  * { box-sizing: border-box; }
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--text); background: var(--bg); margin: 0; }
+  main { max-width: 1120px; margin: 0 auto; padding: 36px 24px 60px; }
+  a { color: var(--select); }
+  :focus-visible { outline: 3px solid #9DB8E8; outline-offset: 2px; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; font-weight: 750; color: var(--muted); }
+  h1 { font-size: 28px; letter-spacing: -.02em; margin: 10px 0 10px; }
+  h2 { font-size: 19px; margin: 30px 0 6px; }
+  h3 { font-size: 15px; margin: 14px 0 6px; }
+  p, li { line-height: 1.6; color: #334155; }
+  .note { font-size: 13px; background: var(--relaxed-soft); border: 1px solid #E9D3A6; color: #5C3D00; border-radius: 8px; padding: 10px 14px; }
+  .bad { font-size: 13.5px; background: var(--error-soft); border: 1px solid #F1B8B0; color: #7A1B12; border-radius: 8px; padding: 12px 16px; }
+  .muted, .hint { color: #64748B; font-size: 13px; line-height: 1.55; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin: 12px 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  label { font-size: 13px; color: var(--muted); }
+  select, input[type=text], input[type=search] { font: inherit; font-size: 13px; color: var(--text); border: 1px solid #C3CED8; border-radius: 6px; padding: 5px 7px; background: #fff; }
+  input.num { width: 84px; font-variant-numeric: tabular-nums; }
+  input.num[aria-invalid="true"] { border-color: var(--error); background: var(--error-soft); }
+  input[type=search] { width: 100%; }
+  select.item { width: 100%; max-width: 420px; }
+  button { font: inherit; cursor: pointer; }
+  .btn { font-size: 13px; border: 1px solid #C9D4DE; background: #fff; border-radius: 6px; padding: 5px 11px; color: var(--text); }
+  .btn:hover { border-color: var(--select); }
+  .btn.primary { background: var(--select); border-color: var(--select); color: #fff; font-weight: 650; padding: 7px 16px; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+  .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+  .example { text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .example:hover { border-color: var(--select); }
+  .example strong { display: block; font-size: 14px; margin-bottom: 4px; color: var(--text); }
+  .example span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  .step-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: #FBFCFD; }
+  .step-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sid { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--text); color: #fff; font-weight: 700; font-size: 13px; margin-right: 8px; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px 18px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px 10px; margin: 0; min-width: 0; }
+  legend { font-size: 12px; font-weight: 650; color: var(--muted); padding: 0 4px; }
+  .plain { font-size: 13.5px; background: #EEF3FA; border: 1px solid #CFDCF0; border-radius: 8px; padding: 9px 12px; margin: 10px 0; color: #1E3A5F; }
+  .err { color: var(--error); font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #E6ECF1; vertical-align: top; }
+  th { color: var(--muted); font-weight: 650; font-size: 12px; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  .status { display: inline-block; font-size: 12px; font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid; white-space: nowrap; }
+  .s-exact { color: var(--exact); background: var(--exact-soft); border-color: #A9D5CC; }
+  .s-possible { color: #1E3A8A; background: #EAF0FB; border-color: #BCCDF0; }
+  .s-relaxed { color: var(--relaxed); background: var(--relaxed-soft); border-color: #E9D3A6; }
+  .s-unresolved { color: var(--unresolved); background: var(--unresolved-soft); border-color: #D2C2EA; }
+  .s-none { color: #3F3F46; background: #F1F1F3; border-color: #D4D4D8; }
+  .s-not_comparable { color: #7C2D12; background: #FDF0E6; border-color: #F1C9A8; }
+  .s-excluded { color: #52525B; background: #FAFAFA; border-color: #E4E4E7; border-style: dashed; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 10px 0; }
+  .fact { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; color: #334155; line-height: 1.45; }
+  .fact b { display: block; font-size: 20px; color: #0F1F2C; letter-spacing: -.01em; }
+  code, pre { font-size: 12px; }
+  pre { background: #0F1F2C; color: #E6ECF1; border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">PATIENT TRAJECTORY MATCHING · STORE QUERY · STAGE 1</div>
+  <h1>Query the MIMIC-IV demo store</h1>
+  <p class="note">This page runs trajectory queries in the <b>execution store</b> on the server, against a store built on this machine from the <b>open MIMIC-IV demo</b> (100 patients). It shows <b>aggregate counts only</b>: no patient identifiers, times, values or per-patient rows ever leave the server. Steps are <b>source item classes</b> (rows of the MIMIC <code>d_items</code> dictionary, labelled with its public terms) and their dictionary categories. They are not clinical concepts and have not been reviewed by a clinician. Nothing here is a clinical claim.</p>
+  <p><a href="../">← all mockups</a> · <a href="../trajectory/">Define a trajectory</a> (synthetic cohort, matched in this browser and the engine) · <a href="../roadmap/">roadmap</a> · design: decision D29 in <code>docs/decisions/engine-increment-log.md</code></p>
+
+  <section aria-labelledby="h-store">
+    <h2 id="h-store">The store</h2>
+    <div id="store" class="card" aria-live="polite"><p class="muted">Asking the server for its store…</p></div>
+  </section>
+
+  <div id="builder" hidden>
+    <section aria-labelledby="h-examples">
+      <h2 id="h-examples">Examples</h2>
+      <p class="muted">Each loads a complete query into the builder below and runs it. Edit anything afterwards.</p>
+      <div class="examples" id="examples"></div>
+    </section>
+
+    <section aria-labelledby="h-period">
+      <h2 id="h-period">1 · Index period</h2>
+      <div class="card">
+        <p class="hint" style="margin-top:0">Every patient gets their own period, placed by one rule from the store's <b>coverage</b> table, which records each ICU stay as a period (from its <code>icustays</code> in-time to its out-time, widened where the stay's own records fall just outside it). The rule runs on the server; no period is sent to this page.</p>
+        <div class="row">
+          <label for="window">Period</label>
+          <select id="window" data-field="window">
+            <option value="first_stay">the patient's first ICU stay</option>
+            <option value="first_stay_24h">the first 24 hours of the first ICU stay</option>
+            <option value="all_stays">from the first ICU stay's start to the last stay's end</option>
+          </select>
+          <label for="scope">Steps</label>
+          <select id="scope" data-field="scope">
+            <option value="within">must fall inside the period</option>
+            <option value="from_start">must fall from the period's start onward</option>
+            <option value="after">must fall after the period ends</option>
+            <option value="any">may fall anywhere in the record</option>
+          </select>
+        </div>
+        <p class="hint">A patient with no ICU stay gets no period and is counted as <i>no index period</i>. The scope also decides which excluded records can make a result <i>not comparable</i>: only those it admits (D18), so <i>anywhere in the record</i> gives more of them.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-steps">
+      <h2 id="h-steps">2 · Steps</h2>
+      <p class="hint">Each step is one item class (a <code>d_items</code> row, such as <i>Heart Rate · 220045</i>) or a whole dictionary category. Chart items are point measurements with a recorded value and unit; input items are infusion segments with a start and an end, and carry no value here. A value condition is matched exactly, in the unit the store holds, letter for letter: no unit conversion (D28).</p>
+      <div id="steps"></div>
+      <button class="btn" type="button" data-action="add-step" id="add-step">Add step</button>
+    </section>
+
+    <section aria-labelledby="h-relations">
+      <h2 id="h-relations">3 · Timing constraints</h2>
+      <div class="card">
+        <div id="relations"></div>
+        <button class="btn" type="button" data-action="add-relation" id="add-relation">Add constraint</button>
+        <p class="hint"><i>Starts between</i> bounds the time from the earlier step's start to the later step's start; leave the latest gap empty for no limit, and use a negative earliest gap to allow the later step to start before. <i>Happens while</i> needs an infusion item as its first step: the later step must start after the infusion starts and no later than the grace after it stops.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-run">
+      <h2 id="h-run">4 · Run</h2>
+      <div class="card">
+        <div id="reading" class="plain" aria-live="polite"></div>
+        <div class="row">
+          <label for="budget">Relaxation budget</label>
+          <select id="budget" data-field="budget">
+            <option value="0">0 · no relaxation</option><option value="0.5">0.5</option><option value="1">1</option>
+            <option value="1.5">1.5</option><option value="2">2</option>
+          </select>
+          <button class="btn primary" type="button" data-action="run" id="run">Run in the store</button>
+        </div>
+        <p class="hint">Relaxations are tried cheapest first, at most one per step or constraint, up to the budget; the first set that gives a match is reported, with its cost.</p>
+        <div id="problems" class="err" role="alert"></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-results">
+      <h2 id="h-results">Results</h2>
+      <div id="results" aria-live="polite"><p class="muted">Run a query or load an example.</p></div>
+    </section>
+  </div>
+
+  <section aria-labelledby="h-why">
+    <h2 id="h-why">Why most results are <i>not comparable</i></h2>
+    <p>The store admits only rows it can represent: chart events with a numeric value and a unit, and continuous infusion segments. In the demo that is <span data-k="chart">150,051 of 668,862</span> chart rows and <span data-k="input">10,980 of 20,404</span> input rows. Every other row is kept as an <b>excluded record</b>, with its item class and time but no value. When an excluded row of a step's item falls where the step could bind, it might have matched, so the store does not claim <i>none</i>: it says <i>not comparable</i>, and a relaxed match becomes <i>unresolved</i>, with the relaxed match noted beside it (decision D18). A value condition does not help, because an excluded row has no value and might have met any threshold (D28). This is what a source that admits about a quarter of its rows can rule out. It is not a defect to tune away.</p>
+  </section>
+
+  <section aria-labelledby="h-limits">
+    <h2 id="h-limits">What this page does not do</h2>
+    <ul>
+      <li>It does not replace <a href="../trajectory/">Define a trajectory</a>. That page still resolves candidates in the browser on the synthetic cohort. This page sits beside it (stage 1 of three); the roadmap lists what the store must learn before it can sit under that page (stage 2): Nth occurrences, "at least N times within", rises and falls relative to earlier values, and more.</li>
+      <li>Occurrences are <i>any</i>, <i>first</i> or <i>last</i>; <i>first</i> and <i>last</i> pick among the events that meet the step's value condition.</li>
+      <li>Absence ("no X between A and B") and alternatives ("A or B") cannot be expressed.</li>
+      <li>The store has one snapshot of a 100-patient open demo. It does not cover full MIMIC-IV, and the endpoint refuses any snapshot that is not the open demo.</li>
+    </ul>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
