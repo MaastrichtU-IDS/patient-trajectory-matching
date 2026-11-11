@@ -69,9 +69,112 @@ def _satisfiable(edges):
 
 
 def _candidates(step, concept, events):
-    found = sorted((e for e in events if concept in e['concepts']), key=lambda e: (e['s'], e['f'], e['id']))
+    """A step's candidates. `first` is the least by (start range, end range, id); `last` the greatest by
+    (latest start, earliest start, end range, id) (D30)."""
+    found = [e for e in events if concept in e['concepts']]
     occurrence = step.get('occurrence', 'any')
-    return found[:1] if occurrence == 'first' else found[-1:] if occurrence == 'last' else found
+    if not found or occurrence == 'any':
+        return sorted(found, key=lambda e: (e['s'], e['f'], e['id']))
+    if occurrence == 'first':
+        return [min(found, key=lambda e: (e['s'], e['f'], e['id']))]
+    return [max(found, key=lambda e: (e['s'][1], e['s'][0], e['f'], e['id']))]
+
+
+def _shortest(edges, source):
+    """Bellman-Ford distances from `source` over (u, v, w) edges, value(v) - value(u) <= w; the patient's
+    facts are satisfiable, so there is no negative cycle."""
+    distance = {source: 0}
+    nodes = {u for u, _, _ in edges} | {v for _, v, _ in edges}
+    for _ in range(len(nodes) + 1):
+        changed = False
+        for u, v, w in edges:
+            if u in distance and distance[u] + w < distance.get(v, INF):
+                distance[v] = distance[u] + w
+                changed = True
+        if not changed:
+            break
+    return distance
+
+
+def _range(facts, name):
+    """The least and greatest value the facts allow a time variable."""
+    node = ('time', name)
+    up = _shortest(facts, 'ZERO').get(node, INF)
+    down = _shortest([(v, u, w) for u, v, w in facts], 'ZERO').get(node, INF)
+    return -down, up
+
+
+def _shared(events):
+    """The ids of events with a variable in a component (variables joined by an exposure's start and end)
+    that another event also names a variable of."""
+    parent = {}
+    def root(v):
+        parent.setdefault(v, v)
+        while parent[v] != v:
+            v = parent[v]
+        return v
+    for e in events:
+        a, b = root(e['var']['s']), root(e['var']['f'])
+        if a != b:
+            parent[a] = b
+    namers = {}
+    for e in events:
+        for r in {root(e['var']['s']), root(e['var']['f'])}:
+            namers[r] = namers.get(r, 0) + 1
+    return {e['id'] for e in events if any(namers[root(e['var'][p])] > 1 for p in 'sf')}
+
+
+def _ordered_pools(query, concept, constraints, events, facts):
+    """D30, written again from docs/trajectory-graph-profile.md. Each step's candidate pool, with every safe
+    uncertain `first` or `last` step on a point of its own ranging over its envelope; the uncertain steps; the
+    unsafe ones; their possible targets, for the second search; and the envelope points."""
+    steps = query['steps']
+    occurrence = {s['id']: s.get('occurrence', 'any') for s in steps}
+    pools = {s['id']: _candidates(s, concept[s['id']], events) for s in steps}
+    during_from = {c[0][0] for c in constraints if isinstance(c[0], tuple) and c[0][1] == 'f'}
+    shared = _shared(events)
+    uncertain, safe, unsafe, wide = [], {}, [], {}
+    for s in steps:
+        sid, which = s['id'], occurrence[s['id']]
+        if which == 'any' or not pools[sid]:
+            continue
+        a = pools[sid][0]
+        family = [e for e in events if concept[sid] in e['concepts']]
+        def settled(y):
+            u, v = ('time', a['var']['s']), ('time', y['var']['s'])
+            # first: y cannot start at or before a; last: at or after a; or the two always start together
+            if not _satisfiable(facts + [(u, v, 0)] if which == 'first' else facts + [(v, u, 0)]):
+                return True
+            return not _satisfiable(facts + [(u, v, -1)]) and not _satisfiable(facts + [(v, u, -1)])
+        if all(settled(y) for y in family if y is not a):
+            continue
+        uncertain.append(sid)
+        coupled = False
+        for t in steps:
+            if t['id'] == sid:
+                continue
+            if occurrence[t['id']] == 'any':
+                coupled = coupled or any(concept[t['id']] in e['concepts'] for e in family)
+            elif pools[t['id']]:
+                coupled = coupled or concept[sid] in pools[t['id']][0]['concepts']
+        reads_end = sid in during_from and not all(e['point'] for e in family)
+        if not coupled and not reads_end and not any(e['id'] in shared for e in family):
+            starts = [_range(facts, e['var']['s']) for e in family]
+            pick = min if which == 'first' else max
+            lo, hi = pick(x for x, _ in starts), pick(y for _, y in starts)
+            name = ('occurrence', which, sid)
+            safe[sid] = {'id': a['id'], 'concepts': set(), 's': (lo, hi), 'f': (lo, hi), 'point': True,
+                         'var': {'s': name, 'f': name}, 'proper': False}
+        else:
+            unsafe.append(sid)
+            def can(x, y):  # x can start at or before y (at or after, for last), the two alone
+                u, v = ('time', x['var']['s']), ('time', y['var']['s'])
+                return _satisfiable(facts + ([(v, u, 0)] if which == 'first' else [(u, v, 0)]))
+            ordered = sorted(family, key=lambda e: (e['s'], e['f'], e['id']))
+            wide[sid] = [x for x in ordered if all(can(x, y) for y in family if y is not x)]
+    for sid, e in safe.items():
+        pools[sid] = [e]
+    return pools, uncertain, unsafe, wide, list(safe.values())
 
 
 def _constraints(query, relaxations):
@@ -138,15 +241,9 @@ def is_possible(binding, constraints, facts):
     return _satisfiable(edges)
 
 
-def classify(query, patient, relaxations=()):
-    """The best certainty any binding reaches under a relaxation set: 'exact', 'possible' or None."""
-    concept, constraints = _constraints(query, relaxations)
-    events = _events(patient)
-    facts = _facts(events, patient['window'])
-    names = [s['id'] for s in query['steps']]
-    pools = [_candidates(s, concept[s['id']], events) for s in query['steps']]
+def _best(names, pools, constraints, facts):
     best, memo = None, {}
-    for chosen in product(*pools):
+    for chosen in product(*[pools[n] for n in names]):
         binding = dict(zip(names, chosen))
         if is_exact(binding, constraints, facts, memo):
             return 'exact'
@@ -155,17 +252,44 @@ def classify(query, patient, relaxations=()):
     return best
 
 
-def binding_reaches(query, patient, relaxations, binding_ids, certainty):
-    """Whether a reported binding really has the reported certainty."""
+def classify_ordered(query, patient, relaxations=()):
+    """The best certainty any binding reaches under a relaxation set ('exact', 'possible' or None), and
+    whether the order rule leaves the set undecided (D30): None, the certainty found, or 'none'."""
     concept, constraints = _constraints(query, relaxations)
     events = _events(patient)
-    by_id = {e['id']: e for e in events}
-    binding = {s: by_id[e] for s, e in binding_ids.items()}
+    facts = _facts(events, patient['window'])
+    pools, _, unsafe, wide, extra = _ordered_pools(query, concept, constraints, events, facts)
+    facts = _facts(events + extra, patient['window'])
+    names = [s['id'] for s in query['steps']]
+    best = _best(names, pools, constraints, facts)
+    if not unsafe:
+        return best, None
+    if best:
+        return best, best
+    if _best(names, {**pools, **wide}, constraints, facts):
+        return None, 'none'
+    return None, None
+
+
+def classify(query, patient, relaxations=()):
+    """The best certainty any binding reaches under a relaxation set: 'exact', 'possible' or None."""
+    return classify_ordered(query, patient, relaxations)[0]
+
+
+def binding_reaches(query, patient, relaxations, binding_ids, certainty):
+    """Whether a reported binding really has the reported certainty; a safe uncertain `first` or `last` step
+    is checked on its envelope (D30)."""
+    concept, constraints = _constraints(query, relaxations)
+    events = _events(patient)
+    pools, _, _, _, extra = _ordered_pools(query, concept, constraints, events, _facts(events, patient['window']))
+    binding = {}
     for step in query['steps']:
-        if binding[step['id']] not in _candidates(step, concept[step['id']], events):
+        found = [e for e in pools[step['id']] if e['id'] == binding_ids[step['id']]]
+        if not found:
             return False
+        binding[step['id']] = found[0]
     check = is_exact if certainty == 'exact' else is_possible
-    return check(binding, constraints, _facts(events, patient['window']))
+    return check(binding, constraints, _facts(events + extra, patient['window']))
 
 
 def relaxation_sets(query):
@@ -183,17 +307,30 @@ def relaxation_sets(query):
 
 
 def match(query, patient):
-    """Status, certainty and relaxation set, with no search budget."""
+    """Status, certainty and relaxation set, with no search budget. A `first` or `last` step whose target is
+    uncertain can leave a set undecided (D30). An undecided unrelaxed query is `unresolved` (reason
+    OCCURRENCE_ORDER_UNCERTAIN), with the certainty its binding reached (`unverified`) or else the first relaxed
+    match (`relaxed`) beside it; an undecided relaxation set is passed over, and `passed` says so."""
     pid = patient['patient_id']
     if patient.get('window') is None:
         return {'patient_id': pid, 'status': 'excluded'}
-    first = classify(query, patient)
+    first, open_ = classify_ordered(query, patient)
+    if open_ in ('exact', 'possible'):
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN', 'unverified': open_}
     if first:
         return {'patient_id': pid, 'status': first}
+    passed = False
     for cost, chosen in relaxation_sets(query):
-        found = classify(query, patient, chosen)
+        found, undecided = classify_ordered(query, patient, chosen)
+        if undecided:
+            passed = True
+            continue
         if found:
-            return {'patient_id': pid, 'status': 'relaxed', 'certainty': found,
-                    'relaxations': [x['id'] for x in chosen],
-                    'cost': format((Decimal(cost.numerator) / Decimal(cost.denominator)).normalize(), 'f') if cost else '0'}
-    return {'patient_id': pid, 'status': 'none'}
+            relaxed = {'certainty': found, 'relaxations': [x['id'] for x in chosen],
+                       'cost': format((Decimal(cost.numerator) / Decimal(cost.denominator)).normalize(), 'f') if cost else '0'}
+            if open_:
+                return {'patient_id': pid, 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN', 'relaxed': relaxed}
+            return {'patient_id': pid, 'status': 'relaxed', **relaxed, 'passed': passed}
+    if open_:
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN'}
+    return {'patient_id': pid, 'status': 'none', 'passed': passed}

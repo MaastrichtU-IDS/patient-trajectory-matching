@@ -5,6 +5,7 @@ Needs DuckDB (`patterns/requirements-store.lock.txt`); importing this module doe
 """
 from collections import Counter
 from copy import deepcopy
+from datetime import datetime, timedelta
 import hashlib
 import json
 import os
@@ -2160,6 +2161,36 @@ class SyntheticConverterTests(unittest.TestCase):
                 r = records[e['event_id']]
                 self.assertEqual(e['concepts'], [codes[(r['coding']['system'], r['coding']['code'])]])
                 self.assertEqual(e['start'], [si.micros(r['occurred']['earliest']), si.micros(r['occurred']['latest'])])
+
+    def test_a_mention_ranges_from_birth_to_its_letter_and_holds_its_true_time(self):
+        """D30. The converter never reads the generator's truth; this test does, to check the bound. A mention
+        timed by its letter (the timing before D30) missed its true time for all but one of the 2,444 mentions;
+        from birth (or an earlier record) to the letter's latest time, every true time is inside."""
+        cohort, ingest = _STATE['cohort'], _STATE['ingest']
+        self.assertEqual(ingest['provenance']['mention_time'],
+                         'at_or_before_letter_v1: from birth, or an earlier record, to the letter')
+        legacy = list(si.iter_patients(cohort, {}, 'letter'))
+        counts = Counter()
+        for p, converted, before in zip(sorted(cohort['patients'], key=lambda p: p['patient_id']), ingest['patients'], legacy):
+            truth = {e['event_id']: e for e in p['truth']['events']}
+            records = {r['record_id']: r for r in p['records']}
+            birth = datetime.fromisoformat(p['birth_date'][:10] + 'T00:00')
+            old = {e['event_id']: e for e in before['events']}
+            for e in converted['events']:
+                if e['kind'] != 'mention':
+                    self.assertEqual(e, old[e['event_id']])
+                    continue
+                record_id, i = e['event_id'].split('/', 1)[1].split('#m')
+                record = records[record_id]
+                day = truth[record['mentions'][int(i)]['truth_event_id']]['day']
+                lo = si.micros((birth + timedelta(days=day)).isoformat(timespec='minutes'))
+                hi = lo + 24 * 3600 * 10**6 - 1  # the truth is a day
+                inside = lambda rng: rng[0] <= hi and lo <= rng[1]
+                self.assertEqual(e['start'], [si.earliest(p), si.micros(record['occurred']['latest'])])
+                counts['inside'] += inside(e['start'])
+                counts['inside before D30'] += inside(old[e['event_id']]['start'])
+                counts['mentions'] += 1
+        self.assertEqual(counts, Counter({'mentions': 2444, 'inside': 2444, 'inside before D30': 1}))
 
     def test_orders_and_superseded_records_are_not_events_and_selection_is_recorded(self):
         cohort, ingest = _STATE['cohort'], _STATE['ingest']

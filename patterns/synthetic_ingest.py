@@ -14,7 +14,11 @@ adapter would (docs/execution-store.md, "Synthetic converter"):
   and counted, never guessed.
 - A clinic, referral or discharge letter contributes one point event per mention asserted
   `present` of the `patient`. Negated, hypothetical, possible and family-history mentions
-  are skipped. A mention is timed by its letter, the only time the record states.
+  are skipped. A mention says the finding happened at or before the letter, not when (D30):
+  its start ranges from the earliest the patient's record allows (birth, or an earlier
+  record) to the letter's latest time. Before D30 it was timed by the letter itself, which
+  put the true time outside the range for 2,443 of the 2,444 mentions (`mention_time='letter'`
+  keeps that timing, only so that digests recorded before D30 can be reproduced).
 - Event identifiers are `source/record_id`, with `#m<i>` for a letter's i-th mention: the source is
   kept in the key as a safeguard, and the store refuses duplicate event ids.
 - Times are the record's `occurred` earliest and latest, read as patient-local wall-clock
@@ -44,6 +48,7 @@ MENTION_KINDS = ('note',)
 # Record statuses that assert the coded thing happened. `ordered` (a test or procedure requested,
 # not yet done) does not: an ordered EEG must not match a step asking for an EEG.
 PERFORMED = (None, 'active', 'final', 'amended', 'stopped')
+MENTION_TIMES = ('at_or_before_letter', 'letter')
 SELECTION = {'mode': 'retrospective', 'version': 'latest', 'available_at': 'not_applied',
              'note': ('every record held at the cohort snapshot, superseded versions dropped; availability '
                       'times are kept as each event\'s available_at but do not select records')}
@@ -109,10 +114,19 @@ def _evidence(record, own=True, **extra):
     return out
 
 
-def convert_patient(patient, codes):
+def earliest(patient):
+    """The earliest time a finding stated about the patient can have happened: birth, or the start of an
+    earlier record (a prenatal scan), on the patient's clock."""
+    return min([micros(patient['birth_date'][:10] + 'T00:00')] + [bounds(r)[0] for r in patient['records']])
+
+
+def convert_patient(patient, codes, mention_time='at_or_before_letter'):
     """One patient's ingest record and the counts of what was skipped and why."""
+    if mention_time not in MENTION_TIMES:
+        raise ValueError(f'UNKNOWN_MENTION_TIME:{mention_time}')
     pid = patient['patient_id']
     events, skipped = [], {}
+    floor = earliest(patient)
     def skip(reason):
         skipped[reason] = skipped.get(reason, 0) + 1
     orders, stops = [], []
@@ -129,8 +143,9 @@ def convert_patient(patient, codes):
                 if m['assertion'] != 'present' or m['experiencer'] != 'patient':
                     skip(f"mention_{m['assertion']}_{m['experiencer']}")
                     continue
+                start = bounds(record) if mention_time == 'letter' else [floor, bounds(record)[1]]
                 events.append({'event_id': f"{_key(record)}#m{i}", 'kind': 'mention', 'source': record['source'],
-                               'concepts': [m['concept']], 'start': bounds(record), **_record(record),
+                               'concepts': [m['concept']], 'start': start, **_record(record),
                                'evidence': _evidence(record, mention={'span': m['span'], 'text': m['text'],
                                                                      'assertion': m['assertion'],
                                                                      'experiencer': m['experiencer']})})
@@ -205,30 +220,34 @@ def synthetic_header(cohort):
             'closure': {'version': version, 'ancestors': ancestor_closure(concepts)}}
 
 
-def iter_patients(cohort, skipped=None):
+def iter_patients(cohort, skipped=None, mention_time='at_or_before_letter'):
     """Each converted patient in patient_id order, one at a time; the skip counts accumulate in `skipped`."""
     codes = _codes(cohort)
     skipped = {} if skipped is None else skipped
     for patient in sorted(cohort['patients'], key=lambda p: p['patient_id']):
-        converted, why = convert_patient(patient, codes)
+        converted, why = convert_patient(patient, codes, mention_time)
         for k, v in why.items():
             skipped[k] = skipped.get(k, 0) + v
         yield converted
 
 
-def synthetic_provenance(cohort, skipped):
-    """The ingest provenance, given the skip counts `iter_patients` accumulated."""
+def synthetic_provenance(cohort, skipped, mention_time='at_or_before_letter'):
+    """The ingest provenance, given the skip counts `iter_patients` accumulated. The mention timing is named
+    (D30), except for the timing before D30, whose provenance is left as it was."""
     late = sum(1 for p in cohort['patients'] for r in p['records'] if r['available_at'] > r['occurred']['latest'])
     selection = {**SELECTION, 'records_available_after_occurrence': late}
-    return {'converter': 'patterns/synthetic_ingest.py',
-            'converter_sha256': hashlib.sha256(CONVERTER.read_bytes()).hexdigest(),
-            'generator': cohort['generator'], 'selection': selection,
-            'skipped': dict(sorted(skipped.items()))}
+    out = {'converter': 'patterns/synthetic_ingest.py',
+           'converter_sha256': hashlib.sha256(CONVERTER.read_bytes()).hexdigest(),
+           'generator': cohort['generator'], 'selection': selection,
+           'skipped': dict(sorted(skipped.items()))}
+    if mention_time != 'letter':
+        out['mention_time'] = 'at_or_before_letter_v1: from birth, or an earlier record, to the letter'
+    return out
 
 
-def synthetic_ingest(cohort):
+def synthetic_ingest(cohort, mention_time='at_or_before_letter'):
     """The whole cohort as an ingest document (profile execution-store-ingest-2.0)."""
     header = synthetic_header(cohort)
     skipped = {}
-    patients = list(iter_patients(cohort, skipped))
-    return {**header, 'provenance': synthetic_provenance(cohort, skipped), 'patients': patients}
+    patients = list(iter_patients(cohort, skipped, mention_time))
+    return {**header, 'provenance': synthetic_provenance(cohort, skipped, mention_time), 'patients': patients}
