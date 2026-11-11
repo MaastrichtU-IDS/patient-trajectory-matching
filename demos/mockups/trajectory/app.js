@@ -206,6 +206,9 @@ function candidates(view, n, relax, win) {
     out = measureEvents(view.series[n.concept] || [], n.cond, param).map(r => ({...r, fe: r.e, fl: r.l, point: true, measure: true}));
   }
   out.sort((a, b) => a.e - b.e);
+  // "Last" counts back from the latest possible start, then the earliest, as the engine does (D30): an event known
+  // only to lie somewhere in a long range may well be the latest.
+  if (n.occ === 'last' || n.occ === 'nth_last') out.sort((a, b) => a.l - b.l || a.e - b.e);
   return n.occ === 'count' ? out : pickOccurrence(out, n.occ || 'any', n.n);
 }
 

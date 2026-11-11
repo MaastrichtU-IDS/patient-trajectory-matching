@@ -28,6 +28,10 @@ The decision procedure (docs/trajectory-graph-profile.md):
   exhausted budget is reported as unresolved, never as a non-match.
 - Relaxation: a cost-ordered search over declared relaxation sets, stopping at the first
   that matches.
+- `first` and `last` (D30): the earliest event by start range, and the latest by latest
+  start. When the patient's facts leave it uncertain which event is first or last, the step
+  is decided on a point over the range the true first (last) start can take, where that is
+  exact, and the result is otherwise unresolved (`decide_ordered`).
 
 `patterns/trajectory_graph_reference.py` enumerates every binding instead, and the tests
 compare the two on seeded random trajectories of every shape.
