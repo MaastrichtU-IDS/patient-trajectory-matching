@@ -1,11 +1,16 @@
 """The store query endpoints: aggregate counts only, and only the open MIMIC-IV demo.
 
 The stores here are built from the synthetic MIMIC fixture (`examples/mimic-store-ingest-chartevents`), never from
-real data: once under the open demo's dataset id, which the endpoints serve, and once under a credentialed dataset id,
-which they must refuse. Needs `patterns/requirements-store.lock.txt` (DuckDB).
+real data: once under the open demo's dataset id and once under a credentialed dataset id. The endpoints decide by
+content, the open demo's 100 subject ids, so the fixture is served only with its own pin passed in (`demo_pin`, a
+test hook); with the real pin it is refused, however it is labelled. One test runs against a real demo store when one
+is built locally (`PTM_MIMIC_STORE`, the default build location, or the scratch store of the stage 1 run), and is
+skipped otherwise. Needs `patterns/requirements-store.lock.txt` (DuckDB).
 """
 import json
+import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import threading
@@ -48,8 +53,8 @@ def query(**extra):
 class Running:
     """A mockup server on a free port, with the given store configuration."""
 
-    def __init__(self, mimic_store=None, d_items=None):
-        self.httpd = server.serve('127.0.0.1', 0, mimic_store, d_items)
+    def __init__(self, mimic_store=None, d_items=None, demo_pin=None):
+        self.httpd = server.serve('127.0.0.1', 0, mimic_store, d_items, demo_pin)
         self.url = f'http://127.0.0.1:{self.httpd.server_port}'
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
 
@@ -81,7 +86,8 @@ class StoreQueryTests(unittest.TestCase):
         with es.open_store(cls.demo) as store:
             cls.patient_ids = {pid for pid, in store.query('SELECT patient_id FROM patients')}
             cls.times = {t for row in store.query('SELECT start_lo, start_hi FROM events') for t in row}
-        cls.served = Running(cls.demo.parent, FIXTURE / 'd_items.csv')
+        cls.pin = (len(cls.patient_ids), store_query.subjects_digest(cls.patient_ids))
+        cls.served = Running(cls.demo.parent, FIXTURE / 'd_items.csv', cls.pin)
         cls.refused = Running(cls.credentialed)
         cls.bare = Running()
 
@@ -97,7 +103,7 @@ class StoreQueryTests(unittest.TestCase):
         manifest = json.loads((self.credentialed / 'manifest.json').read_text())
         self.assertEqual(manifest['dataset_id'], 'mimic-iv-3.1:source_item_class')
         with mock.patch.object(es, 'open_store', side_effect=AssertionError('opened')) as opened:
-            service = store_query.StoreService(self.credentialed)
+            service = store_query.StoreService(self.credentialed, pin=self.pin)
             status = service.status()
         opened.assert_not_called()
         self.assertEqual((status['available'], status['error']), (False, 'SNAPSHOT_NOT_OPEN_MIMIC_DEMO'))
@@ -131,6 +137,72 @@ class StoreQueryTests(unittest.TestCase):
     def test_a_missing_path_is_reported_not_raised(self):
         status = store_query.StoreService(Path(self.tmp.name) / 'nowhere').status()
         self.assertEqual((status['available'], status['error']), (False, 'SNAPSHOT_NOT_FOUND'))
+
+    def test_the_label_decides_nothing_the_content_decides(self):
+        # A relabelled snapshot: the credentialed fixture with its manifest's dataset id edited to the demo's. The
+        # dataset id is outside the snapshot identity, so the manifest and file checks still pass.
+        relabelled = Path(self.tmp.name) / 'relabelled' / self.credentialed.name
+        shutil.copytree(self.credentialed, relabelled)
+        manifest = json.loads((relabelled / 'manifest.json').read_text())
+        manifest['dataset_id'] = 'mimic-iv-demo-2.2:source_item_class'
+        (relabelled / 'manifest.json').write_text(json.dumps(manifest))
+        es.open_store(relabelled).close()
+        for path in (relabelled, self.demo):  # relabelled, and built under the demo's id: neither has its patients
+            status = store_query.StoreService(path).status()
+            self.assertEqual((status['available'], status['error']), (False, 'SNAPSHOT_CONTENT_NOT_OPEN_MIMIC_DEMO'))
+
+    def test_a_hundred_patients_that_are_not_the_demos_are_refused(self):
+        ingest = {'profile': 'execution-store-ingest-2.0', 'dataset_id': 'mimic-iv-demo-2.2:source_item_class',
+                  'closure': {'version': 'test', 'ancestors': {'x': []}},
+                  'patients': [{'patient_id': str(10_000_000 + k), 'clock_id': f'patient_{k}', 'events': [],
+                                'coverage': []} for k in range(store_query.DEMO_PATIENTS)]}
+        snapshot = es.build(ingest, Path(self.tmp.name) / 'hundred')
+        status = store_query.StoreService(snapshot).status()
+        self.assertEqual((status['available'], status['error']), (False, 'SNAPSHOT_CONTENT_NOT_OPEN_MIMIC_DEMO'))
+        with es.open_store(snapshot) as store:  # it passes the label and the count, so the digest decides
+            self.assertEqual(store.manifest['tables']['patients']['rows'], store_query.DEMO_PATIENTS)
+
+    def test_the_real_demo_store_passes(self):
+        candidates = [os.environ.get('PTM_MIMIC_STORE'), ROOT / 'verification/execution-store-mimic-run/store',
+                      '/tmp/ptm-store-mockup/mimic/store']
+        path = next((Path(p) for p in candidates if p and Path(p).exists()), None)
+        if path is None:
+            self.skipTest('no MIMIC-IV demo store built locally')
+        service = store_query.StoreService(path)
+        status = service.status()
+        self.assertTrue(status['available'], status)
+        self.assertEqual(status['patients'], store_query.DEMO_PATIENTS)
+        self.assertGreater(len(service.catalogue()['entries']), 100)
+
+    def test_a_failed_open_leaves_nothing_open(self):
+        closed = []
+        real_close = es.Store.close
+
+        def spy(store):
+            closed.append(store)
+            return real_close(store)
+        for failure in (store_query.Unavailable('SNAPSHOT_CONTENT_NOT_OPEN_MIMIC_DEMO'), RuntimeError('duckdb failed')):
+            closed.clear()
+            service = store_query.StoreService(self.demo, pin=self.pin)
+            with mock.patch.object(es.Store, 'close', spy), \
+                    mock.patch.object(store_query.StoreService, '_load', side_effect=failure):
+                status = service.status()
+            self.assertFalse(status['available'])
+            self.assertIsNone(service.store)
+            self.assertEqual(len(closed), 1, 'the store opened by the failed attempt was not closed')
+            with self.assertRaises(store_query.Unavailable):
+                service.match(query())
+        # The second dataset check, on the opened store's manifest, failing.
+        service = store_query.StoreService(self.demo, pin=self.pin)
+        with mock.patch.object(store_query, 'check_open_dataset', side_effect=[
+                'mimic-iv-demo-2.2:source_item_class', store_query.Unavailable('SNAPSHOT_NOT_OPEN_MIMIC_DEMO')]):
+            self.assertEqual(service.status()['error'], 'SNAPSHOT_NOT_OPEN_MIMIC_DEMO')
+        self.assertIsNone(service.store)
+
+    def test_missing_duckdb_is_named(self):
+        service = store_query.StoreService(self.demo, pin=self.pin)
+        with mock.patch.object(es, 'open_store', side_effect=es.StoreError('DUCKDB_UNAVAILABLE', 'pip install')):
+            self.assertEqual(service.status()['error'], 'STORE_SUPPORT_NOT_INSTALLED')
 
     # ------------------------------------------------------------ rule 1: aggregate counts only
 
@@ -167,7 +239,7 @@ class StoreQueryTests(unittest.TestCase):
         self.assertEqual(sum(body['counts'].values()), len(self.patient_ids))
 
     def test_the_counts_are_the_stores_own(self):
-        service = store_query.StoreService(self.demo)
+        service = store_query.StoreService(self.demo, pin=self.pin)
         service.status()
         compiled, conditions, windows, _ = service.compile(query())
         with es.open_store(self.demo) as store:
@@ -270,6 +342,79 @@ class StoreQueryTests(unittest.TestCase):
         spec['steps'][1]['concept'] = 'https://w3id.org/sulo/Process'
         self.assertEqual(self.served.post('/api/store/match', spec), (400, {'error': 'UNKNOWN_CONCEPT'}))
         self.assertEqual(self.served.post('/api/store/match', b'{nope'), (400, {'error': 'MALFORMED_REQUEST'}))
+
+    def test_malformed_requests_get_a_named_400(self):
+        def step(**change):
+            spec = query()
+            spec['steps'][0] = {**spec['steps'][0], **change}
+            return spec
+        rate = {'unit': 'per min', 'lower': {'op': 'ge', 'value': '70'}}
+        cases = {
+            'concept as a list': (step(concept=[]), 'CONCEPT_MUST_BE_A_STRING'),
+            'concept as an object': (step(concept={}), 'CONCEPT_MUST_BE_A_STRING'),
+            'id as a list': (step(id=['A']), 'STEP_ID'),
+            'unit as a list': (step(condition={**rate, 'unit': ['per min']}), 'UNIT_NOT_RECORDED_FOR_THIS_ITEM'),
+            'op as a list': (step(condition={**rate, 'lower': {'op': ['ge'], 'value': '74'}}), 'CONDITION_BOUND'),
+            'relation from as a list': (query(relations=[{'kind': 'after', 'from': ['A'], 'to': 'B'}]),
+                                        'RELATION_STEPS'),
+            'relation kind as a list': (query(relations=[{'kind': ['after'], 'from': 'A', 'to': 'B'}]),
+                                        'RELATION_KIND'),
+            'widening concept as a list': (step(widen_concept={'concept': [G + 'Synthetic%20Vitals'], 'cost': '0.5'}),
+                                           'WIDEN_CONCEPT_FIELDS'),
+            'an enormous cost': (step(widen_value={'condition': rate, 'cost': '0.' + '0' * 100_000}), 'COST'),
+            'an enormous gap': (query(relations=[{'kind': 'after', 'from': 'A', 'to': 'B',
+                                                  'max': {'amount': '1' * 5000, 'unit': 'day'}}]), 'DURATION_AMOUNT'),
+            'window as a list': (query(window=['first_stay']), 'UNKNOWN_WINDOW'),
+            'steps as an object': (query(steps={}), 'STEPS_MUST_BE_1_TO_6'),
+            'a step as a string': (query(steps=['A']), 'STEP_FIELDS'),
+            'a body that is a list': ([], 'REQUEST_FIELDS'),
+            'deeply nested': (b'[' * 100_000 + b']' * 100_000, 'MALFORMED_REQUEST'),
+        }
+        for name, (body, code) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.served.post('/api/store/match', body), (400, {'error': code}))
+        # An internal failure is named, with nothing from the failure in the answer.
+        with mock.patch.object(es, 'match', side_effect=RuntimeError('internal detail')):
+            self.assertEqual(self.served.post('/api/store/match', query()), (500, {'error': 'INTERNAL_ERROR'}))
+
+    def test_counts_are_bounded_by_the_patients(self):
+        _, good = self.served.post('/api/store/match', query())
+        n = len(self.patient_ids)
+        for bad in ({**good, 'candidates': n + 1}, {**good, 'counts': {**good['counts'], 'none': n + 1}},
+                    {**good, 'plan': [{'step': 'A', 'patients': n + 1}]}, {**good, 'pruned': '1'}):
+            with self.assertRaises(store_query.AggregateRuleViolation):
+                store_query.check_aggregate(bad, self.patient_ids)
+        self.assertIsNone(store_query.check_aggregate({**good, 'pruned': None}, self.patient_ids)['pruned'])
+
+    def test_pruned_is_unavailable_when_pruning_is_off(self):
+        with mock.patch.object(es, '_PRUNE', False):
+            status, body = self.served.post('/api/store/match', query())
+        self.assertEqual((status, body['pruned']), (200, None))
+
+    def test_status_and_catalogue_are_checked_too(self):
+        _, status = self.served.get('/api/store/status')
+        _, catalogue = self.served.get('/api/store/catalogue')
+        pid = sorted(self.patient_ids)[0]
+        self.assertEqual(store_query.check_status(status, self.patient_ids), status)
+        self.assertEqual(store_query.check_catalogue(catalogue, self.patient_ids), catalogue)
+        entry = catalogue['entries'][0]
+        bad_status = [{**status, 'extra': pid}, {**status, 'labels': {**status['labels'], 'who': pid}},
+                      {**status, 'windows': {**status['windows'], 'first_stay': len(self.patient_ids) + 1}},
+                      {**status, 'snapshot_id': pid}]
+        bad_catalogue = [{**catalogue, 'entries': [{**entry, 'label': pid}]},
+                         {**catalogue, 'entries': [{**entry, 'patients': len(self.patient_ids) + 1}]},
+                         {**catalogue, 'entries': [{**entry, 'patient_id': pid}]}]
+        for bad in bad_status:
+            with self.assertRaises(store_query.AggregateRuleViolation):
+                store_query.check_status(bad, self.patient_ids)
+        for bad in bad_catalogue:
+            with self.assertRaises(store_query.AggregateRuleViolation):
+                store_query.check_catalogue(bad, self.patient_ids)
+        with mock.patch.object(store_query, 'check_catalogue', side_effect=store_query.AggregateRuleViolation('x')):
+            with self.assertRaises(HTTPError) as caught:
+                self.served.get('/api/store/catalogue')
+        self.assertEqual((caught.exception.code, json.load(caught.exception)),
+                         (500, {'error': 'AGGREGATE_RULE_VIOLATION'}))
 
     def test_catalogue_lists_item_classes_with_their_units_and_dictionary_labels(self):
         status, body = self.served.get('/api/store/catalogue')

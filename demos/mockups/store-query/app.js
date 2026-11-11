@@ -213,7 +213,8 @@ function renderStore() {
   }
   if (!s.available) {
     const why = {STORE_NOT_CONFIGURED: 'The server was started without a store.',
-      SNAPSHOT_NOT_OPEN_MIMIC_DEMO: 'The configured snapshot is not the open MIMIC-IV demo, so it is refused: this page only ever serves the open demo, never a credentialed dataset.',
+      SNAPSHOT_NOT_OPEN_MIMIC_DEMO: 'The configured snapshot\'s manifest does not name the open MIMIC-IV demo, so it is refused.',
+      SNAPSHOT_CONTENT_NOT_OPEN_MIMIC_DEMO: 'The configured snapshot does not hold the open MIMIC-IV demo\'s 100 patients, whatever its label says, so it is refused. This page serves only the open demo: counts alone are not safe for credentialed data.',
       SNAPSHOT_NOT_FOUND: 'No snapshot was found at the configured path.', SEVERAL_SNAPSHOTS_UNDER_PATH: 'The configured path holds several snapshots; name one.',
       STORE_SUPPORT_NOT_INSTALLED: 'The server\'s Python has no DuckDB; install the store requirements.',
       SNAPSHOT_UNREADABLE: 'The snapshot could not be read or failed its file check.'}[s.error] || s.error;
@@ -221,7 +222,7 @@ function renderStore() {
       <h3>Build one locally</h3>
       <p class="hint">The store is built on your machine from the verified demo files in <code>data/local-mimic/</code> (fetched and checked as in decision D11) and is never committed. The build takes about two minutes.</p>
       <pre>${s.how_to_build.map(esc).join('\n')}</pre>
-      <p class="hint">The path can also come from the <code>PTM_MIMIC_STORE</code> environment variable, and the dictionary from <code>PTM_MIMIC_D_ITEMS</code>. Only a snapshot whose manifest names <code>${esc(s.open_datasets.join(', '))}</code> is served.</p>`;
+      <p class="hint">The path can also come from the <code>PTM_MIMIC_STORE</code> environment variable, and the dictionary from <code>PTM_MIMIC_D_ITEMS</code>. Only a snapshot labelled <code>${esc(s.open_datasets.join(', '))}</code> that also holds the open demo's own 100 patients, checked by a pinned digest of their identifiers, is served.</p>`;
     return;
   }
   const t = s.tables;
@@ -340,7 +341,10 @@ function renderResults() {
   if (state.pending) { box.innerHTML = '<p class="muted">Running in the store…</p>'; return; }
   if (state.error && state.status?.available) {
     const why = REFUSALS[state.error];
-    box.innerHTML = `<div class="bad"><b>The store refused the query.</b> ${why ? esc(why) + ' ' : ''}<span class="muted">(${esc(state.error)})</span></div>`;
+    const internal = {AGGREGATE_RULE_VIOLATION: 'The server built an answer that was not aggregate counts only, so it sent nothing. This is a fault in the server, not in the query.',
+      INTERNAL_ERROR: 'The server failed while answering. This is a fault in the server, not in the query.'}[state.error];
+    box.innerHTML = internal ? `<div class="bad"><b>No answer.</b> ${esc(internal)} <span class="muted">(${esc(state.error)})</span></div>`
+      : `<div class="bad"><b>The store refused the query.</b> ${why ? esc(why) + ' ' : ''}<span class="muted">(${esc(state.error)})</span></div>`;
     return;
   }
   const r = state.result;
@@ -361,7 +365,7 @@ function renderResults() {
       ${table('Relaxations', ['Relaxation', 'Relaxed matches', 'Noted beside unresolved'], relaxRows)}
       ${Object.keys(r.relaxed_certainty).length ? `<p class="hint">Relaxed matches: ${Object.entries(r.relaxed_certainty).map(([k, n]) => `${fmt(n)} ${k}`).join(', ')}.</p>` : ''}
       <h3>How the store got there</h3>
-      <p class="hint">The candidate filter kept <b>${fmt(r.candidates)}</b> patients: each step's item (or a declared widening) is recorded for them at least once (${r.plan.map(p => `step ${esc(p.step)}: ${fmt(p.patients)}`).join(', ')}). Time pruning then settled <b>${fmt(r.pruned)}</b> of those with a period as no match from the stored time summaries, without loading their events (D25), and the matching engine ran on the rest. The <b>${fmt(r.filtered)}</b> patients outside the candidate set are no match without running the engine, unless coverage or excluded rows make them not comparable. Matching took ${r.timing.match_seconds.toFixed(3)} s on the server (${r.timing.total_seconds.toFixed(3)} s in all, including a second pass to count pruned candidates).</p>
+      <p class="hint">The candidate filter kept <b>${fmt(r.candidates)}</b> patients: each step's item (or a declared widening) is recorded for them at least once (${r.plan.map(p => `step ${esc(p.step)}: ${fmt(p.patients)}`).join(', ')}). ${r.pruned === null ? 'Time pruning is switched off on this server, so the engine ran on every candidate with a period.' : `Time pruning then settled <b>${fmt(r.pruned)}</b> of those with a period as no match from the stored time summaries, without loading their events (D25), and the matching engine ran on the rest.`} The <b>${fmt(r.filtered)}</b> patients outside the candidate set are no match without running the engine, unless coverage or excluded rows make them not comparable. Matching took ${r.timing.match_seconds.toFixed(3)} s on the server (${r.timing.total_seconds.toFixed(3)} s in all, including a second pass to count pruned candidates).</p>
     </div>`;
 }
 

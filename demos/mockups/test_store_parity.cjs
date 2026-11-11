@@ -65,6 +65,9 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'a blocker, then at least 8 seizures a month within 60 days': {scope: 'from_start', window,
       nodes: [{id: 'A', concept: 'sodium_channel_blocker', occ: 'first'}, {id: 'B', concept: 'seizure_frequency', cond: 'above', param: 8}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 60, unit: 'day'}]},
+    // A threshold equal to recorded values (whole monthly counts), so reading at most as below changes many results.
+    'at most 2 seizures a month inside the period': {scope: 'within', window,
+      nodes: [{id: 'A', concept: 'seizure_frequency', cond: 'below', param: 2}], edges: []},
     'weight at most 9 kg inside the period': {scope: 'within', window,
       nodes: [{id: 'A', concept: 'weight', cond: 'below', param: 9}], edges: []},
   };
@@ -270,6 +273,7 @@ const EXPECTED = {
     C043: "coverage: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
+  "at most 2 seizures a month inside the period": {},
   "weight at most 9 kg inside the period": {},
 };
 

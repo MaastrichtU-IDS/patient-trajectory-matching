@@ -13,7 +13,9 @@ The store query page (`store-query/`) uses three more, from `store_query.py`: `G
 `GET /api/store/catalogue` and `POST /api/store/match`. They serve a locally built MIMIC-IV demo
 store, named by `--mimic-store` or the `PTM_MIMIC_STORE` environment variable (item labels from
 `--mimic-d-items` or `PTM_MIMIC_D_ITEMS`), answer with aggregate counts only, and refuse any
-snapshot that is not the open demo. With no store configured, status says so and how to build one.
+snapshot whose patients are not the open demo's (checked by content, not by its label). Counts-only
+is not disclosure control (no small-cell suppression; differencing works), so these endpoints are
+for the open demo only. With no store configured, status says so and how to build one.
 """
 import argparse
 from functools import partial
@@ -48,12 +50,9 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == '/api/health':
             return self.send_json(200, {'profile': engine.PROFILE_ID})
         if self.path == '/api/store/status':
-            return self.send_json(200, self.store.status())
+            return self.store_answer(self.store.status)
         if self.path == '/api/store/catalogue':
-            try:
-                return self.send_json(200, self.store.catalogue())
-            except store_query.Unavailable as error:
-                return self.send_json(503, {'error': str(error)})
+            return self.store_answer(self.store.catalogue)
         if self.path.startswith('/api/'):
             return self.send_json(404, {'error': 'NOT_FOUND'})
         return super().do_GET()
@@ -70,7 +69,7 @@ class Handler(SimpleHTTPRequestHandler):
             return None, (413, 'BODY_TOO_LARGE')
         try:
             return json.loads(self.rfile.read(size)), None
-        except ValueError:
+        except (ValueError, RecursionError):
             return None, (400, 'MALFORMED_REQUEST')
 
     def do_POST(self):
@@ -94,8 +93,12 @@ class Handler(SimpleHTTPRequestHandler):
         data, refused = self.read_json()
         if refused:
             return self.send_json(refused[0], {'error': refused[1]})
+        return self.store_answer(lambda: self.store.match(data))
+
+    def store_answer(self, answer):
+        """A store endpoint's answer, or a named error; never a traceback or a dropped connection."""
         try:
-            return self.send_json(200, self.store.match(data))
+            return self.send_json(200, answer())
         except store_query.QueryError as error:
             return self.send_json(400, {'error': str(error)})
         except store_query.Unavailable as error:
@@ -103,16 +106,20 @@ class Handler(SimpleHTTPRequestHandler):
         except store_query.AggregateRuleViolation:
             # An answer that is not aggregate counts only is never sent, not even in part.
             return self.send_json(500, {'error': 'AGGREGATE_RULE_VIOLATION'})
+        except Exception:  # noqa: BLE001 - an internal failure is named, with no detail that could carry data
+            return self.send_json(500, {'error': 'INTERNAL_ERROR'})
 
     def log_message(self, format, *args):
         if self.path.startswith('/api/'):
             super().log_message(format, *args)
 
 
-def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None):
-    """The server; the MIMIC demo store comes from the arguments, else from PTM_MIMIC_STORE and PTM_MIMIC_D_ITEMS."""
+def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None):
+    """The server; the MIMIC demo store comes from the arguments, else from PTM_MIMIC_STORE and PTM_MIMIC_D_ITEMS.
+    `demo_pin` replaces the open demo's (patient count, subject digest) for tests on the synthetic fixture only."""
     service = store_query.StoreService(mimic_store or os.environ.get('PTM_MIMIC_STORE'),
-                                       mimic_d_items or os.environ.get('PTM_MIMIC_D_ITEMS'))
+                                       mimic_d_items or os.environ.get('PTM_MIMIC_D_ITEMS'),
+                                       **({'pin': demo_pin} if demo_pin else {}))
     handler = type('ConfiguredHandler', (Handler,), {'store': service})
     httpd = ThreadingHTTPServer((host, port), partial(handler, directory=str(HERE)))
     httpd.store = service

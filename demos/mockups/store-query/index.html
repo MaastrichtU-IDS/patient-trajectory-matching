@@ -73,7 +73,7 @@
 <main>
   <div class="eyebrow">PATIENT TRAJECTORY MATCHING · STORE QUERY · STAGE 1</div>
   <h1>Query the MIMIC-IV demo store</h1>
-  <p class="note">This page runs trajectory queries in the <b>execution store</b> on the server, against a store built on this machine from the <b>open MIMIC-IV demo</b> (100 patients). It shows <b>aggregate counts only</b>: no patient identifiers, times, values or per-patient rows ever leave the server. Steps are <b>source item classes</b> (rows of the MIMIC <code>d_items</code> dictionary, labelled with its public terms) and their dictionary categories. They are not clinical concepts and have not been reviewed by a clinician. Nothing here is a clinical claim.</p>
+  <p class="note">This page runs trajectory queries in the <b>execution store</b> on the server, against a store built on this machine from the <b>open MIMIC-IV demo</b> (100 patients). It shows <b>aggregate counts only</b>: no patient identifiers, times, values or per-patient rows leave the server. Counts alone are not disclosure control: there is no small-cell suppression, and a run of queries that differ slightly can isolate one patient's value. That is acceptable only because the demo is open data; the server refuses any store that does not hold the open demo's patients. Steps are <b>source item classes</b> (rows of the MIMIC <code>d_items</code> dictionary, labelled with its public terms) and their dictionary categories. They are not clinical concepts and have not been reviewed by a clinician. Nothing here is a clinical claim.</p>
   <p><a href="../">← all mockups</a> · <a href="../trajectory/">Define a trajectory</a> (synthetic cohort, matched in this browser and the engine) · <a href="../roadmap/">roadmap</a> · design: decision D29 in <code>docs/decisions/engine-increment-log.md</code></p>
 
   <section aria-labelledby="h-store">
@@ -161,7 +161,7 @@
       <li>It does not replace <a href="../trajectory/">Define a trajectory</a>. That page still resolves candidates in the browser on the synthetic cohort. This page sits beside it (stage 1 of three); the roadmap lists what the store must learn before it can sit under that page (stage 2): Nth occurrences, "at least N times within", rises and falls relative to earlier values, and more.</li>
       <li>Occurrences are <i>any</i>, <i>first</i> or <i>last</i>; <i>first</i> and <i>last</i> pick among the events that meet the step's value condition.</li>
       <li>Absence ("no X between A and B") and alternatives ("A or B") cannot be expressed.</li>
-      <li>The store has one snapshot of a 100-patient open demo. It does not cover full MIMIC-IV, and the endpoint refuses any snapshot that is not the open demo.</li>
+      <li>The store has one snapshot of a 100-patient open demo. It does not cover full MIMIC-IV. The server checks the store's content, the demo's own 100 patients, not just its label, and refuses anything else. Credentialed data would need real disclosure control (suppression, noise, query auditing), which is not built.</li>
     </ul>
   </section>
 </main>

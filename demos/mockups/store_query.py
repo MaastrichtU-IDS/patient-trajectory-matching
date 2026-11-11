@@ -12,13 +12,25 @@ existing pages, not under them. `server.py` serves three endpoints from this mod
 
 Two data rules are enforced here, not in the page:
 
-1. **Aggregate counts only** (D17 and the demo convention). The answer is built field by field
-   from counts (`aggregate`), then checked against a closed schema (`check_aggregate`): only known
-   keys, integer counts, codes from fixed vocabularies, and no string or integer equal to one of the
-   store's patient identifiers. It never holds patient ids, times, values or per-patient rows.
-2. **Only the open MIMIC-IV demo.** A snapshot whose manifest names any other dataset is refused
-   before it is opened (`OPEN_DATASETS`), so a credentialed snapshot can never be served through
-   these endpoints.
+1. **Aggregate counts only** (D17 and the demo convention). The match answer is built field by
+   field from counts (`aggregate`), then checked against a closed schema (`check_aggregate`): only
+   known keys, integer counts between 0 and the store's patient count, and strings only from fixed
+   vocabularies (statuses, upper-case reason codes, the server's own relaxation ids), none of which
+   may equal a patient identifier. The status and catalogue answers are checked against closed
+   schemas too (`check_status`, `check_catalogue`). No answer holds patient ids, times, values or
+   per-patient rows.
+2. **Only the open MIMIC-IV demo, by content.** The manifest's dataset id is a first, cheap
+   filter, but it is a label outside the snapshot identity, so it decides nothing alone. Before
+   anything is served, the store must hold exactly the open demo's patients: 100 rows in
+   `patients`, whose sorted identifiers hash to `DEMO_SUBJECTS_SHA256`, pinned from the demo's
+   `icustays` file (`demo_subjects_digest`). A relabelled snapshot, or full MIMIC-IV built with
+   the demo's dataset id, is refused.
+
+**Counts-only is not disclosure control.** There is no small-cell suppression, and differencing works:
+a series of queries that halve a threshold can isolate one patient's value. That is acceptable only
+because the data are the open demo. A credentialed deployment would need real disclosure control
+(suppression, noise, query auditing), which is not built; the content check above is what keeps
+credentialed data out of these endpoints.
 
 The store is built locally from `data/local-mimic/` by the existing tooling and is never committed.
 Its concepts are source item classes (`d_items` itemids) and their dictionary categories, not
@@ -29,6 +41,7 @@ from __future__ import annotations
 import csv
 from decimal import Decimal, InvalidOperation
 import gzip
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -39,8 +52,18 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[2]
 
 PROFILE = 'mockup-store-query-1.0'
-# The only datasets these endpoints serve: the open MIMIC-IV demo as the store's MIMIC converter names it.
+# The only datasets these endpoints serve: the open MIMIC-IV demo as the store's MIMIC converter names it. A label, so
+# only a first filter: the content check below decides.
 OPEN_DATASETS = frozenset({'mimic-iv-demo-2.2:source_item_class'})
+# The open demo's patients, by content. Every `icustays` subject is a store patient (docs/execution-store.md), so the
+# store's `patients` table must hold exactly the demo's 100 subject ids. The digest is the sha256 of those ids, sorted,
+# each followed by a newline, computed by `demo_subjects_digest` from the pinned demo file `icu/icustays.csv.gz`
+# (file sha256 e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3 in
+# data/mimic-inputevents-demo-pin.json); `python demos/mockups/store_query.py demo-pin data/local-mimic/icu` recomputes
+# it. The demo is open data whose reports already commit digests of its rows (D17), so the pin may be committed.
+DEMO_PATIENTS = 100
+DEMO_SUBJECTS_SHA256 = 'd8fbf1dba4534445e7c41921ec97fc2d9c8bb78a664700ede29884b0facf533e'
+DEMO_ICUSTAYS_SHA256 = 'e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3'
 ITEM_NS = 'https://example.org/trajectory/mimic-record-item/'
 GROUP_NS = 'https://example.org/trajectory/mimic-record-item-category/'
 INTERVAL_SOURCE = 'inputevents:continuous_segments'
@@ -96,11 +119,39 @@ def locate_snapshot(path):
 
 
 def check_open_dataset(manifest):
-    """Refuse any snapshot that is not the open MIMIC-IV demo, by its manifest's dataset id."""
+    """The first, cheap filter: refuse a snapshot whose manifest does not name the open MIMIC-IV demo. The dataset id
+    is outside the snapshot identity, so passing this proves nothing; `check_open_content` decides."""
     dataset = manifest.get('dataset_id') if isinstance(manifest, dict) else None
     if dataset not in OPEN_DATASETS:
         raise Unavailable('SNAPSHOT_NOT_OPEN_MIMIC_DEMO')
     return dataset
+
+
+def subjects_digest(ids):
+    """sha256 of patient identifiers, sorted, each followed by a newline."""
+    return hashlib.sha256(''.join(f'{i}\n' for i in sorted(ids)).encode()).hexdigest()
+
+
+def demo_subjects_digest(icu_dir):
+    """The pin, from the demo's own `icustays` file, after checking that file against its pinned digest."""
+    path = Path(icu_dir) / 'icustays.csv.gz'
+    if hashlib.sha256(path.read_bytes()).hexdigest() != DEMO_ICUSTAYS_SHA256:
+        raise ValueError('ICUSTAYS_NOT_THE_PINNED_DEMO_FILE')
+    with gzip.open(path, 'rt', newline='', encoding='utf-8') as handle:
+        ids = {row['subject_id'] for row in csv.DictReader(handle)}
+    return len(ids), subjects_digest(ids)
+
+
+def check_open_content(store, pin=(DEMO_PATIENTS, DEMO_SUBJECTS_SHA256)):
+    """Refuse a store whose patients are not exactly the open demo's: the manifest's row count first, then the
+    digest of the identifiers read from the `patients` table. Returns the identifiers."""
+    rows, digest = pin
+    if store.manifest['tables'].get('patients', {}).get('rows') != rows:
+        raise Unavailable('SNAPSHOT_CONTENT_NOT_OPEN_MIMIC_DEMO')
+    ids = [pid for pid, in store.query('SELECT patient_id FROM patients ORDER BY patient_idx')]
+    if len(ids) != rows or subjects_digest(ids) != digest:
+        raise Unavailable('SNAPSHOT_CONTENT_NOT_OPEN_MIMIC_DEMO')
+    return ids
 
 
 def read_d_items(path):
@@ -113,15 +164,19 @@ def read_d_items(path):
 class StoreService:
     """One configured snapshot, opened lazily and shared by the server's threads under a lock."""
 
-    def __init__(self, path=None, d_items=None):
+    def __init__(self, path=None, d_items=None, pin=(DEMO_PATIENTS, DEMO_SUBJECTS_SHA256)):
+        """`pin` is (patient count, digest of the sorted patient ids) the store must hold: the open demo's. Tests on
+        the synthetic fixture pass the fixture's own; the server always uses the default."""
         self.path = None if path in (None, '') else Path(path)
         self.d_items = None if d_items in (None, '') else Path(d_items)
+        self.pin = pin
         self.lock = threading.Lock()
         self.store = None
         self.error = None
         self.opened = False
 
-    # The store is opened once; a failure is remembered and reported, never retried per request.
+    # The store is opened once; a failure is remembered and reported, never retried per request. Nothing is
+    # served unless every check passes: `self.store` is set last, and a store opened by a failed attempt is closed.
     def _open(self):
         if self.opened:
             return
@@ -129,10 +184,11 @@ class StoreService:
         if self.path is None:
             self.error = 'STORE_NOT_CONFIGURED'
             return
+        store = None
         try:
             snapshot = locate_snapshot(self.path)
             manifest = json.loads((snapshot / 'manifest.json').read_text())
-            self.dataset = check_open_dataset(manifest)  # before DuckDB reads a single file
+            dataset = check_open_dataset(manifest)  # the cheap label filter, before DuckDB reads a single file
             try:
                 from patterns import execution_store as es
                 from patterns import trajectory_graph as tg
@@ -141,14 +197,21 @@ class StoreService:
             self.es, self.tg = es, tg
             store = es.open_store(snapshot, verify='files')
             check_open_dataset(store.manifest)
-            self.store = store
+            check_open_content(store, self.pin)  # the decisive check: the demo's own patients
+            self.dataset = dataset
             self.labels = self._labels()
-            self._load()
+            self._load(store)
+            self.store = store
         except Unavailable as error:
             self.error = str(error)
         except (OSError, ValueError) as error:
+            # A StoreError is a ValueError; open_store raises DUCKDB_UNAVAILABLE when DuckDB is not installed.
+            self.error = 'STORE_SUPPORT_NOT_INSTALLED' if str(error).startswith('DUCKDB_UNAVAILABLE') else 'SNAPSHOT_UNREADABLE'
+        except Exception:  # noqa: BLE001 - any other failure leaves the clean "unavailable" state, never a half-open store
             self.error = 'SNAPSHOT_UNREADABLE'
-            self.detail = type(error).__name__
+        finally:
+            if self.store is None and store is not None:
+                store.close()
 
     def _labels(self):
         if self.d_items is None:
@@ -158,10 +221,11 @@ class StoreService:
         except (OSError, ValueError, KeyError, csv.Error):
             return {}
 
-    def _load(self):
-        """Patient identifiers (for the aggregate check only), windows and the catalogue, computed once."""
-        q = self.store.query
-        self.patients = [pid for _, pid in q('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')]
+    def _load(self, store):
+        """Patient identifiers (for the aggregate checks only), windows and the catalogue, computed once."""
+        q = store.query
+        self.index = {pid: idx for idx, pid in q('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')}
+        self.patients = list(self.index)
         self.patient_ids = frozenset(self.patients)
         # Each patient's coverage periods: per ICU stay, from the inputevents source (one per stay), and all sources.
         stays, spans = {}, {}
@@ -226,15 +290,16 @@ class StoreService:
         with self.lock:
             self._open()
             if self.store is None:
-                return {'profile': PROFILE, 'configured': self.path is not None, 'available': False,
-                        'error': self.error, 'how_to_build': HOW_TO_BUILD,
-                        'open_datasets': sorted(OPEN_DATASETS)}
+                return check_status({'profile': PROFILE, 'configured': self.path is not None, 'available': False,
+                                     'error': self.error, 'how_to_build': HOW_TO_BUILD,
+                                     'open_datasets': sorted(OPEN_DATASETS)}, frozenset())
             m = self.store.manifest
-            return {'profile': PROFILE, 'configured': True, 'available': True, 'dataset_id': m['dataset_id'],
-                    'snapshot_id': m['snapshot_id'], 'store_profile': m['profile'], 'patients': len(self.patients),
-                    'labels': m.get('labels') or {}, 'dictionary_labels': bool(self.labels),
-                    'tables': {name: t['rows'] for name, t in sorted(m['tables'].items())},
-                    'windows': {k: len(v) for k, v in self.windows.items()}}
+            return check_status({'profile': PROFILE, 'configured': True, 'available': True,
+                                 'dataset_id': m['dataset_id'], 'snapshot_id': m['snapshot_id'],
+                                 'store_profile': m['profile'], 'patients': len(self.patients),
+                                 'labels': m.get('labels') or {}, 'dictionary_labels': bool(self.labels),
+                                 'tables': {name: t['rows'] for name, t in sorted(m['tables'].items())},
+                                 'windows': {k: len(v) for k, v in self.windows.items()}}, self.patient_ids)
 
     def catalogue(self):
         with self.lock:
@@ -249,8 +314,8 @@ class StoreService:
                             'sources': e['sources'],
                             'units': [{'unit': u, 'rows': r, **({'patients': p} if p is not None else {})}
                                       for u, (r, p) in sorted(e['own'].items(), key=lambda kv: -kv[1][0])]})
-            return {'profile': PROFILE, 'dataset_id': self.dataset, 'patients': len(self.patients),
-                    'dictionary_labels': bool(self.labels), 'entries': out}
+            return check_catalogue({'profile': PROFILE, 'dataset_id': self.dataset, 'patients': len(self.patients),
+                                    'dictionary_labels': bool(self.labels), 'entries': out}, self.patient_ids)
 
     def match(self, spec):
         with self.lock:
@@ -258,7 +323,14 @@ class StoreService:
             if self.store is None:
                 raise Unavailable(self.error)
             started = time.perf_counter()
-            query, conditions, windows, declared = self.compile(spec)
+            try:
+                query, conditions, windows, declared = self.compile(spec)
+            except QueryError:
+                raise
+            except (TypeError, KeyError, AttributeError, ValueError, RecursionError, StopIteration):
+                # The guards in `compile` name every refusal they foresee; anything else a malformed body can
+                # provoke is still the request's fault, and still a named 400.
+                raise QueryError('MALFORMED_REQUEST')
             es = self.es
             try:
                 t = time.perf_counter()
@@ -276,12 +348,14 @@ class StoreService:
 
     def _pruned(self, query, conditions, windows):
         """How many candidates time pruning decided without loading their events: the store's own pruning function
-        (`execution_store._prune`, D25, D26) run on the inputs `match` gave it. Read-only; it changes no result."""
+        (`execution_store._prune`, D25, D26) run on the inputs `match` gave it. Read-only; it changes no result.
+        None when pruning is switched off (`execution_store._PRUNE`), since `match` then pruned nothing."""
         es, tg = self.es, self.tg
+        if not es._PRUNE:
+            return None
         request = None if conditions is None else es.Request(query, conditions)
         pq = tg.PreparedQuery(query if request is None else request.query)
-        by_id = {pid: idx for idx, pid in enumerate(self.patients)}
-        windows_by_idx = {by_id[pid]: windows.get(pid) for pid in self.patients}
+        windows_by_idx = {self.index[pid]: windows.get(pid) for pid in self.patients}
         found = es._candidates(self.store, pq, request)
         live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
         return len(es._prune(self.store, pq, live, windows_by_idx, tags=request.used if request else None))
@@ -292,10 +366,10 @@ class StoreService:
         """(query, conditions or None, windows, declared relaxation ids) from the page's request, refusing anything else."""
         require(isinstance(spec, dict) and set(spec) <= {'steps', 'relations', 'window', 'scope', 'budget'}
                 and {'steps', 'window', 'scope'} <= set(spec), 'REQUEST_FIELDS')
-        require(spec['window'] in WINDOWS, 'UNKNOWN_WINDOW')
-        require(spec['scope'] in SCOPES, 'UNKNOWN_SCOPE')
+        require(isinstance(spec['window'], str) and spec['window'] in WINDOWS, 'UNKNOWN_WINDOW')
+        require(isinstance(spec['scope'], str) and spec['scope'] in SCOPES, 'UNKNOWN_SCOPE')
         budget = spec.get('budget', '1')
-        require(budget in BUDGETS, 'UNKNOWN_BUDGET')
+        require(isinstance(budget, str) and budget in BUDGETS, 'UNKNOWN_BUDGET')
         steps = spec['steps']
         require(isinstance(steps, list) and 1 <= len(steps) <= len(STEP_IDS), 'STEPS_MUST_BE_1_TO_6')
         out_steps, relaxations, conditions, value_relaxations, declared = [], [], {}, [], set()
@@ -304,12 +378,13 @@ class StoreService:
             require(isinstance(s, dict) and set(s) <= {'id', 'concept', 'occurrence', 'condition', 'widen_value',
                                                        'widen_concept'} and {'id', 'concept'} <= set(s), 'STEP_FIELDS')
             sid = s['id']
-            require(sid in STEP_IDS and sid not in ids, 'STEP_ID')
+            require(isinstance(sid, str) and sid in STEP_IDS and sid not in ids, 'STEP_ID')
             ids.add(sid)
+            require(isinstance(s['concept'], str), 'CONCEPT_MUST_BE_A_STRING')
             entry = self.entries.get(s['concept'])
             require(entry is not None, 'UNKNOWN_CONCEPT')
             occurrence = s.get('occurrence', 'any')
-            require(occurrence in OCCURRENCES, 'UNKNOWN_OCCURRENCE')
+            require(isinstance(occurrence, str) and occurrence in OCCURRENCES, 'UNKNOWN_OCCURRENCE')
             out_steps.append({'id': sid, 'concept': entry['concept'], 'occurrence': occurrence})
             if s.get('condition') is not None:
                 conditions[sid] = condition(s['condition'], entry)
@@ -326,7 +401,8 @@ class StoreService:
                 require(s.get('widen_value') is None, 'WIDEN_VALUE_NEEDS_A_CONDITION')
             if s.get('widen_concept') is not None:
                 w = s['widen_concept']
-                require(isinstance(w, dict) and set(w) == {'concept', 'cost'}, 'WIDEN_CONCEPT_FIELDS')
+                require(isinstance(w, dict) and set(w) == {'concept', 'cost'} and isinstance(w['concept'], str),
+                        'WIDEN_CONCEPT_FIELDS')
                 wider = self.entries.get(w['concept'])
                 require(wider is not None and wider['kind'] == 'grouping' and entry['grouping'] == wider['concept'],
                         'WIDEN_CONCEPT_MUST_BE_THE_ITEMS_GROUPING')
@@ -338,8 +414,10 @@ class StoreService:
         require(isinstance(relations, list) and len(relations) <= MAX_RELATIONS, 'RELATIONS')
         out_relations = []
         for k, r in enumerate(relations, 1):
-            require(isinstance(r, dict) and r.get('kind') in ('after', 'during'), 'RELATION_KIND')
-            require(r.get('from') in ids and r.get('to') in ids and r['from'] != r['to'], 'RELATION_STEPS')
+            require(isinstance(r, dict) and isinstance(r.get('kind'), str) and r['kind'] in ('after', 'during'),
+                    'RELATION_KIND')
+            require(isinstance(r.get('from'), str) and isinstance(r.get('to'), str)
+                    and r['from'] in ids and r['to'] in ids and r['from'] != r['to'], 'RELATION_STEPS')
             rid = f'R{k}'
             if r['kind'] == 'after':
                 require(set(r) <= {'kind', 'from', 'to', 'min', 'max', 'extend_max'}, 'RELATION_FIELDS')
@@ -387,7 +465,7 @@ class StoreService:
 def decimal_string(value):
     """A threshold as the page sent it: a string, never a JSON number, which would have passed through a float."""
     require(type(value) is str, 'THRESHOLD_MUST_BE_A_STRING')
-    require(re.fullmatch(r'-?(0|[1-9][0-9]*)(\.[0-9]+)?', value) is not None and len(value) <= 40,
+    require(len(value) <= 40 and re.fullmatch(r'-?(0|[1-9][0-9]*)(\.[0-9]+)?', value) is not None,
             'THRESHOLD_NOT_A_PLAIN_DECIMAL')
     return value
 
@@ -395,29 +473,32 @@ def decimal_string(value):
 def condition(raw, entry):
     """The store's condition (`execution-store-conditions-1.0`) from {unit, lower?: {op, value}, upper?: {op, value}}."""
     require(isinstance(raw, dict) and set(raw) <= {'unit', 'lower', 'upper'} and 'unit' in raw, 'CONDITION_FIELDS')
-    require(raw['unit'] in entry['own'], 'UNIT_NOT_RECORDED_FOR_THIS_ITEM')
+    require(isinstance(raw['unit'], str) and raw['unit'] in entry['own'], 'UNIT_NOT_RECORDED_FOR_THIS_ITEM')
     out = {'unit': raw['unit']}
     for side, ops in (('lower', LOWER), ('upper', UPPER)):
         b = raw.get(side)
         if b is None:
             continue
-        require(isinstance(b, dict) and set(b) == {'op', 'value'} and b['op'] in ops, 'CONDITION_BOUND')
+        require(isinstance(b, dict) and set(b) == {'op', 'value'} and isinstance(b['op'], str) and b['op'] in ops,
+                'CONDITION_BOUND')
         out[b['op']] = decimal_string(b['value'])
     require(len(out) > 1, 'CONDITION_NEEDS_A_BOUND')
     return out
 
 
 def cost(value):
-    require(type(value) is str and re.fullmatch(r'(0|[1-9][0-9]*)(\.[0-9]+)?', value) is not None
+    require(type(value) is str and len(value) <= 12 and re.fullmatch(r'(0|[1-9][0-9]*)(\.[0-9]+)?', value) is not None
             and Decimal(value) <= 2, 'COST')
     return value
 
 
 def duration(raw):
     """Microseconds from {amount, unit}; the amount an integer or a plain decimal string, converted exactly."""
-    require(isinstance(raw, dict) and set(raw) == {'amount', 'unit'} and raw['unit'] in TIME_UNITS, 'DURATION')
+    require(isinstance(raw, dict) and set(raw) == {'amount', 'unit'} and isinstance(raw['unit'], str)
+            and raw['unit'] in TIME_UNITS, 'DURATION')
     amount = raw['amount']
-    require((type(amount) is int) or (type(amount) is str and re.fullmatch(r'-?[0-9]+(\.[0-9]+)?', amount)),
+    require((type(amount) is int and abs(amount) <= 10 ** 12)
+            or (type(amount) is str and len(amount) <= 20 and re.fullmatch(r'-?[0-9]+(\.[0-9]+)?', amount)),
             'DURATION_AMOUNT')
     try:
         micros = Decimal(str(amount)) * TIME_UNITS[raw['unit']]
@@ -470,7 +551,7 @@ def aggregate(out, declared, pruned, windows_placed, timing):
         'windows': {'placed': int(windows_placed), 'not_placed': counts['excluded']},
         'candidates': candidates,
         'filtered': int(implicit.get('FILTERED', 0)),
-        'pruned': int(pruned),
+        'pruned': None if pruned is None else int(pruned),
         'plan': [{'step': p['step'], 'patients': int(p['patients'])} for p in out['plan']],
         'timing': {k: round(v, 3) for k, v in timing.items()},
     }
@@ -480,27 +561,39 @@ SCHEMA = {
     'profile': str, 'patients': int, 'counts': 'status_counts', 'not_comparable_reasons': 'code_counts',
     'unresolved_reasons': 'code_counts', 'notes': 'code_counts', 'relaxed_certainty': 'certainty_counts',
     'relaxations': 'relaxations', 'windows': {'placed': int, 'not_placed': int}, 'candidates': int, 'filtered': int,
-    'pruned': int, 'plan': 'plan', 'timing': {'match_seconds': float, 'pruning_count_seconds': float,
-                                              'total_seconds': float},
+    'pruned': 'optional_count', 'plan': 'plan', 'timing': {'match_seconds': float, 'pruning_count_seconds': float,
+                                                           'total_seconds': float},
 }
 
 
-def check_aggregate(payload, patient_ids):
-    """Refuse anything but aggregate counts: the closed SCHEMA, counts as non-negative integers, and the only strings
-    the profile and codes from fixed vocabularies (statuses, upper-case reason codes, the server's own relaxation
-    identifiers), none of them equal to one of the store's patient identifiers. Nothing the page sent is echoed."""
+def _checker(patient_ids, limit):
+    """Shared checks: `fail`, `count` (an integer from 0 to `limit`, the store's patient count unless given) and
+    `text` (a string of bounded length, equal to no patient identifier)."""
     def fail(where):
         raise AggregateRuleViolation(where)
 
-    def count(v, where):
-        if not (type(v) is int and v >= 0):
+    def count(v, where, bound=limit):
+        if not (type(v) is int and 0 <= v <= bound):
             fail(where)
+
+    def text(v, where, longest=200):
+        if not (isinstance(v, str) and len(v) <= longest and v not in patient_ids):
+            fail(where)
+    return fail, count, text
+
+
+def check_aggregate(payload, patient_ids):
+    """Refuse anything but aggregate counts: the closed SCHEMA; every count a patient count, an integer from 0 to the
+    store's number of patients; and the only strings the profile and codes from fixed vocabularies (statuses,
+    upper-case reason codes, the server's own relaxation identifiers). The reason, note and certainty keys are also
+    compared with the patient identifiers. Nothing the page sent is echoed."""
+    fail, count, _ = _checker(patient_ids, len(patient_ids))
 
     def counts(d, keys, where):
         if not isinstance(d, dict):
             fail(where)
         for k, v in d.items():
-            if not (isinstance(k, str) and keys(k)):
+            if not (isinstance(k, str) and keys(k) and k not in patient_ids):
                 fail(f'{where}.{k}')
             count(v, f'{where}.{k}')
 
@@ -512,6 +605,9 @@ def check_aggregate(payload, patient_ids):
                 walk(value[k], sub, f'{where}.{k}')
         elif shape is int:
             count(value, where)
+        elif shape == 'optional_count':
+            if value is not None:
+                count(value, where)
         elif shape is float:
             if not (type(value) in (int, float) and 0 <= value < 86_400):
                 fail(where)
@@ -523,7 +619,7 @@ def check_aggregate(payload, patient_ids):
             if set(value) != set(STATUSES):
                 fail(where)
         elif shape == 'code_counts':
-            counts(value, lambda k: CODE.fullmatch(k) is not None and k not in patient_ids, where)
+            counts(value, lambda k: CODE.fullmatch(k) is not None, where)
         elif shape == 'certainty_counts':
             counts(value, lambda k: k in ('exact', 'possible'), where)
         elif shape == 'relaxations':
@@ -546,3 +642,100 @@ def check_aggregate(payload, patient_ids):
             fail(where)
     walk(payload, SCHEMA, 'answer')
     return payload
+
+
+SNAPSHOT_ID = re.compile(r'[0-9a-f]{64}')
+STORE_PROFILE = re.compile(r'execution-store-[0-9]+\.[0-9]+')
+ENTRY_KEYS = {'concept', 'kind', 'itemid', 'label', 'category', 'grouping', 'patients', 'events', 'interval',
+              'sources', 'units'}
+
+
+def check_status(payload, patient_ids):
+    """The status answer's closed schema: an unavailable store gives a code and the fixed build commands; an available
+    one the manifest's identity, labels (flat strings and booleans) and table row counts, and window counts bounded
+    by the patient count. No string equals a patient identifier."""
+    fail, count, text = _checker(patient_ids, len(patient_ids))
+    if not isinstance(payload, dict) or payload.get('profile') != PROFILE:
+        fail('status')
+    if payload.get('available') is False:
+        if not (set(payload) == {'profile', 'configured', 'available', 'error', 'how_to_build', 'open_datasets'}
+                and type(payload['configured']) is bool and isinstance(payload['error'], str)
+                and CODE.fullmatch(payload['error']) and payload['how_to_build'] == HOW_TO_BUILD
+                and payload['open_datasets'] == sorted(OPEN_DATASETS)):
+            fail('status.unavailable')
+        return payload
+    if not (set(payload) == {'profile', 'configured', 'available', 'dataset_id', 'snapshot_id', 'store_profile',
+                             'patients', 'labels', 'dictionary_labels', 'tables', 'windows'}
+            and payload['available'] is True and payload['configured'] is True
+            and payload['dataset_id'] in OPEN_DATASETS and isinstance(payload['snapshot_id'], str)
+            and SNAPSHOT_ID.fullmatch(payload['snapshot_id']) and isinstance(payload['store_profile'], str)
+            and STORE_PROFILE.fullmatch(payload['store_profile']) and type(payload['dictionary_labels']) is bool
+            and isinstance(payload['labels'], dict) and isinstance(payload['tables'], dict)
+            and isinstance(payload['windows'], dict) and set(payload['windows']) == set(WINDOWS)):
+        fail('status.available')
+    count(payload['patients'], 'status.patients')
+    for k, v in payload['labels'].items():
+        text(k, f'status.labels.{k}', 80)
+        if type(v) is not bool:
+            text(v, f'status.labels.{k}', 400)
+    for k, v in payload['tables'].items():
+        text(k, f'status.tables.{k}', 40)
+        count(v, f'status.tables.{k}', 10 ** 12)  # table rows, not patients
+    for k, v in payload['windows'].items():
+        count(v, f'status.windows.{k}')
+    return payload
+
+
+def check_catalogue(payload, patient_ids):
+    """The catalogue answer's closed schema: per item class or grouping, its concept IRI, dictionary label and
+    category, patient counts bounded by the store's, event and value-row counts, its sources and its units."""
+    fail, count, text = _checker(patient_ids, len(patient_ids))
+    if not (isinstance(payload, dict) and set(payload) == {'profile', 'dataset_id', 'patients', 'dictionary_labels',
+                                                           'entries'}
+            and payload['profile'] == PROFILE and payload['dataset_id'] in OPEN_DATASETS
+            and type(payload['dictionary_labels']) is bool and isinstance(payload['entries'], list)):
+        fail('catalogue')
+    count(payload['patients'], 'catalogue.patients')
+    for k, e in enumerate(payload['entries']):
+        where = f'catalogue.entries[{k}]'
+        if not (isinstance(e, dict) and set(e) == ENTRY_KEYS and e['kind'] in ('item', 'grouping')
+                and type(e['interval']) is bool and isinstance(e['concept'], str)
+                and e['concept'].startswith(ITEM_NS if e['kind'] == 'item' else GROUP_NS)
+                and isinstance(e['sources'], list) and isinstance(e['units'], list)):
+            fail(where)
+        text(e['concept'], f'{where}.concept', 300)
+        text(e['label'], f'{where}.label')
+        for key in ('itemid', 'category', 'grouping'):
+            if e[key] is not None:
+                text(e[key], f'{where}.{key}', 300)
+        if e['itemid'] is not None and not e['itemid'].isdigit():
+            fail(f'{where}.itemid')
+        count(e['patients'], f'{where}.patients')
+        count(e['events'], f'{where}.events', 10 ** 12)
+        for source in e['sources']:
+            text(source, f'{where}.sources', 80)
+        for u in e['units']:
+            if not (isinstance(u, dict) and set(u) in ({'unit', 'rows'}, {'unit', 'rows', 'patients'})):
+                fail(f'{where}.units')
+            text(u['unit'], f'{where}.units.unit', 40)
+            count(u['rows'], f'{where}.units.rows', 10 ** 12)
+            if 'patients' in u:
+                count(u['patients'], f'{where}.units.patients')
+    return payload
+
+
+def main(argv):
+    """`python demos/mockups/store_query.py demo-pin DIR`: the pinned demo's patient count and subject digest,
+    recomputed from DIR/icustays.csv.gz after checking that file against its pinned sha256."""
+    if len(argv) == 2 and argv[0] == 'demo-pin':
+        n, digest = demo_subjects_digest(argv[1])
+        print(json.dumps({'patients': n, 'subjects_sha256': digest,
+                          'matches_pin': (n, digest) == (DEMO_PATIENTS, DEMO_SUBJECTS_SHA256)}))
+        return 0 if (n, digest) == (DEMO_PATIENTS, DEMO_SUBJECTS_SHA256) else 1
+    print(main.__doc__)
+    return 2
+
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main(sys.argv[1:]))
