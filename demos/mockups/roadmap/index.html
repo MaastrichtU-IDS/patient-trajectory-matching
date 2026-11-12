@@ -119,8 +119,8 @@
   <p class="lede">Deliberately deferred, each with the condition that would bring it back.</p>
   <div class="grid">
     <div class="item"><h3>A Rust matching engine</h3>
-      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python meets it at 300,000 patients with 14 workers (p95 9.46 s against 10 s since D30, a narrower margin than before: D30's sound <code>first</code> and <code>last</code> cost time, and three output-identical changes won most of it back), so none was built. It would be a second implementation over the same snapshots, with the Python path as its reference.</p>
-      <p class="ref">D7, D21, D30</p></div>
+      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python meets it at 300,000 patients with 14 workers (p95 9.46 s against 10 s since D30, a narrower margin than before: D30's sound <code>first</code> and <code>last</code> cost time, and three output-identical changes won most of it back), so none was built. D31 tried one envelope search for coupled <code>first</code> and <code>last</code> steps: sound on every check and 12% faster in a same-day comparison, but its regenerated confirmation gave 9.41 s against a bar of 8.5 s fixed beforehand, so it was reverted; fixing run-to-run drift in that measurement comes first. It would be a second implementation over the same snapshots, with the Python path as its reference.</p>
+      <p class="ref">D7, D21, D30, D31</p></div>
     <div class="item"><h3>Embeddings and a nearest-neighbour index</h3>
       <p>Added only if recall at full scale needs it. Concept information content comes from the stored counts.</p>
       <p class="ref">D7</p></div>
