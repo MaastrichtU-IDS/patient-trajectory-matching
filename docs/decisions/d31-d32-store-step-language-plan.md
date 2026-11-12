@@ -27,6 +27,12 @@ The review's changes to this plan, applied below:
    - a pre-committed usefulness bar. On the synthetic cohort the review found only 45 of 1,166 diary readings with a determined baseline, and 2 with a certain rise, so D32 ships only if a stated share of its results is decided, a share fixed before measuring.
 8. **Snapshots without series refuse value and relative conditions by name** (`NO_SERIES_IN_SNAPSHOT`), rather than answering every condition `none` or not comparable.
 
+## Latency candidates for the next increment (from the review of D30)
+
+D30's order rule made the 300,000-patient confirmation miss the D21 target. A review profiled the p95 queries and found the added time in the repeat search of unsafe `first` and `last` steps, mostly arc consistency (`_Arc.revise`, O(n·m) per arc). That search almost never refutes. D30 built three levers that cannot change any output (a sweep for `revise`, no exact phase in the repeat search, a direct certainty test); the decision log has their measured effect. Two more change results or the store format, so they are candidates here, each to be decided under its own rule:
+- **Lever 1: one search over an envelope with order facts.** An unsafe step today is searched on its picked event, then again over every possible target. Instead, search once over a point ranging over its envelope, adding the facts that tie that point to the other steps' events: the target starts no later than every event of its family (no earlier, for `last`), and it coincides with an event of the family when another step binds one. This over-approximates the true semantics less loosely than the repeat search, decides more cases, and costs one search. It changes results, so it needs a proof that it is sound for `none` and for the claims it makes, the worlds check extended to it, and the usual regeneration. It is the first lever to try if the D21 target is still missed.
+- **Lever 5: pruning on order.** The posting summaries hold each concept's earliest and latest start and latest end, not the least latest start that bounds a `first` step's envelope (or the greatest earliest start, for `last`). Storing those per (concept, patient) would let time pruning bound the envelope directly and prune more candidates of `first` and `last` queries. That is a change to `concept_postings`, so a store format change and a new profile, with D25's exactness argument redone.
+
 ## 0. Summary
 
 | Item | Recommendation | Where | Engine |

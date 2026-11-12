@@ -516,6 +516,7 @@ def aggregate(out, declared, pruned, windows_placed, timing):
     for status, n in out['counts'].items():
         counts[status] = int(n)
     reasons, unresolved, notes, used, beside, certainty = {}, {}, {}, {}, {}, {}
+    none_incomplete = 0  # `none` results whose search was not complete (D30 review): counted apart
 
     def bump(table, key, by=1):
         table[key] = table.get(key, 0) + by
@@ -534,6 +535,8 @@ def aggregate(out, declared, pruned, windows_placed, timing):
         if r.get('note'):
             for note in r['note'].split('; '):
                 bump(notes, note)
+        if status == 'none' and r.get('complete') is False:
+            none_incomplete += 1
     implicit = out.get('implicit', {})
     candidates = int(out['candidates'])
     # Relaxations by the identifiers the server gave them; the page labels them from what it sent.
@@ -543,6 +546,7 @@ def aggregate(out, declared, pruned, windows_placed, timing):
         'profile': PROFILE,
         'patients': sum(counts.values()),
         'counts': counts,
+        'none_incomplete': none_incomplete,
         'not_comparable_reasons': dict(sorted(reasons.items())),
         'unresolved_reasons': dict(sorted(unresolved.items())),
         'notes': dict(sorted(notes.items())),
@@ -558,7 +562,7 @@ def aggregate(out, declared, pruned, windows_placed, timing):
 
 
 SCHEMA = {
-    'profile': str, 'patients': int, 'counts': 'status_counts', 'not_comparable_reasons': 'code_counts',
+    'profile': str, 'patients': int, 'counts': 'status_counts', 'none_incomplete': int, 'not_comparable_reasons': 'code_counts',
     'unresolved_reasons': 'code_counts', 'notes': 'code_counts', 'relaxed_certainty': 'certainty_counts',
     'relaxations': 'relaxations', 'windows': {'placed': int, 'not_placed': int}, 'candidates': int, 'filtered': int,
     'pruned': 'optional_count', 'plan': 'plan', 'timing': {'match_seconds': float, 'pruning_count_seconds': float,

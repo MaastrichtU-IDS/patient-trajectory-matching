@@ -1012,7 +1012,8 @@ def match_digest(store, q, w):
 def d30_stage_digests(legacy_store, seed):
     """The seed's result digest at each stage of D30 (decision log, D30): before it (the store converted with
     letter-timed mentions, the order rule off and `last` by the old order), with `last` by the latest start,
-    with the order rule as well, and with the mention timing (the store and the case as they are now)."""
+    with the order rule as well, and with the mention timing (the store and the case as they are now); and, for a
+    second ordering, this store and case with the order rule off (mention timing before the order rule)."""
     q, w = MatcherScalingTests.legacy_case(seed)
     out = []
     for order_rule, last_key in ((False, tg._LAST_KEY_BEFORE_D30), (False, tg.last_key), (True, tg.last_key)):
@@ -1022,19 +1023,33 @@ def d30_stage_digests(legacy_store, seed):
         finally:
             tg._ORDER_RULE, tg._LAST_KEY = True, tg.last_key
     out.append(match_digest(_STATE['store'], *MatcherScalingTests.case(seed)))
+    tg._ORDER_RULE = False
+    try:
+        out.append(match_digest(_STATE['store'], *MatcherScalingTests.case(seed)))
+    finally:
+        tg._ORDER_RULE = True
     return out
 
 
 def d30_explanation(digests):
-    return [stage for stage, a, b in zip(D30_STAGES, digests, digests[1:]) if a != b]
+    """The stages at which the digest moved, in the order last order, order rule, mention timing."""
+    return [stage for stage, a, b in zip(D30_STAGES, digests[:4], digests[1:4]) if a != b]
+
+
+def d30_explanation_timing_first(digests):
+    """The same, in the order last order, mention timing (order rule off), order rule."""
+    chain = [digests[0], digests[1], digests[4], digests[3]]
+    return [stage for stage, a, b in zip(('last order', 'mention timing', 'order rule'), chain, chain[1:]) if a != b]
 
 
 class D30ExplanationTests(unittest.TestCase):
-    """Every recorded match digest D30 moved is explained by its three fixes (decision log, D30): this tree, on the
-    store converted as before D30 and with both engine switches set as before, gives the digest recorded before D30;
-    each change appears at the stage of one of the fixes; and the last stage gives the digest recorded now."""
+    """Every recorded match digest D30 moved is localized to the stages of its three changes (decision log, D30):
+    this tree, on the store converted as before D30 and with both engine switches set as before, gives the digest
+    recorded before D30; the stages at which it then moves are recorded in two orderings (the order rule before or
+    after the mention timing); and the last stage gives the digest recorded now. The stages localize a change;
+    they do not by themselves show that it is a fix (the worlds check in the engine's tests does that)."""
 
-    def test_the_300_recorded_digests_move_only_by_the_three_fixes(self):
+    def test_the_300_recorded_digests_move_only_at_the_three_stages(self):
         recorded = json.loads(D30_DIGESTS.read_text())
         now = json.loads(MatcherScalingTests.FIXTURE.read_text())
         self.assertEqual(sorted(recorded['seeds'], key=int), [str(s) for s in range(SEEDS)])
@@ -1044,10 +1059,22 @@ class D30ExplanationTests(unittest.TestCase):
                 digests = d30_stage_digests(legacy, seed)
                 with self.subTest(seed=seed):
                     self.assertEqual(digests[0], entry['before'])
-                    self.assertEqual(digests[-1], entry['after'])
-                    self.assertEqual(digests[-1], now[str(seed)])
+                    self.assertEqual(digests[3], entry['after'])
+                    self.assertEqual(digests[3], now[str(seed)])
                     self.assertEqual(d30_explanation(digests), entry['stages'])
+                    self.assertEqual(d30_explanation_timing_first(digests), entry['stages_timing_first'])
                     self.assertEqual(entry['case_changed'], MatcherScalingTests.legacy_case(seed) != MatcherScalingTests.case(seed))
+
+    def test_the_levers_change_no_recorded_digest(self):
+        """D30 review: the cost levers off give every recorded digest too."""
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        tg._LEVERS = False
+        try:
+            wrong = [seed for seed in range(SEEDS)
+                     if match_digest(_STATE['store'], *MatcherScalingTests.case(seed)) != now[str(seed)]]
+        finally:
+            tg._LEVERS = True
+        self.assertEqual(wrong, [])
 
 
 class PerBucketDeriveTests(unittest.TestCase):

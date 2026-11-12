@@ -831,7 +831,9 @@ def tiny_case(rng):
         events = []
         for i in range(rng.randint(2, 4)):
             lo = rng.randint(0, 5)
-            e = event(f'e{i}', rng.choice(['x', 'x', 'y']), (lo, lo + rng.choice([0, 1, 3, 4])), None, 'any')
+            # Concept x, y or both (D30 review): families of two steps' concepts overlap without nesting.
+            e = {'id': f'e{i}', 'concepts': [*rng.choice([['x'], ['x'], ['y'], ['x', 'y']]), 'any'],
+                 'start': [lo, lo + rng.choice([0, 1, 3, 4])]}
             if rng.random() < 0.35:
                 end = e['start'][1] + rng.randint(0, 2)
                 e['end'] = [end, end + rng.choice([0, 1, 2])]
@@ -912,7 +914,20 @@ REVIEW_CASES = {
         query([{'id': 'a', 'concept': 'K', 'occurrence': 'first'}, {'id': 'b', 'concept': 'K', 'occurrence': 'last'}],
               [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 10}]),
         patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 900)), 'unresolved'),
+    # The review of D30 (M1): coupling through another uncertain ordered step. A {K}, M {J, K} and Z {J}, each in
+    # [0, 3]; f the first K, l the last J. M may be either step's target.
+    'last J strictly before first K (impossible)': (
+        query([{'id': 'f', 'concept': 'K', 'occurrence': 'first'}, {'id': 'l', 'concept': 'J', 'occurrence': 'last'}],
+              [{'id': 'r', 'kind': 'after', 'from': 'l', 'to': 'f', 'min': 1}]),
+        patient([event('A', 'K', (0, 3)), event('M', 'J', (0, 3), None, 'K'), event('Z', 'J', (0, 3))], (0, 10)),
+        'unresolved'),
+    'first K at or before last J (holds in every choice)': (
+        query([{'id': 'f', 'concept': 'K', 'occurrence': 'first'}, {'id': 'l', 'concept': 'J', 'occurrence': 'last'}],
+              [{'id': 'r', 'kind': 'after', 'from': 'f', 'to': 'l', 'min': 0}]),
+        patient([event('A', 'K', (0, 3)), event('M', 'J', (0, 3), None, 'K'), event('Z', 'J', (0, 3))], (0, 10)),
+        'unresolved'),
 }
+
 
 
 class OccurrenceOrderTests(unittest.TestCase):
@@ -969,7 +984,19 @@ class OccurrenceOrderTests(unittest.TestCase):
             self.assertGreater(wrong_cases(), 0)
         finally:
             tg._ORDER_RULE = True
+        def picked_only(plan, s, targets, step_ids):  # D30 as first built: another ordered step's picked event only
+            concept, records = plan.concepts[s], targets[s].records
+            for t in step_ids:
+                if t == s:
+                    continue
+                if plan.occurrence[t] == 'any':
+                    if any(plan.concepts[t] in r[tg._EVENT].concepts for r in records):
+                        return True
+                elif targets[t] is not None and concept in targets[t].record[tg._EVENT].concepts:
+                    return True
+            return False
         for name, planted in (('coupling ignored', ('_coupled', lambda *a: False)),
+                              ('coupling through picked events only (M1)', ('_coupled', picked_only)),
                               ('ends ignored', ('_reads_end', lambda *a: False)),
                               ('links ignored', ('_safe', lambda plan, s, targets, ids: not tg._reads_end(plan, s, targets)
                                                  and not tg._coupled(plan, s, targets, ids)))):
@@ -1000,6 +1027,35 @@ class OccurrenceOrderTests(unittest.TestCase):
                     self.assertFalse(unrelaxed.possible())
                 if r['status'] == 'none' and not r['passed']:
                     self.assertFalse(any(ask(c).possible() for c in worlds._sets(q)))
+
+    def test_the_levers_change_no_output(self):
+        """D30 review: with the cost levers (`_LEVERS`: the sweep in `_Arc.revise`, the second search without its exact
+        phase, the direct certainty test) on and off, `match` and `decide` give the same output, byte for byte, on the
+        differential cases, the kernel comparison's wide cases, the small worlds cases and the review's cases."""
+        cases = [(q, p) for q, p, _ in REVIEW_CASES.values()]
+        for shape, intervals in (('chain', False), ('tree', False), ('graph', False), ('tree', True), ('graph', True)):
+            for seed in range(300):
+                rng = random.Random(f'{shape}-{intervals}-{seed}')
+                q, p = random_case(rng, shape, intervals)
+                cases.append((q, p))
+                cases.append(KernelIdentityTests.wide(None, rng, q, p, intervals))
+        rng = random.Random('d30-worlds')
+        cases += [tiny_case(rng) for _ in range(3000)]
+        def outputs():
+            out = []
+            for q, p in cases:
+                out.append(json.dumps(tg.match(q, p)))
+                if p['window'] is not None:
+                    out.append(repr(KernelIdentityTests.decisions(tg, q, p)))
+            return out
+        on = outputs()
+        tg._LEVERS = False
+        try:
+            off = outputs()
+        finally:
+            tg._LEVERS = True
+        self.assertEqual(len(on), len(off))
+        self.assertEqual([i for i, (a, b) in enumerate(zip(on, off)) if a != b], [])
 
     def test_last_picks_the_same_event_as_before_on_exact_times(self):
         rng = random.Random('d30-exact-times')

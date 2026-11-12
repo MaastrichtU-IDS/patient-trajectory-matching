@@ -357,7 +357,11 @@ def worker(args):
                 seconds = time.perf_counter() - started
                 row = {'seed': seed, 'match_seconds': seconds, 'engine_seconds': engine['seconds'],
                        'load_seconds': loading['seconds'], 'candidates': candidates, 'counts': result['counts'],
-                       'listed_results': len(result['results'])}
+                       'listed_results': len(result['results']),
+                       # D30 review (S2): incomplete `none` results by note (a relaxation set left undecided).
+                       'incomplete_none': {k: n for k, n in sorted(__import__('collections').Counter(
+                           r.get('note', 'NO_NOTE') for r in result['results']
+                           if r['status'] == 'none' and r.get('complete') is False).items())}}
                 if pruner is not None and not args.no_prune:
                     row['prune_seconds'] = pruning['seconds']
                     row['candidates_with_window'] = sum(len(c[2]) for c in pruning['calls'])
@@ -430,6 +434,14 @@ def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_
 
 # Statistics.
 
+def mix_of(tables):
+    out = {}
+    for table in tables:
+        for k, n in table.items():
+            out[k] = out.get(k, 0) + n
+    return dict(sorted(out.items()))
+
+
 def arm_statistics(result, record, patients):
     runs = result['runs']
     per_query = []
@@ -439,7 +451,8 @@ def arm_statistics(result, record, patients):
         timed_keys = ('match_seconds', 'engine_seconds', 'load_seconds') + (('prune_seconds',) if pruned else ())
         per_query.append({k: statistics.median(r[k] for r in rows) for k in timed_keys}
                          | {'seed': rows[0]['seed'], 'candidates': rows[0]['candidates'], 'counts': rows[0]['counts'],
-                            'digest': rows[0].get('digest'), 'listed_results': rows[0]['listed_results']}
+                            'digest': rows[0].get('digest'), 'listed_results': rows[0]['listed_results'],
+                            'incomplete_none': rows[0].get('incomplete_none', {})}
                          | ({k: rows[0][k] for k in ('candidates_with_window', 'pruned', 'pruned_by_start_summaries')}
                             if pruned else {}))
     candidates = sum(q['candidates'] for q in per_query)
@@ -471,6 +484,9 @@ def arm_statistics(result, record, patients):
                 'worker_memory_limit': pool['worker_memory_limit']} if pool else {'workers': 1}),
             'match_seconds': summary([q['match_seconds'] for q in per_query]),
             'candidate_count': summary([q['candidates'] for q in per_query]),
+            # D30 review (S2): every status over the queries, and the incomplete `none` results among them by note.
+            'status_mix': mix_of(q['counts'] for q in per_query),
+            'incomplete_none_by_note': mix_of(q['incomplete_none'] for q in per_query),
             'per_candidate_microseconds': {'end_to_end': us('match_seconds'), 'engine_only': us('engine_seconds'),
                                            'event_loading': us('load_seconds')},
             'seconds_share': {'engine': sum(q['engine_seconds'] for q in per_query) / sum(q['match_seconds'] for q in per_query),

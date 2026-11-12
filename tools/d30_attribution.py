@@ -18,7 +18,10 @@ S0 to S2 draw their queries as arm A's worker does, from the cohort converted wi
 worker draws the queries with its own converter, and the query generator is shaped around event times, so arm A's
 queries differ from arm B's wherever an anchor event is a letter mention. That change is part of the mention timing.
 
-and names, for each query whose S0 and S3 digests differ, the stages at which it changed. The queries, windows
+and names, for each query whose S0 and S3 digests differ, the stages at which it changed. A second ordering
+(S0, S1, this run's snapshot with the order rule off, S3) puts the mention timing before the order rule, so that the
+rule acting on the wider mentions is counted under the rule. The stages localize a change; they do not by themselves
+show that it is a fix (the engine's worlds check is the evidence for that). The queries, windows
 and digests are the matcher comparison's own (`benchmark_matcher.worker`), run in this process so that the
 switches apply. For the confirmation run, which has no arm A, S0 is compared with the D28 report's arm B, the
 code before D30 on the snapshots before D30.
@@ -47,6 +50,7 @@ if str(ROOT) not in sys.path:
 ARTIFACTS = ('tools/d30_attribution.py', 'tools/benchmark_matcher.py', 'tools/benchmark_execution_store.py',
              'patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/synthetic_ingest.py')
 STAGES = ('last order', 'order rule', 'mention timing')
+STAGES_TIMING_FIRST = ('last order', 'mention timing', 'order rule')
 
 
 def load(name, path):
@@ -97,21 +101,30 @@ def attribute(matcher, snapshot, legacy, size, queries, memory_limit, before, af
     stages = [digests(matcher, legacy, size, queries, memory_limit, False, tg._LAST_KEY_BEFORE_D30, letter=True),
               digests(matcher, legacy, size, queries, memory_limit, False, tg.last_key, letter=True),
               digests(matcher, legacy, size, queries, memory_limit, True, tg.last_key, letter=True),
-              digests(matcher, snapshot, size, queries, memory_limit, True, tg.last_key)]
-    per_query, tally = [], {}
+              digests(matcher, snapshot, size, queries, memory_limit, True, tg.last_key),
+              digests(matcher, snapshot, size, queries, memory_limit, False, tg.last_key)]
+    per_query, tally, other = [], {}, {}
     for seed in sorted(stages[0]):
-        chain = [s[seed] for s in stages]
+        chain = [s[seed] for s in stages[:4]]
         moved = [name for name, a, b in zip(STAGES, chain, chain[1:]) if a != b]
+        # The second ordering: mention timing (order rule off) before the order rule, which separates the rule
+        # acting on the wider mentions from the timing itself.
+        alt = [chain[0], chain[1], stages[4][seed], chain[3]]
+        moved_alt = [name for name, a, b in zip(STAGES_TIMING_FIRST, alt, alt[1:]) if a != b]
         per_query.append({'seed': seed, 'before_reproduced': chain[0] == before.get(seed),
-                          'after_reproduced': chain[-1] == after.get(seed), 'stages': moved})
+                          'after_reproduced': chain[-1] == after.get(seed), 'stages': moved,
+                          'stages_timing_first': moved_alt})
         key = ' + '.join(moved) or 'unchanged'
         tally[key] = tally.get(key, 0) + 1
+        key = ' + '.join(moved_alt) or 'unchanged'
+        other[key] = other.get(key, 0) + 1
     return {'size': size, 'queries': queries,
             'legacy_snapshot_id': json.loads((Path(legacy) / 'manifest.json').read_text())['snapshot_id'],
             'snapshot_id': json.loads((Path(snapshot) / 'manifest.json').read_text())['snapshot_id'],
             'before_reproduced': sum(q['before_reproduced'] for q in per_query),
             'after_reproduced': sum(q['after_reproduced'] for q in per_query),
             'moved': sum(1 for q in per_query if q['stages']), 'by_stages': dict(sorted(tally.items())),
+            'by_stages_timing_first': dict(sorted(other.items())),
             'seconds': time.monotonic() - started, 'per_query': per_query}
 
 
@@ -160,7 +173,7 @@ def main(argv=None):
     args.output.write_text(json.dumps(out, indent=1) + '\n')
     for e in out['sizes'] + ([out['confirmation']] if out['confirmation'] else []):
         print(f"{e['size']}: before reproduced {e['before_reproduced']}/{e['queries']}, after {e['after_reproduced']}/"
-              f"{e['queries']}, moved {e['moved']}: {e['by_stages']}", file=sys.stderr)
+              f"{e['queries']}, moved {e['moved']}: {e['by_stages']}; timing first: {e['by_stages_timing_first']}", file=sys.stderr)
     return 0
 
 

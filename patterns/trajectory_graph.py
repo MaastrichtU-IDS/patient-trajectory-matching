@@ -38,6 +38,7 @@ compare the two on seeded random trajectories of every shape.
 """
 from __future__ import annotations
 
+from bisect import bisect_left
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
@@ -432,9 +433,15 @@ def last_key(e):
     return (e.s[1], e.s[0], e.f, e.id)
 
 
-# The order `last` takes the greatest of; a switch, so that the tests can show what the D30 fix moves.
+# The order `last` takes the greatest of; a switch, so that the tests can show what the D30 fix moves. This and
+# the other switches here (`_ORDER_RULE`, `_LEVERS`) are module globals for tests and attribution runs in one
+# process; worker processes (execution_store's pool) import the module afresh and never see them changed.
 _LAST_KEY = last_key
 _LAST_KEY_BEFORE_D30 = attrgetter('s', 'f', 'id')
+# D30 review: levers that change no output, only cost (the sweep in `_Arc.revise`, the second search of an unsafe
+# step without its exact phase, the direct certainty test in `_Occurrence`). A switch, so that tests can show that
+# every output is byte-identical with them on and off.
+_LEVERS = True
 
 
 class _Occurrence:
@@ -468,7 +475,19 @@ class _Occurrence:
             # first: y certainly after a, or certainly at a's time; last: y certainly before a, or at its time
             g = gap(y, a) if which == 'first' else gap(a, y)
             return g <= -1 or (g == 0 and (gap(a, y) if which == 'first' else gap(y, a)) == 0)
-        self.certain = all(settled(r[_EVENT].sv) for r in records if r is not self.record)
+        if self.unlinked and _LEVERS:
+            # D30 review, lever 4. With no shared variable, gap(x, y) is y's latest minus x's earliest, so y is
+            # settled when it starts after a ends its range (before it starts, for last), or when both are one
+            # identical point. The same verdict as `settled`, without gap calls.
+            r0 = self.record
+            alo, ahi = r0[_SLO], r0[_SHI]
+            if which == 'first':
+                far = lambda r: r[_SLO] > ahi
+            else:
+                far = lambda r: r[_SHI] < alo
+            self.certain = all(far(r) or (r[_SLO] == r[_SHI] == alo == ahi) for r in records if r is not r0)
+        else:
+            self.certain = all(settled(r[_EVENT].sv) for r in records if r is not self.record)
         self._possible = self._synthetic = None
 
     def possible(self):
@@ -765,6 +784,8 @@ class _Arc:
             # The common case, one bound on each side, each from one constraint, scanned as pairs.
             (bl, ((al, kl),)), = lowers
             (bu, ((au, ku),)), = uppers
+            if _LEVERS and len(db) >= SWEEP_MIN:
+                return _sweep(self, da, db, times, bl, al, kl, bu, au, ku, in_db, shared)
             pairs = [(rb[bl], rb[bu], rb) for rb in db]
             for ra in da:
                 low, high = ra[al] + kl, ra[au] + ku
@@ -788,6 +809,47 @@ class _Arc:
             if ok:
                 kept.append(ra)
         return kept
+
+
+SWEEP_MIN = 8  # below this many events in the other domain, the scan is as cheap as the sort
+
+
+def _sweep(arc, da, db, times, bl, al, kl, bu, au, ku, in_db, shared):
+    """`_Arc.revise`'s common case (one lower and one upper bound) by a sorted sweep, O((n + m) log m) instead of
+    O(n * m) (D30 review, lever 2). ra is supported by an unlinked rb when rb[bl] >= low and rb[bu] <= high: so db
+    is sorted by rb[bl], and from each position on the two least rb[bu] are kept (two, so that ra itself can be set
+    aside when it is also in db). Linked pairs take the original test, as in the scan. The same events are kept,
+    in da's order."""
+    pairs = sorted(((rb[bl], rb[bu], rb) for rb in db), key=lambda p: p[0])
+    xs = [p[0] for p in pairs]
+    n = len(pairs)
+    least = [(INF, None)] * (n + 1)
+    second = [(INF, None)] * (n + 1)
+    for k in range(n - 1, -1, -1):
+        y, rb = pairs[k][1], pairs[k][2]
+        a, b = least[k + 1], second[k + 1]
+        if y < a[0]:
+            least[k], second[k] = (y, rb), a
+        elif y < b[0]:
+            least[k], second[k] = a, (y, rb)
+        else:
+            least[k], second[k] = a, b
+    kept = []
+    for ra in da:
+        low, high = ra[al] + kl, ra[au] + ku
+        k = bisect_left(xs, low)
+        if ra[_KEYS] is None and id(ra) not in in_db:
+            ok = least[k][0] <= high
+        elif ra[_KEYS] is None:
+            # ra is in db and linked to nothing else: ra with itself by the original test, the rest by the sweep
+            ok = arc.original(ra, ra, times) or (least[k][0] <= high if least[k][1] is not ra else second[k][0] <= high)
+        else:
+            linked = _linked(ra, shared, in_db)
+            ok = any(arc.original(ra, rb, times) for rb in linked.values()) or \
+                any(x >= low and y <= high for x, y, rb in pairs if id(rb) not in linked)
+        if ok:
+            kept.append(ra)
+    return kept
 
 
 def _linked(ra, shared, in_db):
@@ -1048,10 +1110,12 @@ class PreparedQuery:
         return self._plans[key]
 
 
-def decide(query, times, relaxations, budget, plan=None, override=None):
+def decide(query, times, relaxations, budget, plan=None, override=None, exact=True):
     """Exact and possible decisions for one relaxation set over one patient's `Times`.
     `plan` is the set's `_Plan` when the caller has prepared it. `override` replaces some steps' candidate
-    records (D30: `decide_ordered` passes a `first` or `last` step's envelope or its possible targets)."""
+    records (D30: `decide_ordered` passes a `first` or `last` step's envelope or its possible targets). With
+    `exact=False` the exact phase is skipped, for a caller that asks only whether any binding exists (an exact
+    binding is a possible one)."""
     steps = query['steps']
     step_ids = [s['id'] for s in steps]
     plan = plan or _Plan(query, relaxations)
@@ -1064,24 +1128,27 @@ def decide(query, times, relaxations, budget, plan=None, override=None):
     events = lambda domains: {s: [r[_EVENT] for r in domains[s]] for s in step_ids}
 
     # Exact: unary certainty, then arc consistency on the pairwise certainty relation.
-    domains = plan.domains(base, certain, times)
-    arcs = plan.arcs[certain]
-    if not all(domains.values()) or not _arc_consistency(domains, arcs, times):
-        result['exact'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
-    elif forest:
-        result['exact'] = {'found': True, 'complete': True, 'method': 'forest_arc_consistency',
-                           'binding': _tree_assign(step_ids, adjacency, domains, arcs, times)}
+    if not exact:
+        result['exact'] = {'found': False, 'complete': True, 'method': 'skipped'}
     else:
-        def accept(b):
-            return all(certain(c, b, times) for c in constraints
-                       if all(t[0] in ANCHORS or t[0] in b for t in (c.x, c.y)))
-        meter = Budget(budget)
-        order = sorted(step_ids, key=lambda s: len(domains[s]))
-        found = _backtrack(order, events(domains), accept, meter)
-        result['exact'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
-                           'method': 'bounded_backtracking', 'search_steps': meter.steps}
-        if found is not None:
-            result['exact']['binding'] = found
+        domains = plan.domains(base, certain, times)
+        arcs = plan.arcs[certain]
+        if not all(domains.values()) or not _arc_consistency(domains, arcs, times):
+            result['exact'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
+        elif forest:
+            result['exact'] = {'found': True, 'complete': True, 'method': 'forest_arc_consistency',
+                               'binding': _tree_assign(step_ids, adjacency, domains, arcs, times)}
+        else:
+            def accept(b):
+                return all(certain(c, b, times) for c in constraints
+                           if all(t[0] in ANCHORS or t[0] in b for t in (c.x, c.y)))
+            meter = Budget(budget)
+            order = sorted(step_ids, key=lambda s: len(domains[s]))
+            found = _backtrack(order, events(domains), accept, meter)
+            result['exact'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
+                               'method': 'bounded_backtracking', 'search_steps': meter.steps}
+            if found is not None:
+                result['exact']['binding'] = found
     if result['exact']['found']:
         return result
 
@@ -1129,7 +1196,8 @@ _ORDER_RULE = True
 
 def _coupled(plan, s, targets, step_ids):
     """Whether another step can bind an event of step s's concept: an `any` step whose concept such an event
-    carries, or a `first` or `last` step whose target is one."""
+    carries, or a `first` or `last` step whose possible targets include one (its picked event if that is certain,
+    else every event that can be its target: D30 review, M1)."""
     concept, records = plan.concepts[s], targets[s].records
     for t in step_ids:
         if t == s:
@@ -1137,8 +1205,11 @@ def _coupled(plan, s, targets, step_ids):
         if plan.occurrence[t] == 'any':
             if any(plan.concepts[t] in r[_EVENT].concepts for r in records):
                 return True
-        elif targets[t] is not None and concept in targets[t].record[_EVENT].concepts:
-            return True
+        elif targets[t] is not None:
+            other = targets[t]
+            pool = (other.record,) if other.certain else other.possible()
+            if any(concept in r[_EVENT].concepts for r in pool):
+                return True
     return False
 
 
@@ -1195,7 +1266,8 @@ def decide_ordered(query, times, relaxations, budget, plan=None):
         return r, None  # a stopped search: unresolved already
     wide = dict(safe)
     wide.update({s: targets[s].possible() for s in unsafe})
-    again = decide(query, times, relaxations, budget, plan, wide)
+    # Only whether any binding exists matters here, so the exact phase is skipped (D30 review, lever 3).
+    again = decide(query, times, relaxations, budget, plan, wide, exact=not _LEVERS)
     if again['exact']['found'] or again['possible']['found'] or not again['possible']['complete']:
         return r, ('none', uncertain)
     return r, None

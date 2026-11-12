@@ -133,30 +133,45 @@ def _ordered_pools(query, concept, constraints, events, facts):
     pools = {s['id']: _candidates(s, concept[s['id']], events) for s in steps}
     during_from = {c[0][0] for c in constraints if isinstance(c[0], tuple) and c[0][1] == 'f'}
     shared = _shared(events)
-    uncertain, safe, unsafe, wide = [], {}, [], {}
+    # First, every ordered step's picked event, whether it is certain, its family and its possible targets.
+    info = {}
     for s in steps:
         sid, which = s['id'], occurrence[s['id']]
         if which == 'any' or not pools[sid]:
             continue
         a = pools[sid][0]
         family = [e for e in events if concept[sid] in e['concepts']]
-        def settled(y):
+        def settled(y, a=a, which=which):
             u, v = ('time', a['var']['s']), ('time', y['var']['s'])
             # first: y cannot start at or before a; last: at or after a; or the two always start together
             if not _satisfiable(facts + [(u, v, 0)] if which == 'first' else facts + [(v, u, 0)]):
                 return True
             return not _satisfiable(facts + [(u, v, -1)]) and not _satisfiable(facts + [(v, u, -1)])
-        if all(settled(y) for y in family if y is not a):
+        def can(x, y, which=which):  # x can start at or before y (at or after, for last), the two alone
+            u, v = ('time', x['var']['s']), ('time', y['var']['s'])
+            return _satisfiable(facts + ([(v, u, 0)] if which == 'first' else [(u, v, 0)]))
+        certain = all(settled(y) for y in family if y is not a)
+        ordered = sorted(family, key=lambda e: (e['s'], e['f'], e['id']))
+        possible = [a] if certain else [x for x in ordered if all(can(x, y) for y in family if y is not x)]
+        info[sid] = {'picked': a, 'family': family, 'certain': certain, 'possible': possible, 'which': which}
+    uncertain, safe, unsafe, wide = [], {}, [], {}
+    for s in steps:
+        sid = s['id']
+        if sid not in info or info[sid]['certain']:
             continue
+        a, family, which = info[sid]['picked'], info[sid]['family'], info[sid]['which']
         uncertain.append(sid)
+        # Another step couples if it can bind an event of this family: an `any` step whose concept one carries, or
+        # an ordered step one of whose possible targets carries this step's concept (D30 review, M1).
         coupled = False
         for t in steps:
-            if t['id'] == sid:
+            tid = t['id']
+            if tid == sid:
                 continue
-            if occurrence[t['id']] == 'any':
-                coupled = coupled or any(concept[t['id']] in e['concepts'] for e in family)
-            elif pools[t['id']]:
-                coupled = coupled or concept[sid] in pools[t['id']][0]['concepts']
+            if occurrence[tid] == 'any':
+                coupled = coupled or any(concept[tid] in e['concepts'] for e in family)
+            elif tid in info:
+                coupled = coupled or any(concept[sid] in e['concepts'] for e in info[tid]['possible'])
         reads_end = sid in during_from and not all(e['point'] for e in family)
         if not coupled and not reads_end and not any(e['id'] in shared for e in family):
             starts = [_range(facts, e['var']['s']) for e in family]
@@ -167,11 +182,7 @@ def _ordered_pools(query, concept, constraints, events, facts):
                          'var': {'s': name, 'f': name}, 'proper': False}
         else:
             unsafe.append(sid)
-            def can(x, y):  # x can start at or before y (at or after, for last), the two alone
-                u, v = ('time', x['var']['s']), ('time', y['var']['s'])
-                return _satisfiable(facts + ([(v, u, 0)] if which == 'first' else [(u, v, 0)]))
-            ordered = sorted(family, key=lambda e: (e['s'], e['f'], e['id']))
-            wide[sid] = [x for x in ordered if all(can(x, y) for y in family if y is not x)]
+            wide[sid] = info[sid]['possible']
     for sid, e in safe.items():
         pools[sid] = [e]
     return pools, uncertain, unsafe, wide, list(safe.values())
