@@ -35,6 +35,13 @@ instead, built by its own builder and converter from the same generator output (
 `--arm-a-snapshots`); the report records, per size, that the two snapshots hold the same rows in every
 column matching reads (`arm_a_snapshot.same_rows`), and the per-query result digests are compared as before.
 
+`--confirm` adds a confirmation at one size (more queries and repeats). `--paired-confirm` adds the paired, interleaved
+confirmation (D31, second attempt, approved by the owner): a reference code (a git ref, extracted the way arm A's is)
+and the candidate (this tree) on the same snapshot, back to back for each repeat and worker count, the order
+alternating across repeats (ABBA), with per-query paired times, each pair's p95 and total, their ratios (candidate over
+reference), the candidate's absolute target check in the same session, and the two codes' per-query digests compared.
+It governs every "keep only if faster" rule from D31 on (docs/execution-store.md, "Matching cost").
+
 The report holds aggregates only. It is evidence for one machine and synthetic data.
 """
 from __future__ import annotations
@@ -668,6 +675,145 @@ def confirm(args):
     print(args.output)
 
 
+# The paired, interleaved confirmation (D31, second attempt; approved by the owner). Run-to-run drift on this machine
+# (10 to 16% between two regenerations of the confirmation, D31) is as large as the effects the "keep only if faster"
+# rules judge, so a change is judged against the code before it measured in the same session: both codes on the same
+# snapshot, back to back for each repeat and worker count, the order alternating across repeats (ABBA), so that slow
+# drift over the session falls on both codes alike.
+
+PAIRED_NOTE = (
+    'Each pair is the reference code and the candidate code run back to back, each in a fresh process with a warm pool, '
+    'on the same snapshot and queries; the reference runs first in even repeats and second in odd ones (ABBA). Ratios are '
+    'candidate over reference: below 1 means the candidate is faster. "total" is the sum of the per-query match seconds '
+    'of one run. The absolute target is judged on the candidate\'s own runs in this session. The pairing cancels drift '
+    'that is slow against the length of a pair (minutes); it does not cancel noise within a run, nor a difference that '
+    'only one order shows (compare the reference-first and candidate-first pairs).')
+
+
+def paired_statistics(records, target=TARGET):
+    """The paired confirmation's figures, from its runs. `records` is a list of {'workers', 'repeat', 'order',
+    'reference': run, 'candidate': run}, a run being {'rows': [{'seed', 'match_seconds', 'digest'}], 'peak_rss_bytes'}.
+    Returns {'by_workers': {count: ...}, 'byte_identity': ...}: per pair the per-query paired times, each code's p95,
+    maximum and total, and the ratios; per worker count the ratios by repeat and the candidate's absolute target check
+    (all its runs pooled, and by repeat); and whether the two codes' per-query digests agree, with every digest listed
+    where they do not."""
+    by_workers = {}
+    for rec in sorted(records, key=lambda r: (r['workers'], r['repeat'])):
+        n = rec['workers']
+        sides = {}
+        for side in ('reference', 'candidate'):
+            run = rec[side]
+            times = [row['match_seconds'] for row in run['rows']]
+            sides[side] = {**summary(times), 'total_seconds': sum(times), 'peak_rss_bytes': run['peak_rss_bytes']}
+        ref = {row['seed']: row['match_seconds'] for row in rec['reference']['rows']}
+        pair = {'repeat': rec['repeat'], 'order': list(rec['order']), **sides,
+                'ratio_p95': sides['candidate']['p95'] / sides['reference']['p95'],
+                'ratio_total': sides['candidate']['total_seconds'] / sides['reference']['total_seconds'],
+                'per_query': [{'seed': row['seed'], 'reference_seconds': ref[row['seed']],
+                               'candidate_seconds': row['match_seconds'],
+                               'ratio': row['match_seconds'] / ref[row['seed']]} for row in rec['candidate']['rows']]}
+        by_workers.setdefault(n, []).append(pair)
+    out = {}
+    for n, pairs in by_workers.items():
+        pooled = [q['candidate_seconds'] for p in pairs for q in p['per_query']]
+        pooled_ref = [q['reference_seconds'] for p in pairs for q in p['per_query']]
+        cand_peak = max(p['candidate']['peak_rss_bytes'] for p in pairs)
+        ratios = [p['ratio_p95'] for p in pairs]
+        totals = [p['ratio_total'] for p in pairs]
+        out[str(n)] = {
+            'workers': n, 'pairs': pairs,
+            'ratio_p95_by_repeat': ratios, 'ratio_total_by_repeat': totals,
+            'ratio_p95_max': max(ratios), 'ratio_p95_min': min(ratios),
+            'ratio_total_max': max(totals), 'ratio_total_min': min(totals),
+            'ratio_p95_by_order': {first: [p['ratio_p95'] for p in pairs if p['order'][0] == first]
+                                   for first in ('reference', 'candidate')},
+            'ratio_p95_pooled': summary(pooled)['p95'] / summary(pooled_ref)['p95'],
+            'candidate_target_check': {
+                'p95_seconds_all_runs': summary(pooled)['p95'], 'max_seconds_all_runs': max(pooled),
+                'p95_seconds_by_repeat': [p['candidate']['p95'] for p in pairs],
+                'max_seconds_by_repeat': [p['candidate']['max'] for p in pairs],
+                'peak_rss_bytes': cand_peak,
+                'p95_met_all_runs': summary(pooled)['p95'] <= target['match_seconds_p95_max'],
+                'p95_met_every_repeat': all(p['candidate']['p95'] <= target['match_seconds_p95_max'] for p in pairs),
+                'max_met_all_runs': max(pooled) <= target['match_seconds_max_max'],
+                'memory_met': cand_peak < target['query_process_peak_rss_bytes_below']},
+            'reference_absolute': {'p95_seconds_all_runs': summary(pooled_ref)['p95'], 'max_seconds_all_runs': max(pooled_ref),
+                                   'p95_seconds_by_repeat': [p['reference']['p95'] for p in pairs],
+                                   'peak_rss_bytes': max(p['reference']['peak_rss_bytes'] for p in pairs)}}
+    digests = {side: {} for side in ('reference', 'candidate')}
+    for rec in records:
+        for side in digests:
+            for row in rec[side]['rows']:
+                digests[side].setdefault(row['seed'], set()).add(row['digest'])
+    seeds = sorted(digests['candidate'])
+    stable = {side: all(len(digests[side][s]) == 1 for s in seeds) for side in digests}
+    one = {side: {s: sorted(digests[side][s])[0] for s in seeds} for side in digests}
+    same = [s for s in seeds if one['reference'][s] == one['candidate'][s]]
+    identity_out = {'compared': len(seeds), 'identical': len(same), 'mismatching_seeds': [s for s in seeds if s not in same],
+                    'each_code_stable_across_its_runs': stable}
+    if len(same) < len(seeds) or not all(stable.values()):
+        identity_out['per_query_digests'] = [{'seed': s, 'reference': sorted(digests['reference'][s]),
+                                              'candidate': sorted(digests['candidate'][s])} for s in seeds]
+    return {'by_workers': out, 'byte_identity': identity_out}
+
+
+def paired_confirm(args):
+    """Add `paired_confirmation` to the report at --output: the reference code (--paired-reference, a git ref
+    extracted the way arm A is) and the candidate (this tree, or --paired-candidate) on one snapshot, back to back for
+    each repeat and worker count, alternating which runs first (ABBA)."""
+    report = json.loads(args.output.read_text())
+    (item,) = args.snapshots
+    size, _, path = item.partition('=')
+    size = int(size)
+    manifest = json.loads((Path(path) / 'manifest.json').read_text())
+    entry = next((e for e in report.get('sizes', ()) if e['size'] == size), None)
+    if entry is not None and manifest['snapshot_id'] != entry['snapshot_id']:
+        raise SystemExit(f'snapshot {manifest["snapshot_id"]} is not the report\'s {entry["snapshot_id"]}')
+    scratch = Path(tempfile.mkdtemp(prefix='matcher-paired-'))
+    try:
+        codes = {}
+        for side, ref in (('reference', args.paired_reference), ('candidate', args.paired_candidate)):
+            if ref is None:
+                codes[side] = {'root': ROOT, 'git_ref': 'this tree', 'git_commit': None}
+                continue
+            root = scratch / side
+            commit = extract_ref(ref, root)
+            codes[side] = {'root': root, 'git_ref': ref, 'git_commit': commit,
+                           'artifacts_at_ref': [{'path': p, 'sha256': hashlib.sha256((root / p).read_bytes()).hexdigest()}
+                                                for p in ('patterns/execution_store.py', 'patterns/trajectory_graph.py',
+                                                          'patterns/temporal_stn.py')]}
+        records, started = [], time.monotonic()
+        for repeat in range(args.paired_repeats):
+            order = ('reference', 'candidate') if repeat % 2 == 0 else ('candidate', 'reference')
+            for n in args.paired_workers:
+                rec = {'workers': n, 'repeat': repeat, 'order': order}
+                for side in order:
+                    print(f'paired size {size} repeat {repeat} workers {n} {side} ...', file=sys.stderr, flush=True)
+                    result, record = run_worker(side, codes[side]['root'], path, size, args.large_queries, 1, 'full',
+                                                args.memory_limit, args.budget_seconds, n, True)
+                    if result is None:
+                        raise SystemExit(f'paired run failed ({side}, {n} workers, repeat {repeat}): {record["failure"]}')
+                    rows = [{k: row[k] for k in ('seed', 'match_seconds', 'digest')} for row in result['runs'][0]]
+                    rec[side] = {'rows': rows, 'peak_rss_bytes': record['peak_rss_bytes'],
+                                 'wall_seconds': record['wall_seconds']}
+                    times = [r['match_seconds'] for r in rows]
+                    print(f'  {side}: p95 {summary(times)["p95"]:.2f} s, total {sum(times):.1f} s', file=sys.stderr, flush=True)
+                records.append(rec)
+        stats = paired_statistics(records)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    report['paired_confirmation'] = {
+        'protocol': 'paired-interleaved-1.0', 'size': size, 'snapshot_id': manifest['snapshot_id'],
+        'queries': args.large_queries, 'seeds': f'0..{args.large_queries - 1}', 'repeats': args.paired_repeats,
+        'workers': list(args.paired_workers), 'order': 'ABBA: the reference first in even repeats, the candidate first in odd',
+        'reference': {k: v for k, v in codes['reference'].items() if k != 'root'},
+        'candidate': {k: v for k, v in codes['candidate'].items() if k != 'root'},
+        'note': PAIRED_NOTE, **stats, 'seconds': time.monotonic() - started}
+    report['artifacts'] = {p: digest(p) for p in ARTIFACTS}
+    args.output.write_text(json.dumps(report, indent=2) + '\n')
+    print(args.output)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--snapshots', nargs='+', help='SIZE=SNAPSHOT_DIRECTORY, one per size')
@@ -688,6 +834,12 @@ def main(argv=None):
     parser.add_argument('--output', type=Path, default=ROOT / 'verification/matcher-comparison-report.json')
     parser.add_argument('--confirm', action='store_true', help='add a confirmation run (arm C, one snapshot, --large-queries x '
                         '--large-repeats) to the existing report at --output')
+    parser.add_argument('--paired-confirm', action='store_true', help='add a paired, interleaved confirmation (the '
+                        'reference code and the candidate on one snapshot, back to back, ABBA) to the report at --output')
+    parser.add_argument('--paired-reference', default='17728fc', help='git ref of the reference code of --paired-confirm')
+    parser.add_argument('--paired-candidate', help='git ref of the candidate code of --paired-confirm (default: this tree)')
+    parser.add_argument('--paired-workers', nargs='+', type=int, default=[14, 8], help='worker counts of --paired-confirm')
+    parser.add_argument('--paired-repeats', type=int, default=4, help='repeats of --paired-confirm (even: balanced ABBA)')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
@@ -713,6 +865,9 @@ def main(argv=None):
         parser.error('--snapshots is required')
     if args.confirm:
         confirm(args)
+        return 0
+    if args.paired_confirm:
+        paired_confirm(args)
         return 0
     from patterns import execution_store as es
     args.chunk_patients = es.CHUNK_PATIENTS

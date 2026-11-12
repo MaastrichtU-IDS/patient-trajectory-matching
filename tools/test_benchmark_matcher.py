@@ -43,6 +43,44 @@ class PureHelperTests(unittest.TestCase):
         self.assertEqual((got['p95_met'], got['max_met'], got['memory_met']), (True, False, True))
         self.assertIsNone(matcher.target_check({'size': 1, 'arms': {}}))
 
+    def test_paired_statistics_give_per_pair_ratios_the_candidates_target_and_the_digests(self):
+        """D31, second attempt: the paired, interleaved confirmation's figures from hand-made runs."""
+        def run(times, digests, peak=2**30):
+            return {'rows': [{'seed': i, 'match_seconds': t, 'digest': d} for i, (t, d) in enumerate(zip(times, digests))],
+                    'peak_rss_bytes': peak}
+        same = ['a', 'b', 'c']
+        records = [{'workers': 14, 'repeat': 0, 'order': ('reference', 'candidate'),
+                    'reference': run([1.0, 2.0, 10.0], same), 'candidate': run([1.0, 1.0, 8.0], same)},
+                   {'workers': 14, 'repeat': 1, 'order': ('candidate', 'reference'),
+                    'reference': run([1.0, 2.0, 12.0], same), 'candidate': run([2.0, 2.0, 9.0], same, 5 * 2**30)}]
+        got = matcher.paired_statistics(records)
+        w = got['by_workers']['14']
+        self.assertEqual(w['ratio_p95_by_repeat'], [0.8, 0.75])
+        self.assertEqual(w['ratio_total_by_repeat'], [10.0 / 13.0, 13.0 / 15.0])
+        self.assertEqual((w['ratio_p95_max'], w['ratio_p95_min']), (0.8, 0.75))
+        self.assertEqual(w['ratio_p95_by_order'], {'reference': [0.8], 'candidate': [0.75]})
+        self.assertEqual(w['pairs'][1]['order'], ['candidate', 'reference'])
+        self.assertEqual(w['pairs'][0]['per_query'][2], {'seed': 2, 'reference_seconds': 10.0, 'candidate_seconds': 8.0,
+                                                          'ratio': 0.8})
+        check = w['candidate_target_check']
+        self.assertEqual((check['p95_seconds_all_runs'], check['max_seconds_all_runs']), (9.0, 9.0))
+        self.assertEqual(check['p95_seconds_by_repeat'], [8.0, 9.0])
+        self.assertEqual((check['p95_met_all_runs'], check['max_met_all_runs'], check['memory_met']), (True, True, False))
+        self.assertEqual(w['reference_absolute']['p95_seconds_all_runs'], 12.0)
+        self.assertEqual(got['byte_identity'], {'compared': 3, 'identical': 3, 'mismatching_seeds': [],
+                                                'each_code_stable_across_its_runs': {'reference': True, 'candidate': True}})
+        # A change meant to move results: every per-query digest of each code is listed.
+        records[1]['candidate'] = run([2.0, 2.0, 9.0], ['a', 'x', 'c'])
+        records[0]['candidate'] = run([1.0, 1.0, 8.0], ['a', 'x', 'c'])
+        ident = matcher.paired_statistics(records)['byte_identity']
+        self.assertEqual((ident['identical'], ident['mismatching_seeds']), (2, [1]))
+        self.assertEqual(ident['per_query_digests'][1], {'seed': 1, 'reference': ['b'], 'candidate': ['x']})
+        # A code whose digests differ between its own runs is reported as unstable.
+        records[1]['candidate'] = run([2.0, 2.0, 9.0], ['a', 'y', 'c'])
+        ident = matcher.paired_statistics(records)['byte_identity']
+        self.assertFalse(ident['each_code_stable_across_its_runs']['candidate'])
+        self.assertEqual(ident['per_query_digests'][1]['candidate'], ['x', 'y'])
+
 
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
 class ReportTests(unittest.TestCase):
@@ -60,10 +98,30 @@ class ReportTests(unittest.TestCase):
             cls.tmp.cleanup()
             raise unittest.SkipTest(f'git archive unavailable: {exc}')
         cls.report = json.loads(cls.output.read_text())
+        # D31, second attempt: the paired confirmation, the committed tree against itself (both codes the same).
+        matcher.main(['--paired-confirm', '--snapshots', f'96={cls.snapshot}', '--paired-reference', 'HEAD',
+                      '--large-queries', '3', '--paired-repeats', '2', '--paired-workers', '2', '1',
+                      '--output', str(cls.output)])
+        cls.paired = json.loads(cls.output.read_text())['paired_confirmation']
 
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
+
+    def test_the_paired_confirmation_alternates_the_order_and_compares_the_digests(self):
+        p = self.paired
+        self.assertEqual((p['repeats'], p['workers'], p['queries']), (2, [2, 1], 3))
+        self.assertEqual(p['reference']['git_ref'], 'HEAD')
+        self.assertEqual(p['candidate']['git_ref'], 'this tree')
+        for n in ('1', '2'):
+            pairs = p['by_workers'][n]['pairs']
+            self.assertEqual([x['order'] for x in pairs], [['reference', 'candidate'], ['candidate', 'reference']])
+            self.assertTrue(all(len(x['per_query']) == 3 and x['ratio_p95'] > 0 for x in pairs))
+            self.assertEqual(len(p['by_workers'][n]['ratio_p95_by_repeat']), 2)
+            self.assertIn('p95_met_all_runs', p['by_workers'][n]['candidate_target_check'])
+        self.assertEqual(p['byte_identity']['identical'], 3)
+        self.assertNotIn('per_query_digests', p['byte_identity'])
+        self.assertEqual(self.report['sizes'], json.loads(self.output.read_text())['sizes'])  # the rest is kept
 
     def test_each_arm_reports_cost_latency_and_memory_and_later_arms_are_placeholders(self):
         entry = self.report['sizes'][0]
