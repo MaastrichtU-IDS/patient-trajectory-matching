@@ -31,7 +31,9 @@ The decision procedure (docs/trajectory-graph-profile.md):
 - `first` and `last` (D30): the earliest event by start range, and the latest by latest
   start. When the patient's facts leave it uncertain which event is first or last, the step
   is decided on a point over the range the true first (last) start can take, where that is
-  exact, and the result is otherwise unresolved (`decide_ordered`).
+  exact, and the result is otherwise unresolved (`decide_ordered`). Since D31 a step another
+  step can bind is decided by one envelope search that over-approximates the true semantics,
+  so its exact and none results stand and a binding it finds leaves the result unresolved.
 
 `patterns/trajectory_graph_reference.py` enumerates every binding instead, and the tests
 compare the two on seeded random trajectories of every shape.
@@ -312,6 +314,9 @@ class Times:
         self._records = None
         self._by_concept = {}
         self._occurrences = {}
+        # D30/D31: the variables of the points `_Occurrence` adds for a `first` or `last` step (none of an event's).
+        self.synthetic = set()
+        self._relations = {}
 
     def _solve(self, root, members, bounds, orders, strict=(), empty='EMPTY_SHARED_VARIABLE'):
         """One component's variables: their ranges, and all-pairs distances if there are several.
@@ -360,6 +365,22 @@ class Times:
             if self._records is None:
                 self._records = self._make_records()
             found = self._by_concept[concept] = [r for r in self._records if concept in r[_EVENT].concepts]
+        return found
+
+    def concepts_meet(self, a, b):
+        """Whether some event carries both concepts (D31, cached)."""
+        key = ('meet', a, b) if a <= b else ('meet', b, a)
+        found = self._relations.get(key)
+        if found is None:
+            found = self._relations[key] = any(b in r[_EVENT].concepts for r in self.candidate_records(a))
+        return found
+
+    def concept_within(self, inner, outer):
+        """Whether every event carrying `inner` carries `outer` (D31, cached)."""
+        key = ('within', inner, outer)
+        found = self._relations.get(key)
+        if found is None:
+            found = self._relations[key] = all(outer in r[_EVENT].concepts for r in self.candidate_records(inner))
         return found
 
     def occurrence(self, concept, which):
@@ -459,7 +480,7 @@ class _Occurrence:
     point, so its end is its start."""
 
     __slots__ = ('times', 'records', 'which', 'record', 'certain', 'unlinked', 'points', 'envelope',
-                 '_possible', '_synthetic')
+                 '_possible', '_synthetic', '_points')
 
     def __init__(self, times, records, which):
         self.times, self.records, self.which = times, records, which
@@ -488,7 +509,7 @@ class _Occurrence:
             self.certain = all(far(r) or (r[_SLO] == r[_SHI] == alo == ahi) for r in records if r is not r0)
         else:
             self.certain = all(settled(r[_EVENT].sv) for r in records if r is not self.record)
-        self._possible = self._synthetic = None
+        self._possible = self._synthetic = self._points = None
 
     def possible(self):
         """The records that can be first (last) in some choice of times, in candidate order: each can start at
@@ -517,18 +538,73 @@ class _Occurrence:
         """A point record standing for the step's true target's start: the picked event, with its own variable
         ranging over the envelope, linked to nothing. Used only where that is exact (`_order_plan`)."""
         if self._synthetic is None:
-            times, e = self.times, self.record[_EVENT]
-            name = f'\x00{self.which}\x00{e.id}'
-            while name in times.dom:
-                name += '\x00'
-            lo, hi = self.envelope
-            times.dom[name], times.component[name] = (lo, hi), name
-            event = object.__new__(Event)
-            d = event.__dict__
-            d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'], d['proper'] = (
-                e.id, e.concepts, (lo, hi), (lo, hi), True, name, name, False)
-            self._synthetic = (lo, hi, lo, hi, None, event)
+            self._synthetic = self._point(*self.envelope, f'\x00{self.which}\x00{self.record[_EVENT].id}')
         return self._synthetic
+
+    def _point(self, lo, hi, name):
+        """A point record named after the picked event, with a variable of its own over [lo, hi], linked to nothing."""
+        times, e = self.times, self.record[_EVENT]
+        while name in times.dom:
+            name += '\x00'
+        times.dom[name], times.component[name] = (lo, hi), name
+        times.synthetic.add(name)
+        event = object.__new__(Event)
+        d = event.__dict__
+        d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'], d['proper'] = (
+            e.id, e.concepts, (lo, hi), (lo, hi), True, name, name, False)
+        return (lo, hi, lo, hi, None, event)
+
+    def split(self, blocked, others):
+        """D31: the step's candidates for the possible phase of the envelope search (`decide_ordered`), when no event
+        of the concept names a variable another event names and no relation reads the step's end (or every event is
+        a point). `blocked` holds the possible targets (`possible`) some other step can bind, and `others` counts
+        those steps. For `first`, with the possible targets ordered by earliest start: λ is the least earliest start
+        at which the targets starting no later include one no other step can bind, or more than `others` that one
+        can; the candidates are a point over [λ, least latest start] and, as themselves, the blocked targets whose
+        earliest start is below λ (for `last`, mirrored: latest starts, from the greatest down, and a point over
+        [greatest earliest start, λ]). No λ: the blocked targets alone. The point comes first, then the targets in
+        candidate order.
+
+        Why this is sound: the true target is a possible target. If its earliest start is at least λ, its start
+        lies in [λ, least latest start] (no event's latest start is below that bound), so the point can take it;
+        otherwise it is blocked (an unblocked target's earliest start is at least λ, by λ's choice), and it is a
+        candidate itself. Why it refutes whatever the second search of D30 refutes: a binding on the point at
+        time v can be moved to a target that starts no later than λ, ends its range no earlier than v, and that no
+        other step binds (there are more such targets than steps that can bind one), timed at v; its variable is
+        its own and its end is not read, so every constraint still holds."""
+        possible = self.possible()
+        key = (frozenset(id(r) for r in blocked), others)
+        if self._points is None:
+            self._points = {}
+        if key not in self._points:
+            ids = {id(r) for r in blocked}
+            first = self.which == 'first'
+            end = _SLO if first else _SHI
+            order = sorted(possible, key=lambda r: r[end], reverse=not first)
+            lam, seen, k = None, 0, 0
+            while k < len(order):
+                v = order[k][end]
+                group = []
+                while k < len(order) and order[k][end] == v:
+                    group.append(order[k])
+                    k += 1
+                if any(id(r) not in ids for r in group):
+                    lam = v
+                    break
+                seen += len(group)
+                if seen > others:
+                    lam = v
+                    break
+            if lam is None:
+                kept = [r for r in possible if id(r) in ids]
+                out = kept
+            else:
+                kept = [r for r in possible if id(r) in ids and (r[end] < lam if first else r[end] > lam)]
+                lo, hi = (lam, self.envelope[1]) if first else (self.envelope[0], lam)
+                name = f'\x00{self.which}\x00{self.record[_EVENT].id}\x00{lo}\x00{hi}'
+                out = [self._point(lo, hi, name)] + kept
+            self._points[key] = out
+        return self._points[key]
 
 
 @dataclass(frozen=True)
@@ -867,6 +943,104 @@ def _arcs(binary, test):
     return [_Arc(a, b, binary[(a, b) if (a, b) in binary else (b, a)], test) for a, b in pairs]
 
 
+@dataclass(frozen=True)
+class OrderFact(Constraint):
+    """D31: an order fact of the envelope search, value(y) - value(x) in [lo, hi] on two steps' starts, true in every
+    choice of times. With `concept` set it holds only when the step `y` names is bound to one of the patient's own
+    events carrying `concept` (never to a point `_Occurrence` adds: `Times.synthetic`)."""
+    concept: str = None
+
+    def applies(self, binding, times):
+        if self.concept is None:
+            return True
+        e = binding[self.y[0]]
+        return e.sv not in times.synthetic and self.concept in e.concepts
+
+
+def _applying(facts, binding, times):
+    """The facts whose two steps `binding` binds and whose condition it meets."""
+    return [c for c in facts if c.x[0] in binding and c.y[0] in binding and c.applies(binding, times)]
+
+
+class _FactArc(_Arc):
+    """An arc of the envelope search's possible phase (always `plausible`) whose pair carries order facts: a pair of
+    events passes when the plan's own arc passes it (`base`, None if the pair has no constraint of its own) and each
+    fact that applies is plausible. Ordered steps have few candidates, so the pairs are scanned."""
+
+    __slots__ = ('base', 'facts')
+
+    def __init__(self, a, b, base, facts):
+        self.a, self.b, self.test, self.spec = a, b, plausible, None
+        self.base, self.facts = base, facts
+        self.constraints = (base.constraints if base is not None else []) + facts
+
+    def original(self, ra, rb, times):
+        return self.holds(ra, rb, times)
+
+    def holds(self, ra, rb, times):
+        if self.base is not None and not self.base.holds(ra, rb, times):
+            return False
+        a = self.a
+        for c in self.facts:
+            rx, ry = (ra, rb) if c.x[0] == a else (rb, ra)
+            e = ry[_EVENT]
+            if c.concept is not None and (e.sv in times.synthetic or c.concept not in e.concepts):
+                continue
+            if rx is ry or (rx[_KEYS] is not None and ry[_KEYS] is not None and not rx[_KEYS].isdisjoint(ry[_KEYS])):
+                if not plausible(c, {c.x[0]: rx[_EVENT], c.y[0]: e}, times):
+                    return False
+            # Unlinked: value(y) - value(x) takes every value in [y's earliest - x's latest, y's latest - x's earliest].
+            elif max(c.lo, ry[_SLO] - rx[_SHI]) > min(c.hi, ry[_SHI] - rx[_SLO]):
+                return False
+        return True
+
+    def revise(self, da, db, times):
+        """The events of da that some event of db supports, in da's order. When every fact is conditioned on the
+        same side's event, the events it does not apply to are revised by the plan's own arc (its sweep), and only
+        the rest are scanned pair by pair."""
+        holds, a = self.holds, self.a
+        sides = {None if c.concept is None else c.y[0] for c in self.facts}
+        if len(sides) != 1 or None in sides:
+            return [ra for ra in da if any(holds(ra, rb, times) for rb in db)]
+        concept = {c.concept for c in self.facts}
+        if len(concept) != 1:
+            return [ra for ra in da if any(holds(ra, rb, times) for rb in db)]
+        concept, = concept
+        synthetic = times.synthetic
+        applies = lambda r: r[_EVENT].sv not in synthetic and concept in r[_EVENT].concepts
+        base = self.base
+        if sides == {a}:  # the condition reads da's events
+            plain = [ra for ra in da if not applies(ra)]
+            kept = set(map(id, base.revise(plain, db, times) if base is not None else (plain if db else [])))
+            return [ra for ra in da if id(ra) in kept or (applies(ra) and any(holds(ra, rb, times) for rb in db))]
+        tested = [rb for rb in db if applies(rb)]
+        plain = [rb for rb in db if not applies(rb)]
+        if base is not None:
+            kept = set(map(id, base.revise(da, plain, times))) if plain else set()
+        else:
+            kept = set(map(id, da)) if plain else set()
+        return [ra for ra in da if id(ra) in kept or any(holds(ra, rb, times) for rb in tested)]
+
+
+def _fact_arcs(plan, facts):
+    """The possible phase's arcs with the order facts: the plan's own arcs where a pair has none, in AC-3's order,
+    then the pairs only facts relate."""
+    by_pair = {}
+    for c in facts:
+        a, b = c.x[0], c.y[0]
+        key = (a, b) if (a, b) in plan.binary else (b, a) if (b, a) in plan.binary else tuple(sorted((a, b)))
+        by_pair.setdefault(key, []).append(c)
+    out = []
+    for arc in plan.arcs[plausible]:
+        key = (arc.a, arc.b) if (arc.a, arc.b) in by_pair else (arc.b, arc.a)
+        extra = by_pair.get(key)
+        out.append(arc if extra is None else _FactArc(arc.a, arc.b, arc, extra))
+    for (a, b), cs in by_pair.items():
+        if (a, b) not in plan.binary and (b, a) not in plan.binary:
+            out += [_FactArc(a, b, None, cs), _FactArc(b, a, None, cs)]
+    return out
+
+
 def _arc_consistency(domains, arcs, times):
     """AC-3 over step domains of records; each arc decides its pairs as its test does."""
     queue = list(arcs)
@@ -1110,12 +1284,15 @@ class PreparedQuery:
         return self._plans[key]
 
 
-def decide(query, times, relaxations, budget, plan=None, override=None, exact=True):
+def decide(query, times, relaxations, budget, plan=None, override=None, exact=True, possible=None, facts=(),
+           possible_phase=True):
     """Exact and possible decisions for one relaxation set over one patient's `Times`.
     `plan` is the set's `_Plan` when the caller has prepared it. `override` replaces some steps' candidate
     records (D30: `decide_ordered` passes a `first` or `last` step's envelope or its possible targets). With
     `exact=False` the exact phase is skipped, for a caller that asks only whether any binding exists (an exact
-    binding is a possible one)."""
+    binding is a possible one). `possible` replaces some steps' candidates in the possible phase only, and `facts`
+    are order facts (`OrderFact`) that phase adds to the constraints where they apply; with `possible_phase=False`
+    only the exact phase runs (D31: the envelope search of `decide_ordered`)."""
     steps = query['steps']
     step_ids = [s['id'] for s in steps]
     plan = plan or _Plan(query, relaxations)
@@ -1151,29 +1328,38 @@ def decide(query, times, relaxations, budget, plan=None, override=None, exact=Tr
                 result['exact']['binding'] = found
     if result['exact']['found']:
         return result
+    if not possible_phase:
+        result['possible'] = {'found': False, 'complete': True, 'method': 'skipped'}
+        return result
 
     # Possible: pairwise plausibility prunes soundly (every witness of a binding satisfies
     # each constraint alone, with the patient's facts); the joint test is a temporal network.
+    if possible:
+        base = {**base, **possible}
+    # D31: the order facts join the pairwise tests where they apply, and the joint test always.
+    joint = (lambda b: constraints + _applying(facts, b, times)) if facts else (lambda b: constraints)
     domains = plan.domains(base, plausible, times)
-    pruned = all(domains.values()) and _arc_consistency(domains, plan.arcs[plausible], times)
+    pruned = all(domains.values()) and _arc_consistency(domains, _fact_arcs(plan, facts) if facts else plan.arcs[plausible],
+                                                        times)
     if not pruned:
         result['possible'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
         return result
     domains = events(domains)
     points = all(e.point for s in step_ids for e in domains[s])
     if forest and points:
+        # Without the order facts, which the programme does not see: a refutation stands, a binding is checked.
         solved = _point_forest(step_ids, adjacency, domains, unary, binary, times)
         if solved is None:
             result['possible'] = {'found': False, 'complete': True, 'method': 'point_forest_intervals'}
             return result
         binding, at = solved
-        if not any(times.linked(binding[a].sv, binding[b].sv) for a, b in combinations(step_ids, 2)):
+        if not facts and not any(times.linked(binding[a].sv, binding[b].sv) for a, b in combinations(step_ids, 2)):
             result['possible'] = {'found': True, 'complete': True, 'method': 'point_forest_intervals',
                                   'binding': binding, 'witness': at}
             return result
         # Steps share a variable: the independent times may disagree, so check the binding
         # jointly, and search if it fails.
-        network = feasible(binding, constraints, times)
+        network = feasible(binding, joint(binding), times)
         if network.feasible:
             witness = network.witness()
             result['possible'] = {'found': True, 'complete': True, 'method': 'point_forest_intervals_checked',
@@ -1181,11 +1367,11 @@ def decide(query, times, relaxations, budget, plan=None, override=None, exact=Tr
             return result
     meter = Budget(budget)
     order = sorted(step_ids, key=lambda s: len(domains[s]))
-    found = _backtrack(order, domains, lambda b: feasible(b, constraints, times).feasible, meter)
+    found = _backtrack(order, domains, lambda b: feasible(b, joint(b), times).feasible, meter)
     result['possible'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
                           'method': 'bounded_backtracking', 'search_steps': meter.steps}
     if found is not None:
-        witness = feasible(found, constraints, times).witness()
+        witness = feasible(found, joint(found), times).witness()
         result['possible'].update(binding=found, witness={s: witness[_node(e.sv)] for s, e in found.items()})
     return result
 
@@ -1223,6 +1409,182 @@ def _safe(plan, s, targets, step_ids):
     return targets[s].unlinked and not _reads_end(plan, s, targets) and not _coupled(plan, s, targets, step_ids)
 
 
+# D31: lever 1, one envelope search in place of D30's two searches where its argument covers the unsafe steps
+# (`_envelope_search`). A switch, for the tests and the attribution that show what it moves; as the others here, a
+# module global that worker processes never see changed.
+_ENVELOPE = True
+
+
+def _covered(plan, s, targets):
+    """Whether the envelope search's argument covers an unsafe step (D31): no event of its concept names a variable
+    another event names, and no relation reads its end unless every such event is a point."""
+    return targets[s].unlinked and not _reads_end(plan, s, targets)
+
+
+def _blocked(plan, s, targets, step_ids, unsafe):
+    """The possible targets of step s that another step's candidates in the envelope search's possible phase include,
+    and how many steps those are: an `any` step whose concept the target carries, a certain `first` or `last` step
+    whose event it is, or an unsafe one among whose possible targets it is (a safe step's candidate is its envelope
+    point, an event of no one)."""
+    possible, blocked, others = targets[s].possible(), {}, 0
+    for t in step_ids:
+        if t == s or (plan.occurrence[t] != 'any' and (targets[t] is None or (not targets[t].certain and t not in unsafe))):
+            continue
+        if plan.occurrence[t] == 'any':
+            concept = plan.concepts[t]
+            hits = [r for r in possible if concept in r[_EVENT].concepts]
+        elif targets[t].certain:
+            hits = [r for r in possible if r is targets[t].record]
+        else:
+            theirs = {id(r) for r in targets[t].possible()}
+            hits = [r for r in possible if id(r) in theirs]
+        if hits:
+            others += 1
+            blocked.update((id(r), r) for r in hits)
+    return list(blocked.values()), others
+
+
+def _order_facts(plan, targets, unsafe, step_ids, times):
+    """The order facts of the envelope search's possible phase (D31), each true in every choice of times, whatever
+    stands for a step (its target's event, its envelope point, or one of its possible targets as itself):
+    - for an unsafe step s on concept K, and any other step t: s starts at or before t when t is bound to one of the
+      patient's events carrying K (at or after, for `last`): the first K starts at or before every K;
+    - for two ordered steps s and u: s starts at or before u when s is `first` and u `last` and some event carries
+      both concepts, or both are `first` and every event of u's concept carries s's; s starts at or after u when both
+      are `last` and every event of u's concept carries s's.
+    A fact is left out where it can never apply (no candidate of t carries K)."""
+    out = []
+    for s in unsafe:
+        concept, first = plan.concepts[s], plan.occurrence[s] == 'first'
+        lo, hi = (0, INF) if first else (-INF, 0)
+        for t in step_ids:
+            if t == s:
+                continue
+            if plan.occurrence[t] == 'any':
+                can = times.concepts_meet(concept, plan.concepts[t])
+            elif targets[t] is None or (not targets[t].certain and t not in unsafe):
+                can = False
+            else:
+                pool = (targets[t].record,) if targets[t].certain else targets[t].possible()
+                can = any(concept in r[_EVENT].concepts for r in pool)
+            if can:
+                out.append(OrderFact((s, 's'), (t, 's'), lo, hi, 'order', concept))
+    ordered = [s for s in plan.ordered if targets[s] is not None]
+    for s in ordered:
+        for u in ordered:
+            if u == s:
+                continue
+            ws, wu, ks, ku = plan.occurrence[s], plan.occurrence[u], plan.concepts[s], plan.concepts[u]
+            if ws == 'first' and ((wu == 'last' and times.concepts_meet(ks, ku))
+                                  or (wu == 'first' and times.concept_within(ku, ks))):
+                out.append(OrderFact((s, 's'), (u, 's'), 0, INF, 'order'))
+            elif ws == 'last' and wu == 'last' and times.concept_within(ku, ks):
+                out.append(OrderFact((u, 's'), (s, 's'), 0, INF, 'order'))
+    return out
+
+
+def _envelope_search(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids):
+    """D31, lever 1: `decide_ordered` for unsafe steps the argument covers (`_covered`), in one search. Each unsafe
+    step's true target is replaced by a model that every choice of times maps into, so the model over-approximates
+    the true semantics: what it rules out is impossible, what holds in every choice of its times holds in every
+    true one, and a binding it finds proves nothing.
+    - Exact phase: the step is a point of its own over its envelope (the range the true first, or last, start takes),
+      as a safe step is. A true choice of times maps to the model by giving the point the target's start, so an
+      exact binding here is exact. The envelope is not exact for the step (another step may bind its target), so a
+      binding that is not exact here may still be exact truly: nothing is concluded from its absence.
+    - Possible phase: the step's candidates are `_Occurrence.split` (a point over part of the envelope, and the
+      targets other steps can bind as themselves), with the order facts (`_order_facts`). No binding: none. A
+      binding: the set is undecided ('possible'), as D30's searches leave it.
+    A stopped search is a stopped search, as before. The possible phase runs first and the exact phase only if it
+    found a binding or stopped; the decisions are the same as with the exact phase first, since a true exact binding
+    is a true possible one, which the possible phase's model cannot miss. Each phase has the query's search budget.
+    The argument, and why no `none` of D30's is lost, is in the decision log (D31) and the profile."""
+    wide = dict(safe)
+    for s in unsafe:
+        wide[s] = targets[s].split(*_blocked(plan, s, targets, step_ids, unsafe))
+    # The possible phase first: where it finds nothing (most sets, on the synthetic store), the exact phase is moot.
+    # The decisions are those of the exact phase first, since an exact binding implies a possible one.
+    facts = _order_facts(plan, targets, unsafe, step_ids, times)
+    p = decide(query, times, relaxations, budget, plan, wide, exact=False, facts=facts)
+    if not p['possible']['found'] and p['possible']['complete']:
+        return p, None
+    exact_base = dict(safe)
+    exact_base.update({s: [targets[s].synthetic()] for s in unsafe})
+    e = decide(query, times, relaxations, budget, plan, exact_base, possible_phase=False)
+    if e['exact']['found']:
+        return e, None
+    # D31, second attempt: the exact phase again, with the order facts that can apply to its candidates, each binding's
+    # certainty decided jointly (`_exact_with_facts`). Facts of an unsafe step's own concept on another step on a point
+    # never apply here (a point is an event of no one), so they are left out.
+    if _EXACT_FACTS:
+        here = [c for c in facts if c.concept is None or plan.occurrence[c.y[0]] == 'any'
+                or (targets[c.y[0]] is not None and targets[c.y[0]].certain)]
+        if here:
+            found = _exact_with_facts(times, plan, exact_base, here, budget, step_ids)
+            if found['found']:
+                return {'forest': p['forest'], 'exact': found}, None
+    r = {'forest': p['forest'], 'exact': e['exact'], 'possible': p['possible']}
+    return r, (('possible', uncertain) if p['possible']['found'] else None)
+
+
+# D31, second attempt: the order facts in the exact phase too. A switch, for the tests and the attribution that show
+# what it moves; a module global that worker processes never see changed.
+_EXACT_FACTS = True
+
+
+def _certain_jointly(binding, constraints, facts, times):
+    """Whether every choice of times that the patient's facts, the points' ranges and the order facts `binding` meets
+    allow satisfies every constraint (D31, second attempt). The patient's network is minimal, so the network over the
+    binding's variables (`feasible`: their ranges and the distances between linked ones) carries every fact about
+    them; the order facts link only those variables, so its shortest paths with the facts added are the exact bounds
+    of each difference in the model. A constraint value(y) - value(x) in [lo, hi] is certain when the greatest
+    y - x is at most hi and the greatest x - y at most -lo. Unlike the pairwise `certain`, a fact can bear here on a
+    pair it does not name, through a third variable."""
+    network = feasible(binding, _applying(facts, binding, times), times)
+    if not network.feasible:  # no choice of times at all: cannot arise (every true choice maps into the model)
+        return False
+    for c in constraints:
+        x, y = _node(_var(c.x, binding)), _node(_var(c.y, binding))
+        if c.hi != INF:
+            up = network.bound(y, x)[0]
+            if up is None or up > c.hi:
+                return False
+        if c.lo != -INF:
+            down = network.bound(x, y)[0]
+            if down is None or -down < c.lo:
+                return False
+    return True
+
+
+def _exact_with_facts(times, plan, base, facts, budget, step_ids):
+    """The exact phase of the envelope search with order facts (D31, second attempt): the first binding of `base`
+    (each covered unsafe step on its envelope point, safe ones on theirs) whose every constraint is certain over the
+    choices of times the patient's facts, the points and the order facts it meets allow (`_certain_jointly`). Every
+    true choice of times maps into those choices (the point takes the true target's start, and every fact holds
+    there), so such a binding holds in every true choice: `exact` is sound. Pruning keeps every binding that can be
+    certain: a certain binding holds in some allowed choice (the allowed choices are never empty), so it passes the
+    pairwise plausibility tests with the facts (`_fact_arcs`) and every prefix is jointly feasible with them. The
+    search has the query's budget; a stopped search concludes nothing."""
+    constraints = plan.constraints
+    domains = plan.domains({s: base[s] if s in base else plan.candidates(s, times) for s in step_ids}, plausible, times)
+    if not all(domains.values()) or not _arc_consistency(domains, _fact_arcs(plan, facts), times):
+        return {'found': False, 'complete': True, 'method': 'arc_consistency_with_order_facts'}
+    domains = {s: [r[_EVENT] for r in domains[s]] for s in step_ids}
+    n = len(step_ids)
+    def accept(b):
+        if not feasible(b, constraints + _applying(facts, b, times), times).feasible:
+            return False
+        return len(b) < n or _certain_jointly(b, constraints, facts, times)
+    meter = Budget(budget)
+    order = sorted(step_ids, key=lambda s: len(domains[s]))
+    found = _backtrack(order, domains, accept, meter)
+    out = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
+           'method': 'bounded_backtracking_with_order_facts', 'search_steps': meter.steps}
+    if found is not None:
+        out['binding'] = found
+    return out
+
+
 def decide_ordered(query, times, relaxations, budget, plan=None):
     """`decide`, made sound for `first` and `last` steps whose target the patient's facts leave uncertain (D30).
 
@@ -1238,9 +1600,12 @@ def decide_ordered(query, times, relaxations, budget, plan=None):
     every other step: the step is decided on a point ranging over the envelope, and exact, possible and none
     are all sound. Otherwise the true target may be another event, with another end, or an event another step
     binds, so:
-    - a binding found on the picked event proves nothing either way: undecided, with the binding beside it;
-    - none found: the search is repeated with every event that can be first (last) as the step's candidates,
-      a superset of the true targets, so a none there is sound; anything else is undecided."""
+    - where every unsafe step is covered (`_covered`: no shared variable among its events, and no end read unless
+      they are points), one envelope search decides it (D31, `_envelope_search`): exact and none are sound by
+      over-approximation, and a binding found leaves the set undecided ('possible');
+    - otherwise (D30) a binding found on the picked event proves nothing either way: undecided, with the binding
+      beside it; and when none is found the search is repeated with every event that can be first (last) as the
+      step's candidates, a superset of the true targets, so a none there is sound; anything else is undecided."""
     step_ids = [s['id'] for s in query['steps']]
     plan = plan or _Plan(query, relaxations)
     if not plan.ordered or not _ORDER_RULE:
@@ -1255,6 +1620,8 @@ def decide_ordered(query, times, relaxations, budget, plan=None):
             safe[s] = [targets[s].synthetic()]
         else:
             unsafe.append(s)
+    if unsafe and _ENVELOPE and all(_covered(plan, s, targets) for s in unsafe):
+        return _envelope_search(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids)
     r = decide(query, times, relaxations, budget, plan, safe)
     if not unsafe:
         return r, None

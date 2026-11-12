@@ -2520,9 +2520,12 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
     decided = {idx for idx, w in windows_by_idx.items()
                if w is not None and (results[idx]['status'] in DECIDED if idx in results else True)}
     touched = _excluded_starts(store, query, base, decided, windows_by_idx)
-    # Event ids are unique within a patient only, so each patient's own events give its starts.
+    # Event ids are unique within a patient only, so each patient's own events give its starts. Every binding the
+    # displacement test reads needs them, the match beside an order-uncertain `unresolved` included (D31, second
+    # attempt: before, its starts were not read and the test raised KeyError).
     starts = _bound_starts(store, [idx for idx in touched if idx in results and (
-        results[idx].get('binding') or results[idx].get('relaxed_match', {}).get('binding'))])
+        results[idx].get('binding') or results[idx].get('relaxed_match', {}).get('binding')
+        or results[idx].get('unverified_match', {}).get('binding'))])
     for idx, (hit, every) in touched.items():
         results[idx] = apply_exclusions(query, results[idx] if idx in results else filtered_result(idx),
                                         hit, starts.get(idx, {}), every)
