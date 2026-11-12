@@ -94,7 +94,7 @@
   <div class="grid">
     <div class="item"><h3>The store under the trajectory page (stage 2)</h3>
       <p>The trajectory page matches in the store by default once the store can express everything the page offers, or refuses it by name, and the parity test is clean, with every difference removed or declared and the converter itself emitting measurement values. The store needs Nth occurrences; "at least N times within" a span; rises and falls against earlier values (a design decision first); gene results that are not negative; free text as a query option; and index periods placed by rule. Each record-level difference (merged records, letter mentions, medication courses, coverage) moves into the converters or is declared. The browser path stays as a fallback for static hosting. Stage 3, retiring it, waits for the hosting decision.</p>
-      <p class="ref">D29 · plan for D31 (Nth, counts) and D32 (rises and falls) in <code>docs/decisions/d31-d32-store-step-language-plan.md</code> · inventory in <code>demos/mockups/README.md</code></p></div>
+      <p class="ref">D29 · plan for D32 (Nth, counts) and D33 (rises and falls) in <code>docs/decisions/d32-d33-store-step-language-plan.md</code> · inventory in <code>demos/mockups/README.md</code></p></div>
     <div class="item"><h3>Richer measurements</h3>
       <p>Textual and unitless measurements (most of the 518,809 demo chart rows excluded today are one or both), unit equivalence, and reviewed item mappings.</p>
       <p class="ref">D27 stage 3</p></div>
@@ -119,8 +119,8 @@
   <p class="lede">Deliberately deferred, each with the condition that would bring it back.</p>
   <div class="grid">
     <div class="item"><h3>A Rust matching engine</h3>
-      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python meets it at 300,000 patients with 14 workers (p95 9.46 s against 10 s since D30, a narrower margin than before: D30's sound <code>first</code> and <code>last</code> cost time, and three output-identical changes won most of it back), so none was built. It would be a second implementation over the same snapshots, with the Python path as its reference.</p>
-      <p class="ref">D7, D21, D30</p></div>
+      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python meets it at 300,000 patients with 14 workers (p95 9.46 s against 10 s since D30, a narrower margin than before: D30's sound <code>first</code> and <code>last</code> cost time, and three output-identical changes won most of it back), so none was built. D31 tried one envelope search for coupled <code>first</code> and <code>last</code> steps: sound on every check and 12% faster in a same-day comparison, but its regenerated confirmation gave 9.41 s against a bar of 8.5 s fixed beforehand, so it was reverted; fixing run-to-run drift in that measurement comes first. It would be a second implementation over the same snapshots, with the Python path as its reference.</p>
+      <p class="ref">D7, D21, D30, D31</p></div>
     <div class="item"><h3>Embeddings and a nearest-neighbour index</h3>
       <p>Added only if recall at full scale needs it. Concept information content comes from the stored counts.</p>
       <p class="ref">D7</p></div>

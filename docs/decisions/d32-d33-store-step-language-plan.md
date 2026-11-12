@@ -1,6 +1,6 @@
-# D31 and D32 (plan): the store's step language for stage 2
+# D32 and D33 (plan): the store's step language for stage 2
 
-*Plan, 2026-11-11; not implemented. This began as the D30 draft (design only). An independent review found defects in the engine's shipped `first` and `last` and in the synthetic converter's letter mentions, and the owner made D30 a correctness increment instead, implemented now (decision log, D30). Nth and counts move to D31, relative conditions to D32. The draft's text is kept below with the review's changes applied; where it says "D30" it means the increment that will build it (D31 for sections 1 and 2, D32 for section 3). Section 8 lists the decisions it still needs from the owner.*
+*Plan, 2026-11-11; not implemented. This began as the D30 draft (design only). An independent review found defects in the engine's shipped `first` and `last` and in the synthetic converter's letter mentions, and the owner made D30 a correctness increment instead, implemented now (decision log, D30). Nth and counts move to D32, relative conditions to D33 (first planned as D31 and D32; renumbered when the latency work took D31). The draft's text is kept below with the review's changes applied; where it says "D30" it means the increment that will build it (D32 for sections 1 and 2, D33 for section 3). Section 8 lists the decisions it still needs from the owner.*
 
 D29's stage-2 trigger: the store can express everything the trajectory page offers, or refuses it by name, and the parity test is clean. Clean means every difference is removed or accepted as a declared difference, measured with the converter itself emitting `series`.
 
@@ -9,7 +9,7 @@ D29's stage-2 trigger: the store can express everything the trajectory page offe
 What D30 fixed, and what this plan now assumes:
 - **`first` and `last` are sound since D30.** `last` takes the latest start. A `first` or `last` target that the patient's facts leave uncertain is decided on its envelope where that is exact (§1.2 below proves the envelope), and is otherwise `unresolved` (`OCCURRENCE_ORDER_UNCERTAIN`). The review's counterexamples are in the decision log. Rule R, which this draft criticised for N ≥ 2, was also wrong in three other cases: for `last` at N = 1, for any `first` or `last` step whose end a relation reads, and for one whose events another step can bind.
 - **Letter mentions range from birth to their letter** (D30). Before, 2,443 of the 2,444 missed their true time. They are now sound but wide (median about four years).
-- **Unresolved shares to expect.** On the synthetic store's 300-query differential, 160 of 14,400 results are `unresolved` after D30 (8 before), most of them by the order rule. On the store parity test's ten trajectories, 9 of 480 are. The same rule will apply to Nth (below), so D31 must report its unresolved share and keep it under a bar fixed before measuring.
+- **Unresolved shares to expect.** On the synthetic store's 300-query differential, 160 of 14,400 results are `unresolved` after D30 (8 before), most of them by the order rule. On the store parity test's ten trajectories, 9 of 480 are. The same rule will apply to Nth (below), so D32 must report its unresolved share and keep it under a bar fixed before measuring.
 
 The review's changes to this plan, applied below:
 1. **Nth ranges come from `Times.dom`**, the patient's tightened ranges, not the recorded ones. A proper exposure's start is bounded by its end, so the envelope must be over what the patient's facts allow (§1.4).
@@ -22,12 +22,14 @@ The review's changes to this plan, applied below:
 4. **Period counts:** a count within the index period is *certain* at e only if e's whole range lies inside the window (§2.2).
 5. **Counts and Nth run over coded records only.** Mention events are left out of them, and a count or Nth step asking for stated free text is refused (`FREE_TEXT_COUNT_UNSUPPORTED`) until a mention's time is informative as well as sound. Since D30 a mention spans birth to its letter, which would make almost every count and Nth uncertain.
 6. **The candidate filter uses the smallest N′** over the step and its count relaxations (posting `n` ≥ min N′), so a patient that matches only after a count relaxation is never filtered out (§2.2).
-7. **Relative conditions are deferred to D32.** Two things come first:
+7. **Relative conditions are deferred to D33.** Two things come first:
    - a decision on how a monthly summary is timed: the diary's counts are ranges of a whole month, so is the reading's time the month, its end, or a point inside it?
-   - a pre-committed usefulness bar. On the synthetic cohort the review found only 45 of 1,166 diary readings with a determined baseline, and 2 with a certain rise, so D32 ships only if a stated share of its results is decided, a share fixed before measuring.
+   - a pre-committed usefulness bar. On the synthetic cohort the review found only 45 of 1,166 diary readings with a determined baseline, and 2 with a certain rise, so D33 ships only if a stated share of its results is decided, a share fixed before measuring.
 8. **Snapshots without series refuse value and relative conditions by name** (`NO_SERIES_IN_SNAPSHOT`), rather than answering every condition `none` or not comparable.
 
 ## Latency candidates for the next increment (from the review of D30)
+
+*D31 built lever 1 and reverted it under its rule: sound, about 12% faster at 14 workers in a same-day comparison, but its regenerated confirmation missed the bar (decision log, D31). Both levers remain candidates once the measurement protocol is fixed.*
 
 D30's order rule made the 300,000-patient confirmation miss the D21 target. A review profiled the p95 queries and found the added time in the repeat search of unsafe `first` and `last` steps, mostly arc consistency (`_Arc.revise`, O(n·m) per arc). That search almost never refutes. D30 built three levers that cannot change any output (a sweep for `revise`, no exact phase in the repeat search, a direct certainty test). With them the confirmation meets the target again at 14 workers, narrowly (p95 9.46 s against 10 s), and misses it at 8 workers (11.70 s); the decision log has the figures. Two more change results or the store format, so they are candidates here, each to be decided under its own rule:
 - **Lever 1: one search over an envelope with order facts.** An unsafe step today is searched on its picked event, then again over every possible target. Instead, search once over a point ranging over its envelope, adding the facts that tie that point to the other steps' events: the target starts no later than every event of its family (no earlier, for `last`), and it coincides with an event of the family when another step binds one. This over-approximates the true semantics less loosely than the repeat search, decides more cases, and costs one search. It changes results, so it needs a proof that it is sound for `none` and for the claims it makes, the worlds check extended to it, and the usual regeneration. It is the first lever to try if the margin is needed (a larger cohort, a slower machine, or 8 workers).
@@ -382,7 +384,7 @@ Refusals are named, among them `OCCURRENCE_CONFLICT` (an engine `first` or `last
 
 ## 8. Decisions for the owner
 
-1. **Nth semantics.** The envelope (recommended), rule R (unsound for N ≥ 2), or order-aware ranks (sound, but about half of results unresolved here)? *Decided in part by D30:* `first` and `last` now use the envelope where it is exact and are unresolved otherwise; D31 extends the same rule to Nth.
+1. **Nth semantics.** The envelope (recommended), rule R (unsound for N ≥ 2), or order-aware ranks (sound, but about half of results unresolved here)? *Decided in part by D30:* `first` and `last` now use the envelope where it is exact and are unresolved otherwise; D32 extends the same rule to Nth.
 2. **Counts over recorded events.** Ship them as exact over records with the page labelling them "recorded events" (recommended), knowing they are inflated on this cohort (39 against 11)? Include "coded only" in D30 to reduce the inflation (15)?
 3. **Relative conditions.** Include them in D30 under their own rule (recommended), or refuse them now? Confirm the baseline (mean of previous k within W, per item class, strictly earlier), the explicit positive floor, and the unit rule (another unit among the previous k makes the baseline undetermined, recommended; or "previous readings in the same unit").
 4. **Coverage.** Keep the store's rule as a declared difference (recommended), or add sound partial refutation, which changes existing results?

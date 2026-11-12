@@ -42,6 +42,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D28 | Value conditions in the match request (chartevents stage 2); the D26 and D27 follow-ups; an experiment on the store 3.0 build regression, under rules fixed before measuring | Decided; value conditions shipped (0 mismatches against an independent reference on 26,880 synthetic and 20,000 demo results; four planted defects caught); column-wise digest lines kept (build −12.0% at 1,000,000, identical content); a review's must-fix (conditions differing beyond 28 digits shared a tag) fixed before the final regeneration; evidence-in-events staging reverted (−1.8% at the pilot) |
 | D29 | The mockups move onto the execution store in three stages; stage 1 puts the store beside the pages, with aggregate counts only and only the open MIMIC-IV demo, checked by content | Decided; stage 1 built (a store query page on the demo, served only if the store holds the demo's own patients; the synthetic cohort in a store agrees with the trajectory page on 427 of 480 results, each of the other 53 by a named cause); stage 2 inventory listed |
 | D30 | A correctness increment: `last` takes the latest start; a `first` or `last` target the patient's facts leave uncertain is decided on its envelope where that is exact, and is otherwise unresolved; synthetic letter mentions range from birth to the letter | Decided; built, reviewed, fixed and regenerated. MIMIC unchanged; every moved synthetic result localized to a stage (102 of the 300 recorded digests, 57 parity results, every arm A difference); the worlds check (small grids, overlapping concept families) finds no violation, and finds them in the engine before D30; a review's must-fix (coupling through another uncertain step) fixed; three output-identical cost levers kept; the D21 target met again at 14 workers, narrowly (p95 9.46 s), missed at 8 |
+| D31 | Latency: one envelope search for coupled `first` and `last` steps (lever 1 of the D32/D33 plan), under rules fixed before measuring | Built, sound on every check (0 violations in 44,500 small cases; reference agrees), then reverted under its rule: the regenerated 14-worker confirmation p95 was 9.41 s against a bar of 8.5 s (same-day calibration 8.2 s; 8 workers 9.90 s); 4 `not_comparable` results at 10,000 also moved; D30 stands. Next: fix the measurement protocol, then retry lever 1 or lever 5 |
 
 ## D1 Package with hatchling, in place
 
@@ -1045,7 +1046,7 @@ Neither side expresses absence or alternatives.
 
 ## D30 A correctness increment: `first` and `last` under uncertain times; letter mentions at or before their letter
 
-An independent review of the D30 draft (the store's step language, now the D31/D32 plan in [d31-d32-store-step-language-plan.md](d31-d32-store-step-language-plan.md)) found that the engine's shipped `first` and `last` give wrong `exact` and wrong `none` results, and that the synthetic converter breaks the engine's core assumption that a true time lies inside its recorded range. The owner decided to make D30 a correctness increment, implemented now, and to move Nth and counts to D31 and relative conditions to D32. The reviewer's scripts were kept in a scratch directory (`/tmp/rv30/`); their cases are tests here.
+An independent review of the D30 draft (the store's step language, now the D32/D33 plan in [d32-d33-store-step-language-plan.md](d32-d33-store-step-language-plan.md)) found that the engine's shipped `first` and `last` give wrong `exact` and wrong `none` results, and that the synthetic converter breaks the engine's core assumption that a true time lies inside its recorded range. The owner decided to make D30 a correctness increment, implemented now, and to move Nth and counts to D31 and relative conditions to D32 (renumbered D32 and D33 when the latency work took D31). The reviewer's scripts were kept in a scratch directory (`/tmp/rv30/`); their cases are tests here.
 
 **The defects, with the review's counterexamples** (M may fall anywhere from day 60 to day 365, L is day 69, the window is [0, 90]):
 1. *`last` took the largest earliest start.* `candidates` sorted by (start range, end range, id) and took the last, which is the event with the largest *earliest* start. So "the last K, then the window's end at least 0 later" was `exact` on L, which is false if M fell in November, and "the last K at least 1 after the window's end" was `none`, which is possible.
@@ -1072,7 +1073,7 @@ An independent review of the D30 draft (the store's step language, now the D31/D
 
 **Decision 3: letter mentions range from the earliest the record allows to the letter.** A mention's start is [birth, or the start of an earlier record (a prenatal scan) if that is earlier, the letter's latest time]. Verified on every mention against the generator's truth, which the converter never reads and a test does: 2,444 of 2,444 inside, against 1 before. The median range is about four years, so most `first` steps on a mentioned concept become uncertain, and the store answers what the records support. `synthetic_provenance` records the timing (`mention_time`); `mention_time='letter'` keeps the old timing, only so that the digests recorded before D30 can be reproduced by the tests and the attribution below.
 - *The trajectory page does not share the letter timing:* it merges a mention into the happening it describes (2,392 of the 2,444, a ground-truth shortcut D29 declared) or times the rest from their wording, and all 52 of those hold their true time. It stays as it is.
-- *Declined:* timing by wording in the converter (heuristic, D31 plan); an unbounded lower end (no sound bound is lost by birth on this cohort, and an unbounded range would leave every `first` on a mentioned concept undecided, even after a coded record).
+- *Declined:* timing by wording in the converter (heuristic, D32 plan); an unbounded lower end (no sound bound is lost by birth on this cohort, and an unbounded range would leave every `first` on a mentioned concept undecided, even after a coded record).
 
 **Decision 4: the trajectory page.** The page picks `last` among its candidates by (latest, earliest) as the engine now does. The page's own search does not test whether a `first` or `last` target is certain; it binds the reconciled event its most precise record dates. That is a declared difference in the store parity test (`order-uncertain`), not ported, since the page resolves candidates itself and sends the engine single candidates.
 
@@ -1136,7 +1137,7 @@ An independent review of the D30 draft (the store's step language, now the D31/D
 - *Next step, by D21's rule:* algorithmic work on the Python engine, not Rust. The levers are:
   - the second search of unsafe steps, bounded to the possible targets the posting summaries leave;
   - sharing the order analysis across relaxation sets;
-  - a "coded records only" option, which would leave letter mentions out of `first` and `last` (D31 plan).
+  - a "coded records only" option, which would leave letter mentions out of `first` and `last` (D32 plan).
 
 *Limitations:*
 - One machine.
@@ -1145,7 +1146,7 @@ An independent review of the D30 draft (the store's step language, now the D31/D
 - The attribution's stages are cumulative, so a change that first appears at the order rule might also have come from the mention timing alone.
 - The cost split is one ad hoc run.
 
-*Follow-ups:* the D21 target (above); D31 and D32 as planned; `trajectory_graph_worlds.py` extended to Nth and counts (D31 plan, change 3).
+*Follow-ups:* the D21 target (above, taken up in D31); D32 and D33 as planned (first numbered D31 and D32); `trajectory_graph_worlds.py` extended to Nth and counts (D32 plan, change 3).
 
 **Review of D30, and what it changed** (an independent review of the built increment; its scripts were kept in a scratch directory, `/tmp/rv30b/`, and its cases are tests here). The figures above are from the first D30 run; the regeneration after these fixes replaces them, and the verdicts below are taken on it.
 - **Must-fix M1: "safe" missed coupling through another uncertain `first` or `last` step.** `_coupled` asked only whether another ordered step's *picked* event carried the step's concept. When that step's target is itself uncertain, its true target can be any of its possible targets. Counterexample (window [0, 10]; points A {K}, M {J, K} and Z {J}, each in [0, 3]; f the first K, l the last J): "l, then f at least 1 later" is impossible, and "f, then l at least 0 later" holds in every choice of times, yet the engine and the reference both said `possible`. The reference repeated the check, so the differential could not see it, and the worlds check's generator gave every event one concept, so it never met two overlapping families. *Fix:* another ordered step couples when its picked event (if certain) or any of its possible targets (if not) carries the concept, in the engine and, written again, in the reference. The small-case generator now draws events of concept x, y or both, and the review's case is a test. The review's targeted fuzz found 7 violations in 20,000 cases before the fix and none after.
@@ -1153,7 +1154,7 @@ An independent review of the D30 draft (the store's step language, now the D31/D
 - **Should-fix S2: an undecided relaxation set turns `relaxed` into `none` without saying so in the counts.** The result is `none`, `complete: false`, note `RELAXATION_ORDER_UNCERTAIN`, and the store counts it as `none`. The convention stays (a relaxed match that rests on an undecided set is not reported), but the scaling and matcher reports and the store query page now count such incomplete `none` results separately, by note. At 1,000,000 most of the drop in `relaxed` (342,300 to 3,400) is this, not the changed queries. Some old relaxed matches were in fact false (seed 7's, the review found).
 - **Should-fix S3: the profile changed its definition.** The profile defined `first` and `last` syntactically, by an order on recorded ranges, so the old `last` conformed to the written profile; what changed is the definition, made to agree with the profile's own semantics of `exact` and `possible`. The identifier stays `trajectory-graph-1.0`. A match through the store records the engine's digest in its context; bare `trajectory_graph.match` and the mockups' `/api/trajectory-graph/match` do not, which is a limitation (adding a field to every output would move every result digest). The page's "Nth from last" ordering changed with `last`.
 - **S4:** statements that the worlds check finds no wrong claim are scoped to what it covers (below).
-- **Latency.** The review profiled the p95 queries: most of the added time is the second search for unsafe steps, mostly arc consistency (`_Arc.revise`, O(n·m) per arc), and that search almost never refutes. Three levers that cannot change any output are built: a sorted sweep for `revise`'s common case (O((n + m) log m)), handling the case where one event is in both domains exactly as before; skipping the exact phase in the second search, whose only question is whether any binding exists; and a direct `certain` test for a family with no shared variables. A fourth lever, one search over an envelope with order facts, would change results and needs a proof; it and pruning on order (a store format change) are in the D31/D32 plan.
+- **Latency.** The review profiled the p95 queries: most of the added time is the second search for unsafe steps, mostly arc consistency (`_Arc.revise`, O(n·m) per arc), and that search almost never refutes. Three levers that cannot change any output are built: a sorted sweep for `revise`'s common case (O((n + m) log m)), handling the case where one event is in both domains exactly as before; skipping the exact phase in the second search, whose only question is whether any binding exists; and a direct `certain` test for a family with no shared variables. A fourth lever, one search over an envelope with order facts, would change results and needs a proof; it and pruning on order (a store format change) are in the D32/D33 plan.
 
 **Pre-committed rules for the review fixes** (committed before any measurement of them):
 - *Levers.* Each lever is a switch (`trajectory_graph._LEVERS`) and is kept only if, with it on and off, every output is byte-identical: the engine's differential and every engine test, the worlds fuzz, the 300 recorded match digests, the store differentials and fixtures, and the matcher comparison's per-query digests (arms B, `B_unpruned` and C are compared with the switch on; a same-day in-process measurement at 10,000 to 300,000 on the kept D30 snapshots compares on against off). A lever that moves any output is dropped.
@@ -1192,6 +1193,147 @@ Before it, the levers were measured on the kept D30 snapshots, in one process, o
 | Arm B, µs per candidate end to end (engine) | 189.2 (57.7) | 244.1 (107.9) | 231.7 (94.9) |
 | Query process, C at 14 workers | 0.86 GiB | 0.82 GiB | 0.83 GiB |
 
-At 14 workers p95 9.46 s against 10 s (a 5% margin, every repeat under 10 s), maximum 10.2 s against 30 s and memory 0.83 GiB against 4 GB: by D21's rule Python stays and no Rust is built. The margin is thin and rests on one machine; the D28 margin was 27%. At 8 workers the target is missed (11.70 s), where D28 met it. The main run at 300,000 (ten queries) gives 9.88 s at 14 workers. The next lever, if a larger cohort or slower machine needs one, is lever 1 of the D31/D32 plan (one envelope search with order facts), then lever 5 (pruning on order).
+At 14 workers p95 9.46 s against 10 s (a 5% margin, every repeat under 10 s), maximum 10.2 s against 30 s and memory 0.83 GiB against 4 GB: by D21's rule Python stays and no Rust is built. The margin is thin and rests on one machine; the D28 margin was 27%. At 8 workers the target is missed (11.70 s), where D28 met it. The main run at 300,000 (ten queries) gives 9.88 s at 14 workers. The next lever, if a larger cohort or slower machine needs one, is lever 1 of the D32/D33 plan (one envelope search with order facts), then lever 5 (pruning on order).
 
 *Further notes from the review:* `RECORDED_3_0`'s synthetic input digests now rest on the re-recorded values (the converter's own digest is part of the input digest), its table digests on the recording at a81ef03. `_ORDER_RULE`, `_LAST_KEY` and `_LEVERS` are module globals for tests and attribution in one process; workers never see them changed.
+
+## D31 Latency: one envelope search for coupled `first` and `last` steps (lever 1), under rules fixed before measuring
+
+After D30's review the 300,000-patient confirmation (30 queries × 3 repeats) gives a p95 of 9.46 s at 14 workers, a 5% margin on the D21 target, and 11.70 s at 8 workers, which misses (D28: 7.26 and 8.39 s). The D30 review put about 90% of the order rule's time on the p95 queries (seeds 7 and 26) in the second search of unsafe steps, which almost never refutes. This increment replaces D30's two searches with one envelope search where an argument covers the step (lever 1 of the plan for D32 and D33, [d32-d33-store-step-language-plan.md](d32-d33-store-step-language-plan.md)). Nth and counts move from D31 to D32 and relative conditions from D32 to D33, since this increment takes D31.
+
+*Outcome (details at the end of this entry):* lever 1 was built and passed every soundness check, but the regenerated 14-worker confirmation gave a p95 of 9.41 s against the pre-committed bar of 8.5 s, so it was reverted and D30's engine and reports stand. The design, the argument and the rules below are kept as written; the profile describes the engine as shipped, so it does not carry the argument.
+
+**Where the time goes** (design input, measured on D30's code before these rules, at 10,000 patients over the first 30 queries; counts only). Every unsafe step in the synthetic queries is unsafe because another step can bind one of its possible targets (*coupled*); no family has a shared variable (the synthetic store has none); in a few the step's end is read as well (a `during` from an exposure). Seed 26 is "the first clobazam, then an antiseizure drug": every clobazam event is an antiseizure event, so the `any` step can bind each of the first step's 24 possible targets (on average). D30's picked search finds nothing for 2,918 of 2,936 such patients, its second search then finds a binding, and the result is unresolved after two searches; the second search takes 0.44 of the query's 0.52 engine seconds in the order rule.
+
+**Decision: lever 1.** An unsafe uncertain step is *covered* when its concept's events name no variable another event names and no relation reads its end unless every such event is a point (`_covered`). When every unsafe step of a set is covered, the set is decided by one search in two phases (`_envelope_search`); otherwise D30's path stands for the whole set. Safe and certain steps are decided as in D30.
+- *Exact phase.* Each covered unsafe step is a point of its own over its envelope, linked to nothing, as a safe step is. An exact binding is reported `exact`. Its absence proves nothing, since the point has more choices than the true target.
+- *Possible phase.* Each covered unsafe step's candidates are its *split* (`_Occurrence.split`), and the phase adds the *order facts* (`_order_facts`). With no binding (a complete search), the set is `none`. With a binding, the set is undecided ('possible'), exactly as D30 leaves it after a binding: `unresolved` with the binding beside it, or a relaxation set passed over. A stopped search is a stopped search, as before.
+- *The split,* for a `first` step (mirrored for `last`). Order the possible targets (D30's pairwise test) by earliest start. A target is *blocked* when another step's candidates in this phase include it: an `any` step whose concept it carries, a certain ordered step whose event it is, or an unsafe ordered step among whose possible targets it is. Let m count the steps that block some target, and λ be the least earliest start at which the targets starting no later include an unblocked one, or more than m blocked ones. The candidates are a point over [λ, least latest start], then the blocked targets whose earliest start is below λ, as themselves. With no λ, the blocked targets alone.
+- *The order facts,* each between two steps' starts:
+  - (F1) for a covered unsafe step s on concept K and any other step t: s starts at or before t (at or after, for `last`) when t is bound to one of the patient's own events carrying K;
+  - (F2) for two ordered steps s and u: s starts at or before u when s is `first`, u is `last` and some event carries both concepts, or both are `first` and every event of u's concept carries s's; s starts at or after u when both are `last` and every event of u's concept carries s's.
+- *Not used in the exact phase.* The facts would make more bindings exact. But certainty is decided pair by pair, and through a third variable (a `first` and a `last` step both at or before or after an event a third step binds) a fact can bear on a pair it does not name, so the pairwise test would no longer decide the model exactly. They are left to a later increment.
+
+**Why exact and none are sound** (by over-approximation; the same argument is in the profile). Write F for the step's family (the patient's events carrying its concept), P for its possible targets, [a, b] for its envelope over the patient's ranges (`Times.dom`), and T(w) for the true target in a choice of times w.
+1. *What every choice of times gives the target.* T(w) is in P, since in w it starts at or before every other event of F, so it passes the pairwise test. Its start lies in [a, b]: it is at least its own earliest start, so at least a, and at most every other event's start, so at most b. It starts at or before every event of F. These hold over `Times.dom`, the ranges every choice of times satisfies, which already carry shared variables and `proper`.
+2. *Exact phase.* Map w to the model by giving each covered unsafe step's point the start of T(w), and every other variable its value in w. The point's value lies in its range, by 1. Every constraint reads the same value in both:
+   - a constraint on the step's start reads the target's start;
+   - one on its end only where every event of F is a point, whose end is its start;
+   - one on another step reads that step's event, unchanged, even when that event is T(w) itself (the map keeps both values equal).
+
+   Scope, `after`, `during` and the anchors are all such constraints. So a binding of the `any` steps that holds in every choice of the model holds in every true choice: `exact` is sound.
+3. *Possible phase.* Take a true binding that holds in w. Map it to the model: if T(w)'s earliest start is at least λ, the step takes the point, whose value is T(w)'s start (in [λ, b], by 1); otherwise T(w) is blocked with earliest start below λ (by λ's choice every unblocked target starts no earlier than λ), so it is a candidate itself. The facts hold in w:
+   - F1, by 1;
+   - F2, since the first of s's family is at or before a common event, which is at or before the last of u's, or since u's target is in s's family.
+
+   Every stand-in (the event, the envelope point, a possible target as itself) maps to the target's start, so the facts hold whatever stands for each step. So the model has a binding wherever the truth has one, and a model with none proves `none`. The facts only remove choices: leaving them out still over-approximates (they are never needed for soundness, and decide more).
+4. *Why no decided result is lost* (the possible phase refutes whatever D30's second search refutes). Take a binding of the model with the step on its point at time v. Some target starts no later than λ, is unblocked or one of more than m blocked ones, so at least one is bound by no other step; its latest start is at least b ≥ v (every event of F has latest start at least b), so it can take time v. Its variable is its own (a covered step's family names no shared variable), its end is not read, and its own end is chosen within its range. So the same binding with the step on that event holds in D30's second search, which therefore finds a binding too. With several covered steps the events are picked one at a time, each among targets not yet taken; m counts every step that can take one. A blocked target as itself is a candidate of D30's second search too. D30 says `none` only when its second search, over every possible target, finds nothing, so the envelope search says `none` there as well (if its own search completes).
+5. *Relaxations and costs.* Each relaxation set is decided on its own concepts and bounds, so the argument holds set by set. The order of sets by cost and D30's conventions are unchanged: an undecided set is passed over, and the result says so (`complete: false` and its note).
+6. *Search budgets and `complete`.* Each phase has the query's search budget, as each of D30's searches had. A stopped possible phase concludes nothing: the set is reported as a stopped search (`SEARCH_BUDGET_EXHAUSTED` unrelaxed, a stopped set otherwise). `exact` and `none` carry `complete: true`, as D30's decided results do. The envelope search can stop where D30's did not, or the reverse; the result is undecided either way.
+7. *Shared variables.* A covered step's family has none, but other events may: the map keeps every other variable, so their links stand. In the possible phase the point is linked to nothing, and the facts link starts only by order edges, which the joint test (a temporal network over the binding) includes. A family with a shared variable keeps D30's path: soundness (1 to 3) would hold, but 4 needs each target's variable to be its own.
+8. *`proper`.* It narrows `Times.dom`, from which the envelope, λ and the possible targets are computed. In the map the point takes the target's start, which in w already satisfies the target's own order with its end; the point has no end of its own.
+9. *`during` and ends.* A relation from the step reads its end, and the point has none. A covered step's end is read only where every event of F is a point; an exposure family under a `during` from the step keeps D30's path.
+10. *Time pruning.* Unchanged and still exact. A pruned patient's sets are impossible over every event of the concept. The envelope point lies within the posting's [min_start_lo, max_start_hi], its end (its start) within max_end_hi, and the blocked targets are the concept's own events. So both phases empty by arc consistency, and the engine gives the same `none` with `complete: true`.
+11. *Excluded records (D18).* The binding of an `exact` result names the picked event for the envelope point, as a safe step's does. The displacement test, which compares an excluded record with the picked event's recorded range, is at least as wide as one against the envelope.
+
+**The reference.** `trajectory_graph_reference.py` writes the rule again from the profile:
+- coverage, the blocked targets, m and λ by its own satisfiability tests;
+- the points as new variables;
+- every binding enumerated over the same candidate sets, each decided by Bellman–Ford over the patient's facts, the points, and the order facts that apply to that binding.
+
+It shares no decision code with the engine.
+
+**Pre-committed rules** (written and committed before any measurement of lever 1):
+- *Soundness.*
+  - The independent worlds checker (`trajectory_graph_worlds.py`) finds zero violations: on at least 20,000 ad hoc cases from the multi-concept generator (`tiny_case`: events of concept x, y or both), on at least 20,000 from a generator of two or three ordered steps over overlapping families (after the D30 review's `fuzz3.py`), and on the test suite's own volume (3,000 small cases and every review case).
+  - Every D30 review counterexample is sound.
+  - Planted defects:
+    - order facts dropped. This cannot make a result unsound (point 3), so the worlds checker cannot catch it; it must be caught by the differential against the reference, and by named cases whose decision needs the facts (the D30 review's M1 cases);
+    - a fact reversed, a conditional fact applied to every event, the split's point started above λ, and an exact claim made on the split: each must be caught by the worlds checker.
+  - The engine and the reference agree on every differential case.
+- *Result movement,* against D30: this tree with `_ENVELOPE` off, which must reproduce D30's recorded digests.
+  - Every changed result goes from undecided to decided. Undecided means `unresolved`, or `complete: false` with an order note (`RELAXATION_ORDER_UNCERTAIN`, `CHEAPER_RELAXATION_ORDER_UNCERTAIN`); decided means `exact`, `possible`, `relaxed` or `none` with `complete: true`.
+  - On small cases every changed result is confirmed by the worlds checker.
+  - No decided result changes.
+  - A change inside an undecided result is not a decision. Such changes are counted and listed apart and do not fail this rule: the match reported beside `unresolved` (certainty, binding, method), the relaxed match beside it, the reason, an incomplete result's note, or an `unresolved` result that becomes `none` with `complete: false`.
+  - MIMIC results unchanged. Its times are exact, so no target is uncertain.
+  - The 300 recorded match digests are re-recorded with each seed's movement in a committed fixture (D30 digest reproduced with the switch off, new digest, each changed result's transition), which a test recomputes.
+  - At every size and in the confirmation, an attribution reproduces each moved query's D30 digest with the switch off and its new digest with it on, and counts each moved result's transition.
+- *Keep lever 1 only if* the 14-worker confirmation p95 (all runs pooled) is at most 8.5 s, at least 10% under D30's 9.46 s (a margin of about 15% on the target), with the maximum at most 30 s and query-process memory under 4 GB. The 8-worker figures are reported too; getting back under 10 s there is the stretch goal. Otherwise lever 1 is reverted, its numbers recorded here, and the next step stated.
+- *Calibration first.* Before the regeneration, D30's code (b46d9bb, from a git archive) and this tree are measured on the same day, on the same snapshots, in process (arm B), at 10,000, 100,000 and 300,000 patients, interleaved and repeated, to put a figure on run-to-run drift (the D30 review saw about 5 to 10%).
+- *Lever 5* (pruning on order; store format 3.2) is built only if lever 1 is not enough, under its own rule committed before it is measured; otherwise it stays the next lever.
+- A failure is fixed, never tuned away.
+
+**Built and tested** (e14617a; the implementation stays in this branch's history for a later attempt). The engine's `_envelope_search` and its switch `_ENVELOPE`, the reference written again, 4 new engine tests and a store test, the 300 recorded digests re-recorded with each result's transition, and the attribution tool extended by a D31 stage. Results on small cases:
+- *Soundness.* The worlds checker found no violation: 3,000 multi-concept cases, 1,500 cases of two or three mostly ordered steps and the review cases in the test suite; and ad hoc, 20,000 of each generator. Every D30 review case is sound. The M1 case "the last J strictly before the first K" is now `none`, which is true. The other M1 case stays `unresolved`, since it needs a fact in the exact phase.
+- *Planted defects.* All four soundness defects are caught by the worlds check: a fact reversed, a conditional fact applied to every event, the split's point without its blocked targets, and exact claimed on the split. Dropping the order facts is not caught by the worlds check, as expected (point 3); it is caught by the differential against the reference and by the M1 case.
+- *The reference* agreed on every case: the 4,500 of the test and 40,000 ad hoc, statuses, what is reported beside them, and every reported binding.
+- *Movement on small cases.* Against D30 (the switch off), every changed result started undecided:
+  - 1,038 of the 20,000 multi-concept cases moved to a decision and 800 stayed undecided;
+  - 2,837 of the 20,000 ordered cases moved to a decision and 2,151 stayed undecided;
+  - no decided result changed.
+
+  The changes that stay undecided are mostly `unresolved` results whose beside-match changed: D30 found `exact` on the picked event, while the envelope search finds only a possible binding.
+- *Other suites.* All engine, store and SULO suites pass. Both parity tests are unchanged (336 of 336; 401 of 480): no parity result moved.
+
+**Measurement** (after the rules were committed, 0b4189c; one heavy job at a time).
+
+*Calibration, in process* (arm B, one worker, fresh process per run, interleaved D30, D31, D30, D31, on the same snapshots, which are D30's: the same identifiers at every size):
+
+| Size (queries) | D30: µs per candidate end to end (engine), two runs | D31 | Slowest query, D30 → D31 |
+|---|---|---|---|
+| 10,000 (50) | 221.3 (99.3), 221.9 (99.4) | 219.0 (96.5), 219.0 (96.7) | 2.20 → 2.18 s |
+| 100,000 (10) | 327.9 (135.1), 328.9 (135.6) | 326.5 (132.8), 325.9 (131.8) | 22.4 → 22.2 s |
+| 300,000 (10) | 328.2 (134.7), 328.4 (135.0) | 325.9 (132.3), 326.5 (132.8) | 69.0 → 68.1 s |
+
+- *Drift.* Run-to-run drift in process is under 0.5%, and each code's repeats give identical digests.
+- *What moved.* D31's digests differ from D30's on 7 of 50 queries at 10,000 and 1 of 10 at 100,000 and 300,000.
+- *Why the gain is small here.* The first ten queries include seed 7 but not seed 26. Lever 1 hardly moves seed 7, whose order rule acts in a relaxation set (engine 0.84 s with the rule off, 1.15 s in D30, 1.11 s in D31 at 10,000). It brings seed 26 close to the rule's absence (0.64 off, 1.15 in D30, 0.75 in D31).
+
+*Calibration, arm C* (not in the rules; added to read drift at the target's own measure). The confirmation queries (30 × 3) at 300,000 were run in each order, each run a fresh process:
+
+| Order | 14 workers: p95 (max) | 8 workers: p95 (max) |
+|---|---|---|
+| D30 then D31 | 9.39 (10.15) → 8.21 (10.26) s | 11.85 (13.12) → 11.32 (14.85) s |
+| D31 then D30 | 8.20 (10.35) → 9.46 (10.24) s | 10.03 (12.95) → 13.75 (16.14) s |
+
+- *At 14 workers* the two orders agree: lever 1 gives 8.2 s against 9.4 s, −12.5%.
+- *At 8 workers* the second run of a pair is 10 to 16% slower whichever code it runs, so drift there is as large as the effect.
+
+*The regeneration:*
+1. the MIMIC demo (1,401 s);
+2. the scaling run to 1,000,000 with `--keep` (9,331 s);
+3. arm A's own 2.0 snapshots;
+4. the matcher comparison with the committed settings, then `--confirm --large-queries 30 --large-repeats 3`.
+
+The attribution (letter-timed snapshots and the extended tool) was stopped once the verdict below was taken. Its 1,000 snapshot had been built.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| Soundness | 0 violations (small cases above, 44,500 in all, with the review cases); four soundness defects caught; facts dropped caught by the reference and M1 | met |
+| Movement, small cases | Every change from undecided, none of a decided result; each moved result worlds-checked | met |
+| Movement, 300 recorded digests | 23 seeds moved, 147 results: 132 to a decision (62 `unresolved` → `none`, 44 incomplete `none` → `none`, 24 `unresolved` → `exact`, 2 `unresolved` → `not_comparable`), 15 within undecided. With the switch off every D30 digest is reproduced | met |
+| Movement at scale | Partly established: the attribution was stopped. Ad hoc on the 10,000 snapshot (50 queries), 7 queries moved; 6,664 results to a decision, 617 within undecided, and **4 `not_comparable` → `relaxed`** (2 complete, 2 with `CHEAPER_RELAXATION_ORDER_UNCERTAIN`). By the rule's labels these are not changes from undecided, though `not_comparable` is D18's verdict read off the result. The likely mechanism, not established: D30's `not_comparable` came from the displacement test reading the binding beside an undecided result, and lever 1 decides the unrelaxed query instead. At 1,000 all 711 changes are from undecided. In the confirmation, the digests of seeds 7, 26 and 29 moved | not met as written (4 results at 10,000; other sizes not attributed) |
+| MIMIC unchanged | 0 differences from D30's report other than identifiers, digests, bindings and timings | met |
+| Scaling | Snapshot identifiers, table rows and candidate counts equal D30's at every size. At 1,000 `unresolved` fell from 398 to 38, at 10,000 from 4,222 to 375. At 100,000 and above the 10 queries' statuses are unchanged, but the incomplete `none` results fell from 31,060, 93,180 and 310,600 (all `RELAXATION_ORDER_UNCERTAIN`) to 6,060, 18,180 and 60,600 (all `RELAXATION_SEARCH_STOPPED`) | met |
+| **Keep lever 1 only if the 14-worker confirmation p95 ≤ 8.5 s** | **9.41 s** (by repeat 9.99, 9.14, 9.03); maximum 11.85 s; 0.82 GiB | **missed: lever 1 reverted** |
+| 8 workers (stretch: under 10 s) | 9.90 s (9.75, 10.11, 9.90); maximum 13.13 s | reported |
+
+**Why the confirmation missed, as far as it is known.** Lever 1 did what it was built for: in the confirmation's arm B, seed 26's engine time fell from 33.6 to 21.6 s. At 8 workers, seed 26 fell from 11.70 to 9.90 s and every query lever 1 does not touch took what it took in D30 (seed 15: 9.75 against 9.87 s, seed 25: 8.46 against 8.45 s). At 14 workers, those untouched queries ran 10 to 16% slower than in D30's confirmation (seed 15: 7.94 → 9.14 s, 19: 6.00 → 6.97, 25: 6.92 → 7.74, 11: 7.57 → 8.69), and seed 26 came in at 9.12 s. The 14-worker arm runs last, after about 90 minutes of continuous load. The same-day calibration measured 8.2 s for this code at 14 workers, in either order. So the miss is probably drift in the 14-worker arm, but that is not established, and the rule was fixed before measuring so that a miss is not argued away: the regenerated confirmation is the verdict.
+
+**Decision: lever 1 is reverted.** The engine, the reference, the tests, the fixtures, the attribution tool and the three reports are D30's again, byte for byte (b46d9bb), so D30's committed reports, the 300 recorded digests and every other figure stand as they were. The decision log keeps the design, the argument, the rules and these numbers; the implementation is in e14617a.
+
+**What is next.**
+1. *The measurement first.* The 14-worker confirmation is the verdict, and in this run the queries lever 1 does not touch varied by 10 to 16% between two regenerations of it. A lever worth 10 to 12% cannot be judged against that. The protocol needs a fix decided before the next measurement, for example the D30 and new code interleaved in one confirmation, or the 14-worker arm run first and cool. That changes a committed protocol, so it is the owner's call.
+2. *Lever 1 again, with two corrections from this attempt:*
+   - the movement rule should classify a result by the engine's decision before D18's rule (or the displacement test should not read a beside-match), which settles the four `not_comparable` results;
+   - the order facts could join the exact phase once certainty is decided with them jointly.
+3. *Lever 5* (pruning on order, store format 3.2) is not built. Under D31's rule it was to follow only if lever 1 was not enough, and judging it needs the same measurement fixed first. It also helps only where pruning can act, which on seed 26 is 12,960 of 106,230 candidates.
+4. *The D21 target* stands as D30 left it: met at 14 workers with a 5% margin (9.46 s), missed at 8 (11.70 s).
+
+*Limitations:*
+- One machine.
+- Synthetic data, replicated beyond 10,000 patients.
+- The worlds check covers small grids only.
+- The movement at scale was attributed only at 1,000 and 10,000, ad hoc.
+- The cause of the 14-worker slowdown is not established.
