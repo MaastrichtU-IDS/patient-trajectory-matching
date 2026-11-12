@@ -22,19 +22,29 @@
     "order rule + mention timing": 5,
     "unchanged": 26
    },
-   "seconds": 21.815148207824677,
+   "by_stages_timing_first": {
+    "last order + mention timing": 1,
+    "last order + mention timing + order rule": 1,
+    "mention timing": 10,
+    "mention timing + order rule": 11,
+    "order rule": 2,
+    "unchanged": 25
+   },
+   "seconds": 27.65131708327681,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 1,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 2,
@@ -42,19 +52,27 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 3,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 4,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -65,6 +83,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -72,6 +94,9 @@
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -82,25 +107,34 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 8,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 9,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 10,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -110,6 +144,9 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "order rule"
      ]
     },
     {
@@ -118,19 +155,24 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 13,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 14,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 15,
@@ -138,19 +180,24 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 16,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 17,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 18,
@@ -158,6 +205,10 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -166,25 +217,34 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 20,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 21,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 22,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "last order",
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "last order",
       "mention timing"
      ]
@@ -195,6 +255,9 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
@@ -203,13 +266,17 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 25,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 26,
@@ -218,19 +285,28 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 27,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
+     ]
     },
     {
      "seed": 28,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 29,
@@ -239,19 +315,25 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 30,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 31,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 32,
@@ -259,13 +341,17 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 33,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 34,
@@ -274,6 +360,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -282,31 +372,41 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 36,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 37,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 38,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 39,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -316,6 +416,10 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -326,19 +430,26 @@
       "last order",
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "last order",
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 42,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 43,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 44,
@@ -346,31 +457,38 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "order rule"
      ]
     },
     {
      "seed": 45,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 46,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 47,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 48,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 49,
@@ -378,6 +496,10 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     }
    ],
@@ -400,19 +522,28 @@
     "order rule + mention timing": 6,
     "unchanged": 20
    },
-   "seconds": 181.70631466712803,
+   "by_stages_timing_first": {
+    "last order + mention timing + order rule": 4,
+    "mention timing": 13,
+    "mention timing + order rule": 12,
+    "order rule": 2,
+    "unchanged": 19
+   },
+   "seconds": 222.09412099979818,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 1,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 2,
@@ -420,19 +551,27 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 3,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 4,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -443,6 +582,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -450,6 +593,9 @@
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -460,25 +606,37 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 8,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
+     ]
     },
     {
      "seed": 9,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 10,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -488,6 +646,9 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "order rule"
      ]
     },
     {
@@ -496,19 +657,24 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 13,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 14,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 15,
@@ -516,19 +682,24 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 16,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 17,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 18,
@@ -537,6 +708,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -544,6 +719,9 @@
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -553,6 +731,9 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
@@ -561,6 +742,9 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "order rule"
      ]
     },
     {
@@ -571,6 +755,11 @@
       "last order",
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "last order",
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -578,6 +767,9 @@
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -587,13 +779,17 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 25,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 26,
@@ -602,6 +798,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -612,13 +812,19 @@
       "last order",
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "last order",
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 28,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 29,
@@ -627,19 +833,25 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 30,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 31,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 32,
@@ -647,13 +859,17 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 33,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 34,
@@ -662,6 +878,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -670,25 +890,34 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 36,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 37,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 38,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -698,6 +927,9 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
@@ -706,6 +938,10 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -716,6 +952,11 @@
       "last order",
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "last order",
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -726,13 +967,19 @@
       "last order",
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "last order",
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 43,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 44,
@@ -740,19 +987,25 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 45,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 46,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 47,
@@ -760,13 +1013,17 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing"
      ]
     },
     {
      "seed": 48,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 49,
@@ -774,6 +1031,10 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     }
    ],
@@ -795,19 +1056,26 @@
     "order rule + mention timing": 2,
     "unchanged": 5
    },
-   "seconds": 201.59913883404806,
+   "by_stages_timing_first": {
+    "mention timing": 2,
+    "mention timing + order rule": 4,
+    "unchanged": 4
+   },
+   "seconds": 238.35345216700807,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 1,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 2,
@@ -815,19 +1083,27 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 3,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 4,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -838,6 +1114,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -845,6 +1125,9 @@
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -855,19 +1138,28 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 8,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
+     ]
     },
     {
      "seed": 9,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     }
    ],
    "compared_with": {
@@ -888,19 +1180,26 @@
     "order rule + mention timing": 2,
     "unchanged": 5
    },
-   "seconds": 652.0328594166785,
+   "by_stages_timing_first": {
+    "mention timing": 2,
+    "mention timing + order rule": 4,
+    "unchanged": 4
+   },
+   "seconds": 820.9901007078588,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 1,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 2,
@@ -908,19 +1207,27 @@
      "after_reproduced": true,
      "stages": [
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 3,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     },
     {
      "seed": 4,
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -931,6 +1238,10 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
@@ -938,6 +1249,9 @@
      "before_reproduced": true,
      "after_reproduced": true,
      "stages": [
+      "mention timing"
+     ],
+     "stages_timing_first": [
       "mention timing"
      ]
     },
@@ -948,19 +1262,28 @@
      "stages": [
       "order rule",
       "mention timing"
+     ],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
      ]
     },
     {
      "seed": 8,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": [
+      "mention timing",
+      "order rule"
+     ]
     },
     {
      "seed": 9,
      "before_reproduced": true,
      "after_reproduced": true,
-     "stages": []
+     "stages": [],
+     "stages_timing_first": []
     }
    ],
    "compared_with": {
@@ -983,19 +1306,28 @@
    "order rule + mention timing": 5,
    "unchanged": 11
   },
-  "seconds": 5315.236888583284,
+  "by_stages_timing_first": {
+   "last order + mention timing + order rule": 2,
+   "mention timing": 9,
+   "mention timing + order rule": 7,
+   "order rule": 2,
+   "unchanged": 10
+  },
+  "seconds": 7390.942240749951,
   "per_query": [
    {
     "seed": 0,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 1,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 2,
@@ -1003,19 +1335,27 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
     ]
    },
    {
     "seed": 3,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 4,
     "before_reproduced": true,
     "after_reproduced": true,
     "stages": [
+     "mention timing"
+    ],
+    "stages_timing_first": [
      "mention timing"
     ]
    },
@@ -1026,6 +1366,10 @@
     "stages": [
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
     ]
    },
    {
@@ -1033,6 +1377,9 @@
     "before_reproduced": true,
     "after_reproduced": true,
     "stages": [
+     "mention timing"
+    ],
+    "stages_timing_first": [
      "mention timing"
     ]
    },
@@ -1043,25 +1390,37 @@
     "stages": [
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
     ]
    },
    {
     "seed": 8,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
+    ]
    },
    {
     "seed": 9,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 10,
     "before_reproduced": true,
     "after_reproduced": true,
     "stages": [
+     "mention timing"
+    ],
+    "stages_timing_first": [
      "mention timing"
     ]
    },
@@ -1071,6 +1430,9 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "order rule"
     ]
    },
    {
@@ -1079,19 +1441,24 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing"
     ]
    },
    {
     "seed": 13,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 14,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 15,
@@ -1099,19 +1466,24 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing"
     ]
    },
    {
     "seed": 16,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 17,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 18,
@@ -1120,6 +1492,10 @@
     "stages": [
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
     ]
    },
    {
@@ -1127,6 +1503,9 @@
     "before_reproduced": true,
     "after_reproduced": true,
     "stages": [
+     "mention timing"
+    ],
+    "stages_timing_first": [
      "mention timing"
     ]
    },
@@ -1136,6 +1515,9 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing"
     ]
    },
    {
@@ -1144,6 +1526,9 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "order rule"
     ]
    },
    {
@@ -1154,6 +1539,11 @@
      "last order",
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "last order",
+     "mention timing",
+     "order rule"
     ]
    },
    {
@@ -1161,6 +1551,9 @@
     "before_reproduced": true,
     "after_reproduced": true,
     "stages": [
+     "mention timing"
+    ],
+    "stages_timing_first": [
      "mention timing"
     ]
    },
@@ -1170,13 +1563,17 @@
     "after_reproduced": true,
     "stages": [
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing"
     ]
    },
    {
     "seed": 25,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 26,
@@ -1185,6 +1582,10 @@
     "stages": [
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
     ]
    },
    {
@@ -1195,13 +1596,19 @@
      "last order",
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "last order",
+     "mention timing",
+     "order rule"
     ]
    },
    {
     "seed": 28,
     "before_reproduced": true,
     "after_reproduced": true,
-    "stages": []
+    "stages": [],
+    "stages_timing_first": []
    },
    {
     "seed": 29,
@@ -1210,6 +1617,10 @@
     "stages": [
      "order rule",
      "mention timing"
+    ],
+    "stages_timing_first": [
+     "mention timing",
+     "order rule"
     ]
    }
   ],
@@ -1219,11 +1630,11 @@
   }
  },
  "artifacts": {
-  "tools/d30_attribution.py": "e5bffb4c09cc5d94c6eb8957a0d2a799193e879b0e8127e0afb60de8bee8832a",
-  "tools/benchmark_matcher.py": "2404e62b90596f08c898f317aca1988ac92ad72ec85e04fd0e45ab55b94c2183",
-  "tools/benchmark_execution_store.py": "a9aabc8b399b7cb37d9725560ef1c8373b3e2f2bc482bbe69992acdcd51e00a3",
+  "tools/d30_attribution.py": "b14c94280ea3b47b682359e254dcf9afe084a900f11ef7ae75f7a664b212590b",
+  "tools/benchmark_matcher.py": "37fd7ea5df06d283a004a617ca73330fab7e1d58f9162b00a01e7635730cc181",
+  "tools/benchmark_execution_store.py": "d3550113dbfaebff4ee8b5c27b28690c2802af756d3f2b4ab91e69d71bd21479",
   "patterns/execution_store.py": "2e66a942684e53be78307e0c35054f06541aeffe60e04a1114430686b3adbf1c",
-  "patterns/trajectory_graph.py": "06755d188dca068ee3ad564a7a8e375b112d9de6daa9ee5903c3501d8584ff8b",
+  "patterns/trajectory_graph.py": "72093cceafa2784eaac120c6be9589abbd5830dcc61a5e6c72fc08343fce1f77",
   "patterns/synthetic_ingest.py": "af06859b021cb46adf6e8f0d7183a8b99832536066dd076ace8a2745a16b03f4"
  },
  "contains_patient_level_data": false

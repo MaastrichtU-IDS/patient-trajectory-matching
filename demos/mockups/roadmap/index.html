@@ -49,7 +49,7 @@
 
   <div class="facts">
     <div class="fact"><b data-r="patients">1,000,000</b>synthetic patients built and verified in one store, under a 4 GB database limit</div>
-    <div class="fact"><b data-r="p95">13.05 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
+    <div class="fact"><b data-r="p95">9.46 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
     <div class="fact"><b data-r="rows">668,862</b>MIMIC-IV demo chart rows ingested and every one checked, <span data-r="mism">0</span> mismatches</div>
     <div class="fact"><b>1,241</b>contract checks run on every push</div>
   </div>
@@ -119,7 +119,7 @@
   <p class="lede">Deliberately deferred, each with the condition that would bring it back.</p>
   <div class="grid">
     <div class="item"><h3>A Rust matching engine</h3>
-      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python met the target at 300,000 patients until D30; with sound <code>first</code> and <code>last</code> and wider letter mentions it is now missed (p95 13.05 s against 10 s at 14 workers), so D21's rule applies again, algorithmic work first. A Rust engine would be a second implementation over the same snapshots, with the Python path as its reference.</p>
+      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python meets it at 300,000 patients with 14 workers (p95 9.46 s against 10 s since D30, a narrower margin than before: D30's sound <code>first</code> and <code>last</code> cost time, and three output-identical changes won most of it back), so none was built. It would be a second implementation over the same snapshots, with the Python path as its reference.</p>
       <p class="ref">D7, D21, D30</p></div>
     <div class="item"><h3>Embeddings and a nearest-neighbour index</h3>
       <p>Added only if recall at full scale needs it. Concept information content comes from the stored counts.</p>

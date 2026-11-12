@@ -8,7 +8,7 @@ From 2026-11-06 you delegated three things, and every decision inside them: pack
 - The engine builds as a wheel. Nothing is published.
 - The adapter turns bounded, patient-local and claim sources into the engine's input and checks each answer against the source.
 - The store is an embedded DuckDB database writing immutable Parquet snapshots. It builds and verifies at 1,000,000 synthetic patients under a 4 GB database limit.
-- Matching at 300,000 patients meets the speed target on one machine, in Python, with 8 or 14 worker processes. No Rust was built. *Since D30 (section 7) it misses it: p95 13.05 s at 14 workers.*
+- Matching at 300,000 patients meets the speed target on one machine, in Python, with 8 or 14 worker processes. No Rust was built. *Since D30 (section 7) the margin is narrow: p95 9.46 s at 14 workers, and 8 workers now miss it.*
 
 All scale evidence is synthetic data on one machine. Nothing is deployed, and nothing clinical has been reviewed.
 
@@ -131,5 +131,5 @@ Cautions on the matching rows:
   - *Uncertain targets.* When the records leave it uncertain which event is first or last, the step is decided on the range of times the true first (or last) can take, where that is exact. Otherwise the result is `unresolved`, with the binding found beside it. "Otherwise" means a relation reads the step's end, another step can bind its events, or the events share time variables. A new check enumerates every choice of times on small cases and finds no wrong claim; the engine before D30 made such claims.
   - *Letter mentions* now range from birth to the letter. Before, 2,443 of the 2,444 missed their true time.
   - *What moved.* The MIMIC demo is unchanged (all its times are exact). On synthetic data, 100 of the 300 recorded match digests moved, 57 of the 480 parity results, and about half of the matcher benchmark's queries. Each change is attributed to one of the three fixes by rerunning with them switched off. The store and the trajectory page now agree on 401 of 480 results.
-  - *Cost.* The D21 latency target is now missed: p95 13.05 s at 14 workers against 10 s, maximum 16.1 s, memory 0.82 GiB. Most of it is the order rule on the wide mention ranges. By D21's rule the next step is algorithmic work in Python, not Rust; this needs your decision on priority.
-
+  - *Review and fixes.* An independent review of the built increment found one must-fix: a step was treated as safe although another uncertain `first` or `last` step could take one of its events (two overlapping concept families). It is fixed in the engine and the reference, and the small-case check now uses overlapping families; it moved 2 of the 300 recorded digests. The review also corrected wording (the attribution localizes changes to stages; it does not prove them fixes), and made incomplete `none` results, where a relaxed search was left undecided, visible in the reports and on the store query page.
+  - *Cost.* The first run missed the D21 latency target (p95 13.05 s). The review traced the time to a repeat search that rarely refutes; three changes that move no result (each checked byte for byte) brought it back: p95 9.46 s at 14 workers against 10 s, a 5% margin, maximum 10.2 s, memory 0.83 GiB. At 8 workers it is missed (11.70 s). The next lever, one search over an envelope with order facts, changes results and is in the D31/D32 plan.
