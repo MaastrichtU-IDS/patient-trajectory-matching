@@ -1010,10 +1010,19 @@ def match_digest(store, q, w):
 
 
 def d30_stage_digests(legacy_store, seed):
-    """The seed's result digest at each stage of D30 (decision log, D30): before it (the store converted with
-    letter-timed mentions, the order rule off and `last` by the old order), with `last` by the latest start,
-    with the order rule as well, and with the mention timing (the store and the case as they are now); and, for a
-    second ordering, this store and case with the order rule off (mention timing before the order rule)."""
+    """The seed's result digest at each stage of D30 (decision log, D30), with D31's envelope search off: before it
+    (the store converted with letter-timed mentions, the order rule off and `last` by the old order), with `last` by
+    the latest start, with the order rule as well, and with the mention timing (the store and the case as they are
+    now); and, for a second ordering, this store and case with the order rule off (mention timing before the order
+    rule)."""
+    tg._ENVELOPE = False
+    try:
+        return _d30_stage_digests(legacy_store, seed)
+    finally:
+        tg._ENVELOPE = True
+
+
+def _d30_stage_digests(legacy_store, seed):
     q, w = MatcherScalingTests.legacy_case(seed)
     out = []
     for order_rule, last_key in ((False, tg._LAST_KEY_BEFORE_D30), (False, tg.last_key), (True, tg.last_key)):
@@ -1050,8 +1059,9 @@ class D30ExplanationTests(unittest.TestCase):
     they do not by themselves show that it is a fix (the worlds check in the engine's tests does that)."""
 
     def test_the_300_recorded_digests_move_only_at_the_three_stages(self):
+        """D30's last stage is the digest before D31 (`D31_DIGESTS`), with the envelope search off."""
         recorded = json.loads(D30_DIGESTS.read_text())
-        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        now = {s: e['before'] for s, e in json.loads(D31_DIGESTS.read_text())['seeds'].items()}
         self.assertEqual(sorted(recorded['seeds'], key=int), [str(s) for s in range(SEEDS)])
         with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(_STATE['legacy'], Path(tmp) / 'store')) as legacy:
             for seed in range(SEEDS):
@@ -1075,6 +1085,65 @@ class D30ExplanationTests(unittest.TestCase):
         finally:
             tg._LEVERS = True
         self.assertEqual(wrong, [])
+
+
+D31_DIGESTS = ROOT / 'patterns/fixtures/execution_store_match_digests_d31.json'
+D31_ORDER_NOTES = ('RELAXATION_ORDER_UNCERTAIN', 'CHEAPER_RELAXATION_ORDER_UNCERTAIN')
+
+
+def d31_label(r):
+    """A result as the D31 fixture names it: status, with the note of an incomplete `none` or `relaxed` and the
+    reason of an `unresolved` one."""
+    s = r['status']
+    if r.get('complete') is False and s in ('none', 'relaxed'):
+        s += '/' + r.get('note', '')
+    if s == 'unresolved':
+        s += '/' + r.get('reason', '')
+    return s
+
+
+def d31_movement(seed):
+    """The seed's digest before D31 (the envelope search off) and after, and each changed result's transition."""
+    q, w = MatcherScalingTests.case(seed)
+    tg._ENVELOPE = False
+    try:
+        before = es.match(_STATE['store'], q, w)
+    finally:
+        tg._ENVELOPE = True
+    after = es.match(_STATE['store'], q, w)
+    digest = lambda out: hashlib.sha256(json.dumps({k: out[k] for k in ('plan', 'candidates', 'counts', 'results')},
+                                                   sort_keys=True).encode()).hexdigest()
+    moved = Counter(f'{d31_label(a)} -> {d31_label(b)}' for a, b in zip(before['results'], after['results']) if a != b)
+    return digest(before), digest(after), dict(sorted(moved.items()))
+
+
+class D31MovementTests(unittest.TestCase):
+    """D31 (decision log): the envelope search moves a recorded result only from undecided (`unresolved`, or a `none`
+    or `relaxed` left incomplete by an undecided relaxation set) to a decision, or within undecided. With the switch
+    off this tree gives D30's digest; on, the digest recorded now."""
+
+    def test_the_300_recorded_digests_move_only_from_undecided_results(self):
+        recorded = json.loads(D31_DIGESTS.read_text())
+        d30 = json.loads(D30_DIGESTS.read_text())['seeds']
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        undecided = lambda label: label.startswith('unresolved/') or label.split('/', 1)[-1] in D31_ORDER_NOTES
+        seen = Counter()
+        for seed in range(SEEDS):
+            entry = recorded['seeds'][str(seed)]
+            before, after, moved = d31_movement(seed)
+            with self.subTest(seed=seed):
+                self.assertEqual(before, entry['before'])
+                self.assertEqual(before, d30[str(seed)]['after'])
+                self.assertEqual(after, entry['after'])
+                self.assertEqual(after, now[str(seed)])
+                self.assertEqual(moved, entry['moved_results'])
+                for transition, n in moved.items():
+                    old, new = transition.split(' -> ')
+                    self.assertTrue(undecided(old), transition)
+                    seen[new.split('/')[0]] += n
+        self.assertEqual(sum(1 for e in recorded['seeds'].values() if e['before'] != e['after']),
+                         recorded['summary']['moved'])
+        self.assertTrue({'none', 'exact'} <= set(seen), seen)
 
 
 class PerBucketDeriveTests(unittest.TestCase):

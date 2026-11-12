@@ -173,7 +173,9 @@ def _ordered_pools(query, concept, constraints, events, facts):
             elif tid in info:
                 coupled = coupled or any(concept[sid] in e['concepts'] for e in info[tid]['possible'])
         reads_end = sid in during_from and not all(e['point'] for e in family)
-        if not coupled and not reads_end and not any(e['id'] in shared for e in family):
+        linked = any(e['id'] in shared for e in family)
+        info[sid]['covered'] = not reads_end and not linked  # D31: the envelope search's argument covers it
+        if not coupled and not reads_end and not linked:
             starts = [_range(facts, e['var']['s']) for e in family]
             pick = min if which == 'first' else max
             lo, hi = pick(x for x, _ in starts), pick(y for _, y in starts)
@@ -185,7 +187,7 @@ def _ordered_pools(query, concept, constraints, events, facts):
             wide[sid] = info[sid]['possible']
     for sid, e in safe.items():
         pools[sid] = [e]
-    return pools, uncertain, unsafe, wide, list(safe.values())
+    return pools, uncertain, unsafe, wide, list(safe.values()), info
 
 
 def _constraints(query, relaxations):
@@ -263,13 +265,119 @@ def _best(names, pools, constraints, facts):
     return best
 
 
+# D31: the envelope search (lever 1), switched as the engine's `_ENVELOPE` is, so that the tests can compare both.
+ENVELOPE = True
+
+
+def _envelope_models(query, concept, events, window, facts, pools, unsafe, info):
+    """D31, written again from docs/trajectory-graph-profile.md. For a set whose unsafe uncertain steps the envelope
+    search covers: the exact phase's pools (each unsafe step on a point of its own over its envelope), the possible
+    phase's pools (each unsafe step on its split), the points both add, and a function giving the order facts that
+    apply to a binding of the possible phase, as edges."""
+    steps = [s['id'] for s in query['steps']]
+    occurrence = {s['id']: s.get('occurrence', 'any') for s in query['steps']}
+    start = lambda e: _range(facts, e['var']['s'])
+    exact_pools, possible_pools, points = dict(pools), dict(pools), []
+    def point(sid, lo, hi, tag):
+        # Two steps with one concept and one occurrence have one target in every choice of times, so one point.
+        name = ('envelope', tag, concept[sid], info[sid]['which'], lo, hi)
+        e = {'id': info[sid]['picked']['id'], 'concepts': set(), 's': (lo, hi), 'f': (lo, hi), 'point': True,
+             'var': {'s': name, 'f': name}, 'proper': False}
+        points.append(e)
+        return e
+    for sid in unsafe:
+        which, family, possible = info[sid]['which'], info[sid]['family'], info[sid]['possible']
+        first = which == 'first'
+        ranges = [start(e) for e in family]
+        lo = min(r[0] for r in ranges) if first else max(r[0] for r in ranges)
+        hi = min(r[1] for r in ranges) if first else max(r[1] for r in ranges)
+        exact_pools[sid] = [point(sid, lo, hi, 'exact')]
+        # The possible targets another step can bind in this phase, and how many steps can.
+        blocked, others = set(), 0
+        for tid in steps:
+            if tid == sid:
+                continue
+            if occurrence[tid] == 'any':
+                hits = {e['id'] for e in possible if concept[tid] in e['concepts']}
+            elif tid not in info:
+                hits = set()
+            elif info[tid]['certain']:
+                hits = {e['id'] for e in possible if e['id'] == info[tid]['picked']['id']}
+            elif tid in unsafe:
+                theirs = {e['id'] for e in info[tid]['possible']}
+                hits = {e['id'] for e in possible if e['id'] in theirs}
+            else:
+                hits = set()
+            if hits:
+                others += 1
+                blocked |= hits
+        key = (lambda e: start(e)[0]) if first else (lambda e: -start(e)[1])
+        lam = None
+        for v in sorted({key(e) for e in possible}):
+            upto = [e for e in possible if key(e) <= v]
+            if any(e['id'] not in blocked for e in upto) or sum(e['id'] in blocked for e in upto) > others:
+                lam = v
+                break
+        ordered = sorted(possible, key=lambda e: (e['s'], e['f'], e['id']))
+        if lam is None:
+            possible_pools[sid] = [e for e in ordered if e['id'] in blocked]
+        else:
+            real = [e for e in ordered if e['id'] in blocked and key(e) < lam]
+            span = (lam, hi) if first else (lo, -lam)
+            possible_pools[sid] = [point(sid, *span, 'possible')] + real
+    def order_edges(binding):
+        """(u, v, w): value(v) - value(u) <= w, for each order fact the binding meets."""
+        out = []
+        node = lambda sid: ('time', binding[sid]['var']['s'])
+        for sid in unsafe:
+            first = info[sid]['which'] == 'first'
+            for tid in steps:
+                if tid != sid and concept[sid] in binding[tid]['concepts']:  # a point carries no concept
+                    out.append((node(tid), node(sid), 0) if first else (node(sid), node(tid), 0))
+        for sid in info:
+            for uid in info:
+                if sid == uid:
+                    continue
+                ws, wu = info[sid]['which'], info[uid]['which']
+                mine = {e['id'] for e in info[sid]['family']}
+                theirs = {e['id'] for e in info[uid]['family']}
+                if ws == 'first' and ((wu == 'last' and mine & theirs) or (wu == 'first' and theirs <= mine)):
+                    out.append((node(uid), node(sid), 0))  # start(s) - start(u) <= 0
+                elif ws == 'last' and wu == 'last' and theirs <= mine:
+                    out.append((node(sid), node(uid), 0))  # start(u) - start(s) <= 0
+        return out
+    return exact_pools, possible_pools, points, order_edges
+
+
+def _envelope_classify(query, concept, constraints, events, window, facts, pools, extra, unsafe, info):
+    """D31: the envelope search. Exact over the exact phase's pools; otherwise any binding of the possible phase's
+    pools that the patient's facts, the points, the constraints and the order facts it meets allow."""
+    exact_pools, possible_pools, points, order_edges = _envelope_models(query, concept, events, window, facts, pools,
+                                                                        unsafe, info)
+    names = [s['id'] for s in query['steps']]
+    every = _facts(events + extra + points, window)
+    memo = {}
+    for chosen in product(*[exact_pools[n] for n in names]):
+        if is_exact(dict(zip(names, chosen)), constraints, every, memo):
+            return 'exact', None
+    for chosen in product(*[possible_pools[n] for n in names]):
+        binding = dict(zip(names, chosen))
+        if is_possible(binding, constraints, every + order_edges(binding)):
+            return 'possible', 'possible'
+    return None, None
+
+
 def classify_ordered(query, patient, relaxations=()):
     """The best certainty any binding reaches under a relaxation set ('exact', 'possible' or None), and
-    whether the order rule leaves the set undecided (D30): None, the certainty found, or 'none'."""
+    whether the order rule leaves the set undecided (D30): None, the certainty found, or 'none'. Where the envelope
+    search covers every unsafe step (D31), it decides instead of the two searches."""
     concept, constraints = _constraints(query, relaxations)
     events = _events(patient)
     facts = _facts(events, patient['window'])
-    pools, _, unsafe, wide, extra = _ordered_pools(query, concept, constraints, events, facts)
+    pools, _, unsafe, wide, extra, info = _ordered_pools(query, concept, constraints, events, facts)
+    if unsafe and ENVELOPE and all(info[s]['covered'] for s in unsafe):
+        return _envelope_classify(query, concept, constraints, events, patient['window'], facts, pools, extra, unsafe,
+                                  info)
     facts = _facts(events + extra, patient['window'])
     names = [s['id'] for s in query['steps']]
     best = _best(names, pools, constraints, facts)
@@ -292,15 +400,25 @@ def binding_reaches(query, patient, relaxations, binding_ids, certainty):
     is checked on its envelope (D30)."""
     concept, constraints = _constraints(query, relaxations)
     events = _events(patient)
-    pools, _, _, _, extra = _ordered_pools(query, concept, constraints, events, _facts(events, patient['window']))
-    binding = {}
-    for step in query['steps']:
-        found = [e for e in pools[step['id']] if e['id'] == binding_ids[step['id']]]
-        if not found:
-            return False
-        binding[step['id']] = found[0]
-    check = is_exact if certainty == 'exact' else is_possible
-    return check(binding, constraints, _facts(events + extra, patient['window']))
+    facts = _facts(events, patient['window'])
+    pools, _, unsafe, _, extra, info = _ordered_pools(query, concept, constraints, events, facts)
+    order_edges, every = (lambda binding: []), _facts(events + extra, patient['window'])
+    if unsafe and ENVELOPE and all(info[s]['covered'] for s in unsafe):
+        # D31: an exact binding on the exact phase's points; a binding beside `unresolved` on the possible phase's
+        # split, where a point and a target may share an identifier.
+        exact_pools, possible_pools, points, order_edges = _envelope_models(query, concept, events, patient['window'],
+                                                                            facts, pools, unsafe, info)
+        pools = exact_pools if certainty == 'exact' else possible_pools
+        every = _facts(events + extra + points, patient['window'])
+    names = [s['id'] for s in query['steps']]
+    options = [[e for e in pools[n] if e['id'] == binding_ids[n]] for n in names]
+    for chosen in product(*options):
+        binding = dict(zip(names, chosen))
+        if certainty == 'exact' and is_exact(binding, constraints, every):
+            return True
+        if certainty != 'exact' and is_possible(binding, constraints, every + order_edges(binding)):
+            return True
+    return False
 
 
 def relaxation_sets(query):
