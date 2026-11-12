@@ -1,8 +1,31 @@
-# D30 (draft): the store's step language for stage 2
+# D31 and D32 (plan): the store's step language for stage 2
 
-*Draft for review, 2026-11-11. Phase 1 of D29's stage 2: design only, nothing implemented. Each section gives the exact semantics, the alternatives, a recommendation, where it would live, what it changes in snapshot identity and reports, how it would be tested, and a rough cost. Section 8 lists the decisions this note needs from the owner.*
+*Plan, 2026-11-11; not implemented. This began as the D30 draft (design only). An independent review found defects in the engine's shipped `first` and `last` and in the synthetic converter's letter mentions, and the owner made D30 a correctness increment instead, implemented now (decision log, D30). Nth and counts move to D31, relative conditions to D32. The draft's text is kept below with the review's changes applied; where it says "D30" it means the increment that will build it (D31 for sections 1 and 2, D32 for section 3). Section 8 lists the decisions it still needs from the owner.*
 
 D29's stage-2 trigger: the store can express everything the trajectory page offers, or refuses it by name, and the parity test is clean. Clean means every difference is removed or accepted as a declared difference, measured with the converter itself emitting `series`.
+
+## Changes after the review
+
+What D30 fixed, and what this plan now assumes:
+- **`first` and `last` are sound since D30.** `last` takes the latest start. A `first` or `last` target that the patient's facts leave uncertain is decided on its envelope where that is exact (§1.2 below proves the envelope), and is otherwise `unresolved` (`OCCURRENCE_ORDER_UNCERTAIN`). The review's counterexamples are in the decision log. Rule R, which this draft criticised for N ≥ 2, was also wrong in three other cases: for `last` at N = 1, for any `first` or `last` step whose end a relation reads, and for one whose events another step can bind.
+- **Letter mentions range from birth to their letter** (D30). Before, 2,443 of the 2,444 missed their true time. They are now sound but wide (median about four years).
+- **Unresolved shares to expect.** On the synthetic store's 300-query differential, 158 of 14,400 results are `unresolved` after D30 (8 before), most of them by the order rule. On the store parity test's ten trajectories, 9 of 480 are. The same rule will apply to Nth (below), so D31 must report its unresolved share and keep it under a bar fixed before measuring.
+
+The review's changes to this plan, applied below:
+1. **Nth ranges come from `Times.dom`**, the patient's tightened ranges, not the recorded ones. A proper exposure's start is bounded by its end, so the envelope must be over what the patient's facts allow (§1.4).
+2. **Coupled Nth steps are `unresolved`** (`OCCURRENCE_TIME_COUPLED`), not `possible` with a note. When another step can bind an event of the concept, or the events share variables, the envelope's own variable loses a correlation and `possible` is not sound (§1.4). This matches D30's rule for `first` and `last`.
+3. **The two-pass rule** (shared mechanism):
+   - Its trigger covers every tag that any relaxation set uses, not only the unrelaxed query's, because a relaxation can widen to a tag with possible-only events.
+   - `first`, `last` and `nth` are refused on a step that carries a count or a relative condition (`OCCURRENCE_ON_DERIVED_STEP`): an occurrence over certain-only events would pick a different event in each pass.
+   - `complete` combines both passes: it is false if either pass's search was incomplete. A stopped pass 2 makes the result `unresolved`, as an undecided set does in D30. Notes from both passes are kept.
+   - The oracle checks every status the rule can return except `unresolved` (`exact`, `possible`, `relaxed`, `none`, and the matches reported beside `unresolved`), as D30's `trajectory_graph_worlds.py` does.
+4. **Period counts:** a count within the index period is *certain* at e only if e's whole range lies inside the window (§2.2).
+5. **Counts and Nth run over coded records only.** Mention events are left out of them, and a count or Nth step asking for stated free text is refused (`FREE_TEXT_COUNT_UNSUPPORTED`) until a mention's time is informative as well as sound. Since D30 a mention spans birth to its letter, which would make almost every count and Nth uncertain.
+6. **The candidate filter uses the smallest N′** over the step and its count relaxations (posting `n` ≥ min N′), so a patient that matches only after a count relaxation is never filtered out (§2.2).
+7. **Relative conditions are deferred to D32.** Two things come first:
+   - a decision on how a monthly summary is timed: the diary's counts are ranges of a whole month, so is the reading's time the month, its end, or a point inside it?
+   - a pre-committed usefulness bar. On the synthetic cohort the review found only 45 of 1,166 diary readings with a determined baseline, and 2 with a certain rise, so D32 ships only if a stated share of its results is decided, a share fixed before measuring.
+8. **Snapshots without series refuse value and relative conditions by name** (`NO_SERIES_IN_SNAPSHOT`), rather than answering every condition `none` or not comparable.
 
 ## 0. Summary
 
@@ -12,7 +35,7 @@ D29's stage-2 trigger: the store can express everything the trajectory page offe
 | 2. At least N times within a span or the period | The step binds the event at which the count is reached. The count is *certain* or only *possible* at that event, decided exactly from the recorded ranges. Matching uses the certain events, then a second pass with the possible ones turns a would-be `none` or `relaxed` into `unresolved` | Store request, compiled after loading | Unchanged |
 | 3. Rises and falls | Mean of the previous k readings of the same item class within W, with an explicit floor. Exact where the baseline is determined, otherwise *possible*, using the same two-pass rule as counts. Built last in D30, under its own ship-only-if rule, with a named refusal if it misses | Store request | Unchanged |
 | 4a. Coverage (19) | Declared: the store's rule stands. The page takes the store's answer when it runs on the store | — | — |
-| 4b. Letter mentions (27) | Merging is declared (it needs reconciliation). Timing from the wording could become a converter option later. Letter-timed mentions are not a sound bound on when the finding happened, which is a decision for the owner (§4.2) | Converter (later) | — |
+| 4b. Letter mentions (27) | Merging is declared (it needs reconciliation). Timing from the wording could become a converter option later. Letter-timed mentions were not a sound bound on when the finding happened; D30 fixed that (§4.2) | Converter (later) | — |
 | 4c. Reconciliation (25) | Declared. The store never reads ground truth, so on the store counts and occurrences are over **recorded events**, and the page must say so | — | — |
 | 4d. Medication courses (11) | Declared in D30. A record-only course rule could be a later converter option | Converter (later) | — |
 | 5. Converter `series` | An option in `synthetic_ingest.py`, off by default (benchmark), on for parity and for the store under the page. Any edit to the converter changes `converter_sha256`, so every synthetic input digest and snapshot identifier changes even with the option off; table contents do not | Converter | — |
@@ -43,7 +66,7 @@ There are two kinds:
 
 **The two-pass rule** for tags with strengths. A tag that is only possible cannot simply be handed to the engine: the engine would call a binding exact when the condition holds only under some times, and the choice that satisfies the condition might not be the one that satisfies the trajectory. So:
 
-| Pass 1 (certain tags only) | Pass 2 (certain and possible tags), run only when pass 1 is not exact or possible and some step has an event that is possible but not certain | Result |
+| Pass 1 (certain tags only) | Pass 2 (certain and possible tags), run only when pass 1 is not exact or possible and some tag that the query or any of its relaxation sets uses has an event that is possible but not certain | Result |
 |---|---|---|
 | `exact` | — | `exact`. A certain condition holds under every choice, so the binding is exact |
 | `possible` | — | `possible`. No binding can be exact: an exact binding needs a certain condition, and pass 1 searched every certain event |
@@ -54,10 +77,16 @@ There are two kinds:
 | `none` | anything else | `unresolved`, reason `STEP_CONDITION_UNCERTAIN`, `uncertain_steps` listed, no match beside it |
 
 Order of rules: engine passes, then this rule, then coverage (on `none`), then D18's excluded records. The rule is per patient and independent of chunks and workers. The parent and the workers both run it, because pass 2 runs where the events are loaded.
+- *`complete`* is false if either pass's search was incomplete, and a stopped pass 2 makes the result `unresolved`. Notes from both passes are kept.
+- *Occurrences on derived steps:* a `first`, `last` or `nth` occurrence on a step that carries a count or a relative condition is refused (`OCCURRENCE_ON_DERIVED_STEP`).
 
 **Verification shared by all three features.**
 - An independent reference in `execution_store_reference.py` computes the derived events and tags from the ingest, written again.
-- A **semantic oracle**: on small integer grids, a brute force enumerates every choice of the patient's times. It checks that each envelope equals the exact set of Nth-occurrence times, that every certain tag holds under every choice, and that every possibly satisfied condition carries a possible tag. Where the rule is exact (unlinked variables), it also checks the two-pass statuses against the statuses defined by enumeration.
+- A **semantic oracle**, extending D30's `trajectory_graph_worlds.py`: on small integer grids, a brute force enumerates every choice of the patient's times. It checks that:
+  - each envelope equals the exact set of Nth-occurrence times;
+  - every certain tag holds under every choice;
+  - every possibly satisfied condition carries a possible tag;
+  - every status the rule returns other than `unresolved` (`exact`, `possible`, `relaxed`, `none`, and the matches beside `unresolved`) agrees with the statuses defined by enumeration.
 - Each feature has planted defects.
 
 ## 1. Nth and Nth-from-last occurrence
@@ -73,7 +102,7 @@ The page does the same in its own way. `pickOccurrence` takes the Nth of the ste
 Let the events carrying K have recorded start ranges [aᵢ, bᵢ] and true starts tᵢ in them. Write a₍N₎ and b₍N₎ for the N-th smallest aᵢ and bᵢ.
 
 - **Envelope lemma.** The true N-th occurrence time, the N-th smallest tᵢ, lies in [a₍N₎, b₍N₎]. When the tᵢ are free, every integer in that range is attained. Proof: order statistics are monotone in each argument, so t = a gives a₍N₎ and t = b gives b₍N₎. Moving one tᵢ by one grid step moves the N-th order statistic by at most one step, so every value in between is reached.
-- **For first and last, R is sound for `exact` and `none`.** R picks the record A with a_A = a₍1₎ and b_A ≥ b₍1₎, so the true first time lies in [a_A, b_A]. Where A's variable is unlinked, a constraint that holds for every time in A's range holds at the true first time (`exact`), and one that holds for none fails there (`none`). Last is symmetric.
+- **For first, R is sound for `exact` and `none` on a time constraint, in a narrow case.** R picks the record A with a_A = a₍1₎ and b_A ≥ b₍1₎, so the true first time lies in [a_A, b_A]. Where A's variable is unlinked, a constraint that holds for every time in A's range holds at the true first time (`exact`), and one that holds for none fails there (`none`). *The review showed the limits:* this needs no relation to read the step's end (the true first may be another event, with another end), and no other step to bind A or an event of its concept. `last` was not symmetric before D30: it took the greatest earliest start, not the greatest latest. D30 fixed all three (decision log).
 - **R over-claims `possible`.** A's range can reach past b₍1₎, the latest time the first occurrence can have. Example: A = [1 Mar, 31 Dec] and B = 5 Mar exactly. R binds A, so "the first seizure after April" is `possible`, yet the first occurrence is certainly on or before 5 Mar.
 - **For N ≥ 2, R is unsound for `exact`.** Example: e₁ = [1 Mar, 31 Dec] and e₂ = 5 Mar exactly. R ranks e₂ second, so "the 2nd seizure before April" is `exact`. If e₁ in fact happened in November, the 2nd seizure is in November. The envelope gives [5 Mar, 31 Dec] and the answer `possible`, which is correct.
 
@@ -86,16 +115,18 @@ Let the events carrying K have recorded start ranges [aᵢ, bᵢ] and true start
 ### 1.4 Exact semantics (recommended)
 
 - **The step's time** is the time of the N-th occurrence of K among the patient's recorded events carrying K (a D28 tag counts its events), N ≥ 1. It binds no record. Its evidence is the records whose range meets the envelope.
-- **Ranges.** The ranges are the recorded start ranges, which are sound: true times lie in them, and shared variables only narrow them.
+- **Ranges.** The ranges are the patient's tightened ranges (`Times.dom`), as in D30's envelope for `first` and `last`. True times lie in them, and they are tighter than the recorded ranges wherever the patient's facts say more (a proper exposure's start is bounded by its end).
 - **`exact` and `none` are sound** for every patient, since every choice of times includes the true one.
-- **`possible` is exact** when no other step (or widening) can bind an event carrying K and K's events share no variable. Otherwise the envelope's independent variable loses a correlation. Example: with two events, "the 2nd seizure at least 10 days before the last seizure" is impossible, but the envelope would call it possible. The store detects such coupling: at query level, two steps' concepts share a descendant in the closure; at patient level, `shared_variables` is set. A `possible` result of a coupled patient then gets `complete: false` and note `OCCURRENCE_TIME_COUPLED`.
+- **`possible` is exact** when no other step (or widening) can bind an event carrying K and K's events share no variable. Otherwise the envelope's independent variable loses a correlation. Example: with two events, "the 2nd seizure at least 10 days before the last seizure" is impossible, but the envelope would call it possible.
+  - *Coupling* is decided as in D30: another step whose concept an event of K carries, or a `first`, `last` or `nth` target that is one; or K's events sharing a variable.
+  - *A coupled step is decided as D30 decides an unsafe `first` or `last` step.* A binding found proves nothing, so the result is `unresolved` (`OCCURRENCE_TIME_COUPLED`), with the binding beside it. If none is found, the search is repeated with every event that can be the Nth as the step's candidates, and only a `none` from that search stands.
 - **Exposures.** The envelope is over starts. A step whose events have ends is still well defined as a time, but its end is not: the Nth exposure by start is an unknown record. So a `during` relation *from* an Nth step is refused (`NTH_STEP_HAS_NO_END`). Every other use takes the start.
-- **No change to first and last.** They keep rule R, so `nth 1` (envelope) is not `first` (record). The page translator maps the page's "Nth, N = 1" to `first`, as the page itself does. Moving first and last to the envelope would remove R's over-claims, but it changes existing results (§8, question 1).
+- **First and last.** Since D30 they bind their event when it is certainly first or last, and use the same envelope otherwise, so `nth 1` and `first` agree wherever the envelope applies. The page translator still maps the page's "Nth, N = 1" to `first`.
 - **Relaxations.** `widen_concept` and `widen_value` give the envelope of the wider K, with the same N. As with first and last today, the Nth of a wider concept does not contain the Nth of a narrower one, so no containment is required. The page offers no N ± 1 relaxation.
 - **Excluded records (D18).** The Nth is not monotone: an extra record shifts ranks.
   - *Displacement:* an excluded record of K's concepts with `start_lo` ≤ b₍N₎ (for Nth), or `start_hi` ≥ the envelope's lower end (for Nth from last), could move the occurrence. Any result with a binding then becomes `not_comparable`, whatever the scope.
   - *`none`:* for Nth steps, reach ignores the scope. An excluded record before the window can shift an in-window event into rank N, so D18's scoped reach, which is sound for first and last, would be unsound here. This is a new finding; first and last are unaffected.
-- **Candidates.** A plain concept needs posting `n` ≥ N, which is exact, since `n` counts the events the engine lists under the concept. A tag needs at least N tag rows (one SQL group).
+- **Candidates.** A plain concept needs posting `n` ≥ N, which is exact, since `n` counts the events the engine lists under the concept. A tag needs at least N tag rows (one SQL group). Over coded records only (change 5), the posting's `n` also counts mentions, so there it is a sound superset.
 - **Pruning.** The envelope lies inside [`min_start_lo`, `max_start_hi`] of K's posting or tag summaries, so D25's argument holds unchanged.
 - **Index period anchor.** Out of scope: windows stay an input (§6).
 
@@ -124,7 +155,7 @@ Let the events carrying K have recorded start ranges [aᵢ, bᵢ] and true start
 ### 2.2 Exact semantics (recommended)
 
 - **What the step binds.** A recorded event e carrying K (concept or D28 tag) at which the count is reached. The step's time is e's start, so e can also be another step's event and share its time, as any record can.
-- **Timing.** For a choice of times t, the count is reached at e when at least N − 1 *other* events x carrying K satisfy t(e) − S ≤ t(x) ≤ t(e). Simultaneous events count. For the index period, the condition is w.start ≤ t(x) ≤ t(e) ≤ w.end.
+- **Timing.** For a choice of times t, the count is reached at e when at least N − 1 *other* events x carrying K satisfy t(e) − S ≤ t(x) ≤ t(e). Simultaneous events count. For the index period, the condition is w.start ≤ t(x) ≤ t(e) ≤ w.end. There the count is *certain* at e only if e's whole range lies inside the window and the sweep below also says certain.
 - **Certain and possible**, exactly, when K's events have no shared variables. With τ ranging over e's range (cut to the window for the period):
   - forced(τ) = #{x : bₓ ≤ τ ≤ aₓ + S};
   - allowed(τ) = #{x : aₓ ≤ τ and bₓ ≥ τ − S};
@@ -136,7 +167,8 @@ Let the events carrying K have recorded start ranges [aᵢ, bᵢ] and true start
 - **Relaxation** `widen_count` to N′ < N, compiled to a `widen_concept` to the N′ tag. Containment is exact (certain at N implies certain at N′, and the same for possible), so a value-style containment check holds. One relaxation per step, as in the engine: the page's combination of a parent concept with one fewer occurrence (cost 1) can be offered as one combined relaxation, though at equal cost it ranks before two-element sets, which the page does not (a documented difference).
 - **Excluded records.** The count is monotone: more records only add counts. So `exact` stands; `possible` gets D18's note; `relaxed` becomes `unresolved`; `none` becomes `not_comparable`. Reach ignores the scope for span counts, since a witness need not satisfy the scope, and uses window overlap for period counts.
 - **Coverage.** The step's recorders are K's (or the tag's), under the same overlap rule. Partial coverage weakens a count, which is a limitation the doc already lists for overlap.
-- **Candidates:** posting `n` ≥ N, a sound superset. **Pruning:** posting or tag summaries, which are sound.
+- **Candidates:** posting `n` ≥ min N′ over the step's N and its `widen_count` relaxations, a sound superset. A filter on N alone would drop a patient that matches only with one fewer.
+- **Pruning:** posting or tag summaries, which are sound.
 
 ### 2.3 Alternatives
 
@@ -230,7 +262,7 @@ The page's Sequence, Tree and Graph templates all use rises. If relative conditi
 - *The cause.* The page merges a mention into the event it describes by its `truth_event_id`, which is ground truth, or times it from the wording.
 - *Merging needs reconciliation* (4.3).
 - *Timing from the wording* is a deterministic function of the record (`time_expression` and the letter's date), so it could become a converter option (`mention_time: wording_v1`). The page's windows ("about 3 weeks ago" read as 2 to 4 weeks before the letter; a 120-day fallback) are heuristics, though, and the option should say so.
-- **Finding.** The converter times a mention *by its letter*. The letter's date is when the finding was written down, not when it happened ("seizure about 3 weeks ago"). So the mention's recorded range does not contain the occurrence time, and the engine's soundness assumes it does. A sound bound would be "at or before the letter": from the start of the patient's record to the letter's latest time.
+- **Finding, fixed in D30.** The converter timed a mention *by its letter*. But the letter's date is when the finding was written down, not when it happened ("seizure about 3 weeks ago"). So the mention's recorded range did not contain the occurrence time, which the engine's soundness assumes (2,443 of the 2,444 missed). Since D30 a mention ranges from birth, or an earlier record, to the letter's latest time, and all 2,444 hold their true time.
   - Changing the converter's default changes the synthetic store's events, the 300 recorded match digests and the synthetic differential's figures.
   - The recommendation is not to change it inside D30, whose exactness rule depends on those fixtures staying put. Instead, state it in the store doc as a known unsound bound and decide it separately (§8, question 5).
   - The MIMIC route has no mentions.
@@ -344,11 +376,11 @@ Refusals are named, among them `OCCURRENCE_CONFLICT` (an engine `first` or `last
 
 ## 8. Decisions for the owner
 
-1. **Nth semantics.** The envelope (recommended), rule R (unsound for N ≥ 2), or order-aware ranks (sound, but about half of results unresolved here)? And, as a separate later decision: should first and last move to the envelope? That removes R's over-claimed `possible` but changes existing results.
+1. **Nth semantics.** The envelope (recommended), rule R (unsound for N ≥ 2), or order-aware ranks (sound, but about half of results unresolved here)? *Decided in part by D30:* `first` and `last` now use the envelope where it is exact and are unresolved otherwise; D31 extends the same rule to Nth.
 2. **Counts over recorded events.** Ship them as exact over records with the page labelling them "recorded events" (recommended), knowing they are inflated on this cohort (39 against 11)? Include "coded only" in D30 to reduce the inflation (15)?
 3. **Relative conditions.** Include them in D30 under their own rule (recommended), or refuse them now? Confirm the baseline (mean of previous k within W, per item class, strictly earlier), the explicit positive floor, and the unit rule (another unit among the previous k makes the baseline undetermined, recommended; or "previous readings in the same unit").
 4. **Coverage.** Keep the store's rule as a declared difference (recommended), or add sound partial refutation, which changes existing results?
-5. **Letter mentions.** They are timed by their letter, which is not a sound bound on when the finding happened. Change the converter's default to "at or before the letter", in its own increment since it moves the synthetic fixtures, or keep it documented?
+5. **Letter mentions.** *Decided in D30:* a mention ranges from birth to its letter. Still open: whether to time them from their wording (heuristic, a converter option), which would make counts and Nth over mentions informative again (change 5 above).
 6. **Converter `series`.** An option inside `synthetic_ingest.py` (recommended; synthetic identifiers move, tables do not), or a sibling module (identifiers kept)? Off by default (recommended)?
 7. **Literal mode** on the page, as the evidence that declared differences are exactly the declared causes (+1 agent-day)?
 8. **The default switch.** If relative conditions are refused, is a refusal acceptable for the page's three headline templates when the page moves onto the store by default?

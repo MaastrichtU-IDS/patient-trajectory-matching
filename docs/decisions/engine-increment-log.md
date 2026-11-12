@@ -32,7 +32,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D18 | A step that admission may have hidden is not comparable, judged by the query's scope | Decided |
 | D19 | Scaling: fix the Python-side storage memory first; defer the Rust matcher until it is measured | Decided |
 | D20 | Execution store 2.0: streaming per-patient ingest, streamed content digests, two verification tiers | Decided |
-| D21 | Matcher scaling: cheap wins, then parallel Python, then Rust only if needed | Decided; arms B and C built, then the engine kernel; target met at 30 queries × 3 repeats (14 workers: p95 7.9 s, max 11.8 s, 0.82 GiB); stay in Python, no Rust prototype |
+| D21 | Matcher scaling: cheap wins, then parallel Python, then Rust only if needed | Decided; arms B and C built, then the engine kernel; target met at 30 queries × 3 repeats (14 workers: p95 7.9 s, max 11.8 s, 0.82 GiB); stay in Python, no Rust prototype. Missed again since D30 (p95 13.05 s), see D30 |
 | D22 | The adapter passes shared source variables to the engine; the store still refuses them | Decided; its follow-ups (strict intervals in the engine, the store) done in D24 |
 | D23 | Per-bucket derive: the store builds at 1M patients | Decided; 1,000,000 patients build and verify under a 4 GB limit; verification memory follow-up done in D24 |
 | D24 | Shared variables end to end: strict intervals in the engine; the store holds shared variables | Decided |
@@ -41,7 +41,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D27 | Chartevents by route (b): store 3.1 with a series table; a census on the demo, a sample beyond it | Decided; demo census clean (4,753 of 4,753 claim stores through route (a), every chart row through the raw-row check, 0 differential mismatches); Merkle digest built, not wired |
 | D28 | Value conditions in the match request (chartevents stage 2); the D26 and D27 follow-ups; an experiment on the store 3.0 build regression, under rules fixed before measuring | Decided; value conditions shipped (0 mismatches against an independent reference on 26,880 synthetic and 20,000 demo results; four planted defects caught); column-wise digest lines kept (build −12.0% at 1,000,000, identical content); a review's must-fix (conditions differing beyond 28 digits shared a tag) fixed before the final regeneration; evidence-in-events staging reverted (−1.8% at the pilot) |
 | D29 | The mockups move onto the execution store in three stages; stage 1 puts the store beside the pages, with aggregate counts only and only the open MIMIC-IV demo, checked by content | Decided; stage 1 built (a store query page on the demo, served only if the store holds the demo's own patients; the synthetic cohort in a store agrees with the trajectory page on 427 of 480 results, each of the other 53 by a named cause); stage 2 inventory listed |
-| D30 | A correctness increment: `last` takes the latest start; a `first` or `last` target the patient's facts leave uncertain is decided on its envelope where that is exact, and is otherwise unresolved; synthetic letter mentions range from birth to the letter | In progress; rules committed before measuring |
+| D30 | A correctness increment: `last` takes the latest start; a `first` or `last` target the patient's facts leave uncertain is decided on its envelope where that is exact, and is otherwise unresolved; synthetic letter mentions range from birth to the letter | Decided; built. MIMIC unchanged; every moved synthetic result attributed to one of the three fixes (100 of the 300 recorded digests, 57 parity results, every arm A difference); the worlds check finds no violation, and finds them in the engine before D30; the D21 latency target is now missed (p95 13.05 s at 14 workers) |
 
 ## D1 Package with hatchling, in place
 
@@ -1085,3 +1085,64 @@ An independent review of the D30 draft (the store's step language, now the D31/D
 - *Exactness elsewhere.* Every engine test passes, with the frozen-engine comparison restricted to the cases D30 cannot touch, and those cases remain the majority in every comparison. The engine and its reference agree on every differential case; engine, reference and the old engine are checked against the true semantics by enumerating every choice of times (`trajectory_graph_worlds.py`): 0 violations for the engine and the reference, and violations for the frozen pre-D30 engine; each part of the rule, undone, produces violations.
 - *Parity.* Both parity tests pass, every change in their pinned tables explained.
 - A failure is fixed, never tuned away.
+
+**Measurement and verdicts.** One regeneration, one job at a time, after the rules were committed (7d70184):
+1. the MIMIC demo (`--workers 8 --census-workers 14`; 1,439 s);
+2. the scaling run to 1,000,000 with `--keep` (`--work-dir /tmp/store-d30/scaling`, 9,291 s);
+3. arm A's own 2.0 snapshots of 1,000 to 300,000 (`--build-arm-a`);
+4. the matcher comparison with the committed settings, plus `--confirm --large-queries 30 --large-repeats 3` at 300,000;
+5. letter-timed snapshots of 1,000 to 300,000 built by this tree, and the attribution (`tools/d30_attribution.py`, `verification/d30-attribution-report.json`). The first attribution run drew every stage's queries with this tree's converter and so did not reproduce arm A on 8 queries at 1,000 (below); it was corrected and run again, and the committed report is the second run's.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| MIMIC unchanged | Every figure of the demo report other than identifiers, digests, artifact bindings and timings equals D28's, the input digest included (`7a0dd1fd…`); the differential and the value differential are equal as JSON. Snapshot `c4f41d29…` (D28: `9730e87b…`; the builder's digest changed) | met |
+| The 300 recorded match digests | 100 moved. For all 300, this tree on the letter-timed store, with the switches off and the case drawn from that store, gives the digest recorded before D30. By the stages at which each moved: the mention timing alone 88; the order rule and the mention timing 8; the last order alone 1; the last order and the mention timing 2; all three 1. `patterns/fixtures/execution_store_match_digests_d30.json` holds each seed's digests and stages, and `D30ExplanationTests` recomputes them | met |
+| The store parity test | 57 of the store's 480 results moved: 53 by the mention timing, 4 by the order rule, none by the `last` order, each attributed by running the store as before D30 and then with each fix in turn. 401 of 480 agree with the page (427 before); the 79 differences are pinned, each by a named cause, `order-uncertain` (9) new. The engine parity test is unchanged (336 of 336) | met |
+| Arm A against arm B | B differs from A on 24 of 50 queries at 1,000, 30 of 50 at 10,000, 5 of 10 at 100,000 and 5 of 10 at 300,000. The attribution reproduces arm A's digest on every query at every size (50, 50, 10, 10), with this tree on the letter-timed snapshots, the switches off and the queries drawn as arm A's worker draws them, and arm B's on every query; the queries that moved are exactly B's mismatches. By stages (mention timing alone; order rule and mention timing; last order and mention timing; all three): 1,000: 17, 5, 1, 1; 10,000: 20, 6, 0, 4; 100,000 and 300,000: 3, 2, 0, 0. In the confirmation (30 queries, against the D28 report's arm B, since arm A is not run there) 19 moved: 12, 5, 0, 2. Arm A's `same_rows` is false only in `events` and `concept_postings`, the mention starts | met |
+| Arms B, `B_unpruned` and C | Byte-identical to each other at every size and in the confirmation (50, 50, 10, 10; 30 of 30) | met |
+| Scaling report | Table row counts and every query's candidate count equal D28's at every size. Status mixes changed (below) | met |
+| Engine and reference | The differential (2,400 cases) agrees, 68 of them unresolved by the order rule. The worlds check finds no violation in the engine or the reference on 3,000 small cases, and finds violations in the frozen engine from before D30 and with each part of the rule undone. The frozen-engine kernel comparison holds on every case D30 cannot touch, the majority in each test | met |
+
+*Why arm A's queries differ from B's.* Each arm's worker draws the seeded queries with its own tree's converter and query generator, which shape a query around one patient's event times. Before D30 the two converters agreed, so the arms saw the same queries; since D30 a query anchored on a letter mention differs between them. That difference is part of the mention timing, and the attribution draws S0 to S2 as arm A does.
+
+*Status mixes in the scaling report.* The data are synthetic, replicated beyond 10,000 patients. The queries themselves changed with the mention timing, as above, so these are not like for like:
+
+| Size | Exact | Possible | Relaxed | Unresolved | None | Not comparable |
+|---|---|---|---|---|---|---|
+| 1,000 | 1,301 → 761 | 611 → 969 | 836 → 560 | 0 → 398 | 38,510 → 38,559 | 6,103 → 6,114 |
+| 10,000 | 12,668 → 7,334 | 6,159 → 9,694 | 8,468 → 5,765 | 1 → 4,222 | 385,723 → 385,804 | 61,431 → 61,631 |
+| 1,000,000 | 4,600 → 3,900 | 68,700 → 147,100 | 342,300 → 3,400 | 0 → 0 | 7,756,900 → 7,996,100 | 1,323,400 → 1,345,400 |
+
+**The D21 target is now missed.** No performance rule was set for D30, which is a correctness increment; the cost is recorded here.
+
+| | D28 | D30 |
+|---|---|---|
+| C, 14 workers, confirmation: p95 (by repeat); max | 7.26 s (7.26, 7.22, 7.32); 8.8 s | **13.05 s** (13.05, 13.19, 13.04); 16.1 s |
+| C, 8 workers, confirmation: p95; max | 8.39 s; 10.3 s | 12.88 s; 16.0 s |
+| Arm B, confirmation, µs per candidate end to end (engine) | 189.2 (57.7) | 244.1 (107.9) |
+| Arm B at 300,000, main run, µs per candidate (engine) | 278.6 (82.6) | 380.8 (186.8) |
+| Query process, C at 14 workers | 0.86 GiB | 0.82 GiB |
+| Pruned share, confirmation | 36.22% | 34.66% (none by the end summaries alone; 2,850 candidates before) |
+
+- *What is still met:* the maximum (16.1 s against 30 s) and memory (0.82 GiB against 4 GB). The p95 is missed by about 30%.
+- *Where the cost comes from* (µs per candidate end to end, engine in brackets). At 300,000 patients over the ten main queries, in one process:
+
+  | | Order rule off | Order rule on |
+  |---|---|---|
+  | Letter-timed store | 338 (118) | 352 (117) |
+  | This run's store | 371 (118) | 464 (198) |
+
+  At 10,000 the same four figures are 211, 217, 218 and 243 µs. So the wider mentions alone cost about 10%, and the order rule on wide mentions most of the rest: nearly every `first` or `last` step on a mentioned concept is now uncertain, so it is decided on an envelope or searched twice. This was an ad hoc run beside the attribution, so the absolute figures are inflated.
+- *Next step, by D21's rule:* algorithmic work on the Python engine, not Rust. The levers are:
+  - the second search of unsafe steps, bounded to the possible targets the posting summaries leave;
+  - sharing the order analysis across relaxation sets;
+  - a "coded records only" option, which would leave letter mentions out of `first` and `last` (D31 plan).
+
+*Limitations:*
+- One machine.
+- Synthetic data replicated beyond 10,000 patients.
+- The worlds check covers small grids only (two to four events); larger cases rest on the reference and the proofs.
+- The attribution's stages are cumulative, so a change that first appears at the order rule might also have come from the mention timing alone.
+- The cost split is one ad hoc run.
+
+*Follow-ups:* the D21 target (above); D31 and D32 as planned; `trajectory_graph_worlds.py` extended to Nth and counts (D31 plan, change 3).

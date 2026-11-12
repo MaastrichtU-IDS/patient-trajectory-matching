@@ -3,68 +3,68 @@
  "matching": {
   "arms": [
    {
-    "max_seconds": 56.16,
+    "max_seconds": 86.66,
     "meets_target": false,
     "p95_by_repeat": [
-     49.91,
-     50.42,
-     50.34
+     74.26,
+     74.5,
+     73.93
     ],
-    "p95_seconds": 50.34,
-    "per_candidate_us": 188.8,
-    "query_peak_gib": 1.24,
+    "p95_seconds": 74.26,
+    "per_candidate_us": 242.5,
+    "query_peak_gib": 1.3,
     "workers": 1
    },
    {
-    "max_seconds": 27.56,
+    "max_seconds": 45.32,
     "meets_target": false,
     "p95_by_repeat": [
-     23.12,
-     23.18,
-     23.22
+     37.37,
+     37.28,
+     37.29
     ],
-    "p95_seconds": 23.21,
-    "per_candidate_us": 95.9,
-    "query_peak_gib": 0.8,
+    "p95_seconds": 37.29,
+    "per_candidate_us": 122.8,
+    "query_peak_gib": 0.78,
     "workers": 2
    },
    {
-    "max_seconds": 15.4,
+    "max_seconds": 25.26,
     "meets_target": false,
     "p95_by_repeat": [
-     13.02,
-     13.21,
-     13.47
+     20.43,
+     21.12,
+     21.23
     ],
-    "p95_seconds": 13.28,
-    "per_candidate_us": 57.9,
-    "query_peak_gib": 0.8,
+    "p95_seconds": 21.12,
+    "per_candidate_us": 73.2,
+    "query_peak_gib": 0.79,
     "workers": 4
    },
    {
-    "max_seconds": 10.27,
-    "meets_target": true,
+    "max_seconds": 16.0,
+    "meets_target": false,
     "p95_by_repeat": [
-     8.39,
-     8.35,
-     8.72
+     12.83,
+     12.88,
+     15.42
     ],
-    "p95_seconds": 8.39,
-    "per_candidate_us": 40.3,
-    "query_peak_gib": 0.83,
+    "p95_seconds": 12.88,
+    "per_candidate_us": 49.1,
+    "query_peak_gib": 0.84,
     "workers": 8
    },
    {
-    "max_seconds": 8.79,
-    "meets_target": true,
+    "max_seconds": 16.13,
+    "meets_target": false,
     "p95_by_repeat": [
-     7.26,
-     7.22,
-     7.32
+     13.05,
+     13.19,
+     13.04
     ],
-    "p95_seconds": 7.26,
-    "per_candidate_us": 35.2,
-    "query_peak_gib": 0.86,
+    "p95_seconds": 13.05,
+    "per_candidate_us": 48.5,
+    "query_peak_gib": 0.82,
     "workers": 14
    }
   ],
@@ -75,7 +75,7 @@
   "patients": 300000,
   "queries": 30,
   "repeats": 3,
-  "single_process_per_candidate_us": 189.2,
+  "single_process_per_candidate_us": 244.1,
   "target": {
    "machine": "Apple M4 Pro, 64 GB",
    "max_seconds": 30.0,
@@ -137,78 +137,78 @@
   "memory_limit": "4GB",
   "sizes": [
    {
-    "build_peak_gib": 0.37,
-    "build_seconds": 6.2,
+    "build_peak_gib": 0.35,
+    "build_seconds": 6.4,
     "events": 172754,
     "match_max_seconds": 0.3,
-    "match_p50_seconds": 0.03,
-    "open_seconds_warm": 0.02,
+    "match_p50_seconds": 0.05,
+    "open_seconds_warm": 0.03,
     "patients": 1000,
     "pruned_share_mean": 0.699,
     "queries": 50,
     "query_peak_gib": 0.56,
     "snapshot_gb": 0.01,
     "verify_content_seconds": 0.8,
-    "verify_peak_gib": 0.18
+    "verify_peak_gib": 0.17
    },
    {
     "build_peak_gib": 0.86,
-    "build_seconds": 51.0,
+    "build_seconds": 51.3,
     "events": 1731493,
-    "match_max_seconds": 2.8,
-    "match_p50_seconds": 0.36,
+    "match_max_seconds": 3.0,
+    "match_p50_seconds": 0.43,
     "open_seconds_warm": 0.07,
     "patients": 10000,
     "pruned_share_mean": 0.699,
     "queries": 50,
-    "query_peak_gib": 1.01,
+    "query_peak_gib": 0.97,
     "snapshot_gb": 0.13,
-    "verify_content_seconds": 6.7,
-    "verify_peak_gib": 0.38
+    "verify_content_seconds": 6.6,
+    "verify_peak_gib": 0.46
    },
    {
-    "build_peak_gib": 4.53,
-    "build_seconds": 512.9,
+    "build_peak_gib": 4.52,
+    "build_seconds": 512.6,
     "events": 17314930,
-    "match_max_seconds": 18.6,
-    "match_p50_seconds": 1.03,
-    "open_seconds_warm": 0.43,
+    "match_max_seconds": 29.1,
+    "match_p50_seconds": 1.23,
+    "open_seconds_warm": 0.44,
     "patients": 100000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 1.2,
-    "snapshot_gb": 1.25,
-    "verify_content_seconds": 64.5,
-    "verify_peak_gib": 1.73
+    "query_peak_gib": 1.18,
+    "snapshot_gb": 1.23,
+    "verify_content_seconds": 65.4,
+    "verify_peak_gib": 1.75
    },
    {
-    "build_peak_gib": 7.99,
-    "build_seconds": 1535.4,
+    "build_peak_gib": 8.02,
+    "build_seconds": 1541.8,
     "events": 51944790,
-    "match_max_seconds": 59.3,
-    "match_p50_seconds": 2.47,
-    "open_seconds_warm": 1.21,
+    "match_max_seconds": 94.7,
+    "match_p50_seconds": 3.32,
+    "open_seconds_warm": 1.2,
     "patients": 300000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 2.38,
-    "snapshot_gb": 3.58,
+    "query_peak_gib": 2.3,
+    "snapshot_gb": 3.55,
     "verify_content_seconds": 191.7,
     "verify_peak_gib": 1.77
    },
    {
-    "build_peak_gib": 8.24,
-    "build_seconds": 5191.5,
+    "build_peak_gib": 8.23,
+    "build_seconds": 5182.0,
     "events": 173149300,
-    "match_max_seconds": 246.1,
-    "match_p50_seconds": 7.72,
-    "open_seconds_warm": 1.84,
+    "match_max_seconds": 371.1,
+    "match_p50_seconds": 11.67,
+    "open_seconds_warm": 1.8,
     "patients": 1000000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 7.0,
-    "snapshot_gb": 5.49,
-    "verify_content_seconds": 625.8,
+    "query_peak_gib": 6.87,
+    "snapshot_gb": 5.39,
+    "verify_content_seconds": 627.3,
     "verify_peak_gib": 1.72
    }
   ]
@@ -216,15 +216,15 @@
  "sources": {
   "matcher": {
    "path": "verification/matcher-comparison-report.json",
-   "sha256": "585288a421e49afe5da57b7051cde9d992b6327a0f2f38a5ed24ff6a10551244"
+   "sha256": "cb3727093d80fa8cc1836393eca795f89f26fb347b4645e98608b8fe69966024"
   },
   "mimic": {
    "path": "verification/execution-store-mimic-demo-report.json",
-   "sha256": "1a16ff1601555d5d83371cfff25775fc0d5896d02b17ce80fb04c4cf7f2f473e"
+   "sha256": "2c98a1394dd95a4ace52bb4373331efd052e404f70167fbdabb74c28ef14f43c"
   },
   "scaling": {
    "path": "verification/execution-store-scaling-report.json",
-   "sha256": "3ac30bbf25bb6f1528c284601c6c348606899f03c910ba622908d604258fdfb4"
+   "sha256": "1a7c711ca72efc4c4fceec6ba7fc261c0afae84ecda39c73b2fea5810e2433f5"
   }
  }
 }

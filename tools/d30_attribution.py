@@ -14,6 +14,10 @@ fixes on one at a time:
   S2  letter-timed snapshot, order rule on                                   (both engine fixes)
   S3  this run's snapshot (mentions at or before their letter), as arm B ran it  (must equal arm B's digest)
 
+S0 to S2 draw their queries as arm A's worker does, from the cohort converted with letter-timed mentions: each arm's
+worker draws the queries with its own converter, and the query generator is shaped around event times, so arm A's
+queries differ from arm B's wherever an anchor event is a letter mention. That change is part of the mention timing.
+
 and names, for each query whose S0 and S3 digests differ, the stages at which it changed. The queries, windows
 and digests are the matcher comparison's own (`benchmark_matcher.worker`), run in this process so that the
 switches apply. For the confirmation run, which has no arm A, S0 is compared with the D28 report's arm B, the
@@ -65,25 +69,34 @@ def build_legacy(size, directory, memory_limit):
     return out['snapshot_path']
 
 
-def digests(matcher, snapshot, size, queries, memory_limit, order_rule, last_key):
+def digests(matcher, snapshot, size, queries, memory_limit, order_rule, last_key, letter=False):
+    """The matcher comparison's per-query digests on `snapshot` with the engine switches as given. With `letter`, the
+    queries are drawn from the cohort converted with letter-timed mentions, as arm A's worker draws them: the query
+    generator is shaped around event times, and each arm's worker draws its queries with its own converter."""
+    from patterns import synthetic_ingest as si
     from patterns import trajectory_graph as tg
     args = types.SimpleNamespace(code_root=str(ROOT), snapshot=str(snapshot), size=size, queries=queries, repeats=1,
                                  detail='full', memory_limit=memory_limit, arm_workers=1, no_prune=False,
                                  no_prune_ends=False)
+    saved = si.iter_patients, si.synthetic_provenance
+    if letter:
+        si.iter_patients = functools.partial(saved[0], mention_time='letter')
+        si.synthetic_provenance = functools.partial(saved[1], mention_time='letter')
     tg._ORDER_RULE, tg._LAST_KEY = order_rule, last_key
     try:
         out = matcher.worker(args)
     finally:
         tg._ORDER_RULE, tg._LAST_KEY = True, tg.last_key
+        si.iter_patients, si.synthetic_provenance = saved
     return {row['seed']: row['digest'] for row in out['runs'][0]}
 
 
 def attribute(matcher, snapshot, legacy, size, queries, memory_limit, before, after):
     from patterns import trajectory_graph as tg
     started = time.monotonic()
-    stages = [digests(matcher, legacy, size, queries, memory_limit, False, tg._LAST_KEY_BEFORE_D30),
-              digests(matcher, legacy, size, queries, memory_limit, False, tg.last_key),
-              digests(matcher, legacy, size, queries, memory_limit, True, tg.last_key),
+    stages = [digests(matcher, legacy, size, queries, memory_limit, False, tg._LAST_KEY_BEFORE_D30, letter=True),
+              digests(matcher, legacy, size, queries, memory_limit, False, tg.last_key, letter=True),
+              digests(matcher, legacy, size, queries, memory_limit, True, tg.last_key, letter=True),
               digests(matcher, snapshot, size, queries, memory_limit, True, tg.last_key)]
     per_query, tally = [], {}
     for seed in sorted(stages[0]):

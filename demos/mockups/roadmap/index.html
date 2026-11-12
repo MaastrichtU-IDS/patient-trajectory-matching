@@ -49,7 +49,7 @@
 
   <div class="facts">
     <div class="fact"><b data-r="patients">1,000,000</b>synthetic patients built and verified in one store, under a 4 GB database limit</div>
-    <div class="fact"><b data-r="p95">7.26 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
+    <div class="fact"><b data-r="p95">13.05 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers (target 10 s, set in advance)</div>
     <div class="fact"><b data-r="rows">668,862</b>MIMIC-IV demo chart rows ingested and every one checked, <span data-r="mism">0</span> mismatches</div>
     <div class="fact"><b>1,241</b>contract checks run on every push</div>
   </div>
@@ -58,8 +58,8 @@
   <p class="lede">Working code with tests and committed evidence.</p>
   <div class="grid">
     <div class="item"><h3>Trajectory matching engine</h3>
-      <p>A trajectory is steps plus timing constraints, as a sequence, a tree or a graph. Every patient gets a result, and the kinds stay apart: exact, possible, relaxed, unresolved, none and not comparable. Relaxations are priced within budgets, each event has one time, and an event can be marked as ending strictly after it starts.</p>
-      <p class="ref">D13, D21, D24 · <code>docs/trajectory-graph-profile.md</code> · mockup: <a href="../trajectory/">Define a trajectory</a></p></div>
+      <p>A trajectory is steps plus timing constraints, as a sequence, a tree or a graph. Every patient gets a result, and the kinds stay apart: exact, possible, relaxed, unresolved, none and not comparable. Relaxations are priced within budgets, each event has one time, and an event can be marked as ending strictly after it starts. "First" and "last" are sound when the records leave their order uncertain: decided on the times the true first (or last) can take where that is exact, unresolved otherwise, and checked against every choice of times on small cases.</p>
+      <p class="ref">D13, D21, D24, D30 · <code>docs/trajectory-graph-profile.md</code> · mockup: <a href="../trajectory/">Define a trajectory</a></p></div>
     <div class="item"><h3>Patient-first similarity</h3>
       <p>Start from one patient's history and rank others. Concept similarity offers simGIC (the default), ancestor-Jaccard and best-match Resnik, with a selector.</p>
       <p class="ref">mockup: <a href="../patient-first/">B · Start from a patient</a></p></div>
@@ -82,7 +82,7 @@
       <p>A step can carry a condition such as "heart rate above 120 per minute" or "MAP below 65 mmHg", matched exactly on the stored values with the unit matched literally. Relaxing a threshold only ever adds patients, and excluded rows of the same item make a result <i>not comparable</i>. The matching engine itself is unchanged; the store compiles each condition into a tag for that query.</p>
       <p class="ref">D28 (chartevents stage 2) · <code>docs/execution-store.md</code></p></div>
     <div class="item"><h3>Store query page (stage 1 of the mockups on the store)</h3>
-      <p>A mockup page builds trajectories on the MIMIC-IV demo's item classes, with value conditions and relaxations, and runs them in the execution store on the server. The server sends back aggregate counts only and refuses any snapshot that is not the open demo; tests check both. The server checks that the store holds the open demo's own patients, not just its label. Counts alone are not disclosure control, so it serves only the open demo. On the synthetic cohort, the store and the trajectory page agree on 427 of 480 patient results; each of the other 53 has a named cause (letter mentions, merged records, medication courses, and the store's coverage rule).</p>
+      <p>A mockup page builds trajectories on the MIMIC-IV demo's item classes, with value conditions and relaxations, and runs them in the execution store on the server. The server sends back aggregate counts only and refuses any snapshot that is not the open demo; tests check both. The server checks that the store holds the open demo's own patients, not just its label. Counts alone are not disclosure control, so it serves only the open demo. On the synthetic cohort, the store and the trajectory page agree on 401 of 480 patient results; each of the other 79 has a named cause (letter mentions, merged records, medication courses, uncertain first or last targets, and the store's coverage rule).</p>
       <p class="ref">D29 · <code>demos/mockups/README.md</code> · mockup: <a href="../store-query/">Store query</a></p></div>
     <div class="item"><h3>Faster builds and checks</h3>
       <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 12.0% and its content check by 38%, with identical content digests (snapshot identifiers change with the builder), under a rule set before measuring.</p>
@@ -94,7 +94,7 @@
   <div class="grid">
     <div class="item"><h3>The store under the trajectory page (stage 2)</h3>
       <p>The trajectory page matches in the store by default once the store can express everything the page offers, or refuses it by name, and the parity test is clean, with every difference removed or declared and the converter itself emitting measurement values. The store needs Nth occurrences; "at least N times within" a span; rises and falls against earlier values (a design decision first); gene results that are not negative; free text as a query option; and index periods placed by rule. Each record-level difference (merged records, letter mentions, medication courses, coverage) moves into the converters or is declared. The browser path stays as a fallback for static hosting. Stage 3, retiring it, waits for the hosting decision.</p>
-      <p class="ref">D29 · inventory in <code>demos/mockups/README.md</code></p></div>
+      <p class="ref">D29 · plan for D31 (Nth, counts) and D32 (rises and falls) in <code>docs/decisions/d31-d32-store-step-language-plan.md</code> · inventory in <code>demos/mockups/README.md</code></p></div>
     <div class="item"><h3>Richer measurements</h3>
       <p>Textual and unitless measurements (most of the 518,809 demo chart rows excluded today are one or both), unit equivalence, and reviewed item mappings.</p>
       <p class="ref">D27 stage 3</p></div>
@@ -119,8 +119,8 @@
   <p class="lede">Deliberately deferred, each with the condition that would bring it back.</p>
   <div class="grid">
     <div class="item"><h3>A Rust matching engine</h3>
-      <p>Built only if Python misses the latency target. It meets it at 300,000 patients, so none was built; it would be a second implementation over the same snapshots, with the Python path as its reference.</p>
-      <p class="ref">D7, D21</p></div>
+      <p>Built only if Python misses the latency target and algorithmic work cannot recover it. Python met the target at 300,000 patients until D30; with sound <code>first</code> and <code>last</code> and wider letter mentions it is now missed (p95 13.05 s against 10 s at 14 workers), so D21's rule applies again, algorithmic work first. A Rust engine would be a second implementation over the same snapshots, with the Python path as its reference.</p>
+      <p class="ref">D7, D21, D30</p></div>
     <div class="item"><h3>Embeddings and a nearest-neighbour index</h3>
       <p>Added only if recall at full scale needs it. Concept information content comes from the stored counts.</p>
       <p class="ref">D7</p></div>
