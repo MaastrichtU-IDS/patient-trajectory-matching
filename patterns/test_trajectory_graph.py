@@ -1,4 +1,5 @@
 """Trajectory-graph profile: semantics, decision methods, budgets and the exhaustive reference."""
+from collections import Counter
 from copy import deepcopy
 import hashlib
 import importlib.util
@@ -11,6 +12,7 @@ import unittest
 
 from . import trajectory_graph as tg
 from . import trajectory_graph_reference as ref
+from . import trajectory_graph_worlds as worlds
 
 
 def query(steps, relations=(), **extra):
@@ -484,6 +486,47 @@ def without_proper(p):
     return {**p, 'events': [{k: v for k, v in e.items() if k != 'proper'} for e in p['events']]}
 
 
+def differential_view(r, reference=False):
+    """What the engine and the reference both report (the reference has no search budget and no bindings)."""
+    status = r['status']
+    if reference:
+        if status == 'relaxed':
+            return status, (r['certainty'], r['relaxations'], r['cost']), not r['passed']
+        if status == 'none':
+            return status, None, not r['passed']
+        if status == 'unresolved':
+            beside = r.get('unverified') or (r['relaxed'] and (r['relaxed']['certainty'], r['relaxed']['relaxations'],
+                                                                r['relaxed']['cost']) if 'relaxed' in r else None)
+            return status, r['reason'], beside
+        return status, None, True
+    if status == 'relaxed':
+        return status, (r['certainty'], r['relaxations'], r['cost']), r['complete']
+    if status == 'none':
+        return status, None, r['complete']
+    if status == 'unresolved':
+        if 'unverified_match' in r:
+            beside = r['unverified_match']['certainty']
+        elif 'relaxed_match' in r:
+            m = r['relaxed_match']
+            beside = (m['certainty'], m['relaxations'], m['cost'])
+        else:
+            beside = None
+        return status, r['reason'], beside
+    return status, None, r.get('complete', True)
+
+
+def reported_bindings(r):
+    """(certainty, relaxation ids, binding) for every binding a result reports, beside its status or as it."""
+    if r['status'] in ('exact', 'possible'):
+        yield r['status'], [], r['binding']
+    if r['status'] == 'relaxed':
+        yield r['certainty'], r['relaxations'], r['binding']
+    if 'relaxed_match' in r:
+        yield r['relaxed_match']['certainty'], r['relaxed_match']['relaxations'], r['relaxed_match']['binding']
+    if 'unverified_match' in r:
+        yield r['unverified_match']['certainty'], [], r['unverified_match']['binding']
+
+
 class DifferentialTests(unittest.TestCase):
     """The engine agrees with exhaustive enumeration, and every binding it reports really has
     the certainty it claims."""
@@ -495,14 +538,10 @@ class DifferentialTests(unittest.TestCase):
             with self.subTest(shape=shape, intervals=intervals, seed=seed):
                 engine, oracle = tg.match(q, p), ref.match(q, p)
                 self.assertEqual(engine['status'], oracle['status'], (q, p))
-                if engine['status'] == 'relaxed':
-                    self.assertEqual((engine['certainty'], engine['relaxations'], engine['cost']),
-                                     (oracle['certainty'], oracle['relaxations'], oracle['cost']))
-                if engine['status'] in ('exact', 'possible', 'relaxed'):
-                    chosen = [x for x in q['relaxations'] if x['id'] in engine.get('relaxations', [])]
-                    certainty = engine.get('certainty', engine['status'])
-                    self.assertTrue(ref.binding_reaches(q, p, chosen, engine['binding'], certainty))
-                self.assertTrue(engine.get('complete', True))
+                self.assertEqual(differential_view(engine), differential_view(oracle, reference=True), (q, p))
+                for certainty, relaxations, binding in reported_bindings(engine):
+                    chosen = [x for x in q['relaxations'] if x['id'] in relaxations]
+                    self.assertTrue(ref.binding_reaches(q, p, chosen, binding, certainty))
 
     def test_chains_of_point_events(self):
         self.check('chain', False, range(300))
@@ -627,6 +666,24 @@ class ProperIntervalTests(unittest.TestCase):
             tg._arc_spec = original
 
 
+def d30_moves(q, p):
+    """Whether D30's occurrence fixes can touch this case: under the unrelaxed query or some relaxation set, a
+    `first` or `last` step's target is uncertain, or `last` picks another event than the order before D30 did.
+    The kernel comparison with the frozen engine is made on every other case (OccurrenceOrderTests and the
+    differential cover these)."""
+    times = tg.patient_times(p)
+    pq = tg.PreparedQuery(q)
+    for _, chosen in [(0, ())] + pq.sets:
+        plan = pq.plan(chosen)
+        for s in plan.ordered:
+            target = times.occurrence(plan.concepts[s], plan.occurrence[s])
+            if target is None:
+                continue
+            if not target.certain or (plan.occurrence[s] == 'last' and target.record is not target.records[-1]):
+                return True
+    return False
+
+
 class KernelIdentityTests(unittest.TestCase):
     """The engine decides as it did before its pairwise kernel was rewritten (D21): every result field,
     and every intermediate decision, equals the old engine's on seeded cases of every shape.
@@ -640,11 +697,18 @@ class KernelIdentityTests(unittest.TestCase):
     FROZEN_SHA256 = 'aa7a2e7abf3ccee2f7350182acebaccf24ab20023e022685554e31b097df3722'
 
     @classmethod
-    def setUpClass(cls):
+    def frozen(cls):
         assert hashlib.sha256(cls.FROZEN.read_bytes()).hexdigest() == cls.FROZEN_SHA256, 'the frozen engine changed'
-        spec = importlib.util.spec_from_file_location('patterns._trajectory_graph_before_kernel', cls.FROZEN)
-        cls.old = sys.modules[spec.name] = importlib.util.module_from_spec(spec)  # dataclasses look it up
-        spec.loader.exec_module(cls.old)
+        name = 'patterns._trajectory_graph_before_kernel'
+        if name not in sys.modules:
+            spec = importlib.util.spec_from_file_location(name, cls.FROZEN)
+            sys.modules[name] = module = importlib.util.module_from_spec(spec)  # dataclasses look it up
+            spec.loader.exec_module(module)
+        return sys.modules[name]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.old = cls.frozen()
 
     @staticmethod
     def decisions(engine, q, p):
@@ -662,7 +726,19 @@ class KernelIdentityTests(unittest.TestCase):
             out.append(row)
         return out
 
+    def setUp(self):
+        self.counts = Counter()
+
+    def tearDown(self):
+        # Most cases are untouched by D30 and still decided exactly as by the frozen engine.
+        if self.counts:
+            assert self.counts['compared'] > self.counts['moved by D30'], self.counts
+
     def compare(self, q, p):
+        if p['window'] is not None and d30_moves(q, p):
+            self.counts['moved by D30'] += 1
+            return
+        self.counts['compared'] += 1
         old, new = self.old.match(q, p), tg.match(q, p)
         self.assertEqual(new, old)
         self.assertEqual(json.dumps(new), json.dumps(old))  # key order too
@@ -745,6 +821,250 @@ class KernelIdentityTests(unittest.TestCase):
             with self.subTest(seed=seed):
                 self.compare(q, p)
                 self.compare(*self.wide(rng, q, p, True))
+
+
+def tiny_case(rng):
+    """A case small enough to enumerate every choice of times: two to four events on a short grid, often of
+    one concept with overlapping ranges, so that which is first or last is uncertain; some exposures, some
+    proper; sometimes one event naming another's variable."""
+    while True:
+        events = []
+        for i in range(rng.randint(2, 4)):
+            lo = rng.randint(0, 5)
+            # Concept x, y or both (D30 review): families of two steps' concepts overlap without nesting.
+            e = {'id': f'e{i}', 'concepts': [*rng.choice([['x'], ['x'], ['y'], ['x', 'y']]), 'any'],
+                 'start': [lo, lo + rng.choice([0, 1, 3, 4])]}
+            if rng.random() < 0.35:
+                end = e['start'][1] + rng.randint(0, 2)
+                e['end'] = [end, end + rng.choice([0, 1, 2])]
+                if rng.random() < 0.3 and e['end'][1] > e['start'][0]:
+                    e['proper'] = True
+            events.append(e)
+        if rng.random() < 0.15:
+            a, b = rng.sample(events, 2)
+            b['start_var'], b['start'] = a.get('start_var', a['id'] + '.s'), list(a['start'])
+            if 'end' in b:
+                b['end'] = [max(b['end'][0], b['start'][1] + 1), max(b['end'][1], b['start'][1] + 1)]
+        n = rng.randint(1, 3)
+        names = 'ABC'[:n]
+        steps = [{'id': s, 'concept': rng.choice(['x', 'x', 'y']),
+                  'occurrence': rng.choice(['first', 'last', 'first', 'last', 'any'])} for s in names]
+        relations = []
+        for k in range(1, n):
+            a, b = names[rng.randrange(k)], names[k]
+            if rng.random() < 0.4:
+                relations.append({'id': f'r{k}', 'kind': 'during', 'from': a, 'to': b, 'grace': rng.choice([0, 1, 2])})
+            else:
+                lo, hi = rng.choice([(None, 3), (0, None), (1, 4), (-2, 2), (2, None), (None, None)])
+                relations.append({'id': f'r{k}', 'kind': 'after', 'from': a, 'to': b,
+                                  **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
+        if rng.random() < 0.5:
+            s = rng.choice(names)
+            bound = rng.choice([{'min': 0}, {'max': 0}, {'min': 1}, {'max': -1}, {'min': -2, 'max': 2}])
+            relations.append({'id': 'anchor', 'kind': 'after', **rng.choice([{'from': 'END', 'to': s}, {'from': s, 'to': 'END'},
+                                                                           {'from': 'START', 'to': s}]), **bound})
+        relaxations = []
+        if rng.random() < 0.4:
+            relaxations.append({'id': 'widen', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),
+                                'concept': 'any'})
+        afters = [r for r in relations if r['kind'] == 'after' and r.get('max') is not None]
+        if afters and rng.random() < 0.4:
+            r = rng.choice(afters)
+            relaxations.append({'id': 'longer', 'kind': 'extend_max', 'cost': '0.25', 'relation': r['id'], 'max': r['max'] + 3})
+        start = rng.randint(0, 4)
+        q = query(steps, relations, scope=rng.choice(['any', 'any', 'from_start', 'within', 'after']),
+                  relaxations=relaxations, budget=1, search_budget=10_000_000)
+        p = patient(events, (start, start + rng.randint(1, 6)))
+        try:
+            tg.validate_query(q)
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        if worlds.count_worlds(p, 20) <= 3000:
+            return q, p
+
+
+REVIEW_CASES = {
+    # The review of the D30 draft. M may fall anywhere from day 60 to 365; L is day 69.
+    'last before END': (query([{'id': 'a', 'concept': 'K', 'occurrence': 'last'}],
+                              [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'END', 'min': 0}]),
+                        patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 90)), 'possible'),
+    'last after END': (query([{'id': 'a', 'concept': 'K', 'occurrence': 'last'}],
+                             [{'id': 'r', 'kind': 'after', 'from': 'END', 'to': 'a', 'min': 1}]),
+                       patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 90)), 'possible'),
+    'first after END': (query([{'id': 'a', 'concept': 'K', 'occurrence': 'first'}],
+                              [{'id': 'r', 'kind': 'after', 'from': 'END', 'to': 'a', 'min': 1}]),
+                        patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 90)), 'none'),
+    'first before END': (query([{'id': 'a', 'concept': 'K', 'occurrence': 'first'}],
+                               [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'END', 'min': 0}]),
+                         patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 90)), 'exact'),
+    # A exposure A starting between day 60 and 365, ending at 800; B from 64 to 70 (or to 900); X at 400 (or 850).
+    'X during the first exposure (exact claimed)': (
+        query([{'id': 'e', 'concept': 'E', 'occurrence': 'first'}, {'id': 'x', 'concept': 'X'}],
+              [{'id': 'r', 'kind': 'during', 'from': 'e', 'to': 'x'}]),
+        patient([event('A', 'E', (60, 365), (800, 800)), event('B', 'E', (64, 64), (70, 70)), event('X', 'X', (400, 400))],
+                (0, 900)), 'unresolved'),
+    'X during the first exposure (none claimed)': (
+        query([{'id': 'e', 'concept': 'E', 'occurrence': 'first'}, {'id': 'x', 'concept': 'X'}],
+              [{'id': 'r', 'kind': 'during', 'from': 'e', 'to': 'x'}]),
+        patient([event('A', 'E', (60, 365), (800, 800)), event('B', 'E', (64, 64), (900, 900)), event('X', 'X', (850, 850))],
+                (0, 900)), 'unresolved'),
+    # One event bound to a first and a last step that may be different events (found while fixing the above).
+    'first then last on one event': (
+        query([{'id': 'a', 'concept': 'K', 'occurrence': 'first'}, {'id': 'b', 'concept': 'K', 'occurrence': 'last'}],
+              [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 10}]),
+        patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 900)), 'unresolved'),
+    # The review of D30 (M1): coupling through another uncertain ordered step. A {K}, M {J, K} and Z {J}, each in
+    # [0, 3]; f the first K, l the last J. M may be either step's target.
+    'last J strictly before first K (impossible)': (
+        query([{'id': 'f', 'concept': 'K', 'occurrence': 'first'}, {'id': 'l', 'concept': 'J', 'occurrence': 'last'}],
+              [{'id': 'r', 'kind': 'after', 'from': 'l', 'to': 'f', 'min': 1}]),
+        patient([event('A', 'K', (0, 3)), event('M', 'J', (0, 3), None, 'K'), event('Z', 'J', (0, 3))], (0, 10)),
+        'unresolved'),
+    'first K at or before last J (holds in every choice)': (
+        query([{'id': 'f', 'concept': 'K', 'occurrence': 'first'}, {'id': 'l', 'concept': 'J', 'occurrence': 'last'}],
+              [{'id': 'r', 'kind': 'after', 'from': 'f', 'to': 'l', 'min': 0}]),
+        patient([event('A', 'K', (0, 3)), event('M', 'J', (0, 3), None, 'K'), event('Z', 'J', (0, 3))], (0, 10)),
+        'unresolved'),
+}
+
+
+
+class OccurrenceOrderTests(unittest.TestCase):
+    """D30: `first` and `last` are sound against the true semantics (`trajectory_graph_worlds`), which every
+    choice of times defines, not against a second copy of the engine's rule. The engine before D30 is not."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.old = KernelIdentityTests.frozen()
+
+    def test_the_review_cases(self):
+        for name, (q, p, status) in REVIEW_CASES.items():
+            with self.subTest(case=name):
+                new, old = tg.match(q, p), self.old.match(q, p)
+                self.assertEqual(new['status'], status, new)
+                self.assertEqual(worlds.check(new, q, p), [], new)
+                self.assertEqual(ref.match(q, p)['status'], status)
+                if name != 'first before END':  # the old engine called this one possible: unsound only in its
+                    self.assertNotEqual(worlds.check(old, q, p), [], (name, old))  # claim that nothing is exact
+
+    def test_the_old_engine_under_claimed_exact(self):
+        q, p, _ = REVIEW_CASES['first before END']
+        self.assertEqual(self.old.match(q, p)['status'], 'possible')
+        self.assertEqual(worlds.check(self.old.match(q, p), q, p), ['possible, but impossible, or some binding is exact'])
+
+    def test_seeded_small_cases_are_sound_and_the_old_engine_is_not(self):
+        rng = random.Random('d30-worlds')
+        seen, old_wrong, unresolved = 0, 0, 0
+        for seed in range(3000):
+            q, p = tiny_case(rng)
+            new = tg.match(q, p)
+            with self.subTest(seed=seed):
+                self.assertEqual(worlds.check(new, q, p), [], (q, p, new))
+                self.assertEqual(differential_view(new), differential_view(ref.match(q, p), reference=True), (q, p))
+            seen += 1
+            unresolved += new['status'] == 'unresolved'
+            if not any(e.get('proper') for e in p['events']):  # the frozen engine predates `proper`
+                old_wrong += bool(worlds.check(self.old.match(q, p), q, p))
+        self.assertGreater(old_wrong, 20)
+        self.assertLess(unresolved, seen // 4)
+
+    def test_planted_defects_fail_the_worlds_check(self):
+        """Each part of the order rule, undone, makes some small case unsound: the rule switched off, or a step
+        taken as safe although another step can bind its events, a relation reads its end, or its events share
+        variables. (Taking `last` by the old order is caught with the rule off, by the frozen engine above: with
+        the rule on, an uncertain target is never trusted, whichever event the order picks.)"""
+        def wrong_cases():
+            rng = random.Random('d30-worlds')
+            cases = [tiny_case(rng) for _ in range(3000)] + [(q, p) for q, p, _ in REVIEW_CASES.values()]
+            return sum(bool(worlds.check(tg.match(q, p), q, p)) for q, p in cases)
+        self.assertEqual(wrong_cases(), 0)
+        tg._ORDER_RULE = False
+        try:
+            self.assertGreater(wrong_cases(), 0)
+        finally:
+            tg._ORDER_RULE = True
+        def picked_only(plan, s, targets, step_ids):  # D30 as first built: another ordered step's picked event only
+            concept, records = plan.concepts[s], targets[s].records
+            for t in step_ids:
+                if t == s:
+                    continue
+                if plan.occurrence[t] == 'any':
+                    if any(plan.concepts[t] in r[tg._EVENT].concepts for r in records):
+                        return True
+                elif targets[t] is not None and concept in targets[t].record[tg._EVENT].concepts:
+                    return True
+            return False
+        for name, planted in (('coupling ignored', ('_coupled', lambda *a: False)),
+                              ('coupling through picked events only (M1)', ('_coupled', picked_only)),
+                              ('ends ignored', ('_reads_end', lambda *a: False)),
+                              ('links ignored', ('_safe', lambda plan, s, targets, ids: not tg._reads_end(plan, s, targets)
+                                                 and not tg._coupled(plan, s, targets, ids)))):
+            attr, value = planted
+            original = getattr(tg, attr)
+            setattr(tg, attr, value)
+            try:
+                with self.subTest(defect=name):
+                    self.assertGreater(wrong_cases(), 0)
+            finally:
+                setattr(tg, attr, original)
+
+    def test_the_reference_is_sound_too(self):
+        """The reference re-implements the rule; its statuses must also be true of every world."""
+        rng = random.Random('d30-worlds-reference')
+        for seed in range(1500):
+            q, p = tiny_case(rng)
+            r = ref.match(q, p)
+            events, all_worlds = worlds.worlds(p, 20)
+            ask = lambda chosen: worlds._Question(q, chosen, events, all_worlds, p['window'])
+            unrelaxed = ask(())
+            with self.subTest(seed=seed):
+                if r['status'] == 'exact':
+                    self.assertTrue(unrelaxed.exact())
+                if r['status'] == 'possible':
+                    self.assertTrue(unrelaxed.possible() and not unrelaxed.exact())
+                if r['status'] in ('none', 'relaxed'):
+                    self.assertFalse(unrelaxed.possible())
+                if r['status'] == 'none' and not r['passed']:
+                    self.assertFalse(any(ask(c).possible() for c in worlds._sets(q)))
+
+    def test_the_levers_change_no_output(self):
+        """D30 review: with the cost levers (`_LEVERS`: the sweep in `_Arc.revise`, the second search without its exact
+        phase, the direct certainty test) on and off, `match` and `decide` give the same output, byte for byte, on the
+        differential cases, the kernel comparison's wide cases, the small worlds cases and the review's cases."""
+        cases = [(q, p) for q, p, _ in REVIEW_CASES.values()]
+        for shape, intervals in (('chain', False), ('tree', False), ('graph', False), ('tree', True), ('graph', True)):
+            for seed in range(300):
+                rng = random.Random(f'{shape}-{intervals}-{seed}')
+                q, p = random_case(rng, shape, intervals)
+                cases.append((q, p))
+                cases.append(KernelIdentityTests.wide(None, rng, q, p, intervals))
+        rng = random.Random('d30-worlds')
+        cases += [tiny_case(rng) for _ in range(3000)]
+        def outputs():
+            out = []
+            for q, p in cases:
+                out.append(json.dumps(tg.match(q, p)))
+                if p['window'] is not None:
+                    out.append(repr(KernelIdentityTests.decisions(tg, q, p)))
+            return out
+        on = outputs()
+        tg._LEVERS = False
+        try:
+            off = outputs()
+        finally:
+            tg._LEVERS = True
+        self.assertEqual(len(on), len(off))
+        self.assertEqual([i for i, (a, b) in enumerate(zip(on, off)) if a != b], [])
+
+    def test_last_picks_the_same_event_as_before_on_exact_times(self):
+        rng = random.Random('d30-exact-times')
+        for _ in range(500):
+            events = [event(f'e{i}', 'x', (t, t), (t + d, t + d) if d is not None else None)
+                      for i, (t, d) in enumerate((rng.randint(0, 9), rng.choice([None, 0, 3])) for _ in range(rng.randint(1, 6)))]
+            evs = tg.events_of(patient(events))
+            before = sorted(evs, key=lambda e: (e.s, e.f, e.id))[-1]
+            self.assertIs(tg.candidates({'occurrence': 'last'}, 'x', evs)[0], before)
 
 
 class PreparedQueryTests(unittest.TestCase):

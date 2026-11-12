@@ -273,6 +273,8 @@ def admission_check(query, per_step, result, patient, events, ancestors, window)
     bound = result.get('binding')
     if bound is None and 'relaxed_match' in result:
         bound = result['relaxed_match']['binding']
+    if bound is None and 'unverified_match' in result:  # D30: a match beside an order-uncertain status
+        bound = result['unverified_match']['binding']
     if bound is not None:
         displaced = []
         for step in query['steps']:

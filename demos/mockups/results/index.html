@@ -47,7 +47,7 @@
   <div class="tiles" id="tiles"></div>
 
   <h2>Matching speed at 300,000 patients</h2>
-  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, each repeated <span data-k="m.repeats"></span> times, with the engine's work spread over worker processes. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. Because it is met in Python, no Rust engine was built.</p>
+  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, each repeated <span data-k="m.repeats"></span> times, with the engine's work spread over worker processes. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. It is met in Python, so no Rust engine was built. D30, which made <code>first</code> and <code>last</code> sound under uncertain times and gave synthetic letter mentions their true range (birth to the letter), missed it in its first run; three changes that move no result, made after its review, brought it back under at 14 workers with a narrow margin, and at 8 workers it is now missed (decision log, D30).</p>
   <div class="card viz-root">
     <div class="chart-head">
       <h3>95th-percentile query time by worker count</h3>

@@ -5,6 +5,7 @@ Needs DuckDB (`patterns/requirements-store.lock.txt`); importing this module doe
 """
 from collections import Counter
 from copy import deepcopy
+from datetime import datetime, timedelta
 import hashlib
 import json
 import os
@@ -101,6 +102,9 @@ def setUpModule():
     cohort = json.loads((tmp / 'cohort.json').read_text(encoding='utf-8'))
     _STATE['cohort'] = cohort
     _STATE['ingest'] = si.synthetic_ingest(cohort)
+    # The cohort as the converter gave it before D30 (letter mentions timed by their letter), only to reproduce
+    # digests recorded before then.
+    _STATE['legacy'] = si.synthetic_ingest(cohort, mention_time='letter')
     _STATE['generated'] = time.perf_counter() - started
     started = time.perf_counter()
     _STATE['snapshot'] = es.build(_STATE['ingest'], tmp / 'store')
@@ -547,6 +551,13 @@ class MatcherScalingTests(unittest.TestCase):
         pool, ingest = concept_pool(_STATE['reference']), _STATE['ingest']
         return random_query(rng, pool, ingest), random_windows(rng, ingest)
 
+    @staticmethod
+    def legacy_case(seed):
+        """The case `case` drew from the cohort as converted before D30 (the queries are shaped around event times)."""
+        rng = random.Random(seed)
+        pool, ingest = concept_pool(_STATE['reference']), _STATE['legacy']
+        return random_query(rng, pool, ingest), random_windows(rng, ingest)
+
     def test_output_is_byte_identical_to_the_matcher_before_chunking(self):
         """`patterns/fixtures/execution_store_match_digests.json` holds, for each of the 300 differential seeds, the
         sha256 of `json.dumps({plan, candidates, counts, results}, sort_keys=True)` as the one-shot matcher
@@ -988,6 +999,84 @@ def x10(ingest):
                          for k in range(10) for p in ingest['patients']]}
 
 
+D30_DIGESTS = ROOT / 'patterns/fixtures/execution_store_match_digests_d30.json'
+D30_STAGES = ('last order', 'order rule', 'mention timing')
+
+
+def match_digest(store, q, w):
+    out = es.match(store, q, w)
+    return hashlib.sha256(json.dumps({k: out[k] for k in ('plan', 'candidates', 'counts', 'results')},
+                                     sort_keys=True).encode()).hexdigest()
+
+
+def d30_stage_digests(legacy_store, seed):
+    """The seed's result digest at each stage of D30 (decision log, D30): before it (the store converted with
+    letter-timed mentions, the order rule off and `last` by the old order), with `last` by the latest start,
+    with the order rule as well, and with the mention timing (the store and the case as they are now); and, for a
+    second ordering, this store and case with the order rule off (mention timing before the order rule)."""
+    q, w = MatcherScalingTests.legacy_case(seed)
+    out = []
+    for order_rule, last_key in ((False, tg._LAST_KEY_BEFORE_D30), (False, tg.last_key), (True, tg.last_key)):
+        tg._ORDER_RULE, tg._LAST_KEY = order_rule, last_key
+        try:
+            out.append(match_digest(legacy_store, q, w))
+        finally:
+            tg._ORDER_RULE, tg._LAST_KEY = True, tg.last_key
+    out.append(match_digest(_STATE['store'], *MatcherScalingTests.case(seed)))
+    tg._ORDER_RULE = False
+    try:
+        out.append(match_digest(_STATE['store'], *MatcherScalingTests.case(seed)))
+    finally:
+        tg._ORDER_RULE = True
+    return out
+
+
+def d30_explanation(digests):
+    """The stages at which the digest moved, in the order last order, order rule, mention timing."""
+    return [stage for stage, a, b in zip(D30_STAGES, digests[:4], digests[1:4]) if a != b]
+
+
+def d30_explanation_timing_first(digests):
+    """The same, in the order last order, mention timing (order rule off), order rule."""
+    chain = [digests[0], digests[1], digests[4], digests[3]]
+    return [stage for stage, a, b in zip(('last order', 'mention timing', 'order rule'), chain, chain[1:]) if a != b]
+
+
+class D30ExplanationTests(unittest.TestCase):
+    """Every recorded match digest D30 moved is localized to the stages of its three changes (decision log, D30):
+    this tree, on the store converted as before D30 and with both engine switches set as before, gives the digest
+    recorded before D30; the stages at which it then moves are recorded in two orderings (the order rule before or
+    after the mention timing); and the last stage gives the digest recorded now. The stages localize a change;
+    they do not by themselves show that it is a fix (the worlds check in the engine's tests does that)."""
+
+    def test_the_300_recorded_digests_move_only_at_the_three_stages(self):
+        recorded = json.loads(D30_DIGESTS.read_text())
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        self.assertEqual(sorted(recorded['seeds'], key=int), [str(s) for s in range(SEEDS)])
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(_STATE['legacy'], Path(tmp) / 'store')) as legacy:
+            for seed in range(SEEDS):
+                entry = recorded['seeds'][str(seed)]
+                digests = d30_stage_digests(legacy, seed)
+                with self.subTest(seed=seed):
+                    self.assertEqual(digests[0], entry['before'])
+                    self.assertEqual(digests[3], entry['after'])
+                    self.assertEqual(digests[3], now[str(seed)])
+                    self.assertEqual(d30_explanation(digests), entry['stages'])
+                    self.assertEqual(d30_explanation_timing_first(digests), entry['stages_timing_first'])
+                    self.assertEqual(entry['case_changed'], MatcherScalingTests.legacy_case(seed) != MatcherScalingTests.case(seed))
+
+    def test_the_levers_change_no_recorded_digest(self):
+        """D30 review: the cost levers off give every recorded digest too."""
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        tg._LEVERS = False
+        try:
+            wrong = [seed for seed in range(SEEDS)
+                     if match_digest(_STATE['store'], *MatcherScalingTests.case(seed)) != now[str(seed)]]
+        finally:
+            tg._LEVERS = True
+        self.assertEqual(wrong, [])
+
+
 class PerBucketDeriveTests(unittest.TestCase):
     """D23: deriving one part (a run of whole patients of one bucket) at a time gives the tables and
     digests main's single-statement derive gave, for any part size."""
@@ -1008,8 +1097,12 @@ class PerBucketDeriveTests(unittest.TestCase):
         2.0's, at main fdd6e97 before the per-bucket derive: 3.0's tables read as 2.0's (`digests_2_0`, `events`
         joined to its evidence) give them all for the fixture, whose document 3.0 leaves as it was, input digest
         included; for the synthetic cohorts, whose converter now gives each event its record fields (D26), every
-        table but `events` gives 2.0's. The 2.1 columns hold nothing here."""
-        ingest = _STATE['ingest']
+        table but `events` gives 2.0's. The 2.1 columns hold nothing here.
+
+        The synthetic cohorts are converted with the mention timing before D30 (`mention_time='letter'`), which
+        leaves every table as it was. Their input digests in `RECORDED_3_0` were re-recorded at D30, since the
+        input digest covers the converter's own sha256 (`provenance.converter_sha256`), which D30 changed."""
+        ingest = _STATE['legacy']
         times_ten = x10(ingest)
         cases = [('synthetic', ingest, {}), ('synthetic', ingest, {'part_rows': 1}),
                  ('synthetic_x10', times_ten, {}), ('synthetic_x10', times_ten, {'part_rows': 5000}),
@@ -2160,6 +2253,36 @@ class SyntheticConverterTests(unittest.TestCase):
                 r = records[e['event_id']]
                 self.assertEqual(e['concepts'], [codes[(r['coding']['system'], r['coding']['code'])]])
                 self.assertEqual(e['start'], [si.micros(r['occurred']['earliest']), si.micros(r['occurred']['latest'])])
+
+    def test_a_mention_ranges_from_birth_to_its_letter_and_holds_its_true_time(self):
+        """D30. The converter never reads the generator's truth; this test does, to check the bound. A mention
+        timed by its letter (the timing before D30) missed its true time for all but one of the 2,444 mentions;
+        from birth (or an earlier record) to the letter's latest time, every true time is inside."""
+        cohort, ingest = _STATE['cohort'], _STATE['ingest']
+        self.assertEqual(ingest['provenance']['mention_time'],
+                         'at_or_before_letter_v1: from birth, or an earlier record, to the letter')
+        legacy = list(si.iter_patients(cohort, {}, 'letter'))
+        counts = Counter()
+        for p, converted, before in zip(sorted(cohort['patients'], key=lambda p: p['patient_id']), ingest['patients'], legacy):
+            truth = {e['event_id']: e for e in p['truth']['events']}
+            records = {r['record_id']: r for r in p['records']}
+            birth = datetime.fromisoformat(p['birth_date'][:10] + 'T00:00')
+            old = {e['event_id']: e for e in before['events']}
+            for e in converted['events']:
+                if e['kind'] != 'mention':
+                    self.assertEqual(e, old[e['event_id']])
+                    continue
+                record_id, i = e['event_id'].split('/', 1)[1].split('#m')
+                record = records[record_id]
+                day = truth[record['mentions'][int(i)]['truth_event_id']]['day']
+                lo = si.micros((birth + timedelta(days=day)).isoformat(timespec='minutes'))
+                hi = lo + 24 * 3600 * 10**6 - 1  # the truth is a day
+                inside = lambda rng: rng[0] <= hi and lo <= rng[1]
+                self.assertEqual(e['start'], [si.earliest(p), si.micros(record['occurred']['latest'])])
+                counts['inside'] += inside(e['start'])
+                counts['inside before D30'] += inside(old[e['event_id']]['start'])
+                counts['mentions'] += 1
+        self.assertEqual(counts, Counter({'mentions': 2444, 'inside': 2444, 'inside before D30': 1}))
 
     def test_orders_and_superseded_records_are_not_events_and_selection_is_recorded(self):
         cohort, ingest = _STATE['cohort'], _STATE['ingest']

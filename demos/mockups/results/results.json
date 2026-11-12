@@ -3,68 +3,68 @@
  "matching": {
   "arms": [
    {
-    "max_seconds": 56.16,
+    "max_seconds": 70.3,
     "meets_target": false,
     "p95_by_repeat": [
-     49.91,
-     50.42,
-     50.34
+     67.55,
+     67.85,
+     67.34
     ],
-    "p95_seconds": 50.34,
-    "per_candidate_us": 188.8,
-    "query_peak_gib": 1.24,
+    "p95_seconds": 67.55,
+    "per_candidate_us": 231.2,
+    "query_peak_gib": 1.3,
     "workers": 1
    },
    {
-    "max_seconds": 27.56,
+    "max_seconds": 36.52,
     "meets_target": false,
     "p95_by_repeat": [
-     23.12,
-     23.18,
-     23.22
+     33.64,
+     33.77,
+     33.78
     ],
-    "p95_seconds": 23.21,
-    "per_candidate_us": 95.9,
-    "query_peak_gib": 0.8,
+    "p95_seconds": 33.77,
+    "per_candidate_us": 116.3,
+    "query_peak_gib": 0.79,
     "workers": 2
    },
    {
-    "max_seconds": 15.4,
+    "max_seconds": 20.2,
     "meets_target": false,
     "p95_by_repeat": [
-     13.02,
-     13.21,
-     13.47
+     18.44,
+     18.67,
+     19.09
     ],
-    "p95_seconds": 13.28,
-    "per_candidate_us": 57.9,
+    "p95_seconds": 18.67,
+    "per_candidate_us": 69.0,
     "query_peak_gib": 0.8,
     "workers": 4
    },
    {
-    "max_seconds": 10.27,
-    "meets_target": true,
+    "max_seconds": 13.12,
+    "meets_target": false,
     "p95_by_repeat": [
-     8.39,
-     8.35,
-     8.72
+     11.7,
+     11.57,
+     11.81
     ],
-    "p95_seconds": 8.39,
-    "per_candidate_us": 40.3,
-    "query_peak_gib": 0.83,
+    "p95_seconds": 11.7,
+    "per_candidate_us": 47.1,
+    "query_peak_gib": 0.82,
     "workers": 8
    },
    {
-    "max_seconds": 8.79,
+    "max_seconds": 10.24,
     "meets_target": true,
     "p95_by_repeat": [
-     7.26,
-     7.22,
-     7.32
+     9.44,
+     9.46,
+     9.49
     ],
-    "p95_seconds": 7.26,
-    "per_candidate_us": 35.2,
-    "query_peak_gib": 0.86,
+    "p95_seconds": 9.46,
+    "per_candidate_us": 40.0,
+    "query_peak_gib": 0.83,
     "workers": 14
    }
   ],
@@ -75,7 +75,7 @@
   "patients": 300000,
   "queries": 30,
   "repeats": 3,
-  "single_process_per_candidate_us": 189.2,
+  "single_process_per_candidate_us": 231.7,
   "target": {
    "machine": "Apple M4 Pro, 64 GB",
    "max_seconds": 30.0,
@@ -140,91 +140,91 @@
     "build_peak_gib": 0.37,
     "build_seconds": 6.2,
     "events": 172754,
-    "match_max_seconds": 0.3,
-    "match_p50_seconds": 0.03,
+    "match_max_seconds": 0.2,
+    "match_p50_seconds": 0.05,
     "open_seconds_warm": 0.02,
     "patients": 1000,
     "pruned_share_mean": 0.699,
     "queries": 50,
     "query_peak_gib": 0.56,
     "snapshot_gb": 0.01,
-    "verify_content_seconds": 0.8,
-    "verify_peak_gib": 0.18
+    "verify_content_seconds": 0.9,
+    "verify_peak_gib": 0.17
    },
    {
-    "build_peak_gib": 0.86,
-    "build_seconds": 51.0,
+    "build_peak_gib": 0.85,
+    "build_seconds": 51.4,
     "events": 1731493,
-    "match_max_seconds": 2.8,
-    "match_p50_seconds": 0.36,
+    "match_max_seconds": 2.5,
+    "match_p50_seconds": 0.44,
     "open_seconds_warm": 0.07,
     "patients": 10000,
     "pruned_share_mean": 0.699,
     "queries": 50,
-    "query_peak_gib": 1.01,
+    "query_peak_gib": 0.96,
     "snapshot_gb": 0.13,
     "verify_content_seconds": 6.7,
-    "verify_peak_gib": 0.38
+    "verify_peak_gib": 0.42
    },
    {
-    "build_peak_gib": 4.53,
+    "build_peak_gib": 4.61,
     "build_seconds": 512.9,
     "events": 17314930,
-    "match_max_seconds": 18.6,
-    "match_p50_seconds": 1.03,
+    "match_max_seconds": 23.4,
+    "match_p50_seconds": 1.23,
     "open_seconds_warm": 0.43,
     "patients": 100000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 1.2,
-    "snapshot_gb": 1.25,
-    "verify_content_seconds": 64.5,
-    "verify_peak_gib": 1.73
+    "query_peak_gib": 1.18,
+    "snapshot_gb": 1.23,
+    "verify_content_seconds": 64.2,
+    "verify_peak_gib": 1.74
    },
    {
-    "build_peak_gib": 7.99,
-    "build_seconds": 1535.4,
+    "build_peak_gib": 8.02,
+    "build_seconds": 1540.0,
     "events": 51944790,
-    "match_max_seconds": 59.3,
-    "match_p50_seconds": 2.47,
-    "open_seconds_warm": 1.21,
+    "match_max_seconds": 78.3,
+    "match_p50_seconds": 3.35,
+    "open_seconds_warm": 1.2,
     "patients": 300000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 2.38,
-    "snapshot_gb": 3.58,
-    "verify_content_seconds": 191.7,
+    "query_peak_gib": 2.28,
+    "snapshot_gb": 3.55,
+    "verify_content_seconds": 191.9,
     "verify_peak_gib": 1.77
    },
    {
-    "build_peak_gib": 8.24,
-    "build_seconds": 5191.5,
+    "build_peak_gib": 8.23,
+    "build_seconds": 5192.9,
     "events": 173149300,
-    "match_max_seconds": 246.1,
-    "match_p50_seconds": 7.72,
-    "open_seconds_warm": 1.84,
+    "match_max_seconds": 314.9,
+    "match_p50_seconds": 11.72,
+    "open_seconds_warm": 1.81,
     "patients": 1000000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 7.0,
-    "snapshot_gb": 5.49,
-    "verify_content_seconds": 625.8,
-    "verify_peak_gib": 1.72
+    "query_peak_gib": 6.87,
+    "snapshot_gb": 5.39,
+    "verify_content_seconds": 625.7,
+    "verify_peak_gib": 1.73
    }
   ]
  },
  "sources": {
   "matcher": {
    "path": "verification/matcher-comparison-report.json",
-   "sha256": "585288a421e49afe5da57b7051cde9d992b6327a0f2f38a5ed24ff6a10551244"
+   "sha256": "e33d4a71ff24be3b7dc0ada3d5c0031c1b7aeaa60bf1a933f3a05abb433c365c"
   },
   "mimic": {
    "path": "verification/execution-store-mimic-demo-report.json",
-   "sha256": "1a16ff1601555d5d83371cfff25775fc0d5896d02b17ce80fb04c4cf7f2f473e"
+   "sha256": "f5814afbdad3eaffdb53906610e0e67bdd6048a5cb40438262903147d9830958"
   },
   "scaling": {
    "path": "verification/execution-store-scaling-report.json",
-   "sha256": "3ac30bbf25bb6f1528c284601c6c348606899f03c910ba622908d604258fdfb4"
+   "sha256": "8de8909f6076bf0458b8c98c416ba615fb173e8035ca31ae66c791a5d64b0cb6"
   }
  }
 }

@@ -3,11 +3,13 @@
 Needs DuckDB (`patterns/requirements-store.lock.txt`) and git; skipped without them. Arm A here is the
 committed tree (`HEAD`), so on a clean checkout both arms are the same code and must agree.
 """
+import functools
 import json
 from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 from unittest import mock
 
 try:
@@ -128,8 +130,14 @@ class OlderArmTests(unittest.TestCase):
         import io
         from contextlib import redirect_stdout
         from patterns import execution_store as es
+        from patterns import synthetic_ingest as si
         with tempfile.TemporaryDirectory(prefix='matcher-older-') as tmp:
-            snapshot = es.build(bench.replicate(bench.pool_ingest(96)[0], 96), Path(tmp) / 'store')
+            # Arm A's converter times letter mentions by their letter; D30 changed this tree's. The cohort the other
+            # arms read is converted the same way here, so that the two snapshots hold the same rows.
+            with patch.object(si, 'iter_patients', functools.partial(si.iter_patients, mention_time='letter')), \
+                    patch.object(si, 'synthetic_provenance', functools.partial(si.synthetic_provenance, mention_time='letter')):
+                legacy = bench.replicate(bench.pool_ingest(96)[0], 96)
+            snapshot = es.build(legacy, Path(tmp) / 'store')
             output = Path(tmp) / 'report.json'
             try:
                 with redirect_stdout(io.StringIO()) as printed:
@@ -148,7 +156,12 @@ class OlderArmTests(unittest.TestCase):
             alone = json.loads(output.read_text())['sizes'][0]
         entry = report['sizes'][0]
         self.assertEqual(size, '96')
-        self.assertEqual(entry['byte_identity_B_against_A'], {'compared': 4, 'identical': 4, 'mismatching_seeds': []})
+        # D30 changed `last` and decides uncertain first and last targets differently: a query may differ from arm A's
+        # only if it has a first or last step.
+        identity = entry['byte_identity_B_against_A']
+        self.assertEqual(identity['compared'], 4)
+        ordered = {seed for seed, q in bench.query_inputs(4)[0] if any(s.get('occurrence', 'any') != 'any' for s in q['steps'])}
+        self.assertLessEqual(set(identity['mismatching_seeds']), ordered)
         same = entry['arm_a_snapshot']['same_rows']
         self.assertTrue(same['all_equal'], same)
         self.assertEqual(entry['arm_a_snapshot']['columns_2_1'],

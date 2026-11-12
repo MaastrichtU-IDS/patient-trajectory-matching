@@ -2156,6 +2156,8 @@ def apply_exclusions(query, result, touched, starts, every=None):
     - `relaxed` claims no unrelaxed binding exists, which an excluded record may supply: `unresolved`,
       with the relaxed match beside it, the engine's own convention for an undecided unrelaxed search;
     - `possible` claims no exact binding exists: still possible, but `complete: false`.
+    The displacement test reads the binding of the result, of its relaxed match, or of the match an
+    order-uncertain `unresolved` reports beside it (D30).
     Every changed result names the steps (`excluded_steps`) and the reason ADMISSION_EXCLUDED_RECORDS.
     """
     every = touched if every is None else every
@@ -2167,7 +2169,8 @@ def apply_exclusions(query, result, touched, starts, every=None):
     pid = result['patient_id']
     incomparable = lambda which: {'patient_id': pid, 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
                                   'excluded_steps': which}
-    binding = result.get('binding') or result.get('relaxed_match', {}).get('binding')
+    binding = (result.get('binding') or result.get('relaxed_match', {}).get('binding')
+               or result.get('unverified_match', {}).get('binding'))
     if binding is not None:
         moved = [step for step in order if step in every
                  and ((occurrence[step] == 'first' and any(lo <= starts[binding[step]][1] for lo, _ in every[step]))

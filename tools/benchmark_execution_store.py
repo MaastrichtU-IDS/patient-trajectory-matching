@@ -367,7 +367,8 @@ def query_worker(snapshot, size, queries, repeats, threads, memory_limit, exhaus
             if repeat == 0:
                 first[seed] = (query, windows, result)
             rows.append({'seed': seed, 'candidates_seconds': t_candidates, 'match_seconds': t_match,
-                         'candidates': len(found['patient_idx']), 'counts': result['counts']})
+                         'candidates': len(found['patient_idx']), 'counts': result['counts'],
+                         'incomplete_none': incomplete_none(result)})
         runs.append(rows)
     check = None
     if exhaustive:
@@ -525,6 +526,16 @@ def run_phase(name, arguments, output, budget, rss_limit):
     return json.loads(Path(output).read_text()), record
 
 
+def incomplete_none(result):
+    """{note: n} over a match's `none` results that are not complete (D30 review, S2)."""
+    out = {}
+    for r in result['results']:
+        if r['status'] == 'none' and r.get('complete') is False:
+            key = r.get('note', 'NO_NOTE')
+            out[key] = out.get(key, 0) + 1
+    return dict(sorted(out.items()))
+
+
 def query_statistics(result, patients):
     """Per-query medians over the repeats, then p50/p95/max across queries."""
     runs = result['runs']
@@ -534,11 +545,14 @@ def query_statistics(result, patients):
         per_query.append({'seed': rows[0]['seed'],
                           'candidates_seconds': statistics.median(r['candidates_seconds'] for r in rows),
                           'match_seconds': statistics.median(r['match_seconds'] for r in rows),
-                          'candidates': rows[0]['candidates'], 'counts': rows[0]['counts']})
-    mix = {}
+                          'candidates': rows[0]['candidates'], 'counts': rows[0]['counts'],
+                          'incomplete_none': rows[0].get('incomplete_none', {})})
+    mix, incomplete = {}, {}
     for q in per_query:
         for status, n in q['counts'].items():
             mix[status] = mix.get(status, 0) + n
+        for note, n in q['incomplete_none'].items():
+            incomplete[note] = incomplete.get(note, 0) + n
     pruning = [1 - q['candidates'] / patients for q in per_query]
     return {'queries': len(per_query), 'repeats': len(runs),
             'candidates_seconds': summary([q['candidates_seconds'] for q in per_query]),
@@ -546,6 +560,9 @@ def query_statistics(result, patients):
             'candidate_count': summary([q['candidates'] for q in per_query]),
             'pruning_rate': {**summary(pruning), 'mean': statistics.fmean(pruning)},
             'status_mix': dict(sorted(mix.items())),
+            # D30 review (S2): the `none` results above that are not complete, by note. `RELAXATION_ORDER_UNCERTAIN`
+            # is a `none` whose relaxation search was left undecided by the order rule, often a relaxed match before.
+            'incomplete_none_by_note': dict(sorted(incomplete.items())),
             'candidates_seconds_per_repeat_p50': [pct([r['candidates_seconds'] for r in run], .5) for run in runs],
             'match_seconds_per_repeat_p50': [pct([r['match_seconds'] for r in run], .5) for run in runs],
             'per_query': [{'seed': q['seed'], 'candidates': q['candidates'], 'candidates_seconds': q['candidates_seconds'],

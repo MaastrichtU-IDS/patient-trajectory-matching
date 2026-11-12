@@ -23,6 +23,10 @@ const REASONS = {
   EXCLUDED_RECORDS_MAY_MAKE_EXACT: 'excluded rows could make the match exact',
   EXACT_SEARCH_STOPPED: 'the search for an exact match stopped at its budget',
   CHEAPER_RELAXATION_SEARCH_STOPPED: 'a cheaper relaxation may exist; its search stopped',
+  RELAXATION_SEARCH_STOPPED: 'no match, but a relaxed search stopped at its budget before deciding',
+  OCCURRENCE_ORDER_UNCERTAIN: 'the records leave it uncertain which event is the first or last, and the match depends on it (D30)',
+  RELAXATION_ORDER_UNCERTAIN: 'no unrelaxed match; a relaxed match was left undecided because the first or last event is uncertain (D30)',
+  CHEAPER_RELAXATION_ORDER_UNCERTAIN: 'a cheaper relaxation was left undecided because the first or last event is uncertain (D30)',
 };
 // Refusals a valid-looking query can still meet, in plain words; anything else is shown by its code.
 const REFUSALS = {
@@ -359,6 +363,7 @@ function renderResults() {
   box.innerHTML = `<div class="card">
       <p style="margin-top:0"><b>${plural(total, 'patient')}</b> · the index period was placed for ${fmt(r.windows.placed)}. Counts only: the server sends no patient identifiers, times or values.</p>
       <table><thead><tr><th scope="col">Result</th><th scope="col" class="n">Patients</th><th scope="col" class="n">Share</th><th scope="col">Meaning</th></tr></thead><tbody>${rows}</tbody></table>
+      ${r.none_incomplete ? `<p class="hint">Of the no-match results, <b>${fmt(r.none_incomplete)}</b> are not complete: some relaxed search was left undecided (see the notes below), so a relaxed match may exist.</p>` : ''}
       ${table('Why not comparable', ['Reason', 'Patients', 'Meaning'], reasonRows(r.not_comparable_reasons))}
       ${table('Why unresolved', ['Reason', 'Patients', 'Meaning'], reasonRows(r.unresolved_reasons))}
       ${table('Notes on other results', ['Note', 'Patients', 'Meaning'], reasonRows(r.notes))}

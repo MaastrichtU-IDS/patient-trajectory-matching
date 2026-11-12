@@ -134,38 +134,48 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
 /* Why a patient's results differ, named from the candidates. Coverage first: the store reports not comparable when
    no source recording some step covers the period, which the page has no notion of except for measurements. Then,
    step by step, what the store holds that the page does not, or the reverse:
-   - letter-mentions: the store holds each finding a letter states as its own event, timed by the letter; the page
-     merges a mention into the event it describes, or times it from the letter's own wording ("about 3 weeks ago");
+   - letter-mentions: the store holds each finding a letter states as its own event, at or before the letter (from
+     birth to the letter, D30); the page merges a mention into the event it describes, or times it from the letter's
+     own wording ("about 3 weeks ago");
    - record-reconciliation: the store holds every record as its own event; the page merges the records of one
      happening (grouped by the generator's ground truth, a shortcut the README declares) and times it by its most
      precise record, so the first, the last, and whether a time is certain can differ;
    - medication-records: the store's exposures run from each order to its stop, ongoing ones with an open end, and
-     dispensings and mentions are separate points; the page builds one exposure per course from the order, else the
-     first dispensing, ending at the stop or when the supply ran out, an ongoing one at last contact or later;
-   - measurement-records: the store reads every measured record with a unit; the page reads one value per happening. */
+     dispensings are separate points; the page builds one exposure per course from the order, else the first
+     dispensing, ending at the stop or when the supply ran out, an ongoing one at last contact or later (a letter's
+     mention of a medicine counts as letter-mentions);
+   - measurement-records: the store reads every measured record with a unit; the page reads one value per happening;
+   - order-uncertain (D30): a first or last step whose target the records leave uncertain is unresolved in the store
+     when its end is read, another step can bind its events, or no sound refutation exists; the page binds the event
+     its reconciled records date, without that test. */
 const COVERAGE = ['NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT'];
 function storeList(events, occ) {
   const t = e => [e[0], e[1], e[2] === null ? e[0] : e[2], e[2] === null ? e[1] : e[3]];
   const sorted = [...(events || [])].sort((a, b) => a[0] - b[0] || a[1] - b[1] || t(a)[2] - t(b)[2]
     || (t(a)[3] ?? Infinity) - (t(b)[3] ?? Infinity) || (a[4] < b[4] ? -1 : 1));
-  const picked = occ === 'first' ? sorted.slice(0, 1) : occ === 'last' ? sorted.slice(-1) : sorted;
+  // The engine's last is the greatest by latest start, then earliest start (D30).
+  const latest = [...sorted].sort((a, b) => a[1] - b[1] || a[0] - b[0] || t(a)[2] - t(b)[2]
+    || (t(a)[3] ?? Infinity) - (t(b)[3] ?? Infinity) || (a[4] < b[4] ? -1 : 1));
+  const picked = occ === 'first' ? sorted.slice(0, 1) : occ === 'last' ? latest.slice(-1) : sorted;
   return picked.map(e => ({t: t(e), kind: e[5], id: e[4]}));
 }
 function causes(name, pid, pageStatus, storeResult, storeCands) {
   if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return ['coverage'];
   const page = vm.runInContext(`pageCandidates(${JSON.stringify(name)}, ${JSON.stringify(pid)})`, context);
   const out = new Set();
+  // D30: the store leaves a first or last step undecided when its target is uncertain; the page does not test that.
+  if (storeResult.reason === 'OCCURRENCE_ORDER_UNCERTAIN') out.add('order-uncertain');
   for (const [key, mine] of Object.entries(page)) {
     const {kind, occ} = vm.runInContext(`occurrenceOf(${JSON.stringify(name)}, ${JSON.stringify(key)})`, context);
     const theirs = storeList((storeCands[pid] || {})[key], occ);  // a relaxed alternative keeps the step's occurrence
     const sig = x => JSON.stringify(x.t);
     const a = mine.map(sig).sort(), b = theirs.map(sig).sort();
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
-    if (kind === 'medicine') { out.add('medication-records'); continue; }
     if (kind === 'measure') { out.add('measurement-records'); continue; }
     const onlyStore = theirs.filter(x => !a.includes(sig(x))), onlyPage = mine.filter(x => !b.includes(sig(x)));
     if (onlyStore.some(x => x.kind === 'mention') || onlyPage.some(x => x.mention)) out.add('letter-mentions');
-    if (onlyStore.some(x => x.kind !== 'mention') || onlyPage.some(x => !x.mention)) out.add('record-reconciliation');
+    const records = onlyStore.some(x => x.kind !== 'mention') || onlyPage.some(x => !x.mention);
+    if (records) out.add(kind === 'medicine' ? 'medication-records' : 'record-reconciliation');
   }
   return out.size ? [...out].sort() : ['UNEXPLAINED'];
 }
@@ -175,6 +185,7 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-parity-'));
 const snapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(scratch, 'store')]).trim();
 const names = vm.runInContext('Object.keys(CASES)', context);
 const cases = names.map(name => vm.runInContext(`storeCase(${JSON.stringify(name)}, {...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context));
+if (process.env.STORE_PARITY_CASES) fs.writeFileSync(process.env.STORE_PARITY_CASES, JSON.stringify({cohort, cases}));  // diagnostics
 const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases})));
 fs.rmSync(scratch, {recursive: true, force: true});
 
@@ -207,59 +218,85 @@ if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify(found, null, 1));
    regenerate the cohort, read the new causes, and update this table and the README together. */
 const EXPECTED = {
   "febrile seizure, then a sodium-channel blocker": {
-    C001: "medication-records+record-reconciliation: page exact, store possible",
-    C004: "medication-records+record-reconciliation: page exact, store none",
-    C008: "record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
-    C036: "record-reconciliation: page exact, store possible",
+    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C004: "letter-mentions+medication-records+record-reconciliation: page exact, store none",
+    C008: "letter-mentions+medication-records+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C021: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C023: "letter-mentions+medication-records: page exact, store possible",
+    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C038: "letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0+node:A, store relaxed possible node:A",
+    C044: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C045: "letter-mentions+medication-records+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
   },
   "first seizure branching to a blocker and to stiripentol": {
-    C001: "medication-records+record-reconciliation: page exact, store possible",
-    C004: "medication-records+record-reconciliation: page exact, store none",
-    C036: "medication-records+record-reconciliation: page exact, store possible",
+    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C004: "letter-mentions+medication-records+record-reconciliation: page exact, store none",
+    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C021: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C023: "letter-mentions+medication-records: page exact, store possible",
+    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C044: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
   },
   "a seizure while taking the first blocker": {
-    C008: "letter-mentions+record-reconciliation: page none, store exact",
-    C021: "letter-mentions+medication-records: page exact, store relaxed exact edge:0",
-    C036: "letter-mentions+record-reconciliation: page none, store exact",
-    C044: "letter-mentions+record-reconciliation: page none, store exact",
+    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C004: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C008: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
+    C015: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C021: "letter-mentions+medication-records+order-uncertain: page exact, store unresolved",
+    C023: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C036: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
+    C038: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C044: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
+    C045: "letter-mentions+medication-records+order-uncertain: page exact, store unresolved",
   },
-  "Dravet syndrome, then valproate": {},
+  "Dravet syndrome, then valproate": {
+    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C029: "letter-mentions+medication-records: page exact, store possible",
+  },
   "levetiracetam, then the last recorded seizure": {
-    C003: "letter-mentions+medication-records+record-reconciliation: page none, store exact",
-    C008: "letter-mentions+medication-records+record-reconciliation: page exact, store relaxed exact edge:0",
-    C026: "letter-mentions+medication-records: page exact, store none",
-    C030: "letter-mentions+medication-records+record-reconciliation: page exact, store none",
-    C045: "letter-mentions+medication-records+record-reconciliation: page exact, store none",
+    C003: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C008: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C010: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C026: "letter-mentions+medication-records: page exact, store possible",
+    C030: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C033: "letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0, store relaxed possible edge:0",
+    C038: "letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0, store relaxed possible edge:0",
+    C045: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C048: "letter-mentions+medication-records: page relaxed exact edge:0, store relaxed possible edge:0",
   },
-  "status epilepticus within 6 months of the period start": {},
+  "status epilepticus within 6 months of the period start": {
+    C002: "letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C009: "letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C023: "letter-mentions+record-reconciliation: page relaxed exact edge:0, store possible",
+  },
   "two seizures then a febrile seizure": {
-    C001: "letter-mentions+record-reconciliation: page relaxed exact node:C, store exact",
-    C004: "letter-mentions+record-reconciliation: page relaxed possible node:C, store exact",
+    C001: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C004: "letter-mentions+record-reconciliation: page relaxed possible node:C, store possible",
     C005: "letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
-    C008: "letter-mentions+record-reconciliation: page none, store relaxed exact node:C",
-    C015: "letter-mentions+record-reconciliation: page possible, store exact",
-    C017: "letter-mentions+record-reconciliation: page relaxed exact node:C, store exact",
-    C020: "letter-mentions: page possible, store exact",
-    C021: "letter-mentions: page relaxed exact node:C, store exact",
-    C023: "letter-mentions+record-reconciliation: page relaxed exact node:C, store exact",
-    C025: "letter-mentions: page possible, store exact",
-    C026: "letter-mentions: page none, store relaxed exact node:C",
-    C028: "letter-mentions: page possible, store exact",
-    C029: "letter-mentions+record-reconciliation: page possible, store exact",
-    C030: "letter-mentions: page none, store relaxed exact node:C",
-    C031: "letter-mentions+record-reconciliation: page none, store exact",
-    C036: "letter-mentions+record-reconciliation: page relaxed exact node:C, store exact",
-    C044: "letter-mentions+record-reconciliation: page relaxed exact node:C, store exact",
-    C045: "letter-mentions: page none, store relaxed exact node:C",
+    C008: "letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
+    C017: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C021: "letter-mentions: page relaxed exact node:C, store possible",
+    C023: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C026: "letter-mentions: page none, store relaxed possible node:C",
+    C027: "letter-mentions+record-reconciliation: page exact, store possible",
+    C030: "letter-mentions: page none, store relaxed possible node:C",
+    C031: "letter-mentions+record-reconciliation: page none, store possible",
+    C036: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C044: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C045: "letter-mentions: page none, store relaxed possible node:C",
   },
   "a blocker, then at least 8 seizures a month within 60 days": {
+    C001: "letter-mentions+medication-records: page exact, store possible",
     C002: "coverage: page none, store not_comparable",
     C003: "coverage: page none, store not_comparable",
     C005: "coverage: page none, store not_comparable",
     C006: "coverage: page none, store not_comparable",
     C010: "coverage: page none, store not_comparable",
+    C015: "letter-mentions+medication-records: page exact, store possible",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
+    C023: "letter-mentions+medication-records: page exact, store possible",
     C025: "coverage: page none, store not_comparable",
     C026: "coverage: page none, store not_comparable",
     C028: "coverage: page none, store not_comparable",
@@ -267,10 +304,12 @@ const EXPECTED = {
     C031: "coverage: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
     C035: "coverage: page none, store not_comparable",
+    C036: "letter-mentions+medication-records: page exact, store possible",
     C040: "coverage: page none, store not_comparable",
     C041: "coverage: page none, store not_comparable",
     C042: "coverage: page none, store not_comparable",
     C043: "coverage: page none, store not_comparable",
+    C045: "letter-mentions+medication-records: page exact, store possible",
     C048: "coverage: page none, store not_comparable",
   },
   "at most 2 seizures a month inside the period": {},

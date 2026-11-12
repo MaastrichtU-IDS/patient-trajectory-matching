@@ -28,12 +28,17 @@ The decision procedure (docs/trajectory-graph-profile.md):
   exhausted budget is reported as unresolved, never as a non-match.
 - Relaxation: a cost-ordered search over declared relaxation sets, stopping at the first
   that matches.
+- `first` and `last` (D30): the earliest event by start range, and the latest by latest
+  start. When the patient's facts leave it uncertain which event is first or last, the step
+  is decided on a point over the range the true first (last) start can take, where that is
+  exact, and the result is otherwise unresolved (`decide_ordered`).
 
 `patterns/trajectory_graph_reference.py` enumerates every binding instead, and the tests
 compare the two on seeded random trajectories of every shape.
 """
 from __future__ import annotations
 
+from bisect import bisect_left
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
@@ -306,6 +311,7 @@ class Times:
                 self.dom[key], self.component[key] = (value, value), key
         self._records = None
         self._by_concept = {}
+        self._occurrences = {}
 
     def _solve(self, root, members, bounds, orders, strict=(), empty='EMPTY_SHARED_VARIABLE'):
         """One component's variables: their ranges, and all-pairs distances if there are several.
@@ -355,6 +361,15 @@ class Times:
                 self._records = self._make_records()
             found = self._by_concept[concept] = [r for r in self._records if concept in r[_EVENT].concepts]
         return found
+
+    def occurrence(self, concept, which):
+        """What a `first` or `last` step on `concept` binds, and how sure that is (D30): an `_Occurrence`, or
+        None when no event carries the concept. Cached per concept and occurrence."""
+        key = (concept, which)
+        if key not in self._occurrences:
+            records = self.candidate_records(concept)
+            self._occurrences[key] = _Occurrence(self, records, which) if records else None
+        return self._occurrences[key]
 
     def _make_records(self):
         order, dom = sorted(self.events, key=attrgetter('s', 'f', 'id')), self.dom
@@ -406,8 +421,114 @@ def candidates(step, concept, events):
     if occurrence == 'first':
         return matching[:1]
     if occurrence == 'last':
-        return matching[-1:]
+        return [max(matching, key=lambda e: _LAST_KEY(e))] if matching else []
     return matching
+
+
+def last_key(e):
+    """The order `last` takes the greatest of (D30): latest start, then earliest start, then end range, then
+    identifier. `first` takes the least of (start range, end range, identifier). Before D30 `last` took the
+    greatest of `first`'s order, the largest *earliest* start, so an event known only to lie in [60, 365] lost
+    to one exactly at 69, though it may well be the later. On exact times the two orders are the same."""
+    return (e.s[1], e.s[0], e.f, e.id)
+
+
+# The order `last` takes the greatest of; a switch, so that the tests can show what the D30 fix moves. This and
+# the other switches here (`_ORDER_RULE`, `_LEVERS`) are module globals for tests and attribution runs in one
+# process; worker processes (execution_store's pool) import the module afresh and never see them changed.
+_LAST_KEY = last_key
+_LAST_KEY_BEFORE_D30 = attrgetter('s', 'f', 'id')
+# D30 review: levers that change no output, only cost (the sweep in `_Arc.revise`, the second search of an unsafe
+# step without its exact phase, the direct certainty test in `_Occurrence`). A switch, so that tests can show that
+# every output is byte-identical with them on and off.
+_LEVERS = True
+
+
+class _Occurrence:
+    """A `first` or `last` step's target in one patient, and whether the patient's facts make it certain (D30).
+
+    `record` is the kernel record the order picks. It is *certain* when every other event carrying the concept
+    starts strictly after it (before it, for `last`) under every choice of times, or certainly at the same time
+    (the order then breaks the tie). Otherwise the step's true target may be another event:
+    - the true first start lies in the *envelope* [least earliest start, least latest start] of the concept's
+      events (for `last`, [greatest earliest, greatest latest]), over the patient's ranges (`Times.dom`); when
+      the events are independent, every time in it is the first start in some choice of times;
+    - `possible` lists the events that can be first (last) in some choice of times, tested pair by pair, in
+      candidate order: a superset of the true targets.
+    `unlinked` says no event of the concept names a variable another event names, `points` that every one is a
+    point, so its end is its start."""
+
+    __slots__ = ('times', 'records', 'which', 'record', 'certain', 'unlinked', 'points', 'envelope',
+                 '_possible', '_synthetic')
+
+    def __init__(self, times, records, which):
+        self.times, self.records, self.which = times, records, which
+        self.record = records[0] if which == 'first' else max(records, key=lambda r: _LAST_KEY(r[_EVENT]))
+        self.unlinked = all(r[_KEYS] is None for r in records)
+        self.points = all(r[_EVENT].point for r in records)
+        if which == 'first':
+            self.envelope = (min(r[_SLO] for r in records), min(r[_SHI] for r in records))
+        else:
+            self.envelope = (max(r[_SLO] for r in records), max(r[_SHI] for r in records))
+        gap, a = times.gap, self.record[_EVENT].sv
+        def settled(y):
+            # first: y certainly after a, or certainly at a's time; last: y certainly before a, or at its time
+            g = gap(y, a) if which == 'first' else gap(a, y)
+            return g <= -1 or (g == 0 and (gap(a, y) if which == 'first' else gap(y, a)) == 0)
+        if self.unlinked and _LEVERS:
+            # D30 review, lever 4. With no shared variable, gap(x, y) is y's latest minus x's earliest, so y is
+            # settled when it starts after a ends its range (before it starts, for last), or when both are one
+            # identical point. The same verdict as `settled`, without gap calls.
+            r0 = self.record
+            alo, ahi = r0[_SLO], r0[_SHI]
+            if which == 'first':
+                far = lambda r: r[_SLO] > ahi
+            else:
+                far = lambda r: r[_SHI] < alo
+            self.certain = all(far(r) or (r[_SLO] == r[_SHI] == alo == ahi) for r in records if r is not r0)
+        else:
+            self.certain = all(settled(r[_EVENT].sv) for r in records if r is not self.record)
+        self._possible = self._synthetic = None
+
+    def possible(self):
+        """The records that can be first (last) in some choice of times, in candidate order: each can start at
+        or before (after) every other event of the concept, pair by pair."""
+        if self._possible is None:
+            records, gap = self.records, self.times.gap
+            if self.unlinked:
+                # gap(x, y) is y's latest minus x's earliest: x can precede every other event when its earliest
+                # start is at most the least latest start of the others (greatest earliest, for last).
+                if self.which == 'first':
+                    his = sorted(r[_SHI] for r in records)
+                    keep = lambda r: r[_SLO] <= (his[1] if len(his) > 1 and r[_SHI] == his[0] else his[0])
+                else:
+                    los = sorted((r[_SLO] for r in records), reverse=True)
+                    keep = lambda r: r[_SHI] >= (los[1] if len(los) > 1 and r[_SLO] == los[0] else los[0])
+                self._possible = [r for r in records if len(records) == 1 or keep(r)]
+            else:
+                if self.which == 'first':
+                    can = lambda x, y: gap(x[_EVENT].sv, y[_EVENT].sv) >= 0
+                else:
+                    can = lambda x, y: gap(y[_EVENT].sv, x[_EVENT].sv) >= 0
+                self._possible = [x for x in records if all(can(x, y) for y in records if y is not x)]
+        return self._possible
+
+    def synthetic(self):
+        """A point record standing for the step's true target's start: the picked event, with its own variable
+        ranging over the envelope, linked to nothing. Used only where that is exact (`_order_plan`)."""
+        if self._synthetic is None:
+            times, e = self.times, self.record[_EVENT]
+            name = f'\x00{self.which}\x00{e.id}'
+            while name in times.dom:
+                name += '\x00'
+            lo, hi = self.envelope
+            times.dom[name], times.component[name] = (lo, hi), name
+            event = object.__new__(Event)
+            d = event.__dict__
+            d['id'], d['concepts'], d['s'], d['f'], d['point'], d['sv'], d['fv'], d['proper'] = (
+                e.id, e.concepts, (lo, hi), (lo, hi), True, name, name, False)
+            self._synthetic = (lo, hi, lo, hi, None, event)
+        return self._synthetic
 
 
 @dataclass(frozen=True)
@@ -663,6 +784,8 @@ class _Arc:
             # The common case, one bound on each side, each from one constraint, scanned as pairs.
             (bl, ((al, kl),)), = lowers
             (bu, ((au, ku),)), = uppers
+            if _LEVERS and len(db) >= SWEEP_MIN:
+                return _sweep(self, da, db, times, bl, al, kl, bu, au, ku, in_db, shared)
             pairs = [(rb[bl], rb[bu], rb) for rb in db]
             for ra in da:
                 low, high = ra[al] + kl, ra[au] + ku
@@ -686,6 +809,47 @@ class _Arc:
             if ok:
                 kept.append(ra)
         return kept
+
+
+SWEEP_MIN = 8  # below this many events in the other domain, the scan is as cheap as the sort
+
+
+def _sweep(arc, da, db, times, bl, al, kl, bu, au, ku, in_db, shared):
+    """`_Arc.revise`'s common case (one lower and one upper bound) by a sorted sweep, O((n + m) log m) instead of
+    O(n * m) (D30 review, lever 2). ra is supported by an unlinked rb when rb[bl] >= low and rb[bu] <= high: so db
+    is sorted by rb[bl], and from each position on the two least rb[bu] are kept (two, so that ra itself can be set
+    aside when it is also in db). Linked pairs take the original test, as in the scan. The same events are kept,
+    in da's order."""
+    pairs = sorted(((rb[bl], rb[bu], rb) for rb in db), key=lambda p: p[0])
+    xs = [p[0] for p in pairs]
+    n = len(pairs)
+    least = [(INF, None)] * (n + 1)
+    second = [(INF, None)] * (n + 1)
+    for k in range(n - 1, -1, -1):
+        y, rb = pairs[k][1], pairs[k][2]
+        a, b = least[k + 1], second[k + 1]
+        if y < a[0]:
+            least[k], second[k] = (y, rb), a
+        elif y < b[0]:
+            least[k], second[k] = a, (y, rb)
+        else:
+            least[k], second[k] = a, b
+    kept = []
+    for ra in da:
+        low, high = ra[al] + kl, ra[au] + ku
+        k = bisect_left(xs, low)
+        if ra[_KEYS] is None and id(ra) not in in_db:
+            ok = least[k][0] <= high
+        elif ra[_KEYS] is None:
+            # ra is in db and linked to nothing else: ra with itself by the original test, the rest by the sweep
+            ok = arc.original(ra, ra, times) or (least[k][0] <= high if least[k][1] is not ra else second[k][0] <= high)
+        else:
+            linked = _linked(ra, shared, in_db)
+            ok = any(arc.original(ra, rb, times) for rb in linked.values()) or \
+                any(x >= low and y <= high for x, y, rb in pairs if id(rb) not in linked)
+        if ok:
+            kept.append(ra)
+    return kept
 
 
 def _linked(ra, shared, in_db):
@@ -895,7 +1059,7 @@ class _Plan:
     """What `decide` derives from a query and one relaxation set before it sees any patient."""
 
     __slots__ = ('concepts', 'constraints', 'unary', 'binary', 'forest', 'adjacency', 'occurrence',
-                 'arcs', 'unary_spec')
+                 'arcs', 'unary_spec', 'ordered', 'during_from')
 
     def __init__(self, query, relaxations):
         step_ids = [s['id'] for s in query['steps']]
@@ -904,6 +1068,9 @@ class _Plan:
         self.unary, self.binary = _split(self.constraints, step_ids)
         self.forest, self.adjacency = _components(step_ids, list(self.binary))
         self.occurrence = {s['id']: s.get('occurrence', 'any') for s in query['steps']}
+        # D30: the `first` and `last` steps, and the steps whose end a relation reads (a `during` from them).
+        self.ordered = [s for s in step_ids if self.occurrence[s] != 'any']
+        self.during_from = {r['from'] for r in relations if r['kind'] == 'during'}
         # The pairwise kernel's compiled tests, per test: the arcs, and each step's unary closed form.
         self.arcs = {test: _arcs(self.binary, test) for test in (certain, plausible)}
         self.unary_spec = {test: {s: _unary_spec(self.unary[s], test.__name__) for s in step_ids}
@@ -911,9 +1078,11 @@ class _Plan:
 
     def candidates(self, step, times):
         """`candidates` of the step under this set's concept, as kernel records."""
-        found = times.candidate_records(self.concepts[step])
         occurrence = self.occurrence[step]
-        return found[:1] if occurrence == 'first' else found[-1:] if occurrence == 'last' else found
+        if occurrence == 'any':
+            return times.candidate_records(self.concepts[step])
+        target = times.occurrence(self.concepts[step], occurrence)
+        return [] if target is None else [target.record]
 
     def domains(self, base, test, times):
         """Each step's candidates that pass `test` on its unary constraints."""
@@ -941,37 +1110,45 @@ class PreparedQuery:
         return self._plans[key]
 
 
-def decide(query, times, relaxations, budget, plan=None):
+def decide(query, times, relaxations, budget, plan=None, override=None, exact=True):
     """Exact and possible decisions for one relaxation set over one patient's `Times`.
-    `plan` is the set's `_Plan` when the caller has prepared it."""
+    `plan` is the set's `_Plan` when the caller has prepared it. `override` replaces some steps' candidate
+    records (D30: `decide_ordered` passes a `first` or `last` step's envelope or its possible targets). With
+    `exact=False` the exact phase is skipped, for a caller that asks only whether any binding exists (an exact
+    binding is a possible one)."""
     steps = query['steps']
     step_ids = [s['id'] for s in steps]
     plan = plan or _Plan(query, relaxations)
     constraints, unary, binary = plan.constraints, plan.unary, plan.binary
     forest, adjacency = plan.forest, plan.adjacency
     base = {s: plan.candidates(s, times) for s in step_ids}
+    if override:
+        base.update(override)
     result = {'forest': forest}
     events = lambda domains: {s: [r[_EVENT] for r in domains[s]] for s in step_ids}
 
     # Exact: unary certainty, then arc consistency on the pairwise certainty relation.
-    domains = plan.domains(base, certain, times)
-    arcs = plan.arcs[certain]
-    if not all(domains.values()) or not _arc_consistency(domains, arcs, times):
-        result['exact'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
-    elif forest:
-        result['exact'] = {'found': True, 'complete': True, 'method': 'forest_arc_consistency',
-                           'binding': _tree_assign(step_ids, adjacency, domains, arcs, times)}
+    if not exact:
+        result['exact'] = {'found': False, 'complete': True, 'method': 'skipped'}
     else:
-        def accept(b):
-            return all(certain(c, b, times) for c in constraints
-                       if all(t[0] in ANCHORS or t[0] in b for t in (c.x, c.y)))
-        meter = Budget(budget)
-        order = sorted(step_ids, key=lambda s: len(domains[s]))
-        found = _backtrack(order, events(domains), accept, meter)
-        result['exact'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
-                           'method': 'bounded_backtracking', 'search_steps': meter.steps}
-        if found is not None:
-            result['exact']['binding'] = found
+        domains = plan.domains(base, certain, times)
+        arcs = plan.arcs[certain]
+        if not all(domains.values()) or not _arc_consistency(domains, arcs, times):
+            result['exact'] = {'found': False, 'complete': True, 'method': 'arc_consistency'}
+        elif forest:
+            result['exact'] = {'found': True, 'complete': True, 'method': 'forest_arc_consistency',
+                               'binding': _tree_assign(step_ids, adjacency, domains, arcs, times)}
+        else:
+            def accept(b):
+                return all(certain(c, b, times) for c in constraints
+                           if all(t[0] in ANCHORS or t[0] in b for t in (c.x, c.y)))
+            meter = Budget(budget)
+            order = sorted(step_ids, key=lambda s: len(domains[s]))
+            found = _backtrack(order, events(domains), accept, meter)
+            result['exact'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
+                               'method': 'bounded_backtracking', 'search_steps': meter.steps}
+            if found is not None:
+                result['exact']['binding'] = found
     if result['exact']['found']:
         return result
 
@@ -1013,6 +1190,89 @@ def decide(query, times, relaxations, budget, plan=None):
     return result
 
 
+# D30: the order rule for `first` and `last` steps. Switch, for the tests that show what each fix moves.
+_ORDER_RULE = True
+
+
+def _coupled(plan, s, targets, step_ids):
+    """Whether another step can bind an event of step s's concept: an `any` step whose concept such an event
+    carries, or a `first` or `last` step whose possible targets include one (its picked event if that is certain,
+    else every event that can be its target: D30 review, M1)."""
+    concept, records = plan.concepts[s], targets[s].records
+    for t in step_ids:
+        if t == s:
+            continue
+        if plan.occurrence[t] == 'any':
+            if any(plan.concepts[t] in r[_EVENT].concepts for r in records):
+                return True
+        elif targets[t] is not None:
+            other = targets[t]
+            pool = (other.record,) if other.certain else other.possible()
+            if any(concept in r[_EVENT].concepts for r in pool):
+                return True
+    return False
+
+
+def _reads_end(plan, s, targets):
+    """Whether a relation reads step s's end (a `during` from it) and its concept has an event with an end of
+    its own."""
+    return s in plan.during_from and not targets[s].points
+
+
+def _safe(plan, s, targets, step_ids):
+    return targets[s].unlinked and not _reads_end(plan, s, targets) and not _coupled(plan, s, targets, step_ids)
+
+
+def decide_ordered(query, times, relaxations, budget, plan=None):
+    """`decide`, made sound for `first` and `last` steps whose target the patient's facts leave uncertain (D30).
+
+    Returns (decision, undecided). `undecided` is None when the decision stands, else (kind, steps): kind is
+    the certainty a binding reached ('exact' or 'possible', reported beside an unresolved status) or 'none'
+    (no binding was found, but one may exist), and steps lists the uncertain `first` or `last` steps.
+
+    A step's target is *certain* when no other event of its concept can start before it (after it, for
+    `last`); then the step binds that event and nothing changes. An uncertain step is *safe* when its
+    concept's events name no shared variable, no relation reads the step's end (a `during` from it) unless
+    every such event is a point, and no other step can bind one of those events. A safe step's time is then
+    the true first (last) start, which ranges exactly over the envelope (`_Occurrence`), independently of
+    every other step: the step is decided on a point ranging over the envelope, and exact, possible and none
+    are all sound. Otherwise the true target may be another event, with another end, or an event another step
+    binds, so:
+    - a binding found on the picked event proves nothing either way: undecided, with the binding beside it;
+    - none found: the search is repeated with every event that can be first (last) as the step's candidates,
+      a superset of the true targets, so a none there is sound; anything else is undecided."""
+    step_ids = [s['id'] for s in query['steps']]
+    plan = plan or _Plan(query, relaxations)
+    if not plan.ordered or not _ORDER_RULE:
+        return decide(query, times, relaxations, budget, plan), None
+    targets = {s: times.occurrence(plan.concepts[s], plan.occurrence[s]) for s in plan.ordered}
+    uncertain = [s for s in plan.ordered if targets[s] is not None and not targets[s].certain]
+    if not uncertain:
+        return decide(query, times, relaxations, budget, plan), None
+    safe, unsafe = {}, []
+    for s in uncertain:
+        if _safe(plan, s, targets, step_ids):
+            safe[s] = [targets[s].synthetic()]
+        else:
+            unsafe.append(s)
+    r = decide(query, times, relaxations, budget, plan, safe)
+    if not unsafe:
+        return r, None
+    if r['exact']['found']:
+        return r, ('exact', uncertain)
+    if r['possible']['found']:
+        return r, ('possible', uncertain)
+    if not r['possible']['complete']:
+        return r, None  # a stopped search: unresolved already
+    wide = dict(safe)
+    wide.update({s: targets[s].possible() for s in unsafe})
+    # Only whether any binding exists matters here, so the exact phase is skipped (D30 review, lever 3).
+    again = decide(query, times, relaxations, budget, plan, wide, exact=not _LEVERS)
+    if again['exact']['found'] or again['possible']['found'] or not again['possible']['complete']:
+        return r, ('none', uncertain)
+    return r, None
+
+
 def relaxation_sets(query):
     """Every declared relaxation set within the budget, at most one per target, cheapest first."""
     options = query.get('relaxations', [])
@@ -1046,7 +1306,14 @@ def match_prepared(pq, patient, trusted=False):
     if window is None:
         return {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}
     budget = pq.budget
-    first = decide(query, times, (), budget, pq.plan())
+    first, undecided = decide_ordered(query, times, (), budget, pq.plan())
+    if undecided is not None and undecided[0] != 'none':
+        # D30: a binding on a first or last step whose target is uncertain is reported beside the status.
+        kind = undecided[0]
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN',
+                'uncertain_steps': undecided[1],
+                'unverified_match': {'certainty': kind, 'binding': _binding_ids(first[kind]['binding']),
+                                     'method': first[kind]['method']}, 'complete': False}
     if first['exact']['found']:
         return {'patient_id': pid, 'status': 'exact', 'binding': _binding_ids(first['exact']['binding']),
                 'method': first['exact']['method'], 'complete': True}
@@ -1057,30 +1324,44 @@ def match_prepared(pq, patient, trusted=False):
         if not first['exact']['complete']:
             out['note'] = 'EXACT_SEARCH_STOPPED'
         return out
-    # A stopped unrelaxed search ruled nothing out: unresolved, whatever a relaxation finds.
+    # A stopped unrelaxed search ruled nothing out: unresolved, whatever a relaxation finds. So does one whose
+    # first or last target is uncertain (D30).
     stopped = not first['possible']['complete']
-    skipped = False
+    unsure = undecided[1] if undecided is not None else None
+    def unresolved(**extra):
+        if stopped:
+            return {'patient_id': pid, 'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED', **extra,
+                    'complete': False}
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN',
+                'uncertain_steps': unsure, **extra, 'complete': False}
+    skipped = order_skipped = False
     for cost, chosen in pq.sets:
-        r = decide(query, times, chosen, budget, pq.plan(chosen))
+        r, open_ = decide_ordered(query, times, chosen, budget, pq.plan(chosen))
+        if open_ is not None:
+            order_skipped = True  # this set's answer is undecided: like a stopped search, it rules nothing out
+            continue
         winner = 'exact' if r['exact']['found'] else 'possible' if r['possible']['found'] else None
         if winner is None:
             skipped = skipped or not r['possible']['complete']
             continue
         relaxed = {'relaxations': [x['id'] for x in chosen], 'cost': decimal_text(cost), 'certainty': winner,
                    'binding': _binding_ids(r[winner]['binding']), 'method': r[winner]['method']}
-        if stopped:
-            return {'patient_id': pid, 'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED',
-                    'relaxed_match': relaxed, 'complete': False}
+        if stopped or unsure is not None:
+            return unresolved(relaxed_match=relaxed)
         out = {'patient_id': pid, 'status': 'relaxed', **relaxed,
-               'complete': not skipped and (winner == 'exact' or r['exact']['complete'])}
+               'complete': not skipped and not order_skipped and (winner == 'exact' or r['exact']['complete'])}
         if skipped:
             out['note'] = 'CHEAPER_RELAXATION_SEARCH_STOPPED'
+        elif order_skipped:
+            out['note'] = 'CHEAPER_RELAXATION_ORDER_UNCERTAIN'
         return out
-    if stopped:
-        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED', 'complete': False}
-    out = {'patient_id': pid, 'status': 'none', 'complete': not skipped}
+    if stopped or unsure is not None:
+        return unresolved()
+    out = {'patient_id': pid, 'status': 'none', 'complete': not skipped and not order_skipped}
     if skipped:
         out['note'] = 'RELAXATION_SEARCH_STOPPED'
+    elif order_skipped:
+        out['note'] = 'RELAXATION_ORDER_UNCERTAIN'
     return out
 
 
