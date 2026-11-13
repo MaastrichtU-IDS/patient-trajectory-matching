@@ -43,6 +43,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D29 | The mockups move onto the execution store in three stages; stage 1 puts the store beside the pages, with aggregate counts only and only the open MIMIC-IV demo, checked by content | Decided; stage 1 built (a store query page on the demo, served only if the store holds the demo's own patients; the synthetic cohort in a store agrees with the trajectory page on 427 of 480 results, each of the other 53 by a named cause); stage 2 inventory listed |
 | D30 | A correctness increment: `last` takes the latest start; a `first` or `last` target the patient's facts leave uncertain is decided on its envelope where that is exact, and is otherwise unresolved; synthetic letter mentions range from birth to the letter | Decided; built, reviewed, fixed and regenerated. MIMIC unchanged; every moved synthetic result localized to a stage (102 of the 300 recorded digests, 57 parity results, every arm A difference); the worlds check (small grids, overlapping concept families) finds no violation, and finds them in the engine before D30; a review's must-fix (coupling through another uncertain step) fixed; three output-identical cost levers kept; the D21 target met again at 14 workers, narrowly (p95 9.46 s), missed at 8 |
 | D31 | Latency: one envelope search for coupled `first` and `last` steps (lever 1 of the D32/D33 plan), under rules fixed before measuring | Built, sound on every check (0 violations in 44,500 small cases; reference agrees), then reverted under its rule: the regenerated 14-worker confirmation p95 was 9.41 s against a bar of 8.5 s (same-day calibration 8.2 s; 8 workers 9.90 s); 4 `not_comparable` results at 10,000 also moved; D30 stands. Next: fix the measurement protocol, then retry lever 1 or lever 5. *Second attempt:* a paired, interleaved confirmation protocol (owner-approved); the four results traced to the coverage rule, not D18; a D18 crash in main found and fixed; the order facts in the exact phase. Lever 1 kept: paired p95 ratio at 14 workers 0.80 to 0.88 in every pair against main (bar 0.90), replicated at 0.82 to 0.86; this tree's p95 8.49 s (replication 8.77 s), max 11.6 s, 0.76 GiB; 8 workers 10.17 s (stretch missed); every moved result from undecided by the engine's own decision; MIMIC unchanged |
+| D32 | Nth and Nth-from-last occurrence, and "at least N times within a span or the index period", in the store's match request, over coded records; the converter's optional `series`; the translator and parity extension, under rules fixed before measuring | In progress |
 
 ## D1 Package with hatchling, in place
 
@@ -1427,3 +1428,58 @@ The owner asked for a second attempt at lever 1 with the two corrections named a
 - 8 workers: lever 5 (pruning on order) remains the next candidate, judged by the paired protocol.
 
 *Limitations:* one machine; synthetic data replicated beyond 10,000 patients; the worlds check covers small grids only; the paired protocol cancels slow drift but not noise inside a run, and two pairs of each order are few; the p95 of 30 queries rests on the second-slowest query.
+
+## D32 Nth occurrence and counts in the store's match request, over coded records; the converter's `series`; the translator
+
+The plan, reviewed twice, is the D32 part of [d32-d33-store-step-language-plan.md](d32-d33-store-step-language-plan.md) (sections 1, 2, 5 and 6, and the shared mechanism). The owner fixed its scope as follows. Rises and falls (D33) are out of scope.
+1. **Nth and Nth-from-last occurrence.** The step's time is the time of the Nth occurrence: a derived point whose start range runs from the Nth-smallest lower bound to the Nth-smallest upper bound of `Times.dom`, the patient's tightened ranges (mirrored for Nth from last).
+   - `exact` and `none` are sound.
+   - A coupled step is `unresolved` (`OCCURRENCE_TIME_COUPLED`), never `possible`. A step is coupled when another step can bind one of its events, or when its events share variables.
+   - `during` from an Nth step is refused (`NTH_STEP_HAS_NO_END`).
+   - D18's displacement condition applies as the plan states, and reach for `none` ignores the scope.
+   - Nth with `first` or `last` on one step is refused (`OCCURRENCE_CONFLICT`).
+2. **"At least N times within a span" and "within the index period",** with `widen_count`, the page's one-fewer relaxation.
+   - The step binds the record at which the count is reached. Its strength, certain or possible, is decided exactly from the patient's ranges.
+   - A period count is certain only when the record's whole range lies inside the window.
+   - The two-pass rule applies with the review's fixes:
+     - pass 2 runs on any tag that some relaxation set uses;
+     - `first`, `last` and Nth are refused on a step that carries a count (`OCCURRENCE_ON_DERIVED_STEP`);
+     - `complete` is false if either pass was incomplete;
+     - the worlds checker checks every status except `unresolved`.
+   - The candidate filter uses the smallest N′ over the step and its `widen_count` relaxations.
+3. **Coded records only.** Counts and Nth run over events whose kind is not `mention`. Stated or hedged free text asked of these features is refused by name in the translator. Results are labelled as counts of recorded events, never of real episodes.
+4. **The converter's `series`:** an option of `synthetic_ingest`, off by default. When it is on, unitless measurements become excluded records (`MEASUREMENT_WITHOUT_UNIT`). A snapshot without series refuses value conditions by name (`NO_SERIES_IN_SNAPSHOT`).
+5. **The translator and the parity extension** for the trajectory page's Nth and count templates. Parity is measured with the converter emitting `series`. Every difference is named, and every unbuilt feature is refused by code.
+6. **The unresolved share** is reported per feature and per template. The owner's scope asks for it to be reported, so no ship bar is set on it (the plan had proposed one).
+7. **The page's literal mode** is optional and is built only if cheap.
+
+**Pre-committed rules** (written and committed before any measurement of this increment):
+- **Soundness, for each new feature (Nth, span counts, period counts).** Each feature ships only if all of the following hold.
+  1. *The worlds checker finds 0 violations.* The checker is `trajectory_graph_worlds.py`, extended to Nth and counts: it reads the store's derived steps as their meaning (the Nth occurrence's time in each world, and the count reached at the bound record in each world), never as their compiled events. It runs on at least 20,000 small-grid cases per feature, from multi-concept generators (events of concept x, y or both) and from coupled generators (several ordered or derived steps over overlapping families, steps binding the counted or ordered events, and shared variables). It checks every status except `unresolved`: `exact`, `possible`, `relaxed`, `none`, and the matches reported beside `unresolved`.
+  2. *0 mismatches against an independent reference* (`json.dumps` without sorting keys). The reference is written again in `execution_store_reference.py`, sharing no derivation code with the store. It is compared on seeded synthetic requests, at least 400 per feature, at 1 and 2 workers, at both detail levels and with pruning on and off, and on the MIMIC demo differential extended with the features.
+  3. *Every planted defect is caught* by the worlds checker or the differential:
+     - Nth: N off by one; the record ranked N (rule R); Nth from last counted from the front; the range read from recorded bounds instead of `Times.dom`; coupling ignored; D18 reach scoped for `none`;
+     - counts: the span's boundary off by one; the record counted as its own witness; forced and allowed swapped; the period's containment test read as overlap; τ cut to the window for the certain test; the candidate filter on N instead of the smallest N′;
+     - the two-pass rule: pass 2 triggered only by the unrelaxed query's tags; an occurrence allowed on a derived step.
+  4. *Relaxations keep every stricter match:* each drawn `widen_count` and widened derived tag holds every event of the stricter tag, at both strengths.
+  5. *Pruning on and off are byte-identical* on each feature's differential.
+- **No change without the new fields.** Every request that uses neither Nth nor counts gives byte-identical results to main (7f5930e):
+  - the 300 recorded match digests;
+  - every per-query matcher digest at every size and in the confirmation (B equal to A on A's own snapshots, to `B_unpruned` and to every C arm, and equal to the D31 report's digests query by query);
+  - the scaling report's row counts, candidate counts and status mixes;
+  - every MIMIC demo figure other than identifiers, digests, bindings, timings and the new differential.
+
+  A D28 request (`execution-store-conditions-1.0`) is answered key for key as before.
+- **No latency regression.** The test is the paired protocol (`tools/benchmark_matcher.py --paired-confirm`, `paired-interleaved-1.0`), against main's code (7f5930e), at 300,000 patients, 30 queries, 4 repeats, at 14 and 8 workers. It passes only if:
+  - the 14-worker paired p95 ratio (this tree over main) is at most 1.05 in every one of the four pairs;
+  - this tree's own p95 over its 14-worker runs is at most 10 s;
+  - the maximum is at most 30 s and query-process memory is under 4 GB.
+
+  The verdict run comes before the regeneration, and the regeneration repeats it into the matcher report. If it misses, the cause is found and fixed in the unchanged path; nothing is tuned away. The 8-worker figures are reported.
+- **Parity, measured with the converter emitting `series`:**
+  - no unexplained difference;
+  - every cause comes from a closed list: coverage, letter mentions, record reconciliation, medication records, measurement records (unitless values among them), `order-uncertain`, and two new causes. `occurrence-envelope` covers the page binding the record ranked N where the store binds the envelope. `count-timing` covers the page's consecutive-run rule against the store's exact strengths and the two-pass rule;
+  - the replay holds for every trajectory, derived steps included;
+  - every unbuilt feature is refused by its code;
+  - the tables are pinned per trajectory and patient.
+- A failure is fixed, never tuned away. A feature that cannot meet its soundness rules ships as a named refusal. If the scope proves too large, the increment stops after a coherent part that meets every rule, and says so.
