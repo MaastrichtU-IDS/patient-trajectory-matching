@@ -19,7 +19,7 @@ REPORTS = {
     'scaling': 'verification/execution-store-scaling-report.json',
     'matcher': 'verification/matcher-comparison-report.json',
     'mimic': 'verification/execution-store-mimic-demo-report.json',
-    'verdict': 'verification/d31-paired-verdict.json',
+    'verdict': 'verification/d32-paired-verdict.json',
 }
 GIB = 1024 ** 3
 
