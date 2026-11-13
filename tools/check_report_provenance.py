@@ -32,7 +32,15 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 # Superseded release manifests describe the tree as it stood at that release, which is
 # the point of keeping them. `check_manifest.py` makes the same exemption for the same
 # reason; this list is not a place to park a report that has merely gone stale.
-HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-release-manifest.json'}
+HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-release-manifest.json',
+              # D32 froze two closed records of earlier decisions, each produced on a tree whose
+              # `patterns/execution_store.py` D32 then changed. Regenerating either on later code would
+              # change what it records, not refresh it:
+              # - D30's attribution of every moved result to a stage, produced on the D31 tree (7f5930e);
+              #   a closed record, superseded by nothing;
+              # - D31's paired latency verdict, produced on the D31 tree (7f5930e); superseded for the
+              #   current tree by `verification/d32-paired-verdict.json`.
+              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json'}
 
 
 def digests(path):

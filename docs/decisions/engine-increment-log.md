@@ -1483,3 +1483,5 @@ The plan, reviewed twice, is the D32 part of [d32-d33-store-step-language-plan.m
   - every unbuilt feature is refused by its code;
   - the tables are pinned per trajectory and patient.
 - A failure is fixed, never tuned away. A feature that cannot meet its soundness rules ships as a named refusal. If the scope proves too large, the increment stops after a coherent part that meets every rule, and says so.
+
+*Two reports frozen as historical (owner decision).* `verification/d30-attribution-report.json` (D30's attribution of moved results to stages) and `verification/d31-paired-verdict.json` (D31's paired latency verdict) bind `patterns/execution_store.py`, which D32 changes. Both are records of earlier decisions on the tree they were produced on (7f5930e). Regenerating them on D32 code would change what they record, not refresh them. So they are listed in `HISTORICAL` in `tools/check_report_provenance.py`, beside the superseded release manifests. The D31 verdict is superseded for this tree by `verification/d32-paired-verdict.json`; the attribution is a closed record that nothing supersedes. The provenance gate stays strict for every other report.
