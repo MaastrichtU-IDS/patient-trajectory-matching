@@ -1,7 +1,185 @@
 {
  "generator": "demos/mockups/results/build.py",
  "matching": {
-  "arms": [
+  "governing": {
+   "by_workers": [
+    {
+     "max_seconds": [
+      13.37,
+      16.62
+     ],
+     "meets_target": false,
+     "p95_seconds": [
+      10.17,
+      11.56
+     ],
+     "query_peak_gib": [
+      0.73,
+      0.73
+     ],
+     "workers": 8
+    },
+    {
+     "max_seconds": [
+      11.64,
+      12.02
+     ],
+     "meets_target": true,
+     "p95_seconds": [
+      8.49,
+      8.77
+     ],
+     "query_peak_gib": [
+      0.76,
+      0.73
+     ],
+     "workers": 14
+    }
+   ],
+   "protocol": "paired-interleaved-1.0",
+   "runs": [
+    "verdict run",
+    "replication"
+   ]
+  },
+  "identical_results": {
+   "compared": 150,
+   "identical": 150
+  },
+  "paired": [
+   {
+    "arms": [
+     {
+      "max_seconds": 13.37,
+      "meets_target": false,
+      "p95_by_repeat": [
+       9.81,
+       10.51,
+       9.93,
+       11.58
+      ],
+      "p95_seconds": 10.17,
+      "query_peak_gib": 0.73,
+      "ratio_p95_by_repeat": [
+       0.851,
+       0.795,
+       0.83,
+       0.833
+      ],
+      "ratio_p95_pooled": 0.846,
+      "ratio_total_by_repeat": [
+       1.0,
+       0.924,
+       0.985,
+       0.931
+      ],
+      "reference_p95_seconds": 12.02,
+      "workers": 8
+     },
+     {
+      "max_seconds": 11.64,
+      "meets_target": true,
+      "p95_by_repeat": [
+       8.1,
+       8.14,
+       8.8,
+       8.21
+      ],
+      "p95_seconds": 8.49,
+      "query_peak_gib": 0.76,
+      "ratio_p95_by_repeat": [
+       0.875,
+       0.861,
+       0.804,
+       0.844
+      ],
+      "ratio_p95_pooled": 0.899,
+      "ratio_total_by_repeat": [
+       1.017,
+       0.99,
+       0.972,
+       0.994
+      ],
+      "reference_p95_seconds": 9.45,
+      "workers": 14
+     }
+    ],
+    "compared_queries": 30,
+    "identical_queries": 27,
+    "name": "verdict run",
+    "queries": 30,
+    "reference": "17728fc",
+    "repeats": 4
+   },
+   {
+    "arms": [
+     {
+      "max_seconds": 16.62,
+      "meets_target": false,
+      "p95_by_repeat": [
+       10.16,
+       10.65,
+       10.05,
+       12.57
+      ],
+      "p95_seconds": 11.56,
+      "query_peak_gib": 0.73,
+      "ratio_p95_by_repeat": [
+       0.826,
+       0.825,
+       0.833,
+       0.924
+      ],
+      "ratio_p95_pooled": 0.941,
+      "ratio_total_by_repeat": [
+       0.976,
+       0.981,
+       0.986,
+       1.039
+      ],
+      "reference_p95_seconds": 12.29,
+      "workers": 8
+     },
+     {
+      "max_seconds": 12.02,
+      "meets_target": true,
+      "p95_by_repeat": [
+       9.2,
+       8.35,
+       8.61,
+       8.46
+      ],
+      "p95_seconds": 8.77,
+      "query_peak_gib": 0.73,
+      "ratio_p95_by_repeat": [
+       0.831,
+       0.843,
+       0.816,
+       0.855
+      ],
+      "ratio_p95_pooled": 0.886,
+      "ratio_total_by_repeat": [
+       0.965,
+       0.987,
+       0.972,
+       0.986
+      ],
+      "reference_p95_seconds": 9.9,
+      "workers": 14
+     }
+    ],
+    "compared_queries": 30,
+    "identical_queries": 27,
+    "name": "replication",
+    "queries": 30,
+    "reference": "17728fc",
+    "repeats": 4
+   }
+  ],
+  "patients": 300000,
+  "queries": 30,
+  "repeats": 3,
+  "sequential_arms": [
    {
     "max_seconds": 70.78,
     "meets_target": false,
@@ -68,13 +246,6 @@
     "workers": 14
    }
   ],
-  "identical_results": {
-   "compared": 150,
-   "identical": 150
-  },
-  "patients": 300000,
-  "queries": 30,
-  "repeats": 3,
   "single_process_per_candidate_us": 229.7,
   "target": {
    "machine": "Apple M4 Pro, 64 GB",
@@ -225,6 +396,10 @@
   "scaling": {
    "path": "verification/execution-store-scaling-report.json",
    "sha256": "d3983583f5b71a41ecfe919b2f1b6dc1ba65008b6045d28aa3cf8213966a3d19"
+  },
+  "verdict": {
+   "path": "verification/d31-paired-verdict.json",
+   "sha256": "f67ed1680f941812e15be0d0ca46c70096a1a5dd4860ab59c3413dbfdca55259"
   }
  }
 }

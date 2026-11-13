@@ -35,7 +35,7 @@ class PureHelperTests(unittest.TestCase):
 class CommittedReportTests(unittest.TestCase):
     def test_the_committed_report_builds_and_verifies_a_million_patients_with_flat_memory(self):
         """D23: the regenerated report holds a completed 1,000,000-patient size, verified by content, whose
-        build peak is no higher than a few percent above the 300,000-patient one."""
+        build peak is at most 10% above the 300,000-patient one."""
         report = json.loads((bench.ROOT / 'verification/execution-store-scaling-report.json').read_text())
         sizes = {s['size']: s for s in report['sizes']}
         big, mid = sizes[1_000_000], sizes[300_000]
@@ -45,7 +45,11 @@ class CommittedReportTests(unittest.TestCase):
         self.assertEqual(big['memory_limit'], '4GB')
         stages = {s['stage'] for s in big['build_stages']['stages']}
         self.assertTrue({f'derived:bucket={b}' for b in range(8)} <= stages)
-        self.assertLess(big['build_phase']['peak_rss_bytes'], 1.05 * mid['build_phase']['peak_rss_bytes'])
+        # The bound was 1.05x until D31's second attempt; the owner widened it to 1.10x. The build peak varies by at
+        # least 4% between identical runs (8.61 and 8.28 GiB at 1,000,000 with the builder unchanged, against 8.02 GiB
+        # at 300,000), so 5% failed on noise. The gate exists to catch memory growing with patient count (before D23
+        # the 1,000,000 build did not finish under 4 GB), and 10% still catches that.
+        self.assertLessEqual(big['build_phase']['peak_rss_bytes'], 1.10 * mid['build_phase']['peak_rss_bytes'])
 
 
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
