@@ -514,6 +514,8 @@ class DerivedQuery:
     def name(self, sid, variant, concept, n=None):
         spec = self.spec[sid]
         name = f'{DERIVED}{sid}/{variant}'
+        if name in self.counted:  # two variants under one name: refused, as the store refuses it
+            raise ValueError('DERIVED_TAG_NAME_COLLISION')
         if spec[0] == 'nth':
             self.counted[name] = ('nth', concept, spec[1], spec[2])
         else:
@@ -775,7 +777,12 @@ def derived_result(dq, pid, window, events, mentions):
     counted = [s['id'] for s in query['steps'] if dq.spec.get(s['id'], ('',))[0] == 'count']
     one = _one_pass(dq, query, {'patient_id': pid, 'window': window, 'events': first}, families, linked, points)
 
-    def unsure(**extra):
+    def unsure(two=None, **extra):
+        if two is not None and two['status'] == 'unresolved':  # pass 2 undecided for a reason of its own
+            out = {'patient_id': pid, 'status': 'unresolved', 'reason': two['reason']}
+            if 'uncertain_steps' in two:
+                out['uncertain_steps'] = two['uncertain_steps']
+            return {**out, **extra, 'complete': False}
         return {'patient_id': pid, 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN',
                 'uncertain_steps': counted, **extra, 'complete': False}
     weak = lambda r: inexact and r.get('certainty') == 'possible'
@@ -801,14 +808,14 @@ def derived_result(dq, pid, window, events, mentions):
                 out['note'] = '; '.join(notes)
             return out, points
         if weak(one):
-            return unsure(), points
-        return unsure(relaxed_match={k: one[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}), points
+            return unsure(two), points
+        return unsure(two, relaxed_match={k: one[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}), points
     if two['status'] == 'none':
         out = {'patient_id': pid, 'status': 'none', 'complete': one['complete'] and two['complete']}
         if notes:
             out['note'] = '; '.join(notes)
         return out, points
-    return unsure(), points
+    return unsure(two), points
 
 
 def derived_admission(dq, result, patient, events, ancestors, window, points):

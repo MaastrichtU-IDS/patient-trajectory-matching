@@ -1672,6 +1672,11 @@ class Request:
             else:
                 form = {'kind': 'count', 'concept': concept, 'n': spec[1] if n is None else n, 'within': spec[2]}
             name = f'{_DERIVED_PREFIX}{sid}/{variant}'
+            # D32 review: a relaxation named `own`, or ids holding '/' across steps (step A with relaxation `r/own`,
+            # step `A/r` with its own tag), would give two tags one name and the later would silently replace the
+            # earlier. Own tags are named first, so this one check refuses every such request.
+            if name in self.derived:
+                raise StoreError('DERIVED_TAG_NAME_COLLISION', name)
             self.derived[name] = form
             self.step_n[name] = spec[2] if spec[0] == 'nth' else spec[1]
             return name
@@ -2231,7 +2236,13 @@ def match_derived(pq, request, derived):
     one = _one_pass(pq, derived.first, coupled)
     pid = derived.first['patient_id']
 
-    def uncertain(**extra):
+    def uncertain(other=None, **extra):
+        # Pass 2 unresolved for its own reason (an Nth step's coupling, an uncertain first or last target, a stopped
+        # search) is reported with that reason (D32 review); otherwise the count's condition left it undecided.
+        if other is not None and other['status'] == 'unresolved':
+            steps = {'uncertain_steps': other['uncertain_steps']} if 'uncertain_steps' in other else {}
+            return {'patient_id': pid, 'status': 'unresolved', 'reason': other['reason'], **steps, **extra,
+                    'complete': False}
         return {'patient_id': pid, 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN',
                 'uncertain_steps': counted, **extra, 'complete': False}
     if derived.inexact:
@@ -2254,13 +2265,13 @@ def match_derived(pq, request, derived):
             return {**out, 'note': note} if note else out
         match = {k: one[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
         if derived.inexact and one['certainty'] == 'possible':
-            return uncertain()
-        return uncertain(relaxed_match=match)
+            return uncertain(two)
+        return uncertain(two, relaxed_match=match)
     if two['status'] == 'none':
         out = {'patient_id': pid, 'status': 'none', 'complete': one['complete'] and two['complete']}
         note = _notes(one, two)
         return {**out, 'note': note} if note else out
-    return uncertain()
+    return uncertain(two)
 
 
 def candidates(store, query, conditions=None):
@@ -2274,7 +2285,16 @@ def candidates(store, query, conditions=None):
     those holding an event that carries it, read from `series` exactly (`_tag_patients`).
     """
     request = None if conditions is None else Request(query, conditions)
+    _require_series(store, request)
     return _candidates(store, tg.PreparedQuery(query if request is None else request.query), request)
+
+
+def _require_series(store, request):
+    """D32: a snapshot built without series cannot hold any value, so a 1.1 value condition would rest on nothing and
+    is refused by name (`NO_SERIES_IN_SNAPSHOT`). A 1.0 request keeps its D28 answer, key for key."""
+    if request is not None and request.profile != CONDITIONS_PROFILE and request.tags and not store.manifest[
+            'tables']['series']['rows']:
+        raise StoreError('NO_SERIES_IN_SNAPSHOT', ', '.join(sorted({c for c, _ in request.tags.values()})))
 
 
 def _candidates(store, pq, request=None):
@@ -3088,10 +3108,7 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
     request = None if conditions is None else Request(query, conditions)
     tags = None if request is None else request.used
     derived = request is not None and bool(request.derived)
-    if request is not None and request.profile != CONDITIONS_PROFILE and request.tags and not store.manifest[
-            'tables']['series']['rows']:
-        # D32: a snapshot built without series cannot hold any value, so a value condition would rest on nothing.
-        raise StoreError('NO_SERIES_IN_SNAPSHOT', ', '.join(sorted({c for c, _ in request.tags.values()})))
+    _require_series(store, request)
     pq = tg.PreparedQuery(query if request is None else request.query)
     given, query = query, pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')

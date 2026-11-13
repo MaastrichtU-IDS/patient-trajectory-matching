@@ -162,6 +162,43 @@ class PlantedDefectTests(unittest.TestCase):
         self.assertEqual(json.dumps(got), json.dumps(dc.reference_result(q, c, p, set())))
         self.assertEqual(tw.count_strengths(p, 'x', 1, 'window'), {'e1': 'possible'})
 
+    def test_derived_tag_names_that_would_collide_are_refused(self):
+        # The D32 review's must-fix: before the check, each of these named two tags alike, the later replaced the
+        # earlier, and the store answered `exact` where the truth is impossible.
+        count = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'x'}], 'relations': [],
+                 'relaxations': [], 'budget': 1}
+        nth = {**count, 'relaxations': [{'id': 'own', 'kind': 'widen_concept', 'step': 'A', 'concept': 'p', 'cost': '1'}]}
+        cross = {'profile': tg.PROFILE_ID, 'scope': 'any', 'relations': [], 'budget': 0,
+                 'steps': [{'id': 'A', 'concept': 'x'}, {'id': 'A/r', 'concept': 'y'}],
+                 'relaxations': [{'id': 'r/own', 'kind': 'widen_concept', 'step': 'A', 'concept': 'z', 'cost': '1'}]}
+        cases = [
+            (count, {'profile': L11, 'steps': {'A': {'count': {'at_least': 2, 'within': {'span': 3}}}},
+                     'relaxations': [{'id': 'own', 'kind': 'widen_count', 'step': 'A', 'cost': '1', 'at_least': 1}]}),
+            (nth, {'profile': L11, 'steps': {'A': {'occurrence': {'nth': 2}}}}),
+            (cross, {'profile': L11, 'steps': {'A': {'occurrence': {'nth': 1}}, 'A/r': {'occurrence': {'nth': 1}}}}),
+        ]
+        for query, conditions in cases:
+            with self.assertRaises(es.StoreError) as raised:
+                es.Request(query, conditions)
+            self.assertEqual(raised.exception.code, 'DERIVED_TAG_NAME_COLLISION')
+            with self.assertRaises(ValueError) as raised:  # the reference refuses them too
+                ref.DerivedQuery(dc._EMPTY, query, conditions)
+            self.assertIn('DERIVED_TAG_NAME_COLLISION', str(raised.exception))
+
+    def test_pass_2_unresolved_for_its_own_reason_keeps_that_reason(self):
+        # Pass 1 (certain count events) finds nothing; pass 2 can bind the count step, but there the Nth step is
+        # coupled, so pass 2 is unresolved for that reason, not for the count's condition (D32 review).
+        p = {'patient_id': 'P', 'window': {'start': 0, 'end': 9},
+             'events': [{'id': 'e1', 'concepts': ['x'], 'start': [0, 4]}, {'id': 'e2', 'concepts': ['x'], 'start': [2, 6]}]}
+        q = {'profile': tg.PROFILE_ID, 'scope': 'any', 'relations': [{'id': 'R', 'kind': 'after', 'from': 'B', 'to': 'A', 'min': 0}],
+             'steps': [{'id': 'A', 'concept': 'x'}, {'id': 'B', 'concept': 'x'}]}
+        c = {'profile': L11, 'steps': {'A': {'count': {'at_least': 2, 'within': {'span': 1}}},
+                                       'B': {'occurrence': {'nth': 2}}}}
+        got = dc.store_result(q, c, p, set())
+        self.assertEqual(json.dumps(got), json.dumps(dc.reference_result(q, c, p, set())))
+        self.assertEqual(tw.check_derived(got, q, c, p), [])
+        self.assertEqual((got['status'], got['reason']), ('unresolved', 'OCCURRENCE_TIME_COUPLED'))
+
     def test_the_coupling_example(self):
         # Two events: "the 2nd x at least 1 before the last x" is impossible; the envelope alone would say possible.
         p = {'patient_id': 'P', 'window': {'start': 0, 'end': 9},
@@ -552,7 +589,9 @@ class RequestTests(unittest.TestCase):
         plain = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'A', 'concept': 'c:seizure'}], 'relations': []}
         for relax, code in (({'id': 'c', 'kind': 'widen_count', 'step': 'A', 'cost': '1', 'at_least': 3}, 'COUNT_RELAXATION_MUST_NARROW'),
                             ({'id': 'c', 'kind': 'widen_count', 'step': 'A', 'cost': '1', 'at_least': 0}, 'COUNT_RELAXATION_MUST_NARROW'),
-                            ({'id': 'c', 'kind': 'widen_count', 'step': 'A', 'cost': '1'}, 'INVALID_COUNT_RELAXATION')):
+                            ({'id': 'c', 'kind': 'widen_count', 'step': 'A', 'cost': '1'}, 'INVALID_COUNT_RELAXATION'),
+                            ({'id': 'own', 'kind': 'widen_count', 'step': 'A', 'cost': '1', 'at_least': 2},
+                             'DERIVED_TAG_NAME_COLLISION')):
             with self.assertRaises(es.StoreError) as raised:
                 es.Request(plain, {'profile': L11, 'steps': count, 'relaxations': [relax]})
             self.assertEqual(raised.exception.code, code)
@@ -583,6 +622,9 @@ class RequestTests(unittest.TestCase):
         q = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'A', 'concept': 'seizure_frequency'}], 'relations': []}
         with self.assertRaises(es.StoreError) as raised:
             one(store, q, {pid: {'start': 0, 'end': 10}}, {'profile': L11, 'steps': {'A': {'unit': '/month', 'ge': '2'}}})
+        self.assertEqual(raised.exception.code, 'NO_SERIES_IN_SNAPSHOT')
+        with self.assertRaises(es.StoreError) as raised:  # and the candidate filter alike
+            es.candidates(store, q, {'profile': L11, 'steps': {'A': {'unit': '/month', 'ge': '2'}}})
         self.assertEqual(raised.exception.code, 'NO_SERIES_IN_SNAPSHOT')
         # A 1.0 request keeps its D28 answer (not comparable: no source records the unit), key for key.
         out = one(store, q, {pid: {'start': 0, 'end': 10}}, {'profile': es.CONDITIONS_PROFILE,

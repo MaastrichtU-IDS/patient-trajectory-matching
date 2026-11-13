@@ -59,16 +59,13 @@ function storeRequest(def, freeText, pids) {
     return {id: n.id, concept: n.concept, occurrence};
   });
   const steps11 = {}, relax11 = [], relaxations = [], valueRelax = [];
-  let later = false;
   for (const n of def.nodes) {
     if (stepKind(n) === 'measure') {
       steps11[n.id] = {unit: STORE_UNIT[n.concept], [n.cond === 'above' ? 'ge' : 'le']: storeDecimal(n.param)};
     } else if (n.occ === 'count') {
-      later = true;
       const within = n.within === 'period' ? 'window' : {span: toGrid(toDays(n.within.amount, n.within.unit))};
       steps11[n.id] = {count: {at_least: Math.max(1, +n.n || 2), within}};
     } else if (derivedOcc(n)) {
-      later = true;
       steps11[n.id] = {occurrence: {[n.occ]: Math.max(1, +n.n || 1)}};
     }
   }
@@ -96,7 +93,8 @@ function storeRequest(def, freeText, pids) {
   for (const pid of pids) { const w = req.windows.get(pid); windows[pid] = w.reason ? null : {start: toGrid(w.start), end: toGrid(w.end)}; }
   let conditions = null;
   if (Object.keys(steps11).length) {
-    conditions = {profile: later ? 'execution-store-conditions-1.1' : 'execution-store-conditions-1.0', steps: steps11};
+    // Always 1.1 (D32 review): a value condition on a snapshot built without series is then refused by name.
+    conditions = {profile: 'execution-store-conditions-1.1', steps: steps11};
     const all = [...valueRelax, ...relax11];
     if (all.length) conditions.relaxations = all;
   }

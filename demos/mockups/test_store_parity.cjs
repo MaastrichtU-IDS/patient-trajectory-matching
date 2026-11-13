@@ -215,7 +215,6 @@ const names = vm.runInContext('Object.keys(CASES)', context);
 const cases = names.map(name => vm.runInContext(`storeCase(${JSON.stringify(name)}, {...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context));
 if (process.env.STORE_PARITY_CASES) fs.writeFileSync(process.env.STORE_PARITY_CASES, JSON.stringify({cohort, cases}));  // diagnostics
 const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases})));
-const derivedCases = new Set(cases.filter(c => c.conditions && c.conditions.profile === 'execution-store-conditions-1.1').map(c => c.name));
 fs.rmSync(scratch, {recursive: true, force: true});
 
 const STATUS = {incomparable: 'not_comparable'};
