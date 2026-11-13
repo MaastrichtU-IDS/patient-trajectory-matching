@@ -590,6 +590,8 @@ def _strengths(times, family, n, within, window):
             lo, hi = window_of(tau)
             return lo <= max(ax, tau - down) and min(bx, tau + up) <= hi
         marks = {a, b}
+        if within == 'window':  # tau ranges over e's range cut to the window, whose ends are change points too
+            marks.update({window['start'], window['end']})
         offsets = [0] if within == 'window' else [0, within]
         base_w = [window['start']] if within == 'window' else []
         for (ax, bx), up, down in pairs:

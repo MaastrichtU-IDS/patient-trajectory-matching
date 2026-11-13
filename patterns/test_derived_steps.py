@@ -150,6 +150,18 @@ class PlantedDefectTests(unittest.TestCase):
         self.assertEqual(wrong['status'], 'exact')
         self.assertTrue(tw.check_derived(wrong, q, c, p))
 
+    def test_a_record_whose_range_holds_the_whole_window_may_reach_a_period_count(self):
+        # Found by the ad hoc differential: the reference tried tau only at the record's own range ends, both outside
+        # the window, and so missed that the count (N = 1) is possible inside it.
+        p = {'patient_id': 'P', 'window': {'start': 4, 'end': 6},
+             'events': [{'id': 'e1', 'concepts': ['x'], 'start': [0, 10]}]}
+        q = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'x'}], 'relations': []}
+        c = {'profile': L11, 'steps': {'A': {'count': {'at_least': 1, 'within': 'window'}}}}
+        got = dc.store_result(q, c, p, set())
+        self.assertEqual((got['status'], got.get('reason')), ('unresolved', 'STEP_CONDITION_UNCERTAIN'))
+        self.assertEqual(json.dumps(got), json.dumps(dc.reference_result(q, c, p, set())))
+        self.assertEqual(tw.count_strengths(p, 'x', 1, 'window'), {'e1': 'possible'})
+
     def test_the_coupling_example(self):
         # Two events: "the 2nd x at least 1 before the last x" is impossible; the envelope alone would say possible.
         p = {'patient_id': 'P', 'window': {'start': 0, 'end': 9},
