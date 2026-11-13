@@ -1,40 +1,71 @@
 {
- "about": "D30: explain every per-query result digest the matcher comparison moved, by the stage that moved it.",
+ "about": "D30 and D31: explain every per-query result digest the matcher comparison moved, by the stage that moved it.",
  "stages": [
   "S0 before D30",
   "last order",
   "order rule",
-  "mention timing"
+  "mention timing",
+  "envelope search"
  ],
  "sizes": [
   {
    "size": 1000,
    "queries": 50,
-   "legacy_snapshot_id": "ce3631eaeea79752e3f032a3faa82e2e33572ffee9342e65cd5534c5666d8aed",
-   "snapshot_id": "2848225df182cb60c1feb4206707bec0559049f61dd96d6a31ad5a175604eda8",
+   "legacy_snapshot_id": "f6438c5c9196ed960f2e445aa23e4e68467b3e9ae1f1a8955a225d450fba951d",
+   "snapshot_id": "8c1258f2d74fb2745e80932b0a9e09c75c7e489b63598d6aecd70712af1bb6d2",
    "before_reproduced": 50,
+   "d30_reproduced": 50,
    "after_reproduced": 50,
    "moved": 24,
    "by_stages": {
     "last order + mention timing": 1,
     "last order + order rule + mention timing": 1,
-    "mention timing": 17,
-    "order rule + mention timing": 5,
+    "mention timing": 15,
+    "mention timing + envelope search": 2,
+    "order rule + mention timing": 1,
+    "order rule + mention timing + envelope search": 4,
     "unchanged": 26
    },
    "by_stages_timing_first": {
     "last order + mention timing": 1,
     "last order + mention timing + order rule": 1,
     "mention timing": 10,
-    "mention timing + order rule": 11,
-    "order rule": 2,
+    "mention timing + order rule": 6,
+    "mention timing + order rule + envelope search": 5,
+    "order rule": 1,
+    "order rule + envelope search": 1,
     "unchanged": 25
    },
-   "seconds": 27.65131708327681,
+   "d31": {
+    "queries_moved": 6,
+    "results_moved": 728,
+    "by_kind": {
+     "to a decision": 658,
+     "within undecided": 70
+    },
+    "transitions": {
+     "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 358,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 297,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 70,
+     "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 2,
+     "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 1
+    },
+    "store_transitions": {
+     "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 358,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 281,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 69,
+     "not_comparable -> not_comparable": 17,
+     "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 2,
+     "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 1
+    },
+    "classified_by": "the engine's own result (match_prepared), before the store's coverage and excluded-records rules; store_transitions shows the same results as the store reports them"
+   },
+   "seconds": 29.712669209111482,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -42,6 +73,7 @@
     {
      "seed": 1,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -49,6 +81,7 @@
     {
      "seed": 2,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -61,6 +94,7 @@
     {
      "seed": 3,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -68,6 +102,7 @@
     {
      "seed": 4,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -79,6 +114,7 @@
     {
      "seed": 5,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
@@ -92,6 +128,7 @@
     {
      "seed": 6,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -103,19 +140,32 @@
     {
      "seed": 7,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 269,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 70
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 253,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 69,
+      "not_comparable -> not_comparable": 17
+     }
     },
     {
      "seed": 8,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -123,6 +173,7 @@
     {
      "seed": 9,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -130,6 +181,7 @@
     {
      "seed": 10,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -141,6 +193,7 @@
     {
      "seed": 11,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -152,6 +205,7 @@
     {
      "seed": 12,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -163,6 +217,7 @@
     {
      "seed": 13,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -170,6 +225,7 @@
     {
      "seed": 14,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -177,6 +233,7 @@
     {
      "seed": 15,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -188,6 +245,7 @@
     {
      "seed": 16,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -195,6 +253,7 @@
     {
      "seed": 17,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -202,6 +261,7 @@
     {
      "seed": 18,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -214,6 +274,7 @@
     {
      "seed": 19,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -225,6 +286,7 @@
     {
      "seed": 20,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -232,6 +294,7 @@
     {
      "seed": 21,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -239,6 +302,7 @@
     {
      "seed": 22,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "last order",
@@ -252,6 +316,7 @@
     {
      "seed": 23,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -263,6 +328,7 @@
     {
      "seed": 24,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -274,6 +340,7 @@
     {
      "seed": 25,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -281,19 +348,29 @@
     {
      "seed": 26,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 280
+     },
+     "d31_store_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 280
+     }
     },
     {
      "seed": 27,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": [
@@ -304,6 +381,7 @@
     {
      "seed": 28,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -311,19 +389,29 @@
     {
      "seed": 29,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 28
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 28
+     }
     },
     {
      "seed": 30,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -331,6 +419,7 @@
     {
      "seed": 31,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -338,6 +427,7 @@
     {
      "seed": 32,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -349,6 +439,7 @@
     {
      "seed": 33,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -356,31 +447,52 @@
     {
      "seed": 34,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 1
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 1
+     }
     },
     {
      "seed": 35,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 29,
+      "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 2
+     },
+     "d31_store_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 29,
+      "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 2
+     }
     },
     {
      "seed": 36,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -388,6 +500,7 @@
     {
      "seed": 37,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -395,6 +508,7 @@
     {
      "seed": 38,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -402,6 +516,7 @@
     {
      "seed": 39,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -413,6 +528,7 @@
     {
      "seed": 40,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -425,6 +541,7 @@
     {
      "seed": 41,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "last order",
@@ -440,6 +557,7 @@
     {
      "seed": 42,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -447,6 +565,7 @@
     {
      "seed": 43,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -454,17 +573,27 @@
     {
      "seed": 44,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 49
+     },
+     "d31_store_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 49
+     }
     },
     {
      "seed": 45,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -472,6 +601,7 @@
     {
      "seed": 46,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -479,6 +609,7 @@
     {
      "seed": 47,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -486,6 +617,7 @@
     {
      "seed": 48,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -493,6 +625,7 @@
     {
      "seed": 49,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -505,35 +638,71 @@
    ],
    "compared_with": {
     "before": "arm A (this report)",
+    "d30": "arm B of D30's report",
     "after": "arm B (this report)"
    }
   },
   {
    "size": 10000,
    "queries": 50,
-   "legacy_snapshot_id": "d4a3e410452a7e77dd4c1eeb1759688c2e3a15445a42850e4577ba67341b98c5",
-   "snapshot_id": "83256add9c72cd9f8617e92abe02ed3611354c31d0ba6665f03ff4f86263091e",
+   "legacy_snapshot_id": "4a1fa53dcb6a22948661d35c26b249751eeeedf508247c0cb1ff8005d9bb2a04",
+   "snapshot_id": "13334ec1df8d1364f0848923eee054413f8dbc8eb87432b91cfe7701377b02d7",
    "before_reproduced": 50,
+   "d30_reproduced": 50,
    "after_reproduced": 50,
    "moved": 30,
    "by_stages": {
-    "last order + order rule + mention timing": 4,
-    "mention timing": 20,
-    "order rule + mention timing": 6,
+    "last order + order rule + mention timing": 3,
+    "last order + order rule + mention timing + envelope search": 1,
+    "mention timing": 18,
+    "mention timing + envelope search": 2,
+    "order rule + mention timing": 2,
+    "order rule + mention timing + envelope search": 4,
     "unchanged": 20
    },
    "by_stages_timing_first": {
-    "last order + mention timing + order rule": 4,
+    "last order + mention timing + order rule": 3,
+    "last order + mention timing + order rule + envelope search": 1,
     "mention timing": 13,
-    "mention timing + order rule": 12,
+    "mention timing + order rule": 6,
+    "mention timing + order rule + envelope search": 6,
     "order rule": 2,
     "unchanged": 19
    },
-   "seconds": 222.09412099979818,
+   "d31": {
+    "queries_moved": 7,
+    "results_moved": 7569,
+    "by_kind": {
+     "to a decision": 6893,
+     "within undecided": 676
+    },
+    "transitions": {
+     "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 3828,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 3010,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 663,
+     "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 36,
+     "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 19,
+     "none/RELAXATION_ORDER_UNCERTAIN -> relaxed/CHEAPER_RELAXATION_ORDER_UNCERTAIN": 13
+    },
+    "store_transitions": {
+     "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 3828,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 2783,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 606,
+     "not_comparable -> not_comparable": 284,
+     "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 34,
+     "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 19,
+     "none/RELAXATION_ORDER_UNCERTAIN -> relaxed/CHEAPER_RELAXATION_ORDER_UNCERTAIN": 11,
+     "not_comparable -> relaxed": 2,
+     "not_comparable -> relaxed/CHEAPER_RELAXATION_ORDER_UNCERTAIN": 2
+    },
+    "classified_by": "the engine's own result (match_prepared), before the store's coverage and excluded-records rules; store_transitions shows the same results as the store reports them"
+   },
+   "seconds": 254.08094933303073,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -541,6 +710,7 @@
     {
      "seed": 1,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -548,6 +718,7 @@
     {
      "seed": 2,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -560,6 +731,7 @@
     {
      "seed": 3,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -567,6 +739,7 @@
     {
      "seed": 4,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -578,6 +751,7 @@
     {
      "seed": 5,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
@@ -591,6 +765,7 @@
     {
      "seed": 6,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -602,19 +777,32 @@
     {
      "seed": 7,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 2727,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 663
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 2500,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 606,
+      "not_comparable -> not_comparable": 284
+     }
     },
     {
      "seed": 8,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": [
@@ -625,6 +813,7 @@
     {
      "seed": 9,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -632,6 +821,7 @@
     {
      "seed": 10,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -643,6 +833,7 @@
     {
      "seed": 11,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -654,6 +845,7 @@
     {
      "seed": 12,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -665,6 +857,7 @@
     {
      "seed": 13,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -672,6 +865,7 @@
     {
      "seed": 14,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -679,6 +873,7 @@
     {
      "seed": 15,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -690,6 +885,7 @@
     {
      "seed": 16,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -697,6 +893,7 @@
     {
      "seed": 17,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -704,6 +901,7 @@
     {
      "seed": 18,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
@@ -717,6 +915,7 @@
     {
      "seed": 19,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -728,6 +927,7 @@
     {
      "seed": 20,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -739,6 +939,7 @@
     {
      "seed": 21,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -750,6 +951,7 @@
     {
      "seed": 22,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "last order",
@@ -765,6 +967,7 @@
     {
      "seed": 23,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -776,6 +979,7 @@
     {
      "seed": 24,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -787,6 +991,7 @@
     {
      "seed": 25,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -794,19 +999,29 @@
     {
      "seed": 26,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 2928
+     },
+     "d31_store_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 2928
+     }
     },
     {
      "seed": 27,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "last order",
@@ -822,6 +1037,7 @@
     {
      "seed": 28,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -829,19 +1045,29 @@
     {
      "seed": 29,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 283
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 283
+     }
     },
     {
      "seed": 30,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -849,6 +1075,7 @@
     {
      "seed": 31,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -856,6 +1083,7 @@
     {
      "seed": 32,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -867,6 +1095,7 @@
     {
      "seed": 33,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -874,31 +1103,56 @@
     {
      "seed": 34,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 31,
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed/CHEAPER_RELAXATION_ORDER_UNCERTAIN": 13
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 29,
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed/CHEAPER_RELAXATION_ORDER_UNCERTAIN": 11,
+      "not_comparable -> relaxed": 2,
+      "not_comparable -> relaxed/CHEAPER_RELAXATION_ORDER_UNCERTAIN": 2
+     }
     },
     {
      "seed": 35,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 420,
+      "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 19
+     },
+     "d31_store_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 420,
+      "unresolved/SEARCH_BUDGET_EXHAUSTED -> none": 19
+     }
     },
     {
      "seed": 36,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -906,6 +1160,7 @@
     {
      "seed": 37,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -913,6 +1168,7 @@
     {
      "seed": 38,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -924,6 +1180,7 @@
     {
      "seed": 39,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -935,6 +1192,7 @@
     {
      "seed": 40,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -947,6 +1205,7 @@
     {
      "seed": 41,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "last order",
@@ -962,21 +1221,31 @@
     {
      "seed": 42,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "last order",
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "last order",
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 5
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> relaxed": 5
+     }
     },
     {
      "seed": 43,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -984,18 +1253,28 @@
     {
      "seed": 44,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 480
+     },
+     "d31_store_transitions": {
+      "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 480
+     }
     },
     {
      "seed": 45,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1003,6 +1282,7 @@
     {
      "seed": 46,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1010,6 +1290,7 @@
     {
      "seed": 47,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1021,6 +1302,7 @@
     {
      "seed": 48,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1028,6 +1310,7 @@
     {
      "seed": 49,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1040,32 +1323,55 @@
    ],
    "compared_with": {
     "before": "arm A (this report)",
+    "d30": "arm B of D30's report",
     "after": "arm B (this report)"
    }
   },
   {
    "size": 100000,
    "queries": 10,
-   "legacy_snapshot_id": "96d01e4cbd6cd579ec7ddf9e9ff2a46d95c5378a1fdba04157d3674a93a9afe6",
-   "snapshot_id": "9c74d3e2b13319009200f0dc1bc06b8435b963a504e619b23117952e8f37e3db",
+   "legacy_snapshot_id": "521943ced7962c20466626c18024754448d3ca497ced8a6ded95ee63e7bf436e",
+   "snapshot_id": "857abc1c8ff1065ba2009c559ab60f1386bf6c55207e85f1dde0831b8e5489d7",
    "before_reproduced": 10,
+   "d30_reproduced": 10,
    "after_reproduced": 10,
    "moved": 5,
    "by_stages": {
     "mention timing": 3,
-    "order rule + mention timing": 2,
+    "order rule + mention timing": 1,
+    "order rule + mention timing + envelope search": 1,
     "unchanged": 5
    },
    "by_stages_timing_first": {
     "mention timing": 2,
-    "mention timing + order rule": 4,
+    "mention timing + order rule": 3,
+    "mention timing + order rule + envelope search": 1,
     "unchanged": 4
    },
-   "seconds": 238.35345216700807,
+   "d31": {
+    "queries_moved": 1,
+    "results_moved": 33900,
+    "by_kind": {
+     "to a decision": 27270,
+     "within undecided": 6630
+    },
+    "transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 27270,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 6630
+    },
+    "store_transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 25000,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 6060,
+     "not_comparable -> not_comparable": 2840
+    },
+    "classified_by": "the engine's own result (match_prepared), before the store's coverage and excluded-records rules; store_transitions shows the same results as the store reports them"
+   },
+   "seconds": 286.8022374166176,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1073,6 +1379,7 @@
     {
      "seed": 1,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1080,6 +1387,7 @@
     {
      "seed": 2,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1092,6 +1400,7 @@
     {
      "seed": 3,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1099,6 +1408,7 @@
     {
      "seed": 4,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1110,6 +1420,7 @@
     {
      "seed": 5,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
@@ -1123,6 +1434,7 @@
     {
      "seed": 6,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1134,19 +1446,32 @@
     {
      "seed": 7,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 27270,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 6630
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 25000,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 6060,
+      "not_comparable -> not_comparable": 2840
+     }
     },
     {
      "seed": 8,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": [
@@ -1157,6 +1482,7 @@
     {
      "seed": 9,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1164,32 +1490,55 @@
    ],
    "compared_with": {
     "before": "arm A (this report)",
+    "d30": "arm B of D30's report",
     "after": "arm B (this report)"
    }
   },
   {
    "size": 300000,
    "queries": 10,
-   "legacy_snapshot_id": "02fb367579a179e2dcf0fba4900a07c6632489f51b610f4f973184b2c41b1337",
-   "snapshot_id": "356c33a51556212bc124836052678a37edd0b14e58c3be5cfe9eb97a5d40f8cb",
+   "legacy_snapshot_id": "95cf9bc06be34716a340919dd2b6a4152d4076721f7247d7c9330d363822b1ca",
+   "snapshot_id": "115e4243167c56a1e444a1b86f55174e744fcd868723962fe1c51aebc0fcf66d",
    "before_reproduced": 10,
+   "d30_reproduced": 10,
    "after_reproduced": 10,
    "moved": 5,
    "by_stages": {
     "mention timing": 3,
-    "order rule + mention timing": 2,
+    "order rule + mention timing": 1,
+    "order rule + mention timing + envelope search": 1,
     "unchanged": 5
    },
    "by_stages_timing_first": {
     "mention timing": 2,
-    "mention timing + order rule": 4,
+    "mention timing + order rule": 3,
+    "mention timing + order rule + envelope search": 1,
     "unchanged": 4
    },
-   "seconds": 820.9901007078588,
+   "d31": {
+    "queries_moved": 1,
+    "results_moved": 101700,
+    "by_kind": {
+     "to a decision": 81810,
+     "within undecided": 19890
+    },
+    "transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 81810,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 19890
+    },
+    "store_transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 75000,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 18180,
+     "not_comparable -> not_comparable": 8520
+    },
+    "classified_by": "the engine's own result (match_prepared), before the store's coverage and excluded-records rules; store_transitions shows the same results as the store reports them"
+   },
+   "seconds": 1037.3752621659078,
    "per_query": [
     {
      "seed": 0,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1197,6 +1546,7 @@
     {
      "seed": 1,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1204,6 +1554,7 @@
     {
      "seed": 2,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1216,6 +1567,7 @@
     {
      "seed": 3,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1223,6 +1575,7 @@
     {
      "seed": 4,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1234,6 +1587,7 @@
     {
      "seed": 5,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
@@ -1247,6 +1601,7 @@
     {
      "seed": 6,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "mention timing"
@@ -1258,19 +1613,32 @@
     {
      "seed": 7,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [
       "order rule",
-      "mention timing"
+      "mention timing",
+      "envelope search"
      ],
      "stages_timing_first": [
       "mention timing",
-      "order rule"
-     ]
+      "order rule",
+      "envelope search"
+     ],
+     "d31_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 81810,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 19890
+     },
+     "d31_store_transitions": {
+      "none/RELAXATION_ORDER_UNCERTAIN -> none": 75000,
+      "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 18180,
+      "not_comparable -> not_comparable": 8520
+     }
     },
     {
      "seed": 8,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": [
@@ -1281,6 +1649,7 @@
     {
      "seed": 9,
      "before_reproduced": true,
+     "d30_reproduced": true,
      "after_reproduced": true,
      "stages": [],
      "stages_timing_first": []
@@ -1288,6 +1657,7 @@
    ],
    "compared_with": {
     "before": "arm A (this report)",
+    "d30": "arm B of D30's report",
     "after": "arm B (this report)"
    }
   }
@@ -1295,29 +1665,53 @@
  "confirmation": {
   "size": 300000,
   "queries": 30,
-  "legacy_snapshot_id": "02fb367579a179e2dcf0fba4900a07c6632489f51b610f4f973184b2c41b1337",
-  "snapshot_id": "356c33a51556212bc124836052678a37edd0b14e58c3be5cfe9eb97a5d40f8cb",
+  "legacy_snapshot_id": "95cf9bc06be34716a340919dd2b6a4152d4076721f7247d7c9330d363822b1ca",
+  "snapshot_id": "115e4243167c56a1e444a1b86f55174e744fcd868723962fe1c51aebc0fcf66d",
   "before_reproduced": 30,
+  "d30_reproduced": 30,
   "after_reproduced": 30,
   "moved": 19,
   "by_stages": {
    "last order + order rule + mention timing": 2,
    "mention timing": 12,
-   "order rule + mention timing": 5,
+   "order rule + mention timing": 2,
+   "order rule + mention timing + envelope search": 3,
    "unchanged": 11
   },
   "by_stages_timing_first": {
    "last order + mention timing + order rule": 2,
    "mention timing": 9,
-   "mention timing + order rule": 7,
+   "mention timing + order rule": 4,
+   "mention timing + order rule + envelope search": 3,
    "order rule": 2,
    "unchanged": 10
   },
-  "seconds": 7390.942240749951,
+  "d31": {
+   "queries_moved": 3,
+   "results_moved": 198030,
+   "by_kind": {
+    "to a decision": 178140,
+    "within undecided": 19890
+   },
+   "transitions": {
+    "none/RELAXATION_ORDER_UNCERTAIN -> none": 90300,
+    "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 87840,
+    "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 19890
+   },
+   "store_transitions": {
+    "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 87840,
+    "none/RELAXATION_ORDER_UNCERTAIN -> none": 83490,
+    "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 18180,
+    "not_comparable -> not_comparable": 8520
+   },
+   "classified_by": "the engine's own result (match_prepared), before the store's coverage and excluded-records rules; store_transitions shows the same results as the store reports them"
+  },
+  "seconds": 10021.663362208288,
   "per_query": [
    {
     "seed": 0,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1325,6 +1719,7 @@
    {
     "seed": 1,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1332,6 +1727,7 @@
    {
     "seed": 2,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1344,6 +1740,7 @@
    {
     "seed": 3,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1351,6 +1748,7 @@
    {
     "seed": 4,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1362,6 +1760,7 @@
    {
     "seed": 5,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "order rule",
@@ -1375,6 +1774,7 @@
    {
     "seed": 6,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1386,19 +1786,32 @@
    {
     "seed": 7,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "order rule",
-     "mention timing"
+     "mention timing",
+     "envelope search"
     ],
     "stages_timing_first": [
      "mention timing",
-     "order rule"
-    ]
+     "order rule",
+     "envelope search"
+    ],
+    "d31_transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 81810,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 19890
+    },
+    "d31_store_transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 75000,
+     "none/RELAXATION_ORDER_UNCERTAIN -> none/RELAXATION_SEARCH_STOPPED": 18180,
+     "not_comparable -> not_comparable": 8520
+    }
    },
    {
     "seed": 8,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": [
@@ -1409,6 +1822,7 @@
    {
     "seed": 9,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1416,6 +1830,7 @@
    {
     "seed": 10,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1427,6 +1842,7 @@
    {
     "seed": 11,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1438,6 +1854,7 @@
    {
     "seed": 12,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1449,6 +1866,7 @@
    {
     "seed": 13,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1456,6 +1874,7 @@
    {
     "seed": 14,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1463,6 +1882,7 @@
    {
     "seed": 15,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1474,6 +1894,7 @@
    {
     "seed": 16,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1481,6 +1902,7 @@
    {
     "seed": 17,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1488,6 +1910,7 @@
    {
     "seed": 18,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "order rule",
@@ -1501,6 +1924,7 @@
    {
     "seed": 19,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1512,6 +1936,7 @@
    {
     "seed": 20,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1523,6 +1948,7 @@
    {
     "seed": 21,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1534,6 +1960,7 @@
    {
     "seed": 22,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "last order",
@@ -1549,6 +1976,7 @@
    {
     "seed": 23,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1560,6 +1988,7 @@
    {
     "seed": 24,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "mention timing"
@@ -1571,6 +2000,7 @@
    {
     "seed": 25,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1578,19 +2008,29 @@
    {
     "seed": 26,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "order rule",
-     "mention timing"
+     "mention timing",
+     "envelope search"
     ],
     "stages_timing_first": [
      "mention timing",
-     "order rule"
-    ]
+     "order rule",
+     "envelope search"
+    ],
+    "d31_transitions": {
+     "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 87840
+    },
+    "d31_store_transitions": {
+     "unresolved/OCCURRENCE_ORDER_UNCERTAIN -> none": 87840
+    }
    },
    {
     "seed": 27,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "last order",
@@ -1606,6 +2046,7 @@
    {
     "seed": 28,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [],
     "stages_timing_first": []
@@ -1613,28 +2054,38 @@
    {
     "seed": 29,
     "before_reproduced": true,
+    "d30_reproduced": true,
     "after_reproduced": true,
     "stages": [
      "order rule",
-     "mention timing"
+     "mention timing",
+     "envelope search"
     ],
     "stages_timing_first": [
      "mention timing",
-     "order rule"
-    ]
+     "order rule",
+     "envelope search"
+    ],
+    "d31_transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 8490
+    },
+    "d31_store_transitions": {
+     "none/RELAXATION_ORDER_UNCERTAIN -> none": 8490
+    }
    }
   ],
   "compared_with": {
    "before": "arm B of the D28 report's confirmation",
+   "d30": "arm B of D30's report's confirmation",
    "after": "arm B of this report's confirmation"
   }
  },
  "artifacts": {
-  "tools/d30_attribution.py": "b14c94280ea3b47b682359e254dcf9afe084a900f11ef7ae75f7a664b212590b",
-  "tools/benchmark_matcher.py": "37fd7ea5df06d283a004a617ca73330fab7e1d58f9162b00a01e7635730cc181",
+  "tools/d30_attribution.py": "83bc039ff9e801acaf21c6e5ecdf7b3e15d3ff21e46a4af935ab51c47bc7a7f1",
+  "tools/benchmark_matcher.py": "8f7111b7a3767ce542258cb547fec18d2f3f538f537fef18f954fb7a0222c3d8",
   "tools/benchmark_execution_store.py": "d3550113dbfaebff4ee8b5c27b28690c2802af756d3f2b4ab91e69d71bd21479",
-  "patterns/execution_store.py": "2e66a942684e53be78307e0c35054f06541aeffe60e04a1114430686b3adbf1c",
-  "patterns/trajectory_graph.py": "72093cceafa2784eaac120c6be9589abbd5830dcc61a5e6c72fc08343fce1f77",
+  "patterns/execution_store.py": "8ce110ba5e832f59b952349277396d0c142d44185f697a4f8a669202770299ae",
+  "patterns/trajectory_graph.py": "7bd5fa14dcd69ccb2a17818aff09d585317b5e2d65e88132d5243cd45c1bd656",
   "patterns/synthetic_ingest.py": "af06859b021cb46adf6e8f0d7183a8b99832536066dd076ace8a2745a16b03f4"
  },
  "contains_patient_level_data": false
