@@ -316,7 +316,7 @@ def setUpModule():
         _STATE[name] = (ingest, store, pr.PreparedReference(ingest), FIXTURE_POOL)
     subprocess.run([sys.executable, str(ROOT / 'demos/mockups/synthetic/generate.py'), '--output', str(tmp / 'cohort.json')],
                    check=True, capture_output=True, cwd=ROOT)
-    cohort = json.loads((tmp / 'cohort.json').read_text(encoding='utf-8'))
+    cohort = _STATE['cohort_doc'] = json.loads((tmp / 'cohort.json').read_text(encoding='utf-8'))
     ingest = si.synthetic_ingest(cohort)
     known = set(ingest['closure']['ancestors'])
     pool = {k: [c for c in v if c in known] if isinstance(v, list) else {a: b for a, b in v.items() if a in known}
@@ -461,6 +461,44 @@ class DerivedDifferentialTests(unittest.TestCase):
                 got = es.match(store, query, windows, conditions=conditions)['results']
             moved += sum(1 for g, w in zip(got, want) if json.dumps(unfiltered(g)) != json.dumps(w))
         self.assertGreater(moved, 0)
+
+
+class ConverterSeriesTests(unittest.TestCase):
+    """The synthetic converter's `series` option (D32)."""
+
+    def test_rows_equal_the_parity_helpers_and_unitless_records_are_excluded(self):
+        sys.path.insert(0, str(ROOT / 'demos/mockups'))
+        import store_parity
+        cohort = _STATE['cohort_doc']
+        plain = {p['patient_id']: p for p in si.synthetic_ingest(cohort)['patients']}
+        withs = si.synthetic_ingest(cohort, series=True)
+        self.assertEqual(withs['provenance']['series'], si.SERIES_RULE)
+        self.assertNotIn('series', si.synthetic_ingest(cohort)['provenance'])
+        excluded = rows = 0
+        for p in withs['patients']:
+            records = {r['record_id']: r for r in next(c for c in cohort['patients'] if c['patient_id'] == p['patient_id'])['records']}
+            helper = store_parity.with_series(plain[p['patient_id']], records)
+            self.assertEqual(p.get('series', []), helper.get('series', []), p['patient_id'])
+            rows += len(p.get('series', []))
+            gone = {e['event_id'] for e in plain[p['patient_id']]['events']} - {e['event_id'] for e in p['events']}
+            self.assertEqual(len(gone), len(p.get('excluded', [])))
+            for x in p.get('excluded', []):
+                self.assertEqual(x['reason'], 'MEASUREMENT_WITHOUT_UNIT')
+            excluded += len(p.get('excluded', []))
+            kept = [e for e in plain[p['patient_id']]['events'] if e['event_id'] not in gone]
+            self.assertEqual(kept, p['events'])
+        self.assertEqual((rows, excluded), (3484, 31))
+
+    def test_a_spelling_that_is_not_a_plain_decimal_is_refused(self):
+        self.assertEqual(si.value_spelling(12.5), '12.5')
+        self.assertIsNone(si.value_spelling('12'))
+        with self.assertRaises(ValueError) as raised:
+            si.value_spelling(1e-05)
+        self.assertIn('NON_PLAIN_VALUE_SPELLING', str(raised.exception))
+
+    def test_the_default_build_is_unchanged(self):
+        ingest = _STATE['cohort'][0]
+        self.assertFalse(any('series' in p or 'excluded' in p for p in ingest['patients']))
 
 
 def one(store, query, windows, conditions):

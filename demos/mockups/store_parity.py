@@ -4,12 +4,10 @@
     python demos/mockups/store_parity.py build COHORT.json ROOT     # prints the snapshot directory
     python demos/mockups/store_parity.py match SNAPSHOT < cases.json  # per-patient results, as JSON
 
-`build` converts the cohort with `patterns/synthetic_ingest.py`, as `python -m patterns.execution_store synthetic`
-does, and adds one `series` row (D27) to each converted measurement event: `synthetic_ingest` stores no series, so
-without this no value condition could be asked of the synthetic store. The row is the record's own value and unit,
-the value spelled as the cohort's JSON writes it (`repr` of the number, which round-trips exactly); a record with no
-unit, or a value that is not a number, gets no row, as the store's series contract requires. Nothing else changes,
-so every other table equals the plain synthetic build's.
+`build` converts the cohort with `patterns/synthetic_ingest.py` emitting `series` (D32's option): each measured
+record with a number and a unit gets a series row (D27), the value spelled as the cohort's JSON writes it, and a measured
+record without a unit becomes an excluded record. Before D32 this module added the rows itself (`with_series`, kept to
+show the converter's rows are the same for every record with a unit).
 
 `match` reads `{"cases": [{"name", "query", "conditions", "windows"}]}`, times in whole minutes from each patient's
 birth (the trajectory page's engine grid), and answers `{name: {patient_id: {status, certainty?, relaxations?,
@@ -63,12 +61,12 @@ def with_series(patient, records):
 
 
 def build(cohort, root):
+    """The cohort built by the converter itself emitting series (D32: `synthetic_ingest`'s option `series`)."""
     skipped = {}
-    records = {p['patient_id']: {r['record_id']: r for r in p['records']} for p in cohort['patients']}
     with es.StoreBuilder(root, si.synthetic_header(cohort)) as builder:
-        for patient in si.iter_patients(cohort, skipped):
-            builder.add(with_series(patient, records[patient['patient_id']]))
-        return builder.finish(si.synthetic_provenance(cohort, skipped))
+        for patient in si.iter_patients(cohort, skipped, series=True):
+            builder.add(patient)
+        return builder.finish(si.synthetic_provenance(cohort, skipped, series=True))
 
 
 def birth_micros(cohort):
