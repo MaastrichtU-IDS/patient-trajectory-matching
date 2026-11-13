@@ -87,6 +87,18 @@ def to_micros(query):
     return q
 
 
+def conditions_micros(conditions):
+    """The page's conditions, minutes to microseconds: a count's span (D32)."""
+    if conditions is None:
+        return None
+    c = json.loads(json.dumps(conditions))
+    for raw in c['steps'].values():
+        within = raw.get('count', {}).get('within')
+        if isinstance(within, dict):
+            within['span'] *= MINUTE
+    return c
+
+
 def match(snapshot, cases, cohort):
     births = birth_micros(cohort)
     out = {}
@@ -95,7 +107,7 @@ def match(snapshot, cases, cohort):
             windows = {pid: None if w is None else {'start': births[pid] + w['start'] * MINUTE,
                                                     'end': births[pid] + w['end'] * MINUTE}
                        for pid, w in case['windows'].items()}
-            result = es.match(store, to_micros(case['query']), windows, conditions=case.get('conditions'))
+            result = es.match(store, to_micros(case['query']), windows, conditions=conditions_micros(case.get('conditions')))
             mine = out[case['name']] = {}
             for r in result['results']:
                 keep = {k: r[k] for k in ('status', 'certainty', 'relaxations', 'reason') if k in r}
@@ -118,20 +130,38 @@ def replay(case, found):
     q['steps'] = [{**s, 'concept': 'step:' + s['id']} for s in q['steps']]
     q['relaxations'] = [{**x, 'concept': x['id']} if x['kind'] == 'widen_concept' else x for x in q['relaxations']]
     for x in (case.get('conditions') or {}).get('relaxations', []):
-        q['relaxations'].append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
-                                 'concept': x['id']})
+        if x['kind'] == 'widen_value':
+            q['relaxations'].append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
+                                     'concept': x['id']})
+    # D32: a derived step is derived again from the listed events, by the store's own rules, over the keys: its own
+    # key for the step and for a `widen_count` that keeps the concept, the relaxation's key for one naming another.
+    derived = {sid: {k: v for k, v in raw.items() if k in ('occurrence', 'count')}
+               for sid, raw in ((conditions_micros(case.get('conditions')) or {}).get('steps') or {}).items()}
+    derived = {sid: raw for sid, raw in derived.items() if raw}
+    request = None
+    if derived:
+        relax = [dict(x, concept=x['id']) if 'concept' in x else x
+                 for x in (case.get('conditions') or {}).get('relaxations', []) if x['kind'] == 'widen_count']
+        request = es.Request(q, {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': derived, 'relaxations': relax})
+        pq = tg.PreparedQuery(request.query)
     out = {}
     for pid, w in case['windows'].items():  # minutes from birth, as the candidates are
-        events = {}
+        events, mentions = {}, set()
         for key, rows in found.get(pid, {}).items():
-            for slo, shi, elo, ehi, eid, _ in rows:
+            for slo, shi, elo, ehi, eid, kind in rows:
                 e = events.setdefault(eid, {'id': eid, 'concepts': [], 'start': [round(slo * MINUTE), round(shi * MINUTE)]})
                 if elo is not None:
                     e['end'] = [round(elo * MINUTE), None if ehi is None else round(ehi * MINUTE)]
                 e['concepts'].append(key)
-        out[pid] = tg.match(q, {'patient_id': pid, 'window': None if w is None else
-                                {'start': w['start'] * MINUTE, 'end': w['end'] * MINUTE},
-                                'events': list(events.values())})['status']
+                if kind == es.MENTION_KIND:
+                    mentions.add(eid)
+        window = None if w is None else {'start': w['start'] * MINUTE, 'end': w['end'] * MINUTE}
+        patient = {'patient_id': pid, 'window': window, 'events': list(events.values())}
+        if request is not None and window is not None:
+            d = es.derive_patient(request, pid, window, patient['events'], mentions)
+            out[pid] = es.match_derived(pq, request, d)['status']
+        else:
+            out[pid] = tg.match(q, patient)['status']
     return out
 
 

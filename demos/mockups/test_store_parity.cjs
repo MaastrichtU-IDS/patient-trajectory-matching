@@ -1,14 +1,16 @@
 /* The trajectory page and the execution store agree on queries the store can express.
 
-   Stage 1 of moving the mockups onto the store (decision D29). For trajectories the page can
-   express in the store's language (concept steps with any, first or last; after and during;
-   the page's index windows; absolute value conditions; the page's relaxations), each patient
-   is matched twice:
+   Stage 1 of moving the mockups onto the store (decision D29), extended in D32. For trajectories
+   the page can express in the store's language (concept steps with any, first, last, Nth or
+   Nth-from-last; "at least N times within a span or the index period"; after and during; the
+   page's index windows; absolute value conditions; the page's relaxations), translated by
+   trajectory/store_request.js, which refuses every other feature by name, each patient is
+   matched twice:
    - page: the page's own candidate resolution (core.js and trajectory/app.js, in a stub DOM),
      with the trajectory-graph engine deciding timing and relaxations, as the page does when
      served by server.py;
-   - store: the synthetic cohort built into an execution store (store_parity.py), queried with
-     execution_store.match over the same windows.
+   - store: the synthetic cohort built into an execution store by the converter emitting series
+     (store_parity.py), queried with execution_store.match over the same windows.
    The two runs share the engine, so every difference comes from candidate selection or from
    the store's comparability rule. Each one must be explained by a named cause in EXPECTED,
    per trajectory and patient; an unexplained difference, or an explained one that no longer
@@ -33,7 +35,8 @@ const stub = {addEventListener() {}, querySelector() { return null; }, querySele
 const context = vm.createContext({document: stub, addEventListener() {}, console, structuredClone, POST: post,
                                   DATA: fs.readFileSync(cohort, 'utf8')});
 const page = fs.readFileSync(path.join(here, 'trajectory/app.js'), 'utf8').replace(/\nmain\(\);\s*$/, '\n');
-vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n' + page + `
+const translator = fs.readFileSync(path.join(here, 'trajectory/store_request.js'), 'utf8');
+vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n' + page + '\n' + translator + `
   state.data = JSON.parse(DATA); state.concepts = state.data.concepts;
   for (const [cid, c] of Object.entries(state.concepts)) for (const coding of c.codings) state.codeIndex.set(coding.system + '|' + coding.code, cid);
   for (const p of state.data.patients) state.patients.set(p.patient_id, p);
@@ -70,43 +73,49 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       nodes: [{id: 'A', concept: 'seizure_frequency', cond: 'below', param: 2}], edges: []},
     'weight at most 9 kg inside the period': {scope: 'within', window,
       nodes: [{id: 'A', concept: 'weight', cond: 'below', param: 9}], edges: []},
+    // D32: Nth occurrences and counts, over coded records only (the page's "coded only" setting; the store refuses
+    // them over stated free text).
+    'the event-frequency template': {scope: 'from_start', window, freeText: 'off',
+      nodes: TEMPLATES.frequency.nodes, edges: TEMPLATES.frequency.edges},
+    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off',
+      nodes: [{id: 'A', concept: 'seizure', occ: 'nth', n: 2}, {id: 'B', concept: 'sodium_channel_blocker', occ: 'first'}],
+      edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 12, unit: 'month'}]},
+    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off',
+      nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
+      edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
+    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
+      nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
   };
-  const UNIT = {seizure_frequency: '/month', weight: 'kg', height: 'cm', head_circ: 'cm'};
-  const decimal = x => { const s = String(x); if (!/^-?[0-9]+(\\.[0-9]+)?$/.test(s)) throw new Error('not a plain decimal: ' + s); return s; };
-  // The page's query in the store's language. The relations and relaxation ids are the page's own engine request's;
-  // each relaxed alternative becomes what it stands for: a parent concept, a drug class, or a wider value condition.
+  // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
+  var withFreeText = function (name, fn) {
+    const before = state.freeText;
+    state.freeText = CASES[name].freeText || 'present';
+    try { return fn(); } finally { state.freeText = before; }
+  };
+  // The page's query in the store's language (trajectory/store_request.js); what each step, and each relaxed alternative
+  // of a step, binds by in the store, for explaining differences.
   var storeCase = function (name, def) {
-    const pids = [...state.patients.keys()];
-    const req = engineRequest(def, pids, true), q = req.body.query, byId = nodeById(def);
-    const steps = def.nodes.map(n => ({id: n.id, concept: n.concept, occurrence: stepKind(n) === 'measure' ? 'any' : (n.occ || 'any')}));
-    const conditions = {profile: 'execution-store-conditions-1.0', steps: {}, relaxations: []};
-    const relaxations = [];
-    for (const x of q.relaxations) {
-      if (x.kind !== 'widen_concept') { relaxations.push(x); continue; }
-      const n = byId[x.step], kind = stepKind(n);
-      if (kind === 'occurrence') relaxations.push({...x, concept: state.concepts[n.concept].parents[0]});
-      else if (kind === 'medicine') relaxations.push({...x, concept: classesOf(n.concept).find(k => k !== 'antiseizure')});
-      else if (kind === 'measure') conditions.relaxations.push({id: x.id, kind: 'widen_value', step: n.id, cost: x.cost,
-        condition: {unit: UNIT[n.concept], [n.cond === 'above' ? 'ge' : 'le']: decimal(relaxedParam(n))}});
-      else throw new Error(name + ': no store form for ' + x.id);
-    }
-    for (const n of def.nodes) if (stepKind(n) === 'measure') {
-      if (relative(n.cond)) throw new Error(name + ': rises and falls are not expressible in the store');
-      conditions.steps[n.id] = {unit: UNIT[n.concept], [n.cond === 'above' ? 'ge' : 'le']: decimal(n.param)};
-    }
-    const windows = {};
-    for (const pid of pids) { const w = req.windows.get(pid); windows[pid] = w.reason ? null : {start: toGrid(w.start), end: toGrid(w.end)}; }
-    // What each step, and each relaxed alternative of a step, binds by in the store: for explaining differences.
-    const wanted = {};
-    for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(conditions.steps[n.id] ? {condition: conditions.steps[n.id]} : {})};
-    for (const x of relaxations) if (x.kind === 'widen_concept') wanted[x.id] = {concept: x.concept};
-    for (const x of conditions.relaxations) wanted[x.id] = {concept: byId[x.step].concept, condition: x.condition};
-    return {name, query: {...q, steps, relaxations}, conditions: Object.keys(conditions.steps).length ? conditions : null, windows, candidates: wanted};
+    return withFreeText(name, () => {
+      const pids = [...state.patients.keys()], byId = nodeById(def);
+      const {query, conditions, windows} = storeRequest(def, state.freeText, pids);
+      const own = (conditions || {steps: {}}).steps;
+      const wanted = {};
+      for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {})};
+      for (const x of query.relaxations) if (x.kind === 'widen_concept') wanted[x.id] = {concept: x.concept};
+      for (const x of (conditions || {}).relaxations || []) {
+        if (x.kind === 'widen_value') wanted[x.id] = {concept: byId[x.step].concept, condition: x.condition};
+        else if (x.concept) wanted[x.id] = {concept: x.concept};
+      }
+      return {name, query, conditions, windows, candidates: wanted};
+    });
+  };
+  var refusalOf = function (def, freeText) {
+    try { storeRequest(def, freeText, [...state.patients.keys()].slice(0, 1)); return null; } catch (e) { if (e.code) return e.code; throw e; }
   };
   // Each step's candidates as the page resolves them, and as the store holds them, unrelaxed and per relaxed
   // alternative: [start lo, start hi, end lo, end hi] in minutes from birth (a point ends when it starts; an open
   // end is null), with what produced each. The engine sees exactly these, so where they agree it cannot differ.
-  var pageCandidates = function (name, pid) {
+  var pageCandidates = function (name, pid, family) { return withFreeText(name, () => {
     const def = {...defaultDef(), ...CASES[name]}, view = evidenceFor(pid), byId = nodeById(def);
     const win = windowFor(view, {freeText: state.freeText, knownByIndex: false, window: def.window});
     const out = {};
@@ -116,20 +125,25 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       out[key] = candidates(view, n, keys, win).map(c => ({t: [grid(c.e), grid(c.l), grid(c.point ? c.e : c.fe), grid(c.point ? c.l : c.fl)],
         mention: !!(c.item && !c.item.recs.length), what: c.what}));
     };
-    for (const n of def.nodes) add('step:' + n.id, n, new Set());
-    for (const o of relaxOptions(def)) if (o.key.startsWith('node:')) add(o.key, byId[o.key.slice(5)], new Set([o.key]));
+    // With "family", a derived step (Nth with N > 1, or a count) lists every event of its concept instead of the
+    // picked one or the count's runs: what the store ranks or counts, before the rule that differs.
+    const plain = n => family && (n.occ === 'count' || derivedOcc(n)) ? {...n, occ: 'any'} : n;
+    for (const n of def.nodes) add('step:' + n.id, plain(n), new Set());
+    for (const o of relaxOptions(def)) if (o.key.startsWith('node:')) add(o.key, plain(byId[o.key.slice(5)]), new Set([o.key]));
     return out;
-  };
+  }); };
   var occurrenceOf = function (name, key) {
     const def = {...defaultDef(), ...CASES[name]}, n = nodeById(def)[key.split(':')[1]];
-    return {kind: stepKind(n), occ: stepKind(n) === 'measure' ? 'any' : (n.occ || 'any')};
+    const derived = n.occ === 'count' ? 'count' : derivedOcc(n) ? 'nth' : null;
+    const occ = stepKind(n) === 'measure' || derived ? 'any' : n.occ === 'nth' ? 'first' : n.occ === 'nth_last' ? 'last' : (n.occ || 'any');
+    return {kind: stepKind(n), occ, derived};
   };
-  var pageResults = function (def) {
-    const steps = engineSteps(def);
+  var pageResults = function (name) { return withFreeText(name, () => {
+    const steps = engineSteps({...defaultDef(), ...CASES[name]});
     let step = steps.next();
     while (!step.done) step = steps.next(POST(step.value));
     return step.value;
-  };`, context);
+  }); };`, context);
 
 /* Why a patient's results differ, named from the candidates. Coverage first: the store reports not comparable when
    no source recording some step covers the period, which the page has no notion of except for measurements. Then,
@@ -147,7 +161,16 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
    - measurement-records: the store reads every measured record with a unit; the page reads one value per happening;
    - order-uncertain (D30): a first or last step whose target the records leave uncertain is unresolved in the store
      when its end is read, another step can bind its events, or no sound refutation exists; the page binds the event
-     its reconciled records date, without that test. */
+     its reconciled records date, without that test;
+   - occurrence-envelope (D32): for an Nth step (N > 1) the store's time is the Nth occurrence's, ranging over every
+     time the records allow (an envelope), unresolved when another step can bind the ranked events; the page binds the
+     reconciled happening its most precise record ranks Nth, which is not sound under uncertain times (plan, 1.2);
+   - count-timing (D32): for a count, the store binds the record at which the count is reached, certainly or only
+     possibly over the records' ranges, with the two-pass rule (unresolved when it cannot decide); the page takes each
+     run of N consecutive happenings, by their best dates, that may fit the span.
+   For a derived step, its family (every event of its concept the store counts, coded records only) is compared too;
+   a difference there is named by the record-level causes above, and the derived rule is named whenever the results
+   differ. */
 const COVERAGE = ['NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT'];
 function storeList(events, occ) {
   const t = e => [e[0], e[1], e[2] === null ? e[0] : e[2], e[2] === null ? e[1] : e[3]];
@@ -161,13 +184,18 @@ function storeList(events, occ) {
 }
 function causes(name, pid, pageStatus, storeResult, storeCands) {
   if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return ['coverage'];
-  const page = vm.runInContext(`pageCandidates(${JSON.stringify(name)}, ${JSON.stringify(pid)})`, context);
+  const page = vm.runInContext(`pageCandidates(${JSON.stringify(name)}, ${JSON.stringify(pid)}, true)`, context);
   const out = new Set();
   // D30: the store leaves a first or last step undecided when its target is uncertain; the page does not test that.
   if (storeResult.reason === 'OCCURRENCE_ORDER_UNCERTAIN') out.add('order-uncertain');
+  // D32: the converter's excluded records are its unitless measurements, which the page reads by value alone.
+  if (storeResult.reason === 'ADMISSION_EXCLUDED_RECORDS') out.add('measurement-records');
   for (const [key, mine] of Object.entries(page)) {
-    const {kind, occ} = vm.runInContext(`occurrenceOf(${JSON.stringify(name)}, ${JSON.stringify(key)})`, context);
-    const theirs = storeList((storeCands[pid] || {})[key], occ);  // a relaxed alternative keeps the step's occurrence
+    const {kind, occ, derived} = vm.runInContext(`occurrenceOf(${JSON.stringify(name)}, ${JSON.stringify(key)})`, context);
+    if (derived) out.add(derived === 'nth' ? 'occurrence-envelope' : 'count-timing');
+    let rows = (storeCands[pid] || {})[key];
+    if (derived) rows = (rows || []).filter(e => e[5] !== 'mention');  // the store ranks and counts coded records only
+    const theirs = storeList(rows, occ);  // a relaxed alternative keeps the step's occurrence
     const sig = x => JSON.stringify(x.t);
     const a = mine.map(sig).sort(), b = theirs.map(sig).sort();
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
@@ -187,25 +215,35 @@ const names = vm.runInContext('Object.keys(CASES)', context);
 const cases = names.map(name => vm.runInContext(`storeCase(${JSON.stringify(name)}, {...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context));
 if (process.env.STORE_PARITY_CASES) fs.writeFileSync(process.env.STORE_PARITY_CASES, JSON.stringify({cohort, cases}));  // diagnostics
 const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases})));
+const derivedCases = new Set(cases.filter(c => c.conditions && c.conditions.profile === 'execution-store-conditions-1.1').map(c => c.name));
 fs.rmSync(scratch, {recursive: true, force: true});
 
 const STATUS = {incomparable: 'not_comparable'};
 const pageKey = r => [STATUS[r.status] || r.status, r.certainty || '', r.relaxKeys ? [...r.relaxKeys].sort().join('+') : ''].join(' ').trim();
-const storeKey = r => [r.status, r.certainty || '', r.relaxations ? [...r.relaxations].sort().join('+') : ''].join(' ').trim();
+// A combined relaxation of the store (`node:A+count:A`, D32) names the page's pair of relaxations.
+const storeKey = r => [r.status, r.certainty || '', r.relaxations ? r.relaxations.flatMap(x => x.split('+')).sort().join('+') : ''].join(' ').trim();
 
-const found = {}, summary = {};
+const found = {}, summary = {}, unresolvedShare = {};
 let patients = 0, agree = 0, matched = 0;
 const replayMismatches = [];
+// The store's excluded-records rule (D18) applies after the engine: it can turn none into not comparable and relaxed
+// into unresolved, which the replay (the engine alone) does not see.
+const EXCLUSION = {none: ['not_comparable'], relaxed: ['unresolved', 'not_comparable'], exact: ['not_comparable'],
+                   possible: ['possible', 'not_comparable'], unresolved: ['not_comparable']};
 for (const name of names) {
-  const page = vm.runInContext(`pageResults({...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context);
+  const page = vm.runInContext(`pageResults(${JSON.stringify(name)})`, context);
+  const tally = unresolvedShare[name] = {results: 0, unresolved: 0, reasons: {}};
   found[name] = {};
   for (const r of page) {
     const a = pageKey(r), b = storeKey(store[name][r.pid]);
     patients += 1;
     if (/^(exact|possible|relaxed)/.test(b)) matched += 1;
     // The store's result is the engine's on the store's candidates, up to the store's comparability rule.
-    const replayed = store[name + '#replayed'][r.pid], own = store[name][r.pid].status;
-    if (!(replayed === own || (replayed === 'none' && own === 'not_comparable'))) replayMismatches.push(`${name} ${r.pid}: replayed ${replayed}, store ${own}`);
+    const replayed = store[name + '#replayed'][r.pid], own = store[name][r.pid].status, reason = store[name][r.pid].reason;
+    const excluded = reason === 'ADMISSION_EXCLUDED_RECORDS' && (EXCLUSION[replayed] || []).includes(own);
+    if (!(replayed === own || (replayed === 'none' && own === 'not_comparable') || excluded)) replayMismatches.push(`${name} ${r.pid}: replayed ${replayed}, store ${own}`);
+    if (store[name][r.pid].status !== 'excluded') tally.results += 1;
+    if (own === 'unresolved') { tally.unresolved += 1; tally.reasons[reason] = (tally.reasons[reason] || 0) + 1; }
     if (a === b) { agree += 1; continue; }
     const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates']);
     found[name][r.pid] = `${why.join('+')}: page ${a}, store ${b}`;
@@ -313,8 +351,56 @@ const EXPECTED = {
     C048: "coverage: page none, store not_comparable",
   },
   "at most 2 seizures a month inside the period": {},
-  "weight at most 9 kg inside the period": {},
+  "weight at most 9 kg inside the period": {
+    C006: "measurement-records: page none, store not_comparable",
+    C019: "measurement-records: page relaxed exact node:A, store unresolved  node:A",
+    C022: "measurement-records: page none, store not_comparable",
+    C028: "measurement-records: page none, store not_comparable",
+  },
+  "the event-frequency template": {
+    C001: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C004: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed possible count:A, store possible",
+    C008: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed exact count:A, store possible",
+    C015: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C021: "count-timing+letter-mentions+medication-records: page relaxed exact count:A, store relaxed possible count:A",
+    C023: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed exact count:A, store unresolved  count:A",
+    C036: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C038: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed exact count:A, store relaxed possible count:A",
+    C044: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+  },
+  "the second seizure, then a sodium-channel blocker": {
+    C001: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C004: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page possible, store none",
+    C008: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C015: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C021: "letter-mentions+medication-records+occurrence-envelope: page exact, store possible",
+    C023: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C036: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C038: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C044: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+  },
+  "the second-to-last seizure, then levetiracetam": {
+    C022: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C032: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C033: "letter-mentions+medication-records+occurrence-envelope: page none, store exact",
+    C038: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C048: "letter-mentions+medication-records+occurrence-envelope: page none, store exact",
+  },
+  "at least 2 febrile seizures in the index period": {
+    C005: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
+    C010: "count-timing: page none, store relaxed exact count:A+node:A",
+    C018: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
+    C023: "count-timing+record-reconciliation: page relaxed exact count:A, store unresolved  count:A+node:A",
+    C026: "count-timing: page none, store relaxed exact count:A+node:A",
+    C031: "count-timing+record-reconciliation: page relaxed exact count:A, store unresolved  count:A",
+    C034: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
+    C035: "count-timing: page none, store relaxed exact count:A+node:A",
+    C039: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
+    C041: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
+    C043: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
+  },
 };
+
 
 assert.deepEqual(replayMismatches, [], 'the replayed candidates are not what the store matched on:\n' + replayMismatches.join('\n'));
 for (const name of names) {
@@ -325,6 +411,39 @@ for (const name of names) {
 }
 assert.deepEqual(Object.keys(EXPECTED).sort(), [...names].sort());
 assert.ok(matched > 0, 'nothing matched in the store: the comparison would be vacuous');
+// Every cause comes from the closed list the D32 rules fix.
+const CAUSES = ['coverage', 'letter-mentions', 'record-reconciliation', 'medication-records', 'measurement-records',
+                'order-uncertain', 'occurrence-envelope', 'count-timing'];
+assert.deepEqual(Object.keys(summary).filter(c => !CAUSES.includes(c)), [], 'a cause outside the closed list');
+// Every page feature the store does not express is refused by its code, never translated approximately.
+const REFUSALS = vm.runInContext(`(() => {
+  const d = name => ({...defaultDef(), ...clone(TEMPLATES[name])});
+  const nthDuring = {...defaultDef(), nodes: [{id: 'A', concept: 'sodium_channel_blocker', occ: 'nth', n: 2}, {id: 'B', concept: 'seizure'}],
+                     edges: [{from: 'A', to: 'B', rel: 'during', grace: 0, unit: 'day'}]};
+  return {
+    'rise (sequence template)': refusalOf(d('sequence'), 'off'),
+    'gene step (tree template)': refusalOf(d('tree'), 'off'),
+    'gene step and rise (graph template)': refusalOf(d('graph'), 'off'),
+    'count over stated free text (frequency template)': refusalOf(d('frequency'), 'present'),
+    'Nth over stated free text': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'seizure', occ: 'nth', n: 2}], edges: []}, 'present'),
+    'hedged free text': refusalOf(d('frequency'), 'possible'),
+    'while taking the 2nd blocker': refusalOf(nthDuring, 'off'),
+    'frequency template, coded only': refusalOf(d('frequency'), 'off'),
+  };
+})()`, context);
+assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
+  'rise (sequence template)': 'RELATIVE_CONDITION_UNSUPPORTED',
+  'gene step (tree template)': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'gene step and rise (graph template)': 'RELATIVE_CONDITION_UNSUPPORTED',  // the first refused step, in node order
+  'count over stated free text (frequency template)': 'FREE_TEXT_COUNT_UNSUPPORTED',
+  'Nth over stated free text': 'FREE_TEXT_COUNT_UNSUPPORTED',
+  'hedged free text': 'FREE_TEXT_HEDGED_UNSUPPORTED',
+  'while taking the 2nd blocker': 'NTH_STEP_HAS_NO_END',
+  'frequency template, coded only': null,
+});
+if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify(unresolvedShare, null, 1));
+const share = names.map(n => `${n} ${unresolvedShare[n].unresolved}/${unresolvedShare[n].results}`).join('; ');
+console.log(`Unresolved in the store, per trajectory: ${share}.`);
 console.log(`Trajectory page and execution store: ${agree} of ${patients} patient results agree over ${names.length} trajectories `
   + `(${matched} store matches); ${patients - agree} differ, each by a named cause (${Object.entries(summary).sort().map(([k, v]) => `${k} ${v}`).join(', ')}); `
   + 'the store matched exactly the candidates the explanation reads.');
