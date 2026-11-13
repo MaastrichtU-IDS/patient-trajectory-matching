@@ -89,6 +89,8 @@ class PreparedReference:
 
     def match(self, query, windows, conditions=None):
         """`execution_store_reference.exhaustive_match(ingest, query, windows, conditions)`, from the prepared inputs."""
+        if ref.has_derived(conditions):  # D32: the derived reference reads every event of every patient
+            return ref.derived_exhaustive_match(self.ingest, query, windows, conditions)
         value = None if conditions is None else ref.ValueQuery(self.ingest, query, conditions)
         recorders = self.recorders
         if value is not None:

@@ -1482,6 +1482,9 @@ def _visible_to_exclusions(store, concepts):
 # concept and is unchanged; tags are not in any table, so they are outside the snapshot identity.
 
 CONDITIONS_PROFILE = 'execution-store-conditions-1.0'
+CONDITIONS_PROFILE_1_1 = 'execution-store-conditions-1.1'  # D32: Nth occurrence and counts
+CONDITIONS_PROFILES = (CONDITIONS_PROFILE, CONDITIONS_PROFILE_1_1)
+_VALUE_KEYS = {'unit', 'eq', 'gt', 'ge', 'lt', 'le'}
 VALUE_RULE = 'series_unit_exact_value_v1'
 _LOWER, _UPPER = ('gt', 'ge'), ('lt', 'le')
 _TAG_PREFIX = 'value-condition:'
@@ -1568,13 +1571,24 @@ class Request:
     """A store match request compiled: the engine query, with each conditioned step's concept and widenings replaced by
     tags and each value relaxation by a `widen_concept` to a tag; `tags` maps each tag to (concept, condition);
     `base` maps each step to the concepts the engine may bind it by, read as concepts (a tag by its concept), which
-    the excluded-records rule and the concept checks use; `conditions` is the request's own, for the context."""
+    the excluded-records rule and the concept checks use; `conditions` is the request's own, for the context.
+
+    Profile `execution-store-conditions-1.1` (D32) adds, per step, an Nth or Nth-from-last occurrence (`occurrence:
+    {nth: N}` or `{nth_last: N}`) or a count (`count: {at_least: N, within: {span: micros} | "window"}`), beside or
+    without a value condition, and the relaxation `widen_count`. Each is compiled into a derived tag
+    (`derived-step:<step>/<own or relaxation id>`), whose events the store derives per patient after loading (`derive_patient`):
+    `derived` maps each derived tag to its spec, `kinds` each derived step to ('nth', which) or ('count', within),
+    `load` each step to the concepts its events are loaded by (a derived tag by the concept or value tag it counts),
+    and `derived_used` the derived tags some relaxation set the engine would try names. A 1.0 request is compiled as
+    before D32, key for key."""
 
     def __init__(self, query, conditions):
         tg.validate_query(query)
-        if not (isinstance(conditions, dict) and conditions.get('profile') == CONDITIONS_PROFILE
+        if not (isinstance(conditions, dict) and conditions.get('profile') in CONDITIONS_PROFILES
                 and set(conditions) <= {'profile', 'steps', 'relaxations'} and 'steps' in conditions):
             raise StoreError('INVALID_CONDITIONS', 'profile, steps and relaxations')
+        self.profile = conditions['profile']
+        later = self.profile != CONDITIONS_PROFILE
         steps = {s['id']: s for s in query['steps']}
         given = conditions['steps']
         if not (isinstance(given, dict) and given):
@@ -1582,7 +1596,18 @@ class Request:
         unknown = sorted(str(k) for k in set(given) - set(steps))
         if unknown:
             raise StoreError('UNKNOWN_CONDITION_STEP', ', '.join(unknown))
-        own = {sid: _condition(raw, sid) for sid, raw in given.items()}
+        own, derived_of = {}, {}
+        for sid, raw in given.items():
+            if not later:
+                own[sid] = _condition(raw, sid)
+                continue
+            if not (isinstance(raw, dict) and raw and set(raw) <= _VALUE_KEYS | {'occurrence', 'count'}):
+                raise StoreError('INVALID_CONDITION', sid)
+            value = {k: v for k, v in raw.items() if k in _VALUE_KEYS}
+            if value:
+                own[sid] = _condition(value, sid)
+            if 'occurrence' in raw or 'count' in raw:
+                derived_of[sid] = _derived_spec(raw, sid, steps[sid], query)
         self.tags = {}
 
         def tag(concept, condition):
@@ -1602,7 +1627,24 @@ class Request:
         given = conditions.get('relaxations', [])
         if not isinstance(given, list):
             raise StoreError('INVALID_CONDITIONS', 'relaxations')
+        counts = []
         for x in given:
+            if later and isinstance(x, dict) and x.get('kind') == 'widen_count':
+                if not (set(x) <= {'id', 'kind', 'step', 'cost', 'at_least', 'concept'}
+                        and {'id', 'kind', 'step', 'cost', 'at_least'} <= set(x) and type(x['id']) is str and x['id']
+                        and type(x['step']) is str and ('concept' not in x or (type(x['concept']) is str and x['concept']))):
+                    raise StoreError('INVALID_COUNT_RELAXATION', repr(x)[:120])
+                if x['id'] in ids:
+                    raise StoreError('DUPLICATE_RELAXATION', x['id'])
+                ids.add(x['id'])
+                spec = derived_of.get(x['step'])
+                if spec is None or spec[0] != 'count':
+                    raise StoreError('COUNT_RELAXATION_STEP_NOT_COUNTED', str(x['step']))
+                n = x['at_least']
+                if not (type(n) is int and 1 <= n < spec[1]):
+                    raise StoreError('COUNT_RELAXATION_MUST_NARROW', x['id'])
+                counts.append(x)
+                continue
             if not (isinstance(x, dict) and set(x) == {'id', 'kind', 'step', 'cost', 'condition'}
                     and x['kind'] == 'widen_value' and type(x['id']) is str and x['id'] and type(x['step']) is str):
                 raise StoreError('INVALID_VALUE_RELAXATION', repr(x)[:120])
@@ -1616,21 +1658,96 @@ class Request:
                 raise StoreError('VALUE_RELAXATION_MUST_WIDEN', x['id'])
             relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
                                 'concept': tag(steps[x['step']]['concept'], wider)})
+        # D32: each derived step's concept, and each widening of it, becomes the derived tag of that concept (or value
+        # tag) under the step's occurrence or count; a `widen_count` becomes a widening to the count tag of the smaller
+        # N, on the step's concept or on the wider concept it names (one relaxation per step, as the engine allows).
+        self.derived, self.kinds, self.step_n = {}, {}, {}
+
+        def derived_tag(sid, concept, variant, n=None):
+            # The tag's name, which is also its Nth point's event id, names the step and what introduced the variant
+            # (`own`, or the relaxation's id), so a reader reproduces it from the request alone.
+            spec = derived_of[sid]
+            if spec[0] == 'nth':
+                form = {'kind': 'nth', 'concept': concept, 'which': spec[1], 'n': spec[2]}
+            else:
+                form = {'kind': 'count', 'concept': concept, 'n': spec[1] if n is None else n, 'within': spec[2]}
+            name = f'{_DERIVED_PREFIX}{sid}/{variant}'
+            self.derived[name] = form
+            self.step_n[name] = spec[2] if spec[0] == 'nth' else spec[1]
+            return name
+        if derived_of:
+            for sid, spec in derived_of.items():
+                self.kinds[sid] = ('nth', spec[1]) if spec[0] == 'nth' else ('count', spec[2])
+            for step in compiled['steps']:
+                if step['id'] in derived_of:
+                    step['concept'] = derived_tag(step['id'], step['concept'], 'own')
+            relaxations = [{**x, 'concept': derived_tag(x['step'], x['concept'], x['id'])}
+                           if x['kind'] == 'widen_concept' and x['step'] in derived_of else x for x in relaxations]
+            for x in counts:
+                concept = x.get('concept', steps[x['step']]['concept'])
+                if x['step'] in own:
+                    concept = tag(concept, own[x['step']])
+                relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
+                                    'concept': derived_tag(x['step'], concept, x['id'], x['at_least'])})
         if relaxations or 'relaxations' in compiled:
             compiled['relaxations'] = relaxations
         self.query = tg.validate_query(compiled)
         self.conditions = conditions
         per_step = _step_concepts(self.query)
-        self.base = {sid: list(dict.fromkeys(self.tags[c][0] if c in self.tags else c for c in cs))
+        # What each engine concept is loaded by: a derived tag by the concept or value tag it counts.
+        self.load = {sid: list(dict.fromkeys(self.derived[c]['concept'] if c in self.derived else c for c in cs))
                      for sid, cs in per_step.items()}
+        self.base = {sid: list(dict.fromkeys(self.tags[c][0] if c in self.tags else c for c in cs))
+                     for sid, cs in self.load.items()}
         # The tags some relaxation set the engine would try names (a relaxation beyond the budget is never tried).
-        used = {c for cs in per_step.values() for c in cs}
+        used = {c for cs in self.load.values() for c in cs}
         self.used = {name: spec for name, spec in self.tags.items() if name in used}
+        self.derived_used = {name: self.derived[name] for name in dict.fromkeys(c for cs in per_step.values() for c in cs)
+                             if name in self.derived}
 
     def describe(self):
         """The tags, for the match output: each tag's concept and condition in normal form."""
-        return {'profile': CONDITIONS_PROFILE, 'rule': VALUE_RULE,
+        return {'profile': self.profile, 'rule': VALUE_RULE,
                 'tags': {name: {'concept': c, 'condition': condition_form(k)} for name, (c, k) in sorted(self.tags.items())}}
+
+    def describe_derived(self):
+        """The derived steps (D32), for the match output: the rules and each derived tag's spec."""
+        return {'profile': self.profile, 'rules': DERIVED_RULES,
+                'steps': {sid: {'occurrence': kind[1]} if kind[0] == 'nth' else {'count_within': kind[1]}
+                          for sid, kind in sorted(self.kinds.items())},
+                'tags': {name: spec for name, spec in sorted(self.derived.items())}}
+
+
+def _derived_spec(raw, sid, step, query):
+    """('nth', 'nth' or 'nth_last', N) or ('count', N, span in microseconds or 'window') for a 1.1 step entry, refused
+    by name when malformed or in conflict with the step (D32)."""
+    if 'occurrence' in raw and 'count' in raw:
+        raise StoreError('OCCURRENCE_ON_DERIVED_STEP', sid)
+    # A first, last or Nth over a count's events would pick a different record in each pass of the two-pass rule.
+    if step.get('occurrence', 'any') != 'any' and not (_D32_DEFECT == 'occurrence_on_derived' and 'count' in raw):
+        raise StoreError('OCCURRENCE_CONFLICT' if 'occurrence' in raw else 'OCCURRENCE_ON_DERIVED_STEP', sid)
+    if 'occurrence' in raw:
+        occ = raw['occurrence']
+        if not (isinstance(occ, dict) and len(occ) == 1 and next(iter(occ)) in ('nth', 'nth_last')):
+            raise StoreError('INVALID_OCCURRENCE', sid)
+        which, n = next(iter(occ.items()))
+        if not (type(n) is int and n >= 1):
+            raise StoreError('INVALID_OCCURRENCE', sid)
+        if any(r['kind'] == 'during' and r['from'] == sid for r in query.get('relations', [])):
+            raise StoreError('NTH_STEP_HAS_NO_END', sid)
+        return ('nth', which, n)
+    count = raw['count']
+    if not (isinstance(count, dict) and set(count) == {'at_least', 'within'}):
+        raise StoreError('INVALID_COUNT', sid)
+    n, within = count['at_least'], count['within']
+    if not (type(n) is int and n >= 1):
+        raise StoreError('INVALID_COUNT', sid)
+    if within != 'window':
+        if not (isinstance(within, dict) and set(within) == {'span'} and type(within['span']) is int
+                and within['span'] >= 0):
+            raise StoreError('INVALID_COUNT', sid)
+        within = within['span']
+    return ('count', n, within)
 
 
 def _micro_bounds(condition):
@@ -1722,11 +1839,428 @@ def _tag_sources(store, spec):
 
 
 def _check_tag_names(store, request):
-    if request is not None:
+    if request is not None and request.tags:
         taken = sorted(r[0] for r in store.query(
             f'SELECT DISTINCT concept FROM concept_closure WHERE concept IN {_in(list(request.tags))}', list(request.tags)))
         if taken:
             raise StoreError('VALUE_TAG_NAME_TAKEN', ', '.join(taken))
+    if request is not None and request.derived:  # D32: derived tags live in a namespace no concept may take
+        names = list(request.derived)
+        taken = sorted(r[0] for r in store.query(
+            f'SELECT DISTINCT concept FROM concept_closure WHERE concept IN {_in(names)}', names))
+        if taken:
+            raise StoreError('DERIVED_TAG_NAME_TAKEN', ', '.join(taken))
+
+
+def _tag_counts(store, spec):
+    """{patient_idx: the number of events carrying the tag}, read from `series` exactly (D32: an Nth or count step on a
+    value tag needs at least N of them)."""
+    exact, loose = _tag_rows(store, spec, 's.patient_idx, count(DISTINCT s.event_id)', 's.patient_idx, s.event_id',
+                             group='GROUP BY s.patient_idx')
+    out = {idx: n for idx, n in exact}
+    seen = set()
+    for idx, eid in loose:
+        if (idx, eid) not in seen:
+            seen.add((idx, eid))
+            out[idx] = out.get(idx, 0) + 1
+    return out
+
+
+def _derived_patients(store, name, request):
+    """The patients with at least N events of a derived tag's concept or value tag (D32): a sound superset of the
+    patients holding an event of the tag, since a count of N needs N events and an Nth occurrence N. A posting's `n`
+    counts every event carrying the concept, letter mentions included, which the derived tag leaves out, so over coded
+    records only the filter is a superset, not exact. `_D32_DEFECT == 'filter_n'` (a planted defect) reads a
+    `widen_count`'s tag at the step's own N."""
+    spec, tags = request.derived[name], request.tags
+    n = spec['n'] if _D32_DEFECT != 'filter_n' else request.step_n[name]
+    concept = spec['concept']
+    if concept in tags:
+        return {idx for idx, k in _tag_counts(store, tags[concept]).items() if k >= n}
+    return {r[0] for r in store.query('SELECT patient_idx FROM concept_postings WHERE concept = ? AND n >= ?', [concept, n])}
+
+
+# Derived steps (D32): Nth and Nth-from-last occurrence, and "at least N times within a span or the index period", in a
+# 1.1 match request. Each is compiled into a derived tag (`Request`); after a chunk's events are loaded, the store
+# derives the tag's events per patient (`derive_patient`) and runs the engine, unchanged, over them (`match_derived`):
+# - an Nth step's tag is carried by one derived point event, with its own variable, whose start ranges from the Nth
+#   smallest lower bound to the Nth smallest upper bound of the starts of the patient's coded events of the concept,
+#   over `Times.dom` (Nth from last: the Nth largest), which is exactly the set of times the Nth occurrence can take
+#   when those events are independent (the envelope lemma, plan section 1.2);
+# - a count step's tag is carried by the recorded events at which the count is reached, *certain* (in every choice of
+#   the patient's times) or only *possible* (in some), decided exactly by a sweep when the counted events share no
+#   variable, and by a sound pairwise test on the patient's distances otherwise; the two-pass rule combines a pass over
+#   the certain events with one over the certain and possible ones.
+# Counts and Nth run over coded records only: an event whose kind is `mention` is never counted or ranked. Results are
+# counts of recorded events, never of real episodes (a happening recorded twice counts twice).
+
+_DERIVED_PREFIX = 'derived-step:'
+MENTION_KIND = 'mention'
+DERIVED_RULES = {
+    'records': 'coded_records_v1: counts and Nth occurrences read only events whose kind is not "mention", and count '
+               'recorded events, not happenings',
+    'nth': 'nth_envelope_dom_v1: the Nth occurrence time ranges from the Nth smallest lower to the Nth smallest upper '
+           'start bound over Times.dom (Nth from last: the Nth largest); unresolved (OCCURRENCE_TIME_COUPLED) where '
+           'possible would rest on a step that can bind a counted event, or on shared variables',
+    'count': 'count_sweep_v1 (exact, no shared variable among the counted events) or count_pairwise_linked_v1 '
+             '(sound pairwise test on the patient\'s distances): at least N - 1 other counted events in '
+             '[t(e) - span, t(e)], or in [window start, t(e)] with t(e) in the window; certain at e when it holds in '
+             'every choice of times, possible when in some',
+    'two_pass': 'two_pass_v1: pass 1 over certain count events; pass 2 over certain and possible ones when pass 1 is '
+                'neither exact, possible nor unresolved and some tag a tried relaxation set uses has a possible-only '
+                'event; differing passes give unresolved (STEP_CONDITION_UNCERTAIN)',
+    'exclusions': 'excluded_records_derived_v1: an Nth step is displaced like first (Nth from last like last), on its '
+                  'envelope; Nth and span-count steps reach every excluded record of their concepts, period counts '
+                  'those overlapping the window',
+}
+# Planted defects for the tests (D32 rules): a module global, like the engine's switches; None in every real run.
+_D32_DEFECT = None
+
+
+def _interval_counter(intervals):
+    """count(tau): how many of the closed intervals (lo, hi) contain tau (hi may be infinite); empty ones are left out."""
+    from bisect import bisect_left, bisect_right
+    kept = [(lo, hi) for lo, hi in intervals if lo <= hi]
+    los, his = sorted(lo for lo, _ in kept), sorted(hi for _, hi in kept)
+    return lambda tau: bisect_right(los, tau) - bisect_left(his, tau), los, his
+
+
+def _extreme(counter, lo, hi, own, best):
+    """The least (`best` = min) or greatest (max) of counter(tau) - [tau in own] over integer tau in [lo, hi]. The
+    function is constant between the points where an interval or `own` begins (its lo) or ends (its hi + 1), so it is
+    evaluated at lo and at each such point inside (lo, hi]."""
+    from bisect import bisect_right
+    count, los, his = counter
+    points = {lo}
+    points.update(los[bisect_right(los, lo):bisect_right(los, hi)])
+    points.update(h + 1 for h in his[bisect_right(his, lo - 1):bisect_right(his, hi - 1)])
+    for v in (own[0], own[1] + 1):
+        if lo < v <= hi:
+            points.add(v)
+    return best(count(t) - (1 if own[0] <= t <= own[1] else 0) for t in points)
+
+
+def _count_strengths(times, family, n, within, window):
+    """({event id: 'certain' or 'possible'}, exact) for a count of at least `n` over `family` (kernel records of the
+    patient's coded events carrying the concept), within `within` (a span in microseconds, or 'window'). An event e
+    reaches the count in a choice of times t when at least n - 1 *other* events x of the family have
+    t(e) - span <= t(x) <= t(e) (for the window: window start <= t(x) <= t(e) <= window end). Simultaneous events count.
+
+    With no variable shared among the family's events (and with none outside it), each start ranges independently over
+    its tightened range [a, b] (`Times.dom`), so with tau = t(e):
+    - forced(tau) = #{x : b_x <= tau and a_x >= tau - span} other events are in the span in every choice, and
+      allowed(tau) = #{x : a_x <= tau and b_x >= tau - span} in some (each independently);
+    - e is certain when min over tau of forced(tau) >= n - 1, possible when max of allowed(tau) >= n - 1 (count_sweep_v1,
+      exact). For the window, tau ranges over e's range cut to the window for possible, while certain needs e's whole
+      range inside the window.
+    Otherwise each pair (e, x) is read from the patient's distances: given t(e) = tau, x's start ranges exactly over
+    [max(a_x, tau - gap(x, e)), min(b_x, tau + gap(e, x))] (a minimal network is decomposable), so counting x as
+    forced where that interval lies inside the span, and as allowed where it meets it, gives a sound under-approximation
+    of certain and over-approximation of possible (count_pairwise_linked_v1); `exact` is then False."""
+    out = {}
+    if len(family) < n:
+        return out, True
+    need = n - 1
+    defect = _D32_DEFECT
+    if defect == 'own_witness':
+        need = max(0, n - 2)
+    span = None if within == 'window' else within + (1 if defect == 'span_off_by_one' else 0)
+    ws, we = (window['start'], window['end']) if within == 'window' else (None, None)
+    exact = all(r[tg._KEYS] is None for r in family)
+    ab = [(r[tg._SLO], r[tg._SHI]) for r in family]
+    if defect == 'recorded_bounds':
+        ab = [r[tg._EVENT].s for r in family]
+
+    def allowed_iv(a, b):
+        return (a, b + span) if span is not None else ((a, tg.INF) if b >= ws else (1, 0))
+
+    def forced_iv(a, b):
+        return (b, a + span) if span is not None else ((b, tg.INF) if a >= ws else (1, 0))
+    if exact:
+        allowed = _interval_counter([allowed_iv(a, b) for a, b in ab])
+        forced = _interval_counter([forced_iv(a, b) for a, b in ab])
+    for k, r in enumerate(family):
+        a, b = ab[k]
+        if exact:
+            own_allowed, own_forced = allowed_iv(a, b), forced_iv(a, b)
+            al, fo = allowed, forced
+        else:
+            e = r[tg._EVENT]
+            aiv, fiv = [], []
+            for j, x in enumerate(family):
+                if j == k:
+                    continue
+                ax, bx = ab[j]
+                g_ex, g_xe = times.gap(e.sv, x[tg._EVENT].sv), times.gap(x[tg._EVENT].sv, e.sv)
+                if span is not None:
+                    aiv.append((ax + max(0, -g_ex), bx + min(span, g_xe)) if g_ex >= -span and g_xe >= 0 else (1, 0))
+                    fiv.append((-tg.INF if g_ex <= 0 else bx, tg.INF if g_xe <= span else ax + span))
+                else:
+                    aiv.append((max(ax, ax - g_ex, ws - g_ex), bx + g_xe) if bx >= ws and g_xe >= 0 else (1, 0))
+                    fiv.append((max(-tg.INF if g_ex <= 0 else bx, -tg.INF if ax >= ws else ws + g_xe), tg.INF))
+            al, fo = _interval_counter(aiv), _interval_counter(fiv)
+            own_allowed = own_forced = (1, 0)
+        # possible: tau over e's range (cut to the window for a period count)
+        lo, hi = (a, b) if span is not None else (max(a, ws), min(b, we))
+        if defect == 'forced_allowed_swapped':
+            al, fo, own_allowed, own_forced = fo, al, own_forced, own_allowed
+        possible = lo <= hi and _extreme(al, lo, hi, own_allowed, max) >= need
+        # certain: tau over e's whole range, which for a period count must lie inside the window
+        if span is None:
+            inside = (a <= we and b >= ws) if defect == 'period_overlap' else (a >= ws and b <= we)
+            clo, chi = (max(a, ws), min(b, we)) if defect in ('tau_cut', 'period_overlap') else (a, b)
+            certain = (inside or defect == 'tau_cut') and clo <= chi and _extreme(fo, clo, chi, own_forced, min) >= need
+        else:
+            certain = _extreme(fo, a, b, own_forced, min) >= need
+        if certain:
+            out[r[tg._EVENT].id] = 'certain'
+        elif possible:
+            out[r[tg._EVENT].id] = 'possible'
+    return out, exact
+
+
+class Derived:
+    """One patient's derived events (D32): `first` the engine patient of pass 1 (Nth points, and count tags on their
+    certain events), `second` that of pass 2 (count tags on certain and possible events) or None when no tag a tried
+    set uses has a possible-only event, `families` {derived tag: ids of the coded events it counts}, `linked` the
+    concepts whose coded events share a variable, `inexact` whether a count tag a tried set uses was decided by the
+    pairwise test, and `points` {point id: start range}."""
+    __slots__ = ('first', 'second', 'families', 'linked', 'inexact', 'points', 'concepts')
+
+
+def derive_patient(request, pid, window, events, mentions):
+    """The derived events of one patient, from its loaded engine events (concepts already listing the request's plain
+    concepts and value tags) and the ids of its events whose kind is `mention`. Raises `DERIVED_EVENT_ID_TAKEN` when an
+    event of the patient carries a derived point's identifier."""
+    times = tg.patient_times({'patient_id': pid, 'window': window, 'events': events}, trusted=True)
+    defect = _D32_DEFECT
+    out = Derived()
+    out.families, out.linked, out.points, out.inexact = {}, set(), {}, False
+    out.concepts = {e.id: e.concepts for e in times.events}
+    certain, possible, second = {}, {}, False
+    trigger = request.derived_used if defect != 'pass2_unrelaxed_only' else {
+        name: spec for name, spec in request.derived_used.items() if name in {s['concept'] for s in request.query['steps']}}
+    points, ids = [], {e.id for e in times.events}
+    for name, spec in request.derived_used.items():
+        family = [r for r in times.candidate_records(spec['concept']) if r[tg._EVENT].id not in mentions]
+        out.families[name] = {r[tg._EVENT].id for r in family}
+        if any(r[tg._KEYS] is not None for r in family):
+            out.linked.add(spec['concept'])
+        n = spec['n']
+        if spec['kind'] == 'nth':
+            if defect == 'nth_off_by_one':
+                n += 1
+            if len(family) < n:
+                continue
+            if defect == 'rule_r':
+                ranked = sorted(family, key=lambda r: (r[tg._SLO], r[tg._SHI], r[tg._EVENT].id))
+                pick = ranked[n - 1] if spec['which'] == 'nth' else ranked[-n]
+                lo, hi = pick[tg._SLO], pick[tg._SHI]
+            else:
+                bounds = [r[tg._EVENT].s if defect == 'recorded_bounds' else (r[tg._SLO], r[tg._SHI]) for r in family]
+                lows, highs = sorted(b[0] for b in bounds), sorted(b[1] for b in bounds)
+                front = spec['which'] == 'nth' or defect == 'nth_last_from_front'
+                lo, hi = (lows[n - 1], highs[n - 1]) if front else (lows[-n], highs[-n])
+            if name in ids:
+                raise StoreError('DERIVED_EVENT_ID_TAKEN', f'{pid}/{name}')
+            points.append({'id': name, 'concepts': [name], 'start': [lo, hi]})
+            out.points[name] = [lo, hi]
+        else:
+            strengths, exact = _count_strengths(times, family, n, spec['within'], window)
+            if not exact and strengths:
+                out.inexact = True
+            for eid, strength in strengths.items():
+                (certain if strength == 'certain' else possible).setdefault(eid, []).append(name)
+                if strength == 'certain':
+                    possible.setdefault(eid, []).append(name)
+            if name in trigger and any(v == 'possible' for v in strengths.values()):
+                second = True
+    def doc(tagged):
+        return {'patient_id': pid, 'window': window,
+                'events': [{**e, 'concepts': sorted(set(e['concepts']) | set(tagged[e['id']]))} if e['id'] in tagged else e
+                           for e in events] + points}
+    out.first = doc(certain)
+    out.second = doc(possible) if second else None
+    return out
+
+
+def _coupled_steps(pq, request, derived):
+    """{relaxation set key: [Nth steps whose possible result is not exact]} (D32). An Nth step on concept K is coupled
+    when K's coded events share a variable, or another step can bind one of them: an `any`, `first` or `last` step
+    whose concept one of them carries, or a derived step whose counted events meet them. Its envelope point is then
+    independent in the engine's model where the true Nth time is not, so `possible` may be wrong both ways; `exact` and
+    `none` stay sound, since every true choice of times maps into the model with the point at the true Nth time."""
+    out = {}
+    if _D32_DEFECT == 'coupling_ignored':
+        return out
+    for chosen in [()] + [chosen for _, chosen in pq.sets]:
+        plan = pq.plan(chosen)
+        coupled = []
+        for s in pq.step_ids:
+            name = plan.concepts[s]
+            spec = request.derived.get(name)
+            if spec is None or spec['kind'] != 'nth' or name not in derived.points:
+                continue
+            family = derived.families[name]
+            hit = spec['concept'] in derived.linked
+            for t in pq.step_ids:
+                if hit or t == s:
+                    continue
+                other = plan.concepts[t]
+                if other in request.derived:
+                    hit = not derived.families[other].isdisjoint(family)
+                else:
+                    hit = any(other in derived.concepts[eid] for eid in family)
+            if hit:
+                coupled.append(s)
+        if coupled:
+            out[tuple(x['id'] for x in chosen)] = coupled
+    return out
+
+
+def _coupled_match(pq, patient, coupled):
+    """`trajectory_graph.match_prepared` for a patient whose Nth steps are coupled in some set (D32): a set in which a
+    coupled step's result would be `possible` is undecided, as D30 leaves a set an uncertain `first` or `last` step
+    makes undecided, with reason OCCURRENCE_TIME_COUPLED (its binding beside an unresolved status, or the set passed
+    over with note RELAXATION_OCCURRENCE_COUPLED or CHEAPER_RELAXATION_OCCURRENCE_COUPLED). Everything else is the
+    engine's own `match_prepared`, line for line."""
+    query, budget = pq.query, pq.budget
+    times = tg.patient_times(patient, True)
+    pid = patient['patient_id']
+
+    def decide(chosen):
+        r, open_ = tg.decide_ordered(query, times, chosen, budget, pq.plan(chosen))
+        reason = 'OCCURRENCE_ORDER_UNCERTAIN'
+        steps = coupled.get(tuple(x['id'] for x in chosen))
+        if open_ is None and steps and not r['exact']['found'] and r['possible']['found']:
+            open_, reason = ('possible', steps), 'OCCURRENCE_TIME_COUPLED'
+        return r, open_, reason
+    first, undecided, why = decide(())
+    if undecided is not None and undecided[0] != 'none':
+        kind = undecided[0]
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': why, 'uncertain_steps': undecided[1],
+                'unverified_match': {'certainty': kind, 'binding': tg._binding_ids(first[kind]['binding']),
+                                     'method': first[kind]['method']}, 'complete': False}
+    if first['exact']['found']:
+        return {'patient_id': pid, 'status': 'exact', 'binding': tg._binding_ids(first['exact']['binding']),
+                'method': first['exact']['method'], 'complete': True}
+    if first['possible']['found']:
+        out = {'patient_id': pid, 'status': 'possible', 'binding': tg._binding_ids(first['possible']['binding']),
+               'witness': dict(sorted(first['possible']['witness'].items())), 'method': first['possible']['method'],
+               'complete': first['exact']['complete']}
+        if not first['exact']['complete']:
+            out['note'] = 'EXACT_SEARCH_STOPPED'
+        return out
+    stopped = not first['possible']['complete']
+    unsure = undecided[1] if undecided is not None else None
+
+    def unresolved(**extra):
+        if stopped:
+            return {'patient_id': pid, 'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED', **extra,
+                    'complete': False}
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': why, 'uncertain_steps': unsure, **extra,
+                'complete': False}
+    skipped = order_skipped = coupled_skipped = False
+    for cost, chosen in pq.sets:
+        r, open_, reason = decide(chosen)
+        if open_ is not None:
+            if reason == 'OCCURRENCE_TIME_COUPLED':
+                coupled_skipped = True
+            else:
+                order_skipped = True
+            continue
+        winner = 'exact' if r['exact']['found'] else 'possible' if r['possible']['found'] else None
+        if winner is None:
+            skipped = skipped or not r['possible']['complete']
+            continue
+        relaxed = {'relaxations': [x['id'] for x in chosen], 'cost': tg.decimal_text(cost), 'certainty': winner,
+                   'binding': tg._binding_ids(r[winner]['binding']), 'method': r[winner]['method']}
+        if stopped or unsure is not None:
+            return unresolved(relaxed_match=relaxed)
+        out = {'patient_id': pid, 'status': 'relaxed', **relaxed,
+               'complete': not skipped and not order_skipped and not coupled_skipped
+               and (winner == 'exact' or r['exact']['complete'])}
+        if skipped:
+            out['note'] = 'CHEAPER_RELAXATION_SEARCH_STOPPED'
+        elif order_skipped:
+            out['note'] = 'CHEAPER_RELAXATION_ORDER_UNCERTAIN'
+        elif coupled_skipped:
+            out['note'] = 'CHEAPER_RELAXATION_OCCURRENCE_COUPLED'
+        return out
+    if stopped or unsure is not None:
+        return unresolved()
+    out = {'patient_id': pid, 'status': 'none', 'complete': not skipped and not order_skipped and not coupled_skipped}
+    if skipped:
+        out['note'] = 'RELAXATION_SEARCH_STOPPED'
+    elif order_skipped:
+        out['note'] = 'RELAXATION_ORDER_UNCERTAIN'
+    elif coupled_skipped:
+        out['note'] = 'RELAXATION_OCCURRENCE_COUPLED'
+    return out
+
+
+def _one_pass(pq, patient, coupled):
+    return _coupled_match(pq, patient, coupled) if coupled else tg.match_prepared(pq, patient, trusted=True)
+
+
+def _notes(*results):
+    notes = []
+    for r in results:
+        for note in (r.get('note') or '').split('; '):
+            if note and note not in notes:
+                notes.append(note)
+    return '; '.join(notes)
+
+
+def match_derived(pq, request, derived):
+    """One patient's result for a request with derived steps (D32): the engine over pass 1, then the two-pass rule.
+
+    | Pass 1 (certain count events) | Pass 2 (certain and possible) | Result |
+    | exact, possible or unresolved | not run | pass 1's |
+    | relaxed | relaxed by the same set | relaxed (pass 1's match), `complete` only if both are |
+    | relaxed | anything else | unresolved, STEP_CONDITION_UNCERTAIN, pass 1's match beside it |
+    | none | none | none, `complete` only if both are |
+    | none | anything else | unresolved, STEP_CONDITION_UNCERTAIN, no match beside it |
+
+    Pass 2 runs only when some tag a tried set uses has a possible-only event (else it is pass 1's model). Notes from
+    both passes are kept. Where a tried count tag was decided by the pairwise test (`inexact`: its certain events may be
+    too few), a claim that no binding is exact rests on nothing, so pass 1's `possible`, a relaxed match whose
+    certainty is `possible`, and such a match beside `unresolved` are not reported."""
+    coupled = _coupled_steps(pq, request, derived)
+    counted = [s for s in pq.step_ids if request.kinds.get(s, ('',))[0] == 'count']
+    one = _one_pass(pq, derived.first, coupled)
+    pid = derived.first['patient_id']
+
+    def uncertain(**extra):
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN',
+                'uncertain_steps': counted, **extra, 'complete': False}
+    if derived.inexact:
+        if one['status'] == 'possible':
+            return uncertain()
+        if one['status'] == 'unresolved' and one.get('relaxed_match', {}).get('certainty') == 'possible':
+            one = {k: v for k, v in one.items() if k != 'relaxed_match'}
+    if derived.second is None or one['status'] in ('exact', 'possible', 'unresolved'):
+        if derived.inexact and one['status'] == 'relaxed' and one['certainty'] == 'possible':
+            return uncertain()
+        return one
+    two = _one_pass(pq, derived.second, coupled)
+    if one['status'] == 'relaxed':
+        if two['status'] == 'relaxed' and two['relaxations'] == one['relaxations']:
+            if derived.inexact and one['certainty'] == 'possible':
+                return uncertain()
+            out = {**{k: v for k, v in one.items() if k not in ('complete', 'note')},
+                   'complete': one['complete'] and two['complete']}
+            note = _notes(one, two)
+            return {**out, 'note': note} if note else out
+        match = {k: one[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
+        if derived.inexact and one['certainty'] == 'possible':
+            return uncertain()
+        return uncertain(relaxed_match=match)
+    if two['status'] == 'none':
+        out = {'patient_id': pid, 'status': 'none', 'complete': one['complete'] and two['complete']}
+        note = _notes(one, two)
+        return {**out, 'note': note} if note else out
+    return uncertain()
 
 
 def candidates(store, query, conditions=None):
@@ -1751,14 +2285,17 @@ def _candidates(store, pq, request=None):
     _visible_to_exclusions(store, sorted({c for cs in base.values() for c in cs}))
     _check_tag_names(store, request)
     tags = {} if request is None else request.tags
+    derived = {} if request is None else request.derived
     plan = []
     for step, concepts in per_step.items():
-        plain = [c for c in concepts if c not in tags]
+        plain = [c for c in concepts if c not in tags and c not in derived]
         patients = {r[0] for r in store.query(
             f'SELECT DISTINCT patient_idx FROM concept_postings WHERE concept IN {_in(plain)}', plain)} if plain else set()
         for c in concepts:
             if c in tags:
                 patients |= _tag_patients(store, tags[c])
+            elif c in derived:
+                patients |= _derived_patients(store, c, request)
         plan.append({'step': step, 'concepts': concepts, 'patients': patients})
     plan.sort(key=lambda s: (len(s['patients']), s['step']))
     survivors = None
@@ -1870,7 +2407,7 @@ def _impossible(spec, idx, window):
     return False
 
 
-def _prune(store, pq, live, windows_by_idx, slice_size=None, tags=None):
+def _prune(store, pq, live, windows_by_idx, slice_size=None, tags=None, derived=None):
     """The candidates in `live` (sorted, strictly increasing: the summaries are read between the first and the last)
     whose result the posting summaries prove: every set the engine would try is impossible (`_impossible`), so its
     answer is `none` with `complete: true`, byte for byte, whatever the patient's events. The summaries are read for
@@ -1879,8 +2416,14 @@ def _prune(store, pq, live, windows_by_idx, slice_size=None, tags=None):
 
     `tags` (D28) maps each tag of a value request to (concept, condition). A tag has no posting; its summaries are
     computed from the series rows carrying it (`_tag_summaries`), over exactly the events the engine lists under it,
-    so the argument of `_impossible` holds for it unchanged."""
+    so the argument of `_impossible` holds for it unchanged.
+
+    `derived` (D32) maps each derived tag to its spec. A count tag's events are events of its concept (or value tag),
+    and an Nth tag's point starts inside the range of their starts, over `Times.dom`, which lies inside the recorded
+    bounds, and ends when it starts; so the concept's summaries (with the latest start as the point's latest end) bound
+    every event the engine lists under the tag, and the argument holds unchanged."""
     tags = tags or {}
+    derived = derived or {}
     if not live:
         return set()
     if any(a >= b for a, b in zip(live, live[1:])):
@@ -1897,11 +2440,14 @@ def _prune(store, pq, live, windows_by_idx, slice_size=None, tags=None):
         summaries = {}
         try:
             _temp(store, '_m_live', [('idx', 'INTEGER')], part)
-            for concept in concepts:
+
+            def fetch(concept):
+                if concept in summaries:
+                    return summaries[concept]
                 if concept in tags:
                     summaries[concept] = {idx: row if ends else row[:2]
                                           for idx, row in _tag_summaries(store, tags[concept], part).items()}
-                    continue
+                    return summaries[concept]
                 cursor = store.db.execute(f"""SELECT {columns}
                     FROM concept_postings p JOIN _m_live l ON l.idx = p.patient_idx
                     WHERE p.concept = ? AND p.patient_idx BETWEEN ? AND ?""", [concept, part[0], part[-1]])
@@ -1911,6 +2457,16 @@ def _prune(store, pq, live, windows_by_idx, slice_size=None, tags=None):
                     if not rows:
                         break
                     mine.update({row[0]: row[1:] for row in rows})
+                return mine
+            for concept in concepts:
+                if concept in derived:
+                    spec = derived[concept]
+                    rows = fetch(spec['concept'])
+                    if spec['kind'] == 'nth' and ends:  # a point ends when it starts
+                        rows = {idx: (row[0], row[1], row[1]) for idx, row in rows.items()}
+                    summaries[concept] = rows
+                else:
+                    fetch(concept)
         finally:
             _drop(store, '_m_live')
         values = {(c, e): {idx: row[e] for idx, row in summaries[c].items()} for c, e in ends}
@@ -2140,7 +2696,7 @@ def _excluded_starts(store, query, per_step, decided, windows_by_idx):
     return out
 
 
-def apply_exclusions(query, result, touched, starts, every=None):
+def apply_exclusions(query, result, touched, starts, every=None, occurrence=None):
     """Rule EXCLUSION_RULE: what a result may still say when excluded records could have changed it.
 
     `touched` maps each step to the starts of the excluded records its scope admits, and `every` to
@@ -2159,12 +2715,17 @@ def apply_exclusions(query, result, touched, starts, every=None):
     The displacement test reads the binding of the result, of its relaxed match, or of the match an
     order-uncertain `unresolved` reports beside it (D30).
     Every changed result names the steps (`excluded_steps`) and the reason ADMISSION_EXCLUDED_RECORDS.
+
+    `occurrence` (D32) overrides some steps' occurrence for the displacement test: an Nth step reads as `first` and an
+    Nth-from-last step as `last`, each on its envelope point's range, which `starts` then holds. An excluded record that
+    could start at or before the latest the Nth occurrence can (at or after the earliest the Nth from last can) could
+    change which time is the Nth; one that cannot lies after (before) it in every choice of times.
     """
     every = touched if every is None else every
     if not every or result['status'] not in ('exact', 'possible', 'relaxed', 'unresolved', 'none'):
         return result
     order = [step['id'] for step in query['steps']]
-    occurrence = {step['id']: step.get('occurrence', 'any') for step in query['steps']}
+    occurrence = {step['id']: step.get('occurrence', 'any') for step in query['steps']} | (occurrence or {})
     steps = [step for step in order if step in touched]
     pid = result['patient_id']
     incomparable = lambda which: {'patient_id': pid, 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
@@ -2253,8 +2814,11 @@ def _worker_unit(unit):
         if _W['key'] != key:
             request = None if conditions is None else Request(query, conditions)
             pq = tg.PreparedQuery(query if request is None else request.query)
-            _W.update(key=key, pq=pq, per_step=_step_concepts(pq.query), tags=None if request is None else request.used)
+            _W.update(key=key, pq=pq, per_step=_step_concepts(pq.query), tags=None if request is None else request.used,
+                      request=request)
         pq, per_step, store = _W['pq'], _W['per_step'], _W['store']
+        if _W['request'] is not None and _W['request'].derived:  # D32
+            return ('ok', _match_derived_chunk(store, pq, _W['request'], idxs, pids, windows, linked), _peak_rss())
         tags = _W['tags']  # only a value request passes tags, so a loader of the earlier signature still serves the rest
         events = _load_events(store, idxs, per_step, linked, tags) if tags else _load_events(store, idxs, per_step, linked)
         out = [(idx, tg.match_prepared(pq, {'patient_id': pid, 'window': w, 'events': events.get(idx, [])}, trusted=True))
@@ -2379,6 +2943,61 @@ def close_pools():
 atexit.register(close_pools)
 
 
+def _mentions(store, idxs):
+    """{patient_idx: ids of its events whose kind is `mention`} for these candidates (D32: counts and Nth read coded
+    records only)."""
+    out = {}
+    if idxs:
+        try:
+            _temp(store, '_m_kind', [('idx', 'INTEGER')], list(idxs))
+            for idx, eid in store.db.execute(
+                    'SELECT e.patient_idx, e.event_id FROM _m_kind c JOIN events e ON e.patient_idx = c.idx '
+                    'WHERE e.patient_idx BETWEEN ? AND ? AND e.kind = ?', [min(idxs), max(idxs), MENTION_KIND]).fetchall():
+                out.setdefault(idx, set()).add(eid)
+        finally:
+            _drop(store, '_m_kind')
+    return out
+
+
+def _derived_chunk(store, request, idxs, pids, windows, linked):
+    """Each candidate's `Derived` (D32), from its loaded events: the request's plain concepts and value tags, the
+    concepts and value tags its derived tags count included."""
+    tags = request.used
+    events = _load_events(store, idxs, request.load, linked, tags) if tags else _load_events(store, idxs, request.load, linked)
+    mentions = _mentions(store, idxs)
+    return [(idx, derive_patient(request, pid, w, events.get(idx, []), mentions.get(idx, set())))
+            for idx, pid, w in zip(idxs, pids, windows)]
+
+
+def _match_derived_chunk(store, pq, request, idxs, pids, windows, linked):
+    """[(patient_idx, result)] for one chunk of a request with derived steps (D32)."""
+    return [(idx, match_derived(pq, request, derived))
+            for idx, derived in _derived_chunk(store, request, idxs, pids, windows, linked)]
+
+
+def _derived_reach(request, query, touched, windows_by_idx):
+    """D18's reach for derived steps (D32), in place: an Nth step and a span-count step reach every excluded record of
+    their concepts (an excluded record before the window can shift an in-window event into rank N, and a count's
+    witness need not satisfy the scope); a period count reaches those overlapping the window (every witness and the
+    bound record lie in it)."""
+    for idx, (admitted, every) in touched.items():
+        w = windows_by_idx[idx]
+        for sid, (kind, detail) in request.kinds.items():
+            if sid not in every:
+                continue
+            if kind == 'nth':
+                if _D32_DEFECT != 'scoped_reach':
+                    admitted[sid] = every[sid]
+            elif detail != 'window':
+                admitted[sid] = every[sid]
+            else:
+                hits = [(lo, hi) for lo, hi in every[sid] if lo <= w['end'] and hi >= w['start']]
+                if hits:
+                    admitted[sid] = hits
+                else:
+                    admitted.pop(sid, None)
+
+
 def match_context(store, query, windows, conditions=None):
     """What a result depends on, and its digest: snapshot, query, windows, engine code, rules, verification
     level and the digest of the manifest's file list (which exact files were read); with value conditions (D28), also
@@ -2390,6 +3009,8 @@ def match_context(store, query, windows, conditions=None):
                'files_digest': store.files_digest, 'labels': store.manifest.get('labels')}
     if conditions is not None:
         context.update(conditions_digest=_digest(conditions), value_rule=VALUE_RULE)
+        if conditions.get('profile') == CONDITIONS_PROFILE_1_1:
+            context.update(derived_rules=_digest(DERIVED_RULES))
     return context, _digest(context)
 
 
@@ -2454,6 +3075,11 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
     `conditions` (D28), when given, holds value conditions on steps and value relaxations (`Request`): each is compiled
     into a tag concept for the engine. The output then also carries `value_conditions` (the tags, their concepts and
     conditions) and the context their digest and the value rule; without it, nothing in the output differs.
+
+    With profile `execution-store-conditions-1.1` (D32) `conditions` may also give a step an Nth or Nth-from-last
+    occurrence or a count (`Request`), whose events the store derives per patient (`derive_patient`) and matches by
+    the two-pass rule (`match_derived`). The output then carries `derived_steps` (the rules and tags) and the context
+    the derived rules.
     """
     if not (type(workers) is int and workers >= 1):
         raise StoreError('INVALID_WORKERS', repr(workers))
@@ -2461,6 +3087,11 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
         raise StoreError('INVALID_DETAIL', repr(detail))
     request = None if conditions is None else Request(query, conditions)
     tags = None if request is None else request.used
+    derived = request is not None and bool(request.derived)
+    if request is not None and request.profile != CONDITIONS_PROFILE and request.tags and not store.manifest[
+            'tables']['series']['rows']:
+        # D32: a snapshot built without series cannot hold any value, so a value condition would rest on nothing.
+        raise StoreError('NO_SERIES_IN_SNAPSHOT', ', '.join(sorted({c for c, _ in request.tags.values()})))
     pq = tg.PreparedQuery(query if request is None else request.query)
     given, query = query, pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')
@@ -2478,7 +3109,7 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
         windows_by_idx[idx] = w
     pid_of = dict(patients)
     found = _candidates(store, pq, request)
-    per_step = _step_concepts(query)
+    per_step = _step_concepts(query) if not derived else request.load  # D32: a derived tag by what it counts
     # The concepts each step's engine concepts stand for (a tag by its concept): what excluded records are matched by.
     base = per_step if request is None else request.base
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
@@ -2489,7 +3120,10 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
         # Chunks are cut before pruning, so a chunk's index range, which bounds the loader's scan, is never wider
         # than without it; chunks of survivors cut afterwards would be sparse, and one load of 200 survivors
         # spread over 1,000,000 patients held 1.5 GiB.
-        pruned = _prune(store, pq, live, windows_by_idx, tags=tags) if tags else _prune(store, pq, live, windows_by_idx)
+        if derived:
+            pruned = _prune(store, pq, live, windows_by_idx, tags=tags, derived=request.derived_used)
+        else:
+            pruned = _prune(store, pq, live, windows_by_idx, tags=tags) if tags else _prune(store, pq, live, windows_by_idx)
         for idx in pruned:
             results[idx] = _NONE(pid_of[idx])
         parts = [kept for part in parts if (kept := [i for i in part if i not in pruned])]
@@ -2499,6 +3133,10 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
                   [i for i in part if i in linked]) for part in parts]
         for unit in get_pool(store, workers).run(units):
             results.update(unit)
+    elif derived:
+        for part in parts:
+            results.update(_match_derived_chunk(store, pq, request, part, [pid_of[i] for i in part],
+                                                [windows_by_idx[i] for i in part], [i for i in part if i in linked]))
     else:
         for part in parts:
             mine = [i for i in part if i in linked]
@@ -2523,12 +3161,25 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
     # Event ids are unique within a patient only, so each patient's own events give its starts. Every binding the
     # displacement test reads needs them, the match beside an order-uncertain `unresolved` included (D31, second
     # attempt: before, its starts were not read and the test raised KeyError).
-    starts = _bound_starts(store, [idx for idx in touched if idx in results and (
+    bound = [idx for idx in touched if idx in results and (
         results[idx].get('binding') or results[idx].get('relaxed_match', {}).get('binding')
-        or results[idx].get('unverified_match', {}).get('binding'))])
+        or results[idx].get('unverified_match', {}).get('binding'))]
+    starts = _bound_starts(store, bound)
+    occurrence = None
+    if derived:
+        # D32: Nth steps reach and displace as the decision log states; a derived point's start range is its envelope.
+        _derived_reach(request, query, touched, windows_by_idx)
+        occurrence = {sid: 'first' if which == 'nth' else 'last'
+                      for sid, (kind, which) in request.kinds.items() if kind == 'nth'}
+        nth_bound = [idx for idx in bound if occurrence]
+        for k in range(0, len(nth_bound), chunk):
+            part = nth_bound[k:k + chunk]
+            for idx, d in _derived_chunk(store, request, part, [pid_of[i] for i in part],
+                                         [windows_by_idx[i] for i in part], [i for i in part if i in linked]):
+                starts.setdefault(idx, {}).update(d.points)
     for idx, (hit, every) in touched.items():
         results[idx] = apply_exclusions(query, results[idx] if idx in results else filtered_result(idx),
-                                        hit, starts.get(idx, {}), every)
+                                        hit, starts.get(idx, {}), every, occurrence)
     counts = {}
     for r in results.values():
         counts[r['status']] = counts.get(r['status'], 0) + 1
@@ -2543,8 +3194,10 @@ def match(store, query, windows, detail='full', chunk=CHUNK_PATIENTS, workers=1,
            'verified': store.verified, 'coverage_rule': COVERAGE_RULE, 'exclusion_rule': EXCLUSION_RULE,
            'labels': store.manifest.get('labels'), 'context': context, 'context_id': context_id,
            'plan': found['plan'], 'candidates': len(found['patient_idx']), 'counts': dict(sorted(counts.items()))}
-    if request is not None:
+    if request is not None and (request.tags or not derived):
         out['value_conditions'] = request.describe()
+    if derived:
+        out['derived_steps'] = request.describe_derived()
     if detail == 'decided':
         out['detail'] = 'decided'
         out['implicit'] = {'FILTERED': implicit_filtered, 'NO_INDEX_WINDOW': windowless}
