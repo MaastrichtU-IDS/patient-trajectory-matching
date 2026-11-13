@@ -411,8 +411,9 @@ class MatchingTests(unittest.TestCase):
             es.validate_ingest({**ingest, 'closure': {**ingest['closure'], 'bases': {'seizure': 'x'}}})
         self.assertEqual(caught.exception.code, 'INVALID_CONCEPT_BASES')
 
-    def admission_case(self, events, excluded, steps, relaxations=(), labels=None):
-        """One patient, items X and Y, `after A->B` within 60 minutes; the store's result and the reference's."""
+    def admission_case(self, events, excluded, steps, relaxations=(), labels=None, least=0):
+        """One patient, items X and Y, `after A->B` within 60 minutes (at least `least` minutes); the store's result and
+        the reference's."""
         m = lambda n: T0 + n * 60_000_000
         ingest = {'profile': es.INGEST_PROFILE, 'dataset_id': 'admission', 'provenance': {'labels': labels} if labels else {},
                   'closure': {'version': 'v', 'ancestors': {'X': [], 'Y': [], 'K': []},
@@ -423,7 +424,8 @@ class MatchingTests(unittest.TestCase):
                                              for c, t in excluded],
                                 'coverage': [cover('ehr', m(-1000), m(1000))]}]}
         query = {'profile': tg.PROFILE_ID, 'steps': steps,
-                 'relations': [{'id': 'R', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 60 * 60_000_000}],
+                 'relations': [{'id': 'R', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': least * 60_000_000,
+                                'max': 60 * 60_000_000}],
                  'relaxations': list(relaxations), 'budget': '1'}
         windows = {'P': {'start': m(-1000), 'end': m(1000)}}
         with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, tmp), verify='content') as store:
@@ -458,6 +460,22 @@ class MatchingTests(unittest.TestCase):
         # Occurrence `any`: an extra record only adds bindings, so exact stands.
         anyx = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
         self.assertEqual(self.admission_case(events, [('X', 10)], anyx)[0]['status'], 'exact')
+
+    def test_the_displacement_test_reads_the_match_beside_an_order_uncertain_unresolved(self):
+        """D31, second attempt: a bug in main since D30. The excluded-records rule reads the binding an order-uncertain
+        `unresolved` reports beside it (`unverified_match`), but `match` fetched bound events' starts only for a
+        result's own binding or its relaxed match, so the displacement test raised KeyError instead of answering."""
+        steps = [{'id': 'A', 'concept': 'X', 'occurrence': 'first'}, {'id': 'B', 'concept': 'X'}]
+        # The first X is uncertain (x1 may start before or after x2), B can bind the first step's targets, and B at
+        # least a minute after A holds in some choice of times but not in every one.
+        events = [('x1', 'X', 0, 50), ('x2', 'X', 10, 20)]
+        got, _, _ = self.admission_case(events, [], steps, least=1)
+        self.assertEqual((got['status'], got['reason']), ('unresolved', 'OCCURRENCE_ORDER_UNCERTAIN'))
+        self.assertIn('unverified_match', got)
+        # An excluded X before every event could be the first X: not comparable, as the reference says.
+        got, _, _ = self.admission_case(events, [('X', -500)], steps, least=1)
+        self.assertEqual(got, {'patient_id': 'P', 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                               'excluded_steps': ['A']})
 
     def first_x(self, patients, scope, windows):
         """Store and reference results for the one-step query `first X` over hand-built patients."""
@@ -1010,10 +1028,19 @@ def match_digest(store, q, w):
 
 
 def d30_stage_digests(legacy_store, seed):
-    """The seed's result digest at each stage of D30 (decision log, D30): before it (the store converted with
-    letter-timed mentions, the order rule off and `last` by the old order), with `last` by the latest start,
-    with the order rule as well, and with the mention timing (the store and the case as they are now); and, for a
-    second ordering, this store and case with the order rule off (mention timing before the order rule)."""
+    """The seed's result digest at each stage of D30 (decision log, D30), with D31's envelope search off: before it
+    (the store converted with letter-timed mentions, the order rule off and `last` by the old order), with `last` by
+    the latest start, with the order rule as well, and with the mention timing (the store and the case as they are
+    now); and, for a second ordering, this store and case with the order rule off (mention timing before the order
+    rule)."""
+    tg._ENVELOPE = False
+    try:
+        return _d30_stage_digests(legacy_store, seed)
+    finally:
+        tg._ENVELOPE = True
+
+
+def _d30_stage_digests(legacy_store, seed):
     q, w = MatcherScalingTests.legacy_case(seed)
     out = []
     for order_rule, last_key in ((False, tg._LAST_KEY_BEFORE_D30), (False, tg.last_key), (True, tg.last_key)):
@@ -1050,8 +1077,9 @@ class D30ExplanationTests(unittest.TestCase):
     they do not by themselves show that it is a fix (the worlds check in the engine's tests does that)."""
 
     def test_the_300_recorded_digests_move_only_at_the_three_stages(self):
+        """D30's last stage is the digest before D31 (`D31_DIGESTS`), with the envelope search off."""
         recorded = json.loads(D30_DIGESTS.read_text())
-        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        now = {s: e['before'] for s, e in json.loads(D31_DIGESTS.read_text())['seeds'].items()}
         self.assertEqual(sorted(recorded['seeds'], key=int), [str(s) for s in range(SEEDS)])
         with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(_STATE['legacy'], Path(tmp) / 'store')) as legacy:
             for seed in range(SEEDS):
@@ -1075,6 +1103,94 @@ class D30ExplanationTests(unittest.TestCase):
         finally:
             tg._LEVERS = True
         self.assertEqual(wrong, [])
+
+
+D31_DIGESTS = ROOT / 'patterns/fixtures/execution_store_match_digests_d31.json'
+
+
+def d31_label(r):
+    """A result as the D31 fixture names it: its status, with the note of a result that is not `complete` and the
+    reason of an `unresolved` one."""
+    s = r['status']
+    if s == 'unresolved':
+        return s + '/' + r.get('reason', '')
+    if r.get('complete') is False:
+        s += '/' + r.get('note', '')
+    return s
+
+
+def d31_undecided(label):
+    """D31, second attempt: `unresolved`, or any result that is not `complete`."""
+    return label.startswith('unresolved/') or '/' in label
+
+
+def d31_kind(transition):
+    """'to a decision', 'within undecided', or 'decided changed' (a breach of D31's rule)."""
+    old, new = transition.split(' -> ')
+    if not d31_undecided(old):
+        return 'decided changed'
+    return 'within undecided' if d31_undecided(new) else 'to a decision'
+
+
+def d31_match(q, w, envelope, exact_facts):
+    """The store's result with the switches as given, and the engine's own result for each patient the engine ran on
+    (`match_prepared`, before the store's coverage and excluded-records rules), by patient id."""
+    engine, inner = {}, tg.match_prepared
+    def spy(pq, patient, trusted=False):
+        r = engine[patient['patient_id']] = inner(pq, patient, trusted)
+        return r
+    tg._ENVELOPE, tg._EXACT_FACTS, tg.match_prepared = envelope, exact_facts, spy
+    try:
+        return es.match(_STATE['store'], q, w), engine
+    finally:
+        tg._ENVELOPE, tg._EXACT_FACTS, tg.match_prepared = True, True, inner
+
+
+def d31_movement(seed):
+    """The seed's digest before D31 (the envelope search off: D30), with D31's first attempt (the exact-phase order
+    facts off) and now, and each changed result's transition, by the engine's own result and by the store's."""
+    q, w = MatcherScalingTests.case(seed)
+    (before, eb), (first, _), (after, ea) = (d31_match(q, w, *flags) for flags in ((False, True), (True, False), (True, True)))
+    digest = lambda out: hashlib.sha256(json.dumps({k: out[k] for k in ('plan', 'candidates', 'counts', 'results')},
+                                                   sort_keys=True).encode()).hexdigest()
+    store, engine = Counter(), Counter()
+    for a, b in zip(before['results'], after['results']):
+        pid = a['patient_id']
+        x, y = eb.get(pid), ea.get(pid)
+        if a != b or x != y:
+            store[f'{d31_label(a)} -> {d31_label(b)}'] += 1
+            # A patient the engine did not run on (filtered, or pruned: the engine's own `none`) is the same both ways.
+            engine[f'{d31_label(x or a)} -> {d31_label(y or b)}'] += 1
+    return {'before': digest(before), 'first_attempt': digest(first), 'after': digest(after),
+            'engine_transitions': dict(sorted(engine.items())), 'store_transitions': dict(sorted(store.items()))}
+
+
+class D31MovementTests(unittest.TestCase):
+    """D31 (decision log), second attempt: the envelope search, with the order facts in its exact phase, moves a
+    recorded result only from undecided (by the engine's own result: `unresolved`, or not `complete`) to a decision,
+    or within undecided; no decided result changes. With the switch off this tree gives D30's digest; on, the digest
+    recorded now; the first attempt's digest (exact-phase facts off) is recorded beside them."""
+
+    def test_the_300_recorded_digests_move_only_from_undecided_results(self):
+        recorded = json.loads(D31_DIGESTS.read_text())
+        d30 = json.loads(D30_DIGESTS.read_text())['seeds']
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        seen, kinds = Counter(), Counter()
+        for seed in range(SEEDS):
+            entry = recorded['seeds'][str(seed)]
+            got = d31_movement(seed)
+            with self.subTest(seed=seed):
+                self.assertEqual(got, entry)
+                self.assertEqual(got['before'], d30[str(seed)]['after'])
+                self.assertEqual(got['after'], now[str(seed)])
+                for transition, n in got['engine_transitions'].items():
+                    kinds[d31_kind(transition)] += n
+                    self.assertNotEqual(d31_kind(transition), 'decided changed', transition)
+                    seen[transition.split(' -> ')[1].split('/')[0]] += n
+        self.assertEqual(sum(1 for e in recorded['seeds'].values() if e['before'] != e['after']),
+                         recorded['summary']['moved'])
+        self.assertEqual(dict(sorted(kinds.items())), recorded['summary']['engine_by_kind'])
+        self.assertTrue({'none', 'exact'} <= set(seen), seen)
 
 
 class PerBucketDeriveTests(unittest.TestCase):

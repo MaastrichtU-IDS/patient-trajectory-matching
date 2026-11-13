@@ -19,6 +19,7 @@ REPORTS = {
     'scaling': 'verification/execution-store-scaling-report.json',
     'matcher': 'verification/matcher-comparison-report.json',
     'mimic': 'verification/execution-store-mimic-demo-report.json',
+    'verdict': 'verification/d31-paired-verdict.json',
 }
 GIB = 1024 ** 3
 
@@ -54,7 +55,31 @@ def scaling(s):
             'sizes': rows}
 
 
-def matcher(m):
+def paired_run(name, pc, target):
+    """One paired confirmation (D31, second attempt): the candidate's own figures per worker count, which govern the
+    D21 target, with the paired ratios against the reference code."""
+    arms = []
+    for n, w in pc['by_workers'].items():
+        t = w['candidate_target_check']
+        arms.append({
+            'workers': w['workers'],
+            'p95_seconds': round(t['p95_seconds_all_runs'], 2),
+            'max_seconds': round(t['max_seconds_all_runs'], 2),
+            'p95_by_repeat': [round(x, 2) for x in t['p95_seconds_by_repeat']],
+            'query_peak_gib': round(t['peak_rss_bytes'] / GIB, 2),
+            'ratio_p95_by_repeat': [round(x, 3) for x in w['ratio_p95_by_repeat']],
+            'ratio_p95_pooled': round(w['ratio_p95_pooled'], 3),
+            'ratio_total_by_repeat': [round(x, 3) for x in w['ratio_total_by_repeat']],
+            'reference_p95_seconds': round(w['reference_absolute']['p95_seconds_all_runs'], 2),
+            'meets_target': bool(t['p95_met_all_runs'] and t['max_met_all_runs'] and t['memory_met']),
+        })
+    arms.sort(key=lambda a: a['workers'])
+    return {'name': name, 'repeats': pc['repeats'], 'queries': pc['queries'], 'reference': pc['reference']['git_ref'],
+            'identical_queries': pc['byte_identity']['identical'], 'compared_queries': pc['byte_identity']['compared'],
+            'arms': arms}
+
+
+def matcher(m, verdict):
     c, target = m['confirmation'], m['target']
     arms = []
     for name, a in c['arms'].items():
@@ -72,12 +97,24 @@ def matcher(m):
         })
     arms.sort(key=lambda a: a['workers'])
     ident = c['byte_identity_C_against_B']
+    paired = [paired_run('verdict run', verdict['paired_confirmation'], target),
+              paired_run('replication', m['paired_confirmation'], target)]
+    # The D21 status per worker count: met only if met in every paired run (decision log, D31, second attempt).
+    governing = []
+    for n in sorted({a['workers'] for r in paired for a in r['arms']}):
+        runs = [next(a for a in r['arms'] if a['workers'] == n) for r in paired]
+        governing.append({'workers': n, 'p95_seconds': [a['p95_seconds'] for a in runs],
+                          'max_seconds': [a['max_seconds'] for a in runs],
+                          'query_peak_gib': [a['query_peak_gib'] for a in runs],
+                          'meets_target': all(a['meets_target'] for a in runs)})
     return {
         'patients': c['size'], 'queries': c['queries'], 'repeats': c['repeats'],
         'target': {'p95_seconds': target['match_seconds_p95_max'], 'max_seconds': target['match_seconds_max_max'],
                    'memory_gib': round(target['query_process_peak_rss_bytes_below'] / GIB, 1),
                    'machine': target.get('machine')},
-        'arms': arms,
+        'governing': {'protocol': 'paired-interleaved-1.0', 'runs': [r['name'] for r in paired], 'by_workers': governing},
+        'paired': paired,
+        'sequential_arms': arms,
         'single_process_per_candidate_us': round(c['arms']['B']['per_candidate_microseconds']['end_to_end'], 1),
         'identical_results': {'compared': sum(v['compared'] for v in ident.values()),
                               'identical': sum(v['identical'] for v in ident.values())},
@@ -114,7 +151,7 @@ def build():
         'generator': 'demos/mockups/results/build.py',
         'sources': {k: {'path': REPORTS[k], 'sha256': loaded[k][1]} for k in REPORTS},
         'scaling': scaling(loaded['scaling'][0]),
-        'matching': matcher(loaded['matcher'][0]),
+        'matching': matcher(loaded['matcher'][0], loaded['verdict'][0]),
         'mimic_demo': mimic(loaded['mimic'][0]),
     }
 

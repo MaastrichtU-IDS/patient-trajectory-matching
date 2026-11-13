@@ -25,7 +25,9 @@
   th:first-child, td:first-child { text-align: left; }
   th { color: #475569; font-weight: 650; font-size: 12px; }
   .scroll { overflow-x: auto; }
-  .viz-root { --surface-1: #ffffff; --text-primary: #0F1F2C; --text-secondary: #475569; --grid: #E6ECF1; --series-1: #2a78d6; }
+  .viz-root { --surface-1: #ffffff; --text-primary: #0F1F2C; --text-secondary: #475569; --grid: #E6ECF1; --series-1: #2a78d6; --series-2: #eb6834; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: #334155; margin: 8px 0 0; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
   .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .chart-head h3 { margin: 0; font-size: 15px; }
   .toggle { font: inherit; font-size: 12.5px; border: 1px solid #C9D4DE; background: #fff; border-radius: 6px; padding: 4px 10px; cursor: pointer; color: #172B3A; }
@@ -47,18 +49,24 @@
   <div class="tiles" id="tiles"></div>
 
   <h2>Matching speed at 300,000 patients</h2>
-  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, each repeated <span data-k="m.repeats"></span> times, with the engine's work spread over worker processes. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. It is met in Python, so no Rust engine was built. D30, which made <code>first</code> and <code>last</code> sound under uncertain times and gave synthetic letter mentions their true range (birth to the letter), missed it in its first run; three changes that move no result, made after its review, brought it back under at 14 workers with a narrow margin, and at 8 workers it is now missed (decision log, D30).</p>
+  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, with the engine's work spread over worker processes. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. It is met in Python, so no Rust engine was built. Since D31's second attempt the target is judged by the <b>paired confirmation</b>: this tree and main's code before it (<span data-k="p.reference"></span>) run back to back on the same snapshot, alternating which runs first, <span data-k="p.repeats"></span> times at each worker count, so that drift over the session falls on both; the target is read off this tree's own runs. There are two paired runs, the verdict run (<code>verification/d31-paired-verdict.json</code>) and its replication in the matcher report. At 14 workers the target is <b>met</b> (p95 <span data-k="g14.p95"></span> s); at 8 workers it is <b>missed</b> (p95 <span data-k="g8.p95"></span> s). D31's one envelope search for coupled <code>first</code> and <code>last</code> steps lowered the 14-worker p95 by 12 to 20% in every pair, almost entirely through one query (seed 26); total time per run is unchanged, and so is the slowest query.</p>
   <div class="card viz-root">
     <div class="chart-head">
-      <h3>95th-percentile query time by worker count</h3>
+      <h3>Paired confirmation: 95th-percentile query time, main against this tree, by worker count and run</h3>
       <button class="toggle" id="toggleTable" aria-pressed="false">Show table</button>
     </div>
+    <div class="legend"><span><i style="background:var(--series-2)"></i>main before D31's second attempt (<span data-k="p.reference2"></span>)</span><span><i style="background:var(--series-1)"></i>this tree (its runs govern the target)</span></div>
     <div class="chart-wrap" id="chartWrap">
-      <svg id="chart" role="img" aria-label="Bar chart of 95th-percentile match time at 300,000 patients by number of worker processes, with the 10 second target marked" width="100%" viewBox="0 0 900 300"></svg>
+      <svg id="chart" role="img" aria-label="Grouped bar chart of the 95th-percentile match time at 300,000 patients in the paired confirmation, for main's code and this tree, at 8 and 14 workers, in the verdict run and its replication, with the 10 second target marked" width="100%" viewBox="0 0 900 320"></svg>
       <div class="tip" id="tip"></div>
     </div>
     <div class="scroll" id="armTable" hidden></div>
     <p class="muted" id="identity"></p>
+  </div>
+  <div class="card">
+    <h3 style="margin:0 0 6px;font-size:15px">Sequential confirmation (not the governing measure)</h3>
+    <p class="muted" style="margin-top:0">This tree alone, each worker count after the last, <span data-k="m.repeats"></span> repeats of the same <span data-k="m.queries"></span> queries, kept for comparison with earlier reports. It does not govern the target: its later arms run after an hour or more of load, and between two such runs queries whose code had not changed drifted by 10 to 16% (D31), as much as the effects being judged; the paired protocol cancels that drift.</p>
+    <div class="scroll" id="seqTable"></div>
   </div>
 
   <h2>Building and verifying the store as the cohort grows</h2>
@@ -81,8 +89,8 @@
   <ul class="tight">
     <li>One machine (<span data-k="m.target.machine"></span>), one DuckDB thread, one memory limit.</li>
     <li>Synthetic data, replicated beyond 10,000 patients: candidate counts and outcomes multiply exactly, and a million distinct patients was never built.</li>
-    <li>Latency at 100,000 patients and above in the main runs rests on ten queries; the target is judged on the 30-query, 3-repeat confirmation.</li>
-    <li>Run-to-run spread between benchmark runs is not fully explained; the decision log records each instance.</li>
+    <li>Latency at 100,000 patients and above in the main runs rests on ten queries; the target is judged on the paired confirmation (30 queries, four repeats of each code at each worker count). With 30 queries the p95 is the second-slowest query.</li>
+    <li>Run-to-run spread between benchmark runs is not fully explained; the decision log records each instance. The paired protocol cancels drift that is slow against a pair of runs, not noise inside one run.</li>
     <li>Parallel matching at 1,000,000 patients was not measured.</li>
     <li>The MIMIC store indexes source item classes, not reviewed clinical concepts.</li>
   </ul>
@@ -106,30 +114,42 @@ fetch('results.json').then(r => r.json()).then(render).catch(e => {
 function render(d) {
   const S = d.scaling, M = d.matching, X = d.mimic_demo;
   const big = S.sizes[S.sizes.length - 1];
-  const w14 = M.arms.find(a => a.workers === 14);  // the 14-worker figure (the recommended count, D21), not necessarily the fastest arm
+  const G = M.governing.by_workers, g14 = G.find(a => a.workers === 14), g8 = G.find(a => a.workers === 8);
+  const P = M.paired, both = v => v.map(x => fmt(x, 2)).join(' and ');
   const fill = {
     'm.queries': M.queries, 'm.repeats': M.repeats, 'm.target.p95': fmt(M.target.p95_seconds),
     'm.target.max': fmt(M.target.max_seconds), 'm.target.mem': fmt(M.target.memory_gib),
     'm.target.machine': esc(M.target.machine || 'one machine'), 's.limit': esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2')),
+    'p.reference': esc(P[0].reference), 'p.reference2': esc(P[0].reference), 'p.repeats': P[0].repeats,
+    'g14.p95': both(g14.p95_seconds), 'g8.p95': both(g8.p95_seconds),
   };
   document.querySelectorAll('[data-k]').forEach(el => { el.textContent = fill[el.dataset.k] ?? ''; });
 
   const tiles = [
     ['Largest store built', fmt(big.patients), `synthetic patients, ${fmt(big.events / 1e6, 0)} million events; built in ${dur(big.build_seconds)} and verified by content under a ${esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2'))} DuckDB limit`],
-    ['Matching at 300,000 patients', `${fmt(w14.p95_seconds, 2)} s`, `95th-percentile full-detail query with ${w14.workers} workers (target ≤ ${fmt(M.target.p95_seconds)} s); slowest ${fmt(w14.max_seconds, 1)} s, ${fmt(w14.query_peak_gib, 2)} GiB`],
-    ['Parallel equals single-process', `${M.identical_results.identical} / ${M.identical_results.compared}`, 'query results byte-identical across 1, 2, 4, 8 and 14 workers in the confirmation'],
+    ['Matching at 300,000 patients', `${fmt(g14.p95_seconds[0], 2)} s`, `95th-percentile full-detail query with 14 workers in the paired confirmation (replication ${fmt(g14.p95_seconds[1], 2)} s; target ≤ ${fmt(M.target.p95_seconds)} s): met. At 8 workers ${both(g8.p95_seconds)} s: missed`],
+    ['Parallel equals single-process', `${M.identical_results.identical} / ${M.identical_results.compared}`, 'query results byte-identical across 1, 2, 4, 8 and 14 workers in the sequential confirmation'],
     ['MIMIC-IV demo census', `${fmt(X.census.mismatched_stores + X.census.built_store_mismatches)} mismatches`, `${fmt(X.census.raw_rows_checked)} chart rows checked against the raw file; ${fmt(X.census.stores_graph_checked)} claim stores through the graph route; ${fmt(X.differential.results)} differential results, ${fmt(X.differential.mismatches)} mismatches`],
   ];
   document.getElementById('tiles').innerHTML = tiles.map(([k, v, s]) =>
     `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
 
   drawChart(M);
+  const rows = [];
+  for (const n of [14, 8]) for (const r of P) {
+    const a = r.arms.find(x => x.workers === n);
+    rows.push([n, r.name, fmt(a.p95_seconds, 2), a.p95_by_repeat.map(x => fmt(x, 2)).join(' · '), fmt(a.max_seconds, 2), fmt(a.query_peak_gib, 2),
+      fmt(a.reference_p95_seconds, 2), a.ratio_p95_by_repeat.map(x => fmt(x, 3)).join(' · '), fmt(a.ratio_p95_pooled, 3),
+      a.ratio_total_by_repeat.map(x => fmt(x, 2)).join(' · '), a.meets_target ? '<span class="ok">met</span>' : 'missed']);
+  }
   document.getElementById('armTable').innerHTML = table(
-    ['Workers', 'p95 (s)', 'p95 per repeat (s)', 'Slowest (s)', 'Query memory (GiB)', 'µs per candidate', 'Target'],
-    M.arms.map(a => [a.workers, fmt(a.p95_seconds, 2), a.p95_by_repeat.map(x => fmt(x, 2)).join(' · '),
-      fmt(a.max_seconds, 2), fmt(a.query_peak_gib, 2), fmt(a.per_candidate_us, 1), a.meets_target ? '<span class="ok">met</span>' : 'missed']));
+    ['Workers', 'Run', 'This tree p95 (s)', 'p95 per repeat (s)', 'Slowest (s)', 'Memory (GiB)', 'Main p95 (s)', 'p95 ratio per pair', 'Pooled ratio', 'Total-time ratio per pair', 'Target'], rows);
+  document.getElementById('seqTable').innerHTML = table(
+    ['Workers', 'p95 (s)', 'p95 per repeat (s)', 'Slowest (s)', 'Query memory (GiB)', 'µs per candidate', 'Target, by this run alone'],
+    M.sequential_arms.map(a => [a.workers, fmt(a.p95_seconds, 2), a.p95_by_repeat.map(x => fmt(x, 2)).join(' · '),
+      fmt(a.max_seconds, 2), fmt(a.query_peak_gib, 2), fmt(a.per_candidate_us, 1), a.meets_target ? 'met' : 'missed']));
   document.getElementById('identity').textContent =
-    `Single process: ${fmt(M.single_process_per_candidate_us, 1)} µs per candidate. Results at every worker count are byte-identical to the single-process matcher's (${M.identical_results.identical} of ${M.identical_results.compared} query comparisons).`;
+    `Ratios are this tree over main, per pair; below 1 is faster. The two codes agree on ${P[0].identical_queries} of ${P[0].compared_queries} queries in each paired run (the other three moved by design, every move from an undecided result). Single process: ${fmt(M.single_process_per_candidate_us, 1)} µs per candidate; results at every worker count are byte-identical to the single-process matcher's (${M.identical_results.identical} of ${M.identical_results.compared} query comparisons).`;
   const tb = document.getElementById('toggleTable');
   tb.onclick = () => {
     const show = document.getElementById('armTable').hidden;
@@ -171,27 +191,35 @@ function render(d) {
 
 function drawChart(M) {
   const svg = document.getElementById('chart'), tip = document.getElementById('tip'), wrap = document.getElementById('chartWrap');
-  const W = 900, H = 300, L = 56, R = 120, T = 18, B = 44;
-  const ymax = Math.ceil(Math.max(...M.arms.map(a => a.p95_seconds)) / 10) * 10;
+  const W = 900, H = 320, L = 56, R = 120, T = 18, B = 60;
+  const groups = [];
+  for (const n of [8, 14]) for (const r of M.paired) {
+    const a = r.arms.find(x => x.workers === n);
+    groups.push({ n, run: r.name, a, bars: [{ v: a.reference_p95_seconds, c: 'var(--series-2)' }, { v: a.p95_seconds, c: 'var(--series-1)' }] });
+  }
+  const ymax = Math.ceil(Math.max(M.target.p95_seconds, ...groups.flatMap(g => g.bars.map(b => b.v))) / 5) * 5;
   const y = v => T + (H - T - B) * (1 - v / ymax);
-  const n = M.arms.length, band = (W - L - R) / n, bw = Math.min(56, band * 0.5);
+  const band = (W - L - R) / groups.length, bw = Math.min(40, band * 0.3), gap = 2;
   const ns = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs, text) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; };
-  for (let v = 0; v <= ymax; v += 10) {
+  for (let v = 0; v <= ymax; v += 5) {
     el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-width': 1 });
     el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 12, fill: 'var(--text-secondary)' }, `${v} s`);
   }
-  M.arms.forEach((a, i) => {
-    const cx = L + band * (i + 0.5), x0 = cx - bw / 2, top = y(a.p95_seconds), base = y(0), r = Math.min(4, base - top);
-    const d = `M${x0},${base} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + bw - r} Q${x0 + bw},${top} ${x0 + bw},${top + r} V${base} Z`;
-    el('path', { d, fill: 'var(--series-1)' });
-    el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', 'font-size': 12.5, fill: 'var(--text-primary)' }, String(a.workers));
+  groups.forEach((g, i) => {
+    const cx = L + band * (i + 0.5), base = y(0);
+    g.bars.forEach((b, j) => {
+      const x0 = j === 0 ? cx - bw - gap / 2 : cx + gap / 2, top = y(b.v), r = Math.min(4, base - top);
+      el('path', { d: `M${x0},${base} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + bw - r} Q${x0 + bw},${top} ${x0 + bw},${top + r} V${base} Z`, fill: b.c });
+    });
+    el('text', { x: cx, y: H - B + 18, 'text-anchor': 'middle', 'font-size': 12.5, fill: 'var(--text-primary)' }, `${g.n} workers`);
+    el('text', { x: cx, y: H - B + 34, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--text-secondary)' }, g.run);
     const hit = el('rect', { x: cx - band / 2, y: T, width: band, height: H - T - B, fill: 'transparent', tabindex: 0,
-      'aria-label': `${a.workers} workers: p95 ${a.p95_seconds} seconds` });
+      'aria-label': `${g.n} workers, ${g.run}: main p95 ${g.bars[0].v} s, this tree p95 ${g.bars[1].v} s` });
     const show = () => {
-      tip.innerHTML = `<b>${a.workers} worker${a.workers > 1 ? 's' : ''}</b><br>p95 ${fmt(a.p95_seconds, 2)} s · slowest ${fmt(a.max_seconds, 2)} s<br>${fmt(a.per_candidate_us, 1)} µs per candidate · ${fmt(a.query_peak_gib, 2)} GiB<br>target ${a.meets_target ? 'met' : 'missed'}`;
+      tip.innerHTML = `<b>${g.n} workers · ${esc(g.run)}</b><br>main p95 ${fmt(g.bars[0].v, 2)} s · this tree ${fmt(g.bars[1].v, 2)} s<br>p95 ratio per pair ${g.a.ratio_p95_by_repeat.map(x => fmt(x, 3)).join(' · ')}<br>this tree: slowest ${fmt(g.a.max_seconds, 2)} s · ${fmt(g.a.query_peak_gib, 2)} GiB · target ${g.a.meets_target ? 'met' : 'missed'}`;
       const box = wrap.getBoundingClientRect(), sx = box.width / W;
-      tip.style.left = `${Math.min(cx * sx + 12, box.width - 200)}px`; tip.style.top = `${Math.max(top * sx - 10, 0)}px`; tip.style.opacity = 1;
+      tip.style.left = `${Math.min(cx * sx + 12, box.width - 300)}px`; tip.style.top = `${Math.max(y(g.bars[1].v) * sx - 10, 0)}px`; tip.style.opacity = 1;
     };
     hit.addEventListener('mouseenter', show); hit.addEventListener('focus', show);
     hit.addEventListener('mouseleave', () => tip.style.opacity = 0); hit.addEventListener('blur', () => tip.style.opacity = 0);
@@ -199,7 +227,6 @@ function drawChart(M) {
   const ty = y(M.target.p95_seconds);
   el('line', { x1: L, x2: W - R, y1: ty, y2: ty, stroke: 'var(--text-primary)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' });
   el('text', { x: W - R + 8, y: ty + 4, 'font-size': 12.5, fill: 'var(--text-primary)' }, `target ${fmt(M.target.p95_seconds)} s`);
-  el('text', { x: L + (W - L - R) / 2, y: H - 6, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--text-secondary)' }, 'worker processes');
 }
 </script>
 </body>

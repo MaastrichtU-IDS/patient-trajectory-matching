@@ -915,17 +915,20 @@ REVIEW_CASES = {
               [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 10}]),
         patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 900)), 'unresolved'),
     # The review of D30 (M1): coupling through another uncertain ordered step. A {K}, M {J, K} and Z {J}, each in
-    # [0, 3]; f the first K, l the last J. M may be either step's target.
+    # [0, 3]; f the first K, l the last J. M may be either step's target. Since D31 the first is `none`, as it should
+    # be: the order fact "the first K starts at or before the last J" (M carries both) refutes it; D30 left it
+    # unresolved. The second needs that fact in the exact phase: D31's first attempt left it unresolved, its second
+    # attempt (the facts in the exact phase, certainty decided jointly) says `exact`, which holds in every choice.
     'last J strictly before first K (impossible)': (
         query([{'id': 'f', 'concept': 'K', 'occurrence': 'first'}, {'id': 'l', 'concept': 'J', 'occurrence': 'last'}],
               [{'id': 'r', 'kind': 'after', 'from': 'l', 'to': 'f', 'min': 1}]),
         patient([event('A', 'K', (0, 3)), event('M', 'J', (0, 3), None, 'K'), event('Z', 'J', (0, 3))], (0, 10)),
-        'unresolved'),
+        'none'),
     'first K at or before last J (holds in every choice)': (
         query([{'id': 'f', 'concept': 'K', 'occurrence': 'first'}, {'id': 'l', 'concept': 'J', 'occurrence': 'last'}],
               [{'id': 'r', 'kind': 'after', 'from': 'f', 'to': 'l', 'min': 0}]),
         patient([event('A', 'K', (0, 3)), event('M', 'J', (0, 3), None, 'K'), event('Z', 'J', (0, 3))], (0, 10)),
-        'unresolved'),
+        'exact'),
 }
 
 
@@ -1065,6 +1068,247 @@ class OccurrenceOrderTests(unittest.TestCase):
             evs = tg.events_of(patient(events))
             before = sorted(evs, key=lambda e: (e.s, e.f, e.id))[-1]
             self.assertIs(tg.candidates({'occurrence': 'last'}, 'x', evs)[0], before)
+
+
+def ordered_case(rng):
+    """A small case of two or three steps, most of them `first` or `last`, over events of concept x, y or both, after
+    the D30 review's targeted fuzz (`fuzz3.py`): families of two ordered steps overlap without nesting, so one step can
+    bind another's possible target. Some exposures, an anchor, a cycle and a widening now and then."""
+    while True:
+        events = []
+        for i in range(rng.randint(2, 4)):
+            lo = rng.randint(0, 2)
+            e = {'id': f'e{i}', 'concepts': rng.choice([['x'], ['y'], ['x', 'y'], ['x'], ['y']]),
+                 'start': [lo, lo + rng.choice([0, 1, 2, 3])]}
+            if rng.random() < 0.25:
+                end = e['start'][1] + rng.randint(0, 2)
+                e['end'] = [end, end + rng.choice([0, 1])]
+            events.append(e)
+        k = rng.randint(2, 3)
+        names = 'ABC'[:k]
+        steps = [{'id': s, 'concept': rng.choice('xy'), 'occurrence': rng.choice(['first', 'last', 'any'])} for s in names]
+        relations = []
+        for j in range(1, k):
+            a, b = names[rng.randrange(j)], names[j]
+            if rng.random() < 0.5:
+                a, b = b, a
+            lo, hi = rng.choice([(None, -1), (0, None), (1, None), (None, 0), (-1, 1), (0, 0), (2, None), (None, -2)])
+            relations.append({'id': f'r{j}', 'kind': 'after', 'from': a, 'to': b,
+                              **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
+        if k == 3 and rng.random() < 0.3:
+            relations.append({'id': 'c', 'kind': 'after', 'from': 'A', 'to': 'C', 'min': rng.choice([-1, 0, 1])})
+        if rng.random() < 0.3:
+            relations.append({'id': 'w', 'kind': 'after', 'from': 'START', 'to': rng.choice(names),
+                              'max': rng.choice([0, 1, 2])})
+        relaxations = []
+        if rng.random() < 0.3:
+            relaxations.append({'id': 'wd', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),
+                                'concept': rng.choice('xy')})
+        q = query(steps, relations, relaxations=relaxations, budget=1, search_budget=10_000_000)
+        p = patient(events, (0, 8), 'P')
+        try:
+            tg.validate_query(q)
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        if worlds.count_worlds(p, 20) <= 5000:
+            return q, p
+
+
+ORDER_NOTES = ('RELAXATION_ORDER_UNCERTAIN', 'CHEAPER_RELAXATION_ORDER_UNCERTAIN')
+
+
+def undecided(r):
+    """D31's rule: an `unresolved` result, or one left incomplete by an undecided relaxation set."""
+    return r['status'] == 'unresolved' or (r.get('complete') is False and r['status'] in ('none', 'relaxed')
+                                           and r.get('note') in ORDER_NOTES)
+
+
+def incomplete(r):
+    """Undecided, or a `none` or `relaxed` result whose relaxation search stopped: what a change may still leave."""
+    return undecided(r) or (r.get('complete') is False and r['status'] in ('none', 'relaxed'))
+
+
+def envelope_cases(tiny=3000, ordered=1500):
+    rng = random.Random('d30-worlds')
+    cases = [tiny_case(rng) for _ in range(tiny)]
+    rng = random.Random('d31-ordered')
+    return cases + [ordered_case(rng) for _ in range(ordered)] + [(q, p) for q, p, _ in REVIEW_CASES.values()]
+
+
+class EnvelopeSearchTests(unittest.TestCase):
+    """D31, lever 1: one envelope search for unsafe `first` and `last` steps the argument covers. It is sound against
+    the true semantics (`trajectory_graph_worlds`), agrees with the reference (which writes it again), and moves a
+    result of D30 (the switch `_ENVELOPE` off) only from undecided to decided, or within undecided."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = envelope_cases()
+
+    def test_small_cases_are_sound_agree_with_the_reference_and_move_only_to_decisions(self):
+        moved = Counter()
+        for i, (q, p) in enumerate(self.cases):
+            new = tg.match(q, p)
+            tg._ENVELOPE = False
+            try:
+                old = tg.match(q, p)
+            finally:
+                tg._ENVELOPE = True
+            with self.subTest(case=i):
+                self.assertEqual(worlds.check(new, q, p), [], (q, p, new))
+                self.assertEqual(differential_view(new), differential_view(ref.match(q, p), reference=True), (q, p))
+                for certainty, relaxations, binding in reported_bindings(new):
+                    chosen = [x for x in q.get('relaxations', []) if x['id'] in relaxations]
+                    self.assertTrue(ref.binding_reaches(q, p, chosen, binding, certainty), (q, p, new))
+                if new != old:
+                    self.assertTrue(undecided(old), (q, p, old, new))
+                    moved['to a decision' if not incomplete(new) else 'within undecided'] += 1
+        self.assertGreater(moved['to a decision'], 300)
+        self.assertGreater(moved['within undecided'], 0)
+
+    def test_planted_defects(self):
+        """Dropping the order facts cannot make a result unsound (the model still over-approximates), so the worlds
+        check cannot see it; the reference does, and so does the D30 review's M1 case, which needs a fact. Each of the
+        other defects makes some small case unsound: a fact reversed, a conditional fact applied to every event, the
+        split's point without the blocked targets below it (so true targets starting before λ are missed), and an
+        exact claim made on the split instead of the envelope."""
+        cases = self.cases
+        def wrong():
+            return sum(bool(worlds.check(tg.match(q, p), q, p)) for q, p in cases)
+        def disagree():
+            return sum(differential_view(tg.match(q, p)) != differential_view(ref.match(q, p), reference=True)
+                       for q, p in cases)
+        self.assertEqual(wrong(), 0)
+        facts = tg._order_facts
+        reverse = lambda *a: [tg.OrderFact(c.y, c.x, c.lo, c.hi, c.source, c.concept) for c in facts(*a)]
+        everywhere = lambda *a: [tg.OrderFact(c.x, c.y, c.lo, c.hi, c.source, None) for c in facts(*a)]
+        split = tg._Occurrence.split
+        def point_only(self, blocked, others):
+            out = split(self, blocked, others)
+            return [r for r in out if r[tg._EVENT].sv in self.times.synthetic] or out
+        search = tg._envelope_search
+        def exact_on_split(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids):
+            wide = dict(safe)
+            for s in unsafe:
+                wide[s] = targets[s].split(*tg._blocked(plan, s, targets, step_ids, unsafe))
+            r = tg.decide(query, times, relaxations, budget, plan, wide)
+            return r, (None if r['exact']['found'] or not r['possible']['found'] else ('possible', uncertain))
+        q, p, _ = REVIEW_CASES['last J strictly before first K (impossible)']
+        tg._order_facts = lambda *a: []
+        try:
+            with self.subTest(defect='order facts dropped'):
+                self.assertEqual(wrong(), 0)
+                self.assertGreater(disagree(), 0)
+                self.assertEqual(tg.match(q, p)['status'], 'unresolved')
+        finally:
+            tg._order_facts = facts
+        for name, attr, owner, planted in (('a fact reversed', '_order_facts', tg, reverse),
+                                           ('a conditional fact applied to every event', '_order_facts', tg, everywhere),
+                                           ('the split without its blocked targets', 'split', tg._Occurrence, point_only),
+                                           ('exact claimed on the split', '_envelope_search', tg, exact_on_split)):
+            original = getattr(owner, attr)
+            setattr(owner, attr, planted)
+            try:
+                with self.subTest(defect=name):
+                    self.assertGreater(wrong(), 0)
+            finally:
+                setattr(owner, attr, original)
+
+    def test_the_exact_phase_order_facts_move_only_undecided_sets_to_exact(self):
+        """D31, second attempt: the order facts in the exact phase, certainty decided jointly. Against the first attempt
+        (the switch `_EXACT_FACTS` off) a result moves only from undecided to `exact` (or to a relaxed match found by a
+        set the facts now decide), every moved result is sound, and the reference, switched alike, agrees both ways."""
+        moved = Counter()
+        for i, (q, p) in enumerate(self.cases):
+            new = tg.match(q, p)
+            tg._EXACT_FACTS = ref.EXACT_FACTS = False
+            try:
+                old, old_ref = tg.match(q, p), ref.match(q, p)
+            finally:
+                tg._EXACT_FACTS = ref.EXACT_FACTS = True
+            with self.subTest(case=i):
+                self.assertEqual(differential_view(old), differential_view(old_ref, reference=True), (q, p))
+                if new != old:
+                    self.assertTrue(undecided(old), (q, p, old, new))
+                    self.assertEqual(worlds.check(new, q, p), [], (q, p, new))
+                    moved[new['status']] += 1
+        self.assertGreater(moved['exact'], 10)
+        q, p, _ = REVIEW_CASES['first K at or before last J (holds in every choice)']
+        self.assertEqual(tg.match(q, p)['method'], 'bounded_backtracking_with_order_facts')
+
+    def test_planted_defects_in_the_exact_phase_order_facts(self):
+        """An exact-phase fact reversed, or a conditional one applied to every event, makes some small case unsound.
+        Leaving the facts out of the exact phase cannot (it is the first attempt); the reference and the second M1 case
+        see it."""
+        searched = []
+        original = tg._exact_with_facts
+        def spy(*a):
+            searched.append(True)
+            return original(*a)
+        cases = []
+        tg._exact_with_facts = spy
+        try:
+            for q, p in self.cases:
+                searched.clear()
+                tg.match(q, p)
+                if searched:
+                    cases.append((q, p))
+        finally:
+            tg._exact_with_facts = original
+        self.assertGreater(len(cases), 50)
+        def wrong():
+            return sum(bool(worlds.check(tg.match(q, p), q, p)) for q, p in cases)
+        self.assertEqual(wrong(), 0)
+        reverse = lambda t, plan, base, facts, budget, steps: original(
+            t, plan, base, [tg.OrderFact(c.x, c.y, -c.hi, -c.lo, c.source, c.concept) for c in facts], budget, steps)
+        everywhere = lambda t, plan, base, facts, budget, steps: original(
+            t, plan, base, [tg.OrderFact(c.x, c.y, c.lo, c.hi, c.source, None) for c in facts], budget, steps)
+        for name, planted in (('an exact-phase fact reversed', reverse),
+                              ('an exact-phase conditional fact applied to every event', everywhere)):
+            tg._exact_with_facts = planted
+            try:
+                with self.subTest(defect=name):
+                    self.assertGreater(wrong(), 0)
+            finally:
+                tg._exact_with_facts = original
+        tg._EXACT_FACTS = False
+        try:
+            with self.subTest(defect='exact-phase facts dropped'):
+                self.assertEqual(wrong(), 0)
+                self.assertGreater(sum(differential_view(tg.match(q, p)) != differential_view(ref.match(q, p), reference=True)
+                                       for q, p in cases), 0)
+                q, p, _ = REVIEW_CASES['first K at or before last J (holds in every choice)']
+                self.assertEqual(tg.match(q, p)['status'], 'unresolved')
+        finally:
+            tg._EXACT_FACTS = True
+
+    def test_steps_on_one_concept_and_occurrence_share_their_point(self):
+        """Two `first` steps on one concept have one target in every choice of times: "the first K, then the first K
+        again within 2" holds in every choice, and the envelope search says `exact` (D30: unresolved)."""
+        q = query([{'id': 'a', 'concept': 'K', 'occurrence': 'first'}, {'id': 'b', 'concept': 'K', 'occurrence': 'first'}],
+                  [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': -2, 'max': 2}])
+        p = patient([event('M', 'K', (0, 5)), event('L', 'K', (2, 3))], (0, 10))
+        self.assertEqual(tg.match(q, p)['status'], 'exact')
+        self.assertEqual(ref.match(q, p)['status'], 'exact')
+        self.assertEqual(worlds.check(tg.match(q, p), q, p), [])
+        tg._ENVELOPE = False
+        try:
+            self.assertEqual(tg.match(q, p)['status'], 'unresolved')
+        finally:
+            tg._ENVELOPE = True
+
+    def test_uncovered_steps_keep_the_path_of_d30(self):
+        """A step whose end a relation reads, among exposures, or whose events share a variable, is not covered: the
+        set keeps D30's two searches (the review's "X during the first exposure" cases), byte for byte."""
+        for name in ('X during the first exposure (exact claimed)', 'X during the first exposure (none claimed)'):
+            q, p, status = REVIEW_CASES[name]
+            new = tg.match(q, p)
+            tg._ENVELOPE = False
+            try:
+                self.assertEqual(tg.match(q, p), new)
+            finally:
+                tg._ENVELOPE = True
+            self.assertEqual(new['status'], status)
 
 
 class PreparedQueryTests(unittest.TestCase):
