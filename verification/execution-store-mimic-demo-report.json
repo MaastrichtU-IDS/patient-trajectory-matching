@@ -207,7 +207,7 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "de2a9bdce98489bca305d980ec3da3f079e79f1c515ab0e7994c418fbb03dd54",
+    "snapshot_id": "a462557f33e38105c34f7ffa0f29eaa6aff9d739767afdd875262f4ffd15aff0",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
     "input_digest": "7a0dd1fd4aeb8ace36507915ffd01830b6bc3e0909dc565878e7cd5d29695323",
     "closure_version": "mimic-store-ingest-1.0:dad9c04bb57098a51a7c383b896934463b5a7e057ee71e8ec0814402317b3ba1",
@@ -314,23 +314,23 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 65.56,
-    "admission_and_claims": 0.79,
-    "chartevents_built_store_comparison": 8.98,
-    "chartevents_census": 547.49,
-    "chartevents_raw_row_check": 3.03,
-    "chartevents_route_b": 20.39,
-    "derived_differential": 341.57,
-    "differential": 483.56,
+    "adapter": 66.35,
+    "admission_and_claims": 0.75,
+    "chartevents_built_store_comparison": 8.92,
+    "chartevents_census": 552.92,
+    "chartevents_raw_row_check": 3.0,
+    "chartevents_route_b": 20.28,
+    "derived_differential": 341.97,
+    "differential": 475.79,
     "mapping": 0.27,
-    "store_build": 16.79,
+    "store_build": 16.1,
     "store_open_and_verify": 0.04,
-    "total": 1690.26,
-    "value_differential": 201.62
+    "total": 1688.46,
+    "value_differential": 201.94
   },
   "resources": {
-    "cpu_seconds": 7092.7,
-    "peak_rss_bytes_main_process": 2330722304,
+    "cpu_seconds": 7201.6,
+    "peak_rss_bytes_main_process": 2272722944,
     "note": "this run, this machine: CPU time of the verifier and its worker processes"
   },
   "artifacts": {
@@ -352,8 +352,8 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "fea350cf830792f5fe2cd167378bd432bf5b8b9b4f3e85fd636fb4b4049001f5",
-    "patterns/execution_store_reference.py": "2a7deec946f19a3e8bb2d66f4ff504e839295f67b073ef9bf82e23e87ed93cf8",
+    "patterns/execution_store.py": "6a61fa5b270fceeb4af413a1c63a6d366a57b89f087db40f9b52e53757df9cff",
+    "patterns/execution_store_reference.py": "5e02cad5dcaca5ba5ec220fd565a5223186903d35b22f22c7776108c0874e619",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
