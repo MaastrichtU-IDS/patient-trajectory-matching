@@ -555,6 +555,21 @@ def _strengths(times, family, n, within, window):
     exact = not any(_variables(e) & shared for e in family)
     dom, gap = times['dom'], times['gap']
     out = {}
+    if exact and all(dom[e['sv']][0] == dom[e['sv']][1] for e in family):
+        # Every counted time is exact (as on MIMIC): the count at e is a plain count of the others in its interval.
+        from bisect import bisect_left, bisect_right
+        starts = sorted(dom[e['sv']][0] for e in family)
+        for e in family:
+            t0 = dom[e['sv']][0]
+            if within == 'window':
+                if not window['start'] <= t0 <= window['end']:
+                    continue
+                lo = window['start']
+            else:
+                lo = t0 - within
+            if bisect_right(starts, t0) - bisect_left(starts, lo) - 1 >= n - 1:
+                out[e['id']] = 'certain'
+        return out, True
     for e in family:
         a, b = dom[e['sv']]
         others = [x for x in family if x is not e]

@@ -333,6 +333,74 @@ A match request may carry conditions on measured values: `match(store, query, wi
 
   The store equals the prepared reference on all 20,000 results and `exhaustive_match` on the first 20 queries, with 0 mismatches. The status mix is exact 516, relaxed 8, unresolved 173, none 2,955, not comparable 15,364 and excluded 984: excluded chart rows dominate, as D18 predicts. Every value relaxation widens to a containing tag. On the first 40 queries, the off-by-one threshold gives 130 wrong results and the ignored unit 174. The demo holds no null `value_micro`, so the two null defects cannot fail there (0 each); the synthetic fixtures are their evidence. The adapter rows carry no values, so value queries have no third path. The run takes 196 s.
 
+## Derived steps: Nth occurrence and counts (D32)
+
+Profile `execution-store-conditions-1.1` extends the D28 request. A 1.0 request is answered as before, key for key. Per step, beside or without a value condition, a 1.1 request may give:
+- an Nth or Nth-from-last occurrence: `"occurrence": {"nth": N}` or `{"nth_last": N}`, N ≥ 1;
+- a count: `"count": {"at_least": N, "within": {"span": micros} | "window"}`, "at least N times within a span" or "within the index period".
+
+It may also give the relaxation `widen_count` (`{id, kind, step, cost, at_least: N′}`, with 1 ≤ N′ < N), optionally naming a wider `concept` (the page's "parent concept and one fewer" as one relaxation, since the engine allows one relaxation per step).
+
+```json
+{"profile": "execution-store-conditions-1.1",
+ "steps": {"A": {"count": {"at_least": 3, "within": {"span": 15811200000000}}},
+           "B": {"occurrence": {"nth": 2}},
+           "C": {"unit": "mmHg", "lt": "65", "count": {"at_least": 3, "within": "window"}}},
+ "relaxations": [{"id": "cA", "kind": "widen_count", "step": "A", "cost": "0.5", "at_least": 2}]}
+```
+
+**Coded records only, counted as records.** Counts and Nth occurrences read only events whose kind is not `mention`. A letter mention ranges from birth to its letter (D30), which would leave almost every count and rank uncertain. Duplicates count separately: the store counts *recorded events*, never happenings. A happening recorded by the EHR and the registry counts twice, and the page must label the store's answers as counts of recorded events. On the committed synthetic cohort, "at least 3 seizures within 183 days" holds for 39 patients over every record, for 15 over coded records only, and for 11 over true happenings (the plan's analysis, from the generator's truth, which no store code reads).
+
+**Nth occurrence.**
+- *The step's time* is the time of the Nth occurrence of its concept K among the patient's coded events carrying K (a value tag's events, for a value-conditioned step). It binds no record.
+- *The store's model.* Per patient, one derived point event carries the step's derived tag. Its id is `derived-step:<step>/<own or relaxation id>`, and it has its own variable. Its start ranges from the Nth-smallest lower bound to the Nth-smallest upper bound of those events' starts, over `Times.dom`, the patient's tightened ranges (Nth from last: the Nth largest). Every true Nth time lies in that range (order statistics are monotone). When the events share no variable, every time in it is attained.
+- *Soundness.* `exact` and `none` are sound, since every true choice of times maps into the model with the point at the true Nth time.
+- *Coupling.* `possible` is exact unless the step is coupled: K's coded events share a variable, or another step can bind one of them (an `any`, `first` or `last` step whose concept one carries, or a derived step whose counted events meet them). A coupled set whose result would be `possible` is undecided. It is `unresolved` (`OCCURRENCE_TIME_COUPLED`) with the binding beside it, or, for a relaxation set, passed over with note `RELAXATION_OCCURRENCE_COUPLED` (`CHEAPER_…`).
+- *Refusals.* A `during` from an Nth step is refused (`NTH_STEP_HAS_NO_END`). So are Nth with an engine `first` or `last` on the same step (`OCCURRENCE_CONFLICT`) and Nth with a count (`OCCURRENCE_ON_DERIVED_STEP`).
+- *The page.* Its "Nth, N = 1" is translated to the engine's `first`.
+
+**Counts.**
+- *What the step binds.* A coded event e carrying K at which the count is reached: in a choice of times t, at least N − 1 *other* coded events of K start in [t(e) − span, t(e)]. For the index period the interval is [window start, t(e)], with t(e) in the window. Simultaneous events count.
+- *Certain and possible.* The derived tag marks e as *certain* (reached in every choice of times) or only *possible* (in some).
+  - With no shared variable among the counted events, a sweep over e's range is exact (`count_sweep_v1`). It counts the events forced into the interval (b_x ≤ τ ≤ a_x + span) and those allowed in it (a_x ≤ τ ≤ b_x + span), and takes the least and the greatest over τ.
+  - A period count is certain only if e's whole range lies inside the window.
+  - With shared variables, a pairwise test on the patient's distances gives a sound under-approximation of certain and over-approximation of possible (`count_pairwise_linked_v1`). A claim that no binding is exact then rests on nothing, so such a patient's `possible` results become `unresolved` (`STEP_CONDITION_UNCERTAIN`).
+- *The two-pass rule.* Pass 1 runs the engine with the tag on certain events. Pass 2 runs it on certain and possible events, and only when pass 1 is neither `exact`, `possible` nor `unresolved` and some tag that a tried relaxation set uses has a possible-only event. The results combine as follows:
+  - pass 1 relaxed and pass 2 relaxed by the same set: `relaxed`;
+  - pass 1 relaxed and anything else from pass 2: `unresolved` (`STEP_CONDITION_UNCERTAIN`), with pass 1's match beside it;
+  - pass 1 none and pass 2 none: `none`;
+  - pass 1 none and anything else from pass 2: `unresolved` (`STEP_CONDITION_UNCERTAIN`).
+
+  `complete` is false if either pass was, and notes from both are kept. A first, last or Nth on a count step is refused (`OCCURRENCE_ON_DERIVED_STEP`), since it would pick different records in the two passes.
+- *Relaxation containment.* `widen_count` is a widening to the tag of the smaller N. Certain at N implies certain at N′, and possible implies possible.
+
+**Candidates, pruning, loading.**
+- *Candidates.* A derived tag's candidates are the patients with at least N events of its concept: posting `n` for a concept, or series rows for a value tag. Over coded records only, this is a sound superset, since a posting counts mentions too. The step's filter is the union over its tags, so a `widen_count` brings in its smaller N′ and a patient matching only after the relaxation is never filtered out.
+- *Pruning* uses the concept's (or value tag's) summaries, with the latest start as an Nth point's latest end. Every derived event lies inside them, so D25's argument holds.
+- *Loading.* Events are loaded by the concepts and value tags the derived tags count, and their kinds tell mentions apart.
+
+**Excluded records (D18).**
+- An Nth step is displaced like `first`, on its envelope: an excluded record of its concepts with `start_lo` at or before the envelope's latest start makes any result with a binding not comparable, whatever the scope. Nth from last is displaced like `last`.
+- For `none`, an Nth step reaches every excluded record of its concepts, whatever the scope. An excluded record before the window can shift an in-window event into rank N.
+- A span count reaches every record, since a witness need not satisfy the scope. A period count reaches the records overlapping the window.
+- Counts are monotone, so the rest is D18's rule.
+
+**Coverage.** A derived step is recorded by the sources of what it counts.
+
+**Output.**
+- `derived_steps`: the rules (`DERIVED_RULES`), each derived step's kind and each derived tag's spec;
+- `value_conditions`, only when the request has value conditions;
+- in the context, `derived_rules`.
+
+**A snapshot without series** refuses a 1.1 value condition by name (`NO_SERIES_IN_SNAPSHOT`). A 1.0 request keeps its D28 answer.
+
+**Verification** (decision log, D32, with the figures):
+- the worlds checker (`trajectory_graph_worlds.check_derived`) reads derived steps as what they mean, never as their compiled events;
+- `derived_cases.py` generates small multi-concept and coupled cases;
+- the reference (`execution_store_reference.DerivedQuery`, `derived_result`) is written again: sorted order statistics, count strengths evaluated at every change point, each relaxation set decided by the engine alone;
+- the snapshot differentials, planted defects and containment checks are in `patterns/test_derived_steps.py`;
+- the MIMIC demo's `derived_differential`.
+
 ## Match output
 
 `match(store, query, windows)` returns, beside the per-patient results, the counts and the filter plan:

@@ -61,6 +61,7 @@ class PreparedReference:
                 for c in ref.expanded([x['concept']], ancestors):
                     excluded.setdefault(c, []).append(position)
             self.patients.append({'patient_id': p['patient_id'], 'coverage': p['coverage'], 'events': events,
+                                  'mentions': {e['event_id'] for e in p['events'] if e['kind'] == 'mention'},
                                   'index': index, 'shares': ref.shares_variables(p),
                                   'position': {e['id']: i for i, e in enumerate(events)},
                                   'excluded': p.get('excluded', []), 'excluded_index': excluded})
@@ -89,8 +90,8 @@ class PreparedReference:
 
     def match(self, query, windows, conditions=None):
         """`execution_store_reference.exhaustive_match(ingest, query, windows, conditions)`, from the prepared inputs."""
-        if ref.has_derived(conditions):  # D32: the derived reference reads every event of every patient
-            return ref.derived_exhaustive_match(self.ingest, query, windows, conditions)
+        if ref.has_derived(conditions):
+            return self.derived_match(query, windows, conditions)
         value = None if conditions is None else ref.ValueQuery(self.ingest, query, conditions)
         recorders = self.recorders
         if value is not None:
@@ -112,5 +113,30 @@ class PreparedReference:
                 positions = sorted({i for c in concepts for i in p['excluded_index'].get(c, ())})
                 relevant = {'patient_id': pid, 'excluded': [p['excluded'][i] for i in positions]}
                 result = ref.admission_check(query, base, result, relevant, events, self.ancestors, window)
+            results.append(result)
+        return results
+
+    def derived_match(self, query, windows, conditions):
+        """`exhaustive_match` for a request with derived steps (D32), from the prepared inputs: each patient's events
+        carrying a concept or value tag some step's derived tag counts or binds (every event when the patient shares
+        variables), the reference's derived passes (`execution_store_reference.derived_result`), then coverage and
+        the derived excluded-records rule. A derived step reads only events of its own concept, so the events left out
+        change nothing, by the argument above."""
+        dq = ref.DerivedQuery(self.ingest, query, conditions)
+        value = dq.value
+        recorders = {**self.recorders, **(value.recorders if value else {})}
+        wanted = set().union(*dq.loads.values())
+        concepts = set().union(*dq.base.values())
+        results = []
+        for p in self.patients:
+            pid, window = p['patient_id'], windows.get(p['patient_id'])
+            events = self.engine_events(p, wanted) if value is None else self.tagged_events(p, wanted, value)
+            result, points = ref.derived_result(dq, pid, window, events, p['mentions'])
+            if result['status'] == 'none':
+                result = coverage_rule(dq.query, dq.loads, recorders, p['coverage'], window, result)
+            if window is not None and result['status'] != 'not_comparable':
+                positions = sorted({i for c in concepts for i in p['excluded_index'].get(c, ())})
+                relevant = {'patient_id': pid, 'excluded': [p['excluded'][i] for i in positions]}
+                result = ref.derived_admission(dq, result, relevant, events, self.ancestors, window, points)
             results.append(result)
         return results
