@@ -207,7 +207,7 @@
     }
   },
   "snapshot": {
-    "snapshot_id": "3fe29499eff3adf89258542c4273e406d1799c7a4052515f6c741626927e4557",
+    "snapshot_id": "de2a9bdce98489bca305d980ec3da3f079e79f1c515ab0e7994c418fbb03dd54",
     "dataset_id": "mimic-iv-demo-2.2:source_item_class",
     "input_digest": "7a0dd1fd4aeb8ace36507915ffd01830b6bc3e0909dc565878e7cd5d29695323",
     "closure_version": "mimic-store-ingest-1.0:dad9c04bb57098a51a7c383b896934463b5a7e057ee71e8ec0814402317b3ba1",
@@ -314,22 +314,23 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 84.12,
-    "admission_and_claims": 0.8,
-    "chartevents_built_store_comparison": 8.99,
-    "chartevents_census": 558.08,
-    "chartevents_raw_row_check": 3.01,
-    "chartevents_route_b": 20.32,
-    "differential": 476.5,
+    "adapter": 65.56,
+    "admission_and_claims": 0.79,
+    "chartevents_built_store_comparison": 8.98,
+    "chartevents_census": 547.49,
+    "chartevents_raw_row_check": 3.03,
+    "chartevents_route_b": 20.39,
+    "derived_differential": 341.57,
+    "differential": 483.56,
     "mapping": 0.27,
-    "store_build": 16.72,
+    "store_build": 16.79,
     "store_open_and_verify": 0.04,
-    "total": 1370.17,
-    "value_differential": 201.16
+    "total": 1690.26,
+    "value_differential": 201.62
   },
   "resources": {
-    "cpu_seconds": 7078.1,
-    "peak_rss_bytes_main_process": 2250981376,
+    "cpu_seconds": 7092.7,
+    "peak_rss_bytes_main_process": 2330722304,
     "note": "this run, this machine: CPU time of the verifier and its worker processes"
   },
   "artifacts": {
@@ -351,8 +352,8 @@
     "patterns/claim_projection.py": "abc7e457546dc2e6baa6dcd588971040398734e4eecd5212f86d86d1c3dd9bb5",
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
-    "patterns/execution_store.py": "8ce110ba5e832f59b952349277396d0c142d44185f697a4f8a669202770299ae",
-    "patterns/execution_store_reference.py": "610bd8e7670d29ed9f7262d347fcf5c5c5bdada1a7c6985c258e5d616c0e3530",
+    "patterns/execution_store.py": "fea350cf830792f5fe2cd167378bd432bf5b8b9b4f3e85fd636fb4b4049001f5",
+    "patterns/execution_store_reference.py": "2a7deec946f19a3e8bb2d66f4ff504e839295f67b073ef9bf82e23e87ed93cf8",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
@@ -364,7 +365,7 @@
     "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
     "patterns/mimic_store_ingest.py": "8f9c2eba3708981b658239418d1795f90265cdcfd5eba0c9c7316586ba5ca21c",
     "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
-    "patterns/prepared_reference.py": "ab1566a7a65ae0e34210349e649d13a36aa664282dedbd8d2339af6e32026a7d",
+    "patterns/prepared_reference.py": "c676af38fa21ba8544cb4bd055b006ecfaa34ec2727d60b9455ab9878f907fdf",
     "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
     "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
     "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
@@ -376,7 +377,7 @@
     "patterns/trajectory_graph.py": "7bd5fa14dcd69ccb2a17818aff09d585317b5e2d65e88132d5243cd45c1bd656",
     "patterns/trajectory_graph_sulo.py": "5e77832e4c9997ac9bd74db02dde34521249ecfaef2a82ba8c1c01576f77d100",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
-    "patterns/verify_mimic_store_ingest.py": "52c2b98fff2d513253688a2417984786625029f9d6728ec4bede2baac482d9fa",
+    "patterns/verify_mimic_store_ingest.py": "87939727461f785d3cc675a6912c9c73be603eaf2174385790d5a696327bfdbd",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
     "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
     "schemas/execution-store-manifest.schema.json": "70c85f458538863fb1ffe4601ee866c28b362a393e8d01b0351ff2f9a0299f12",
@@ -536,6 +537,72 @@
       }
     },
     "note": "a planted defect in reading null micro-unit values cannot fail on a snapshot holding none; the synthetic fixtures of patterns/test_value_conditions.py hold many",
+    "mismatch_examples": []
+  },
+  "derived_differential": {
+    "queries": 150,
+    "first_seed": 200000,
+    "queries_per_feature": {
+      "nth": 50,
+      "span": 50,
+      "window": 50
+    },
+    "results_compared": 15600,
+    "reference": "prepared_reference with the request on every query; exhaustive_match with the request on the first queries; each reads the request and derives envelopes, count strengths, coupling and the two-pass rule independently of the store (execution_store_reference.DerivedQuery)",
+    "exhaustive_queries": 6,
+    "mismatches": 0,
+    "pruning_on_off_differences": 0,
+    "status_mix": {
+      "nth": {
+        "exact": 15,
+        "excluded": 254,
+        "none": 706,
+        "not_comparable": 4017,
+        "unresolved": 8
+      },
+      "span": {
+        "exact": 171,
+        "excluded": 256,
+        "none": 568,
+        "not_comparable": 3922,
+        "relaxed": 23,
+        "unresolved": 60
+      },
+      "window": {
+        "exact": 185,
+        "excluded": 267,
+        "none": 554,
+        "not_comparable": 3811,
+        "relaxed": 3,
+        "unresolved": 180
+      }
+    },
+    "unresolved_share": {
+      "nth": {
+        "unresolved": 8,
+        "results_with_a_window": 4746,
+        "by_reason": {
+          "SEARCH_BUDGET_EXHAUSTED": 8
+        }
+      },
+      "span": {
+        "unresolved": 60,
+        "results_with_a_window": 4744,
+        "by_reason": {
+          "ADMISSION_EXCLUDED_RECORDS": 60
+        }
+      },
+      "window": {
+        "unresolved": 180,
+        "results_with_a_window": 4733,
+        "by_reason": {
+          "ADMISSION_EXCLUDED_RECORDS": 180
+        }
+      }
+    },
+    "count_relaxations_checked": 34,
+    "count_relaxation_containment_violations": 0,
+    "note": "every time on the demo is exact, so no count is only possible and no envelope is wider than a point; excluded chart rows (D18) reach Nth and span-count steps whatever the scope, so most results on chart items are not comparable",
     "mismatch_examples": []
   }
 }
