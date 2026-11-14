@@ -80,6 +80,7 @@ LABELS = {
     'test_merkle_patients': 'Merkle tree over patients tests',
     'test_value_conditions': 'Execution-store value-condition tests',
     'test_derived_steps': 'Execution-store Nth-occurrence and count tests',
+    'test_build_record': 'Scaling build runtime-record tests',
 }
 
 
