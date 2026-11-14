@@ -1846,3 +1846,9 @@ The owner's delegate decided to stop hardening a static analysis of Python, whic
   - S7: the docs say the gate re-checks the files the record lists, and only a probe sees a new shadow.
   - Nits: the moved globals' comment; `artifacts_at_ref` lists `trajectory_times.py` where a ref has it; the gate reads `build_provenance` by name, not by shape.
 - *What the record now covers,* stated in the report (`build_covers`), the store doc and on the results page. Covered: repository files loaded or read through Python (sources only), pinned data files, the recorded versions, the settings the build saw, the environment and the limits, with DuckDB confined to the build's directories. Not covered: the operating system, CPU microcode, library internals beyond their versions, and the benchmark that wrote the origin's figures (bound only by the origin report).
+
+**The re-review** (of the third review's fixes; its notes in `/tmp/rv34c/`) closed all three must-fixes and found no new one. Three should-fixes touched files the regeneration binds, so they were done before it (cdc58a0):
+- the build process refuses to run, before it imports anything of the repository, if its bytecode cache already holds bytecode of the repository (`BYTECODE_CACHE_NOT_FRESH`); `fresh_bytecode_cache` is recorded only after that check. Tested with a planted `.pyc`;
+- the recorded settings hold every environment variable, with `TMPDIR` and `HOME` masked, so an extra `DUCKDB_*` or `ARROW_*` variable leaves a trace. Tested;
+- a fresh report's parameters (staging, threads, memory limit) must equal what its build processes recorded seeing (`BUILD_SETTINGS_DIFFER`). Tested;
+- and the optional nit: the generator is executed from bytes whose digest the build compares with the recorded file, so an edit made and reverted during a build is caught (`PINNED_FILE_CHANGED_DURING_BUILD`).

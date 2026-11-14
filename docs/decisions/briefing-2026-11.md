@@ -167,3 +167,15 @@ Cautions on the matching rows:
   - *Latency.* No regression under the paired protocol against main: 14-worker p95 ratios 1.010, 1.001, 1.001 and 1.001 (bar 1.05); this tree's p95 8.10 s, max 10.2 s, 0.80 GB; both codes give identical results on all 30 queries. At 8 workers this tree gave 9.86 s in this session (D31's sessions: 10.17 and 11.56 s for the same code), so the 8-worker figure varies across sessions.
   - *Review.* An early independent review found one must-fix: derived tag names could collide (a relaxation named `own`, or ids with `/` across steps), giving a wrong `exact`. Such requests are now refused by name, and everything was regenerated on the fixed code. A D18 limit is documented as a follow-up: a `possible` match left beside `unresolved` after a count.
   - *Frozen.* The D30 attribution and the D31 verdict reports are frozen as historical records.
+- **D33, rises and falls: built, sound, not shipped.** A query can't yet ask the store for "the monthly seizure count rises to at least twice its baseline"; the page's translator keeps refusing it by name.
+  - *Your decisions (2026-11-14), as built:*
+    - a monthly diary count is a whole-month period, ordered by its start;
+    - the baseline is the mean of up to k earlier readings of the same item and unit within W, with an explicit floor and exact arithmetic;
+    - a reading is tagged certain only when every possible configuration satisfies the condition;
+    - an undetermined baseline counts as possible, through D32's two passes.
+  - *Evidence.* No wrong claim in 60,000 small cases checked against every choice of times. The independently written reference agrees on all of them, and on 500 snapshot requests (0 mismatches at 1 and 2 workers, both detail levels, pruning off). Seven planted defects caught.
+  - *Why not shipped.* The bar you set was at most 30% `unresolved` among the patients with a candidate. I wrote it into the rules as "in each template", and you confirmed that reading.
+    - Sequence: 0 of 6. Tree without its gene step: 0 of 6. Graph without its gene step: 3 of 4 (75%), against a denominator where one patient moves the share by 25 points.
+    - The rise's own tags were decided. The three come from D30's order rule on the graph template's `first` blocker, whose end the rise's `during` reads.
+    - The implementation is kept in commit bccee57.
+  - *Next.* Look at D30's order rule on "first X" with `during`. Then retry rises and falls with a usefulness test on more patients.
