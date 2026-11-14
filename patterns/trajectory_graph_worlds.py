@@ -227,10 +227,13 @@ def check(result, query, patient, horizon=None):
 
 def derived_sets(query, conditions):
     """The relaxation sets within the budget, as the store compiles them: the query's relaxations, then each
-    `widen_count` (one relaxation per step: a `widen_count` and a `widen_concept` of one step are alternatives)."""
+    `widen_count`, then each `widen_factor` (D33) (one relaxation per step: a `widen_count`, `widen_factor` and
+    `widen_concept` of one step are alternatives)."""
     options = list(query.get('relaxations', []))
     options += [dict(x) for x in (conditions or {}).get('relaxations', []) if x['kind'] == 'widen_count']
-    target = lambda x: ('step', x['step']) if x['kind'] in ('widen_concept', 'widen_count') else (x['kind'], x['relation'])
+    options += [dict(x) for x in (conditions or {}).get('relaxations', []) if x['kind'] == 'widen_factor']
+    target = lambda x: (('step', x['step']) if x['kind'] in ('widen_concept', 'widen_count', 'widen_factor')
+                        else (x['kind'], x['relation']))
     budget = Fraction(query.get('budget', 0))
     out = []
     for k in range(1, len(options) + 1):
@@ -246,12 +249,15 @@ def derived_sets(query, conditions):
 class _DerivedQuestion(_Question):
     """One query with derived steps under one relaxation set, over one patient's worlds."""
 
-    def __init__(self, query, conditions, chosen, events, all_worlds, window, mentions):
-        plain = [x for x in chosen if x['kind'] != 'widen_count']
+    def __init__(self, query, conditions, chosen, events, all_worlds, window, mentions, readings=None):
+        plain = [x for x in chosen if x['kind'] not in ('widen_count', 'widen_factor')]
         super().__init__(query, plain, events, all_worlds, window)
         self.derived = {}
+        self.readings = readings
         for sid, raw in ((conditions or {}).get('steps') or {}).items():
-            if 'occurrence' in raw:
+            if 'relative' in raw:
+                self.derived[sid] = ('relative', dict(raw['relative']))
+            elif 'occurrence' in raw:
                 (which, n), = raw['occurrence'].items()
                 self.derived[sid] = ('nth', which, n)
             elif 'count' in raw:
@@ -263,11 +269,17 @@ class _DerivedQuestion(_Question):
                 self.derived[x['step']] = ('count', x['at_least'], within)
                 if 'concept' in x:
                     self.concept[x['step']] = x['concept']
+            elif x['kind'] == 'widen_factor':
+                self.derived[x['step']] = ('relative', dict(self.derived[x['step']][1], factor=x['factor']))
         self.coded = {s: [e for e in events if self.concept[s] in e['concepts'] and e['id'] not in mentions]
                       for s in self.steps}
         for s, spec in self.derived.items():
             if spec[0] == 'count':
                 self.family[s] = self.coded[s]
+            elif spec[0] == 'relative':  # the readings of an item class the concept covers, in the condition's unit
+                rows = readings['rows']
+                self.family[s] = [e for e in events if e['id'] in rows and rows[e['id']]['unit'] == spec[1]['unit']
+                                  and readings['covers'](rows[e['id']]['item_class'], self.concept[s])]
         self.free = [s for s in self.steps if self.occurrence[s] == 'any' and self.derived.get(s, ('',))[0] != 'nth']
 
     def reached(self, s, e, t):
@@ -281,7 +293,43 @@ class _DerivedQuestion(_Question):
             lo = te - within
         return sum(1 for x in self.coded[s] if x is not e and lo <= t[x['sv']] <= te) >= n - 1
 
-    def holds(self, t, chosen):
+    def outcome(self, s, e, t):
+        """D33: 'true', 'false' or 'unknown' for the relative condition of step s at reading e in world t: the k most
+        recent readings of e's item class with time in [t(e) - W, t(e) - 1] (a period reading's time is its recorded
+        start's lower bound; an excluded record's its own variable), at equal times excluded records first, then
+        event ids; none: false; an excluded record or another unit among them: unknown; else the mean, compared."""
+        from decimal import Decimal
+        rel, rows, by_id = self.derived[s][1], self.readings['rows'], {x['id']: x for x in self.events}
+
+        def when(eid):
+            if rows[eid]['kind'] in self.readings['period']:
+                return by_id[eid]['s'][0]
+            return t[by_id[eid]['sv']]
+        item, tau, W = rows[e['id']]['item_class'], when(e['id']), rel['baseline']['within']
+        inside = [(when(x), 1, x, rows[x]) for x in rows if x != e['id'] and rows[x]['item_class'] == item]
+        inside += [(t[v], 0, v, None) for v, x in zip(self.readings['excluded_vars'], self.readings['excluded'])
+                   if x['item_class'] == item]
+        inside = sorted((p for p in inside if tau - W <= p[0] <= tau - 1), key=lambda p: (-p[0], p[1], p[2]))
+        chosen = inside[:rel['baseline']['previous']]
+        if not chosen:
+            return 'false'
+        if any(r is None or r['unit'] != rel['unit'] for _, _, _, r in chosen):
+            return 'unknown'
+        mean = sum(Fraction(Decimal(r['value'])) for _, _, _, r in chosen) / len(chosen)
+        bar = max(Fraction(Decimal(rel['floor'])), mean)
+        value, factor = Fraction(Decimal(rows[e['id']]['value'])), Fraction(Decimal(rel['factor']))
+        ok = value >= factor * bar if rel['kind'] == 'rise' else value * factor <= bar
+        return 'true' if ok else 'false'
+
+    def possible(self):
+        return any(self.holds(t, c, True) for c in self.choices() for t in self.worlds)
+
+    def exact_for(self, chosen):
+        return bool(self.worlds) and all(self.holds(t, chosen) for t in self.worlds)
+
+    def holds(self, t, chosen, lenient=False):
+        """Whether the trajectory holds in world t; a relative condition whose outcome is unknown (an excluded
+        record's value, another unit) may hold (`lenient`) and does not certainly hold."""
         bound, times = dict(chosen), {}
         for s in self.steps:
             spec = self.derived.get(s)
@@ -304,6 +352,10 @@ class _DerivedQuestion(_Question):
                 if e is None:
                     return False
                 bound[s] = e
+            elif spec is not None and spec[0] == 'relative':
+                result = self.outcome(s, bound[s], t)
+                if result == 'false' or (result == 'unknown' and not lenient):
+                    return False
             elif spec is not None and not self.reached(s, bound[s], t):
                 return False
             times[s] = t[bound[s]['sv']]
@@ -329,15 +381,23 @@ class _DerivedQuestion(_Question):
         return True
 
 
-def check_derived(result, query, conditions, patient, mentions=frozenset(), horizon=None):
+def check_derived(result, query, conditions, patient, mentions=frozenset(), horizon=None, readings=None):
     """The claims of a store result for a request with derived steps (D32) that are false, as strings; [] when it is
-    sound. `query` and `conditions` are the request as the caller wrote it (1.1, without value conditions); `patient`
-    is the engine patient without any derived event, `mentions` the ids of its events whose kind is `mention`. Every
-    status but `unresolved` is checked, and the relaxed match beside `unresolved`; a binding names its Nth steps by
-    their derived point, which carries no claim, and its count steps by the record at which the count is reached."""
+    sound. `query` and `conditions` are the request as the caller wrote it (1.1 or 1.2, without value conditions);
+    `patient` is the engine patient without any derived event, `mentions` the ids of its events whose kind is
+    `mention`. Every status but `unresolved` is checked, and the relaxed match beside `unresolved`; a binding names its
+    Nth steps by their derived point, which carries no claim, and its count steps by the record at which the count is
+    reached. A relative condition (D33) reads `readings`: `rows` {event id: item class, unit, value, kind},
+    `excluded` [{item class, start}] (each excluded record a variable of its own in every world), `period` (the
+    period kinds) and `covers(item class, concept)`; an unknown outcome may be true or false."""
     window = patient.get('window')
     if window is None:
         return [] if result['status'] == 'excluded' else ['a patient without a window is not excluded']
+    if readings is not None:  # each excluded record is a variable of its own, carrying no concept a step names
+        pseudo = [{'id': f'#excluded/{j}', 'concepts': ['#excluded'], 'start': list(x['start'])}
+                  for j, x in enumerate(readings['excluded'])]
+        readings = dict(readings, excluded_vars=[x['id'] + '.s' for x in pseudo])
+        patient = dict(patient, events=list(patient['events']) + pseudo)
     if horizon is None:
         spans = [raw['count']['within']['span'] for raw in (conditions or {}).get('steps', {}).values()
                  if 'count' in raw and raw['count']['within'] != 'window']
@@ -347,7 +407,7 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
     events, all_worlds = worlds(patient, horizon)
     by_id = {e['id']: e for e in events}
     sets = derived_sets(query, conditions)
-    ask = lambda chosen: _DerivedQuestion(query, conditions, chosen, events, all_worlds, window, mentions)
+    ask = lambda chosen: _DerivedQuestion(query, conditions, chosen, events, all_worlds, window, mentions, readings)
 
     def certainty_holds(question, certainty, binding):
         if any(binding.get(s) not in by_id for s in question.free):
@@ -357,7 +417,7 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
             return False
         if certainty == 'exact':
             return question.exact_for(free)
-        return any(question.holds(t, free) for t in all_worlds) and not question.exact()
+        return any(question.holds(t, free, True) for t in all_worlds) and not question.exact()
     wrong = []
     status, complete = result['status'], result.get('complete', True)
     unrelaxed = ask(())
@@ -386,6 +446,31 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
         if not certainty_holds(ask(chosen), m['certainty'], m['binding']):
             wrong.append('the relaxed match beside unresolved does not reach its certainty')
     return wrong
+
+
+def relative_strengths(patient, concept, rel, readings, horizon=None):
+    """{event id: 'certain' | 'possible'} of a relative condition (D33) by enumeration: certain when its outcome is
+    true in every world, possible when true or unknown in some. `rel` is the request's `relative` entry."""
+    window = patient.get('window') or {'start': 0, 'end': 0}
+    query = {'steps': [{'id': 'A', 'concept': concept}], 'relations': []}
+    conditions = {'steps': {'A': {'relative': rel}}}
+    pseudo = [{'id': f'#excluded/{j}', 'concepts': ['#excluded'], 'start': list(x['start'])}
+              for j, x in enumerate(readings['excluded'])]
+    readings = dict(readings, excluded_vars=[x['id'] + '.s' for x in pseudo])
+    patient = dict(patient, events=list(patient['events']) + pseudo)
+    if horizon is None:
+        horizon = max([window['end']] + [v for e in patient['events'] for v in e['start'] + e.get('end', [])
+                                         if v is not None]) + 1
+    events, all_worlds = worlds(patient, horizon)
+    question = _DerivedQuestion(query, conditions, (), events, all_worlds, window, frozenset(), readings)
+    out = {}
+    for e in question.family['A']:
+        seen = {question.outcome('A', e, t) for t in all_worlds}
+        if seen == {'true'}:
+            out[e['id']] = 'certain'
+        elif seen & {'true', 'unknown'}:
+            out[e['id']] = 'possible'
+    return out
 
 
 def nth_times(patient, concept, which, n, mentions=frozenset(), horizon=None):

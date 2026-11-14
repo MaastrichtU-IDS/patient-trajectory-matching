@@ -1,11 +1,11 @@
-/* The trajectory page's query in the execution store's request language (D29 stage 1; D32).
+/* The trajectory page's query in the execution store's request language (D29 stage 1; D32; D33).
 
    `storeRequest(def, freeText, pids)` translates a page definition into a store match request: the engine query, the
-   store's `conditions` (D28 value conditions; D32 Nth occurrences and counts) and the index windows the page placed,
+   store's `conditions` (D28 value conditions; D32 Nth occurrences and counts; D33 rises and falls) and the index
+   windows the page placed,
    in whole minutes from each patient's birth (store_parity.py converts them to the store's clock). A page feature the
    store cannot express is refused by name (`StoreRefusal`, its `code`), never translated approximately:
    - GENE_CLASSIFICATION_UNSUPPORTED: gene steps (the first report that is not negative, timed by its recording);
-   - RELATIVE_CONDITION_UNSUPPORTED: rises and falls against earlier values (planned as D33);
    - FREE_TEXT_HEDGED_UNSUPPORTED: free text read as "possible" (hedged) findings, which the converter never emits;
    - FREE_TEXT_COUNT_UNSUPPORTED: an Nth occurrence (N > 1) or a count asked over stated free text. The store counts and
      ranks coded records only (a letter mention ranges from birth to its letter, D30, which would leave almost every
@@ -18,6 +18,12 @@
      (`count:<step>`) is `widen_count` to N - 1, and the page's pair "parent concept and one fewer" (`node:<step>` with
      `count:<step>`), which the store's one-relaxation-per-step rule cannot combine, is one `widen_count` naming the
      parent concept, identified as `node:<step>+count:<step>`, at the pair's cost;
+   - a rise or fall (D33) is the store's `relative` condition with the page's own rule: the mean of the one or two
+     readings before (k = 2) within 75 days, a floor of 1 for a rise and 10^-9 for a fall (the page's max(1, base) and
+     max(1e-9, base)), in the measurement's literal unit; the page's relaxed factor is `widen_factor` (left out when it
+     is not smaller, since it would relax nothing). The store reads the diary's monthly counts as periods, ordered by
+     their start, as the page does by their earliest day; it reads every record, not one per happening, and decides
+     a rise as certain or only possible over the records' times (the two-pass rule);
    - the rest as before D32: concepts, a parent concept or a drug class as `widen_concept`, absolute value conditions
      with a literal unit and their relaxation as `widen_value`, the page's relations and their relaxations.
    On the store, counts and occurrences are over recorded events, not over the page's reconciled happenings; the page
@@ -35,13 +41,17 @@ function storeDecimal(x) {
 }
 
 const derivedOcc = n => (n.occ === 'nth' || n.occ === 'nth_last') && Math.max(1, +n.n || 1) > 1;
+// D33: the page's rise and fall rule (shared/core.js, measureEvents) in the store's terms.
+const RELATIVE_PREVIOUS = 2, RELATIVE_WITHIN_DAYS = 75;
+const relativeFloor = cond => cond === 'rise' ? '1' : '0.000000001';
+const relativeCondition = (n, factor) => ({kind: n.cond, factor: storeDecimal(factor), unit: STORE_UNIT[n.concept],
+  floor: relativeFloor(n.cond), baseline: {previous: RELATIVE_PREVIOUS, within: toGrid(RELATIVE_WITHIN_DAYS)}});
 
 function storeRefusals(def, freeText) {
   if (freeText === 'possible') throw new StoreRefusal('FREE_TEXT_HEDGED_UNSUPPORTED');
   for (const n of def.nodes) {
     const kind = stepKind(n);
     if (kind === 'gene') throw new StoreRefusal('GENE_CLASSIFICATION_UNSUPPORTED', n.id);
-    if (kind === 'measure' && relative(n.cond)) throw new StoreRefusal('RELATIVE_CONDITION_UNSUPPORTED', n.id);
     if ((n.occ === 'count' || derivedOcc(n)) && kind !== 'measure' && freeText !== 'off')
       throw new StoreRefusal('FREE_TEXT_COUNT_UNSUPPORTED', n.id);
     if (derivedOcc(n) && kind !== 'measure' && def.edges.some(e => e.rel === 'during' && e.from === n.id))
@@ -60,7 +70,9 @@ function storeRequest(def, freeText, pids) {
   });
   const steps11 = {}, relax11 = [], relaxations = [], valueRelax = [];
   for (const n of def.nodes) {
-    if (stepKind(n) === 'measure') {
+    if (stepKind(n) === 'measure' && relative(n.cond)) {
+      steps11[n.id] = {relative: relativeCondition(n, n.param)};
+    } else if (stepKind(n) === 'measure') {
       steps11[n.id] = {unit: STORE_UNIT[n.concept], [n.cond === 'above' ? 'ge' : 'le']: storeDecimal(n.param)};
     } else if (n.occ === 'count') {
       const within = n.within === 'period' ? 'window' : {span: toGrid(toDays(n.within.amount, n.within.unit))};
@@ -74,7 +86,10 @@ function storeRequest(def, freeText, pids) {
   for (const x of q.relaxations) {
     if (x.kind !== 'widen_concept') { relaxations.push(x); continue; }
     const n = byId[x.step], kind = stepKind(n), what = x.id.split(':')[0];
-    if (kind === 'measure') {
+    if (kind === 'measure' && relative(n.cond)) {
+      if (+relaxedParam(n) < +n.param)
+        valueRelax.push({id: x.id, kind: 'widen_factor', step: n.id, cost: x.cost, factor: storeDecimal(relaxedParam(n))});
+    } else if (kind === 'measure') {
       valueRelax.push({id: x.id, kind: 'widen_value', step: n.id, cost: x.cost,
         condition: {unit: STORE_UNIT[n.concept], [n.cond === 'above' ? 'ge' : 'le']: storeDecimal(relaxedParam(n))}});
     } else if (what === 'count') {
@@ -93,8 +108,10 @@ function storeRequest(def, freeText, pids) {
   for (const pid of pids) { const w = req.windows.get(pid); windows[pid] = w.reason ? null : {start: toGrid(w.start), end: toGrid(w.end)}; }
   let conditions = null;
   if (Object.keys(steps11).length) {
-    // Always 1.1 (D32 review): a value condition on a snapshot built without series is then refused by name.
-    conditions = {profile: 'execution-store-conditions-1.1', steps: steps11};
+    // At least 1.1 (D32 review): a value condition on a snapshot built without series is then refused by name; 1.2
+    // when a step rises or falls (D33).
+    const rises = Object.values(steps11).some(s => s.relative);
+    conditions = {profile: rises ? 'execution-store-conditions-1.2' : 'execution-store-conditions-1.1', steps: steps11};
     const all = [...valueRelax, ...relax11];
     if (all.length) conditions.relaxations = all;
   }

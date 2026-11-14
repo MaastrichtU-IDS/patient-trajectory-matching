@@ -38,7 +38,8 @@ adapter would (docs/execution-store.md, "Synthetic converter"):
   cohort) or without a number becomes an excluded record (`MEASUREMENT_WITHOUT_UNIT`, `MEASUREMENT_WITHOUT_VALUE`)
   instead of a value-less event, as D28's contract asks of a source that drops a value. The provenance names the rule
   (`series`) only when the option is on, so a default build's tables are unchanged; its input digest moves with the
-  converter's own digest, as for any edit to this file.
+  converter's own digest, as for any edit to this file. With it, the provenance also labels the diary's summaries as
+  period readings (`labels.period_reading_kinds`, D33): a monthly count describes its month, not one moment in it.
 
 Nothing here reads `truth`, `quality` or a record's `truth_event_id`.
 """
@@ -57,6 +58,8 @@ ORIGIN = datetime(1, 1, 1)
 MENTION_KINDS = ('note',)
 # D32: measured point records whose value and unit the converter can emit as `series` rows (option `series`).
 MEASURED_KINDS = ('measurement', 'diary_summary')
+# D33: the measured kinds whose value summarises the whole of its recorded range (the diary's monthly counts).
+PERIOD_KINDS = ('diary_summary',)
 SERIES_RULE = ('record_value_unit_v1: each measured record with a number and a unit becomes one series row, the value '
                'spelled as the cohort\'s JSON writes it (a plain decimal, else refused); a measured record without a '
                'unit or a number becomes an excluded record')
@@ -287,6 +290,9 @@ def synthetic_provenance(cohort, skipped, mention_time='at_or_before_letter', se
            'skipped': dict(sorted(skipped.items()))}
     if series:
         out['series'] = SERIES_RULE
+        # D33: a diary summary counts its whole month, so its reading is a period, not a moment (the store times a
+        # period reading by its period's start for relative conditions); the label is carried into the manifest.
+        out['labels'] = {'period_reading_kinds': ','.join(PERIOD_KINDS)}
     if mention_time != 'letter':
         out['mention_time'] = 'at_or_before_letter_v1: from birth, or an earlier record, to the letter'
     return out
