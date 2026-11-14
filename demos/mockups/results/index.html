@@ -165,7 +165,10 @@ function render(d) {
     ['Patients', 'Events', 'Build', 'Build peak (GiB)', 'Snapshot (GB)', 'Content check', 'Check peak (GiB)', 'Open (warm)', 'Match p50', 'Match max'],
     S.sizes.map(z => [fmt(z.patients), fmt(z.events), dur(z.build_seconds) + reused(z), fmt(z.build_peak_gib, 2) + reused(z), fmt(z.snapshot_gb, 2),
       dur(z.verify_content_seconds), fmt(z.verify_peak_gib, 2), `${fmt(z.open_seconds_warm, 2)} s`, dur(z.match_p50_seconds), dur(z.match_max_seconds)]))
-    + (S.sizes.some(z => z.build_reused) ? `<p class="muted">† Build figures of an earlier run, whose snapshots this run queried without rebuilding: first built ${esc(S.build_origin.first_built_at || 'at an unrecorded time')} on ${esc(S.build_origin.machine || 'the same machine')} (report ${esc((S.build_origin.first_built_report_sha256 || '').slice(0, 12))}…). The build code is unchanged since, by its fingerprint.</p>` : '');
+    + (S.sizes.some(z => z.build_reused) ? (() => {
+      const o = S.build_origin || {};
+      return `<p class="muted">† Build figures of an earlier run, whose kept snapshots this run queried without rebuilding: first built ${esc(o.first_built_at || 'at an unrecorded time')}${o.first_built_commit ? ` at commit ${esc(o.first_built_commit.slice(0, 7))}` : ''} on ${esc(o.machine || 'an unrecorded machine')} (report ${esc(o.first_built_report || 'unnamed')}, sha256 ${esc((o.first_built_report_sha256 || '').slice(0, 12))}…). Reuse required every repository file that build loaded or read, the library versions, the build settings and the machine to be the same; it does not cover the operating system or library internals beyond their versions.</p>`;
+    })() : '');
 
   document.getElementById('mimicTable').innerHTML = table(
     ['Source', 'Rows in file', 'Admitted as events', 'Kept as excluded records', 'Claim stores'],

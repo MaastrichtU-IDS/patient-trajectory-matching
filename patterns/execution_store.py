@@ -58,8 +58,23 @@ import time
 
 from jsonschema import Draft202012Validator
 
-from . import trajectory_graph as tg
+from . import trajectory_times as tt
 from ._resources import ROOT
+
+
+class _Engine:
+    """The trajectory-graph engine's matching code (`patterns/trajectory_graph.py`), imported on first use (D34).
+
+    Building a snapshot validates each patient's times (`trajectory_times`, imported above) and never matches, so a
+    build process loads none of the engine's matching code; the build's runtime record (`patterns/build_record.py`)
+    then lists only what a build reads. Matching code here reaches the engine as `tg.<name>`, as before."""
+
+    def __getattr__(self, name):
+        from . import trajectory_graph
+        return getattr(trajectory_graph, name)
+
+
+tg = _Engine()
 
 # 2.1 (D24): events hold their time variables and `proper`, and patients whether their events share variables.
 # 3.0 (D26): the D5 record fields are typed event columns, free-form evidence is its own table (`event_evidence`),
@@ -155,7 +170,8 @@ COVERAGE_RULE = 'window_overlap_source_concepts_v1'
 # How `match` turns a remaining `none` into `not_comparable` when the source held records of a step's
 # concepts that the ingest left out (docs/execution-store.md, "Excluded records").
 EXCLUSION_RULE = 'excluded_records_scope_v1'
-ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')
+ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py',
+                    'patterns/temporal_stn.py')
 _MEMORY = re.compile(r'^[0-9]+(\.[0-9]+)?\s*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$')
 # Characters a patient identifier may not hold: they delimit the input digest's lines.
 _ID_DELIMITERS = ('\t', '\n', '\r')
@@ -356,8 +372,8 @@ def validate_patient(p, ancestors):
         # The engine solves the patient's network when it matches; refuse here what it would refuse
         # then (variables no time satisfies, a linked group beyond its limit), so `match` never meets it.
         try:
-            tg.patient_times({'patient_id': pid, 'window': None, 'events': engine_events(p['events'])}, trusted=True)
-        except tg.TrajectoryError as exc:
+            tt.patient_times({'patient_id': pid, 'window': None, 'events': engine_events(p['events'])}, trusted=True)
+        except tt.TrajectoryError as exc:
             raise IngestError(str(exc), pid) from None
     _require(isinstance(p['coverage'], list), 'INVALID_COVERAGE', pid)
     periods = set()

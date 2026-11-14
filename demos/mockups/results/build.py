@@ -57,9 +57,11 @@ def scaling(s):
             'distinct_patients': s['sizes'][-1].get('distinct_patients'),
             'generated_at': s.get('generated_at'),
             'build_origin': None if origin is None else {
-                'first_built_at': origin.get('first_built_at'),
-                'first_built_report_sha256': origin.get('first_built_report_sha256'),
-                'machine': (origin.get('environment') or {}).get('cpu')},
+                'first_built_at': origin['first_built'].get('generated_at'),
+                'first_built_report': origin['first_built'].get('path'),
+                'first_built_report_sha256': origin['first_built'].get('sha256'),
+                'first_built_commit': (origin['first_built'].get('commit') or {}).get('head'),
+                'machine': (origin['first_built'].get('environment') or {}).get('cpu')},
             'sizes': rows}
 
 

@@ -90,8 +90,10 @@ FUTURE_ARMS = {
 }
 TARGET = {'size': 300_000, 'match_seconds_p95_max': 10.0, 'match_seconds_max_max': 30.0,
           'query_process_peak_rss_bytes_below': 4 * 2**30, 'detail': 'full', 'machine': 'Apple M4 Pro, 64 GB'}
-ARTIFACTS = ('tools/benchmark_matcher.py', 'tools/benchmark_execution_store.py', 'patterns/execution_store.py',
-             'patterns/trajectory_graph.py', 'patterns/temporal_stn.py', 'patterns/test_execution_store.py',
+ARTIFACTS = ('tools/benchmark_matcher.py', 'tools/benchmark_execution_store.py', 'tools/scaling_build_worker.py',
+             'patterns/execution_store.py',
+             'patterns/trajectory_graph.py', 'patterns/trajectory_times.py', 'patterns/temporal_stn.py',
+             'patterns/test_execution_store.py',
              'patterns/fixtures/execution_store_match_digests.json')
 RSS_LIMIT_BYTES = 48 * 2**30
 LIMITATIONS = (

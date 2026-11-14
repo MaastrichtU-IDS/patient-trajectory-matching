@@ -57,7 +57,8 @@ CALENDAR_UNITS = ('month', 'year', 'quarter', 'decade')
 REQUEST_FIELDS = {'profile', 'query', 'unit', 'windows', 'window', 'semantic_policy'}
 ONTOLOGY_FILES = ('ontology/vendor/sulo-0.2.14.ttl', 'ontology/pro-solid-profile.ttl',
                   'ontology/exact-interval-profile.ttl', 'ontology/bounded-interval-profile.ttl')
-FILES = ('patterns/trajectory_graph_sulo.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py',
+FILES = ('patterns/trajectory_graph_sulo.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py',
+         'patterns/temporal_stn.py',
          'patterns/bounded_intervals.py', 'patterns/exact_intervals.py', 'patterns/pro_solid.py',
          'schemas/bounded-interval.schema.json', 'patterns/requirements.lock.txt') + ONTOLOGY_FILES
 RDF_FILES = ('patterns/bounded_rdf.py', 'ontology/bounded-rdf-profile.ttl')
