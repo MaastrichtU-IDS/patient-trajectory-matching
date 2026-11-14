@@ -433,6 +433,17 @@ class BuildCodeDiffers(RuntimeError):
     pass
 
 
+class BuildSettingsDiffer(RuntimeError):
+    pass
+
+
+def check_settings(parameters, record):
+    """A fresh report's build parameters are what its build processes recorded seeing (D34)."""
+    differ = [k for k in ('staging', 'threads', 'memory_limit') if record['settings'].get(k) != parameters[k]]
+    if differ:
+        raise BuildSettingsDiffer('BUILD_SETTINGS_DIFFER: ' + ', '.join(differ))
+
+
 def check_build_code(record):
     """The build process recorded the same `tools/scaling_build_worker.py` this process executed (its `run_phase` and
     `build_size` started and measured the build)."""
@@ -618,6 +629,8 @@ def benchmark(args):
                 raise RuntimeError(f'BUILD_RECORD_DIFFERS: size {size}')
             provenance = record
         entries.append(entry)
+        if provenance is not None:
+            check_settings(parameters, provenance)
         print(f'size {size}: {entry["status"]} in {entry["wall_seconds"]:.0f} s', file=sys.stderr, flush=True)
         if entry['status'] == 'failed':
             stopped = entry

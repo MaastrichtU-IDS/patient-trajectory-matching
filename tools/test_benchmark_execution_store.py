@@ -249,6 +249,13 @@ class ReuseTests(unittest.TestCase):
                          (self.parameters['staging'], self.parameters['threads'], self.parameters['memory_limit']))
         self.assertEqual(settings['process'], {'isolated': True, 'no_site': True, 'fresh_bytecode_cache': True})
 
+    def test_a_fresh_reports_parameters_must_be_what_its_builds_saw(self):
+        record = self.old['build_provenance']
+        bench.check_settings(self.parameters, record)
+        for key, value in (('staging', 'ndjson'), ('threads', 4), ('memory_limit', '2GB')):
+            with self.assertRaises(bench.BuildSettingsDiffer):
+                bench.check_settings({**self.parameters, key: value}, record)
+
     def test_a_build_field_changed_after_the_build_fails_the_run(self):
         from unittest.mock import patch
         real = bench._query_size

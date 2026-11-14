@@ -63,10 +63,18 @@ def shift_for(k):
     return (1 + (k * 37) % 700) * DAY
 
 
+# D34: the digests of the pinned files' bytes as executed in this process (the generator).
+EXECUTED = {}
+
+
 def load_generator():
+    """The synthetic generator, executed from the bytes read here, whose digest `EXECUTED` keeps."""
+    import hashlib
     spec = importlib.util.spec_from_file_location('benchmark_generate', GENERATOR)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    source = Path(GENERATOR).read_bytes()
+    EXECUTED[Path(GENERATOR).resolve().relative_to(ROOT.resolve()).as_posix()] = hashlib.sha256(source).hexdigest()
+    exec(compile(source, str(GENERATOR), 'exec'), module.__dict__)
     return module
 
 
@@ -382,6 +390,11 @@ def main(argv=None):
     parser.add_argument('--memory-limit', default=DEFAULT_MEMORY_LIMIT)
     parser.add_argument('--site', action='append', default=[], help='a library directory (Python runs without `site`)')
     args = parser.parse_args(argv)
+    # Before anything of the repository is imported: the bytecode cache must hold nothing for it yet, or a planted
+    # `.pyc` there could run in place of its source (D34). The starting process makes the cache a fresh directory.
+    if sys.pycache_prefix and Path(sys.pycache_prefix, *ROOT.resolve().parts[1:]).exists():
+        raise RuntimeError(f'BYTECODE_CACHE_NOT_FRESH: {sys.pycache_prefix} already holds bytecode of the repository')
+    fresh_cache = bool(sys.pycache_prefix)
     sys.path.extend(d for d in args.site if d not in sys.path)
     from patterns.build_record import Recorder, python_directories
     recorder = Recorder(ROOT, python_directories(args.site))  # before anything else the build needs is imported
@@ -396,9 +409,15 @@ def main(argv=None):
                 'patients_per_cohort': PER_COHORT, 'distinct_pool_cap': DISTINCT_CAP, 'generator_seed_base': SEED_BASE,
                 'add_sample_every': ADD_SAMPLE_EVERY,
                 'process': {'isolated': bool(sys.flags.isolated), 'no_site': bool(sys.flags.no_site),
-                            'fresh_bytecode_cache': bool(sys.pycache_prefix)},
-                'environment': {k: os.environ.get(k) for k in sorted(CHILD_ENVIRONMENT)}}
+                            'fresh_bytecode_cache': fresh_cache},
+                # every variable, so that an extra one (DUCKDB_*, ARROW_*) leaves a trace; the fresh directories masked
+                'environment': {k: '<fresh directory>' if k in ('TMPDIR', 'HOME') else v
+                                for k, v in sorted(os.environ.items())}}
     result['record'] = recorder.record(BUILD_FILES, settings)
+    # The generator's bytes as executed must be the bytes recorded: an edit made and reverted during the build is caught.
+    for path, digest in EXECUTED.items():
+        if result['record']['files'].get(path) != digest:
+            raise RuntimeError(f'PINNED_FILE_CHANGED_DURING_BUILD: {path}')
     result['patients'] = args.size
     args.worker_output.write_text(json.dumps(result))
     return 0

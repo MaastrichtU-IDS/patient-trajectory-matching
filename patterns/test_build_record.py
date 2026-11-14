@@ -229,10 +229,11 @@ class BuildRecordTests(unittest.TestCase):
                               cwd=self.root, capture_output=True, text=True)
         self.assertNotEqual(done.returncode, 0)
         self.assertIn('PROCESS_NOT_ISOLATED', done.stderr)
-        recorder = br.Recorder(self.root, python_dirs=[], hook=False)
-        recorder.opened.add('patterns/__pycache__/execution_store.cpython-312.pyc')
-        with self.assertRaises(br.RecordError) as raised:
-            recorder.record(())
+        with tempfile.TemporaryDirectory() as empty:  # a root no module of this process lies in
+            recorder = br.Recorder(empty, python_dirs=[], hook=False)
+            recorder.opened.add('patterns/__pycache__/execution_store.cpython-312.pyc')
+            with self.assertRaises(br.RecordError) as raised:
+                recorder.record(())
         self.assertEqual(raised.exception.code, 'UNRECORDED_FILE_READ')
 
     def test_the_settings_are_the_build_process_own(self):
@@ -244,6 +245,44 @@ class BuildRecordTests(unittest.TestCase):
         self.assertEqual(record['modules'], self.baseline['modules'])
         self.assertEqual((record['settings']['staging'], record['settings']['threads']), ('ndjson', 2))
         self.assertNotEqual(record, self.baseline)
+
+    def child(self, prefix_setup=None, extra_env=None):
+        """Run the scratch tree's build worker as `build_size` does, with a planted cache or an extra variable."""
+        module = build_phase(self.root)
+        fresh = Path(tempfile.mkdtemp(prefix='scaling-build-test-'))
+        try:
+            if prefix_setup:
+                prefix_setup(fresh / 'pycache')
+            out = self.root / 'child.json'
+            env = {**module.CHILD_ENVIRONMENT, 'TMPDIR': str(fresh), 'HOME': str(fresh), **(extra_env or {})}
+            done = subprocess.run(module.build_command(fresh) + ['--worker', 'build', '--worker-output', str(out),
+                                                                 '--size', '48', '--work-dir', str(self.root / 'cwork')],
+                                  cwd=self.root, env=env, capture_output=True, text=True)
+            (self.root / 'cwork').mkdir(exist_ok=True)
+            shutil.rmtree(self.root / 'cwork', ignore_errors=True)
+            return done, (json.loads(out.read_text()) if done.returncode == 0 else None)
+        finally:
+            shutil.rmtree(fresh, ignore_errors=True)
+
+    def test_a_bytecode_cache_that_is_not_fresh_is_refused(self):
+        def plant(prefix):
+            cache = Path(prefix, *self.root.resolve().parts[1:], 'patterns', '__pycache__')
+            cache.mkdir(parents=True)
+            (cache / 'execution_store.cpython-312.pyc').write_bytes(b'planted')
+        (self.root / 'cwork').mkdir(exist_ok=True)
+        done, _ = self.child(plant)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn('BYTECODE_CACHE_NOT_FRESH', done.stderr)
+
+    def test_every_environment_variable_is_recorded(self):
+        (self.root / 'cwork').mkdir(exist_ok=True)
+        done, result = self.child(extra_env={'DUCKDB_D34_PROBE': '1'})
+        self.assertEqual(done.returncode, 0, done.stderr[-400:])
+        env = result['record']['settings']['environment']
+        self.assertEqual(env['DUCKDB_D34_PROBE'], '1')
+        self.assertEqual((env['TMPDIR'], env['HOME']), ('<fresh directory>', '<fresh directory>'))
+        self.assertNotEqual(result['record'], self.baseline)
+        self.assertNotIn('DUCKDB_D34_PROBE', self.baseline['settings']['environment'])
 
     # Refusals at runtime.
 
