@@ -167,3 +167,23 @@ Cautions on the matching rows:
   - *Latency.* No regression under the paired protocol against main: 14-worker p95 ratios 1.010, 1.001, 1.001 and 1.001 (bar 1.05); this tree's p95 8.10 s, max 10.2 s, 0.80 GB; both codes give identical results on all 30 queries. At 8 workers this tree gave 9.86 s in this session (D31's sessions: 10.17 and 11.56 s for the same code), so the 8-worker figure varies across sessions.
   - *Review.* An early independent review found one must-fix: derived tag names could collide (a relaxation named `own`, or ids with `/` across steps), giving a wrong `exact`. Such requests are now refused by name, and everything was regenerated on the fixed code. A D18 limit is documented as a follow-up: a `possible` match left beside `unresolved` after a count.
   - *Frozen.* The D30 attribution and the D31 verdict reports are frozen as historical records.
+- **D33, rises and falls: built, sound, not shipped.** A query can't yet ask the store for "the monthly seizure count rises to at least twice its baseline"; the page's translator keeps refusing it by name.
+  - *Your decisions (2026-11-14), as built:*
+    - a monthly diary count is a whole-month period, ordered by its start;
+    - the baseline is the mean of up to k earlier readings of the same item and unit within W, with an explicit floor and exact arithmetic;
+    - a reading is tagged certain only when every possible configuration satisfies the condition;
+    - an undetermined baseline counts as possible, through D32's two passes.
+  - *Evidence.* No wrong claim in 60,000 small cases checked against every choice of times. The independently written reference agrees on all of them, and on 500 snapshot requests (0 mismatches at 1 and 2 workers, both detail levels, pruning off). Seven planted defects caught.
+  - *Why not shipped.* The bar you set was at most 30% `unresolved` among the patients with a candidate. I wrote it into the rules as "in each template", and you confirmed that reading.
+    - Sequence: 0 of 6. Tree without its gene step: 0 of 6. Graph without its gene step: 3 of 4 (75%), against a denominator where one patient moves the share by 25 points.
+    - The rise's own tags were decided. The three come from D30's order rule on the graph template's `first` blocker, whose end the rise's `during` reads.
+    - The implementation is kept in commit bccee57.
+  - *Next.* Look at D30's order rule on "first X" with `during`. Then retry rises and falls with a usefulness test on more patients.
+- **D34, the scaling report's builds reusable when only matching changes.** Every edit to the store made the 1,000,000-patient scaling report stale, though most edits touch matching only, so each forced the 2.5-hour build again.
+  - *First design, superseded.* A static fingerprint of the code a build reaches (D33's part 2). Two independent reviews found bypasses a static reading of Python cannot rule out.
+  - *As built.* The build runs in its own process, isolated, with bytecode compiled afresh and a fixed environment. At its end it records every repository file it loaded or read, by whole-file digest, with the library versions and the settings it saw. The gate re-checks every recorded file. A later run may reuse the kept snapshots only if a small probe build records exactly the same, with the same parameters and machine. The report names the first build's report, commit and time.
+  - *The engine split.* The build needs only the patient's times, not matching. That code moved to its own module, which the engine imports back, so a build loads no matching code. Results are byte-identical everywhere: the 300 recorded digests, all 1,170 matcher digests, the scaling report's rows, candidates and status mixes to 1,000,000, and every MIMIC demo figure.
+  - *Reviews.* Three independent reviews found must-fixes: bytecode in place of source, a `.venv` inside the checkout, the parent process unrecorded. All are fixed with a test each, and a re-review closed them.
+  - *Frozen.* D32's paired verdict joins the historical records, a stated departure from the provenance rule, signed off by your delegate.
+  - *Not yet shown at scale.* Reuse is tested at 100 patients. Its first real use will be the next change to matching alone, which should then regenerate the scaling report in about half an hour instead of 2.5 hours.
+

@@ -494,6 +494,52 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
 
 **Regenerated for D31, second attempt** (`--work-dir /tmp/d31b/scaling2`; 9,131 s). The first run of this regeneration (9,203 s) had a 1,000,000-patient build peak of 8.61 GiB, at the Parquet write, above the D23 bound as it then stood (5% over the 300,000 peak of 8.02 GiB), with the builder unchanged since D30 (8.23 GiB there); it was run again once, and the committed run's peak is 8.28 GiB, with the same snapshots and status mixes. Run-to-run spread of that peak is therefore at least 4%, so the owner widened the bound to **10%** (the 1,000,000 build peak at most 1.10 × the 300,000 one, `tools/test_benchmark_execution_store.py`): it still catches memory that grows with patient count, which is what it is for. Both runs are within it. The engine's one envelope search for coupled `first` and `last` steps (decision log, D31) and the store's D18 fix. Snapshot identifiers changed with the builder's digest; every table's row count and every query's candidate count equal D30's. Status mixes change only at 1,000 and 10,000: `unresolved` 398 → 38 and 4,222 → 375, mostly to `none`. At 100,000 and above the statuses are unchanged, and the incomplete `none` results fall from 31,060, 93,180 and 310,600 (`RELAXATION_ORDER_UNCERTAIN`) to 6,060, 18,180 and 60,600 (`RELAXATION_SEARCH_STOPPED`). Single-process `match()` at 1,000,000 has p50 11.76 s (D30: 11.72 s).
 
+**Build provenance and reuse (D34).** The report binds its build phase by a *runtime record* of what the builds loaded and read, apart from its query phase:
+- *The build runs in its own process.* `tools/scaling_build_worker.py` holds the build phase: cohort construction, the build worker, and the code that runs and measures a build (`run_phase`, `current_rss`, `limit_bytes`, `build_size`). The benchmark starts it for each size in a fixed way (`build_command`):
+  - Python's isolated mode without `site` (`-I -S`): no environment variables, user site, script directory, `.pth` file or `sitecustomize`; the libraries' directories are passed explicitly;
+  - bytecode compiled afresh into an empty cache outside the repository (`-X pycache_prefix`), so no stale or unchecked `.pyc` in the repository's `__pycache__` runs in place of its source;
+  - a fixed minimal environment: `PATH`, `TZ=UTC`, the C locale, one thread for libraries that read a thread count, and `TMPDIR` and `HOME` in a fresh directory.
+
+  The build process refuses to run if it was not started so.
+- *It loads no matching code.* The engine is split (D34): validation, `patient_times`, `Times` and the network it solves live in `patterns/trajectory_times.py`, which `trajectory_graph` imports back (the same objects, the same results). The store reaches matching code through a proxy that imports `trajectory_graph` on first use and then becomes the module. So a build loads only the store, the converter, the decimal rule, `trajectory_times`, the resource locator, the recorder and the build script. The record refuses a build that loads matching code.
+- *The record* (`patterns/build_record.py`, rule `runtime_record_v1`), taken at the end of each build:
+  - every module loaded from the repository, with every `__init__.py` on its path, by the whole-file sha256 of its source. *The repository* is the checkout less the Python installation's own directories (its prefixes, `site-packages` and `sysconfig` paths), so a `.venv` kept in the checkout is not repository code;
+  - the pinned data files (`BUILD_FILES`: the synthetic generator, loaded from its file, and the manifest schema), by whole-file sha256, digested when the build starts and again at its end;
+  - the versions of Python, DuckDB, pyarrow and jsonschema, and whether the repository is a checkout or installed;
+  - the settings the build process itself saw: staging, threads, memory limit, cohort construction, its process flags and environment.
+
+  An audit hook sees every file Python opens. A repository file read that is neither a recorded module's source nor pinned stops the build, bytecode in the repository's `__pycache__` included. So does a recorded file that changed while the build ran, or a repository module the record cannot describe. DuckDB reads natively, outside the audit hook, so the builder's DuckDB connections may touch only the build's own directories (`allowed_directories`, external access disabled).
+- *Every size records the same,* and the report keeps the record as `build_provenance`. Its `modules` and `files` are artifact maps, so `tools/check_report_provenance.py` recomputes the digest of every file the record lists and fails on any change or missing file; the record's rule and keys are checked as well. The gate cannot see a module the record does not list (a new shadow); only a reuse's probe build can.
+- *The parent checks the child.* After each build, the benchmark compares the digest of the `scaling_build_worker.py` bytes it executed (`run_phase` and `build_size` started and measured the build) with the file the build recorded.
+- *The query phase* stays bound by whole-file digests (`artifacts`).
+- `--reuse-builds REPORT --work-dir DIR` runs only the query phase, on the snapshots an earlier run kept there (`--keep`).
+  - It first runs a small build of this tree (one cohort) and requires its record, settings included, to equal the earlier report's exactly. So it compares the settings the build processes saw, not the parent's account of them.
+  - The profile, generator seed, build parameters (threads, memory limit, staging, cohort sizes, `budget_seconds_per_size`, `rss_limit_bytes`) and environment (platform, CPU, memory, Python, DuckDB) must be equal too.
+  - Each kept snapshot must open with its identifier and file digests.
+  - `reuse_plan` refuses by name otherwise: `NO_BUILD_PROVENANCE`, `BUILD_RECORD_CHANGED`, `BUILD_PARAMETERS_CHANGED`, `ENVIRONMENT_CHANGED`, `SIZE_NOT_IN_REPORT`, `SNAPSHOT_MISSING`, `SNAPSHOT_IDENTITY_CHANGED`, `PROBE_BUILD_FAILED`.
+  - A reused size keeps the earlier run's build figures and snapshot identifier and says so (`build_reused`). `build_size` returns the build fields, and the benchmark fails if any changes before the size's entry is written.
+  - Every report records `generated_at` and `commit`, read when the run starts: the head, and whether tracked files were modified or untracked files lie under `patterns/` or `tools/`.
+  - `build_origin` names the report that first built the snapshots: its path, sha256, git blob id (with its commit, how a committed report is retrieved), commit, time, environment, and the digest of the benchmark that wrote its figures. It names the report reused directly the same way; the first passes unchanged through a chain of reuses.
+  - The results page marks reused build figures and names their origin.
+- *What reuse covers, and what it does not* (`build_covers` in the report). Covered: repository files the build processes loaded or read through Python, the pinned data files, the recorded versions, the settings, the environment and the limits. Not covered:
+  - the operating system, CPU microcode, and library internals beyond their versions;
+  - the benchmark that ran the builds and wrote their figures, which only the report that first built them binds;
+  - the snapshot's own manifest, which still names the builder and converter file digests of the tree that built it (`builder_artifacts`, `converter_sha256`); its identifier is that tree's.
+- *Why not a static analysis.* D33 first built a fingerprint over the definitions a build reaches, found by reading the code. Two independent reviews found bypasses that a static reading of Python cannot rule out: import-time side effects, unreached modules that still run, two-step lookups. A record of what actually ran avoids them by construction. A third review's findings were fixed in place:
+  - bytecode in place of source;
+  - a `.venv` inside the checkout;
+  - the parent's settings and code unrecorded;
+  - DuckDB's native reads;
+  - the pinned files' timing;
+  - the process environment.
+- So a change to matching alone can regenerate this report in the time of its query phase and profiles plus one small build (1,717 of 9,137 s in the D32 run were the query phase and profiles, about half an hour), instead of about 2.5 hours. The first run with the record is D34's, which built afresh.
+
+**Regenerated for D34** (`--work-dir /tmp/d34/scaling`, `--keep`; 9,197 s). D34 splits the engine so that a build loads no matching code, moves the build phase into `tools/scaling_build_worker.py`, and records what each build loaded and read (`build_provenance`, above). Every build was fresh: no committed report had a record yet.
+- *Equal to D32's at every size, 1,000 to 1,000,000:* every table's row count, every query's candidate count, the status mixes and the incomplete `none` counts; 5,000 results equal exhaustive matching at 1,000.
+- *Within run-to-run spread:* builds 1,541 s at 300,000 and 5,177 s at 1,000,000 (D32: 1,532 and 5,138); build peaks 8.03 and 8.25 GiB, 1.03× (the D23 bound is 1.10×); single-process `match()` p50 11.61 s and maximum 315.3 s at 1,000,000 (D32: 11.66 and 314.8 s).
+- *The record:* every size recorded the same eight repository files (the build script, the store, the converter, the decimal rule, `trajectory_times`, the resource locator, the recorder and `patterns/__init__.py`), the generator and the manifest schema, Python 3.12.15, DuckDB 2.0.0 and jsonschema 4.25.1, in a checkout. `commit.dirty` is true because an edit to the decision log was uncommitted when the run started; no code file was.
+- *Snapshot identifiers* changed with the builder's digest. The snapshots are kept, so that the next change to matching alone can reuse them.
+
 **Regenerated for D32** (`--work-dir /tmp/d32/scaling`; 9,138 s, the run after the review's fix). D32 adds Nth occurrences and counts to the match request and a `series` option to the synthetic converter, which is off here. The benchmark's queries use neither.
 - *Changed.* Snapshot identifiers, with the builder's digest. The 300,000 snapshot, `64244627…`, is the one D32's paired verdict ran on.
 - *Equal to D31's at every size:* every table's row count, every query's candidate count, the status mixes and the incomplete `none` counts.
@@ -786,6 +832,12 @@ Taking `evidence` out of `events` did not make event loading cheaper: B's loadin
 - *Paired replication* against main (7f5930e): at 14 workers the p95 ratios are 0.943, 1.009, 0.934 and 1.047, this tree's p95 is 8.51 s, its maximum 11.40 s and its memory 0.80 GB. At 8 workers this tree's p95 is 10.05 s.
 - *The verdict run* (`verification/d32-paired-verdict.json`) gave 14-worker ratios 1.010, 1.001, 1.001 and 1.001, with p95 8.10 s. D32's rule was no regression (each ratio at most 1.05), and both runs meet it. D32's new request fields are not in these queries.
 - *The old sequential confirmation:* 14 workers p95 8.16 s, 8 workers 10.01 s, arm B 229.2 µs per candidate.
+
+**Regenerated for D34** (decision log, D34), on the D34 scaling snapshots; the matching code is D32's, with the engine split so that a build loads no matching code.
+- *Arm A* ran on its own 2.0 snapshots, rebuilt with the same identifiers as before.
+- *Committed settings:* every one of the report's 1,170 per-query result digests equals the D32 report's, for every arm and size and in the confirmation; the confirmation's arms are byte-identical to each other (30 of 30).
+- *Paired replication* against main (be8c975): at 14 workers the p95 ratios are 0.964, 1.011, 1.015 and 0.971; this tree's p95 is 8.56 s, its maximum 11.26 s, its memory 0.83 GB; the two codes give identical results on all 30 queries. At 8 workers the ratios are 0.984, 1.001, 1.001 and 1.221: in the last pair the candidate ran first and both codes were slower than in the three before (reference p95 11.06 s against about 9.8 s), so it is noise within that pair, which the protocol does not cancel (this tree's 8-worker p95 12.65 s pooled, 9.82 to 9.84 s in the other three repeats). No D34 rule judges latency.
+- *The old sequential confirmation:* 14 workers p95 8.12 s, 8 workers 9.94 s.
 
 ### Limits of this evidence
 

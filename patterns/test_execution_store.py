@@ -25,6 +25,7 @@ from . import execution_store as es
 from . import execution_store_reference as ref
 from . import synthetic_ingest as si
 from . import trajectory_graph as tg
+from . import trajectory_times
 from .pro_solid import ROOT
 
 DAY = 86_400_000_000
@@ -1464,7 +1465,8 @@ class SharedVariableStoreTests(unittest.TestCase):
                 self.assertFalse((Path(tmp) / 'store').exists())
         chain = [{**ev(f'e{i}', ['valproate'], (day(i), day(i + 1)), (day(i + 1), day(i + 2)), 'pharmacy', 'exposure'),
                   'start_var': f'v{i}', 'end_var': f'v{i + 1}'} for i in range(4)]
-        with patch.object(tg, 'MAX_LINKED_VARIABLES', 3), self.assertRaises(es.IngestError) as caught:
+        # D34: the limit lives with the patient's times, which the store's build validates with.
+        with patch.object(trajectory_times, 'MAX_LINKED_VARIABLES', 3), self.assertRaises(es.IngestError) as caught:
             es.validate_ingest(bad(*chain))
         self.assertEqual(caught.exception.code, 'SHARED_VARIABLE_COMPONENT_LIMIT')
         es.validate_ingest(bad(*chain))

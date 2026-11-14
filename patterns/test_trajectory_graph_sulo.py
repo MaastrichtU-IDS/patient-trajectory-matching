@@ -17,6 +17,7 @@ from . import claim_projection as cp
 from . import claim_rdf as cr
 from . import exact_intervals as ei
 from . import trajectory_graph as tg
+from . import trajectory_times
 from . import trajectory_graph_sulo as tgs
 
 EXAMPLE = ei.ROOT / 'examples/trajectory-graph'
@@ -556,7 +557,8 @@ class SharedVariableTests(unittest.TestCase):
         view = tgs.from_bounded_json(self.probe())
         request = request_for([('a', INFUSION), ('b', SPECIMEN)], [after(0, 0)])
         # A linked group over the engine's limit: the shared start links X's and Y's variables.
-        with patch.object(tgs.tg, 'MAX_LINKED_VARIABLES', 2):
+        # D34: the limit lives with the patient's times (trajectory_times), which the engine re-imports.
+        with patch.object(trajectory_times, 'MAX_LINKED_VARIABLES', 2):
             r = tgs.match_snapshot(view, request, point_projection=False)
         p1, p2 = r['results']
         self.assertEqual((p1['status'], p1['decided_by'], p1['adapter']['code']),

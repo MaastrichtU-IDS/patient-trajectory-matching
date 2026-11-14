@@ -20,6 +20,12 @@ file's bytes, others hash `read_text()`, which normalizes CRLF -- so a digest ma
 either is accepted. That is deliberately permissive: this gate exists to catch stale
 provenance, and it must not fail a report whose producer simply chose the other
 convention. Unifying them is a separate change, recorded as R4 in docs/issues.md.
+
+A report may also bind its build phase by a runtime record (D34): `{"rule": "runtime_record_v1",
+"modules": {path: digest}, "files": {path: digest}, "versions": {...}, "root": ...}`, every
+repository file the build processes loaded or read (`patterns/build_record.py`). Its maps are artifact
+maps, so each digest is recomputed and each path must still exist, as for any binding; the record's
+rule and keys are checked too, so an unknown rule (the earlier static fingerprint included) fails.
 """
 import hashlib
 import json
@@ -40,7 +46,13 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               #   a closed record, superseded by nothing;
               # - D31's paired latency verdict, produced on the D31 tree (7f5930e); superseded for the
               #   current tree by `verification/d32-paired-verdict.json`.
-              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json'}
+              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json',
+              # D34 froze a third, a departure from its rule 2 signed off by the owner's delegate and
+              # following the D30 and D31 precedent: D32's paired latency verdict, produced on the D32
+              # branch (against main at 7f5930e), binds `tools/benchmark_execution_store.py`, which D34's
+              # build record changed. It records D32's decision; for the current tree the matcher report's
+              # `paired_confirmation` supersedes it.
+              'verification/d32-paired-verdict.json'}
 
 
 def digests(path):
@@ -101,6 +113,35 @@ def artifact_maps(node, found):
     return found
 
 
+RECORD_RULE = 'runtime_record_v1'
+RECORD_KEYS = {'rule', 'modules', 'files', 'versions', 'root', 'settings'}
+
+
+def build_records(report, found):
+    """The build record of a report (D34): its top-level `build_provenance`, named explicitly. Its `modules` and
+    `files` are maps of repository paths to digests, checked by `artifact_maps` like any other; this returns the
+    record so that its shape can be checked too."""
+    record = report.get('build_provenance') if isinstance(report, dict) else None
+    if record is not None:
+        found.append(record if isinstance(record, dict) else {'rule': None})
+    return found
+
+
+def record_problems(record):
+    """Why a build record is not one the gate can check, as strings: an unknown rule (the earlier static fingerprint
+    included) or key, or a `modules` or `files` that is not a non-empty map of repository paths to digests."""
+    if record.get('rule') != RECORD_RULE:
+        return [f'a build record has an unknown rule {record.get("rule")!r}']
+    if set(record) != RECORD_KEYS:
+        return [f'a build record has keys {sorted(record)}, not {sorted(RECORD_KEYS)}']
+    problems = []
+    for key in ('modules', 'files'):
+        value = record[key]
+        if not (isinstance(value, dict) and value and all(repository_path(k) and is_digest(v) for k, v in value.items())):
+            problems.append(f'a build record\'s {key} is not a map of repository paths to digests')
+    return problems
+
+
 def records_failure(report):
     """Whether a report is an account of a run that did not succeed.
 
@@ -156,7 +197,8 @@ def main():
             checked += 1
             continue
         maps = artifact_maps(report, [])
-        if not maps:
+        records = build_records(report, [])
+        if not maps and not records:
             continue
         checked += 1
         for mapping in maps:
@@ -166,6 +208,8 @@ def main():
                     problems.append(f'{name}: {path} is bound but no longer in the repository')
                 elif recorded not in digests(path):
                     problems.append(f'{name}: {path} no longer matches its recorded digest')
+        for record in records:
+            problems.extend(f'{name}: {problem}' for problem in record_problems(record))
     for problem in sorted(set(problems)):
         print(f'::error::{problem}')
     print(f'report provenance: {checked} reports, {bound} bindings, '

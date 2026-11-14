@@ -5,7 +5,7 @@
     "node_dom_suites": 8,
     "research_http_suite": 21
   },
-  "contract_checks": 1285,
+  "contract_checks": 1308,
   "method": "unittest loader; no tests executed",
   "node_suite_files": [
     "app/test_editor_ui.cjs",
@@ -20,10 +20,11 @@
   "oracle_cases": 16,
   "oracle_properties": 9,
   "profile": "test-count-report-1.0",
-  "suite_tests": 1260,
+  "suite_tests": 1283,
   "suites": {
     "test_bounded_intervals": 22,
     "test_bounded_rdf": 21,
+    "test_build_record": 23,
     "test_claim_projection": 45,
     "test_clinical_source_preflight": 20,
     "test_derived_steps": 25,

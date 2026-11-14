@@ -9,6 +9,17 @@ from unittest.mock import patch
 from tools import check_report_provenance as gate
 
 
+def bindings():
+    """Every binding the gate reads: artifact map entries and build fingerprint entries (D34)."""
+    total = 0
+    for name in gate.tracked_reports():
+        if name in gate.HISTORICAL:
+            continue
+        report = gate.loaded(name) or {}
+        total += sum(len(m) for m in gate.artifact_maps(report, []))  # a build record's maps among them
+    return total
+
+
 class ReportProvenanceTests(unittest.TestCase):
     def test_the_committed_reports_bind_their_current_implementations(self):
         self.assertEqual(gate.main(), 0)
@@ -118,9 +129,7 @@ class ReportProvenanceTests(unittest.TestCase):
     def test_moving_a_bound_file_fails_the_gate(self):
         """Simulate moving one bound file: the gate must fail and name it, and the count
         of bindings it read must not drop."""
-        reports = gate.tracked_reports()
-        before = sum(len(m) for name in reports if name not in gate.HISTORICAL
-                     for m in gate.artifact_maps(gate.loaded(name) or {}, []))
+        before = bindings()
         target = 'services/pressure.py'
         real = Path.is_file
         with patch.object(Path, 'is_file', lambda self: False if str(self).endswith(target) else real(self)), \
@@ -129,6 +138,22 @@ class ReportProvenanceTests(unittest.TestCase):
         lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
         self.assertIn(f'{target} is bound but no longer in the repository', lines)
         self.assertIn(f'{before} bindings', lines, 'a moved file must not shrink the walk')
+
+    def test_moving_a_module_bound_by_a_build_record_fails_the_gate_without_shrinking_the_walk(self):
+        """D34 (the D33 review's must-fix 2): the count includes a build record's entries, and a module bound only by
+        the record, once moved, fails by name."""
+        before = bindings()
+        recorded = [r for name in gate.tracked_reports() if name not in gate.HISTORICAL
+                    for r in gate.build_records(gate.loaded(name) or {}, [])]
+        self.assertTrue(recorded and all('patterns/build_record.py' in r['modules'] for r in recorded))
+        target = 'patterns/build_record.py'
+        real = Path.is_file
+        with patch.object(Path, 'is_file', lambda self: False if str(self).endswith(target) else real(self)), \
+             patch('builtins.print') as printed:
+            self.assertEqual(gate.main(), 1)
+        lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
+        self.assertIn(target, lines)
+        self.assertIn(f'{before} bindings', lines, 'a moved module must not shrink the walk')
 
     def test_a_folder_that_no_longer_exists_still_binds(self):
         """Moving a whole top-level folder removes its name from the tree. Its bindings
@@ -148,6 +173,59 @@ class ReportProvenanceTests(unittest.TestCase):
         real = 'patterns/pro_solid.py'
         found = gate.artifact_maps({'runs': [{'artifacts': {real: digest}}]}, [])
         self.assertEqual(found, [{real: digest}])
+
+
+class BuildRecordGateTests(unittest.TestCase):
+    """D34: a report may bind its build phase by a runtime record; its maps are checked as artifact maps, its shape too."""
+
+    def fake(self, report):
+        with patch.object(gate, 'tracked_reports', return_value=['verification/fake.json']), \
+             patch.object(gate, 'loaded', return_value=report), patch('builtins.print') as printed:
+            code = gate.main()
+        return code, ' '.join(str(call.args[0]) for call in printed.call_args_list)
+
+    def record(self):
+        return {'rule': 'runtime_record_v1',
+                'modules': {p: hashlib.sha256((gate.ROOT / p).read_bytes()).hexdigest()
+                            for p in ('patterns/execution_store.py', 'patterns/trajectory_times.py')},
+                'files': {p: hashlib.sha256((gate.ROOT / p).read_bytes()).hexdigest()
+                          for p in ('schemas/execution-store-manifest.schema.json',)},
+                'versions': {'python': 'cpython 3.12'}, 'root': 'checkout', 'settings': {'staging': 'parquet'}}
+
+    def test_a_current_record_passes_and_every_kind_of_staleness_fails(self):
+        code, text = self.fake({'build_provenance': self.record()})
+        self.assertEqual(code, 0, text)
+        self.assertIn('3 bindings', text)
+        cases = []
+        stale = self.record()
+        stale['modules']['patterns/execution_store.py'] = '0' * 64
+        cases.append((stale, 'patterns/execution_store.py no longer matches its recorded digest'))
+        gone = self.record()
+        gone['modules']['patterns/no_such_module.py'] = '0' * 64
+        cases.append((gone, 'patterns/no_such_module.py is bound but no longer in the repository'))
+        cases.append(({**self.record(), 'rule': 'build_closure_v1'}, 'unknown rule'))
+        cases.append(({**self.record(), 'reused_from': 'x'}, 'a build record has keys'))
+        empty = self.record()
+        empty['files'] = {}
+        cases.append((empty, "files is not a map of repository paths to digests"))
+        for record, expected in cases:
+            code, text = self.fake({'build_provenance': record})
+            self.assertEqual(code, 1, expected)
+            self.assertIn(expected, text)
+
+    def test_the_static_fingerprint_is_refused_as_an_unknown_rule(self):
+        code, text = self.fake({'build_provenance': {'rule': 'build_closure_v1', 'entry_points': {},
+                                                     'fingerprints': {}, 'files': {}}})
+        self.assertEqual(code, 1)
+        self.assertIn('unknown rule', text)
+
+    def test_the_committed_scaling_report_binds_its_build_by_record(self):
+        report = json.loads((gate.ROOT / 'verification/execution-store-scaling-report.json').read_text())
+        records = gate.build_records(report, [])
+        self.assertEqual(len(records), 1)
+        self.assertIn('patterns/execution_store.py', records[0]['modules'])
+        self.assertNotIn('patterns/trajectory_graph.py', records[0]['modules'])
+        self.assertEqual(gate.record_problems(records[0]), [])
 
 
 if __name__ == '__main__':

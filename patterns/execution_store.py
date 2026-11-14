@@ -58,8 +58,26 @@ import time
 
 from jsonschema import Draft202012Validator
 
-from . import trajectory_graph as tg
+from . import trajectory_times as tt
 from ._resources import ROOT
+
+
+class _Engine:
+    """The trajectory-graph engine's matching code (`patterns/trajectory_graph.py`), imported on first use (D34).
+
+    Building a snapshot validates each patient's times (`trajectory_times`, imported above) and never matches, so a
+    build process loads none of the engine's matching code; the build's runtime record (`patterns/build_record.py`)
+    then lists only what a build reads. Matching code here reaches the engine as `tg.<name>`, as before."""
+
+    def __getattr__(self, name):
+        from . import trajectory_graph
+        # From the first use on, `tg` is the module itself: later accesses are plain module lookups, and a patch of
+        # the module (in tests) is seen as before.
+        globals()['tg'] = trajectory_graph
+        return getattr(trajectory_graph, name)
+
+
+tg = _Engine()
 
 # 2.1 (D24): events hold their time variables and `proper`, and patients whether their events share variables.
 # 3.0 (D26): the D5 record fields are typed event columns, free-form evidence is its own table (`event_evidence`),
@@ -155,7 +173,8 @@ COVERAGE_RULE = 'window_overlap_source_concepts_v1'
 # How `match` turns a remaining `none` into `not_comparable` when the source held records of a step's
 # concepts that the ingest left out (docs/execution-store.md, "Excluded records").
 EXCLUSION_RULE = 'excluded_records_scope_v1'
-ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')
+ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py',
+                    'patterns/temporal_stn.py')
 _MEMORY = re.compile(r'^[0-9]+(\.[0-9]+)?\s*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$')
 # Characters a patient identifier may not hold: they delimit the input digest's lines.
 _ID_DELIMITERS = ('\t', '\n', '\r')
@@ -356,8 +375,8 @@ def validate_patient(p, ancestors):
         # The engine solves the patient's network when it matches; refuse here what it would refuse
         # then (variables no time satisfies, a linked group beyond its limit), so `match` never meets it.
         try:
-            tg.patient_times({'patient_id': pid, 'window': None, 'events': engine_events(p['events'])}, trusted=True)
-        except tg.TrajectoryError as exc:
+            tt.patient_times({'patient_id': pid, 'window': None, 'events': engine_events(p['events'])}, trusted=True)
+        except tt.TrajectoryError as exc:
             raise IngestError(str(exc), pid) from None
     _require(isinstance(p['coverage'], list), 'INVALID_COVERAGE', pid)
     periods = set()
@@ -655,14 +674,24 @@ STAGED = {
 }
 
 
-def _connect(path, threads, memory_limit, temp_directory):
+def _connect(path, threads, memory_limit, temp_directory, confined_to=None):
     """A DuckDB connection whose results carry order only where a query says ORDER BY, and whose
-    string order is binary (code point order), which the digests rely on."""
+    string order is binary (code point order), which the digests rely on.
+
+    `confined_to` (D34), a list of directories, confines the connection's own file access to them: DuckDB reads and
+    writes natively, outside Python's audit hooks, so a build's runtime record (`patterns/build_record.py`) cannot see
+    those reads; the builder's connections may touch only the build's directories, with external access disabled."""
     duckdb = _duckdb()
     config = {'threads': threads, 'preserve_insertion_order': False, 'temp_directory': str(temp_directory)}
     if memory_limit is not None:
         config['memory_limit'] = memory_limit
     db = duckdb.connect(str(path), config=config)
+    if confined_to is not None:
+        # Each directory as given and as resolved (on macOS /tmp and /var are links into /private).
+        names = dict.fromkeys(str(x) for d in confined_to for x in (Path(d).absolute(), Path(d).resolve()))
+        allowed = ', '.join("'" + n.replace("'", "''") + "/'" for n in names)
+        db.execute(f'SET allowed_directories = [{allowed}]')
+        db.execute('SET enable_external_access = false')
     collation = db.execute("SELECT current_setting('default_collation')").fetchone()[0]
     if collation != '':
         db.close()
@@ -1031,7 +1060,7 @@ class StoreBuilder:
         self._stage_db = None
         if self.staging != 'ndjson':
             (self.work / 'stage-spill').mkdir()
-            self._stage_db = _connect(':memory:', 1, '256MB', self.work / 'stage-spill')
+            self._stage_db = _connect(':memory:', 1, '256MB', self.work / 'stage-spill', [self.root, self.work])
         self._files = {name: self._writer(name, self.stage / name) for name in STAGED if name not in PART_STAGED}
         # Every part staged so far, in order, and each bucket's open part: (part, {name: file}, staged rows).
         self.parts, self._current = [], {}
@@ -1178,7 +1207,7 @@ class StoreBuilder:
             spill = self.work / 'spill'
             spill.mkdir()
             duckdb = _duckdb()
-            db = _connect(self.work / 'build.duckdb', self.threads, self.memory_limit, spill)
+            db = _connect(self.work / 'build.duckdb', self.threads, self.memory_limit, spill, [self.root, self.work])
             try:
                 _load_patients(db, self.relation)
                 input_digest = _input_digest(db, self.header, provenance, self.fetch_rows)
@@ -1213,12 +1242,12 @@ class StoreBuilder:
             validate_manifest(manifest)
             (snapshot / 'manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
             # The files as written must hold what was derived, before anyone can open them.
-            Store(snapshot, self.threads, 'content', self.memory_limit, self.fetch_rows).close()
+            Store(snapshot, self.threads, 'content', self.memory_limit, self.fetch_rows, confined=True).close()
             self._stage_done('content_verified')
             target = self.root / manifest['snapshot_id']
             if target.exists():
                 # Reuse only a snapshot whose files still hold its identifier's content.
-                with Store(target, self.threads, 'content', self.memory_limit, self.fetch_rows) as existing:
+                with Store(target, self.threads, 'content', self.memory_limit, self.fetch_rows, confined=True) as existing:
                     if existing.snapshot_id != manifest['snapshot_id']:
                         raise StoreError('SNAPSHOT_DIRECTORY_CONFLICT', str(target))
             else:
@@ -1301,7 +1330,7 @@ class Store:
     """
 
     def __init__(self, path, threads=1, verify='files', memory_limit=None, fetch_rows=FETCH_ROWS,
-                 expected_snapshot_id=None):
+                 expected_snapshot_id=None, confined=False):
         if not (verify is False or verify in ('files', 'content')):
             raise StoreError('INVALID_VERIFY_LEVEL', repr(verify))
         self.path = Path(path)
@@ -1324,7 +1353,9 @@ class Store:
             self.verify_files()
         duckdb = _duckdb()
         self._spill = Path(tempfile.mkdtemp(prefix='execution-store-spill-'))
-        self.db = _connect(':memory:', threads, _memory_limit(memory_limit), self._spill)
+        # `confined` (D34): DuckDB may touch only the snapshot and its spill directory (the builder's own checks).
+        self.db = _connect(':memory:', threads, _memory_limit(memory_limit), self._spill,
+                           [self.path, self._spill] if confined else None)
         try:
             _attach(self.db, self.path)
             if verify == 'content':
