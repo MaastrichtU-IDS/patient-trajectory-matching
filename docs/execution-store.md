@@ -414,6 +414,10 @@ In short:
   - synthetic snapshots (ad hoc): 4.1% Nth, 9.3% span, 6.5% period;
   - small cases: 12 to 19%, mostly coupling (Nth) or a count reached only possibly (counts).
 
+### Rises and falls (D33): built, not shipped
+
+The store's request has no relative condition; the trajectory page's translator refuses rises and falls by name (`RELATIVE_CONDITION_UNSUPPORTED`). D33 built them (decision log, D33; the implementation is commit bccee57, reverted by 415c7f3): a baseline of up to k earlier readings of the item class within W, with an explicit floor and exact arithmetic; period readings (a snapshot label naming the event kinds whose value summarises a whole period, which the synthetic converter would set for the diary's monthly counts) ordered by their period's start; certain and possible strengths decided exactly, with the two-pass rule. It was sound on every check run (60,000 small cases against every choice of times, an independent reference on them and on 500 snapshot requests, seven planted defects caught). It did not ship: its pre-committed usefulness bar, at most 30% `unresolved` among the patients with a candidate in each of the page's three rise templates, was missed on the graph template (3 of its 4 candidates, so one patient moves that share by 25 points). The rise's tags were decided there; the uncertainty is D30's order rule on the template's `first` blocker, whose end the rise's `during` reads. The decision log has the numbers and what restoring it would take.
+
 ## Match output
 
 `match(store, query, windows)` returns, beside the per-patient results, the counts and the filter plan:
