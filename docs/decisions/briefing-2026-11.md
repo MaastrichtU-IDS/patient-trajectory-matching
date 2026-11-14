@@ -146,3 +146,24 @@ Cautions on the matching rows:
   - *The order facts in the exact phase too*, with certainty decided jointly. Sound on every check (0 violations in 40,000 new small cases; the reference agrees; seven planted defects caught). It decides 240 more small cases, none at scale, and costs one query (seed 29) about 7 to 11%.
   - *Speed.* Against main in the same session (`verification/d31-paired-verdict.json`), the 14-worker p95 ratio was 0.80 to 0.88 in every pair (bar 0.90; 0.899 pooled), replicated at 0.82 to 0.86 in the regeneration; this tree's p95 is 8.49 s (8.77 s in the replication), max 11.6 s, 0.76 GiB. The gain is one query, seed 26; total time barely moves. At 8 workers the target is still missed (10.17 s). The old one-after-another confirmation gave 9.89 s at 14 workers and 9.87 s at 8, which by itself would meet the target at 8 workers. The paired figures govern: the sequential arms run one after another for well over an hour, and between two such runs unchanged queries drifted 10 to 16%, as much as the effects judged, while the paired runs put both codes in the same minutes.
   - *Outcome.* Kept. MIMIC unchanged; reports, the movement fixture and the attribution regenerated.
+- **D32, Nth occurrences and counts in the store, over coded records; the converter's measurement values; the page-to-store translator.**
+  - *What a query can now ask the store:*
+    - "the 2nd seizure" or "the 2nd-to-last";
+    - "at least 3 seizures within 6 months" or "in the index period", with the page's one-fewer relaxation;
+    - each of these on readings meeting a value condition too.
+  - *Counts of recorded events.* The store counts and ranks coded records only, and counts records, not happenings. On the synthetic cohort, "at least 3 seizures within 183 days" is reached possibly for 39 patients over every record (certainly for only 15: a letter mention ranges from birth), possibly for 15 over coded records only (13 certainly), and for 11 over true happenings (from the generator's truth, an analysis no store code reads). The page must say "recorded events".
+  - *How it works.*
+    - An Nth step's time is a point over every time the Nth occurrence can have. `exact` and `none` are always sound. Where another step can bind the ranked events, `possible` is not reported and the result is `unresolved`.
+    - A count marks each record at which it is reached, certainly or only possibly, decided exactly. Two passes (certain records, then possible ones) turn an answer they cannot decide into `unresolved`.
+    - The engine is unchanged.
+  - *Evidence.*
+    - No wrong claim in 120,000 small cases checked against every choice of times, and the independently written reference agrees on all of them.
+    - 0 mismatches against the reference on 1,260 synthetic store requests (53,280 results), and the same at 2 workers, at `decided` and with pruning off.
+    - 0 mismatches on the MIMIC demo's new differential (150 queries, 15,600 comparisons).
+    - All 14 planted defects caught.
+    - The differential found one defect, in the reference (a period count's window ends). It was fixed, and the store was right.
+  - *Parity.* The converter now emits measurement values itself (an option, off by default); its 31 unitless measurements become excluded records. The page and the store agree on 555 of 672 results over fourteen trajectories, four of them new. Every difference has a named cause from a closed list. The translator refuses by name what the store cannot express: gene steps, rises and falls, hedged free text, counts over stated free text, and "while taking" from an Nth step.
+  - *Unchanged.* Requests without the new fields give the same results everywhere: the 300 recorded match digests, every matcher digest at every size and in the confirmation, the scaling report's rows, candidates and status mixes to 1,000,000, and every MIMIC demo figure.
+  - *Latency.* No regression under the paired protocol against main: 14-worker p95 ratios 1.010, 1.001, 1.001 and 1.001 (bar 1.05); this tree's p95 8.10 s, max 10.2 s, 0.80 GB; both codes give identical results on all 30 queries. At 8 workers this tree gave 9.86 s in this session (D31's sessions: 10.17 and 11.56 s for the same code), so the 8-worker figure varies across sessions.
+  - *Review.* An early independent review found one must-fix: derived tag names could collide (a relaxation named `own`, or ids with `/` across steps), giving a wrong `exact`. Such requests are now refused by name, and everything was regenerated on the fixed code. A D18 limit is documented as a follow-up: a `possible` match left beside `unresolved` after a count.
+  - *Frozen.* The D30 attribution and the D31 verdict reports are frozen as historical records.

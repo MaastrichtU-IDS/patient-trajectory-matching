@@ -333,6 +333,87 @@ A match request may carry conditions on measured values: `match(store, query, wi
 
   The store equals the prepared reference on all 20,000 results and `exhaustive_match` on the first 20 queries, with 0 mismatches. The status mix is exact 516, relaxed 8, unresolved 173, none 2,955, not comparable 15,364 and excluded 984: excluded chart rows dominate, as D18 predicts. Every value relaxation widens to a containing tag. On the first 40 queries, the off-by-one threshold gives 130 wrong results and the ignored unit 174. The demo holds no null `value_micro`, so the two null defects cannot fail there (0 each); the synthetic fixtures are their evidence. The adapter rows carry no values, so value queries have no third path. The run takes 196 s.
 
+## Derived steps: Nth occurrence and counts (D32)
+
+Profile `execution-store-conditions-1.1` extends the D28 request. A 1.0 request is answered as before, key for key. Per step, beside or without a value condition, a 1.1 request may give:
+- an Nth or Nth-from-last occurrence: `"occurrence": {"nth": N}` or `{"nth_last": N}`, N ≥ 1;
+- a count: `"count": {"at_least": N, "within": {"span": micros} | "window"}`, "at least N times within a span" or "within the index period".
+
+It may also give the relaxation `widen_count` (`{id, kind, step, cost, at_least: N′}`, with 1 ≤ N′ < N), optionally naming a wider `concept` (the page's "parent concept and one fewer" as one relaxation, since the engine allows one relaxation per step).
+
+```json
+{"profile": "execution-store-conditions-1.1",
+ "steps": {"A": {"count": {"at_least": 3, "within": {"span": 15811200000000}}},
+           "B": {"occurrence": {"nth": 2}},
+           "C": {"unit": "mmHg", "lt": "65", "count": {"at_least": 3, "within": "window"}}},
+ "relaxations": [{"id": "cA", "kind": "widen_count", "step": "A", "cost": "0.5", "at_least": 2}]}
+```
+
+**Coded records only, counted as records.** Counts and Nth occurrences read only events whose kind is not `mention`. A letter mention ranges from birth to its letter (D30), which would leave almost every count and rank uncertain. Duplicates count separately: the store counts *recorded events*, never happenings. A happening recorded by the EHR and the registry counts twice, and the page must label the store's answers as counts of recorded events. On the committed synthetic cohort, "at least 3 seizures within 183 days" is reached possibly for 39 patients over every record (certainly for 15, since a letter mention ranges from birth), possibly for 15 over coded records only (certainly for 13), and for 11 over true happenings. The first four figures are the store's own sweep; the 11 comes from the generator's truth, an analysis no store code reads.
+
+**Nth occurrence.**
+- *The step's time* is the time of the Nth occurrence of its concept K among the patient's coded events carrying K (a value tag's events, for a value-conditioned step). It binds no record.
+- *The store's model.* Per patient, one derived point event carries the step's derived tag. Its id is `derived-step:<step>/<own or relaxation id>`, and it has its own variable. Its start ranges from the Nth-smallest lower bound to the Nth-smallest upper bound of those events' starts, over `Times.dom`, the patient's tightened ranges (Nth from last: the Nth largest). Every true Nth time lies in that range (order statistics are monotone). When the events share no variable, every time in it is attained.
+- *Soundness.* `exact` and `none` are sound, since every true choice of times maps into the model with the point at the true Nth time.
+- *Coupling.* `possible` is exact unless the step is coupled: K's coded events share a variable, or another step can bind one of them (an `any`, `first` or `last` step whose concept one carries, or a derived step whose counted events meet them). A coupled set whose result would be `possible` is undecided. It is `unresolved` (`OCCURRENCE_TIME_COUPLED`) with the binding beside it, or, for a relaxation set, passed over with note `RELAXATION_OCCURRENCE_COUPLED` (`CHEAPER_…`).
+- *Refusals.* A `during` from an Nth step is refused (`NTH_STEP_HAS_NO_END`). So are Nth with an engine `first` or `last` on the same step (`OCCURRENCE_CONFLICT`) and Nth with a count (`OCCURRENCE_ON_DERIVED_STEP`).
+- *The page.* Its "Nth, N = 1" is translated to the engine's `first`.
+
+**Counts.**
+- *What the step binds.* A coded event e carrying K at which the count is reached: in a choice of times t, at least N − 1 *other* coded events of K start in [t(e) − span, t(e)]. For the index period the interval is [window start, t(e)], with t(e) in the window. Simultaneous events count.
+- *Certain and possible.* The derived tag marks e as *certain* (reached in every choice of times) or only *possible* (in some).
+  - With no shared variable among the counted events, a sweep over e's range is exact (`count_sweep_v1`). It counts the events forced into the interval (b_x ≤ τ ≤ a_x + span) and those allowed in it (a_x ≤ τ ≤ b_x + span), and takes the least and the greatest over τ.
+  - A period count is certain only if e's whole range lies inside the window.
+  - With shared variables, a pairwise test on the patient's distances gives a sound under-approximation of certain and over-approximation of possible (`count_pairwise_linked_v1`). A claim that no binding is exact then rests on nothing, so such a patient's `possible` results become `unresolved` (`STEP_CONDITION_UNCERTAIN`).
+- *The two-pass rule.* Pass 1 runs the engine with the tag on certain events. Pass 2 runs it on certain and possible events, and only when pass 1 is neither `exact`, `possible` nor `unresolved` and some tag that a tried relaxation set uses has a possible-only event. The results combine as follows:
+  - pass 1 relaxed and pass 2 relaxed by the same set: `relaxed`;
+  - pass 1 relaxed and anything else from pass 2: `unresolved` (`STEP_CONDITION_UNCERTAIN`), with pass 1's match beside it;
+  - pass 1 none and pass 2 none: `none`;
+  - pass 1 none and anything else from pass 2: `unresolved` (`STEP_CONDITION_UNCERTAIN`).
+
+  `complete` is false if either pass was, and notes from both are kept. A first, last or Nth on a count step is refused (`OCCURRENCE_ON_DERIVED_STEP`), since it would pick different records in the two passes.
+- *Relaxation containment.* `widen_count` is a widening to the tag of the smaller N. Certain at N implies certain at N′, and possible implies possible.
+
+**Candidates, pruning, loading.**
+- *Candidates.* A derived tag's candidates are the patients with at least N events of its concept: posting `n` for a concept, or series rows for a value tag. Over coded records only, this is a sound superset, since a posting counts mentions too. The step's filter is the union over its tags, so a `widen_count` brings in its smaller N′ and a patient matching only after the relaxation is never filtered out.
+- *Pruning* uses the concept's (or value tag's) summaries, with the latest start as an Nth point's latest end. Every derived event lies inside them, so D25's argument holds.
+- *Loading.* Events are loaded by the concepts and value tags the derived tags count, and their kinds tell mentions apart.
+
+**Excluded records (D18).**
+- An Nth step is displaced like `first`, on its envelope: an excluded record of its concepts with `start_lo` at or before the envelope's latest start makes any result with a binding not comparable, whatever the scope. Nth from last is displaced like `last`.
+- For `none`, an Nth step reaches every excluded record of its concepts, whatever the scope. An excluded record before the window can shift an in-window event into rank N.
+- A span count reaches every record, since a witness need not satisfy the scope. A period count reaches the records overlapping the window.
+- Counts are monotone, so the rest is D18's rule.
+- *A convention kept, and its limit.* D18's rule leaves an `unresolved` result, and any relaxed match reported beside it, as it is. An `unresolved` (`STEP_CONDITION_UNCERTAIN`) result whose pass 1 found a `possible` relaxed match keeps that match when excluded records reach the steps. An excluded record could be an extra count witness, so such a match may in fact be exact in that set. The D32 review's fuzz found 11 such results in 30,000. This is D18's convention for matches beside `unresolved`, not changed here; it is listed as a follow-up.
+
+**Coverage.** A derived step is recorded by the sources of what it counts.
+
+**Output.**
+- `derived_steps`: the rules (`DERIVED_RULES`), each derived step's kind and each derived tag's spec;
+- `value_conditions`, only when the request has value conditions;
+- in the context, `derived_rules`.
+
+**A snapshot without series** refuses a 1.1 value condition by name (`NO_SERIES_IN_SNAPSHOT`). A 1.0 request keeps its D28 answer.
+
+**Verification** (decision log, D32, with the figures):
+- the worlds checker (`trajectory_graph_worlds.check_derived`) reads derived steps as what they mean, never as their compiled events;
+- `derived_cases.py` generates small multi-concept and coupled cases;
+- the reference (`execution_store_reference.DerivedQuery`, `derived_result`) is written again: sorted order statistics, count strengths evaluated at every change point, each relaxation set decided by the engine alone;
+- the snapshot differentials, planted defects and containment checks are in `patterns/test_derived_steps.py`;
+- the MIMIC demo's `derived_differential`.
+
+In short:
+- 120,000 small cases (20,000 per feature and generator): 0 violations, and the reference agrees on every one.
+- 14 planted defects, each caught.
+- 1,260 synthetic store requests (53,280 results): 0 mismatches against the reference, and the same at 2 workers, at `decided` and with pruning off.
+- *The MIMIC demo* (150 queries, 50 per feature, 15,600 comparisons, with `exhaustive_match` on the first 6): 0 mismatches, pruning on and off identical, 34 count relaxations each containing the stricter tag. Every demo time is exact, so no count is only possible and no envelope is wider than a point.
+  - Excluded chart rows reach Nth and span-count steps whatever the scope, so most results are not comparable (about 82% of all results with a window).
+  - The unresolved share is 0.2% (Nth, search budget), 1.3% (span) and 3.8% (period; both excluded records).
+  - The run takes 342 s.
+- *The unresolved share elsewhere:*
+  - synthetic snapshots (ad hoc): 4.1% Nth, 9.3% span, 6.5% period;
+  - small cases: 12 to 19%, mostly coupling (Nth) or a count reached only possibly (counts).
+
 ## Match output
 
 `match(store, query, windows)` returns, beside the per-patient results, the counts and the filter plan:
@@ -408,6 +489,14 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
 **Regenerated for D30** (`--work-dir /tmp/store-d30/scaling`; 9,291 s, and again after the review, 9,216 s). D30 changed the synthetic converter's letter mentions (from birth to the letter) and the engine's `first` and `last` (decision log, D30). Every table's row count and every query's candidate count equal D28's at every size; `events` and `concept_postings` change in content (mention starts). Builds take the same time (5,182 s at 1,000,000, peak 8.23 GiB). The status mixes changed, partly because the seeded queries are shaped around event times and so changed too: at 1,000,000, exact 4,600 → 3,900, possible 68,700 → 147,100, relaxed 342,300 → 3,400, none 7,756,900 → 7,996,100, not comparable 1,323,400 → 1,345,400. Single-process `match()` at 1,000,000 has p50 11.72 s (D28: 7.72 s). Each size now also records its incomplete `none` results by note (`incomplete_none_by_note`); at 1,000,000, 310,600 carry `RELAXATION_ORDER_UNCERTAIN`, a relaxed search the order rule left undecided, and they account for most of the drop in `relaxed`. The run after the review of D30 (9,216 s) has the same tables, counts and status mixes.
 
 **Regenerated for D31, second attempt** (`--work-dir /tmp/d31b/scaling2`; 9,131 s). The first run of this regeneration (9,203 s) had a 1,000,000-patient build peak of 8.61 GiB, at the Parquet write, above the D23 bound as it then stood (5% over the 300,000 peak of 8.02 GiB), with the builder unchanged since D30 (8.23 GiB there); it was run again once, and the committed run's peak is 8.28 GiB, with the same snapshots and status mixes. Run-to-run spread of that peak is therefore at least 4%, so the owner widened the bound to **10%** (the 1,000,000 build peak at most 1.10 × the 300,000 one, `tools/test_benchmark_execution_store.py`): it still catches memory that grows with patient count, which is what it is for. Both runs are within it. The engine's one envelope search for coupled `first` and `last` steps (decision log, D31) and the store's D18 fix. Snapshot identifiers changed with the builder's digest; every table's row count and every query's candidate count equal D30's. Status mixes change only at 1,000 and 10,000: `unresolved` 398 → 38 and 4,222 → 375, mostly to `none`. At 100,000 and above the statuses are unchanged, and the incomplete `none` results fall from 31,060, 93,180 and 310,600 (`RELAXATION_ORDER_UNCERTAIN`) to 6,060, 18,180 and 60,600 (`RELAXATION_SEARCH_STOPPED`). Single-process `match()` at 1,000,000 has p50 11.76 s (D30: 11.72 s).
+
+**Regenerated for D32** (`--work-dir /tmp/d32/scaling`; 9,138 s, the run after the review's fix). D32 adds Nth occurrences and counts to the match request and a `series` option to the synthetic converter, which is off here. The benchmark's queries use neither.
+- *Changed.* Snapshot identifiers, with the builder's digest. The 300,000 snapshot, `64244627…`, is the one D32's paired verdict ran on.
+- *Equal to D31's at every size:* every table's row count, every query's candidate count, the status mixes and the incomplete `none` counts.
+- *Within run-to-run spread:*
+  - builds 1,532 s at 300,000 and 5,138 s at 1,000,000 (D31: 1,542 and 5,123);
+  - build peaks 8.02 and 8.24 GiB, 1.03× (the D23 bound is 1.10×);
+  - single-process `match()` p50 11.66 s and maximum 314.8 s at 1,000,000 (D31: 11.76 and 316.2 s).
 
 **Regenerated for D28** (column-wise canonical lines in `content_digests`; regenerated twice, the second time after a review fix that does not touch the build: `--work-dir /tmp/store-d28b-scaling`, 9,076 s; figures from the second run). The lines a digest hashes are now built a column at a time with `json.dumps`'s own escaper. The bytes are the same, so no content digest moves, and only the identifiers change, through the builder's digest. At every size, every table's row count, every query's candidate count, the status mix and the content rows verified equal the D27 run's. Digesting is faster, both in the build, which digests twice (the derived tables and then the written files), and in a separate content verification:
 
@@ -686,6 +775,13 @@ Taking `evidence` out of `events` did not make event loading cheaper: B's loadin
 - *Recorded.* Per-query paired times; each run's p95, maximum and total; per pair the ratios of p95 and of total time (candidate over reference), also split by which code ran first; the candidate's D21 target check over its own runs in the session (p95 pooled and by repeat, maximum, query-process memory) and the reference's absolute figures; the two codes' per-query digests compared, with each code's stability across its runs, and every digest of each listed where they differ (a change meant to move results).
 - *What it can show:* whether one code is faster than another on this machine, measured minutes apart, and whether that holds in every pair and in both orders.
 - *What it cannot show:* noise inside one run (a single slow query moves that pair's p95); drift faster than a pair; an effect of what ran just before that the two orders do not balance; another machine or day. With 30 queries the p95 is the second-slowest query, so two runs' p95s may be different queries. The absolute target is still judged on one session.
+
+**Regenerated for D32** (decision log, D32). The report was regenerated on the D32 scaling snapshots.
+- *Arm A* ran on its own 2.0 snapshots, rebuilt with D31's identifiers.
+- *Committed settings:* every arm's per-query result digests equal the D31 report's at every size and in the confirmation (30 of 30, every arm).
+- *Paired replication* against main (7f5930e): at 14 workers the p95 ratios are 0.943, 1.009, 0.934 and 1.047, this tree's p95 is 8.51 s, its maximum 11.40 s and its memory 0.80 GB. At 8 workers this tree's p95 is 10.05 s.
+- *The verdict run* (`verification/d32-paired-verdict.json`) gave 14-worker ratios 1.010, 1.001, 1.001 and 1.001, with p95 8.10 s. D32's rule was no regression (each ratio at most 1.05), and both runs meet it. D32's new request fields are not in these queries.
+- *The old sequential confirmation:* 14 workers p95 8.16 s, 8 workers 10.01 s, arm B 229.2 µs per candidate.
 
 ### Limits of this evidence
 

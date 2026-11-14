@@ -730,6 +730,16 @@ class CharteventsTests(unittest.TestCase):
         self.assertTrue(found['planted_defects']['unit_ignored']['caught'])
         self.assertEqual(found['series_rows_with_null_micro_value'], 1)  # the fixture holds one
 
+    def test_the_derived_differential_on_the_synthetic_chartevents(self):
+        """D32: Nth and count requests on the merged fixture equal the reference, pruning on and off alike, and every
+        count relaxation holds the stricter tag's events."""
+        with es.open_store(self.snapshot) as store:
+            found = verify.derived_differential(store, self.result['ingest'], seeds=30, exhaustive_seeds=6)
+        self.assertEqual((found['mismatches'], found['pruning_on_off_differences'],
+                          found['count_relaxation_containment_violations']), (0, 0, 0))
+        self.assertEqual(found['queries_per_feature'], {'nth': 10, 'span': 10, 'window': 10})
+        self.assertTrue(any(mix.get('exact', 0) for mix in found['status_mix'].values()), found['status_mix'])
+
 
 if __name__ == '__main__':
     unittest.main()

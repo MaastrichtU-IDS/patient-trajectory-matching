@@ -79,6 +79,7 @@ LABELS = {
     'test_prepared_reference': 'Prepared reference matcher tests',
     'test_merkle_patients': 'Merkle tree over patients tests',
     'test_value_conditions': 'Execution-store value-condition tests',
+    'test_derived_steps': 'Execution-store Nth-occurrence and count tests',
 }
 
 

@@ -30,6 +30,12 @@ relaxations. The store must equal the prepared reference with the request on eve
 first `VALUE_EXHAUSTIVE_SEEDS`, result for result; each relaxation must widen to a tag holding the stricter tag's events;
 and planted defects (a threshold off by one, the unit ignored, null micro-unit values read as matching or not) must
 produce mismatches where the demo holds a row they affect. The adapter rows carry no values, so they are not a third path.
+
+Derived steps (D32). `DERIVED_SEEDS` further queries give one step an Nth or Nth-from-last occurrence, a count within a
+span or a count within the index period (some on readings meeting a value condition, some with `widen_count`). The store
+must equal the prepared reference with the request on every query and `exhaustive_match` on the first
+`DERIVED_EXHAUSTIVE_SEEDS`, result for result, with pruning on and off byte-identical, and every count relaxation must
+hold the stricter tag's events. The report gives the unresolved share per feature.
 """
 from __future__ import annotations
 
@@ -326,6 +332,9 @@ VALUE_SEEDS = 200
 VALUE_EXHAUSTIVE_SEEDS = 20
 VALUE_DEFECT_SEEDS = 40
 VALUE_FIRST_SEED = 100_000  # value queries draw from their own seeds, apart from the 500 above
+DERIVED_SEEDS = 150  # D32: Nth occurrences and counts, 50 per feature
+DERIVED_EXHAUSTIVE_SEEDS = 6
+DERIVED_FIRST_SEED = 200_000
 
 
 def series_pool(ingest):
@@ -504,6 +513,117 @@ def value_differential(store, ingest, seeds=VALUE_SEEDS, exhaustive_seeds=VALUE_
             'mismatch_examples': examples[:5]}
 
 
+def derived_request(rng, pool, ingest, values, feature):
+    """A seeded query (`random_query`) with one step made derived (D32): an Nth or Nth-from-last occurrence, a count
+    within a span (one to 24 hours), or a count within the index period; one time in three the counted step also
+    carries a value condition (a count of readings meeting it), and one count in two a `widen_count`. A step a `during`
+    reads the end of is not made an Nth step (the store refuses that, `NTH_STEP_HAS_NO_END`)."""
+    query, windows = random_query(rng, pool, ingest), random_windows(rng, ingest)
+    ends = {r['from'] for r in query['relations'] if r['kind'] == 'during'}
+    candidates = [s for s in query['steps'] if feature != 'nth' or s['id'] not in ends]
+    if not candidates:
+        return None
+    step = rng.choice(candidates)
+    step['occurrence'] = 'any'
+    entry, relaxations = {}, []
+    if feature == 'nth':
+        entry['occurrence'] = {rng.choice(('nth', 'nth_last')): rng.randint(1, 4)}
+    else:
+        n = rng.randint(2, 5)
+        within = 'window' if feature == 'window' else {'span': rng.choice((1, 6, 24)) * 60 * MINUTE}
+        entry['count'] = {'at_least': n, 'within': within}
+        if rng.random() < 0.5:
+            relaxations.append({'id': f"c{step['id']}", 'kind': 'widen_count', 'step': step['id'],
+                                'cost': rng.choice(COSTS), 'at_least': rng.randint(1, n - 1)})
+    rows = values.get(step['concept'])
+    if rows and rng.random() < 0.33:
+        unit, text = rng.choice(rows)
+        entry.update({'unit': unit, **_value_bounds(rng, [t for u, t in rows if u == unit] or [text], text)})
+    conditions = {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': {step['id']: entry}}
+    if relaxations:
+        conditions['relaxations'] = relaxations
+    return query, conditions, windows
+
+
+def derived_cases(ingest, seeds, first_seed=DERIVED_FIRST_SEED):
+    """The seeded derived requests, features in turn (Nth, span count, period count), one per seed."""
+    pool, values = concept_pool(ingest), series_pool(ingest)
+    for k, seed in enumerate(range(first_seed, first_seed + seeds)):
+        feature = ('nth', 'span', 'window')[k % 3]
+        rng = random.Random(seed)
+        while True:
+            drawn = derived_request(rng, pool, ingest, values, feature)
+            if drawn is not None:
+                try:
+                    es.Request(drawn[0], drawn[1])
+                except es.StoreError:
+                    continue
+                yield seed, feature, *drawn
+                break
+
+
+def derived_differential(store, ingest, seeds=DERIVED_SEEDS, exhaustive_seeds=DERIVED_EXHAUSTIVE_SEEDS):
+    """Derived requests (D32): the store against the prepared reference on every query and `exhaustive_match` on the
+    first, result for result; pruning on against off on every query; every `widen_count` checked to hold the stricter
+    tag's events at both strengths; the unresolved share per feature."""
+    from unittest.mock import patch
+    prepared = pr.PreparedReference(ingest)
+    cases = list(derived_cases(ingest, seeds))
+    wrong, compared, examples, pruning = 0, 0, [], 0
+    mix, unresolved = defaultdict(Counter), defaultdict(Counter)
+    relaxations = violations = 0
+    pids = dict(store.query('SELECT patient_idx, patient_id FROM patients'))
+    for k, (seed, feature, query, conditions, windows) in enumerate(cases):
+        out = es.match(store, query, windows, conditions=conditions)
+        got = out['results']
+        with patch.object(es, '_PRUNE', False):
+            pruning += json.dumps(es.match(store, query, windows, conditions=conditions)) != json.dumps(out)
+        wants = [prepared.match(query, windows, conditions)]
+        if k < exhaustive_seeds:
+            wants.append(ref.exhaustive_match(ingest, query, windows, conditions))
+        for want in wants:
+            for g, w in zip(got, want, strict=True):
+                compared += 1
+                if json.dumps(_unfiltered(g)) != json.dumps(w):
+                    wrong += 1
+                    examples.append({'seed': seed, 'store': g['status'], 'reference': w['status']})
+        for g in got:
+            mix[feature][g['status']] += 1
+            if g['status'] == 'unresolved':
+                unresolved[feature][g['reason']] += 1
+        request = es.Request(query, conditions)
+        for x in conditions.get('relaxations', []):
+            strict = next(s['concept'] for s in request.query['steps'] if s['id'] == x['step'])
+            wide = next(r['concept'] for r in request.query['relaxations'] if r['id'] == x['id'])
+            if wide not in request.derived_used:
+                continue
+            idxs = sorted(pids)
+            ws = [windows.get(pids[i]) or {'start': 0, 'end': 0} for i in idxs]
+            relaxations += 1
+            for part in range(0, len(idxs), 25):
+                chunk = idxs[part:part + 25]
+                for _, d in es._derived_chunk(store, request, chunk, [pids[i] for i in chunk], ws[part:part + 25], chunk):
+                    for doc in (d.first, d.second or d.first):
+                        have = lambda name: {e['id'] for e in doc['events'] if name in e['concepts']}
+                        violations += not have(strict) <= have(wide)
+    decided = {f: sum(c.values()) - c.get('excluded', 0) for f, c in mix.items()}
+    return {'queries': len(cases), 'first_seed': DERIVED_FIRST_SEED,
+            'queries_per_feature': dict(Counter(f for _, f, *_ in cases)), 'results_compared': compared,
+            'reference': ('prepared_reference with the request on every query; exhaustive_match with the request on the '
+                          'first queries; each reads the request and derives envelopes, count strengths, coupling and '
+                          'the two-pass rule independently of the store (execution_store_reference.DerivedQuery)'),
+            'exhaustive_queries': min(exhaustive_seeds, len(cases)), 'mismatches': wrong,
+            'pruning_on_off_differences': pruning,
+            'status_mix': {f: dict(sorted(c.items())) for f, c in sorted(mix.items())},
+            'unresolved_share': {f: {'unresolved': sum(unresolved[f].values()), 'results_with_a_window': decided[f],
+                                     'by_reason': dict(sorted(unresolved[f].items()))} for f in sorted(mix)},
+            'count_relaxations_checked': relaxations, 'count_relaxation_containment_violations': violations,
+            'note': ('every time on the demo is exact, so no count is only possible and no envelope is wider than a '
+                     'point; excluded chart rows (D18) reach Nth and span-count steps whatever the scope, so most '
+                     'results on chart items are not comparable'),
+            'mismatch_examples': examples[:5]}
+
+
 def raw_time_check(ingest, segments):
     """Every event's times against the raw source row: start, end and recorded time, to the microsecond."""
     by_key = {s['id']: s for s in segments}
@@ -577,7 +697,7 @@ def built_store_comparison(store, outcomes):
 
 
 def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, census_workers=None,
-           exhaustive_seeds=EXHAUSTIVE_SEEDS, value_seeds=VALUE_SEEDS):
+           exhaustive_seeds=EXHAUSTIVE_SEEDS, value_seeds=VALUE_SEEDS, derived_seeds=DERIVED_SEEDS):
     started = time.perf_counter()
     result = msi.convert(input_dir, DATASET, workers=workers, chartevents=chartevents)
     admission = demo.verify_summary(result['prepared']['admission']['summary'])
@@ -635,6 +755,11 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
                 t = time.perf_counter()
                 values = value_differential(store, result['ingest'], value_seeds)
                 timings['value_differential'] = time.perf_counter() - t
+            derived = None
+            if chartevents and derived_seeds:
+                t = time.perf_counter()
+                derived = derived_differential(store, result['ingest'], derived_seeds)
+                timings['derived_differential'] = time.perf_counter() - t
     times = raw_time_check(result['ingest'], result['prepared']['admission']['segments'])
     timings['total'] = time.perf_counter() - started
     import resource
@@ -653,6 +778,9 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
                    and defects['threshold_off_by_one']['caught'] and defects['unit_ignored']['caught']
                    and (values['series_rows_with_null_micro_value'] == 0
                         or all(d['caught'] for d in defects.values())), 'DEMO_VALUE_DIFFERENTIAL_MISMATCH')
+    if derived is not None:
+        ei.require(derived['mismatches'] == 0 and derived['pruning_on_off_differences'] == 0
+                   and derived['count_relaxation_containment_violations'] == 0, 'DEMO_DERIVED_DIFFERENTIAL_MISMATCH')
     report = {
         'profile': 'execution-store-mimic-demo-verification-1.2' if chartevents else
                    'execution-store-mimic-demo-verification-1.0',
@@ -689,6 +817,8 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
         report['route'] = {**report['route'], 'source': msi.SOURCE}
     if values is not None:
         report['value_differential'] = values
+    if derived is not None:
+        report['derived_differential'] = derived
     return report
 
 
@@ -703,12 +833,15 @@ def main(argv=None):
     parser.add_argument('--census-workers', type=int, help='processes for the chartevents census (default: --workers)')
     parser.add_argument('--no-chartevents', action='store_true', help='inputevents only, as before D27')
     parser.add_argument('--value-seeds', type=int, default=VALUE_SEEDS, help='value-condition queries (D28); 0 for none')
+    parser.add_argument('--derived-seeds', type=int, default=DERIVED_SEEDS,
+                        help='Nth-occurrence and count queries (D32); 0 for none')
     args = parser.parse_args(argv)
     try:
         inputs = {p.resolve() for p in importer.source_paths(args.input_dir).values()}
         ei.require(args.output.resolve() not in inputs, 'OUTPUT_OVERWRITES_INPUT')
         report = verify(args.input_dir, args.seeds, args.workers, args.store_root, chartevents=not args.no_chartevents,
-                        census_workers=args.census_workers, value_seeds=args.value_seeds)
+                        census_workers=args.census_workers, value_seeds=args.value_seeds,
+                        derived_seeds=args.derived_seeds)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.output.with_suffix(args.output.suffix + '.tmp')
         temporary.write_text(json.dumps(report, indent=2) + '\n')

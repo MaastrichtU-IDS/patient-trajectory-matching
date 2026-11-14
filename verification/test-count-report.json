@@ -5,7 +5,7 @@
     "node_dom_suites": 8,
     "research_http_suite": 21
   },
-  "contract_checks": 1259,
+  "contract_checks": 1285,
   "method": "unittest loader; no tests executed",
   "node_suite_files": [
     "app/test_editor_ui.cjs",
@@ -20,12 +20,13 @@
   "oracle_cases": 16,
   "oracle_properties": 9,
   "profile": "test-count-report-1.0",
-  "suite_tests": 1234,
+  "suite_tests": 1260,
   "suites": {
     "test_bounded_intervals": 22,
     "test_bounded_rdf": 21,
     "test_claim_projection": 45,
     "test_clinical_source_preflight": 20,
+    "test_derived_steps": 25,
     "test_evidence_selection": 29,
     "test_exact_intervals": 58,
     "test_execution_store": 83,
@@ -43,7 +44,7 @@
     "test_mimic_inputevents": 28,
     "test_mimic_matcher_handoff": 14,
     "test_mimic_record_query": 24,
-    "test_mimic_store_ingest": 42,
+    "test_mimic_store_ingest": 43,
     "test_mixed_record_query": 34,
     "test_packaging": 8,
     "test_partitioned_window_query": 27,

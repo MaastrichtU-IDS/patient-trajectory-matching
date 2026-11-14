@@ -4,12 +4,10 @@
     python demos/mockups/store_parity.py build COHORT.json ROOT     # prints the snapshot directory
     python demos/mockups/store_parity.py match SNAPSHOT < cases.json  # per-patient results, as JSON
 
-`build` converts the cohort with `patterns/synthetic_ingest.py`, as `python -m patterns.execution_store synthetic`
-does, and adds one `series` row (D27) to each converted measurement event: `synthetic_ingest` stores no series, so
-without this no value condition could be asked of the synthetic store. The row is the record's own value and unit,
-the value spelled as the cohort's JSON writes it (`repr` of the number, which round-trips exactly); a record with no
-unit, or a value that is not a number, gets no row, as the store's series contract requires. Nothing else changes,
-so every other table equals the plain synthetic build's.
+`build` converts the cohort with `patterns/synthetic_ingest.py` emitting `series` (D32's option): each measured
+record with a number and a unit gets a series row (D27), the value spelled as the cohort's JSON writes it, and a measured
+record without a unit becomes an excluded record. Before D32 this module added the rows itself (`with_series`, kept to
+show the converter's rows are the same for every record with a unit).
 
 `match` reads `{"cases": [{"name", "query", "conditions", "windows"}]}`, times in whole minutes from each patient's
 birth (the trajectory page's engine grid), and answers `{name: {patient_id: {status, certainty?, relaxations?,
@@ -63,12 +61,12 @@ def with_series(patient, records):
 
 
 def build(cohort, root):
+    """The cohort built by the converter itself emitting series (D32: `synthetic_ingest`'s option `series`)."""
     skipped = {}
-    records = {p['patient_id']: {r['record_id']: r for r in p['records']} for p in cohort['patients']}
     with es.StoreBuilder(root, si.synthetic_header(cohort)) as builder:
-        for patient in si.iter_patients(cohort, skipped):
-            builder.add(with_series(patient, records[patient['patient_id']]))
-        return builder.finish(si.synthetic_provenance(cohort, skipped))
+        for patient in si.iter_patients(cohort, skipped, series=True):
+            builder.add(patient)
+        return builder.finish(si.synthetic_provenance(cohort, skipped, series=True))
 
 
 def birth_micros(cohort):
@@ -89,6 +87,18 @@ def to_micros(query):
     return q
 
 
+def conditions_micros(conditions):
+    """The page's conditions, minutes to microseconds: a count's span (D32)."""
+    if conditions is None:
+        return None
+    c = json.loads(json.dumps(conditions))
+    for raw in c['steps'].values():
+        within = raw.get('count', {}).get('within')
+        if isinstance(within, dict):
+            within['span'] *= MINUTE
+    return c
+
+
 def match(snapshot, cases, cohort):
     births = birth_micros(cohort)
     out = {}
@@ -97,7 +107,7 @@ def match(snapshot, cases, cohort):
             windows = {pid: None if w is None else {'start': births[pid] + w['start'] * MINUTE,
                                                     'end': births[pid] + w['end'] * MINUTE}
                        for pid, w in case['windows'].items()}
-            result = es.match(store, to_micros(case['query']), windows, conditions=case.get('conditions'))
+            result = es.match(store, to_micros(case['query']), windows, conditions=conditions_micros(case.get('conditions')))
             mine = out[case['name']] = {}
             for r in result['results']:
                 keep = {k: r[k] for k in ('status', 'certainty', 'relaxations', 'reason') if k in r}
@@ -120,20 +130,38 @@ def replay(case, found):
     q['steps'] = [{**s, 'concept': 'step:' + s['id']} for s in q['steps']]
     q['relaxations'] = [{**x, 'concept': x['id']} if x['kind'] == 'widen_concept' else x for x in q['relaxations']]
     for x in (case.get('conditions') or {}).get('relaxations', []):
-        q['relaxations'].append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
-                                 'concept': x['id']})
+        if x['kind'] == 'widen_value':
+            q['relaxations'].append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
+                                     'concept': x['id']})
+    # D32: a derived step is derived again from the listed events, by the store's own rules, over the keys: its own
+    # key for the step and for a `widen_count` that keeps the concept, the relaxation's key for one naming another.
+    derived = {sid: {k: v for k, v in raw.items() if k in ('occurrence', 'count')}
+               for sid, raw in ((conditions_micros(case.get('conditions')) or {}).get('steps') or {}).items()}
+    derived = {sid: raw for sid, raw in derived.items() if raw}
+    request = None
+    if derived:
+        relax = [dict(x, concept=x['id']) if 'concept' in x else x
+                 for x in (case.get('conditions') or {}).get('relaxations', []) if x['kind'] == 'widen_count']
+        request = es.Request(q, {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': derived, 'relaxations': relax})
+        pq = tg.PreparedQuery(request.query)
     out = {}
     for pid, w in case['windows'].items():  # minutes from birth, as the candidates are
-        events = {}
+        events, mentions = {}, set()
         for key, rows in found.get(pid, {}).items():
-            for slo, shi, elo, ehi, eid, _ in rows:
+            for slo, shi, elo, ehi, eid, kind in rows:
                 e = events.setdefault(eid, {'id': eid, 'concepts': [], 'start': [round(slo * MINUTE), round(shi * MINUTE)]})
                 if elo is not None:
                     e['end'] = [round(elo * MINUTE), None if ehi is None else round(ehi * MINUTE)]
                 e['concepts'].append(key)
-        out[pid] = tg.match(q, {'patient_id': pid, 'window': None if w is None else
-                                {'start': w['start'] * MINUTE, 'end': w['end'] * MINUTE},
-                                'events': list(events.values())})['status']
+                if kind == es.MENTION_KIND:
+                    mentions.add(eid)
+        window = None if w is None else {'start': w['start'] * MINUTE, 'end': w['end'] * MINUTE}
+        patient = {'patient_id': pid, 'window': window, 'events': list(events.values())}
+        if request is not None and window is not None:
+            d = es.derive_patient(request, pid, window, patient['events'], mentions)
+            out[pid] = es.match_derived(pq, request, d)['status']
+        else:
+            out[pid] = tg.match(q, patient)['status']
     return out
 
 

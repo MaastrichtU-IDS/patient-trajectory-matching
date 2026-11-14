@@ -32,6 +32,13 @@ adapter would (docs/execution-store.md, "Synthetic converter"):
   latest over every record the source holds, converted or not (basis `record_span`). It is
   inferred, and gaps inside the span are not represented.
 - Ancestors are the transitive closure of each concept's parents and classes.
+- Option `series` (D32), off by default: each measured point record (a measurement or a diary summary) with a number
+  and a unit also gives one `series` row (D27), the value spelled as the cohort's JSON writes it and refused by name
+  (`NON_PLAIN_VALUE_SPELLING`) if that is not a plain decimal; a measured record without a unit (31 in the committed
+  cohort) or without a number becomes an excluded record (`MEASUREMENT_WITHOUT_UNIT`, `MEASUREMENT_WITHOUT_VALUE`)
+  instead of a value-less event, as D28's contract asks of a source that drops a value. The provenance names the rule
+  (`series`) only when the option is on, so a default build's tables are unchanged; its input digest moves with the
+  converter's own digest, as for any edit to this file.
 
 Nothing here reads `truth`, `quality` or a record's `truth_event_id`.
 """
@@ -41,10 +48,19 @@ from datetime import datetime
 import hashlib
 import json
 from pathlib import Path
+import re
+
+from . import series_values
 
 INGEST_PROFILE = 'execution-store-ingest-2.0'
 ORIGIN = datetime(1, 1, 1)
 MENTION_KINDS = ('note',)
+# D32: measured point records whose value and unit the converter can emit as `series` rows (option `series`).
+MEASURED_KINDS = ('measurement', 'diary_summary')
+SERIES_RULE = ('record_value_unit_v1: each measured record with a number and a unit becomes one series row, the value '
+               'spelled as the cohort\'s JSON writes it (a plain decimal, else refused); a measured record without a '
+               'unit or a number becomes an excluded record')
+_PLAIN = re.compile(r'-?[0-9]+(\.[0-9]+)?')
 # Record statuses that assert the coded thing happened. `ordered` (a test or procedure requested,
 # not yet done) does not: an ordered EEG must not match a step asking for an EEG.
 PERFORMED = (None, 'active', 'final', 'amended', 'stopped')
@@ -120,12 +136,25 @@ def earliest(patient):
     return min([micros(patient['birth_date'][:10] + 'T00:00')] + [bounds(r)[0] for r in patient['records']])
 
 
-def convert_patient(patient, codes, mention_time='at_or_before_letter'):
-    """One patient's ingest record and the counts of what was skipped and why."""
+def value_spelling(value):
+    """A record's numeric value as the cohort's JSON spells it (`repr`, which round-trips exactly), or None when it is
+    not a number; a spelling that is not a plain decimal is refused by name (D32)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    text = repr(value)
+    if not _PLAIN.fullmatch(text):
+        raise ValueError(f'NON_PLAIN_VALUE_SPELLING:{text}')
+    return text
+
+
+def convert_patient(patient, codes, mention_time='at_or_before_letter', series=False):
+    """One patient's ingest record and the counts of what was skipped and why. With `series` (D32, off by default)
+    each measured point record with a number and a unit also gives a `series` row, and one without becomes an excluded
+    record instead of an event."""
     if mention_time not in MENTION_TIMES:
         raise ValueError(f'UNKNOWN_MENTION_TIME:{mention_time}')
     pid = patient['patient_id']
-    events, skipped = [], {}
+    events, skipped, rows, excluded = [], {}, [], []
     floor = earliest(patient)
     def skip(reason):
         skipped[reason] = skipped.get(reason, 0) + 1
@@ -161,6 +190,17 @@ def convert_patient(patient, codes, mention_time='at_or_before_letter'):
         if record['kind'] == 'medication_order':
             (stops if record.get('status') == 'stopped' else orders).append((concept, record))
             continue
+        if series and record['kind'] in MEASURED_KINDS:
+            # D32: a measurement keeps its value only with a unit; one without is a record the store leaves out.
+            text = value_spelling(record.get('value'))
+            if text is None or not record.get('unit'):
+                excluded.append({'source': record['source'], 'concept': concept, 'start': bounds(record),
+                                 'reason': 'MEASUREMENT_WITHOUT_UNIT' if text is not None else 'MEASUREMENT_WITHOUT_VALUE'})
+                skip(f"excluded_{record['kind']}")
+                continue
+            decimal, micro = series_values.columns(text)
+            rows.append({'event_id': _key(record), 'item_class': concept, 'value_lexical': text, 'value_decimal': decimal,
+                         'value_micro': micro, 'unit': record['unit']})
         events.append({'event_id': _key(record), 'kind': record['kind'], 'source': record['source'],
                        'concepts': [concept], 'start': bounds(record), **_record(record), 'evidence': _evidence(record)})
     # Exposures: each stop closes the latest still-open order for the same medication before it.
@@ -194,7 +234,12 @@ def convert_patient(patient, codes, mention_time='at_or_before_letter'):
         spans[record['source']] = (lo, hi) if old is None else (min(old[0], lo), max(old[1], hi))
     coverage = [{'source': s, 'lo': lo, 'hi': hi, 'basis': 'record_span'} for s, (lo, hi) in sorted(spans.items())]
     events.sort(key=lambda e: e['event_id'])
-    return {'patient_id': pid, 'clock_id': f'patient_{pid}', 'events': events, 'coverage': coverage}, skipped
+    out = {'patient_id': pid, 'clock_id': f'patient_{pid}', 'events': events, 'coverage': coverage}
+    if rows:
+        out['series'] = sorted(rows, key=lambda r: r['event_id'])
+    if excluded:
+        out['excluded'] = excluded
+    return out, skipped
 
 
 def _codes(cohort):
@@ -220,18 +265,18 @@ def synthetic_header(cohort):
             'closure': {'version': version, 'ancestors': ancestor_closure(concepts)}}
 
 
-def iter_patients(cohort, skipped=None, mention_time='at_or_before_letter'):
+def iter_patients(cohort, skipped=None, mention_time='at_or_before_letter', series=False):
     """Each converted patient in patient_id order, one at a time; the skip counts accumulate in `skipped`."""
     codes = _codes(cohort)
     skipped = {} if skipped is None else skipped
     for patient in sorted(cohort['patients'], key=lambda p: p['patient_id']):
-        converted, why = convert_patient(patient, codes, mention_time)
+        converted, why = convert_patient(patient, codes, mention_time, series)
         for k, v in why.items():
             skipped[k] = skipped.get(k, 0) + v
         yield converted
 
 
-def synthetic_provenance(cohort, skipped, mention_time='at_or_before_letter'):
+def synthetic_provenance(cohort, skipped, mention_time='at_or_before_letter', series=False):
     """The ingest provenance, given the skip counts `iter_patients` accumulated. The mention timing is named
     (D30), except for the timing before D30, whose provenance is left as it was."""
     late = sum(1 for p in cohort['patients'] for r in p['records'] if r['available_at'] > r['occurred']['latest'])
@@ -240,14 +285,16 @@ def synthetic_provenance(cohort, skipped, mention_time='at_or_before_letter'):
            'converter_sha256': hashlib.sha256(CONVERTER.read_bytes()).hexdigest(),
            'generator': cohort['generator'], 'selection': selection,
            'skipped': dict(sorted(skipped.items()))}
+    if series:
+        out['series'] = SERIES_RULE
     if mention_time != 'letter':
         out['mention_time'] = 'at_or_before_letter_v1: from birth, or an earlier record, to the letter'
     return out
 
 
-def synthetic_ingest(cohort, mention_time='at_or_before_letter'):
+def synthetic_ingest(cohort, mention_time='at_or_before_letter', series=False):
     """The whole cohort as an ingest document (profile execution-store-ingest-2.0)."""
     header = synthetic_header(cohort)
     skipped = {}
-    patients = list(iter_patients(cohort, skipped, mention_time))
-    return {**header, 'provenance': synthetic_provenance(cohort, skipped, mention_time), 'patients': patients}
+    patients = list(iter_patients(cohort, skipped, mention_time, series))
+    return {**header, 'provenance': synthetic_provenance(cohort, skipped, mention_time, series), 'patients': patients}
