@@ -1,6 +1,7 @@
 """Trajectory-graph profile: semantics, decision methods, budgets and the exhaustive reference."""
 from collections import Counter
 from copy import deepcopy
+from dataclasses import replace
 import hashlib
 import importlib.util
 import json
@@ -899,21 +900,23 @@ REVIEW_CASES = {
                                [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'END', 'min': 0}]),
                          patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 90)), 'exact'),
     # A exposure A starting between day 60 and 365, ending at 800; B from 64 to 70 (or to 900); X at 400 (or 850).
+    # D30 and D31 left these two and the next unresolved; the target split (D35) decides them `possible`, which is true
+    # (the tests of those increments run with the split off).
     'X during the first exposure (exact claimed)': (
         query([{'id': 'e', 'concept': 'E', 'occurrence': 'first'}, {'id': 'x', 'concept': 'X'}],
               [{'id': 'r', 'kind': 'during', 'from': 'e', 'to': 'x'}]),
         patient([event('A', 'E', (60, 365), (800, 800)), event('B', 'E', (64, 64), (70, 70)), event('X', 'X', (400, 400))],
-                (0, 900)), 'unresolved'),
+                (0, 900)), 'possible'),
     'X during the first exposure (none claimed)': (
         query([{'id': 'e', 'concept': 'E', 'occurrence': 'first'}, {'id': 'x', 'concept': 'X'}],
               [{'id': 'r', 'kind': 'during', 'from': 'e', 'to': 'x'}]),
         patient([event('A', 'E', (60, 365), (800, 800)), event('B', 'E', (64, 64), (900, 900)), event('X', 'X', (850, 850))],
-                (0, 900)), 'unresolved'),
+                (0, 900)), 'possible'),
     # One event bound to a first and a last step that may be different events (found while fixing the above).
     'first then last on one event': (
         query([{'id': 'a', 'concept': 'K', 'occurrence': 'first'}, {'id': 'b', 'concept': 'K', 'occurrence': 'last'}],
               [{'id': 'r', 'kind': 'after', 'from': 'a', 'to': 'b', 'min': 10}]),
-        patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 900)), 'unresolved'),
+        patient([event('M', 'K', (60, 365)), event('L', 'K', (69, 69))], (0, 900)), 'possible'),
     # The review of D30 (M1): coupling through another uncertain ordered step. A {K}, M {J, K} and Z {J}, each in
     # [0, 3]; f the first K, l the last J. M may be either step's target. Since D31 the first is `none`, as it should
     # be: the order fact "the first K starts at or before the last J" (M carries both) refutes it; D30 left it
@@ -1115,6 +1118,67 @@ def ordered_case(rng):
             return q, p
 
 
+def during_case(rng):
+    """D35: a small case whose `first` or `last` step a `during` reads: its family of exposures, points and wide points
+    (concept x, y or both), another step during it or bounding it, sometimes an `any` step that can bind one of the
+    family's events, sometimes a second ordered step, and now and then a shared variable, so that the target split's
+    gate refuses some cases; grace and widening relaxations."""
+    while True:
+        events = []
+        for i in range(rng.randint(2, 4)):
+            lo = rng.randint(0, 4)
+            kind = rng.choice(['exposure', 'exposure', 'point', 'wide'])
+            e = {'id': f'e{i}', 'concepts': rng.choice([['x'], ['x'], ['y'], ['x', 'y']]),
+                 'start': [lo, lo + (rng.choice([3, 4, 5]) if kind == 'wide' else rng.choice([0, 1, 2]))]}
+            if kind == 'exposure':
+                end = e['start'][1] + rng.randint(0, 3)
+                e['end'] = [end, end + rng.choice([0, 1, 2])]
+                if rng.random() < 0.25 and e['end'][1] > e['start'][0]:
+                    e['proper'] = True
+            events.append(e)
+        if rng.random() < 0.12:
+            a, b = rng.sample(events, 2)
+            b['start_var'], b['start'] = a.get('start_var', a['id'] + '.s'), list(a['start'])
+            if 'end' in b:
+                b['end'] = [max(b['end'][0], b['start'][1] + 1), max(b['end'][1], b['start'][1] + 1)]
+        k = rng.choice([2, 2, 3])
+        names = 'ABC'[:k]
+        steps = [{'id': 'A', 'concept': rng.choice('xy'), 'occurrence': rng.choice(['first', 'last'])}]
+        steps.append({'id': 'B', 'concept': rng.choice('xyxy'), 'occurrence': rng.choice(['any', 'any', 'first', 'last'])})
+        if k == 3:
+            steps.append({'id': 'C', 'concept': rng.choice('xy'), 'occurrence': rng.choice(['any', 'first', 'last'])})
+        relations = [{'id': 'd', 'kind': 'during', 'from': 'A', 'to': 'B', 'grace': rng.choice([0, 0, 1, 2])}]
+        if k == 3:
+            if rng.random() < 0.5:
+                relations.append({'id': 'd2', 'kind': 'during', 'from': rng.choice('AB'), 'to': 'C',
+                                  'grace': rng.choice([0, 1])})
+            else:
+                lo, hi = rng.choice([(0, None), (None, 2), (1, 3), (-2, 0)])
+                relations.append({'id': 'a2', 'kind': 'after', 'from': rng.choice('AB'), 'to': 'C',
+                                  **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})})
+        if rng.random() < 0.3:
+            relations.append({'id': 'w', 'kind': 'after', **rng.choice([{'from': 'START', 'to': 'A'}, {'from': 'A', 'to': 'END'}]),
+                              **rng.choice([{'min': 0}, {'max': 2}, {'min': 1}])})
+        relaxations = []
+        if rng.random() < 0.35:
+            relaxations.append({'id': 'g', 'kind': 'extend_grace', 'cost': '0.25', 'relation': 'd',
+                                'grace': relations[0]['grace'] + rng.choice([1, 2])})
+        if rng.random() < 0.25:
+            relaxations.append({'id': 'wd', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),
+                                'concept': rng.choice('xy')})
+        start = rng.randint(0, 3)
+        q = query(steps, relations, scope=rng.choice(['any', 'any', 'from_start', 'within']), relaxations=relaxations,
+                  budget=1, search_budget=10_000_000)
+        p = patient(events, (start, start + rng.randint(2, 7)), 'P')
+        try:
+            tg.validate_query(q)
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        if worlds.count_worlds(p, 20) <= 4000:
+            return q, p
+
+
 ORDER_NOTES = ('RELAXATION_ORDER_UNCERTAIN', 'CHEAPER_RELAXATION_ORDER_UNCERTAIN')
 
 
@@ -1139,11 +1203,18 @@ def envelope_cases(tiny=3000, ordered=1500):
 class EnvelopeSearchTests(unittest.TestCase):
     """D31, lever 1: one envelope search for unsafe `first` and `last` steps the argument covers. It is sound against
     the true semantics (`trajectory_graph_worlds`), agrees with the reference (which writes it again), and moves a
-    result of D30 (the switch `_ENVELOPE` off) only from undecided to decided, or within undecided."""
+    result of D30 (the switch `_ENVELOPE` off) only from undecided to decided, or within undecided. These tests keep
+    D31's record: they run with the target split (D35) off, in the engine and the reference."""
 
     @classmethod
     def setUpClass(cls):
         cls.cases = envelope_cases()
+
+    def setUp(self):
+        tg._SPLIT = ref.SPLIT = False
+
+    def tearDown(self):
+        tg._SPLIT = ref.SPLIT = True
 
     def test_small_cases_are_sound_agree_with_the_reference_and_move_only_to_decisions(self):
         moved = Counter()
@@ -1301,7 +1372,8 @@ class EnvelopeSearchTests(unittest.TestCase):
         """A step whose end a relation reads, among exposures, or whose events share a variable, is not covered: the
         set keeps D30's two searches (the review's "X during the first exposure" cases), byte for byte."""
         for name in ('X during the first exposure (exact claimed)', 'X during the first exposure (none claimed)'):
-            q, p, status = REVIEW_CASES[name]
+            q, p, _ = REVIEW_CASES[name]
+            status = 'unresolved'  # D31's status; the target split (D35, off here) decides them `possible`
             new = tg.match(q, p)
             tg._ENVELOPE = False
             try:
@@ -1309,6 +1381,156 @@ class EnvelopeSearchTests(unittest.TestCase):
             finally:
                 tg._ENVELOPE = True
             self.assertEqual(new['status'], status)
+
+
+def split_cases(each=600):
+    """D35's suite cases: `tiny_case`, `ordered_case` and `during_case`, `each` of every generator, and the review's."""
+    cases = []
+    for name, make in (('tiny', tiny_case), ('ordered', ordered_case), ('during', during_case)):
+        rng = random.Random(f'd35-{name}')
+        cases += [make(rng) for _ in range(each)]
+    return cases + [(q, p) for q, p, _ in REVIEW_CASES.values()]
+
+
+def split_runs(q, p):
+    """The engine's result, and whether the target split ran on some set and decided every set it ran on."""
+    calls, inner = [], tg._target_split
+    def spy(*a):
+        out = inner(*a)
+        calls.append(out is not None)
+        return out
+    tg._target_split = spy
+    try:
+        r = tg.match(q, p)
+    finally:
+        tg._target_split = inner
+    return r, bool(calls), bool(calls) and all(calls)
+
+
+def engine_undecided(r):
+    """D31's second attempt, as the D35 rule reads it: `unresolved`, or any result that is not `complete`."""
+    return r['status'] == 'unresolved' or r.get('complete') is False
+
+
+# D35: "X during the first K", where K's events tie at their earliest start. A is a point at 0; B is an exposure that
+# may start at 0 or 1 and ends at 5; X is at 3. A precedes B in the profile's order, so A wins the tie: B is never the
+# first K, and X (at 3) is during A in no choice of times. With the tie ignored (delta 0), B could be first at 0.
+TIE_CASE = (query([{'id': 'k', 'concept': 'K', 'occurrence': 'first'}, {'id': 'x', 'concept': 'X'}],
+                  [{'id': 'r', 'kind': 'during', 'from': 'k', 'to': 'x'}]),
+            patient([event('A', 'K', (0, 0)), event('B', 'K', (0, 1), (5, 5)), event('X', 'X', (3, 3))], (0, 10)))
+
+
+class TargetSplitTests(unittest.TestCase):
+    """D35: the target split decides the sets D30 and D31 leave undecided, exactly. It is sound against the true
+    semantics (`trajectory_graph_worlds.check`), equal to the truth by enumeration wherever it ran and completed
+    (`trajectory_graph_worlds.truth`), agrees with the reference (which writes it again), and moves a result of the
+    switch off (`_SPLIT`) only from undecided."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = split_cases()
+
+    def test_small_cases_are_sound_exact_agree_with_the_reference_and_move_only_from_undecided(self):
+        seen = Counter()
+        for i, (q, p) in enumerate(self.cases):
+            new, ran, completed = split_runs(q, p)
+            tg._SPLIT = False
+            try:
+                old = tg.match(q, p)
+            finally:
+                tg._SPLIT = True
+            with self.subTest(case=i):
+                self.assertEqual(worlds.check(new, q, p), [], (q, p, new))
+                if completed:
+                    self.assertEqual(worlds.result_key(new), worlds.truth(q, p), (q, p, new))
+                self.assertEqual(differential_view(new), differential_view(ref.match(q, p), reference=True), (q, p))
+                for certainty, relaxations, binding in reported_bindings(new):
+                    chosen = [x for x in q.get('relaxations', []) if x['id'] in relaxations]
+                    self.assertTrue(ref.binding_reaches(q, p, chosen, binding, certainty), (q, p, new))
+                if new != old:
+                    self.assertTrue(engine_undecided(old), (q, p, old, new))
+                    seen['to a decision' if not engine_undecided(new) else 'within undecided'] += 1
+                seen['ran'] += ran
+                seen['refused or stopped'] += ran and not completed
+        self.assertGreater(seen['to a decision'], 300, seen)
+        self.assertGreater(seen['refused or stopped'], 0, seen)  # the gate refuses some (shared variables)
+
+    def test_the_review_cases_are_decided_as_the_truth(self):
+        """The D30 review's "X during the first exposure" cases, unresolved by D30 and D31, are `possible`, which is
+        true; so is "first then last on one event"."""
+        for name in ('X during the first exposure (exact claimed)', 'X during the first exposure (none claimed)',
+                     'first then last on one event'):
+            q, p, status = REVIEW_CASES[name]
+            new, ran, completed = split_runs(q, p)
+            with self.subTest(case=name):
+                self.assertTrue(ran and completed)
+                self.assertEqual(new['status'], 'possible')
+                self.assertEqual(worlds.result_key(new), worlds.truth(q, p))
+                tg._SPLIT = False
+                try:
+                    self.assertEqual(tg.match(q, p)['status'], 'unresolved')
+                finally:
+                    tg._SPLIT = True
+
+    def test_a_tie_at_the_earliest_start_is_won_by_the_profile_order(self):
+        q, p = TIE_CASE
+        self.assertEqual(worlds.truth(q, p), ('none', None, None))
+        self.assertEqual(tg.match(q, p)['status'], 'none')
+        self.assertEqual(ref.match(q, p)['status'], 'none')
+        delta = tg._split_delta
+        tg._split_delta = lambda which, t, y: 0
+        try:
+            self.assertNotEqual(worlds.check(tg.match(q, p), q, p), [])
+        finally:
+            tg._split_delta = delta
+
+    def test_the_gate(self):
+        """A split family that names a shared variable, or a product of possible targets above `SPLIT_LIMIT`, leaves
+        the set undecided as D30 or D31 left it. The reference's limit is the engine's."""
+        self.assertEqual(ref.SPLIT_LIMIT, tg.SPLIT_LIMIT)
+        q, p = deepcopy(REVIEW_CASES['X during the first exposure (exact claimed)'][:2])
+        p['events'].append({'id': 'S', 'concepts': ['Y'], 'start': [60, 365], 'start_var': 'A.s'})
+        new, ran, completed = split_runs(q, p)
+        self.assertTrue(ran and not completed)
+        self.assertEqual(new['status'], 'unresolved')
+        many = [event(f'k{i}', 'K', (0, 9)) for i in range(tg.SPLIT_LIMIT)] + [event('E', 'K', (0, 9), (12, 12)),
+                                                                              event('X', 'X', (11, 11))]
+        q = query([{'id': 'k', 'concept': 'K', 'occurrence': 'first'}, {'id': 'x', 'concept': 'X'}],
+                  [{'id': 'r', 'kind': 'during', 'from': 'k', 'to': 'x'}])
+        new, ran, completed = split_runs(q, patient(many, (0, 20)))
+        self.assertTrue(ran and not completed)
+        self.assertEqual(new['status'], 'unresolved')
+        new, ran, completed = split_runs(q, patient(many[1:], (0, 20)))
+        self.assertTrue(ran and completed)
+        self.assertEqual(new['status'], 'possible')
+
+    def test_planted_defects(self):
+        """Each defect makes some small case unsound or, where the split ran and completed, different from the truth:
+        the tie delta ignored, the narrowing dropped (no bound from an unbound event of the family), exact tested on
+        one scenario only, and a `during` reading the picked event's end instead of the scenario target's."""
+        cases = self.cases + [TIE_CASE]
+        def wrong():
+            n = 0
+            for q, p in cases:
+                r, ran, completed = split_runs(q, p)
+                n += bool(worlds.check(r, q, p)) or (completed and worlds.result_key(r) != worlds.truth(q, p))
+            return n
+        self.assertEqual(wrong(), 0)
+        exact = tg._split_exact
+        def picked_end(view, s, target, occurrence):
+            r = tg._view_record(view, target)
+            return (*r[:5], replace(r[tg._EVENT], fv=occurrence.record[tg._EVENT].fv))
+        for name, attr, planted in (('the tie delta ignored', '_split_delta', lambda which, t, y: 0),
+                                    ('the narrowing dropped', '_split_bounds', lambda which, t, family: (-tg.INF, tg.INF)),
+                                    ('exact tested on one scenario', '_split_exact', lambda *a: exact(*a[:-1], a[-1][:1])),
+                                    ("a during reading the picked event's end", '_split_record', picked_end)):
+            original = getattr(tg, attr)
+            setattr(tg, attr, planted)
+            try:
+                with self.subTest(defect=name):
+                    self.assertGreater(wrong(), 0)
+            finally:
+                setattr(tg, attr, original)
 
 
 class PreparedQueryTests(unittest.TestCase):

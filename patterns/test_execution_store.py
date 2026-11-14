@@ -470,10 +470,21 @@ class MatchingTests(unittest.TestCase):
         # The first X is uncertain (x1 may start before or after x2), B can bind the first step's targets, and B at
         # least a minute after A holds in some choice of times but not in every one.
         events = [('x1', 'X', 0, 50), ('x2', 'X', 10, 20)]
+        # D35: the target split decides this set (`possible`, which is true). An order-uncertain `unresolved` still
+        # arises where the split's gate refuses a set, so the rule is tested with the split off, and on.
+        tg._SPLIT = False
+        try:
+            got, _, _ = self.admission_case(events, [], steps, least=1)
+            self.assertEqual((got['status'], got['reason']), ('unresolved', 'OCCURRENCE_ORDER_UNCERTAIN'))
+            self.assertIn('unverified_match', got)
+            # An excluded X before every event could be the first X: not comparable, as the reference says.
+            got, _, _ = self.admission_case(events, [('X', -500)], steps, least=1)
+            self.assertEqual(got, {'patient_id': 'P', 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                                   'excluded_steps': ['A']})
+        finally:
+            tg._SPLIT = True
         got, _, _ = self.admission_case(events, [], steps, least=1)
-        self.assertEqual((got['status'], got['reason']), ('unresolved', 'OCCURRENCE_ORDER_UNCERTAIN'))
-        self.assertIn('unverified_match', got)
-        # An excluded X before every event could be the first X: not comparable, as the reference says.
+        self.assertEqual(got['status'], 'possible')
         got, _, _ = self.admission_case(events, [('X', -500)], steps, least=1)
         self.assertEqual(got, {'patient_id': 'P', 'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
                                'excluded_steps': ['A']})
@@ -1034,11 +1045,11 @@ def d30_stage_digests(legacy_store, seed):
     the latest start, with the order rule as well, and with the mention timing (the store and the case as they are
     now); and, for a second ordering, this store and case with the order rule off (mention timing before the order
     rule)."""
-    tg._ENVELOPE = False
+    tg._ENVELOPE = tg._SPLIT = False
     try:
         return _d30_stage_digests(legacy_store, seed)
     finally:
-        tg._ENVELOPE = True
+        tg._ENVELOPE = tg._SPLIT = True
 
 
 def _d30_stage_digests(legacy_store, seed):
@@ -1140,11 +1151,12 @@ def d31_match(q, w, envelope, exact_facts):
     def spy(pq, patient, trusted=False):
         r = engine[patient['patient_id']] = inner(pq, patient, trusted)
         return r
-    tg._ENVELOPE, tg._EXACT_FACTS, tg.match_prepared = envelope, exact_facts, spy
+    # D35: with the target split off, so that these are D31's own results.
+    tg._ENVELOPE, tg._EXACT_FACTS, tg._SPLIT, tg.match_prepared = envelope, exact_facts, False, spy
     try:
         return es.match(_STATE['store'], q, w), engine
     finally:
-        tg._ENVELOPE, tg._EXACT_FACTS, tg.match_prepared = True, True, inner
+        tg._ENVELOPE, tg._EXACT_FACTS, tg._SPLIT, tg.match_prepared = True, True, True, inner
 
 
 def d31_movement(seed):
@@ -1170,12 +1182,13 @@ class D31MovementTests(unittest.TestCase):
     """D31 (decision log), second attempt: the envelope search, with the order facts in its exact phase, moves a
     recorded result only from undecided (by the engine's own result: `unresolved`, or not `complete`) to a decision,
     or within undecided; no decided result changes. With the switch off this tree gives D30's digest; on, the digest
-    recorded now; the first attempt's digest (exact-phase facts off) is recorded beside them."""
+    recorded at D31, which D32 to D34 kept and D35's target split (off here) starts from; the first attempt's digest
+    (exact-phase facts off) is recorded beside them."""
 
     def test_the_300_recorded_digests_move_only_from_undecided_results(self):
         recorded = json.loads(D31_DIGESTS.read_text())
         d30 = json.loads(D30_DIGESTS.read_text())['seeds']
-        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        now = {s: e['before'] for s, e in json.loads(D35_DIGESTS.read_text())['seeds'].items()}
         seen, kinds = Counter(), Counter()
         for seed in range(SEEDS):
             entry = recorded['seeds'][str(seed)]
@@ -1192,6 +1205,72 @@ class D31MovementTests(unittest.TestCase):
                          recorded['summary']['moved'])
         self.assertEqual(dict(sorted(kinds.items())), recorded['summary']['engine_by_kind'])
         self.assertTrue({'none', 'exact'} <= set(seen), seen)
+
+
+D35_DIGESTS = ROOT / 'patterns/fixtures/execution_store_match_digests_d35.json'
+
+
+def d35_match(q, w, split):
+    """The store's result with the target split on or off, and the engine's own result for each patient the engine ran
+    on (`match_prepared`, or `_coupled_match` for a coupled Nth step, before the store's coverage and excluded-records
+    rules), by patient id."""
+    engine, inner, coupled = {}, tg.match_prepared, es._coupled_match
+    def spy(pq, patient, trusted=False):
+        r = engine[patient['patient_id']] = inner(pq, patient, trusted)
+        return r
+    def spy_coupled(pq, patient, steps):
+        r = engine[patient['patient_id']] = coupled(pq, patient, steps)
+        return r
+    tg._SPLIT, tg.match_prepared, es._coupled_match = split, spy, spy_coupled
+    try:
+        return es.match(_STATE['store'], q, w), engine
+    finally:
+        tg._SPLIT, tg.match_prepared, es._coupled_match = True, inner, coupled
+
+
+def d35_movement(seed):
+    """The seed's digest with the target split off (main before D35) and on, and each changed result's transition, by
+    the engine's own result and by the store's."""
+    q, w = MatcherScalingTests.case(seed)
+    (before, eb), (after, ea) = (d35_match(q, w, split) for split in (False, True))
+    digest = lambda out: hashlib.sha256(json.dumps({k: out[k] for k in ('plan', 'candidates', 'counts', 'results')},
+                                                   sort_keys=True).encode()).hexdigest()
+    store, engine = Counter(), Counter()
+    for a, b in zip(before['results'], after['results']):
+        pid = a['patient_id']
+        x, y = eb.get(pid), ea.get(pid)
+        if a != b or x != y:
+            store[f'{d31_label(a)} -> {d31_label(b)}'] += 1
+            # A patient the engine did not run on (filtered, or pruned: the engine's own `none`) is the same both ways.
+            engine[f'{d31_label(x or a)} -> {d31_label(y or b)}'] += 1
+    return {'before': digest(before), 'after': digest(after),
+            'engine_transitions': dict(sorted(engine.items())), 'store_transitions': dict(sorted(store.items()))}
+
+
+class D35MovementTests(unittest.TestCase):
+    """D35 (decision log): the target split moves a recorded result only from undecided (by the engine's own result:
+    `unresolved`, or not `complete`) to a decision, or within undecided; no decided result changes. With the switch off
+    this tree gives the digest recorded before D35 (D31's, which D32 to D34 kept); on, the digest recorded now."""
+
+    def test_the_300_recorded_digests_move_only_from_undecided_results(self):
+        recorded = json.loads(D35_DIGESTS.read_text())
+        d31 = json.loads(D31_DIGESTS.read_text())['seeds']
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        kinds = Counter()
+        for seed in range(SEEDS):
+            entry = recorded['seeds'][str(seed)]
+            got = d35_movement(seed)
+            with self.subTest(seed=seed):
+                self.assertEqual(got, entry)
+                self.assertEqual(got['before'], d31[str(seed)]['after'])
+                self.assertEqual(got['after'], now[str(seed)])
+                for transition, n in got['engine_transitions'].items():
+                    kinds[d31_kind(transition)] += n
+                    self.assertNotEqual(d31_kind(transition), 'decided changed', transition)
+        self.assertEqual(sum(1 for e in recorded['seeds'].values() if e['before'] != e['after']),
+                         recorded['summary']['moved'])
+        self.assertEqual(dict(sorted(kinds.items())), recorded['summary']['engine_by_kind'])
+        self.assertGreater(kinds['to a decision'], 0)
 
 
 class PerBucketDeriveTests(unittest.TestCase):

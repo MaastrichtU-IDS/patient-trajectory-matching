@@ -374,10 +374,98 @@ def _envelope_classify(query, concept, constraints, events, window, facts, pools
     return None, None
 
 
+# D35: the target split, switched as the engine's `_SPLIT` is. Its gate's K, written again here (a test checks that the
+# two agree).
+SPLIT = True
+SPLIT_LIMIT = 64
+
+
+def _tie(which, t, y):
+    """0 when t is the target over y at an equal start (t first in `first`'s order, or last in `last`'s), else 1."""
+    if which == 'first':
+        return 0 if (t['s'], t['f'], t['id']) < (y['s'], y['f'], y['id']) else 1
+    return 0 if (y['s'][1], y['s'][0], y['f'], y['id']) < (t['s'][1], t['s'][0], t['f'], t['id']) else 1
+
+
+def _split_model(query, patient, relaxations):
+    """D35, written again from docs/trajectory-graph-profile.md, for a set the order rule leaves undecided: the split
+    steps, the pools of the other steps, and every feasible scenario with its region; or None when the gate refuses.
+    A scenario gives each split step one of its possible targets; its region says, for every other event y of the
+    step's family, that y starts at least tie(T, y) after the target T (before it, for `last`), as explicit edges on the
+    whole patient's times. A scenario is feasible when the patient's facts and its region have a choice of times."""
+    concept, constraints = _constraints(query, relaxations)
+    events = _events(patient)
+    facts = _facts(events, patient['window'])
+    pools, uncertain, unsafe, _, extra, info = _ordered_pools(query, concept, constraints, events, facts)
+    if not unsafe:  # the order rule decided the set: nothing to split
+        return None
+    split = set(unsafe)
+    ids = {sid: {e['id'] for e in info[sid]['family']} for sid in uncertain}
+    while True:
+        more = {sid for sid in uncertain if sid not in split and any(ids[sid] & ids[t] for t in split)}
+        if not more:
+            break
+        split |= more
+    shared = _shared(events)
+    if any(e['id'] in shared for sid in split for e in info[sid]['family']):
+        return None
+    count = 1
+    for sid in split:
+        count *= len(info[sid]['possible'])
+    if count > SPLIT_LIMIT:
+        return None
+    names = [s['id'] for s in query['steps']]
+    order = [sid for sid in names if sid in split]
+    every = _facts(events + extra, patient['window'])
+    scenarios = []
+    for chosen in product(*[info[sid]['possible'] for sid in order]):
+        targets = dict(zip(order, chosen))
+        region = []
+        for sid, t in targets.items():
+            which = info[sid]['which']
+            for y in info[sid]['family']:
+                if y['id'] == t['id']:
+                    continue
+                d = _tie(which, t, y)
+                ty, yy = ('time', t['var']['s']), ('time', y['var']['s'])
+                region.append((yy, ty, -d) if which == 'first' else (ty, yy, -d))
+        if _satisfiable(every + region):
+            scenarios.append((targets, region))
+    return {'names': names, 'split': order, 'constraints': constraints, 'facts': every, 'scenarios': scenarios,
+            'pools': {n: pools[n] for n in names if n not in split}}
+
+
+def _split_classify(model):
+    """The best certainty under the split: a binding of the other steps exact in every feasible scenario, else one
+    possible in some scenario, else None."""
+    rest = [n for n in model['names'] if n not in model['split']]
+    constraints, facts, scenarios = model['constraints'], model['facts'], model['scenarios']
+    best = None
+    for chosen in product(*[model['pools'][n] for n in rest]):
+        base = dict(zip(rest, chosen))
+        if scenarios and all(is_exact({**base, **targets}, constraints, facts + region) for targets, region in scenarios):
+            return 'exact'
+        if best is None and any(is_possible({**base, **targets}, constraints, facts + region)
+                                for targets, region in scenarios):
+            best = 'possible'
+    return best
+
+
 def classify_ordered(query, patient, relaxations=()):
     """The best certainty any binding reaches under a relaxation set ('exact', 'possible' or None), and
     whether the order rule leaves the set undecided (D30): None, the certainty found, or 'none'. Where the envelope
-    search covers every unsafe step (D31), it decides instead of the two searches."""
+    search covers every unsafe step (D31), it decides instead of the two searches. A set left undecided is decided by
+    the target split where its gate admits it (D35)."""
+    best, open_ = _classify_ordered(query, patient, relaxations)
+    if open_ is None or not SPLIT:
+        return best, open_
+    model = _split_model(query, patient, relaxations)
+    if model is None:
+        return best, open_
+    return _split_classify(model), None
+
+
+def _classify_ordered(query, patient, relaxations=()):
     concept, constraints = _constraints(query, relaxations)
     events = _events(patient)
     facts = _facts(events, patient['window'])
@@ -404,7 +492,13 @@ def classify(query, patient, relaxations=()):
 
 def binding_reaches(query, patient, relaxations, binding_ids, certainty):
     """Whether a reported binding really has the reported certainty; a safe uncertain `first` or `last` step
-    is checked on its envelope (D30)."""
+    is checked on its envelope (D30). Where the target split decides the set (D35), an exact binding's other steps must
+    be exact in every feasible scenario (a split step names its picked event), and a possible binding must hold in the
+    scenario its split steps name."""
+    if SPLIT:
+        model = _split_model(query, patient, relaxations)
+        if model is not None and _classify_ordered(query, patient, relaxations)[1] is not None:
+            return _split_reaches(model, binding_ids, certainty)
     concept, constraints = _constraints(query, relaxations)
     events = _events(patient)
     facts = _facts(events, patient['window'])
@@ -425,6 +519,23 @@ def binding_reaches(query, patient, relaxations, binding_ids, certainty):
             return True
         if certainty != 'exact' and is_possible(binding, constraints, every + order_edges(binding)):
             return True
+    return False
+
+
+def _split_reaches(model, binding_ids, certainty):
+    rest = [n for n in model['names'] if n not in model['split']]
+    constraints, facts, scenarios = model['constraints'], model['facts'], model['scenarios']
+    options = [[e for e in model['pools'][n] if e['id'] == binding_ids[n]] for n in rest]
+    for chosen in product(*options):
+        base = dict(zip(rest, chosen))
+        if certainty == 'exact':
+            if scenarios and all(is_exact({**base, **targets}, constraints, facts + region) for targets, region in scenarios):
+                return True
+            continue
+        for targets, region in scenarios:
+            if all(targets[s]['id'] == binding_ids[s] for s in model['split']) and \
+                    is_possible({**base, **targets}, constraints, facts + region):
+                return True
     return False
 
 

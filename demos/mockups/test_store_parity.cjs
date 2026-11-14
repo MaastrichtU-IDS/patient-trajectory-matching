@@ -160,8 +160,8 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
      mention of a medicine counts as letter-mentions);
    - measurement-records: the store reads every measured record with a unit; the page reads one value per happening;
    - order-uncertain (D30): a first or last step whose target the records leave uncertain is unresolved in the store
-     when its end is read, another step can bind its events, or no sound refutation exists; the page binds the event
-     its reconciled records date, without that test;
+     when its end is read, another step can bind its events, or no sound refutation exists, and the target split
+     (D35) cannot decide it; the page binds the event its reconciled records date, without that test;
    - occurrence-envelope (D32): for an Nth step (N > 1) the store's time is the Nth occurrence's, ranging over every
      time the records allow (an envelope), unresolved when another step can bind the ranked events; the page binds the
      reconciled happening its most precise record ranks Nth, which is not sound under uncertain times (plan, 1.2);
@@ -277,15 +277,13 @@ const EXPECTED = {
   },
   "a seizure while taking the first blocker": {
     C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C004: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
-    C008: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
-    C015: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
-    C021: "letter-mentions+medication-records+order-uncertain: page exact, store unresolved",
-    C023: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
-    C036: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
-    C038: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
-    C044: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
-    C045: "letter-mentions+medication-records+order-uncertain: page exact, store unresolved",
+    C008: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C021: "letter-mentions+medication-records: page exact, store possible",
+    C023: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C036: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C038: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C044: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C045: "letter-mentions+medication-records: page exact, store possible",
   },
   "Dravet syndrome, then valproate": {
     C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
