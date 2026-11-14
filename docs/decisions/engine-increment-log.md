@@ -45,7 +45,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D31 | Latency: one envelope search for coupled `first` and `last` steps (lever 1 of the D32/D33 plan), under rules fixed before measuring | Built, sound on every check (0 violations in 44,500 small cases; reference agrees), then reverted under its rule: the regenerated 14-worker confirmation p95 was 9.41 s against a bar of 8.5 s (same-day calibration 8.2 s; 8 workers 9.90 s); 4 `not_comparable` results at 10,000 also moved; D30 stands. Next: fix the measurement protocol, then retry lever 1 or lever 5. *Second attempt:* a paired, interleaved confirmation protocol (owner-approved); the four results traced to the coverage rule, not D18; a D18 crash in main found and fixed; the order facts in the exact phase. Lever 1 kept: paired p95 ratio at 14 workers 0.80 to 0.88 in every pair against main (bar 0.90), replicated at 0.82 to 0.86; this tree's p95 8.49 s (replication 8.77 s), max 11.6 s, 0.76 GiB; 8 workers 10.17 s (stretch missed); every moved result from undecided by the engine's own decision; MIMIC unchanged |
 | D32 | Nth and Nth-from-last occurrence, and "at least N times within a span or the index period", in the store's match request, over coded records; the converter's optional `series`; the translator and parity extension, under rules fixed before measuring | Decided; shipped. Sound on every check: 0 violations in 120,000 small cases against every choice of times, the reference agrees, 14 planted defects caught, 0 mismatches on 53,280 synthetic and 15,600 demo results. An early review's must-fix (derived tag names could collide) was fixed and everything regenerated. No change without the new fields: 300 digests, every matcher digest, scaling and MIMIC as D31. No latency regression: paired 14-worker p95 ratios 1.001 to 1.010 against main (bar 1.05), p95 8.10 s; replication 0.93 to 1.05. Parity 555 of 672 over fourteen trajectories, every difference named |
 | D33 | Rises and falls (relative conditions) in the store's match request: a baseline of up to k previous readings within W, period readings timed by their period's start, the two-pass rule; and a build fingerprint so that engine-only changes can reuse the scaling report's builds, under rules fixed before measuring | Built and sound (60,000 small cases and 500 snapshot requests, 0 violations and 0 mismatches; seven planted defects caught), **not shipped**: the usefulness bar (at most 30% unresolved in each rise template) was missed on the graph template, 3 of its 4 candidates (one patient moves the share by 25 points), by D30's order rule on its `first` blocker; rises stay refused by name. The build fingerprint moved to its own increment after a review's must-fix; this branch changes documentation only |
-| D34 | A build fingerprint for the scaling report (D33's part 2, rebuilt with its review's fixes), so that a change to matching alone can reuse the report's builds, under rules fixed before measuring | Rules committed; in progress |
+| D34 | A runtime record of what the scaling report's builds load and read, by whole-file digests, with the engine split so that a build loads no matching code, so that a change to matching alone can reuse the report's builds (the static fingerprint of D33's part 2 superseded after two reviews), under rules fixed before measuring | Rules committed (superseding the first set); in progress |
 
 ## D1 Package with hatchling, in place
 
@@ -1732,7 +1732,7 @@ The plan is section 3 of [d32-d33-store-step-language-plan.md](d32-d33-store-ste
 
 **Part 2: moved to its own increment** (above). What was built here and reviewed: `patterns/build_fingerprint.py` (a fingerprint over the definitions the scaling benchmark's `build_worker` reaches, followed across this repository's modules to a fixed point), the scaling report's `build_provenance` and `--reuse-builds` with named refusals, and the gate recomputing each fingerprint; it is commit cb9968f, reverted here. Beyond the must-fix, the review asked for: the environment (or the first run's environment, date and report) carried through chained reuses; reused build figures flagged on the results page; the gate recomputing the whole fingerprint map from its entry points; the data files pinned explicitly; the departure from these rules recorded (the rules say the build's modules are bound "by full digest", the build closes over them instead); `budget_seconds_per_size`, `rss_limit_bytes` and the report profile compared on reuse; unknown keys in a fingerprint map refused rather than skipped; `importlib.import_module`, `__dict__` and `attrgetter` refused as dynamic references; and the re-export limit stated. The next increment takes these with the must-fix, from main.
 
-## D34 A build fingerprint for the scaling report, so that a change to matching alone can reuse its builds
+## D34 Reusing the scaling report's builds when only matching changed: a build fingerprint, redesigned as a runtime record
 
 D33 built this as its part 2, under D33's rules (ce358d6). An independent review found a must-fix in it, and since D33's rises did not ship, the mechanism was D33's only code change; it was removed from D33 (decision log, D33) and is rebuilt here, from main after D33, with every fix the review listed.
 
@@ -1776,4 +1776,56 @@ D33 built this as its part 2, under D33's rules (ce358d6). An independent review
 2. *Provenance no weaker than before.* Every report the gate checked before is still checked, with the same whole-file digests. The scaling report's `artifacts` still lists every file it listed. Its build phase is bound by fingerprints the gate recomputes in full from their entry points, with pinned files by whole digest; an unknown key, an unknown rule, a missing file, a changed module set or a stale digest fails. The gate's own tests count fingerprint entries among the bindings (must-fix 2). The regenerated reports reproduce D32's figures where the code is unchanged: the scaling report's row counts, candidate counts and status mixes at every size, and every per-query digest of the matcher report at every size and in the confirmation.
 3. *A reused report states its origin unambiguously.* A test reuses a run, then reuses the reuse. Each size says it was reused. Both reports name the first run's report digest, generation time and environment. The second's build figures equal the first's. Reuse is refused for each named reason, including a different environment or parameter. The results page marks reused figures.
 4. *This run builds afresh* (no committed report has a fingerprint yet), with `--keep`, so that the next change to matching alone can reuse it.
+- A failure is fixed, never tuned away.
+
+**Superseded (2026-11-14), kept as written above.** A second independent review of the static closure (its scripts in `/tmp/rv34_scripts`) built many more single-step bypasses. Among them:
+- import-time side effects inside definitions (a walrus, default arguments, class bodies, decorators, `_unused = globals().update(...)`);
+- repository code that runs in a build but was not in the map (`patterns/__init__.py`, an imported module none of whose names were reached, a new `tools/__init__.py`, a shadow module on `sys.path`);
+- `run_size` able to rewrite the build figures;
+- two-step lookups (`__globals__`, `builtins.getattr`, `pkgutil.resolve_name`, `inspect.getmodule`, dotted imports, a module `__getattr__`, an `if __name__ != "__main__"` guard).
+
+The owner's delegate decided to stop hardening a static analysis of Python, which does not converge, and to redesign D34 around what a build actually loads, by whole-file digests. The design and rules above are superseded by the following; the regeneration that had started under them was stopped after 12 minutes, before any report was written.
+
+**Redesign.**
+1. *The engine split.* What the store's build uses of the engine moves out of `patterns/trajectory_graph.py` into `patterns/trajectory_times.py`:
+   - patient validation, `patient_times`, `Times` and the network it solves, `Event`, `events_of`, the refusal codes (`TrajectoryError`, `require`) and their constants.
+
+   Matching code (search, arc consistency, the order rule, the envelope, `decide*`, `match*`) stays in `trajectory_graph.py`, which imports every moved name back, so these are the same objects and no caller changes. `Times.occurrence`, which builds the order rule's `_Occurrence`, imports it when called. `patterns/execution_store.py` imports `trajectory_times` and reaches matching code through a proxy that imports `trajectory_graph` on first use, so a build process loads neither `trajectory_graph` nor `temporal_stn`.
+2. *A runtime record* (`patterns/build_record.py`, rule `runtime_record_v1`). The build phase (cohort construction, the build worker, and the code that runs and measures a build: `run_phase`, `current_rss`, `limit_bytes`, `build_size`) moves into `tools/scaling_build_worker.py`. The benchmark runs that script for each build in Python's isolated mode (`-I`), with the repository first on `sys.path`. At the end of each build the script records:
+   - every module loaded from the repository, with every `__init__.py` on its path, by whole-file sha256;
+   - the pinned data files (`BUILD_FILES`), by whole-file sha256. An audit hook sees every file opened; a repository file read that is neither a recorded module (or its bytecode) nor pinned stops the build;
+   - the versions of Python, DuckDB, pyarrow and jsonschema;
+   - whether the repository is a checkout or an installed package.
+
+   Refused at runtime: matching code loaded, a repository module the record cannot describe, and a recorded file that changed during the build. Every size of a run must record the same, and the report keeps the record as `build_provenance`. Its `modules` and `files` are artifact maps, so the provenance gate recomputes each digest and fails on a change or a missing file.
+3. *Reuse.* `--reuse-builds REPORT` first runs a small build of this tree (one cohort) and requires its record to equal the earlier report's exactly. That catches:
+   - any repository file loaded or read, or its digest;
+   - a newly loaded module;
+   - a version, or the root's kind.
+
+   Reuse also requires the profile, the generator seed, the build parameters (threads, memory limit, staging, cohort sizes, `budget_seconds_per_size`, `rss_limit_bytes`) and the environment (platform, CPU, memory, Python, DuckDB) to be equal, and each kept snapshot to open with its identifier and file digests. Otherwise it is refused by name.
+4. *Figures and origins.*
+   - `build_size` returns a size's build fields, and the benchmark fails if any changes before the size's entry is written.
+   - Each report records `generated_at` and `commit` (the head and whether the tree was dirty, read when the run starts).
+   - `build_origin` names the report that first built the snapshots (path, sha256, commit, time, environment) and the report reused directly, unchanged through chained reuses.
+   - The results page marks reused build figures and names their origin.
+5. *Honesty.* The record covers repository files loaded or read, data files, the recorded versions, the environment and the limits. It does not cover the operating system, CPU microcode or library internals beyond their versions. A reused snapshot's own manifest still names the builder and converter file digests of the tree that built it (`builder_artifacts`, `converter_sha256`); the report says so (`build_covers`).
+6. *A departure from rule 2, signed off.* D32's paired verdict binds `tools/benchmark_execution_store.py`, which this change edits. It is frozen in the gate's `HISTORICAL` list, as D30's attribution and D31's verdict were in D32, and the regenerated matcher report's `paired_confirmation` supersedes it for the current tree. This is a departure from rule 2 ("provenance no weaker for any report"), signed off by the owner's delegate under the policy the owner approved.
+
+**Pre-committed rules (these supersede the four above; written and committed before any measurement).**
+1. *Every bypass from both reviews is caught, by construction or by a test.* The record lists every repository file the build loaded or read, so an edit to any of them changes it. There is a test for each of:
+   - the first review's five bypasses: a top-level conditional reassignment, a top-level `globals()` write, an edit in the build process's entry point, an import swapped for `_pydecimal`, a change to how `run_phase` measures a peak;
+   - import-time side effects inside definitions (a walrus, a default argument, `globals().update`);
+   - a package `__init__` side effect, a new repository module, a `sys.path` shadow (a package taking a module's place) and a new `tools/__init__.py`;
+   - two-step lookups (`builtins.getattr`, `pkgutil.resolve_name`, a module `__getattr__`, an `if __name__ != '__main__'` guard);
+   - refusals: matching code loaded, an unpinned repository file read, a file changed during the build;
+   - a build field rewritten after the build.
+2. *The split engine gives byte-identical results:* the 300 recorded match digests, every engine, store and adapter suite, and both parity tests are unchanged. The regenerated reports reproduce D32's figures where the matching code is the same: the scaling report's row counts, candidate counts and status mixes at every size; every per-query digest of the matcher report, at every size and in the confirmation; every MIMIC demo figure other than identifiers, digests, bindings and timings.
+3. *Provenance no weaker for any report, with one stated exception* (D32's paired verdict, frozen, above):
+   - every report the gate checked before is still checked;
+   - the scaling and matcher reports, and the store's match context, bind `patterns/trajectory_times.py` beside `trajectory_graph.py`;
+   - the scaling report's build phase is bound by a record every digest of which the gate recomputes;
+   - an unknown rule, the static fingerprint's included, fails.
+4. *Origins are unambiguous:* a test reuses a run and reuses the reuse; both name the first report's path, digest, commit, time and environment; every reused size says so; reuse is refused for each named reason.
+5. *This run builds afresh, with `--keep`,* so that the next change to matching alone can reuse it.
 - A failure is fixed, never tuned away.
