@@ -271,17 +271,44 @@ def current_rss(pid):
         return 0
 
 
+# D34: the fixed, minimal environment a build process runs in: a plain `PATH` (for `ps`), UTC, the C locale, one
+# thread for any library that reads a thread count from the environment; `TMPDIR` and `HOME` are a fresh directory.
+CHILD_ENVIRONMENT = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'TZ': 'UTC', 'LC_ALL': 'C', 'LANG': 'C',
+                     'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
+
+
+def build_command(fresh):
+    """How a build process starts (D34): this script in Python's isolated mode without `site` (`-I -S`: no environment
+    variables, user site, script directory, `.pth` file or `sitecustomize`), the libraries' directories passed
+    explicitly, and bytecode compiled into an empty cache in `fresh`, outside the repository, so that no `.pyc` in the
+    repository's `__pycache__` runs in place of its source."""
+    import site
+    command = [sys.executable, '-I', '-S', '-X', f'pycache_prefix={Path(fresh) / "pycache"}', str(Path(__file__).resolve())]
+    for directory in site.getsitepackages():
+        command += ['--site', directory]
+    return command
+
+
 def run_phase(name, arguments, output, budget, rss_limit):
     """Run one worker; (result or None, record). The record has wall seconds, peak RSS and any failure. The build worker
-    is this script, run in Python's isolated mode (D34: no environment variables, user site or script directory on
-    `sys.path`; `main` puts the repository first); every other worker is the benchmark's own."""
+    is this script, started by `build_command` in `CHILD_ENVIRONMENT` with a fresh temporary directory; every other
+    worker is the benchmark's own."""
+    import tempfile
+    fresh = Path(tempfile.mkdtemp(prefix='scaling-build-'))
     if name == 'build':
-        command = [sys.executable, '-I', str(Path(__file__).resolve())]
+        command, env = build_command(fresh), {**CHILD_ENVIRONMENT, 'TMPDIR': str(fresh), 'HOME': str(fresh)}
     else:
-        command = [sys.executable, str(ROOT / 'tools/benchmark_execution_store.py')]
+        command, env = [sys.executable, str(ROOT / 'tools/benchmark_execution_store.py')], None
     command += ['--worker', name, '--worker-output', str(output), *arguments]
     started = time.monotonic()
-    child = subprocess.Popen(command, cwd=ROOT, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        return _run_child(command, env, output, budget, rss_limit, started)
+    finally:
+        shutil.rmtree(fresh, ignore_errors=True)
+
+
+def _run_child(command, env, output, budget, rss_limit, started):
+    child = subprocess.Popen(command, cwd=ROOT, env=env, stderr=subprocess.PIPE, text=True, start_new_session=True)
     failure, peak = None, 0
     while True:
         done, status, usage = os.wait4(child.pid, os.WNOHANG)
@@ -343,9 +370,8 @@ def build_size(size, scratch, staging, threads, memory_limit, budget_seconds):
 
 
 def main(argv=None):
-    """The build worker: one size's snapshot, and the runtime record of everything the process loaded and read."""
-    from patterns.build_record import Recorder
-    recorder = Recorder(ROOT)  # before anything else the build needs is imported
+    """The build worker: one size's snapshot, and the runtime record of everything the process loaded and read, with the
+    settings it built with as it saw them."""
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--worker', choices=('build',), required=True)
     parser.add_argument('--worker-output', type=Path, required=True)
@@ -354,13 +380,26 @@ def main(argv=None):
     parser.add_argument('--staging', choices=('parquet', 'ndjson'), default='parquet')
     parser.add_argument('--threads', type=int, default=1)
     parser.add_argument('--memory-limit', default=DEFAULT_MEMORY_LIMIT)
+    parser.add_argument('--site', action='append', default=[], help='a library directory (Python runs without `site`)')
     args = parser.parse_args(argv)
+    sys.path.extend(d for d in args.site if d not in sys.path)
+    from patterns.build_record import Recorder, python_directories
+    recorder = Recorder(ROOT, python_directories(args.site))  # before anything else the build needs is imported
+    recorder.check_process()
     marker = args.worker_output.with_suffix('.progress')
     recorder.ignore(args.work_dir, args.worker_output, marker)
     from patterns import execution_store, synthetic_ingest  # noqa: F401  (what the build runs, noted at the start)
-    recorder.start()
+    recorder.start(BUILD_FILES)
     result = build_worker(args.size, args.work_dir, args.threads, args.memory_limit, marker, args.staging)
-    result['record'] = recorder.record(BUILD_FILES)
+    # What shaped the build, as this process saw it: reuse compares these, never the parent's account of them.
+    settings = {'staging': args.staging, 'threads': args.threads, 'memory_limit': args.memory_limit,
+                'patients_per_cohort': PER_COHORT, 'distinct_pool_cap': DISTINCT_CAP, 'generator_seed_base': SEED_BASE,
+                'add_sample_every': ADD_SAMPLE_EVERY,
+                'process': {'isolated': bool(sys.flags.isolated), 'no_site': bool(sys.flags.no_site),
+                            'fresh_bytecode_cache': bool(sys.pycache_prefix)},
+                'environment': {k: os.environ.get(k) for k in sorted(CHILD_ENVIRONMENT)}}
+    result['record'] = recorder.record(BUILD_FILES, settings)
+    result['patients'] = args.size
     args.worker_output.write_text(json.dumps(result))
     return 0
 

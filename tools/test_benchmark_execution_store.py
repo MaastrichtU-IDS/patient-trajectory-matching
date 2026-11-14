@@ -232,9 +232,22 @@ class ReuseTests(unittest.TestCase):
             self.assertEqual(origin['first_built']['generated_at'], self.old['generated_at'])
             self.assertEqual(origin['first_built']['commit'], self.old['commit'])
             self.assertEqual(origin['first_built']['environment'], self.old['environment'])
+            self.assertEqual(origin['first_built']['git_blob'], bench.git_blob(self.first.read_bytes()))
+            self.assertEqual(origin['first_built']['benchmark_sha256'],
+                             self.old['artifacts']['tools/benchmark_execution_store.py'])
             self.assertEqual(origin['reused_from']['sha256'], hashlib.sha256(reused_from.read_bytes()).hexdigest())
             self.assertEqual(origin['sizes'], [100])
             self.assertEqual(report['sizes'][0]['build_seconds'], self.old['sizes'][0]['build_seconds'])
+
+    def test_the_build_process_records_the_build_code_this_process_ran(self):
+        self.assertEqual(self.old['build_provenance']['modules']['tools/scaling_build_worker.py'], bench._BUILD_SHA256)
+        from unittest.mock import patch
+        with patch.object(bench, '_BUILD_SHA256', '0' * 64), self.assertRaises(bench.BuildCodeDiffers):
+            bench.check_build_code(self.old['build_provenance'])
+        settings = self.old['build_provenance']['settings']
+        self.assertEqual((settings['staging'], settings['threads'], settings['memory_limit']),
+                         (self.parameters['staging'], self.parameters['threads'], self.parameters['memory_limit']))
+        self.assertEqual(settings['process'], {'isolated': True, 'no_site': True, 'fresh_bytecode_cache': True})
 
     def test_a_build_field_changed_after_the_build_fails_the_run(self):
         from unittest.mock import patch
@@ -265,7 +278,9 @@ class ReuseTests(unittest.TestCase):
                        lambda r: r['modules'].__setitem__('patterns/new_module.py', '0' * 64),
                        lambda r: r['files'].__setitem__('demos/mockups/synthetic/generate.py', '0' * 64),
                        lambda r: r['versions'].__setitem__('duckdb', '0.0.1'),
-                       lambda r: r.__setitem__('root', 'installed')):
+                       lambda r: r.__setitem__('root', 'installed'),
+                       lambda r: r['settings'].__setitem__('staging', 'ndjson'),
+                       lambda r: r['settings'].__setitem__('threads', 4)):
             old = copy()
             change(old['build_provenance'])
             self.assertEqual(self.refused(old, record=record), 'BUILD_RECORD_CHANGED')

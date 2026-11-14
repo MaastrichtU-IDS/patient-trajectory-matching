@@ -53,7 +53,8 @@ import sys
 
 from .temporal_stn import ZERO, Edge, Network
 # D34: validation and the patient's times live in their own module, which the store's build loads without
-# this one; every name is imported back, so these are the same objects.
+# this one; every name is imported back, so these are the same objects. Their globals live there too: patching
+# `tg.MAX_LINKED_VARIABLES` (or another moved constant) here changes nothing; patch `trajectory_times` instead.
 from .trajectory_times import (ANCHORS, INF, MAX_LINKED_VARIABLES, Event, Times, TrajectoryError,  # noqa: F401
                                _EVENT, _FHI, _FLO, _int, _KEYS, _SHI, _SLO, events_of, patient_times,
                                require, validate_patient)

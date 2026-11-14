@@ -96,6 +96,9 @@ ARTIFACTS = ('tools/benchmark_matcher.py', 'tools/benchmark_execution_store.py',
              'patterns/test_execution_store.py',
              'patterns/fixtures/execution_store_match_digests.json')
 RSS_LIMIT_BYTES = 48 * 2**30
+# The store and engine files a code at a git ref is described by; `trajectory_times.py` exists only after D34's split.
+ENGINE_FILES = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py',
+                'patterns/temporal_stn.py')
 LIMITATIONS = (
     'One machine (see environment); no other hardware, operating system or storage was measured.',
     'The data are synthetic and replicated beyond 10,000 distinct patients (see the scaling report): candidate sets and '
@@ -550,7 +553,7 @@ def benchmark(args):
              # A list, not a path-to-digest map: the provenance gate reads every such map as a
              # binding of the current tree, and these digests describe the old code at git_ref.
              'artifacts_at_ref': [{'path': p, 'sha256': hashlib.sha256((scratch / p).read_bytes()).hexdigest()} for p in
-                                  ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/temporal_stn.py')]}
+                                  ENGINE_FILES if (scratch / p).is_file()]}
     sizes, snapshots = [], {}
     for item in args.snapshots:
         size, _, path = item.partition('=')
@@ -782,8 +785,7 @@ def paired_confirm(args):
             commit = extract_ref(ref, root)
             codes[side] = {'root': root, 'git_ref': ref, 'git_commit': commit,
                            'artifacts_at_ref': [{'path': p, 'sha256': hashlib.sha256((root / p).read_bytes()).hexdigest()}
-                                                for p in ('patterns/execution_store.py', 'patterns/trajectory_graph.py',
-                                                          'patterns/temporal_stn.py')]}
+                                                for p in ENGINE_FILES if (root / p).is_file()]}
         records, started = [], time.monotonic()
         for repeat in range(args.paired_repeats):
             order = ('reference', 'candidate') if repeat % 2 == 0 else ('candidate', 'reference')

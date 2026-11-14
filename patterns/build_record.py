@@ -2,29 +2,40 @@
 
 The scaling report (`tools/benchmark_execution_store.py`) builds snapshots of up to 1,000,000 patients and then queries
 them. A report bound by whole-file digests of everything goes stale when matching code changes, though the builds could
-not have changed. So the build runs in a process of its own (`tools/scaling_build_worker.py`, in Python's isolated mode
-with an explicit `sys.path`), and at its end this module records what that process actually used:
+not have changed. So the build runs in a process of its own (`tools/scaling_build_worker.py`), started by the benchmark
+in a fixed way: Python's isolated mode without the `site` module (`-I -S`; the libraries' directories are passed
+explicitly, so no `.pth` file or `sitecustomize` runs), bytecode compiled afresh into an empty cache outside the
+repository (`-X pycache_prefix`), and a fixed minimal environment. At its end this module records what the process
+actually used:
 
-- *modules:* every module loaded from the repository, with every package `__init__.py` on its path, each by the
-  sha256 of its whole file (rule `runtime_record_v1`);
-- *files:* the data files the build may read (the caller's pinned list), each by whole-file digest. An audit hook
-  sees every file the process opens; one inside the repository that is neither a recorded module (or its bytecode)
-  nor pinned stops the build (`UNRECORDED_FILE_READ`);
-- *versions:* the Python implementation and version, and the versions of DuckDB, pyarrow (if installed) and
-  jsonschema;
-- *root:* whether the repository was a checkout or an installed package (`patterns/_resources.py`).
+- *modules:* every module loaded from the repository, with the `__init__.py` of every package on its path, each by the
+  sha256 of its whole source file (rule `runtime_record_v1`). The repository is the directory tree of the checkout less
+  the Python installation's own directories (its prefixes, `site-packages` and `sysconfig` paths), so a virtual
+  environment kept inside the checkout is not repository code;
+- *files:* the data files the build may read (the caller's pinned list), each by whole-file digest;
+- *versions:* the Python implementation and version, and the versions of DuckDB, pyarrow (if installed) and jsonschema;
+- *root:* whether the repository was a checkout or an installed package (`patterns/_resources.py`);
+- *settings:* what shapes the build, as the build process itself saw it (the caller's `settings`).
 
-Checks at runtime, each stopping the build by name:
+Checks, each stopping the build by name:
+- the process was not started as above: not isolated, `site` imported, or no bytecode cache outside the repository
+  (`PROCESS_NOT_ISOLATED`, `BYTECODE_NOT_ISOLATED`): bytecode is not source, and a stale or unchecked `.pyc` in the
+  repository's `__pycache__` would run in place of its source. The starting process makes the cache a fresh, empty
+  directory;
+- an audit hook sees every file Python opens; a repository file read that is neither a recorded module's source nor
+  pinned (bytecode in the repository's `__pycache__` included) stops the build (`UNRECORDED_FILE_READ`);
 - a module of the engine's matching code loaded (`MATCHING_CODE_LOADED`): the build must not import it at all;
-- a repository module loaded that the record could not describe (`UNRECORDED_MODULE`: no file, or not a plain
-  `.py` file);
-- a recorded file that changed while the build ran (`FILE_CHANGED_DURING_BUILD`).
+- a repository module loaded that the record could not describe (`UNRECORDED_MODULE`: no file, or not a plain `.py`);
+- a recorded module or pinned file that changed while the build ran (`FILE_CHANGED_DURING_BUILD`).
 
-A record is not a static analysis: it says exactly which repository files ran or were read in this build, so a new
-module, a package's `__init__` side effect or a module shadowing another on `sys.path` (inside the repository) is in it.
-What it does not cover: code outside the repository beyond the versions recorded (library internals, the operating
-system, the CPU), and a repository file the build reaches only on some input and not in the run recorded (the record
-covers what this run loaded; the scaling benchmark's builds load the same modules at every size).
+What it does not cover:
+- files read by native code outside Python's audit hooks. DuckDB's own reads are confined instead: the store's build
+  connections may touch only the build's directories (`allowed_directories`, external access disabled);
+- code outside the repository beyond the versions recorded (library internals, the operating system, the CPU);
+- a repository file the build reaches only on some input and not in the run recorded (the record covers what the run
+  loaded; the scaling benchmark's builds load the same modules at every size, and a reuse probes a new build);
+- the code of the process that started the build and wrote its figures (`tools/benchmark_execution_store.py`), which
+  its own report binds.
 """
 from __future__ import annotations
 
@@ -60,41 +71,79 @@ def _versions():
     return out
 
 
-class Recorder:
-    """Install in the build process before it imports the build's modules; `record()` at its end."""
+def python_directories(extra=()):
+    """The Python installation's own directories: its prefixes, `site-packages` and `sysconfig` paths, and any library
+    directories passed explicitly. Nothing under them is repository code, wherever they lie."""
+    import site
+    import sysconfig
+    found = {sys.prefix, sys.base_prefix, sys.exec_prefix, sys.base_exec_prefix, *extra}
+    found.update(site.getsitepackages())
+    found.add(site.getusersitepackages())
+    found.update(sysconfig.get_paths().values())
+    out = set()
+    for d in found:
+        try:
+            out.add(Path(d).resolve())
+        except (OSError, ValueError, TypeError):
+            continue
+    return sorted(out)
 
-    def __init__(self, root):
+
+class Recorder:
+    """Install in the build process before it imports the build's modules; `start()` once they are imported, and
+    `record()` at its end. `python_dirs` are the installation's directories (default: `python_directories()`)."""
+
+    def __init__(self, root, python_dirs=None, hook=True):
         self.root = Path(root).resolve()
+        self.python_dirs = python_directories() if python_dirs is None else [Path(d).resolve() for d in python_dirs]
+        if any(self.root == d or self.root.is_relative_to(d) for d in self.python_dirs):
+            raise RecordError('ROOT_INSIDE_PYTHON_PREFIX', str(self.root))
         self.opened = set()
         self.first = None
         self.outputs = []
-        sys.addaudithook(self._hook)
+        if hook:
+            sys.addaudithook(self._hook)
 
     def ignore(self, *paths):
         """The build's own outputs (its work directory, its result and progress files): what it writes there is not
         something it reads from the repository, even when they lie inside it."""
         self.outputs.extend(Path(p).resolve() for p in paths)
 
+    def check_process(self):
+        """Refuse a process not started as `run_phase` starts a build: isolated, without `site`, with an empty bytecode
+        cache outside the repository."""
+        if not (sys.flags.isolated and sys.flags.no_site):
+            raise RecordError('PROCESS_NOT_ISOLATED', f'isolated={sys.flags.isolated} no_site={sys.flags.no_site}')
+        prefix = sys.pycache_prefix
+        if not prefix:
+            raise RecordError('BYTECODE_NOT_ISOLATED', 'no pycache_prefix')
+        prefix = Path(prefix).resolve()
+        if prefix.is_relative_to(self.root) or self.root.is_relative_to(prefix):
+            raise RecordError('BYTECODE_NOT_ISOLATED', f'pycache_prefix {prefix} meets the repository')
+
+    def _repository(self, path):
+        """The repository-relative path of an absolute path, or None outside the repository."""
+        try:
+            resolved = Path(path).resolve()
+        except (OSError, ValueError):
+            return None
+        if not resolved.is_relative_to(self.root) or any(resolved.is_relative_to(d) for d in self.python_dirs):
+            return None
+        return resolved.relative_to(self.root).as_posix()
+
     def _hook(self, event, args):
-        if event == 'open' and args and isinstance(args[0], (str, bytes)) and not isinstance(args[0], int):
+        if event == 'open' and args and isinstance(args[0], (str, bytes)):
             path = Path(args[0].decode() if isinstance(args[0], bytes) else args[0])
             try:
-                # A relative path may be relative to a directory descriptor (`shutil.rmtree` opens entries so), not
-                # to the working directory: it counts when it names a file of the repository from the working
-                # directory, which is the repository's root in a build worker.
-                resolved = path.resolve()
-                if not path.is_absolute() and not resolved.is_file():
+                # A relative path may be relative to a directory descriptor (`shutil.rmtree` opens entries so), not to
+                # the working directory: it counts when it names a file of the repository from the working directory.
+                if not path.is_absolute() and not path.resolve().is_file():
                     return
             except (OSError, ValueError):
                 return
-            if resolved.is_relative_to(self.root):
-                self.opened.add(resolved.relative_to(self.root).as_posix())
-
-    def _inside(self, path):
-        try:
-            return Path(path).resolve().relative_to(self.root).as_posix()
-        except ValueError:
-            return None
+            inside = self._repository(path)
+            if inside is not None:
+                self.opened.add(inside)
 
     def modules(self):
         """{repository path: sha256} of every repository module loaded, with the `__init__.py` of every package on its
@@ -108,7 +157,7 @@ class Recorder:
             if origin and not Path(origin).is_absolute():  # 'built-in', 'frozen': no file of ours
                 origin = None
             paths = [origin] if origin else [x for x in (getattr(module, '__path__', None) or []) if Path(x).is_absolute()]
-            inside = [p for p in (self._inside(x) for x in paths) if p is not None]
+            inside = [p for p in (self._repository(x) for x in paths) if p is not None]
             if not inside:
                 continue
             if not origin or not origin.endswith('.py'):
@@ -122,27 +171,40 @@ class Recorder:
                 parent = parent.parent
         return {path: _digest(self.root / path) for path in sorted(found)}
 
-    def start(self):
-        """Note the modules loaded so far, to show at the end that none changed while the build ran."""
-        self.first = self.modules()
+    def _files(self, data_files):
+        return {p: _digest(self.root / p) for p in sorted(set(data_files))}
 
-    def record(self, data_files):
-        """The record: modules, pinned data files, versions and the root's kind, after checking that every repository
-        file the process opened is a recorded module (or its bytecode) or pinned, and that no file noted at `start`
-        changed."""
+    def start(self, data_files=()):
+        """Note the modules loaded so far and the pinned files, to show at the end that none changed while the build
+        ran (the synthetic generator, a pinned file, runs after this)."""
+        self.first = {**self.modules(), **self._files(data_files)}
+
+    def record(self, data_files, settings=None):
+        """The record: modules, pinned data files, versions, the root's kind and the build's settings, after checking
+        that every repository file the process opened is a recorded module's source or pinned, and that nothing noted
+        at `start` changed."""
         modules = self.modules()
+        files = self._files(data_files)
         if self.first is not None:
-            changed = sorted(p for p, d in self.first.items() if modules.get(p) != d)
+            now = {**modules, **files}
+            changed = sorted(p for p, d in self.first.items() if now.get(p) != d)
             if changed:
                 raise RecordError('FILE_CHANGED_DURING_BUILD', ', '.join(changed))
-        pinned = set(data_files)
         outputs = [o for o in self.outputs if o.is_relative_to(self.root)]
         mine = lambda p: any((self.root / p).is_relative_to(o) for o in outputs)
-        stray = sorted(p for p in self.opened if p not in modules and p not in pinned
-                       and '/__pycache__/' not in f'/{p}' and not mine(p))
+        stray = sorted(p for p in self.opened if p not in modules and p not in files and not mine(p))
         if stray:
             raise RecordError('UNRECORDED_FILE_READ', ', '.join(stray))
         from . import _resources
         root = 'installed' if isinstance(_resources.ROOT, _resources.InstalledRoot) else 'checkout'
-        return {'rule': RULE, 'modules': modules, 'files': {p: _digest(self.root / p) for p in sorted(pinned)},
-                'versions': _versions(), 'root': root}
+        out = {'rule': RULE, 'modules': modules, 'files': files, 'versions': _versions(), 'root': root}
+        out['settings'] = dict(settings or {})
+        return out
+
+
+def environment(tmp):
+    """The fixed, minimal environment a build process runs in: a plain `PATH` (for `ps`), UTC, the C locale, one thread
+    for any library that reads a thread count from the environment, and `TMPDIR` and `HOME` in a fresh directory."""
+    return {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'TZ': 'UTC', 'LC_ALL': 'C', 'LANG': 'C',
+            'TMPDIR': str(tmp), 'HOME': str(tmp), 'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1',
+            'MKL_NUM_THREADS': '1'}

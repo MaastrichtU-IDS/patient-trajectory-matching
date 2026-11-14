@@ -7,7 +7,10 @@ Each case copies the repository's code into a scratch tree, edits it, runs the s
 Needs DuckDB.
 """
 import importlib
+import importlib.util
 import json
+import os
+import py_compile
 from pathlib import Path
 import shutil
 import subprocess
@@ -47,17 +50,24 @@ def scratch_tree():
     return tmp, root
 
 
-def build(root):
-    """(record or None, error message or None) of one isolated build of 48 patients in `root`."""
-    out = root / 'out.json'
-    (root / 'work').mkdir(exist_ok=True)
-    done = subprocess.run([sys.executable, '-I', str(root / 'tools/scaling_build_worker.py'), '--worker', 'build',
-                           '--worker-output', str(out), '--size', '48', '--work-dir', str(root / 'work')],
-                          cwd=root, capture_output=True, text=True)
+def build_phase(root):
+    """The scratch tree's `tools/scaling_build_worker.py`, loaded as the benchmark loads it."""
+    spec = importlib.util.spec_from_file_location(f'scaling_build_worker_{abs(hash(str(root)))}',
+                                                  root / 'tools/scaling_build_worker.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def build(root, staging='parquet', threads=1, full=False):
+    """(record or None, error message or None) of one build of 48 patients in `root`, started as the benchmark starts
+    it (`build_size`: isolated, without `site`, a fresh bytecode cache, a fixed environment); with `full`, the build's
+    fields too."""
+    fields, built = build_phase(root).build_size(48, root / 'work', staging, threads, '1GB', 600)
     shutil.rmtree(root / 'work', ignore_errors=True)
-    if done.returncode:
-        return None, (done.stderr.strip().splitlines() or ['no message'])[-1]
-    return json.loads(out.read_text())['record'], None
+    if built is None:
+        return (None, fields['failure']['detail'], fields) if full else (None, fields['failure']['detail'])
+    return (built['record'], None, fields) if full else (built['record'], None)
 
 
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
@@ -65,7 +75,7 @@ class BuildRecordTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp, cls.root = scratch_tree()
-        cls.baseline, error = build(cls.root)
+        cls.baseline, error, cls.fields = build(cls.root, full=True)
         assert error is None, error
 
     @classmethod
@@ -110,6 +120,8 @@ class BuildRecordTests(unittest.TestCase):
                                                          'schemas/execution-store-manifest.schema.json'])
         self.assertEqual(self.baseline['root'], 'checkout')
         self.assertEqual(set(self.baseline['versions']), {'python', 'duckdb', 'pyarrow', 'jsonschema'})
+        self.assertEqual(self.baseline['settings']['process'],
+                         {'isolated': True, 'no_site': True, 'fresh_bytecode_cache': True})
         self.assertEqual(build(self.root)[0], self.baseline)  # the same tree records the same
 
     # The first review (static closure): each edit now changes the record.
@@ -123,8 +135,8 @@ class BuildRecordTests(unittest.TestCase):
         self.assertEqual(self.changed(), ['patterns/execution_store.py'])
 
     def test_an_edit_in_the_build_process_entry_point(self):
-        self.edit('tools/scaling_build_worker.py', '    recorder.start()\n',
-                  '    execution_store.BUCKETS = execution_store.BUCKETS\n    recorder.start()\n')
+        self.edit('tools/scaling_build_worker.py', '    recorder.start(BUILD_FILES)\n',
+                  '    execution_store.BUCKETS = execution_store.BUCKETS\n    recorder.start(BUILD_FILES)\n')
         self.assertEqual(self.changed(), ['tools/scaling_build_worker.py'])
 
     def test_an_import_swapped_in_a_module_the_build_loads(self):
@@ -182,6 +194,57 @@ class BuildRecordTests(unittest.TestCase):
                 self.tearDown()
                 self.edited = []
 
+    # The third review: bytecode, the parent's settings.
+
+    def doctored_bytecode(self, mode):
+        """Compile `execution_store.py` with BUCKETS = 4 into the scratch tree's own `__pycache__`, then restore the
+        source (and, for a timestamp `.pyc`, its whole-second modification time): the bytecode no longer matches."""
+        source = self.root / 'patterns/execution_store.py'
+        text, stat = source.read_text(), source.stat()
+        cache = Path(importlib.util.cache_from_source(str(source)))
+        self.edited.append((cache, cache.read_bytes() if cache.exists() else None))
+        source.write_text(text.replace('BUCKETS = 8\n', 'BUCKETS = 4\n'))
+        os.utime(source, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        py_compile.compile(str(source), cfile=str(cache), doraise=True, invalidation_mode=mode)
+        source.write_text(text)
+        os.utime(source, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+
+    def test_doctored_bytecode_never_runs(self):
+        for mode in (py_compile.PycInvalidationMode.UNCHECKED_HASH, py_compile.PycInvalidationMode.TIMESTAMP):
+            with self.subTest(mode=mode.name):
+                self.doctored_bytecode(mode)
+                record, error, fields = build(self.root, full=True)
+                self.assertIsNone(error)
+                self.assertEqual(record, self.baseline)
+                self.assertEqual(fields['snapshot_id'], self.fields['snapshot_id'])  # BUCKETS = 4 would change it
+                self.tearDown()
+                self.edited = []
+
+    def test_a_process_started_otherwise_is_refused(self):
+        """Run directly, without the fresh bytecode cache and without `-S`, the worker refuses to build; and a read of
+        the repository's `__pycache__` is no longer exempt."""
+        out = self.root / 'direct.json'
+        done = subprocess.run([sys.executable, '-I', str(self.root / 'tools/scaling_build_worker.py'), '--worker', 'build',
+                               '--worker-output', str(out), '--size', '48', '--work-dir', str(self.root / 'direct')],
+                              cwd=self.root, capture_output=True, text=True)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn('PROCESS_NOT_ISOLATED', done.stderr)
+        recorder = br.Recorder(self.root, python_dirs=[], hook=False)
+        recorder.opened.add('patterns/__pycache__/execution_store.cpython-312.pyc')
+        with self.assertRaises(br.RecordError) as raised:
+            recorder.record(())
+        self.assertEqual(raised.exception.code, 'UNRECORDED_FILE_READ')
+
+    def test_the_settings_are_the_build_process_own(self):
+        """ndjson staging with 2 threads builds the same snapshot as parquet with 1, but records different settings, so
+        a reuse cannot take one for the other on the parent's word."""
+        record, error, fields = build(self.root, staging='ndjson', threads=2, full=True)
+        self.assertIsNone(error)
+        self.assertEqual(fields['snapshot_id'], self.fields['snapshot_id'])
+        self.assertEqual(record['modules'], self.baseline['modules'])
+        self.assertEqual((record['settings']['staging'], record['settings']['threads']), ('ndjson', 2))
+        self.assertNotEqual(record, self.baseline)
+
     # Refusals at runtime.
 
     def test_matching_code_loaded_is_refused(self):
@@ -207,8 +270,7 @@ class RecorderTests(unittest.TestCase):
             sys.path.insert(0, str(root))
             try:
                 importlib.import_module('d34probe.mod')
-                recorder = br.Recorder.__new__(br.Recorder)  # no audit hook in the test process
-                recorder.root, recorder.opened, recorder.first = root.resolve(), set(), None
+                recorder = br.Recorder(root, python_dirs=[], hook=False)  # no audit hook in the test process
                 recorder.start()
                 self.assertEqual(sorted(recorder.first), ['d34probe/__init__.py', 'd34probe/mod.py'])
                 (root / 'd34probe/mod.py').write_text('X = 2\n')
@@ -219,6 +281,59 @@ class RecorderTests(unittest.TestCase):
                 sys.path.remove(str(root))
                 for name in ('d34probe.mod', 'd34probe'):
                     sys.modules.pop(name, None)
+
+
+
+class VirtualEnvironmentTests(unittest.TestCase):
+    """The Python installation's directories are not repository code, even inside the checkout (the review's must-fix
+    2: the main checkout keeps `.venv` in it)."""
+
+    def test_a_virtual_environment_inside_the_root_is_not_recorded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            site = root / '.venv/lib/python3/site-packages'
+            (site / 'd34fakepkg').mkdir(parents=True)
+            (site / 'd34fakepkg/__init__.py').write_text('X = 1\n')
+            (site / 'd34fakepkg-1.0.dist-info').mkdir()
+            (site / 'd34fakepkg-1.0.dist-info/METADATA').write_text('Name: d34fakepkg\nVersion: 1.0\n')
+            sys.path.insert(0, str(site))
+            try:
+                importlib.import_module('d34fakepkg')
+                inside = br.Recorder(root, python_dirs=[], hook=False)  # without them it would be repository code
+                self.assertIn('.venv/lib/python3/site-packages/d34fakepkg/__init__.py', inside.modules())
+                recorder = br.Recorder(root, python_dirs=[root / '.venv'], hook=False)
+                recorder._hook('open', (str(site / 'd34fakepkg-1.0.dist-info/METADATA'), 'r', 0))
+                self.assertEqual(recorder.opened, set())
+                self.assertEqual(recorder.modules(), {})
+                self.assertEqual(recorder.record(())['modules'], {})
+            finally:
+                sys.path.remove(str(site))
+                sys.modules.pop('d34fakepkg', None)
+
+    def test_the_installation_directories_include_the_prefix_and_site_packages(self):
+        import site
+        dirs = br.python_directories()
+        self.assertIn(Path(sys.prefix).resolve(), dirs)
+        for d in site.getsitepackages():
+            self.assertIn(Path(d).resolve(), dirs)
+        with self.assertRaises(br.RecordError) as raised:
+            br.Recorder(sys.prefix, hook=False)
+        self.assertEqual(raised.exception.code, 'ROOT_INSIDE_PYTHON_PREFIX')
+
+    @unittest.skipUnless((Path(sys.prefix).resolve().parent / '.git').exists(), 'the interpreter is not in a checkout')
+    def test_a_checkout_holding_the_interpreter(self):
+        """Where the interpreter's environment lies inside a checkout (the main checkout and its `.venv`), a recorder
+        rooted there records none of it while DuckDB and jsonschema load and read their metadata (read-only)."""
+        script = ('import sys; from pathlib import Path; sys.path.insert(0, %r)\n'
+                  'from patterns.build_record import Recorder\n'
+                  'r = Recorder(Path(sys.prefix).resolve().parent)\n'
+                  'import duckdb, jsonschema\n'
+                  'jsonschema.Draft202012Validator({"type": "object"}).validate({})\n'
+                  'rec = r.record(())\n'
+                  'assert not [p for p in list(rec["modules"]) + sorted(r.opened) if p.startswith(".venv")]\n'
+                  'print("ok")\n') % str(ROOT)
+        done = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, cwd=tempfile.gettempdir())
+        self.assertEqual(done.stdout.strip(), 'ok', done.stderr[-600:])
 
 
 if __name__ == '__main__':

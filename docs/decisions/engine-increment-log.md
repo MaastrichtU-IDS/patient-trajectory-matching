@@ -1829,3 +1829,20 @@ The owner's delegate decided to stop hardening a static analysis of Python, whic
 4. *Origins are unambiguous:* a test reuses a run and reuses the reuse; both name the first report's path, digest, commit, time and environment; every reused size says so; reuse is refused for each named reason.
 5. *This run builds afresh, with `--keep`,* so that the next change to matching alone can reuse it.
 - A failure is fixed, never tuned away.
+
+**The third review's fixes** (before any measurement; the rules above are unchanged, since rule 1 already requires every bypass to be caught). A third independent review judged the engine split behaviour-identical and found three must-fixes in the record, each reproduced in scratch:
+- *Bytecode is not source.* An unchecked-hash `.pyc`, and a stale-timestamp `.pyc` (a same-size edit, the source's whole-second time restored), each ran doctored code under an identical record. The build process now compiles into a fresh, empty cache outside the repository (`-X pycache_prefix`) and refuses to run otherwise, and a read of the repository's `__pycache__` is no longer exempt. A test covers both cases: the record and the snapshot equal the clean build's.
+- *A `.venv` inside the checkout* made every build in the main checkout fail. The repository now excludes the Python installation's own directories. There is a test with a fake environment inside a scratch root, and one (where the interpreter lies in a checkout) rooted at that checkout. A read-only smoke test at the main checkout recorded nothing of `.venv`.
+- *The parent was unrecorded.* Staging and threads were the parent's claims: ndjson with 4 threads recorded the same as parquet with 1. Fixed in three ways:
+  - the build process now records the settings it saw, so a reuse compares those;
+  - the benchmark checks that the build recorded the `scaling_build_worker.py` bytes it executed;
+  - `build_origin` names the origin's benchmark digest. `build_covers` and the results page say the benchmark that wrote the origin's figures is bound only by that report.
+- *Should-fixes, done:*
+  - S1: DuckDB's native reads are confined to the build's directories (`allowed_directories`, external access disabled) in the builder's connections and its content check; DuckDB allows this with Parquet staging.
+  - S2: the pinned files are digested at the start too.
+  - S4: a fixed minimal environment, and `-S` with the library directories passed explicitly, so no `.pth` or `sitecustomize` runs.
+  - S5: the proxy becomes the module on first use.
+  - S6: the origin's git blob id is recorded, and `dirty` counts untracked files under `patterns/` and `tools/`.
+  - S7: the docs say the gate re-checks the files the record lists, and only a probe sees a new shadow.
+  - Nits: the moved globals' comment; `artifacts_at_ref` lists `trajectory_times.py` where a ref has it; the gate reads `build_provenance` by name, not by shape.
+- *What the record now covers,* stated in the report (`build_covers`), the store doc and on the results page. Covered: repository files loaded or read through Python (sources only), pinned data files, the recorded versions, the settings the build saw, the environment and the limits, with DuckDB confined to the build's directories. Not covered: the operating system, CPU microcode, library internals beyond their versions, and the benchmark that wrote the origin's figures (bound only by the origin report).

@@ -64,16 +64,20 @@ PROFILE = 'execution-store-scaling-2.0'
 
 
 def _build_phase():
-    """`tools/scaling_build_worker.py`, loaded from its file beside this one (D34): the build phase's code, which the
-    matcher's arms also use with their own tree's `patterns` first on `sys.path`."""
-    spec = importlib.util.spec_from_file_location('scaling_build_worker', Path(__file__).resolve().with_name(
-        'scaling_build_worker.py'))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    """(`tools/scaling_build_worker.py` loaded from its file beside this one, the sha256 of the bytes executed) (D34): the
+    build phase's code, which the matcher's arms also use with their own tree's `patterns` first on `sys.path`. Each
+    build's record must name the same digest for that file, so the code that ran and measured a build from here is the
+    code the build process recorded."""
+    import types
+    path = Path(__file__).resolve().with_name('scaling_build_worker.py')
+    source = path.read_bytes()
+    module = types.ModuleType('scaling_build_worker')
+    module.__file__ = str(path)
+    exec(compile(source, str(path), 'exec'), module.__dict__)
+    return module, hashlib.sha256(source).hexdigest()
 
 
-_BUILD = _build_phase()
+_BUILD, _BUILD_SHA256 = _build_phase()
 (GENERATOR, PER_COHORT, DISTINCT_CAP, SEED_BASE, DAY, RSS_LIMIT_BYTES, DEFAULT_MEMORY_LIMIT, ADD_SAMPLE_EVERY,
  BUILD_FILES, BUILD_FIELDS) = (getattr(_BUILD, n) for n in (
     'GENERATOR', 'PER_COHORT', 'DISTINCT_CAP', 'SEED_BASE', 'DAY', 'RSS_LIMIT_BYTES', 'DEFAULT_MEMORY_LIMIT',
@@ -363,6 +367,7 @@ def probe_record(memory_limit, staging, threads):
         fields, built = build_size(PER_COHORT, scratch / 'build', staging, threads, memory_limit, 3600)
         if built is None:
             raise ReuseRefused('PROBE_BUILD_FAILED', json.dumps(fields.get('failure'))[:300])
+        check_build_code(built['record'])
         return built['record']
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
@@ -424,6 +429,18 @@ class BuildFieldsChanged(RuntimeError):
     pass
 
 
+class BuildCodeDiffers(RuntimeError):
+    pass
+
+
+def check_build_code(record):
+    """The build process recorded the same `tools/scaling_build_worker.py` this process executed (its `run_phase` and
+    `build_size` started and measured the build)."""
+    recorded = record['modules'].get('tools/scaling_build_worker.py')
+    if recorded != _BUILD_SHA256:
+        raise BuildCodeDiffers(f'PARENT_BUILD_CODE_DIFFERS: executed {_BUILD_SHA256[:12]}, recorded {str(recorded)[:12]}')
+
+
 def run_size(size, args, work, reuse=None):
     """(the report entry for one size, its build's runtime record or None). With `reuse` ((kept snapshot, earlier
     entry), D34) only the query phase runs. The build fields, from `build_size` or the earlier entry, are checked
@@ -441,6 +458,8 @@ def run_size(size, args, work, reuse=None):
     else:
         fields, built = build_size(size, scratch, args.staging, args.threads, args.memory_limit, args.budget_seconds)
         record = None if built is None else built['record']
+        if record is not None:
+            check_build_code(record)
         keep = args.keep
     frozen = json.dumps(fields, sort_keys=True)
     entry.update(json.loads(frozen))
@@ -523,22 +542,34 @@ def environment(threads, memory_limit):
             'duckdb_threads': threads, 'duckdb_memory_limit': memory_limit, 'python_threads_for_matching': 1}
 
 
-BUILD_COVERS = ('build_provenance records every repository file the build processes loaded or read (by whole-file '
-                'digest), the pinned data files, the versions of Python, DuckDB, pyarrow and jsonschema, and whether the '
-                'repository was a checkout; a reused build also needs equal build parameters and environment. It does not '
-                'cover the operating system, CPU microcode or library internals beyond their versions. A reused '
-                'snapshot\'s own manifest names the builder and converter file digests of the tree that built it.')
+BUILD_COVERS = ('build_provenance records every repository file (source, never bytecode) the build processes loaded or '
+                'read through Python, by whole-file digest; the pinned data files; the versions of Python, DuckDB, pyarrow '
+                'and jsonschema; whether the repository was a checkout; and the settings the build processes saw (staging, '
+                'threads, memory limit, cohort construction, process flags, environment). DuckDB\'s native file access '
+                'in a build is confined to the build\'s directories. A reuse compares a new probe build\'s record with '
+                'this one, and the build parameters and environment. Not covered: the operating system, CPU microcode and '
+                'library internals beyond their versions. The benchmark that ran the builds and wrote their figures is '
+                'bound only by the report that first built them (build_origin.first_built.benchmark_sha256, or this '
+                'report\'s artifacts for builds it made). A reused snapshot\'s own manifest names the builder and '
+                'converter file digests of the tree that built it.')
 
 
 def git_state():
-    """{'head': the commit checked out, 'dirty': whether tracked files differ from it}, read when the run starts."""
+    """{'head': the commit checked out, 'dirty': whether tracked files differ from it or untracked files lie under
+    `patterns/` or `tools/`}, read when the run starts."""
     try:
-        head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
-        dirty = bool(subprocess.run(['git', 'status', '--porcelain', '--untracked-files=no'], cwd=ROOT,
-                                    capture_output=True, text=True, check=True).stdout.strip())
+        run = lambda *a: subprocess.run(['git', *a], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        head = run('rev-parse', 'HEAD')
+        dirty = bool(run('status', '--porcelain', '--untracked-files=no')) or bool(
+            run('status', '--porcelain', '--untracked-files=all', '--', 'patterns', 'tools'))
         return {'head': head, 'dirty': dirty}
     except (OSError, subprocess.CalledProcessError):
         return None
+
+
+def git_blob(data):
+    """The git blob id of a file's bytes: with the commit that holds it, how a committed report can be retrieved."""
+    return hashlib.sha1(b'blob %d\0' % len(data) + data).hexdigest()
 
 
 def report_path(path):
@@ -567,7 +598,9 @@ def benchmark(args):
         plan = reuse_plan(old, args.sizes, work, parameters, env=env)
         provenance = old['build_provenance']
         directly = {'path': report_path(args.reuse_builds), 'sha256': hashlib.sha256(old_text).hexdigest(),
-                    'commit': old.get('commit'), 'generated_at': old.get('generated_at')}
+                    'git_blob': git_blob(old_text), 'commit': old.get('commit'), 'generated_at': old.get('generated_at'),
+                    # the benchmark that wrote its figures, bound only by that report
+                    'benchmark_sha256': (old.get('artifacts') or {}).get('tools/benchmark_execution_store.py')}
         # The report that first built the snapshots, carried unchanged through a chain of reuses.
         first = (old.get('build_origin') or {}).get('first_built') or {**directly, 'environment': old.get('environment')}
         origin = {'first_built': first, 'reused_from': directly, 'sizes': sorted(plan)}

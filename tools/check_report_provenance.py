@@ -114,21 +114,16 @@ def artifact_maps(node, found):
 
 
 RECORD_RULE = 'runtime_record_v1'
-RECORD_KEYS = {'rule', 'modules', 'files', 'versions', 'root'}
+RECORD_KEYS = {'rule', 'modules', 'files', 'versions', 'root', 'settings'}
 
 
-def build_records(node, found):
-    """Every build record in a report (D34): a dict naming a `rule` beside `modules` or `files`. Its `modules` and
-    `files` are maps of repository paths to digests, checked by `artifact_maps` like any other; this finds the records
-    so that their shape can be checked too."""
-    if isinstance(node, dict):
-        if 'rule' in node and ('modules' in node or 'files' in node or 'fingerprints' in node):
-            found.append(node)
-        for value in node.values():
-            build_records(value, found)
-    elif isinstance(node, list):
-        for value in node:
-            build_records(value, found)
+def build_records(report, found):
+    """The build record of a report (D34): its top-level `build_provenance`, named explicitly. Its `modules` and
+    `files` are maps of repository paths to digests, checked by `artifact_maps` like any other; this returns the
+    record so that its shape can be checked too."""
+    record = report.get('build_provenance') if isinstance(report, dict) else None
+    if record is not None:
+        found.append(record if isinstance(record, dict) else {'rule': None})
     return found
 
 

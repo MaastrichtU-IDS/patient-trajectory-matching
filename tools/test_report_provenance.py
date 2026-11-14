@@ -190,7 +190,7 @@ class BuildRecordGateTests(unittest.TestCase):
                             for p in ('patterns/execution_store.py', 'patterns/trajectory_times.py')},
                 'files': {p: hashlib.sha256((gate.ROOT / p).read_bytes()).hexdigest()
                           for p in ('schemas/execution-store-manifest.schema.json',)},
-                'versions': {'python': 'cpython 3.12'}, 'root': 'checkout'}
+                'versions': {'python': 'cpython 3.12'}, 'root': 'checkout', 'settings': {'staging': 'parquet'}}
 
     def test_a_current_record_passes_and_every_kind_of_staleness_fails(self):
         code, text = self.fake({'build_provenance': self.record()})

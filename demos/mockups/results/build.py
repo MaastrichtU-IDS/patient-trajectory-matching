@@ -61,6 +61,7 @@ def scaling(s):
                 'first_built_report': origin['first_built'].get('path'),
                 'first_built_report_sha256': origin['first_built'].get('sha256'),
                 'first_built_commit': (origin['first_built'].get('commit') or {}).get('head'),
+                'first_built_benchmark_sha256': origin['first_built'].get('benchmark_sha256'),
                 'machine': (origin['first_built'].get('environment') or {}).get('cpu')},
             'sizes': rows}
 
