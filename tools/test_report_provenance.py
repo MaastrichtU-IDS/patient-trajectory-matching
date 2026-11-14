@@ -9,6 +9,18 @@ from unittest.mock import patch
 from tools import check_report_provenance as gate
 
 
+def bindings():
+    """Every binding the gate reads: artifact map entries and build fingerprint entries (D34)."""
+    total = 0
+    for name in gate.tracked_reports():
+        if name in gate.HISTORICAL:
+            continue
+        report = gate.loaded(name) or {}
+        total += sum(len(m) for m in gate.artifact_maps(report, []))
+        total += sum(len(p['fingerprints']) for p in gate.build_provenances(report, [], []))
+    return total
+
+
 class ReportProvenanceTests(unittest.TestCase):
     def test_the_committed_reports_bind_their_current_implementations(self):
         self.assertEqual(gate.main(), 0)
@@ -118,9 +130,7 @@ class ReportProvenanceTests(unittest.TestCase):
     def test_moving_a_bound_file_fails_the_gate(self):
         """Simulate moving one bound file: the gate must fail and name it, and the count
         of bindings it read must not drop."""
-        reports = gate.tracked_reports()
-        before = sum(len(m) for name in reports if name not in gate.HISTORICAL
-                     for m in gate.artifact_maps(gate.loaded(name) or {}, []))
+        before = bindings()
         target = 'services/pressure.py'
         real = Path.is_file
         with patch.object(Path, 'is_file', lambda self: False if str(self).endswith(target) else real(self)), \
@@ -129,6 +139,21 @@ class ReportProvenanceTests(unittest.TestCase):
         lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
         self.assertIn(f'{target} is bound but no longer in the repository', lines)
         self.assertIn(f'{before} bindings', lines, 'a moved file must not shrink the walk')
+
+    def test_moving_a_fingerprinted_module_fails_the_gate_without_shrinking_the_walk(self):
+        """D34 (the D33 review's must-fix 2): the count includes the fingerprint entries, and a module bound only by
+        fingerprint, once moved, fails by name."""
+        before = bindings()
+        self.assertGreater(before, sum(len(m) for name in gate.tracked_reports() if name not in gate.HISTORICAL
+                                       for m in gate.artifact_maps(gate.loaded(name) or {}, [])))
+        target = 'tools/scaling_build_worker.py'
+        real = Path.is_file
+        with patch.object(Path, 'is_file', lambda self: False if str(self).endswith(target) else real(self)), \
+             patch('builtins.print') as printed:
+            self.assertEqual(gate.main(), 1)
+        lines = ' '.join(str(call.args[0]) for call in printed.call_args_list)
+        self.assertIn(target, lines)
+        self.assertIn(f'{before} bindings', lines, 'a moved module must not shrink the walk')
 
     def test_a_folder_that_no_longer_exists_still_binds(self):
         """Moving a whole top-level folder removes its name from the tree. Its bindings
@@ -148,6 +173,70 @@ class ReportProvenanceTests(unittest.TestCase):
         real = 'patterns/pro_solid.py'
         found = gate.artifact_maps({'runs': [{'artifacts': {real: digest}}]}, [])
         self.assertEqual(found, [{real: digest}])
+
+
+class BuildFingerprintGateTests(unittest.TestCase):
+    """D34: a report may bind its build phase by fingerprint; the gate recomputes the whole map from its entry points."""
+
+    def fake(self, report):
+        with patch.object(gate, 'tracked_reports', return_value=['verification/fake.json']), \
+             patch.object(gate, 'loaded', return_value=report), patch('builtins.print') as printed:
+            code = gate.main()
+        return code, ' '.join(str(call.args[0]) for call in printed.call_args_list)
+
+    def provenance(self):
+        from tools import benchmark_execution_store as bench
+        return json.loads(json.dumps(bench.build_provenance()))
+
+    def test_a_current_provenance_passes_and_every_kind_of_staleness_fails(self):
+        current = self.provenance()
+        code, text = self.fake({'build_provenance': current})
+        self.assertEqual(code, 0, text)
+        self.assertIn(f"{len(current['fingerprints']) + len(current['files'])} bindings", text)
+        cases = []
+        stale = json.loads(json.dumps(current))
+        stale['fingerprints']['patterns/execution_store.py']['sha256'] = '0' * 64
+        cases.append((stale, 'patterns/execution_store.py no longer matches its recorded build fingerprint'))
+        dropped = json.loads(json.dumps(current))
+        del dropped['fingerprints']['patterns/series_values.py']
+        cases.append((dropped, 'patterns/series_values.py is now reached by the build but has no recorded fingerprint'))
+        roots = json.loads(json.dumps(current))
+        roots['fingerprints']['patterns/trajectory_graph.py']['roots'].remove('patient_times')
+        cases.append((roots, 'patterns/trajectory_graph.py no longer matches'))
+        extra = json.loads(json.dumps(current))
+        extra['fingerprints']['patterns/semantic_support.py'] = dict(current['fingerprints']['patterns/_resources.py'])
+        cases.append((extra, 'patterns/semantic_support.py is no longer reached by the build'))
+        unpinned = json.loads(json.dumps(current))
+        del unpinned['files']['schemas/execution-store-manifest.schema.json']
+        cases.append((unpinned, 'the build reads unpinned files'))
+        unknown = {**current, 'reused_from': 'somewhere'}
+        cases.append((unknown, 'unknown keys'))
+        rule = {**current, 'rule': 'whole_file'}
+        cases.append((rule, 'unknown fingerprint rule'))
+        shape = json.loads(json.dumps(current))
+        shape['fingerprints']['patterns/_resources.py']['note'] = 'x'
+        cases.append((shape, 'unknown shape'))
+        entry = json.loads(json.dumps(current))
+        entry['entry_points'] = {'tools/benchmark_execution_store.py': ['NoSuchFunction']}
+        cases.append((entry, 'can no longer be fingerprinted'))
+        for provenance, expected in cases:
+            code, text = self.fake({'build_provenance': provenance})
+            self.assertEqual(code, 1, expected)
+            self.assertIn(expected, text)
+
+    def test_a_fingerprint_map_outside_a_provenance_object_fails(self):
+        current = self.provenance()
+        code, text = self.fake({'fingerprints': current['fingerprints']})
+        self.assertEqual(code, 1)
+        self.assertIn('outside a build provenance object', text)
+
+    def test_the_committed_scaling_report_binds_its_build_by_fingerprint(self):
+        report = json.loads((gate.ROOT / 'verification/execution-store-scaling-report.json').read_text())
+        provenances = gate.build_provenances(report, [], [])
+        self.assertEqual(len(provenances), 1)
+        self.assertIn('patterns/execution_store.py', provenances[0]['fingerprints'])
+        self.assertIn('tools/scaling_build_worker.py', provenances[0]['fingerprints'])
+        self.assertEqual(gate.provenance_problems(provenances[0]), [])
 
 
 if __name__ == '__main__':

@@ -159,10 +159,13 @@ function render(d) {
     tb.setAttribute('aria-pressed', String(show));
   };
 
+  // D34: a size whose snapshot an earlier run built shows that run's build figures, marked, with the origin below.
+  const reused = z => z.build_reused ? ' †' : '';
   document.getElementById('scaleTable').innerHTML = table(
     ['Patients', 'Events', 'Build', 'Build peak (GiB)', 'Snapshot (GB)', 'Content check', 'Check peak (GiB)', 'Open (warm)', 'Match p50', 'Match max'],
-    S.sizes.map(z => [fmt(z.patients), fmt(z.events), dur(z.build_seconds), fmt(z.build_peak_gib, 2), fmt(z.snapshot_gb, 2),
-      dur(z.verify_content_seconds), fmt(z.verify_peak_gib, 2), `${fmt(z.open_seconds_warm, 2)} s`, dur(z.match_p50_seconds), dur(z.match_max_seconds)]));
+    S.sizes.map(z => [fmt(z.patients), fmt(z.events), dur(z.build_seconds) + reused(z), fmt(z.build_peak_gib, 2) + reused(z), fmt(z.snapshot_gb, 2),
+      dur(z.verify_content_seconds), fmt(z.verify_peak_gib, 2), `${fmt(z.open_seconds_warm, 2)} s`, dur(z.match_p50_seconds), dur(z.match_max_seconds)]))
+    + (S.sizes.some(z => z.build_reused) ? `<p class="muted">† Build figures of an earlier run, whose snapshots this run queried without rebuilding: first built ${esc(S.build_origin.first_built_at || 'at an unrecorded time')} on ${esc(S.build_origin.machine || 'the same machine')} (report ${esc((S.build_origin.first_built_report_sha256 || '').slice(0, 12))}…). The build code is unchanged since, by its fingerprint.</p>` : '');
 
   document.getElementById('mimicTable').innerHTML = table(
     ['Source', 'Rows in file', 'Admitted as events', 'Kept as excluded records', 'Claim stores'],

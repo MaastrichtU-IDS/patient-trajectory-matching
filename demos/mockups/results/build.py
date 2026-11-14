@@ -49,9 +49,17 @@ def scaling(s):
             'query_peak_gib': round(z['query_phase']['peak_rss_bytes'] / GIB, 2),
             'queries': q['queries'],
             'pruned_share_mean': round(q['pruning_rate']['mean'], 3),
+            # D34: build figures an earlier run measured, its snapshot reused here (the origin is named below)
+            'build_reused': 'build_reused' in z,
         })
+    origin = s.get('build_origin')
     return {'memory_limit': s['sizes'][-1]['memory_limit'],
             'distinct_patients': s['sizes'][-1].get('distinct_patients'),
+            'generated_at': s.get('generated_at'),
+            'build_origin': None if origin is None else {
+                'first_built_at': origin.get('first_built_at'),
+                'first_built_report_sha256': origin.get('first_built_report_sha256'),
+                'machine': (origin.get('environment') or {}).get('cpu')},
             'sizes': rows}
 
 

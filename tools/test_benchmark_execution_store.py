@@ -166,5 +166,119 @@ class ReportTests(unittest.TestCase):
             self.assertEqual((b['recorded_at'], b['available_at']), (a['recorded_at'] + delta, a['available_at'] + delta))
 
 
+@unittest.skipIf(duckdb is None, 'DuckDB is not installed')
+class ReuseTests(unittest.TestCase):
+    """D34: a run may query the snapshots an earlier run kept instead of building them, only when that run's build
+    provenance, build parameters and environment equal this run's and each kept snapshot still holds its identifier;
+    a reused report names the run that first built the snapshots, through any chain of reuses."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory(prefix='scaling-reuse-')
+        cls.work = Path(cls.tmp.name) / 'work'
+        cls.first, cls.second, cls.third = (Path(cls.tmp.name) / f'{n}.json' for n in ('first', 'second', 'third'))
+        common = ['--sizes', '100', '--queries', '3', '--repeats', '1', '--exhaustive', '1', '--exhaustive-max-size',
+                  '100', '--profile-max-size', '100', '--work-dir', str(cls.work), '--keep']
+        bench.main(common + ['--output', str(cls.first)])
+        bench.main(common + ['--output', str(cls.second), '--reuse-builds', str(cls.first)])
+        bench.main(common + ['--output', str(cls.third), '--reuse-builds', str(cls.second)])
+        cls.old, cls.new, cls.chained = (json.loads(p.read_text()) for p in (cls.first, cls.second, cls.third))
+        cls.parameters = cls.old['parameters']
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_the_build_runs_in_its_own_script(self):
+        self.assertEqual(bench.BUILD_ROOTS[bench.BUILD_WORKER], ['main'])
+        self.assertTrue((bench.ROOT / bench.BUILD_WORKER).is_file())
+        with self.assertRaises(SystemExit):  # the benchmark itself no longer runs a build worker
+            bench.main(['--worker', 'build', '--worker-output', str(Path(self.tmp.name) / 'x.json')])
+
+    def test_the_report_binds_its_build_by_fingerprint(self):
+        provenance = self.old['build_provenance']
+        self.assertEqual(provenance['entry_points'], bench.BUILD_ROOTS)
+        self.assertIn('patterns/execution_store.py', provenance['fingerprints'])
+        self.assertEqual(sorted(provenance['files']), sorted(bench.BUILD_FILES))
+        self.assertNotIn('build_origin', self.old)
+        self.assertTrue(self.old['generated_at'])
+        from tools import check_report_provenance as gate
+        self.assertEqual(gate.provenance_problems(provenance), [])
+
+    def test_a_reused_build_gives_the_same_tables_candidates_and_statuses(self):
+        old, new = self.old['sizes'][0], self.new['sizes'][0]
+        self.assertNotIn('build_reused', old)
+        self.assertEqual(new['build_reused']['snapshot_id'], old['snapshot_id'])
+        for key in ('snapshot_id', 'tables', 'build_seconds', 'build_stages', 'build_phase'):
+            self.assertEqual(new[key], old[key], key)
+        for key in ('candidate_count', 'status_mix', 'incomplete_none_by_note'):
+            self.assertEqual(new['queries'][key], old['queries'][key], key)
+        self.assertEqual(new['exhaustive_check']['mismatches'], 0)
+
+    def test_the_origin_is_the_first_build_through_a_chain_of_reuses(self):
+        import hashlib
+        first = hashlib.sha256(self.first.read_bytes()).hexdigest()
+        for report, reused_from in ((self.new, self.first), (self.chained, self.second)):
+            origin = report['build_origin']
+            self.assertEqual(origin['first_built_report_sha256'], first)
+            self.assertEqual(origin['first_built_at'], self.old['generated_at'])
+            self.assertEqual(origin['environment'], self.old['environment'])
+            self.assertEqual(origin['reused_from_report_sha256'], hashlib.sha256(reused_from.read_bytes()).hexdigest())
+            self.assertEqual(origin['sizes'], [100])
+            self.assertEqual(report['sizes'][0]['build_reused']['snapshot_id'], self.old['sizes'][0]['snapshot_id'])
+            self.assertEqual(report['sizes'][0]['build_seconds'], self.old['sizes'][0]['build_seconds'])
+
+    def refused(self, old, sizes=(100,), parameters=None):
+        with self.assertRaises(bench.ReuseRefused) as raised:
+            bench.reuse_plan(old, list(sizes), self.work, parameters or self.parameters)
+        return raised.exception.code
+
+    def test_reuse_is_refused_by_name_when_anything_the_build_depends_on_differs(self):
+        self.assertEqual(sorted(bench.reuse_plan(self.old, [100], self.work, self.parameters)), [100])
+        copy = lambda: json.loads(json.dumps(self.old))
+        old = copy()
+        del old['build_provenance']
+        self.assertEqual(self.refused(old), 'NO_BUILD_PROVENANCE')
+        old = copy()
+        old['build_provenance']['fingerprints']['patterns/execution_store.py']['sha256'] = '0' * 64
+        self.assertEqual(self.refused(old), 'BUILD_FINGERPRINT_CHANGED')
+        old = copy()
+        old['build_provenance']['files']['demos/mockups/synthetic/generate.py'] = '0' * 64
+        self.assertEqual(self.refused(old), 'BUILD_FILE_CHANGED')
+        old = copy()
+        old['build_provenance']['duckdb'] = '0.0.1'
+        self.assertEqual(self.refused(old), 'DUCKDB_VERSION_CHANGED')
+        for key, value in (('memory_limit', '2GB'), ('budget_seconds_per_size', 1.0), ('rss_limit_bytes', 1),
+                           ('staging', 'ndjson'), ('threads', 2)):
+            old = copy()
+            old['parameters'][key] = value
+            self.assertEqual(self.refused(old), 'BUILD_PARAMETERS_CHANGED', key)
+        old = copy()
+        old['profile'] = 'execution-store-scaling-1.0'
+        self.assertEqual(self.refused(old), 'BUILD_PARAMETERS_CHANGED')
+        for key in ('cpu', 'platform', 'memory_bytes', 'python'):
+            old = copy()
+            old['environment'][key] = 'elsewhere'
+            self.assertEqual(self.refused(old), 'ENVIRONMENT_CHANGED', key)
+        self.assertEqual(self.refused(self.old, (100, 200)), 'SIZE_NOT_IN_REPORT')
+        old = copy()
+        old['sizes'][0]['snapshot_id'] = 'f' * 64
+        self.assertEqual(self.refused(old), 'SNAPSHOT_MISSING')
+        kept = self.work / 'size-100' / 'store' / self.old['sizes'][0]['snapshot_id']
+        other = kept.parent / ('e' * 64)
+        kept.rename(other)
+        try:
+            old['sizes'][0]['snapshot_id'] = 'e' * 64
+            self.assertEqual(self.refused(old), 'SNAPSHOT_IDENTITY_CHANGED')
+        finally:
+            other.rename(kept)
+
+    def test_an_unpinned_data_file_refuses_the_report(self):
+        from unittest.mock import patch
+        with patch.object(bench, 'BUILD_FILES', bench.BUILD_FILES[1:]):
+            with self.assertRaises(bench.UnpinnedBuildFile):
+                bench.build_provenance()
+
+
 if __name__ == '__main__':
     unittest.main()

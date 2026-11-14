@@ -20,6 +20,15 @@ file's bytes, others hash `read_text()`, which normalizes CRLF -- so a digest ma
 either is accepted. That is deliberately permissive: this gate exists to catch stale
 provenance, and it must not fail a report whose producer simply chose the other
 convention. Unifying them is a separate change, recorded as R4 in docs/issues.md.
+
+A report may also bind its build phase by fingerprint (D34): a build provenance object, `{"rule":
+"build_closure_v1", "entry_points": {...}, "fingerprints": {path: {...}}, "files": {path: digest},
+"duckdb": ...}` (`patterns/build_fingerprint.py`). The scaling report binds its build phase this way,
+so that a change to matching alone does not stale the builds. The whole fingerprint map is recomputed
+from the recorded entry points and must be reproduced exactly (the same modules, roots, counts and
+digests); the pinned files are checked as any digest, and a data file the build reaches that is not
+pinned fails. An unknown key or rule fails, and so does a map of fingerprints found outside such an
+object.
 """
 import hashlib
 import json
@@ -40,7 +49,12 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               #   a closed record, superseded by nothing;
               # - D31's paired latency verdict, produced on the D31 tree (7f5930e); superseded for the
               #   current tree by `verification/d32-paired-verdict.json`.
-              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json'}
+              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json',
+              # D33 froze a third, for the same reason: D32's paired latency verdict, produced on the
+              # D32 branch (against main at 7f5930e), binds `tools/benchmark_execution_store.py`, which
+              # D33's build fingerprint changed. It records D32's decision; for the current tree the
+              # matcher report's `paired_confirmation` supersedes it.
+              'verification/d32-paired-verdict.json'}
 
 
 def digests(path):
@@ -101,6 +115,75 @@ def artifact_maps(node, found):
     return found
 
 
+PROVENANCE_KEYS = {'rule', 'entry_points', 'fingerprints', 'files', 'duckdb'}
+RECORD_KEYS = {'rule', 'roots', 'definitions', 'statements', 'sha256'}
+
+
+def _is_record(value):
+    return isinstance(value, dict) and 'rule' in value and 'sha256' in value
+
+
+def _is_record_map(node):
+    return isinstance(node, dict) and node and all(repository_path(k) and _is_record(v) for k, v in node.items())
+
+
+def build_provenances(node, found, stray, inside=False):
+    """Every build provenance object (D34: a dict with `rule`, `entry_points` and `fingerprints`), and every map of
+    fingerprint records found anywhere else (`stray`), which binds nothing the gate can recompute and so fails."""
+    if isinstance(node, dict):
+        if {'rule', 'entry_points', 'fingerprints'} <= set(node):
+            found.append(node)
+            for key, value in node.items():
+                if key != 'fingerprints':
+                    build_provenances(value, found, stray, True)
+            return found
+        if _is_record_map(node) and not inside:
+            stray.append(node)
+        for value in node.values():
+            build_provenances(value, found, stray, inside)
+    elif isinstance(node, list):
+        for value in node:
+            build_provenances(value, found, stray, inside)
+    return found
+
+
+def provenance_problems(provenance):
+    """Why a build provenance object no longer describes the tree, as strings: an unknown key or rule, a record of an
+    unknown shape, a map that the fingerprints recomputed in full from the recorded entry points do not reproduce
+    (modules, roots, counts and digests), or a data file the build reaches that the object does not pin. The pinned
+    files' digests are checked as any other artifact map."""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from patterns import build_fingerprint as bf
+    unknown = sorted(set(provenance) - PROVENANCE_KEYS)
+    if unknown:
+        return [f'build provenance has unknown keys {unknown}']
+    if provenance['rule'] != bf.RULE:
+        return [f'build provenance has an unknown fingerprint rule {provenance["rule"]!r}']
+    recorded = provenance['fingerprints']
+    if not _is_record_map(recorded) or any(set(r) != RECORD_KEYS for r in recorded.values()):
+        return ['build provenance holds a fingerprint record of an unknown shape']
+    missing = sorted(p for p in recorded if not (ROOT / p).is_file())
+    if missing:
+        return [f'{p} is bound but no longer in the repository' for p in missing]
+    try:
+        now, files = bf.fingerprints(provenance['entry_points'], ROOT)
+    except (bf.FingerprintError, FileNotFoundError, SyntaxError) as exc:
+        return [f'the build can no longer be fingerprinted ({exc})']
+    problems = []
+    for path in sorted(set(now) | set(recorded)):
+        if path not in recorded:
+            problems.append(f'{path} is now reached by the build but has no recorded fingerprint')
+        elif path not in now:
+            problems.append(f'{path} is no longer reached by the build')
+        elif now[path] != recorded[path]:
+            problems.append(f'{path} no longer matches its recorded build fingerprint')
+    unpinned = sorted(set(files) - set(provenance.get('files') or {}))
+    if unpinned:
+        problems.append(f'the build reads unpinned files {unpinned}')
+    return problems
+
+
 def records_failure(report):
     """Whether a report is an account of a run that did not succeed.
 
@@ -156,7 +239,9 @@ def main():
             checked += 1
             continue
         maps = artifact_maps(report, [])
-        if not maps:
+        stray = []
+        provenances = build_provenances(report, [], stray)
+        if not maps and not provenances and not stray:
             continue
         checked += 1
         for mapping in maps:
@@ -166,6 +251,11 @@ def main():
                     problems.append(f'{name}: {path} is bound but no longer in the repository')
                 elif recorded not in digests(path):
                     problems.append(f'{name}: {path} no longer matches its recorded digest')
+        for _ in stray:
+            problems.append(f'{name}: a map of build fingerprints outside a build provenance object binds nothing')
+        for provenance in provenances:
+            bound += len(provenance['fingerprints']) if isinstance(provenance['fingerprints'], dict) else 0
+            problems.extend(f'{name}: {problem}' for problem in provenance_problems(provenance))
     for problem in sorted(set(problems)):
         print(f'::error::{problem}')
     print(f'report provenance: {checked} reports, {bound} bindings, '

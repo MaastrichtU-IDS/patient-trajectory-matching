@@ -20,11 +20,25 @@ number of days that depends only on k. Replication keeps the distributions reali
 variety. Queries are anchored on the first seed's patients and are the same for every size. A
 patient's index window is derived from its pool patient's coverage and shifted with its copy.
 
+Build provenance (D34). The build phase runs in `tools/scaling_build_worker.py`, a process of its own, and the
+report binds it by fingerprint (`patterns/build_fingerprint.py`): every top-level statement and every definition the
+build reaches from `BUILD_ROOTS`, in that script, in this file (the build worker, and the code that runs a phase,
+measures it and records a size's build figures) and in the store, the converter, the engine and the other modules it
+calls; the data files it reads, pinned in `BUILD_FILES` and bound by whole digest; and the DuckDB version
+(`build_provenance`). Its query phase stays bound by whole-file digests (`artifacts`). `tools/check_report_provenance.py`
+recomputes the whole fingerprint map from its entry points, so both parts are checked. `--reuse-builds REPORT` runs only
+the query phase, on the snapshots an earlier run kept (`--keep`) in `--work-dir`, when that report's build provenance,
+build parameters and environment equal this run's and each kept snapshot still has its identifier (`reuse_plan` refuses
+by name otherwise). Each reused size says so (`build_reused`) and keeps the earlier run's build figures and snapshot
+identifier; `build_origin` names the report that first built them, when, and on what machine, through any chain of
+reuses.
+
 The report holds aggregates only. It is evidence for one machine and synthetic data.
 """
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import importlib.util
 import json
@@ -60,7 +74,22 @@ ADD_SAMPLE_EVERY = 1000
 ARTIFACTS = ('tools/benchmark_execution_store.py', 'patterns/execution_store.py', 'patterns/synthetic_ingest.py',
              'patterns/trajectory_graph.py', 'demos/mockups/synthetic/generate.py',
              'patterns/test_execution_store.py', 'patterns/execution_store_reference.py', 'patterns/temporal_stn.py',
-             'schemas/execution-store-manifest.schema.json')
+             'schemas/execution-store-manifest.schema.json', 'tools/scaling_build_worker.py')
+# D34: the build phase's entry points, from which `build_provenance` fingerprints everything the build reaches: the
+# build process's own script, and here the build worker and the parent's code that runs a phase, measures its time and
+# memory and records a size's build figures.
+BUILD_WORKER = 'tools/scaling_build_worker.py'
+BUILD_ROOTS = {BUILD_WORKER: ['main'],
+               'tools/benchmark_execution_store.py': ['build_worker', 'build_size', 'run_phase', 'current_rss',
+                                                      'limit_bytes']}
+# The data files the build reads, bound by whole digest; the fingerprint may find no other (`UNPINNED_BUILD_FILE`).
+BUILD_FILES = ('demos/mockups/synthetic/generate.py', 'ontology/sulo-pin.json', 'schemas/bounded-interval.schema.json',
+               'schemas/execution-store-manifest.schema.json')
+# What shapes a build or its figures: a reused build must have been made with the same ones.
+BUILD_PARAMETERS = ('threads', 'memory_limit', 'staging', 'distinct_pool_cap', 'patients_per_cohort',
+                    'budget_seconds_per_size', 'rss_limit_bytes')
+# The environment a reused build's figures were measured in.
+BUILD_ENVIRONMENT = ('platform', 'machine', 'cpu', 'logical_cpus', 'memory_bytes', 'python', 'duckdb')
 LIMITATIONS = (
     'One machine (see environment); no other hardware, operating system or storage was measured.',
     'The data are synthetic. Event density, concept frequencies and sources reflect the generator, not a clinical record system.',
@@ -489,8 +518,10 @@ def current_rss(pid):
 
 
 def run_phase(name, arguments, output, budget, rss_limit):
-    """Run one worker; (result or None, record). The record has wall seconds, peak RSS and any failure."""
-    command = [sys.executable, str(Path(__file__).resolve()), '--worker', name, '--worker-output', str(output), *arguments]
+    """Run one worker; (result or None, record). The record has wall seconds, peak RSS and any failure. The build worker
+    runs in its own script (`BUILD_WORKER`, D34), every other worker in this one."""
+    script = ROOT / BUILD_WORKER if name == 'build' else Path(__file__).resolve()
+    command = [sys.executable, str(script), '--worker', name, '--worker-output', str(output), *arguments]
     started = time.monotonic()
     child = subprocess.Popen(command, cwd=ROOT, stderr=subprocess.PIPE, text=True, start_new_session=True)
     failure, peak = None, 0
@@ -569,13 +600,109 @@ def query_statistics(result, patients):
                            'match_seconds': q['match_seconds']} for q in per_query]}
 
 
-def run_size(size, args, work):
-    """The report entry for one size."""
+class UnpinnedBuildFile(ValueError):
+    pass
+
+
+def build_provenance():
+    """What the build phase depends on (D34): a fingerprint of every module the build reaches, from `BUILD_ROOTS`, the
+    pinned data files by whole digest (refusing a data file the build reaches that `BUILD_FILES` does not pin), and the
+    DuckDB version."""
+    import duckdb
+    from patterns import build_fingerprint as bf
+    found, files = bf.fingerprints(BUILD_ROOTS, ROOT)
+    unpinned = sorted(set(files) - set(BUILD_FILES))
+    if unpinned:
+        raise UnpinnedBuildFile('UNPINNED_BUILD_FILE: ' + ', '.join(unpinned))
+    return {'rule': bf.RULE, 'entry_points': BUILD_ROOTS, 'fingerprints': found,
+            'files': {path: digest(path) for path in BUILD_FILES}, 'duckdb': duckdb.__version__}
+
+
+class ReuseRefused(ValueError):
+    def __init__(self, code, where=''):
+        super().__init__(f'{code}: {where}' if where else code)
+        self.code = code
+
+
+# The build figures of a size entry: what a reused size keeps from the earlier run.
+BUILD_FIELDS = ('build_phase', 'distinct_patients', 'cohorts_generated', 'generator_seeds_failed', 'patients',
+                'ingest_events', 'events_per_distinct_patient', 'generate_seconds', 'convert_seconds', 'pool_bytes',
+                'build_seconds', 'add_seconds', 'memory_limit', 'snapshot_id', 'snapshot_bytes', 'tables', 'build_stages')
+
+
+def reuse_plan(old, sizes, work, parameters, provenance=None, env=None):
+    """{size: (kept snapshot directory, the earlier entry)} for reusing an earlier report's builds, or `ReuseRefused`
+    naming why not: the earlier report has no build provenance, a fingerprint, a build file or the DuckDB version
+    differs from this tree's, its profile, generator seed or a build parameter differs, its environment differs from
+    this one (its build figures were measured there), a size was not completed there, or its kept snapshot is missing or
+    no longer holds its identifier (opened with its file digests verified)."""
+    from patterns import execution_store as es
+    provenance = provenance or build_provenance()
+    env = env or environment(parameters['threads'], parameters['memory_limit'])
+    mine = old.get('build_provenance')
+    if not mine:
+        raise ReuseRefused('NO_BUILD_PROVENANCE')
+    if mine.get('fingerprints') != provenance['fingerprints']:
+        changed = sorted(set(mine.get('fingerprints', {})) ^ set(provenance['fingerprints'])) or sorted(
+            p for p in provenance['fingerprints'] if mine['fingerprints'][p] != provenance['fingerprints'][p])
+        raise ReuseRefused('BUILD_FINGERPRINT_CHANGED', ', '.join(changed))
+    if mine.get('files') != provenance['files']:
+        raise ReuseRefused('BUILD_FILE_CHANGED', ', '.join(sorted(
+            p for p in set(mine.get('files', {})) | set(provenance['files'])
+            if mine.get('files', {}).get(p) != provenance['files'].get(p))))
+    if mine.get('duckdb') != provenance['duckdb']:
+        raise ReuseRefused('DUCKDB_VERSION_CHANGED', f"{mine.get('duckdb')} -> {provenance['duckdb']}")
+    if old.get('profile') != PROFILE or old.get('generator_seed_base') != SEED_BASE or any(
+            old['parameters'].get(k) != parameters[k] for k in BUILD_PARAMETERS):
+        raise ReuseRefused('BUILD_PARAMETERS_CHANGED', ', '.join(
+            ['profile'] * (old.get('profile') != PROFILE) + ['generator_seed_base'] * (old.get('generator_seed_base') != SEED_BASE)
+            + [k for k in BUILD_PARAMETERS if old['parameters'].get(k) != parameters[k]]))
+    if any(old.get('environment', {}).get(k) != env[k] for k in BUILD_ENVIRONMENT):
+        raise ReuseRefused('ENVIRONMENT_CHANGED', ', '.join(
+            k for k in BUILD_ENVIRONMENT if old.get('environment', {}).get(k) != env[k]))
+    entries = {s['size']: s for s in old['sizes']}
+    plan = {}
+    for size in sizes:
+        entry = entries.get(size)
+        if entry is None or entry.get('status') != 'completed':
+            raise ReuseRefused('SIZE_NOT_IN_REPORT', str(size))
+        path = Path(work) / f'size-{size}' / 'store' / entry['snapshot_id']
+        if not (path / 'manifest.json').is_file():
+            raise ReuseRefused('SNAPSHOT_MISSING', str(path))
+        try:
+            es.open_store(path, 1, 'files', parameters['memory_limit'], expected_snapshot_id=entry['snapshot_id']).close()
+        except es.StoreError as exc:
+            raise ReuseRefused('SNAPSHOT_IDENTITY_CHANGED', f'{size}: {exc}') from None
+        plan[size] = (path, entry)
+    return plan
+
+
+def run_size(size, args, work, reuse=None):
+    """The report entry for one size; with `reuse` ((kept snapshot, earlier entry), D34), only the query phase runs."""
     scratch = Path(work) / f'size-{size}'
-    shutil.rmtree(scratch, ignore_errors=True)
-    scratch.mkdir(parents=True)
     started = time.monotonic()
     entry = {'size': size, 'status': 'completed'}
+    if reuse is not None:
+        path, earlier = reuse
+        entry.update({k: earlier[k] for k in BUILD_FIELDS if k in earlier})
+        entry['build_reused'] = {'snapshot_id': earlier['snapshot_id'],
+                                 'note': 'build figures and snapshot of the run named in build_origin'}
+        built = {'snapshot_path': str(path), 'patients': earlier['patients']}
+        return _query_size(size, args, scratch, entry, built, started, keep=True)
+    built = build_size(size, args, scratch, entry)
+    if built is None:
+        entry['wall_seconds'] = time.monotonic() - started
+        if not args.keep:
+            shutil.rmtree(scratch, ignore_errors=True)
+        return entry
+    return _query_size(size, args, scratch, entry, built, started, keep=args.keep)
+
+
+def build_size(size, args, scratch, entry):
+    """Build one size's snapshot in its own process and record its build figures in `entry` (a root of the build
+    fingerprint, D34); the build worker's result, or None with the failure recorded."""
+    shutil.rmtree(scratch, ignore_errors=True)
+    scratch.mkdir(parents=True)
     built, record = run_phase('build', ['--size', str(size), '--work-dir', str(scratch), '--staging', args.staging,
                                         '--threads', str(args.threads),
                                         '--memory-limit', args.memory_limit],
@@ -583,14 +710,16 @@ def run_size(size, args, work):
     entry['build_phase'] = {k: v for k, v in record.items() if k != 'failure'}
     if built is None:
         entry.update(status='failed', failed_phase='build', failure=record['failure'])
-        entry['wall_seconds'] = time.monotonic() - started
-        if not args.keep:
-            shutil.rmtree(scratch, ignore_errors=True)
-        return entry
+        return None
     entry.update({k: v for k, v in built.items() if k not in ('snapshot_path', 'build_stages')})
     entry['build_stages'] = {'stages': built['build_stages'], 'process_peak_rss_bytes': record['peak_rss_bytes'],
                              'process_peak_rss_over_memory_limit': record['peak_rss_bytes'] / limit_bytes(args.memory_limit)}
     (scratch / 'pool.ndjson').unlink(missing_ok=True)
+    return built
+
+
+def _query_size(size, args, scratch, entry, built, started, keep):
+    """The query phase of one size, and its profiles, on the snapshot at `built['snapshot_path']`."""
     remaining = max(1.0, args.budget_seconds - (time.monotonic() - started))
     exhaustive = args.exhaustive if size <= args.exhaustive_max_size else 0
     small = size <= args.profile_max_size
@@ -606,7 +735,8 @@ def run_size(size, args, work):
         entry['open_verify_seconds'] = {'cold': queried['open_verify_seconds_cold'],
                                         'warm': queried['open_verify_seconds_warm'],
                                         'level': queried['open_verify_level'],
-                                        'cold_note': 'first open after build, page cache not purged'}
+                                        'cold_note': 'first open after build, page cache not purged' if 'build_reused' not in entry
+                                        else 'first open in this run, of a snapshot an earlier run built; page cache not purged'}
         entry['queries'] = query_statistics(queried, built['patients'])
         if queried['exhaustive_check']:
             entry['exhaustive_check'] = queried['exhaustive_check']
@@ -621,7 +751,7 @@ def run_size(size, args, work):
             profile[name]['process_peak_rss_bytes'] = rec['peak_rss_bytes']
         entry['profile'] = profile
     entry['wall_seconds'] = time.monotonic() - started
-    if not args.keep:
+    if not keep:
         shutil.rmtree(scratch, ignore_errors=True)
     return entry
 
@@ -660,6 +790,26 @@ def benchmark(args):
     started = time.monotonic()
     work = Path(args.work_dir) if args.work_dir else Path(tempfile.mkdtemp(prefix='store-scaling-', dir='/tmp'))
     work.mkdir(parents=True, exist_ok=True)
+    parameters = {'sizes': args.sizes, 'queries': args.queries, 'repeats': args.repeats,
+                  'profile_max_size': args.profile_max_size, 'large_queries': args.large_queries,
+                  'large_repeats': args.large_repeats,
+                  'budget_seconds_per_size': args.budget_seconds, 'rss_limit_bytes': RSS_LIMIT_BYTES,
+                  'threads': args.threads, 'memory_limit': args.memory_limit, 'staging': args.staging,
+                  'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT}
+    provenance = build_provenance()
+    env = environment(args.threads, args.memory_limit)
+    generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+    plan, origin = {}, None
+    if args.reuse_builds:
+        old_text = Path(args.reuse_builds).read_bytes()
+        old = json.loads(old_text)
+        plan = reuse_plan(old, args.sizes, work, parameters, provenance, env)
+        # The report that first built the snapshots, carried unchanged through a chain of reuses.
+        origin = old.get('build_origin') or {
+            'first_built_report_sha256': hashlib.sha256(old_text).hexdigest(),
+            'first_built_at': old.get('generated_at'), 'environment': old.get('environment'),
+            'total_seconds': old.get('total_seconds')}
+        origin = {**origin, 'reused_from_report_sha256': hashlib.sha256(old_text).hexdigest(), 'sizes': sorted(plan)}
     entries, stopped = [], None
     for size in args.sizes:
         if stopped:
@@ -668,19 +818,14 @@ def benchmark(args):
                                       f'{stopped["failed_phase"]}'})
             continue
         print(f'size {size} ...', file=sys.stderr, flush=True)
-        entry = run_size(size, args, work)
+        entry = run_size(size, args, work, plan.get(size))
         entries.append(entry)
         print(f'size {size}: {entry["status"]} in {entry["wall_seconds"]:.0f} s', file=sys.stderr, flush=True)
         if entry['status'] == 'failed':
             stopped = entry
-    return {'profile': PROFILE, 'generator_seed_base': SEED_BASE,
-            'parameters': {'sizes': args.sizes, 'queries': args.queries, 'repeats': args.repeats,
-                           'profile_max_size': args.profile_max_size, 'large_queries': args.large_queries,
-                           'large_repeats': args.large_repeats,
-                           'budget_seconds_per_size': args.budget_seconds, 'rss_limit_bytes': RSS_LIMIT_BYTES,
-                           'threads': args.threads, 'memory_limit': args.memory_limit, 'staging': args.staging,
-                           'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT},
-            'environment': environment(args.threads, args.memory_limit),
+    out = {'profile': PROFILE, 'generator_seed_base': SEED_BASE, 'generated_at': generated_at,
+            'parameters': parameters,
+            'environment': env,
             'cohort_construction': {
                 'distinct': f'one generator seed per {PER_COHORT} patients (seed {SEED_BASE} + i, skipping seeds the generator cannot build), relabelled per cohort, up to '
                             f'{DISTINCT_CAP:,} distinct patients',
@@ -692,9 +837,13 @@ def benchmark(args):
                            'first cohort, identical for every size; windows follow the pool patient and its shift'},
             'sizes': entries,
             'artifacts': {p: digest(p) for p in ARTIFACTS},
+            'build_provenance': provenance,
             'limitations': list(LIMITATIONS),
             'contains_patient_level_data': False,
             'total_seconds': time.monotonic() - started}
+    if origin is not None:
+        out['build_origin'] = origin
+    return out
 
 
 def main(argv=None):
@@ -710,6 +859,8 @@ def main(argv=None):
     parser.add_argument('--exhaustive', type=int, default=5, help='queries compared with exhaustive matching at small sizes')
     parser.add_argument('--exhaustive-max-size', type=int, default=1000)
     parser.add_argument('--keep', action='store_true', help='keep each size\'s snapshot')
+    parser.add_argument('--reuse-builds', type=Path, help='an earlier report whose kept snapshots (in --work-dir) this '
+                        'run queries instead of building, if its build provenance equals this tree\'s (D33)')
     parser.add_argument('--staging', choices=('parquet', 'ndjson'), default='parquet',
                         help='how the builder stages rows (D26); parquet is the store\'s default')
     parser.add_argument('--profile-max-size', type=int, default=10000,
@@ -717,16 +868,14 @@ def main(argv=None):
                              '--large-queries and --large-repeats')
     parser.add_argument('--large-queries', type=int, default=10)
     parser.add_argument('--large-repeats', type=int, default=1)
-    parser.add_argument('--worker', choices=('build', 'query', 'verify', 'cprofile'), help=argparse.SUPPRESS)
+    parser.add_argument('--worker', choices=('query', 'verify', 'cprofile'), help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--snapshot', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.worker:
-        marker = args.worker_output.with_suffix('.progress')
-        if args.worker == 'build':
-            result = build_worker(args.size, args.work_dir, args.threads, args.memory_limit, marker, args.staging)
-        elif args.worker == 'verify':
+        # The build worker runs in its own script (D34: `BUILD_WORKER`, a root of the build fingerprint), never here.
+        if args.worker == 'verify':
             result = verify_profile_worker(args.snapshot, args.threads, args.memory_limit)
         elif args.worker == 'cprofile':
             result = cprofile_worker(args.snapshot, args.size, args.threads)
