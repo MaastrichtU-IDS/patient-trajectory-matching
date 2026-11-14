@@ -166,5 +166,84 @@ class ReportTests(unittest.TestCase):
             self.assertEqual((b['recorded_at'], b['available_at']), (a['recorded_at'] + delta, a['available_at'] + delta))
 
 
+@unittest.skipIf(duckdb is None, 'DuckDB is not installed')
+class ReuseTests(unittest.TestCase):
+    """D33: a run may query the snapshots an earlier run kept instead of building them, only when that run's build
+    provenance (fingerprints, build files, DuckDB version, build parameters) equals this tree's and each kept snapshot
+    still holds its identifier."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory(prefix='scaling-reuse-')
+        cls.work = Path(cls.tmp.name) / 'work'
+        cls.first, cls.second = Path(cls.tmp.name) / 'first.json', Path(cls.tmp.name) / 'second.json'
+        common = ['--sizes', '100', '--queries', '3', '--repeats', '1', '--exhaustive', '1', '--exhaustive-max-size',
+                  '100', '--profile-max-size', '100', '--work-dir', str(cls.work), '--keep']
+        bench.main(common + ['--output', str(cls.first)])
+        bench.main(common + ['--output', str(cls.second), '--reuse-builds', str(cls.first)])
+        cls.old, cls.new = json.loads(cls.first.read_text()), json.loads(cls.second.read_text())
+        cls.parameters = cls.old['parameters']
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_the_report_binds_its_build_by_fingerprint(self):
+        provenance = self.old['build_provenance']
+        self.assertEqual(provenance['entry_points'], bench.BUILD_ROOTS)
+        self.assertIn('patterns/execution_store.py', provenance['fingerprints'])
+        self.assertIn('schemas/execution-store-manifest.schema.json', provenance['files'])
+        self.assertNotIn('reused_from', provenance)
+        from tools import check_report_provenance as gate
+        for path, record in provenance['fingerprints'].items():
+            self.assertIsNone(gate.fingerprint_problem(path, record))
+
+    def test_a_reused_build_gives_the_same_tables_candidates_and_statuses(self):
+        old, new = self.old['sizes'][0], self.new['sizes'][0]
+        self.assertNotIn('build_reused', old)
+        self.assertEqual(new['build_reused']['snapshot_id'], old['snapshot_id'])
+        self.assertEqual(self.new['build_provenance']['reused_from']['sizes'], [100])
+        for key in ('snapshot_id', 'tables', 'build_seconds', 'build_stages'):
+            self.assertEqual(new[key], old[key], key)
+        for key in ('candidate_count', 'status_mix', 'incomplete_none_by_note'):
+            self.assertEqual(new['queries'][key], old['queries'][key], key)
+        self.assertEqual(new['exhaustive_check']['mismatches'], 0)
+
+    def refused(self, old, sizes=(100,)):
+        with self.assertRaises(bench.ReuseRefused) as raised:
+            bench.reuse_plan(old, list(sizes), self.work, self.parameters)
+        return raised.exception.code
+
+    def test_reuse_is_refused_by_name_when_anything_the_build_depends_on_differs(self):
+        self.assertEqual(sorted(bench.reuse_plan(self.old, [100], self.work, self.parameters)), [100])
+        old = json.loads(json.dumps(self.old))
+        del old['build_provenance']
+        self.assertEqual(self.refused(old), 'NO_BUILD_PROVENANCE')
+        old = json.loads(json.dumps(self.old))
+        old['build_provenance']['fingerprints']['patterns/execution_store.py']['sha256'] = '0' * 64
+        self.assertEqual(self.refused(old), 'BUILD_FINGERPRINT_CHANGED')
+        old = json.loads(json.dumps(self.old))
+        old['build_provenance']['files']['demos/mockups/synthetic/generate.py'] = '0' * 64
+        self.assertEqual(self.refused(old), 'BUILD_FILE_CHANGED')
+        old = json.loads(json.dumps(self.old))
+        old['build_provenance']['duckdb'] = '0.0.1'
+        self.assertEqual(self.refused(old), 'DUCKDB_VERSION_CHANGED')
+        old = json.loads(json.dumps(self.old))
+        old['parameters']['memory_limit'] = '2GB'
+        self.assertEqual(self.refused(old), 'BUILD_PARAMETERS_CHANGED')
+        self.assertEqual(self.refused(self.old, (100, 200)), 'SIZE_NOT_IN_REPORT')
+        old = json.loads(json.dumps(self.old))
+        old['sizes'][0]['snapshot_id'] = 'f' * 64
+        self.assertEqual(self.refused(old), 'SNAPSHOT_MISSING')
+        kept = self.work / 'size-100' / 'store' / self.old['sizes'][0]['snapshot_id']
+        other = kept.parent / ('e' * 64)
+        kept.rename(other)
+        try:
+            old['sizes'][0]['snapshot_id'] = 'e' * 64
+            self.assertEqual(self.refused(old), 'SNAPSHOT_IDENTITY_CHANGED')
+        finally:
+            other.rename(kept)
+
+
 if __name__ == '__main__':
     unittest.main()

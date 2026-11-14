@@ -20,6 +20,13 @@ file's bytes, others hash `read_text()`, which normalizes CRLF -- so a digest ma
 either is accepted. That is deliberately permissive: this gate exists to catch stale
 provenance, and it must not fail a report whose producer simply chose the other
 convention. Unifying them is a separate change, recorded as R4 in docs/issues.md.
+
+A report may also bind part of a file by fingerprint (D33): a map from repository paths to
+`{"rule": "build_closure_v1", "roots": [...], "sha256": ...}`, the digest of the source of every
+definition reachable from the roots (`patterns/build_fingerprint.py`). The scaling report binds its
+build phase this way, so that a change to matching alone does not stale the builds. Each such entry
+is recomputed from the file as it is now and must match, exactly as a digest must; an unknown rule
+fails.
 """
 import hashlib
 import json
@@ -40,7 +47,12 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               #   a closed record, superseded by nothing;
               # - D31's paired latency verdict, produced on the D31 tree (7f5930e); superseded for the
               #   current tree by `verification/d32-paired-verdict.json`.
-              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json'}
+              'verification/d30-attribution-report.json', 'verification/d31-paired-verdict.json',
+              # D33 froze a third, for the same reason: D32's paired latency verdict, produced on the
+              # D32 branch (against main at 7f5930e), binds `tools/benchmark_execution_store.py`, which
+              # D33's build fingerprint changed. It records D32's decision; for the current tree the
+              # matcher report's `paired_confirmation` supersedes it.
+              'verification/d32-paired-verdict.json'}
 
 
 def digests(path):
@@ -101,6 +113,40 @@ def artifact_maps(node, found):
     return found
 
 
+FINGERPRINT_KEYS = {'rule', 'roots', 'definitions', 'sha256'}
+
+
+def fingerprint_maps(node, found):
+    """Every dict that maps repository paths to fingerprint records (D33), found by shape like `artifact_maps`."""
+    if isinstance(node, dict):
+        keys = list(node)
+        if keys and all(repository_path(k) and isinstance(node[k], dict) and {'rule', 'roots', 'sha256'} <= set(node[k])
+                        and set(node[k]) <= FINGERPRINT_KEYS for k in keys):
+            found.append(node)
+        for value in node.values():
+            fingerprint_maps(value, found)
+    elif isinstance(node, list):
+        for value in node:
+            fingerprint_maps(value, found)
+    return found
+
+
+def fingerprint_problem(path, record):
+    """None when the recorded fingerprint still describes the file, else why not."""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from patterns import build_fingerprint as bf
+    if record['rule'] != bf.RULE:
+        return f'{path} is bound by an unknown fingerprint rule {record["rule"]!r}'
+    if not (ROOT / path).is_file():
+        return f'{path} is bound but no longer in the repository'
+    try:
+        now = bf.fingerprint(path, record['roots'])
+    except bf.FingerprintError as exc:
+        return f'{path} can no longer be fingerprinted ({exc})'
+    return None if now == record['sha256'] else f'{path} no longer matches its recorded build fingerprint'
+
+
 def records_failure(report):
     """Whether a report is an account of a run that did not succeed.
 
@@ -156,7 +202,8 @@ def main():
             checked += 1
             continue
         maps = artifact_maps(report, [])
-        if not maps:
+        prints = fingerprint_maps(report, [])
+        if not maps and not prints:
             continue
         checked += 1
         for mapping in maps:
@@ -166,6 +213,12 @@ def main():
                     problems.append(f'{name}: {path} is bound but no longer in the repository')
                 elif recorded not in digests(path):
                     problems.append(f'{name}: {path} no longer matches its recorded digest')
+        for mapping in prints:
+            for path, record in mapping.items():
+                bound += 1
+                problem = fingerprint_problem(path, record)
+                if problem:
+                    problems.append(f'{name}: {problem}')
     for problem in sorted(set(problems)):
         print(f'::error::{problem}')
     print(f'report provenance: {checked} reports, {bound} bindings, '
