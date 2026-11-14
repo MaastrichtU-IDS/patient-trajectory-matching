@@ -490,13 +490,13 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
 
 **Regenerated for D31, second attempt** (`--work-dir /tmp/d31b/scaling2`; 9,131 s). The first run of this regeneration (9,203 s) had a 1,000,000-patient build peak of 8.61 GiB, at the Parquet write, above the D23 bound as it then stood (5% over the 300,000 peak of 8.02 GiB), with the builder unchanged since D30 (8.23 GiB there); it was run again once, and the committed run's peak is 8.28 GiB, with the same snapshots and status mixes. Run-to-run spread of that peak is therefore at least 4%, so the owner widened the bound to **10%** (the 1,000,000 build peak at most 1.10 × the 300,000 one, `tools/test_benchmark_execution_store.py`): it still catches memory that grows with patient count, which is what it is for. Both runs are within it. The engine's one envelope search for coupled `first` and `last` steps (decision log, D31) and the store's D18 fix. Snapshot identifiers changed with the builder's digest; every table's row count and every query's candidate count equal D30's. Status mixes change only at 1,000 and 10,000: `unresolved` 398 → 38 and 4,222 → 375, mostly to `none`. At 100,000 and above the statuses are unchanged, and the incomplete `none` results fall from 31,060, 93,180 and 310,600 (`RELAXATION_ORDER_UNCERTAIN`) to 6,060, 18,180 and 60,600 (`RELAXATION_SEARCH_STOPPED`). Single-process `match()` at 1,000,000 has p50 11.76 s (D30: 11.72 s).
 
-**Regenerated for D32** (`--work-dir /tmp/d32/scaling`; 9,164 s). D32 adds Nth occurrences and counts to the match request and a `series` option to the synthetic converter, which is off here. The benchmark's queries use neither.
-- *Changed.* Snapshot identifiers, with the builder's digest. The 300,000 snapshot, `af687c16…`, is the one D32's paired verdict ran on.
+**Regenerated for D32** (`--work-dir /tmp/d32/scaling`; 9,138 s, the run after the review's fix). D32 adds Nth occurrences and counts to the match request and a `series` option to the synthetic converter, which is off here. The benchmark's queries use neither.
+- *Changed.* Snapshot identifiers, with the builder's digest. The 300,000 snapshot, `64244627…`, is the one D32's paired verdict ran on.
 - *Equal to D31's at every size:* every table's row count, every query's candidate count, the status mixes and the incomplete `none` counts.
 - *Within run-to-run spread:*
-  - builds 1,540 s at 300,000 and 5,151 s at 1,000,000 (D31: 1,542 and 5,123);
-  - build peaks 8.01 and 8.27 GiB, 1.03× (the D23 bound is 1.10×);
-  - single-process `match()` p50 11.66 s and maximum 314.7 s at 1,000,000 (D31: 11.76 and 316.2 s).
+  - builds 1,532 s at 300,000 and 5,138 s at 1,000,000 (D31: 1,542 and 5,123);
+  - build peaks 8.02 and 8.24 GiB, 1.03× (the D23 bound is 1.10×);
+  - single-process `match()` p50 11.66 s and maximum 314.8 s at 1,000,000 (D31: 11.76 and 316.2 s).
 
 **Regenerated for D28** (column-wise canonical lines in `content_digests`; regenerated twice, the second time after a review fix that does not touch the build: `--work-dir /tmp/store-d28b-scaling`, 9,076 s; figures from the second run). The lines a digest hashes are now built a column at a time with `json.dumps`'s own escaper. The bytes are the same, so no content digest moves, and only the identifiers change, through the builder's digest. At every size, every table's row count, every query's candidate count, the status mix and the content rows verified equal the D27 run's. Digesting is faster, both in the build, which digests twice (the derived tables and then the written files), and in a separate content verification:
 
@@ -775,6 +775,13 @@ Taking `evidence` out of `events` did not make event loading cheaper: B's loadin
 - *Recorded.* Per-query paired times; each run's p95, maximum and total; per pair the ratios of p95 and of total time (candidate over reference), also split by which code ran first; the candidate's D21 target check over its own runs in the session (p95 pooled and by repeat, maximum, query-process memory) and the reference's absolute figures; the two codes' per-query digests compared, with each code's stability across its runs, and every digest of each listed where they differ (a change meant to move results).
 - *What it can show:* whether one code is faster than another on this machine, measured minutes apart, and whether that holds in every pair and in both orders.
 - *What it cannot show:* noise inside one run (a single slow query moves that pair's p95); drift faster than a pair; an effect of what ran just before that the two orders do not balance; another machine or day. With 30 queries the p95 is the second-slowest query, so two runs' p95s may be different queries. The absolute target is still judged on one session.
+
+**Regenerated for D32** (decision log, D32). The report was regenerated on the D32 scaling snapshots.
+- *Arm A* ran on its own 2.0 snapshots, rebuilt with D31's identifiers.
+- *Committed settings:* every arm's per-query result digests equal the D31 report's at every size and in the confirmation (30 of 30, every arm).
+- *Paired replication* against main (7f5930e): at 14 workers the p95 ratios are 0.943, 1.009, 0.934 and 1.047, this tree's p95 is 8.51 s, its maximum 11.40 s and its memory 0.80 GB. At 8 workers this tree's p95 is 10.05 s.
+- *The verdict run* (`verification/d32-paired-verdict.json`) gave 14-worker ratios 1.010, 1.001, 1.001 and 1.001, with p95 8.10 s. D32's rule was no regression (each ratio at most 1.05), and both runs meet it. D32's new request fields are not in these queries.
+- *The old sequential confirmation:* 14 workers p95 8.16 s, 8 workers 10.01 s, arm B 229.2 µs per candidate.
 
 ### Limits of this evidence
 
