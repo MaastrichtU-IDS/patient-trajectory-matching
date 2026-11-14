@@ -534,6 +534,12 @@ The report covers 1,000 to 1,000,000 patients, all built with the per-bucket der
   - the process environment.
 - So a change to matching alone can regenerate this report in the time of its query phase and profiles plus one small build (1,717 of 9,137 s in the D32 run were the query phase and profiles, about half an hour), instead of about 2.5 hours. The first run with the record is D34's, which built afresh.
 
+**Regenerated for D34** (`--work-dir /tmp/d34/scaling`, `--keep`; 9,197 s). D34 splits the engine so that a build loads no matching code, moves the build phase into `tools/scaling_build_worker.py`, and records what each build loaded and read (`build_provenance`, above). Every build was fresh: no committed report had a record yet.
+- *Equal to D32's at every size, 1,000 to 1,000,000:* every table's row count, every query's candidate count, the status mixes and the incomplete `none` counts; 5,000 results equal exhaustive matching at 1,000.
+- *Within run-to-run spread:* builds 1,541 s at 300,000 and 5,177 s at 1,000,000 (D32: 1,532 and 5,138); build peaks 8.03 and 8.25 GiB, 1.03× (the D23 bound is 1.10×); single-process `match()` p50 11.61 s and maximum 315.3 s at 1,000,000 (D32: 11.66 and 314.8 s).
+- *The record:* every size recorded the same eight repository files (the build script, the store, the converter, the decimal rule, `trajectory_times`, the resource locator, the recorder and `patterns/__init__.py`), the generator and the manifest schema, Python 3.12.15, DuckDB 2.0.0 and jsonschema 4.25.1, in a checkout. `commit.dirty` is true because an edit to the decision log was uncommitted when the run started; no code file was.
+- *Snapshot identifiers* changed with the builder's digest. The snapshots are kept, so that the next change to matching alone can reuse them.
+
 **Regenerated for D32** (`--work-dir /tmp/d32/scaling`; 9,138 s, the run after the review's fix). D32 adds Nth occurrences and counts to the match request and a `series` option to the synthetic converter, which is off here. The benchmark's queries use neither.
 - *Changed.* Snapshot identifiers, with the builder's digest. The 300,000 snapshot, `64244627…`, is the one D32's paired verdict ran on.
 - *Equal to D31's at every size:* every table's row count, every query's candidate count, the status mixes and the incomplete `none` counts.
@@ -826,6 +832,12 @@ Taking `evidence` out of `events` did not make event loading cheaper: B's loadin
 - *Paired replication* against main (7f5930e): at 14 workers the p95 ratios are 0.943, 1.009, 0.934 and 1.047, this tree's p95 is 8.51 s, its maximum 11.40 s and its memory 0.80 GB. At 8 workers this tree's p95 is 10.05 s.
 - *The verdict run* (`verification/d32-paired-verdict.json`) gave 14-worker ratios 1.010, 1.001, 1.001 and 1.001, with p95 8.10 s. D32's rule was no regression (each ratio at most 1.05), and both runs meet it. D32's new request fields are not in these queries.
 - *The old sequential confirmation:* 14 workers p95 8.16 s, 8 workers 10.01 s, arm B 229.2 µs per candidate.
+
+**Regenerated for D34** (decision log, D34), on the D34 scaling snapshots; the matching code is D32's, with the engine split so that a build loads no matching code.
+- *Arm A* ran on its own 2.0 snapshots, rebuilt with the same identifiers as before.
+- *Committed settings:* every one of the report's 1,170 per-query result digests equals the D32 report's, for every arm and size and in the confirmation; the confirmation's arms are byte-identical to each other (30 of 30).
+- *Paired replication* against main (be8c975): at 14 workers the p95 ratios are 0.964, 1.011, 1.015 and 0.971; this tree's p95 is 8.56 s, its maximum 11.26 s, its memory 0.83 GB; the two codes give identical results on all 30 queries. At 8 workers the ratios are 0.984, 1.001, 1.001 and 1.221: in the last pair the candidate ran first and both codes were slower than in the three before (reference p95 11.06 s against about 9.8 s), so it is noise within that pair, which the protocol does not cancel (this tree's 8-worker p95 12.65 s pooled, 9.82 to 9.84 s in the other three repeats). No D34 rule judges latency.
+- *The old sequential confirmation:* 14 workers p95 8.12 s, 8 workers 9.94 s.
 
 ### Limits of this evidence
 

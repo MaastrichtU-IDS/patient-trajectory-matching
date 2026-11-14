@@ -179,3 +179,11 @@ Cautions on the matching rows:
     - The rise's own tags were decided. The three come from D30's order rule on the graph template's `first` blocker, whose end the rise's `during` reads.
     - The implementation is kept in commit bccee57.
   - *Next.* Look at D30's order rule on "first X" with `during`. Then retry rises and falls with a usefulness test on more patients.
+- **D34, the scaling report's builds reusable when only matching changes.** Every edit to the store made the 1,000,000-patient scaling report stale, though most edits touch matching only, so each forced the 2.5-hour build again.
+  - *First design, superseded.* A static fingerprint of the code a build reaches (D33's part 2). Two independent reviews found bypasses a static reading of Python cannot rule out.
+  - *As built.* The build runs in its own process, isolated, with bytecode compiled afresh and a fixed environment. At its end it records every repository file it loaded or read, by whole-file digest, with the library versions and the settings it saw. The gate re-checks every recorded file. A later run may reuse the kept snapshots only if a small probe build records exactly the same, with the same parameters and machine. The report names the first build's report, commit and time.
+  - *The engine split.* The build needs only the patient's times, not matching. That code moved to its own module, which the engine imports back, so a build loads no matching code. Results are byte-identical everywhere: the 300 recorded digests, all 1,170 matcher digests, the scaling report's rows, candidates and status mixes to 1,000,000, and every MIMIC demo figure.
+  - *Reviews.* Three independent reviews found must-fixes: bytecode in place of source, a `.venv` inside the checkout, the parent process unrecorded. All are fixed with a test each, and a re-review closed them.
+  - *Frozen.* D32's paired verdict joins the historical records, a stated departure from the provenance rule, signed off by your delegate.
+  - *Not yet shown at scale.* Reuse is tested at 100 patients. Its first real use will be the next change to matching alone, which should then regenerate the scaling report in about half an hour instead of 2.5 hours.
+
