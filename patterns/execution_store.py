@@ -1483,8 +1483,7 @@ def _visible_to_exclusions(store, concepts):
 
 CONDITIONS_PROFILE = 'execution-store-conditions-1.0'
 CONDITIONS_PROFILE_1_1 = 'execution-store-conditions-1.1'  # D32: Nth occurrence and counts
-CONDITIONS_PROFILE_1_2 = 'execution-store-conditions-1.2'  # D33: rises and falls (relative conditions)
-CONDITIONS_PROFILES = (CONDITIONS_PROFILE, CONDITIONS_PROFILE_1_1, CONDITIONS_PROFILE_1_2)
+CONDITIONS_PROFILES = (CONDITIONS_PROFILE, CONDITIONS_PROFILE_1_1)
 _VALUE_KEYS = {'unit', 'eq', 'gt', 'ge', 'lt', 'le'}
 VALUE_RULE = 'series_unit_exact_value_v1'
 _LOWER, _UPPER = ('gt', 'ge'), ('lt', 'le')
@@ -1598,26 +1597,17 @@ class Request:
         if unknown:
             raise StoreError('UNKNOWN_CONDITION_STEP', ', '.join(unknown))
         own, derived_of = {}, {}
-        relative_ok = self.profile == CONDITIONS_PROFILE_1_2
-        allowed = _VALUE_KEYS | {'occurrence', 'count'} | ({'relative'} if relative_ok else set())
         for sid, raw in given.items():
             if not later:
                 own[sid] = _condition(raw, sid)
                 continue
-            if not (isinstance(raw, dict) and raw and set(raw) <= allowed):
+            if not (isinstance(raw, dict) and raw and set(raw) <= _VALUE_KEYS | {'occurrence', 'count'}):
                 raise StoreError('INVALID_CONDITION', sid)
             value = {k: v for k, v in raw.items() if k in _VALUE_KEYS}
-            if 'relative' in raw:  # D33
-                derived_of[sid] = _relative_spec(raw, sid, steps[sid])
-                continue
             if value:
                 own[sid] = _condition(value, sid)
             if 'occurrence' in raw or 'count' in raw:
                 derived_of[sid] = _derived_spec(raw, sid, steps[sid], query)
-        # D33: a relative step reads the events with a series row of its concept in the condition's unit, which the
-        # value tag of the unit alone (no bound) holds exactly; it is the step's concept for loading, candidates,
-        # pruning and coverage, as a value tag is for a counted value condition.
-        units = {sid: (spec[1]['unit'], None, None) for sid, spec in derived_of.items() if spec[0] == 'relative'}
         self.tags = {}
 
         def tag(concept, condition):
@@ -1628,38 +1618,17 @@ class Request:
         for step in compiled['steps']:
             if step['id'] in own:
                 step['concept'] = tag(steps[step['id']]['concept'], own[step['id']])
-            elif step['id'] in units:
-                step['concept'] = tag(steps[step['id']]['concept'], units[step['id']])
         relaxations = []
         for x in compiled.get('relaxations', []):
             if x['kind'] == 'widen_concept' and x['step'] in own:
                 x = {**x, 'concept': tag(x['concept'], own[x['step']])}  # the step's condition on the wider concept
-            elif x['kind'] == 'widen_concept' and x['step'] in units:
-                x = {**x, 'concept': tag(x['concept'], units[x['step']])}
             relaxations.append(x)
         ids = {x['id'] for x in relaxations}
         given = conditions.get('relaxations', [])
         if not isinstance(given, list):
             raise StoreError('INVALID_CONDITIONS', 'relaxations')
-        counts, factors = [], []
+        counts = []
         for x in given:
-            if relative_ok and isinstance(x, dict) and x.get('kind') == 'widen_factor':  # D33
-                if not (set(x) == {'id', 'kind', 'step', 'cost', 'factor'} and type(x['id']) is str and x['id']
-                        and type(x['step']) is str):
-                    raise StoreError('INVALID_FACTOR_RELAXATION', repr(x)[:120])
-                if x['id'] in ids:
-                    raise StoreError('DUPLICATE_RELAXATION', x['id'])
-                ids.add(x['id'])
-                spec = derived_of.get(x['step'])
-                if spec is None or spec[0] != 'relative':
-                    raise StoreError('FACTOR_RELAXATION_STEP_NOT_RELATIVE', str(x['step']))
-                factor = _factor(x['factor'], x['id'])
-                # A smaller factor (still above 1) admits every reading the step's factor admits, at both strengths;
-                # a larger one would not, and is refused (`_D33_DEFECT == 'relaxation_not_containing'` skips this).
-                if not factor < _decimal_of(spec[1]['factor']) and _D33_DEFECT != 'relaxation_not_containing':
-                    raise StoreError('FACTOR_RELAXATION_MUST_WIDEN', x['id'])
-                factors.append({**x, 'factor': _decimal_text(factor)})
-                continue
             if later and isinstance(x, dict) and x.get('kind') == 'widen_count':
                 if not (set(x) <= {'id', 'kind', 'step', 'cost', 'at_least', 'concept'}
                         and {'id', 'kind', 'step', 'cost', 'at_least'} <= set(x) and type(x['id']) is str and x['id']
@@ -1694,15 +1663,12 @@ class Request:
         # N, on the step's concept or on the wider concept it names (one relaxation per step, as the engine allows).
         self.derived, self.kinds, self.step_n = {}, {}, {}
 
-        def derived_tag(sid, concept, variant, n=None, factor=None):
+        def derived_tag(sid, concept, variant, n=None):
             # The tag's name, which is also its Nth point's event id, names the step and what introduced the variant
             # (`own`, or the relaxation's id), so a reader reproduces it from the request alone.
             spec = derived_of[sid]
             if spec[0] == 'nth':
                 form = {'kind': 'nth', 'concept': concept, 'which': spec[1], 'n': spec[2]}
-            elif spec[0] == 'relative':  # D33: `concept` is the unit tag of the step's (or the wider) concept
-                form = {'kind': 'relative', 'concept': concept,
-                        'relative': {**spec[1], 'factor': spec[1]['factor'] if factor is None else factor}}
             else:
                 form = {'kind': 'count', 'concept': concept, 'n': spec[1] if n is None else n, 'within': spec[2]}
             name = f'{_DERIVED_PREFIX}{sid}/{variant}'
@@ -1712,12 +1678,11 @@ class Request:
             if name in self.derived:
                 raise StoreError('DERIVED_TAG_NAME_COLLISION', name)
             self.derived[name] = form
-            self.step_n[name] = spec[2] if spec[0] == 'nth' else 1 if spec[0] == 'relative' else spec[1]
+            self.step_n[name] = spec[2] if spec[0] == 'nth' else spec[1]
             return name
         if derived_of:
             for sid, spec in derived_of.items():
-                self.kinds[sid] = (('nth', spec[1]) if spec[0] == 'nth' else ('relative', spec[1]['kind'])
-                                   if spec[0] == 'relative' else ('count', spec[2]))
+                self.kinds[sid] = ('nth', spec[1]) if spec[0] == 'nth' else ('count', spec[2])
             for step in compiled['steps']:
                 if step['id'] in derived_of:
                     step['concept'] = derived_tag(step['id'], step['concept'], 'own')
@@ -1729,10 +1694,6 @@ class Request:
                     concept = tag(concept, own[x['step']])
                 relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
                                     'concept': derived_tag(x['step'], concept, x['id'], x['at_least'])})
-            for x in factors:  # D33: the relative tag of the step's concept under the smaller factor
-                concept = tag(steps[x['step']]['concept'], units[x['step']])
-                relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
-                                    'concept': derived_tag(x['step'], concept, x['id'], factor=x['factor'])})
         if relaxations or 'relaxations' in compiled:
             compiled['relaxations'] = relaxations
         self.query = tg.validate_query(compiled)
@@ -1755,68 +1716,11 @@ class Request:
                 'tags': {name: {'concept': c, 'condition': condition_form(k)} for name, (c, k) in sorted(self.tags.items())}}
 
     def describe_derived(self):
-        """The derived steps (D32), for the match output: the rules and each derived tag's spec; with a relative
-        condition (D33), also the relative rules."""
-        out = {'profile': self.profile, 'rules': DERIVED_RULES,
-               'steps': {sid: {'occurrence': kind[1]} if kind[0] == 'nth' else {'relative': kind[1]}
-                         if kind[0] == 'relative' else {'count_within': kind[1]}
-                         for sid, kind in sorted(self.kinds.items())},
-               'tags': {name: spec for name, spec in sorted(self.derived.items())}}
-        if self.relative:
-            out['relative_rules'] = RELATIVE_RULES
-        return out
-
-    @property
-    def relative(self):
-        """Whether some step carries a relative condition (D33)."""
-        return any(kind[0] == 'relative' for kind in self.kinds.values())
-
-
-def _decimal_of(text):
-    from . import series_values as sv
-    return sv.decimal_of(text)
-
-
-def _factor(text, where):
-    """A factor: a decimal string, in the measurement decimal rule, greater than 1 (D33)."""
-    from . import series_values as sv
-    try:
-        value = sv.decimal_of(text)
-    except sv.SeriesValueError:
-        raise StoreError('INVALID_FACTOR', where) from None
-    if not value > 1:
-        raise StoreError('INVALID_FACTOR', where)
-    return value
-
-
-def _relative_spec(raw, sid, step):
-    """('relative', {kind, factor, unit, floor, previous, within}) for a 1.2 step entry, each decimal in its shortest
-    exact form, refused by name when malformed or in conflict with the step (D33)."""
-    from . import series_values as sv
-    if any(k in raw for k in _VALUE_KEYS):
-        raise StoreError('RELATIVE_WITH_ABSOLUTE', sid)
-    # A first, last or Nth over a relative condition's events would pick a different reading in each pass.
-    if 'occurrence' in raw or 'count' in raw or step.get('occurrence', 'any') != 'any':
-        raise StoreError('OCCURRENCE_ON_DERIVED_STEP', sid)
-    rel = raw['relative']
-    if not (isinstance(rel, dict) and set(rel) == {'kind', 'factor', 'unit', 'floor', 'baseline'}
-            and rel['kind'] in ('rise', 'fall')):
-        raise StoreError('INVALID_RELATIVE', sid)
-    unit, base = rel['unit'], rel['baseline']
-    if not (type(unit) is str and unit and unit.strip() == unit):
-        raise StoreError('INVALID_RELATIVE', f'{sid}: unit')
-    if not (isinstance(base, dict) and set(base) == {'previous', 'within'} and type(base['previous']) is int
-            and 1 <= base['previous'] <= RELATIVE_MAX_PREVIOUS and type(base['within']) is int and base['within'] >= 1):
-        raise StoreError('INVALID_RELATIVE', f'{sid}: baseline')
-    factor = _factor(rel['factor'], sid)
-    try:
-        floor = sv.decimal_of(rel['floor'])
-    except sv.SeriesValueError:
-        raise StoreError('INVALID_RELATIVE', f'{sid}: floor') from None
-    if not floor > 0:
-        raise StoreError('INVALID_RELATIVE', f'{sid}: floor')
-    return ('relative', {'kind': rel['kind'], 'factor': _decimal_text(factor), 'unit': unit,
-                         'floor': _decimal_text(floor), 'previous': base['previous'], 'within': base['within']})
+        """The derived steps (D32), for the match output: the rules and each derived tag's spec."""
+        return {'profile': self.profile, 'rules': DERIVED_RULES,
+                'steps': {sid: {'occurrence': kind[1]} if kind[0] == 'nth' else {'count_within': kind[1]}
+                          for sid, kind in sorted(self.kinds.items())},
+                'tags': {name: spec for name, spec in sorted(self.derived.items())}}
 
 
 def _derived_spec(raw, sid, step, query):
@@ -1974,10 +1878,7 @@ def _derived_patients(store, name, request):
     records only the filter is a superset, not exact. `_D32_DEFECT == 'filter_n'` (a planted defect) reads a
     `widen_count`'s tag at the step's own N."""
     spec, tags = request.derived[name], request.tags
-    if spec['kind'] == 'relative':  # D33: a relative tag's events are events of its unit tag
-        n = 1
-    else:
-        n = spec['n'] if _D32_DEFECT != 'filter_n' else request.step_n[name]
+    n = spec['n'] if _D32_DEFECT != 'filter_n' else request.step_n[name]
     concept = spec['concept']
     if concept in tags:
         return {idx for idx, k in _tag_counts(store, tags[concept]).items() if k >= n}
@@ -2019,33 +1920,6 @@ DERIVED_RULES = {
 }
 # Planted defects for the tests (D32 rules): a module global, like the engine's switches; None in every real run.
 _D32_DEFECT = None
-
-# Relative conditions (D33): "rises to at least x f" and "falls to at most / f" against a baseline of up to k previous
-# readings within W, in a 1.2 match request. A relative step's tag is carried by the readings (events with a series row
-# of the step's concept in the condition's unit) whose condition holds, certain or possible, decided exactly from the
-# readings' times (`_relative_strengths`); the two-pass rule of D32 then applies unchanged.
-PERIOD_LABEL = 'period_reading_kinds'  # snapshot label: the event kinds whose series rows summarise a whole period
-RELATIVE_MAX_PREVIOUS = 3
-RELATIVE_UNCERTAIN_LIMIT = 6
-RELATIVE_RULES = {
-    'readings': 'relative_previous_k_v1: the readings of an item class are its series rows, in any unit, and its '
-                'excluded records; a reading whose event kind the snapshot label period_reading_kinds lists is a period '
-                'summary, timed exactly at its recorded start\'s lower bound (the period\'s start); any other series '
-                'reading is timed by its start over Times.dom, an excluded record by its recorded start range',
-    'baseline': 'with the reading at tau: the k most recent readings of its item class with tau - W <= t <= tau - 1, '
-                'by time, at equal times excluded records first, then event id ascending; none: no baseline (false); '
-                'an excluded record or a reading in another unit among them: undetermined; otherwise their mean, exact',
-    'comparison': 'rise: value >= factor * max(floor, baseline); fall: value <= max(floor, baseline) / factor; exact '
-                  'rationals over value_decimal; the reading must be in the condition\'s unit',
-    'strength': 'certain when the condition holds in every choice of the readings\' times, possible when it holds or '
-                'is undetermined in some; exact when no two point readings of the item class have linked start '
-                'variables and at most 6 readings of uncertain time could precede the reading within W; otherwise '
-                'sound (certain under, possible over) and marked inexact',
-    'exclusions': 'excluded records that could be among the previous k make the baseline undetermined, inside the '
-                  'tag; an excluded record that could be the rising reading is reached by the step\'s scope (D18)',
-}
-# Planted defects for the tests (D33 rules); None in every real run.
-_D33_DEFECT = None
 
 
 def _interval_counter(intervals):
@@ -2150,163 +2024,6 @@ def _count_strengths(times, family, n, within, window):
     return out, exact
 
 
-class _Reading:
-    """One reading of an item class (D33): a series row (`eid` its event, `value` a Fraction, `unit`) or an excluded
-    record (`eid`, `value` and `unit` None); [a, b] the range of its time; `link` the component of its start variable
-    in the patient's network (None for a period reading, an excluded record or an event not loaded); `rank` the
-    tie order at equal times, larger first (excluded records, then event ids ascending)."""
-    __slots__ = ('eid', 'item', 'a', 'b', 'value', 'unit', 'link', 'rank')
-
-    def __init__(self, eid, item, a, b, value, unit, link, rank):
-        self.eid, self.item, self.a, self.b, self.value, self.unit, self.link, self.rank = (
-            eid, item, a, b, value, unit, link, rank)
-
-
-def _patient_readings(readings, times):
-    """({item class: [_Reading] sorted by a}, {item class: whether two of its point readings are linked}) for one
-    patient. `readings` holds `rows` {event id: (item class, unit, value_decimal, kind, recorded start)}, `excluded`
-    {item class: [recorded start]}, `period` (the event kinds the snapshot declares period summaries) and `covered`
-    {concept: item classes it covers}."""
-    from decimal import Decimal
-    from fractions import Fraction
-    period = readings['period']
-    loaded = {e.id: e for e in times.events}
-    by_class = {}
-    for r, (eid, (item, unit, text, kind, start)) in enumerate(sorted(readings['rows'].items())):
-        e = loaded.get(eid)
-        if kind in period:  # a period summary: its period's start, exactly
-            a = b = start[0]
-            link = None
-        elif e is not None:
-            a, b = times.dom[e.sv]
-            link = times.component[e.sv]
-        else:  # an event no step loads, in a patient without shared variables: its recorded range is its range
-            a, b = start
-            link = None
-        by_class.setdefault(item, []).append(_Reading(eid, item, a, b, Fraction(Decimal(text)), unit, link, (0, -r)))
-    for item, starts in readings['excluded'].items():
-        for j, (lo, hi) in enumerate(sorted(starts)):
-            by_class.setdefault(item, []).append(_Reading(None, item, lo, hi, None, None, None, (1, -j)))
-    linked = {}
-    for item, members in by_class.items():
-        members.sort(key=lambda x: (x.a, x.b))
-        links = [x.link for x in members if x.link is not None]
-        linked[item] = len(links) != len(set(links))
-    return by_class, linked
-
-
-def _relative_strengths(rel, cands, by_class, linked):
-    """({event id: 'certain' or 'possible'}, exact) of a relative condition `rel` (D33, `relative_previous_k_v1`) over
-    the readings `cands` (in the condition's unit, of item classes its concept covers).
-
-    With reading c at tau, a reading x of c's item class is *in the window* when tau - W <= t(x) <= tau - 1; the
-    baseline is the k window members ranked first by (time, rank), larger first. Each x is forced in (its range lies in
-    the window), optional (it can lie in the window or outside it), or out. The baselines realizable at tau are:
-    - of fewer than k members: exactly the forced readings plus fewer than k - |forced| optional ones;
-    - of k members S: exactly those for which, with each member at its latest time in the window, every non-member
-      that can be in the window can also lie outside it or rank below the lowest member at its earliest time there
-      (the members' latest times make that lowest rank as high as it can be, since times are independent).
-    Every test compares tau - W or tau - 1 with a bound, so the set of baselines is constant between the points where
-    one test changes: tau is tried at c's earliest time and at every bound plus 0 to 3 or W - 1 to W + 3 inside c's
-    range. Certain when every baseline at every tau is true, possible when one is true or undetermined. Exact when the
-    times are independent: unless two point readings of the item class are linked (then sound and inexact), or more
-    than RELATIVE_UNCERTAIN_LIMIT readings of uncertain time could precede c within W (then possible, inexact)."""
-    from bisect import bisect_left, bisect_right
-    from fractions import Fraction
-    from heapq import nlargest
-    from itertools import combinations
-    defect = _D33_DEFECT
-    factor, floor = Fraction(_decimal_of(rel['factor'])), Fraction(_decimal_of(rel['floor']))
-    k = rel['previous'] + (1 if defect == 'k_plus_one' else 0)
-    W = rel['within'] + (1 if defect == 'window_off_by_one' else 0)
-    unit, rise = rel['unit'], rel['kind'] == 'rise'
-    out, exact = {}, True
-    sorted_a = {item: [x.a for x in members] for item, members in by_class.items()}
-    widest = {item: max((x.b - x.a for x in members), default=0) for item, members in by_class.items()}
-    key = lambda x, t: (t, x.rank)
-
-    def verdict(c, S):  # True, False, or None (undetermined)
-        if not S:
-            return False
-        if any(x.value is None for x in S):
-            return None
-        if defect != 'unit_mixing' and any(x.unit != unit for x in S):
-            return None
-        base = sum((x.value for x in S), Fraction(0)) / len(S)
-        m = base if defect == 'floor_ignored' else max(floor, base)
-        return c.value >= factor * m if rise else c.value * factor <= m
-    for c in cands:
-        members = by_class[c.item]
-        a_c, b_c = c.a, c.b
-        arr = sorted_a[c.item]
-        window = members[bisect_left(arr, a_c - W - widest[c.item]):bisect_right(arr, b_c - 1)]
-        near = [x for x in window if x is not c and x.b >= a_c - W]
-        if defect == 'excluded_ignored':
-            near = [x for x in near if x.value is not None]
-        if linked[c.item]:
-            exact = False
-        uncertain = sum(1 for x in near if x.a != x.b) + (a_c != b_c)
-        if uncertain > RELATIVE_UNCERTAIN_LIMIT:
-            out[c.eid] = 'possible'
-            exact = False
-            continue
-        if uncertain == 0:  # every time exact (as on MIMIC, and for period readings): one baseline
-            tau = a_c
-            S = nlargest(k, (x for x in near if tau - W <= x.a <= tau - 1), key=lambda x: key(x, x.a))
-            v = verdict(c, S)
-            if v:
-                out[c.eid] = 'certain'
-            elif v is None:
-                out[c.eid] = 'possible'
-            continue
-        offsets = (0, 1, 2, 3, W - 1, W, W + 1, W + 2, W + 3)
-        taus = {a_c} | {p + d for x in near for p in (x.a, x.b) for d in offsets if a_c <= p + d <= b_c}
-        holds = undecided = fails = False
-        baselines = set()
-        for tau in sorted(taus):
-            inable = []
-            for x in near:
-                lo, hi = max(x.a, tau - W), min(x.b, tau - 1)
-                if lo <= hi:
-                    inable.append((x, lo, hi, x.a <= tau - W - 1 or x.b >= tau))
-            forced = [i for i in inable if not i[3]]
-            optional = [i for i in inable if i[3]]
-            found = []
-            if len(forced) < k:
-                for z in range(k - len(forced)):
-                    found.extend(forced + list(extra) for extra in combinations(optional, z))
-            top = [i for i in inable
-                   if sum(1 for y, lo, _, _ in forced if y is not i[0] and key(y, lo) > key(i[0], i[2])) < k]
-            for S in combinations(top, k):
-                theta = min(key(s, hi) for s, _, hi, _ in S)
-                chosen = {id(s) for s, _, _, _ in S}
-                if all(out_ or key(x, lo) < theta for x, lo, _, out_ in inable if id(x) not in chosen):
-                    found.append(list(S))
-            for S in found:
-                members_ = [s[0] for s in S]
-                baselines.add(frozenset(id(x) for x in members_))
-                v = verdict(c, members_)
-                if v:
-                    holds = True
-                elif v is None:
-                    undecided = True
-                else:
-                    fails = True
-            if (fails or undecided) and (holds or undecided) and defect != 'determined_only':
-                break
-        certain = holds and not undecided and not fails
-        if defect == 'determined_only':
-            certain = certain and len(baselines) == 1
-        if certain:
-            out[c.eid] = 'certain'
-        elif holds or undecided:
-            out[c.eid] = 'possible'
-    return out, exact
-
-
-_NO_READINGS = {'rows': {}, 'excluded': {}, 'period': frozenset(), 'covered': {}}
-
-
 class Derived:
     """One patient's derived events (D32): `first` the engine patient of pass 1 (Nth points, and count tags on their
     certain events), `second` that of pass 2 (count tags on certain and possible events) or None when no tag a tried
@@ -2316,11 +2033,10 @@ class Derived:
     __slots__ = ('first', 'second', 'families', 'linked', 'inexact', 'points', 'concepts')
 
 
-def derive_patient(request, pid, window, events, mentions, readings=None):
+def derive_patient(request, pid, window, events, mentions):
     """The derived events of one patient, from its loaded engine events (concepts already listing the request's plain
     concepts and value tags) and the ids of its events whose kind is `mention`. Raises `DERIVED_EVENT_ID_TAKEN` when an
-    event of the patient carries a derived point's identifier. A relative condition (D33) also reads the patient's
-    `readings` (`_readings`): the series rows and excluded records of the item classes its concept covers."""
+    event of the patient carries a derived point's identifier."""
     times = tg.patient_times({'patient_id': pid, 'window': window, 'events': events}, trusted=True)
     defect = _D32_DEFECT
     out = Derived()
@@ -2330,26 +2046,7 @@ def derive_patient(request, pid, window, events, mentions, readings=None):
     trigger = request.derived_used if defect != 'pass2_unrelaxed_only' else {
         name: spec for name, spec in request.derived_used.items() if name in {s['concept'] for s in request.query['steps']}}
     points, ids = [], {e.id for e in times.events}
-    prepared = None
     for name, spec in request.derived_used.items():
-        if spec['kind'] == 'relative':  # D33
-            if prepared is None:
-                prepared = _patient_readings(readings or _NO_READINGS, times)
-            by_class, linked = prepared
-            concept, (unit, _, _) = request.tags[spec['concept']]
-            cands = [x for item in sorted((readings or _NO_READINGS)['covered'].get(concept, ()))
-                     for x in by_class.get(item, ()) if x.eid is not None and x.unit == unit and x.eid in ids]
-            out.families[name] = {x.eid for x in cands}
-            strengths, exact = _relative_strengths(spec['relative'], cands, by_class, linked)
-            if not exact and strengths:
-                out.inexact = True
-            for eid, strength in strengths.items():
-                (certain if strength == 'certain' else possible).setdefault(eid, []).append(name)
-                if strength == 'certain':
-                    possible.setdefault(eid, []).append(name)
-            if name in trigger and any(v == 'possible' for v in strengths.values()):
-                second = True
-            continue
         family = [r for r in times.candidate_records(spec['concept']) if r[tg._EVENT].id not in mentions]
         out.families[name] = {r[tg._EVENT].id for r in family}
         if any(r[tg._KEYS] is not None for r in family):
@@ -2535,7 +2232,7 @@ def match_derived(pq, request, derived):
     too few), a claim that no binding is exact rests on nothing, so pass 1's `possible`, a relaxed match whose
     certainty is `possible`, and such a match beside `unresolved` are not reported."""
     coupled = _coupled_steps(pq, request, derived)
-    counted = [s for s in pq.step_ids if request.kinds.get(s, ('',))[0] in ('count', 'relative')]
+    counted = [s for s in pq.step_ids if request.kinds.get(s, ('',))[0] == 'count']
     one = _one_pass(pq, derived.first, coupled)
     pid = derived.first['patient_id']
 
@@ -3282,58 +2979,13 @@ def _mentions(store, idxs):
     return out
 
 
-def _readings(store, idxs, request):
-    """{patient_idx: readings} for these candidates (D33): for every concept a relative tag of the request reads, the
-    series rows of the item classes it covers (event id, item class, unit, exact value, event kind, recorded start, in
-    any unit) and the excluded records of those item classes (their recorded starts), with the event kinds the
-    snapshot's label `period_reading_kinds` declares period summaries."""
-    concepts = sorted({request.tags[spec['concept']][0] for spec in request.derived_used.values()
-                       if spec['kind'] == 'relative'})
-    if not concepts or not idxs:
-        return {}
-    label = (store.manifest.get('labels') or {}).get(PERIOD_LABEL)
-    period = frozenset(k for k in (label or '').split(',') if k)
-    out = {}
-
-    def mine(idx):
-        if idx not in out:
-            out[idx] = {'rows': {}, 'excluded': {}, 'period': period, 'covered': {}}
-        return out[idx]
-    try:
-        _temp(store, '_m_read', [('idx', 'INTEGER')], list(idxs))
-        rows = store.db.execute(f"""
-            SELECT s.patient_idx, cc.ancestor, s.event_id, s.item_class, s.unit, s.value_decimal, e.kind, e.start_lo,
-                   e.start_hi
-            FROM _m_read c JOIN series s ON s.patient_idx = c.idx
-            JOIN events e ON e.bucket = s.bucket AND e.patient_idx = s.patient_idx AND e.event_id = s.event_id
-            JOIN concept_closure cc ON cc.concept = s.item_class
-            WHERE s.patient_idx BETWEEN ? AND ? AND cc.ancestor IN {_in(concepts)}""",
-                                [min(idxs), max(idxs)] + concepts).fetchall()
-        for idx, concept, eid, item, unit, text, kind, lo, hi in rows:
-            r = mine(idx)
-            r['rows'][eid] = (item, unit, text, kind, (lo, hi))
-            r['covered'].setdefault(concept, set()).add(item)
-        dropped = store.db.execute(f"""
-            SELECT x.patient_idx, x.concept, x.start_lo, x.start_hi
-            FROM _m_read c JOIN excluded_records x ON x.patient_idx = c.idx
-            WHERE x.patient_idx BETWEEN ? AND ? AND x.concept IN (
-                SELECT concept FROM concept_closure WHERE ancestor IN {_in(concepts)})""",
-                                   [min(idxs), max(idxs)] + concepts).fetchall()
-        for idx, item, lo, hi in dropped:
-            mine(idx)['excluded'].setdefault(item, []).append((lo, hi))
-    finally:
-        _drop(store, '_m_read')
-    return out
-
-
 def _derived_chunk(store, request, idxs, pids, windows, linked):
     """Each candidate's `Derived` (D32), from its loaded events: the request's plain concepts and value tags, the
-    concepts and value tags its derived tags count included; with a relative condition (D33), its readings too."""
+    concepts and value tags its derived tags count included."""
     tags = request.used
     events = _load_events(store, idxs, request.load, linked, tags) if tags else _load_events(store, idxs, request.load, linked)
     mentions = _mentions(store, idxs)
-    readings = _readings(store, idxs, request) if request.relative else {}
-    return [(idx, derive_patient(request, pid, w, events.get(idx, []), mentions.get(idx, set()), readings.get(idx)))
+    return [(idx, derive_patient(request, pid, w, events.get(idx, []), mentions.get(idx, set())))
             for idx, pid, w in zip(idxs, pids, windows)]
 
 
@@ -3351,7 +3003,7 @@ def _derived_reach(request, query, touched, windows_by_idx):
     for idx, (admitted, every) in touched.items():
         w = windows_by_idx[idx]
         for sid, (kind, detail) in request.kinds.items():
-            if sid not in every or kind == 'relative':  # D33: a relative step's reach is its scope
+            if sid not in every:
                 continue
             if kind == 'nth':
                 if _D32_DEFECT != 'scoped_reach':
@@ -3379,8 +3031,6 @@ def match_context(store, query, windows, conditions=None):
         context.update(conditions_digest=_digest(conditions), value_rule=VALUE_RULE)
         if conditions.get('profile') == CONDITIONS_PROFILE_1_1:
             context.update(derived_rules=_digest(DERIVED_RULES))
-        elif conditions.get('profile') == CONDITIONS_PROFILE_1_2:  # D33
-            context.update(derived_rules=_digest(DERIVED_RULES), relative_rules=_digest(RELATIVE_RULES))
     return context, _digest(context)
 
 

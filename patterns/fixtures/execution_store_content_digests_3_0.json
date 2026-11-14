@@ -1,5 +1,5 @@
 {
- "about": "Input digests and per-table, per-bucket content digests of execution-store 3.0 snapshots (D26: typed record columns, the event_evidence table, the postings' max_end_hi) built by patterns/execution_store.py with ndjson staging at a81ef03, before typed staging: the committed synthetic cohort, that cohort ten times over with relabelled patients, the hand-built fixture and the MIMIC-shaped fixture. PerBucketDeriveTests in patterns/test_execution_store.py and patterns/test_mimic_store_ingest.py require the builder to reproduce them. At D30 the input digests of the two synthetic cases were re-recorded, the cohort converted with the mention timing before D30: the converter's own sha256 is part of the input digest, and D30 changed the converter. They were re-recorded again at D32, which added the converter's `series` option (off here). And at D33, which labels diary summaries as period readings when series are on (off here). Every table digest is the one recorded at a81ef03.",
+ "about": "Input digests and per-table, per-bucket content digests of execution-store 3.0 snapshots (D26: typed record columns, the event_evidence table, the postings' max_end_hi) built by patterns/execution_store.py with ndjson staging at a81ef03, before typed staging: the committed synthetic cohort, that cohort ten times over with relabelled patients, the hand-built fixture and the MIMIC-shaped fixture. PerBucketDeriveTests in patterns/test_execution_store.py and patterns/test_mimic_store_ingest.py require the builder to reproduce them. At D30 the input digests of the two synthetic cases were re-recorded, the cohort converted with the mention timing before D30: the converter's own sha256 is part of the input digest, and D30 changed the converter. They were re-recorded again at D32, which added the converter's `series` option (off here). Every table digest is the one recorded at a81ef03.",
  "cases": {
   "fixture": {
    "input_digest": "09c452dbb5d2c75a88410a2b8eed1faf3606acbd3c986c932d22924208a4a96e",
@@ -474,7 +474,7 @@
    }
   },
   "synthetic": {
-   "input_digest": "6cfe5feb4dc51248e1c1d2d5dee6190735c078c53f484462a7911130d60c5b58",
+   "input_digest": "974acf26b75665848d10d1f97c392ac4acd9f46bba18c11e47cf024f29fedda4",
    "patients": 48,
    "tables": {
     "concept_closure": {
@@ -710,7 +710,7 @@
    }
   },
   "synthetic_x10": {
-   "input_digest": "d10858e3a0c0dc1a2f1d4e367465df26b83c8184acf01eb13a0e666f852ae66b",
+   "input_digest": "6c483549bc8aa02d4ea5b2874ad54a6b4a1964674f9d0c8351619a85402a6be6",
    "patients": 480,
    "tables": {
     "concept_closure": {

@@ -15,12 +15,10 @@ reason?}}}`. A minute from birth is `micros(birth_date) + minutes * 60,000,000` 
 because the synthetic converter counts each record's patient-local wall-clock time in microseconds from
 0001-01-01T00:00 and the page counts the same wall-clock time in days from the birth date's midnight.
 
-A case may also name `candidates`, {key: {concept, condition?, relative?}} for each step and relaxed alternative. The
-answer then adds `<name>#candidates`, each patient's events per key (for explaining a difference from the page), and
+A case may also name `candidates`, {key: {concept, condition?}} for each step and relaxed alternative. The answer then
+adds `<name>#candidates`, each patient's events per key (for explaining a difference from the page), and
 `<name>#replayed`, the engine's status on exactly those events (`replay`), which the test requires to equal the
-store's own result up to its comparability rule. For a key with a relative condition (D33) the events are the readings
-carrying the store's relative tag, each with its strength ('certain' or 'possible'), and `<name>#inexact` lists the
-patients for whom some relative tag was decided inexactly.
+store's own result up to its comparability rule.
 """
 from __future__ import annotations
 
@@ -98,8 +96,6 @@ def conditions_micros(conditions):
         within = raw.get('count', {}).get('within')
         if isinstance(within, dict):
             within['span'] *= MINUTE
-        if 'relative' in raw:  # D33: the baseline's window
-            raw['relative']['baseline']['within'] *= MINUTE
     return c
 
 
@@ -113,10 +109,6 @@ def match(snapshot, cases, cohort):
                        for pid, w in case['windows'].items()}
             result = es.match(store, to_micros(case['query']), windows, conditions=conditions_micros(case.get('conditions')))
             mine = out[case['name']] = {}
-            # The patients with a candidate and an index window (D33's usefulness bar is a share of these).
-            found = es.candidates(store, to_micros(case['query']), conditions_micros(case.get('conditions')))
-            ids = dict(store.query('SELECT patient_idx, patient_id FROM patients'))
-            out[case['name'] + '#with_candidate'] = sorted(ids[i] for i in found['patient_idx'] if windows.get(ids[i]))
             for r in result['results']:
                 keep = {k: r[k] for k in ('status', 'certainty', 'relaxations', 'reason') if k in r}
                 if r['status'] == 'unresolved' and 'relaxed_match' in r:
@@ -124,59 +116,16 @@ def match(snapshot, cases, cohort):
                 mine[r['patient_id']] = keep
             if case.get('candidates'):
                 found = out[case['name'] + '#candidates'] = candidates(store, case['candidates'], births)
-                inexact = relative_candidates(store, case['candidates'], births, found)
-                out[case['name'] + '#inexact'] = sorted(inexact)
-                out[case['name'] + '#replayed'] = replay(case, found, inexact)
+                out[case['name'] + '#replayed'] = replay(case, found)
     return out
 
 
-def relative_candidates(store, wanted, births, found):
-    """D33: for each key with a relative condition, the readings carrying the store's relative tag of its concept, each
-    with its strength, put into `found` in place of every event of the concept; the patients for whom a tag was decided
-    inexactly. The tag is the store's own (`execution_store._derived_chunk`, a one-step request), which reads no window."""
-    from patterns import trajectory_graph as tg
-    pids = dict(store.query('SELECT patient_idx, patient_id FROM patients'))
-    idxs = sorted(pids)
-    linked = [i for i, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')]
-    starts = {(pid, eid): (slo, shi, kind) for pid, eid, slo, shi, kind in store.query(
-        'SELECT p.patient_id, e.event_id, e.start_lo, e.start_hi, e.kind FROM events e JOIN patients p USING (patient_idx)')}
-    inexact = set()
-    for key, spec in wanted.items():
-        if 'relative' not in spec:
-            continue
-        relative = json.loads(json.dumps(spec['relative']))
-        relative['baseline']['within'] *= MINUTE
-        query = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'A', 'concept': spec['concept']}], 'relations': []}
-        request = es.Request(query, {'profile': es.CONDITIONS_PROFILE_1_2, 'steps': {'A': {'relative': relative}}})
-        for pid in found:
-            found[pid].pop(key, None)
-        windows = [{'start': 0, 'end': 0}] * len(idxs)
-        for idx, d in es._derived_chunk(store, request, idxs, [pids[i] for i in idxs], windows, linked):
-            pid = pids[idx]
-            certain = {e['id'] for e in d.first['events'] if 'derived-step:A/own' in e['concepts']}
-            possible = {e['id'] for e in (d.second or d.first)['events'] if 'derived-step:A/own' in e['concepts']}
-            if d.inexact:
-                inexact.add(pid)
-            minutes = lambda t: (t - births[pid]) / MINUTE
-            for eid in sorted(possible):
-                slo, shi, kind = starts[pid, eid]
-                found.setdefault(pid, {}).setdefault(key, []).append(
-                    [minutes(slo), minutes(shi), None, None, eid, kind, 'certain' if eid in certain else 'possible'])
-    return inexact
-
-
-def replay(case, found, inexact=()):
+def replay(case, found):
     """The engine alone on the candidate events `candidates` lists, each listing the keys it is a candidate for, with the
     query's steps and relaxations renamed to those keys: {patient: status}. If this equals the store's result, up to
     the store's comparability rule, then the candidate lists are exactly what the store's engine saw, and a
-    difference from the page is a difference of candidates (or that rule), never of the query or the windows.
-
-    A relative condition (D33) is replayed from the tagged readings listed, by their strengths: the store's two-pass
-    rule (`execution_store.match_derived`) over a pass of the certain readings and a pass of every listed one."""
+    difference from the page is a difference of candidates (or that rule), never of the query or the windows."""
     from patterns import trajectory_graph as tg
-    steps = (conditions_micros(case.get('conditions')) or {}).get('steps') or {}
-    if any('relative' in raw for raw in steps.values()):
-        return relative_replay(case, found, inexact)
     q = to_micros(case['query'])
     q['steps'] = [{**s, 'concept': 'step:' + s['id']} for s in q['steps']]
     q['relaxations'] = [{**x, 'concept': x['id']} if x['kind'] == 'widen_concept' else x for x in q['relaxations']]
@@ -260,60 +209,6 @@ def main(argv):
         return 0
     print(__doc__, file=sys.stderr)
     return 2
-
-
-def relative_replay(case, found, inexact):
-    """`replay` for a case with a relative condition (D33): each listed reading carries its key's relative tag in pass 1
-    when certain and in pass 2 when certain or possible; the store's two-pass rule then decides."""
-    from patterns import trajectory_graph as tg
-    q = to_micros(case['query'])
-    q['steps'] = [{**s, 'concept': 'step:' + s['id']} for s in q['steps']]
-    q['relaxations'] = [{**x, 'concept': x['id']} if x['kind'] == 'widen_concept' else x for x in q['relaxations']]
-    conditions = conditions_micros(case.get('conditions'))
-    steps = {sid: {'relative': raw['relative']} for sid, raw in conditions['steps'].items() if 'relative' in raw}
-    factors = [x for x in conditions.get('relaxations', []) if x['kind'] == 'widen_factor']
-    for x in conditions.get('relaxations', []):
-        if x['kind'] == 'widen_value':
-            q['relaxations'].append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
-                                     'concept': x['id']})
-    request = es.Request(q, {'profile': es.CONDITIONS_PROFILE_1_2, 'steps': steps, 'relaxations': factors})
-    pq = tg.PreparedQuery(request.query)
-    tag_of = {'step:' + sid: f'{es._DERIVED_PREFIX}{sid}/own' for sid in steps}
-    tag_of.update({x['id']: f"{es._DERIVED_PREFIX}{x['step']}/{x['id']}" for x in factors})
-    out = {}
-    for pid, w in case['windows'].items():
-        events, certain, possible = {}, {}, {}
-        for key, rows in found.get(pid, {}).items():
-            for row in rows:
-                slo, shi, elo, ehi, eid, kind = row[:6]
-                e = events.setdefault(eid, {'id': eid, 'concepts': [], 'start': [round(slo * MINUTE), round(shi * MINUTE)]})
-                if elo is not None:
-                    e['end'] = [round(elo * MINUTE), None if ehi is None else round(ehi * MINUTE)]
-                if key in tag_of:
-                    possible.setdefault(eid, set()).add(tag_of[key])
-                    if row[6] == 'certain':
-                        certain.setdefault(eid, set()).add(tag_of[key])
-                else:
-                    e['concepts'].append(key)
-        if w is None:
-            out[pid] = 'excluded'
-            continue
-        window = {'start': w['start'] * MINUTE, 'end': w['end'] * MINUTE}
-
-        def doc(tags):
-            return {'patient_id': pid, 'window': window,
-                    'events': [{**e, 'concepts': sorted(set(e['concepts']) | tags.get(e['id'], set()))}
-                               for e in events.values() if e['concepts'] or tags.get(e['id'])]}
-        d = es.Derived()
-        d.first = doc(certain)
-        tried = set(request.derived_used)
-        second = any(name in tried for eid, names in possible.items() for name in names - certain.get(eid, set()))
-        d.second = doc(possible) if second else None
-        d.families = {name: {eid for eid, names in possible.items() if name in names} for name in request.derived}
-        d.linked, d.points, d.inexact = set(), {}, pid in inexact
-        d.concepts = {e['id']: frozenset(e['concepts']) for e in d.first['events']}
-        out[pid] = es.match_derived(pq, request, d)['status']
-    return out
 
 
 if __name__ == '__main__':

@@ -453,7 +453,6 @@ def exhaustive_match(ingest, query, windows, conditions=None):
 
 DERIVED = 'derived-step:'
 LATER = 'execution-store-conditions-1.1'
-RELATIVE_PROFILE = 'execution-store-conditions-1.2'  # D33
 VALUE_KEYS = ('unit', 'eq', 'gt', 'ge', 'lt', 'le')
 
 
@@ -464,14 +463,9 @@ class DerivedQuery:
     def __init__(self, ingest, query, conditions):
         own = {sid: {k: v for k, v in raw.items() if k in VALUE_KEYS} for sid, raw in conditions['steps'].items()}
         own = {sid: c for sid, c in own.items() if c}
-        self.spec = {}  # step -> ('nth', which, n), ('count', n, within) or ('relative', relative condition)
+        self.spec = {}  # step -> ('nth', which, n) or ('count', n, within)
         for sid, raw in conditions['steps'].items():
-            if 'relative' in raw:  # D33
-                rel = raw['relative']
-                self.spec[sid] = ('relative', {'kind': rel['kind'], 'factor': rel['factor'], 'unit': rel['unit'],
-                                               'floor': rel['floor'], 'previous': rel['baseline']['previous'],
-                                               'within': rel['baseline']['within']})
-            elif 'occurrence' in raw:
+            if 'occurrence' in raw:
                 (which, n), = raw['occurrence'].items()
                 self.spec[sid] = ('nth', which, n)
             elif 'count' in raw:
@@ -479,7 +473,6 @@ class DerivedQuery:
                 self.spec[sid] = ('count', raw['count']['at_least'], within if within == 'window' else within['span'])
         counts = [x for x in conditions.get('relaxations', []) if x['kind'] == 'widen_count']
         values = [x for x in conditions.get('relaxations', []) if x['kind'] == 'widen_value']
-        factors = [x for x in conditions.get('relaxations', []) if x['kind'] == 'widen_factor']
         # Value tags: a widen_count naming a wider concept on a conditioned step counts that concept under the step's
         # condition, which ValueQuery tags as it tags a widen_concept of the step.
         extra = [{'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'concept': x['concept'], 'cost': x['cost']}
@@ -508,9 +501,6 @@ class DerivedQuery:
             base = widened[x['id']] if x['id'] in extra_ids else x.get('concept', concept_of[x['step']])
             relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
                                 'concept': self.name(x['step'], x['id'], base, x['at_least'])})
-        for x in factors:
-            relaxations.append({'id': x['id'], 'kind': 'widen_concept', 'step': x['step'], 'cost': x['cost'],
-                                'concept': self.name(x['step'], x['id'], concept_of[x['step']], factor=x['factor'])})
         self.query = dict(valued, steps=steps)
         if relaxations or 'relaxations' in valued:
             self.query['relaxations'] = relaxations
@@ -520,38 +510,13 @@ class DerivedQuery:
         vdefs = self.value.defs if self.value else {}
         self.base = {sid: {vdefs[c][0] if c in vdefs else c for c in cs} for sid, cs in self.loads.items()}
         self.tried = {c for cs in self.per_step.values() for c in cs if c in self.counted}
-        # D33: a relative tag is recorded, for the coverage rule, by the sources holding a series row of an item class
-        # its concept covers in the condition's unit; its key in `coverage_loads` names the concept and the unit.
-        self.coverage_loads, self.unit_recorders = {}, {}
-        for sid, cs in self.per_step.items():
-            keys = []
-            for c in cs:
-                if c in self.counted and self.counted[c][0] == 'relative':
-                    concept, unit = self.counted[c][1], self.counted[c][2]['unit']
-                    key = f'#ref-unit/{concept}/{unit}'
-                    self.unit_recorders[key] = (concept, unit)
-                    keys.append(key)
-                else:
-                    keys.append(self.counted[c][1] if c in self.counted else c)
-            self.coverage_loads[sid] = set(keys)
-        ancestors = ingest['closure']['ancestors']
-        wanted, self.unit_sources = dict(self.unit_recorders), {key: set() for key in self.unit_recorders}
-        for p in ingest['patients']:
-            source = {e['event_id']: e['source'] for e in p['events']}
-            for r in p.get('series', []):
-                covers = expanded([r['item_class']], ancestors)
-                for key, (concept, unit) in wanted.items():
-                    if concept in covers and r['unit'] == unit:
-                        self.unit_sources[key].add(source[r['event_id']])
 
-    def name(self, sid, variant, concept, n=None, factor=None):
+    def name(self, sid, variant, concept, n=None):
         spec = self.spec[sid]
         name = f'{DERIVED}{sid}/{variant}'
         if name in self.counted:  # two variants under one name: refused, as the store refuses it
             raise ValueError('DERIVED_TAG_NAME_COLLISION')
-        if spec[0] == 'relative':
-            self.counted[name] = ('relative', concept, dict(spec[1], factor=factor or spec[1]['factor']), None)
-        elif spec[0] == 'nth':
+        if spec[0] == 'nth':
             self.counted[name] = ('nth', concept, spec[1], spec[2])
         else:
             self.counted[name] = ('count', concept, spec[2], spec[1] if n is None else n)
@@ -663,111 +628,7 @@ def _times(patient):
     return {'dom': t.dom, 'gap': t.gap, 'events': patient['events']}
 
 
-# Relative conditions (D33), written again from the decision log's D33 entry and docs/execution-store.md ("Relative
-# conditions"): each reading's time range; at each time the reading c can take, every choice of the other readings'
-# times among a few candidates (each range's ends, and the window's ends cut to it), which together reach every
-# baseline some choice of times gives; the baseline by sorting; the comparison in Fractions over the spelled value.
-
-RELATIVE_LIMIT = 6  # readings of uncertain time that may precede c within W, beyond which c is possible only
-
-
-def patient_readings(patient, ancestors, period):
-    """A patient's readings for the reference: its series rows (with each event's kind and recorded start), its
-    excluded records, the period kinds and a test of which item classes a concept covers."""
-    events = {e['event_id']: e for e in patient['events']}
-    rows = {r['event_id']: {'item_class': r['item_class'], 'unit': r['unit'], 'value': r['value_lexical'],
-                            'kind': events[r['event_id']]['kind'], 'start': tuple(events[r['event_id']]['start'])}
-            for r in patient.get('series', [])}
-    excluded = [{'item_class': x['concept'], 'start': tuple(x['start'])} for x in patient.get('excluded', [])]
-    return {'rows': rows, 'excluded': excluded, 'period': set(period),
-            'covers': lambda item, concept: concept in expanded([item], ancestors)}
-
-
-def _find(parent, v):
-    while parent.setdefault(v, v) != v:
-        v = parent[v]
-    return v
-
-
-def _relative_tags(rel, concept, readings, events, dom):
-    """({event id: 'certain' | 'possible'}, exact) of one relative condition over a patient's readings."""
-    from fractions import Fraction
-    from itertools import product
-    k, W, unit = rel['previous'], rel['within'], rel['unit']
-    factor, floor = Fraction(Decimal(rel['factor'])), Fraction(Decimal(rel['floor']))
-    engine = {e['id']: e for e in events}
-    parent = {}
-    for e in events:  # the patient's network: shared names are one node; an exposure ties its start to its end
-        names = sorted(_variables(e))
-        for v in names[1:]:
-            parent[_find(parent, v)] = _find(parent, names[0])
-    readings_of = {}
-    for eid, r in readings['rows'].items():
-        if r['kind'] in readings['period']:
-            span, node = (r['start'][0], r['start'][0]), None
-        elif eid in engine:
-            sv = engine[eid].get('start_var', eid + '.s')
-            span, node = tuple(dom[sv]), _find(parent, sv)
-        else:
-            span, node = r['start'], None
-        readings_of.setdefault(r['item_class'], []).append(
-            {'id': eid, 'span': span, 'node': node, 'value': Fraction(Decimal(r['value'])), 'unit': r['unit'],
-             'excluded': False})
-    for j, x in enumerate(readings['excluded']):
-        readings_of.setdefault(x['item_class'], []).append(
-            {'id': f'#excluded/{j}', 'span': x['start'], 'node': None, 'value': None, 'unit': None, 'excluded': True})
-
-    def outcome(c, chosen):
-        if not chosen:
-            return 'false'
-        if any(x['excluded'] or x['unit'] != unit for x in chosen):
-            return 'unknown'
-        mean = sum(x['value'] for x in chosen) / len(chosen)
-        bar = max(floor, mean)
-        ok = c['value'] >= factor * bar if rel['kind'] == 'rise' else c['value'] <= bar / factor
-        return 'true' if ok else 'false'
-    out, exact = {}, True
-    for item, family in readings_of.items():
-        nodes = [x['node'] for x in family if x['node'] is not None]
-        linked = len(nodes) != len(set(nodes))
-        for c in family:
-            if c['excluded'] or c['unit'] != unit or c['id'] not in engine or not readings['covers'](item, concept):
-                continue
-            exact = exact and not linked
-            a, b = c['span']
-            others = [x for x in family if x is not c and x['span'][0] <= b - 1 and x['span'][1] >= a - W]
-            if sum(x['span'][0] != x['span'][1] for x in others) + (a != b) > RELATIVE_LIMIT:
-                out[c['id']], exact = 'possible', False
-                continue
-            if b - a <= 64:
-                taus = range(a, b + 1)
-            else:
-                marks = {a, b}
-                for x in others:
-                    for v in x['span']:
-                        marks.update(v + d for d in (-2, -1, 0, 1, 2, W - 2, W - 1, W, W + 1, W + 2))
-                taus = sorted(m for m in marks if a <= m <= b)
-            seen = set()
-            for tau in taus:
-                options = []
-                for x in others:
-                    lo, hi = x['span']
-                    picks = {lo, hi, max(lo, tau - W), min(hi, tau - 1)}
-                    options.append(sorted(v for v in picks if lo <= v <= hi))
-                for times in product(*options):
-                    inside = [(t, x) for t, x in zip(times, others) if tau - W <= t <= tau - 1]
-                    inside.sort(key=lambda p: (-p[0], 0 if p[1]['excluded'] else 1, p[1]['id']))
-                    seen.add(outcome(c, [x for _, x in inside[:k]]))
-                if 'unknown' in seen or ('true' in seen and 'false' in seen):
-                    break
-            if seen == {'true'}:
-                out[c['id']] = 'certain'
-            elif 'true' in seen or 'unknown' in seen:
-                out[c['id']] = 'possible'
-    return out, exact
-
-
-def derive(dq, pid, window, events, mentions, readings=None):
+def derive(dq, pid, window, events, mentions):
     """(pass-1 events, pass-2 events or None, points {id: range}, families {name: ids}, linked concepts, inexact)."""
     plain = events
     t = _times({'patient_id': pid, 'window': window, 'events': plain})
@@ -777,19 +638,6 @@ def derive(dq, pid, window, events, mentions, readings=None):
     second, inexact = False, False
     for name in sorted(dq.tried):
         kind, concept, detail, n = dq.counted[name]
-        if kind == 'relative':  # D33
-            mine = readings or {'rows': {}, 'excluded': [], 'period': set(), 'covers': lambda item, c: False}
-            found, exact = _relative_tags(detail, concept, mine, plain, t['dom'])
-            families[name] = {eid for eid, r in mine['rows'].items() if r['unit'] == detail['unit']
-                              and mine['covers'](r['item_class'], concept) and any(e['id'] == eid for e in plain)}
-            inexact = inexact or (not exact and bool(found))
-            for eid, strength in found.items():
-                possible.setdefault(eid, set()).add(name)
-                if strength == 'certain':
-                    certain.setdefault(eid, set()).add(name)
-                else:
-                    second = True
-            continue
         family = [dict(e, sv=e.get('start_var', e['id'] + '.s')) for e in plain
                   if concept in e['concepts'] and e['id'] not in mentions]
         families[name] = {e['id'] for e in family}
@@ -919,15 +767,14 @@ def _one_pass(dq, query, patient, families, linked, points):
     return {**out, 'note': note} if note else out
 
 
-def derived_result(dq, pid, window, events, mentions, readings=None):
-    """One patient's result for a 1.1 or 1.2 request, before coverage and the excluded-records rule: the two passes,
-    combined as the decision log's table states. A relative condition (D33) reads the patient's `readings`
-    (`patient_readings`)."""
+def derived_result(dq, pid, window, events, mentions):
+    """One patient's result for a 1.1 request, before coverage and the excluded-records rule: the two passes, combined
+    as the decision log's table states."""
     if window is None:
         return {'patient_id': pid, 'status': 'excluded', 'reason': 'NO_INDEX_WINDOW'}, {}
-    first, second, points, families, linked, inexact = derive(dq, pid, window, events, mentions, readings)
+    first, second, points, families, linked, inexact = derive(dq, pid, window, events, mentions)
     query = dq.query
-    counted = [s['id'] for s in query['steps'] if dq.spec.get(s['id'], ('',))[0] in ('count', 'relative')]
+    counted = [s['id'] for s in query['steps'] if dq.spec.get(s['id'], ('',))[0] == 'count']
     one = _one_pass(dq, query, {'patient_id': pid, 'window': window, 'events': first}, families, linked, points)
 
     def unsure(two=None, **extra):
@@ -984,8 +831,6 @@ def derived_admission(dq, result, patient, events, ancestors, window, points):
             continue
         carrying[sid] = mine
         spec = dq.spec.get(sid)
-        if spec is not None and spec[0] == 'relative':  # D33: a relative step reaches what its scope admits
-            spec = None
         if spec is not None and (spec[0] == 'nth' or spec[2] != 'window'):
             hits = mine
         elif spec is not None:
@@ -1050,8 +895,6 @@ def derived_exhaustive_match(ingest, query, windows, conditions):
                 recorders.setdefault(c, set()).add(e['source'])
     if dq.value is not None:
         recorders.update(dq.value.recorders)
-    recorders.update(dq.unit_sources)
-    period = [k for k in ((ingest.get('provenance') or {}).get('labels') or {}).get('period_reading_kinds', '').split(',') if k]
     results = []
     for p in sorted(ingest['patients'], key=lambda p: p['patient_id']):
         window = windows.get(p['patient_id'])
@@ -1066,10 +909,9 @@ def derived_exhaustive_match(ingest, query, windows, conditions):
             event.update({k: e[k] for k in ('start_var', 'end_var', 'proper') if k in e})
             events.append(event)
         mentions = {e['event_id'] for e in p['events'] if e['kind'] == 'mention'}
-        readings = patient_readings(p, ancestors, period)
-        result, points = derived_result(dq, p['patient_id'], window, events, mentions, readings)
+        result, points = derived_result(dq, p['patient_id'], window, events, mentions)
         if result['status'] == 'none':
-            result = coverage_rule(dq.query, dq.coverage_loads, recorders, p['coverage'], window, result)
+            result = coverage_rule(dq.query, dq.loads, recorders, p['coverage'], window, result)
         if window is not None and result['status'] != 'not_comparable':
             result = derived_admission(dq, result, p, events, ancestors, window, points)
         results.append(result)
@@ -1077,6 +919,6 @@ def derived_exhaustive_match(ingest, query, windows, conditions):
 
 
 def has_derived(conditions):
-    """Whether a request carries an Nth occurrence or a count (D32), or a relative condition (D33)."""
-    return conditions is not None and conditions.get('profile') in (LATER, RELATIVE_PROFILE) and any(
-        'occurrence' in raw or 'count' in raw or 'relative' in raw for raw in conditions['steps'].values())
+    """Whether a request carries an Nth occurrence or a count (D32)."""
+    return conditions is not None and conditions.get('profile') == LATER and any(
+        'occurrence' in raw or 'count' in raw for raw in conditions['steps'].values())

@@ -85,15 +85,6 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
     'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
-    // D33: the page's three rise templates, with the page's own window, scope and free-text setting. The tree and graph
-    // templates carry a gene step, which the store refuses by name (asserted below), so they run here without that step
-    // and its relations.
-    'the sequence template (a rise)': {scope: 'from_start', window,
-      nodes: TEMPLATES.sequence.nodes, edges: TEMPLATES.sequence.edges},
-    'the tree template without its gene step': {scope: 'from_start', window,
-      ...withoutNodes({nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges}, new Set(['B']))},
-    'the graph template without its gene step': {scope: 'from_start', window,
-      ...withoutNodes({nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges}, new Set(['E']))},
   };
   // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
   var withFreeText = function (name, fn) {
@@ -109,12 +100,10 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       const {query, conditions, windows} = storeRequest(def, state.freeText, pids);
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
-      for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
-        ...(own[n.id] && own[n.id].relative ? {relative: own[n.id].relative} : {})};
+      for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {})};
       for (const x of query.relaxations) if (x.kind === 'widen_concept') wanted[x.id] = {concept: x.concept};
       for (const x of (conditions || {}).relaxations || []) {
         if (x.kind === 'widen_value') wanted[x.id] = {concept: byId[x.step].concept, condition: x.condition};
-        else if (x.kind === 'widen_factor') wanted[x.id] = {concept: byId[x.step].concept, relative: {...own[x.step].relative, factor: x.factor}};
         else if (x.concept) wanted[x.id] = {concept: x.concept};
       }
       return {name, query, conditions, windows, candidates: wanted};
@@ -145,7 +134,7 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
   }); };
   var occurrenceOf = function (name, key) {
     const def = {...defaultDef(), ...CASES[name]}, n = nodeById(def)[key.split(':')[1]];
-    const derived = n.occ === 'count' ? 'count' : derivedOcc(n) ? 'nth' : stepKind(n) === 'measure' && relative(n.cond) ? 'relative' : null;
+    const derived = n.occ === 'count' ? 'count' : derivedOcc(n) ? 'nth' : null;
     const occ = stepKind(n) === 'measure' || derived ? 'any' : n.occ === 'nth' ? 'first' : n.occ === 'nth_last' ? 'last' : (n.occ || 'any');
     return {kind: stepKind(n), occ, derived};
   };
@@ -178,14 +167,7 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
      reconciled happening its most precise record ranks Nth, which is not sound under uncertain times (plan, 1.2);
    - count-timing (D32): for a count, the store binds the record at which the count is reached, certainly or only
      possibly over the records' ranges, with the two-pass rule (unresolved when it cannot decide); the page takes each
-     run of N consecutive happenings, by their best dates, that may fit the span;
-   - relative-baseline (D33): for a rise or fall, the store tags the recorded readings whose baseline (up to k = 2
-     earlier readings of the item class within 75 days, by period start, strictly earlier, in the condition's unit,
-     excluded readings undetermined) meets the condition, certainly or only possibly, with the two-pass rule; the page
-     compares each reconciled happening's value with the one or two happenings before it by earliest day (same-day ones
-     included, units ignored); the readings each side would bind are compared, and a difference is named so;
-   - measurement-observability (D33): the page answers not comparable when its own, binding-specific check finds no
-     measurement around the earlier step's bound event; the store has no such rule (declared page-only, plan 3.2).
+     run of N consecutive happenings, by their best dates, that may fit the span.
    For a derived step, its family (every event of its concept the store counts, coded records only) is compared too;
    a difference there is named by the record-level causes above, and the derived rule is named whenever the results
    differ. */
@@ -200,26 +182,23 @@ function storeList(events, occ) {
   const picked = occ === 'first' ? sorted.slice(0, 1) : occ === 'last' ? latest.slice(-1) : sorted;
   return picked.map(e => ({t: t(e), kind: e[5], id: e[4]}));
 }
-function causes(name, pid, pageStatus, storeResult, storeCands, pageReason) {
+function causes(name, pid, pageStatus, storeResult, storeCands) {
   if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return ['coverage'];
   const page = vm.runInContext(`pageCandidates(${JSON.stringify(name)}, ${JSON.stringify(pid)}, true)`, context);
   const out = new Set();
-  // D33: the page's own observability check for a measurement after an earlier step (binding-specific, page-only).
-  if (pageStatus === 'not_comparable' && /do not cover the time around/.test(pageReason || '')) out.add('measurement-observability');
   // D30: the store leaves a first or last step undecided when its target is uncertain; the page does not test that.
   if (storeResult.reason === 'OCCURRENCE_ORDER_UNCERTAIN') out.add('order-uncertain');
   // D32: the converter's excluded records are its unitless measurements, which the page reads by value alone.
   if (storeResult.reason === 'ADMISSION_EXCLUDED_RECORDS') out.add('measurement-records');
   for (const [key, mine] of Object.entries(page)) {
     const {kind, occ, derived} = vm.runInContext(`occurrenceOf(${JSON.stringify(name)}, ${JSON.stringify(key)})`, context);
-    if (derived && derived !== 'relative') out.add(derived === 'nth' ? 'occurrence-envelope' : 'count-timing');
+    if (derived) out.add(derived === 'nth' ? 'occurrence-envelope' : 'count-timing');
     let rows = (storeCands[pid] || {})[key];
     if (derived) rows = (rows || []).filter(e => e[5] !== 'mention');  // the store ranks and counts coded records only
     const theirs = storeList(rows, occ);  // a relaxed alternative keeps the step's occurrence
     const sig = x => JSON.stringify(x.t);
     const a = mine.map(sig).sort(), b = theirs.map(sig).sort();
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
-    if (derived === 'relative') { out.add('relative-baseline'); continue; }
     if (kind === 'measure') { out.add('measurement-records'); continue; }
     const onlyStore = theirs.filter(x => !a.includes(sig(x))), onlyPage = mine.filter(x => !b.includes(sig(x)));
     if (onlyStore.some(x => x.kind === 'mention') || onlyPage.some(x => x.mention)) out.add('letter-mentions');
@@ -252,7 +231,7 @@ const EXCLUSION = {none: ['not_comparable'], relaxed: ['unresolved', 'not_compar
                    possible: ['possible', 'not_comparable'], unresolved: ['not_comparable']};
 for (const name of names) {
   const page = vm.runInContext(`pageResults(${JSON.stringify(name)})`, context);
-  const tally = unresolvedShare[name] = {results: 0, unresolved: 0, reasons: {}, candidates: store[name + '#with_candidate'].length};
+  const tally = unresolvedShare[name] = {results: 0, unresolved: 0, reasons: {}};
   found[name] = {};
   for (const r of page) {
     const a = pageKey(r), b = storeKey(store[name][r.pid]);
@@ -263,12 +242,9 @@ for (const name of names) {
     const excluded = reason === 'ADMISSION_EXCLUDED_RECORDS' && (EXCLUSION[replayed] || []).includes(own);
     if (!(replayed === own || (replayed === 'none' && own === 'not_comparable') || excluded)) replayMismatches.push(`${name} ${r.pid}: replayed ${replayed}, store ${own}`);
     if (store[name][r.pid].status !== 'excluded') tally.results += 1;
-    if (own === 'unresolved') {
-      tally.unresolved += 1; tally.reasons[reason] = (tally.reasons[reason] || 0) + 1;
-      assert.ok(store[name + '#with_candidate'].includes(r.pid), `${name} ${r.pid}: unresolved without a candidate`);
-    }
+    if (own === 'unresolved') { tally.unresolved += 1; tally.reasons[reason] = (tally.reasons[reason] || 0) + 1; }
     if (a === b) { agree += 1; continue; }
-    const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates'], r.reason);
+    const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates']);
     found[name][r.pid] = `${why.join('+')}: page ${a}, store ${b}`;
     for (const w of why) summary[w] = (summary[w] || 0) + 1;
   }
@@ -421,79 +397,6 @@ const EXPECTED = {
     C039: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
     C041: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
     C043: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
-  },  "the sequence template (a rise)": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+medication-records+record-reconciliation: page none, store relaxed possible node:A+node:C",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
-  },
-  "the tree template without its gene step": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+medication-records+record-reconciliation: page none, store relaxed possible node:D",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
-  },
-  "the graph template without its gene step": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C023: "letter-mentions+medication-records+order-uncertain: page possible, store unresolved",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
   },
 };
 
@@ -509,7 +412,7 @@ assert.deepEqual(Object.keys(EXPECTED).sort(), [...names].sort());
 assert.ok(matched > 0, 'nothing matched in the store: the comparison would be vacuous');
 // Every cause comes from the closed list the D32 rules fix.
 const CAUSES = ['coverage', 'letter-mentions', 'record-reconciliation', 'medication-records', 'measurement-records',
-                'order-uncertain', 'occurrence-envelope', 'count-timing', 'relative-baseline', 'measurement-observability'];
+                'order-uncertain', 'occurrence-envelope', 'count-timing'];
 assert.deepEqual(Object.keys(summary).filter(c => !CAUSES.includes(c)), [], 'a cause outside the closed list');
 // Every page feature the store does not express is refused by its code, never translated approximately.
 const REFUSALS = vm.runInContext(`(() => {
@@ -518,7 +421,6 @@ const REFUSALS = vm.runInContext(`(() => {
                      edges: [{from: 'A', to: 'B', rel: 'during', grace: 0, unit: 'day'}]};
   return {
     'rise (sequence template)': refusalOf(d('sequence'), 'off'),
-    'rise (sequence template), stated free text': refusalOf(d('sequence'), 'present'),
     'gene step (tree template)': refusalOf(d('tree'), 'off'),
     'gene step and rise (graph template)': refusalOf(d('graph'), 'off'),
     'count over stated free text (frequency template)': refusalOf(d('frequency'), 'present'),
@@ -529,10 +431,9 @@ const REFUSALS = vm.runInContext(`(() => {
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
-  'rise (sequence template)': null,  // D33: rises are translated
-  'rise (sequence template), stated free text': null,
+  'rise (sequence template)': 'RELATIVE_CONDITION_UNSUPPORTED',
   'gene step (tree template)': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'gene step and rise (graph template)': 'GENE_CLASSIFICATION_UNSUPPORTED',  // the rise is translated; the gene step is not
+  'gene step and rise (graph template)': 'RELATIVE_CONDITION_UNSUPPORTED',  // the first refused step, in node order
   'count over stated free text (frequency template)': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'Nth over stated free text': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'hedged free text': 'FREE_TEXT_HEDGED_UNSUPPORTED',
@@ -540,8 +441,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'frequency template, coded only': null,
 });
 if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify(unresolvedShare, null, 1));
-const share = names.map(n => `${n} ${unresolvedShare[n].unresolved}/${unresolvedShare[n].results}`
-  + ` (${unresolvedShare[n].candidates} with a candidate)`).join('; ');
+const share = names.map(n => `${n} ${unresolvedShare[n].unresolved}/${unresolvedShare[n].results}`).join('; ');
 console.log(`Unresolved in the store, per trajectory: ${share}.`);
 console.log(`Trajectory page and execution store: ${agree} of ${patients} patient results agree over ${names.length} trajectories `
   + `(${matched} store matches); ${patients - agree} differ, each by a named cause (${Object.entries(summary).sort().map(([k, v]) => `${k} ${v}`).join(', ')}); `
