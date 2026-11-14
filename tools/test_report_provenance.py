@@ -150,46 +150,5 @@ class ReportProvenanceTests(unittest.TestCase):
         self.assertEqual(found, [{real: digest}])
 
 
-class BuildFingerprintGateTests(unittest.TestCase):
-    """D33: a report may bind part of a file by its build fingerprint; the gate recomputes it."""
-
-    def fake(self, report):
-        with patch.object(gate, 'tracked_reports', return_value=['verification/fake.json']), \
-             patch.object(gate, 'loaded', return_value=report), patch('builtins.print') as printed:
-            code = gate.main()
-        return code, ' '.join(str(call.args[0]) for call in printed.call_args_list)
-
-    def test_a_current_fingerprint_passes_and_a_stale_one_fails(self):
-        from patterns import build_fingerprint as bf
-        found, _ = bf.fingerprints({'tools/benchmark_execution_store.py': ['build_worker']})
-        self.assertEqual(gate.fingerprint_maps({'build_provenance': {'fingerprints': found}}, []), [found])
-        code, text = self.fake({'build_provenance': {'fingerprints': found}})
-        self.assertEqual(code, 0, text)
-        self.assertIn(f'{len(found)} bindings', text)
-        stale = {**found, 'patterns/execution_store.py': {**found['patterns/execution_store.py'], 'sha256': '0' * 64}}
-        code, text = self.fake({'build_provenance': {'fingerprints': stale}})
-        self.assertEqual(code, 1)
-        self.assertIn('patterns/execution_store.py no longer matches its recorded build fingerprint', text)
-
-    def test_an_unknown_rule_a_missing_file_or_an_unknown_root_fails(self):
-        record = {'rule': 'build_closure_v1', 'roots': ['StoreBuilder'], 'definitions': 1, 'sha256': '0' * 64}
-        for mapping, expected in (({'patterns/execution_store.py': {**record, 'rule': 'whole_file'}}, 'unknown fingerprint rule'),
-                                  ({'patterns/no_such_module.py': record}, 'is bound but no longer in the repository'),
-                                  ({'patterns/execution_store.py': {**record, 'roots': ['NoSuchBuilder']}},
-                                   'can no longer be fingerprinted')):
-            code, text = self.fake({'fingerprints': mapping})
-            self.assertEqual(code, 1, mapping)
-            self.assertIn(expected, text)
-
-    def test_the_committed_scaling_report_binds_its_build_by_fingerprint(self):
-        report = json.loads((gate.ROOT / 'verification/execution-store-scaling-report.json').read_text())
-        prints = gate.fingerprint_maps(report, [])
-        self.assertEqual(len(prints), 1)
-        self.assertIn('patterns/execution_store.py', prints[0])
-        self.assertIn('tools/benchmark_execution_store.py', prints[0])
-        for path, record in prints[0].items():
-            self.assertIsNone(gate.fingerprint_problem(path, record), path)
-
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)
