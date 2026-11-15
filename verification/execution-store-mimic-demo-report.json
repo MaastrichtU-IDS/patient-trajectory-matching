@@ -314,23 +314,24 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 64.34,
-    "admission_and_claims": 0.71,
-    "chartevents_built_store_comparison": 9.13,
-    "chartevents_census": 534.05,
-    "chartevents_raw_row_check": 3.04,
-    "chartevents_route_b": 20.49,
-    "derived_differential": 340.16,
-    "differential": 478.93,
-    "mapping": 0.27,
-    "store_build": 16.84,
-    "store_open_and_verify": 0.04,
-    "total": 1669.45,
-    "value_differential": 201.33
+    "adapter": 66.92,
+    "admission_and_claims": 0.73,
+    "chartevents_built_store_comparison": 9.22,
+    "chartevents_census": 539.73,
+    "chartevents_raw_row_check": 3.16,
+    "chartevents_route_b": 22.06,
+    "derived_differential": 353.07,
+    "differential": 478.86,
+    "mapping": 0.36,
+    "relative_differential": 434.67,
+    "store_build": 16.49,
+    "store_open_and_verify": 0.09,
+    "total": 2126.78,
+    "value_differential": 201.31
   },
   "resources": {
-    "cpu_seconds": 6854.0,
-    "peak_rss_bytes_main_process": 2340601856,
+    "cpu_seconds": 7340.2,
+    "peak_rss_bytes_main_process": 2270855168,
     "note": "this run, this machine: CPU time of the verifier and its worker processes"
   },
   "artifacts": {
@@ -353,7 +354,7 @@
     "patterns/claim_rdf.py": "27b30df4999331bfde44acb2da9be42647de7b1ce2706b435c2d46791dd5f1c6",
     "patterns/exact_intervals.py": "fb9103579e73bce558a55df9a0e500e86f76a83e807cddb1272d367ba6cfdfd4",
     "patterns/execution_store.py": "54de9edc344ce53a1c0e34559544879886253902e28c59fab845145c8e8ec327",
-    "patterns/execution_store_reference.py": "5e02cad5dcaca5ba5ec220fd565a5223186903d35b22f22c7776108c0874e619",
+    "patterns/execution_store_reference.py": "9fcd6e4970eefd7e64e8ff2b04e12c6712863040a1dacbc3f143702b59279a71",
     "patterns/joint_evidence.py": "d26db82becc95aa9ce5a559da766c9ec09a5bb926d92c92bac821a252ea1bd13",
     "patterns/local_claim_projection.py": "ec6cfd897830cad5e9457fcc5a7dbc5161282039543cc5026b173eb2cf91dd17",
     "patterns/measurement_claims.py": "72d08366ff375ba57f021bfa1828d5ec7574b0f05d4d4d75ea8acd45d3397fdd",
@@ -365,7 +366,7 @@
     "patterns/mimic_measurement_import.py": "8416eccc868018d931a6a724f5a48831c573a941c03b515d006deee42540ae12",
     "patterns/mimic_store_ingest.py": "8f9c2eba3708981b658239418d1795f90265cdcfd5eba0c9c7316586ba5ca21c",
     "patterns/patient_local.py": "6c5c4152b341ecb0e5cbb2d076c2929ff2a6a71656e5b681e85e36d9a695c55b",
-    "patterns/prepared_reference.py": "c676af38fa21ba8544cb4bd055b006ecfaa34ec2727d60b9455ab9878f907fdf",
+    "patterns/prepared_reference.py": "cbfd6413ef053c018437edc59da6ee3255e89aa5ee505071f6005b618318b49d",
     "patterns/pro_solid.py": "009a741167da180d061d54dd048f3f1542f0147c3b5812ea2b5fc5c96ef04b2a",
     "patterns/requirements-semantic.lock.txt": "94cffd488dbc3a5cfb71914f64eeeefa1b2ccbad061c271a97eb821dd47df04f",
     "patterns/requirements.lock.txt": "9d681f5d1b1a8b00322bf9f7b3c3f7c2e600d74d9a1d9162729f5697a5a1c895",
@@ -373,12 +374,13 @@
     "patterns/semantic_reference.py": "44df3f11dbe4c1c44ac444519a1d9bcd6923c152b88f3875c2bd9f1ff3e12c3e",
     "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
     "patterns/series_values.py": "6c0ed200c4271b29d1601fedd188391e0442b9ed739d0e68a1893db2b5baf2ab",
+    "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
     "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
     "patterns/trajectory_graph_sulo.py": "a092c3ef5744ae298b9eef25da28800544881c0ea3a2b4a4b5c2fcf41e672faa",
     "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",
-    "patterns/verify_mimic_store_ingest.py": "87939727461f785d3cc675a6912c9c73be603eaf2174385790d5a696327bfdbd",
+    "patterns/verify_mimic_store_ingest.py": "d2aa59bb5457916777b0370dd02679301b0d4a06e3b70a3734196036e7ccbda0",
     "schemas/bounded-interval.schema.json": "7dd9491596fd96e4d91fd183fd2227c2e8273a2eb8e321fe515241ca1ac8e710",
     "schemas/claim-store.schema.json": "3b1cec64c46606e697b1f920f5030aaa6ee493f15456e8b42b51e3e0d4627a3b",
     "schemas/execution-store-manifest.schema.json": "70c85f458538863fb1ffe4601ee866c28b362a393e8d01b0351ff2f9a0299f12",
@@ -604,6 +606,76 @@
     "count_relaxations_checked": 34,
     "count_relaxation_containment_violations": 0,
     "note": "every time on the demo is exact, so no count is only possible and no envelope is wider than a point; excluded chart rows (D18) reach Nth and span-count steps whatever the scope, so most results on chart items are not comparable",
+    "mismatch_examples": []
+  },
+  "relative_differential": {
+    "queries": 62,
+    "named": [
+      "heart rate rising to at least 1.25 x the mean of up to 3 readings in the 6 hours before",
+      "invasive mean arterial pressure falling to at most the mean of up to 3 readings in the 6 hours before / 1.25"
+    ],
+    "first_seed": 300000,
+    "results_compared": 6800,
+    "reference": "prepared_reference with the request on every query; exhaustive_match with the request on the named queries and the first seeded ones; each reads the request and computes the readings, baselines, strengths and the two-pass rule independently of the store (execution_store_reference.DerivedQuery, _relative_tags)",
+    "exhaustive_queries": 6,
+    "mismatches": 0,
+    "pruning_on_off_differences": 0,
+    "status_mix": {
+      "heart rate rising to at least 1.25 x the mean of up to 3 readings in the 6 hours before": {
+        "exact": 30,
+        "excluded": 6,
+        "none": 52,
+        "not_comparable": 9,
+        "unresolved": 3
+      },
+      "invasive mean arterial pressure falling to at most the mean of up to 3 readings in the 6 hours before / 1.25": {
+        "exact": 19,
+        "excluded": 7,
+        "none": 39,
+        "not_comparable": 19,
+        "relaxed": 14,
+        "unresolved": 2
+      },
+      "seeded": {
+        "exact": 63,
+        "excluded": 286,
+        "none": 1144,
+        "not_comparable": 4434,
+        "relaxed": 3,
+        "unresolved": 70
+      }
+    },
+    "unresolved_share": {
+      "heart rate rising to at least 1.25 x the mean of up to 3 readings in the 6 hours before": {
+        "unresolved": 3,
+        "results_with_a_window": 94,
+        "by_reason": {
+          "STEP_CONDITION_UNCERTAIN": 3
+        }
+      },
+      "invasive mean arterial pressure falling to at most the mean of up to 3 readings in the 6 hours before / 1.25": {
+        "unresolved": 2,
+        "results_with_a_window": 93,
+        "by_reason": {
+          "STEP_CONDITION_UNCERTAIN": 2
+        }
+      },
+      "seeded": {
+        "unresolved": 70,
+        "results_with_a_window": 5714,
+        "by_reason": {
+          "ADMISSION_EXCLUDED_RECORDS": 44,
+          "STEP_CONDITION_UNCERTAIN": 26
+        }
+      }
+    },
+    "readings_tagged_on_the_own_condition": {
+      "certain": 38265,
+      "possible_only": 4329
+    },
+    "factor_relaxations_checked": 11,
+    "factor_relaxation_containment_violations": 0,
+    "note": "every chart time on the demo is exact and the demo has no period readings, so every baseline is determined unless an excluded chart row of the item class or a reading in another unit lies among the previous readings; readings are tagged certain or possible-only for every candidate, windows aside",
     "mismatch_examples": []
   }
 }
