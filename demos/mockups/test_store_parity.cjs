@@ -106,7 +106,7 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
   var storeCase = function (name, def) {
     return withFreeText(name, () => {
       const pids = [...state.patients.keys()], byId = nodeById(def);
-      // D36: rises are translated here (the store's relative conditions), whatever the translator's default.
+      // D36: rises are translated (the store's relative conditions), as the translator now does by default.
       const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true});
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
@@ -520,9 +520,8 @@ const REFUSALS = vm.runInContext(`(() => {
     'rise (sequence template), stated free text': refusalOf(d('sequence'), 'present'),
     'gene step (tree template)': refusalOf(d('tree'), 'off'),
     'gene step and rise (graph template)': refusalOf(d('graph'), 'off'),
-    'rise (sequence template), rises asked for': refusalOf(d('sequence'), 'off', {rises: true}),
-    'rise (sequence template), stated free text, rises asked for': refusalOf(d('sequence'), 'present', {rises: true}),
-    'gene step and rise (graph template), rises asked for': refusalOf(d('graph'), 'off', {rises: true}),
+    'rise (sequence template), rises refused on request': refusalOf(d('sequence'), 'off', {rises: false}),
+    'gene step and rise (graph template), rises refused on request': refusalOf(d('graph'), 'off', {rises: false}),
     'count over stated free text (frequency template)': refusalOf(d('frequency'), 'present'),
     'Nth over stated free text': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'seizure', occ: 'nth', n: 2}], edges: []}, 'present'),
     'hedged free text': refusalOf(d('frequency'), 'possible'),
@@ -531,14 +530,13 @@ const REFUSALS = vm.runInContext(`(() => {
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
-  // D36: by default the translator refuses rises (STORE_RISES); asked for, it translates them (D33's relative conditions).
-  'rise (sequence template)': 'RELATIVE_CONDITION_UNSUPPORTED',
-  'rise (sequence template), stated free text': 'RELATIVE_CONDITION_UNSUPPORTED',
+  // D36: rises are translated by default (STORE_RISES); the named refusal remains for a caller that asks for it.
+  'rise (sequence template)': null,
+  'rise (sequence template), stated free text': null,
   'gene step (tree template)': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'gene step and rise (graph template)': 'RELATIVE_CONDITION_UNSUPPORTED',  // the first refused step, in node order
-  'rise (sequence template), rises asked for': null,
-  'rise (sequence template), stated free text, rises asked for': null,
-  'gene step and rise (graph template), rises asked for': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'gene step and rise (graph template)': 'GENE_CLASSIFICATION_UNSUPPORTED',  // the rise is translated; the gene step is not
+  'rise (sequence template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',
+  'gene step and rise (graph template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',  // first refused, in node order
   'count over stated free text (frequency template)': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'Nth over stated free text': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'hedged free text': 'FREE_TEXT_HEDGED_UNSUPPORTED',

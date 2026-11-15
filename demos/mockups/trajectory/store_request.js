@@ -6,8 +6,8 @@
    in whole minutes from each patient's birth (store_parity.py converts them to the store's clock). A page feature the
    store cannot express is refused by name (`StoreRefusal`, its `code`), never translated approximately:
    - GENE_CLASSIFICATION_UNSUPPORTED: gene steps (the first report that is not negative, timed by its recording);
-   - RELATIVE_CONDITION_UNSUPPORTED: rises and falls against earlier values, unless `options.rises` (or STORE_RISES)
-     says the store's relative conditions are to be used (D33 built them; D36 decides whether the page uses them);
+   - RELATIVE_CONDITION_UNSUPPORTED: rises and falls, only when a caller asks for none (`options.rises: false`); since
+     D36 they are translated by default (STORE_RISES), as the store's relative conditions (D33, shipped in D36);
    - FREE_TEXT_HEDGED_UNSUPPORTED: free text read as "possible" (hedged) findings, which the converter never emits;
    - FREE_TEXT_COUNT_UNSUPPORTED: an Nth occurrence (N > 1) or a count asked over stated free text. The store counts and
      ranks coded records only (a letter mention ranges from birth to its letter, D30, which would leave almost every
@@ -42,9 +42,9 @@ function storeDecimal(x) {
   return s;
 }
 
-// D36: whether a rise or fall is translated by default (the store's profile 1.2, `store_conditions_relative`); until
-// D36's verdict, only a caller that asks (`options.rises`, as the parity and usefulness tests do) gets them.
-const STORE_RISES = false;
+// D36: a rise or fall is translated by default (the store's profile 1.2, `store_conditions_relative`), since D36's
+// verdict (every rule met); a caller may still ask for the named refusal (`options.rises: false`).
+const STORE_RISES = true;
 const derivedOcc = n => (n.occ === 'nth' || n.occ === 'nth_last') && Math.max(1, +n.n || 1) > 1;
 // D33: the page's rise and fall rule (shared/core.js, measureEvents) in the store's terms.
 const RELATIVE_PREVIOUS = 2, RELATIVE_WITHIN_DAYS = 75;
