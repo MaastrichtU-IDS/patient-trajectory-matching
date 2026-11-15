@@ -9,11 +9,18 @@
    and once with it off. For each template it counts the patients with a store candidate and an index window, and the
    unresolved results among them (with their reasons), per seed and pooled.
 
-     node demos/mockups/rise_usefulness.cjs --seeds 1001,1002 [--extend 1021,1022] [--output REPORT.json]
+     node demos/mockups/rise_usefulness.cjs [--output REPORT.json]
 
-   The bar (decision log, D36) is judged on the templates, pooled over the declared seeds; `--extend` lists the seeds
-   added, in order, while some template has fewer than 30 candidates (counted before any status is read). Synthetic
-   data only; the report holds counts. Needs DuckDB (patterns/requirements-store.lock.txt). */
+   The protocol is fixed here, as D36 declared it before measuring: seeds 1001 to 1030, then 1031, 1032, ... in order
+   while some template has fewer than 30 candidates (counted before any status is read). No other seed is accepted.
+   The bar (decision log, D36) is judged on the templates, pooled over those seeds.
+
+   The cohorts are not independent children (the D36 review, M1): every seed scripts the reference child C001 with a
+   fixed timeline, and every other child takes its archetype, sex, birth year and overrides from the generator's fixed
+   PLAN; only the draws vary with the seed. So the report also counts candidates and unresolved results per PLAN key
+   (C001 is the key `reference`), and gives the shares three ways: over all candidates, with C001 left out, and over
+   distinct PLAN keys (a key unresolved if any of its candidates is). Synthetic data only; the report holds counts.
+   Needs DuckDB (patterns/requirements-store.lock.txt). */
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -25,12 +32,16 @@ const here = __dirname, root = path.resolve(here, '../..');
 const python = process.env.PYTHON || 'python';
 const run = (args, input) => execFileSync(python, args, {cwd: root, input, encoding: 'utf8', maxBuffer: 1 << 28});
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
-const seedsOf = text => (text || '').split(',').filter(Boolean).map(Number);
-const SEEDS = seedsOf(arg('--seeds', ''));
-const EXTEND = seedsOf(arg('--extend', ''));
 const OUTPUT = arg('--output', null);
 const MINIMUM = 30;
-if (!SEEDS.length) { console.error('usage: node demos/mockups/rise_usefulness.cjs --seeds S1,S2,... [--extend ...] [--output FILE]'); process.exit(2); }
+const SEEDS = Array.from({length: 30}, (_, i) => 1001 + i);  // declared in D36 before any measurement
+const EXTEND = Array.from({length: 70}, (_, i) => 1031 + i);  // the extension rule's order (never needed past 1100)
+if (process.argv.length > 2 && !(process.argv.length === 4 && process.argv[2] === '--output')) {
+  console.error('usage: node demos/mockups/rise_usefulness.cjs [--output FILE]  (the seeds are fixed by D36)'); process.exit(2);
+}
+// Each child's PLAN key (the generator's own mapping of patient ids to plan slots, for this seed).
+const planKeys = seed => JSON.parse(run(['-c', 'import json, sys; sys.path.insert(0, "demos/mockups/synthetic"); '
+  + 'import generate as g; print(json.dumps({c.pid: c.key for c in g.build(int(sys.argv[1]))}))', String(seed)]));
 
 // The templates (ruled) and the variants (reported), declared in the decision log before any measurement.
 const TEMPLATE_NAMES = ['sequence', 'tree without its gene step', 'graph without its gene step'];
@@ -83,11 +94,13 @@ function tally(results, cases) {
     }
     for (const [pid, r] of Object.entries(results[c.name]))
       if (r.status === 'unresolved' && !candidates.includes(pid)) throw new Error(`${c.name} ${pid}: unresolved without a candidate`);
-    out[c.name] = {candidates: candidates.length, unresolved, statuses, reasons};
+    out[c.name] = {candidates: candidates.length, unresolved, statuses, reasons,
+                   candidate_ids: candidates, unresolved_ids: candidates.filter(pid => results[c.name][pid].status === 'unresolved')};
   }
   return out;
 }
 
+const strip = t => Object.fromEntries(Object.entries(t).filter(([k]) => !k.endsWith('_ids')));
 const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex');
 const ARTIFACTS = ['demos/mockups/rise_usefulness.cjs', 'demos/mockups/store_parity.py', 'demos/mockups/trajectory/store_request.js',
   'demos/mockups/trajectory/app.js', 'demos/mockups/shared/core.js', 'demos/mockups/synthetic/generate.py',
@@ -124,7 +137,7 @@ try {
     const on = JSON.parse(run(['demos/mockups/store_parity.py', 'match', snapshot], JSON.stringify({cohort: cohortPath, cases})));
     const off = JSON.parse(run(['demos/mockups/store_parity.py', 'match', snapshot],
                                JSON.stringify({cohort: cohortPath, cases, split: false})));
-    perSeed[seed] = {children: JSON.parse(cohortText).patients.length, snapshot_id: path.basename(snapshot),
+    perSeed[seed] = {children: JSON.parse(cohortText).patients.length, snapshot_id: path.basename(snapshot), keys: planKeys(seed),
                      cohort_sha256: crypto.createHash('sha256').update(cohortText).digest('hex'),
                      split_on: tally(on, cases), split_off: tally(off, cases)};
     used.push(seed);
@@ -138,6 +151,27 @@ try {
   const pooled = pooledOf(used);
   const templates = Object.fromEntries(TEMPLATE_NAMES.map(n => [n, pooled[n]]));
   const variants = Object.fromEntries(names.filter(n => !TEMPLATE_NAMES.includes(n)).map(n => [n, pooled[n]]));
+  // M1: per PLAN key, and the shares three ways.
+  const byKey = {}, readings = {};
+  for (const n of names) {
+    const k = byKey[n] = {};
+    for (const s of used) {
+      const on = perSeed[s].split_on[n], keys = perSeed[s].keys;
+      for (const pid of on.candidate_ids) {
+        const e = k[keys[pid]] = k[keys[pid]] || {candidates: 0, unresolved: 0, cohorts: 0};
+        e.candidates += 1; e.cohorts += 1;
+        if (on.unresolved_ids.includes(pid)) e.unresolved += 1;
+      }
+    }
+    const entries = Object.entries(k), noRef = entries.filter(([key]) => key !== 'reference');
+    const sum = (es, f) => es.reduce((a, [, e]) => a + f(e), 0);
+    readings[n] = {
+      all_candidates: {candidates: sum(entries, e => e.candidates), unresolved: sum(entries, e => e.unresolved)},
+      without_C001: {candidates: sum(noRef, e => e.candidates), unresolved: sum(noRef, e => e.unresolved)},
+      distinct_plan_keys: {keys: entries.length, keys_unresolved: entries.filter(([, e]) => e.unresolved > 0).length},
+      C001: k.reference || {candidates: 0, unresolved: 0, cohorts: 0},
+    };
+  }
   const bar = Object.fromEntries(TEMPLATE_NAMES.map(n => [n, {
     candidates: pooled[n].candidates, unresolved: pooled[n].unresolved, share: pooled[n].unresolved_share,
     enough_candidates: pooled[n].candidates >= MINIMUM, met: pooled[n].candidates >= MINIMUM && pooled[n].unresolved <= 0.3 * pooled[n].candidates}]));
@@ -150,9 +184,14 @@ try {
               free_text: 'present (the page\'s own)', translator: 'trajectory/store_request.js with rises asked for',
               converter: 'patterns/synthetic_ingest.py emitting series, diary summaries labelled as period readings'},
     bar, templates, variants,
+    independence: ('not independent children (D36 review, M1): C001 is the scripted reference child in every seed, and '
+                   + 'every other child takes archetype, sex, birth year and overrides from the generator\'s fixed PLAN; '
+                   + 'only the draws vary with the seed'),
+    shares_three_ways: readings,
+    by_plan_key: byKey,
     per_seed: Object.fromEntries(used.map(s => [s, {children: perSeed[s].children, cohort_sha256: perSeed[s].cohort_sha256,
       snapshot_id: perSeed[s].snapshot_id,
-      templates: Object.fromEntries(names.map(n => [n, {...perSeed[s].split_on[n], unresolved_split_off: perSeed[s].split_off[n].unresolved,
+      templates: Object.fromEntries(names.map(n => [n, {...strip(perSeed[s].split_on[n]), unresolved_split_off: perSeed[s].split_off[n].unresolved,
                                                         reasons_split_off: perSeed[s].split_off[n].reasons}]))}])),
     split_contribution: Object.fromEntries(names.map(n => [n, {unresolved_split_on: pooled[n].unresolved,
                                                                unresolved_split_off: pooled[n].unresolved_split_off,

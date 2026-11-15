@@ -63,7 +63,47 @@
   1057,
   1058,
   1059,
-  1060
+  1060,
+  1061,
+  1062,
+  1063,
+  1064,
+  1065,
+  1066,
+  1067,
+  1068,
+  1069,
+  1070,
+  1071,
+  1072,
+  1073,
+  1074,
+  1075,
+  1076,
+  1077,
+  1078,
+  1079,
+  1080,
+  1081,
+  1082,
+  1083,
+  1084,
+  1085,
+  1086,
+  1087,
+  1088,
+  1089,
+  1090,
+  1091,
+  1092,
+  1093,
+  1094,
+  1095,
+  1096,
+  1097,
+  1098,
+  1099,
+  1100
  ],
  "seeds_used": [
   1001,
@@ -252,6 +292,785 @@
     "OCCURRENCE_ORDER_UNCERTAIN": 57
    },
    "unresolved_share": 0
+  }
+ },
+ "independence": "not independent children (D36 review, M1): C001 is the scripted reference child in every seed, and every other child takes archetype, sex, birth year and overrides from the generator's fixed PLAN; only the draws vary with the seed",
+ "shares_three_ways": {
+  "sequence": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "sequence, factor 1.5": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "sequence, from the first seizure for 36 months": {
+   "all_candidates": {
+    "candidates": 173,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 143,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step, factor 1.5": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step, from the first seizure for 36 months": {
+   "all_candidates": {
+    "candidates": 173,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 143,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step": {
+   "all_candidates": {
+    "candidates": 142,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 112,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 7,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step, factor 1.5": {
+   "all_candidates": {
+    "candidates": 142,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 112,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 7,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step, from the first seizure for 36 months": {
+   "all_candidates": {
+    "candidates": 126,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 96,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 7,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  }
+ },
+ "by_plan_key": {
+  "sequence": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "sequence, factor 1.5": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "sequence, from the first seizure for 36 months": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "dravet-lost": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step, factor 1.5": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step, from the first seizure for 36 months": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "dravet-lost": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "graph without its gene step": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   }
+  },
+  "graph without its gene step, factor 1.5": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   }
+  },
+  "graph without its gene step, from the first seizure for 36 months": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "dravet-lost": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   }
   }
  },
  "per_seed": {
@@ -3745,9 +4564,9 @@
   }
  },
  "artifacts": {
-  "demos/mockups/rise_usefulness.cjs": "eb0988bddb1b963d0c8735ab3f4e6643bfe5dbe0b489b9e7f345608c4f0beb81",
+  "demos/mockups/rise_usefulness.cjs": "26897efc673d45a267e3ced16353421df715bd68e33a0ae60bb551959fe4e93f",
   "demos/mockups/store_parity.py": "920dd0c36708e89a3e3f76e96e3e8e068801e79fa0b4e512dcd80262700a4f0d",
-  "demos/mockups/trajectory/store_request.js": "542a264cec5f99fc06dccbe7318c79c4c7357f40ce9836c81812647cbc55cf87",
+  "demos/mockups/trajectory/store_request.js": "096d4a9496f4295c7c08d1dd683edaefafafbbc60790d862fc438b7a4f9a9688",
   "demos/mockups/trajectory/app.js": "056d7df97e5c8f9d259693c98415b763c651a4e20d27314da045581bed39954c",
   "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",

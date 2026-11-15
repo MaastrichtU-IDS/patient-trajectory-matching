@@ -18,6 +18,7 @@ Needs DuckDB (`patterns/requirements-store.lock.txt`); importing this module doe
 from collections import Counter
 import copy
 import hashlib
+import inspect
 import json
 from pathlib import Path
 import random
@@ -651,9 +652,6 @@ class RequestTests(unittest.TestCase):
     def test_earlier_profiles_are_answered_as_before(self):
         q = one_step('m:freq')
         for steps in ({'A': {'unit': '/month', 'ge': '3'}}, {'A': {'count': {'at_least': 2, 'within': 'window'}}}):
-            for profile in (es.CONDITIONS_PROFILE_1_1, L12):
-                if profile == es.CONDITIONS_PROFILE_1_1 or 'count' in steps['A']:
-                    continue
             a = es.match(self.store, q, self.windows, conditions={'profile': es.CONDITIONS_PROFILE_1_1, 'steps': steps})
             b = rc.match(self.store, q, self.windows, conditions={'profile': L12, 'steps': steps})
             self.assertEqual(a['results'], b['results'])
@@ -736,6 +734,66 @@ class ModuleBoundaryTests(unittest.TestCase):
                 self.assertEqual(mine.describe_derived(), theirs.describe_derived())
             compared += 1
         self.assertGreater(compared, 300)
+
+    def test_a_1_2_request_without_a_relative_step_is_the_1_1_answer(self):
+        """The D36 review: the module's copies of the store's derived path must give, for a 1.2 request with no relative
+        step, the store's own 1.1 answer: Nth, Nth from last, span and period counts, a value condition with an Nth, a
+        `widen_concept` on the counted step, at 1 and 2 workers and both detail levels (only the profile named in the
+        output and the context differ)."""
+        ingest, store, _, _ = _STATE['shared']
+        rng = random.Random('d36/review/equivalence')
+        q = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'm:freq'},
+                                                               {'id': 'B', 'concept': 'c:seizure'}],
+             'relations': [{'id': 'R1', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': -400 * DAY, 'max': 400 * DAY}],
+             'relaxations': [{'id': 'wA', 'kind': 'widen_concept', 'step': 'A', 'concept': 'm:measure', 'cost': '1'}],
+             'budget': '1'}
+        unprofiled = lambda d: {k: v for k, v in d.items() if k != 'profile'}
+        strip = lambda o: {k: unprofiled(v) if k == 'value_conditions' else v for k, v in o.items()
+                           if k not in ('context', 'context_id', 'derived_steps')}
+        derived = lambda o: unprofiled(o.get('derived_steps', {}))
+        compared = 0
+        for steps in ({'B': {'occurrence': {'nth': 2}}}, {'B': {'occurrence': {'nth_last': 2}}},
+                      {'A': {'count': {'at_least': 2, 'within': {'span': 90 * DAY}}}},
+                      {'A': {'count': {'at_least': 3, 'within': 'window'}}},
+                      {'A': {'unit': '/month', 'ge': '3'}, 'B': {'occurrence': {'nth': 1}}}):
+            windows = windows_for(rng, ingest)
+            for workers in (1, 2):
+                for detail in ('full', 'decided'):
+                    a = es.match(store, q, windows, detail=detail, workers=workers,
+                                 conditions={'profile': es.CONDITIONS_PROFILE_1_1, 'steps': steps})
+                    b = rc.match(store, q, windows, detail=detail, workers=workers, conditions={'profile': L12, 'steps': steps})
+                    self.assertEqual(json.dumps(strip(a)), json.dumps(strip(b)), (steps, workers, detail))
+                    self.assertEqual(derived(a), derived(b))
+                    compared += 1
+        self.assertEqual(compared, 20)
+
+    # The store's originals the module carries a copy of (with D33's relative branches): if one changes, the copy must
+    # be brought in line (D36 review). Each is pinned by the sha256 of its source.
+    COPIED = {
+        'Request.__init__': 'f829a7eaf3edecd8403c77ba23f8b5aabaf18fa8d899e781884d68b3cc4b70b9',
+        'Request.describe_derived': '01c6fc50aa200b8401fee62c11852d97c235e9c890285e1301df8cc41158c9c8',
+        'derive_patient': '74d2ea8be91cecc51b3fcc4773d334f592ab39c4ec9e95587cd2d635742c6e68',
+        'match_derived': '2e59d41b761cb05b69c03683b31d92a31347a903453ed5fc1a7646fddbcacb01',
+        '_derived_patients': 'f444d69aa9d174f998bb001615eccfcfdb2992bdbb3551e60257cfc7764501b9',
+        '_candidates': '8fff73c9e8063842426821a24e3c855e81adf8d9fd113b8682db243662ff8172',
+        'candidates': '18941e853ef1e2b71584933b71b514284c6387576ef61d0f5cb814d589b49f33',
+        '_derived_chunk': '1c0b6463369240bbac9c262d87bbc1d0f43b8e92916871143f02c7970b9aa20b',
+        '_match_derived_chunk': '589a7b43bdeb3d2c85d6eca4e6bb75882b907a7f6591b0d2c348efe2cc460524',
+        '_derived_reach': '393169041aab5a3a4389124d01f5763356052f63a828807105083a26b766e92b',
+        'match_context': '9ef743afbf24f16eab829590f728d36aba97129be625fb7591045c1f45340d79',
+        '_worker_unit': '2340885f8651d051a763f512d52d98204706c45f9657f3cd196d7a239a9cf809',
+        'MatchPool.run': '75e25468117adbb5a277ca40c723f53e0bff752647d130567b4ea47be5e01955',
+        'match': '574f4667f1c416aa3985e6dcc00d6cb7e8e7354e8c0c21270713f2ce761f04ed',
+    }
+
+    def test_the_copied_store_functions_have_not_changed(self):
+        for name, digest in self.COPIED.items():
+            obj = es
+            for part in name.split('.'):
+                obj = getattr(obj, part)
+            got = hashlib.sha256(inspect.getsource(obj).encode()).hexdigest()
+            self.assertEqual(got, digest, f'execution_store.{name} changed: update store_conditions_relative, whose copy '
+                                          f'of it must follow, then this pin')
 
     def test_a_build_never_loads_the_module(self):
         """A snapshot built from the synthetic cohort with series, in a fresh interpreter, loads neither this module nor
