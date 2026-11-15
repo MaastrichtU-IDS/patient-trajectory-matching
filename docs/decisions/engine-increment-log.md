@@ -47,6 +47,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D33 | Rises and falls (relative conditions) in the store's match request: a baseline of up to k previous readings within W, period readings timed by their period's start, the two-pass rule; and a build fingerprint so that engine-only changes can reuse the scaling report's builds, under rules fixed before measuring | Built and sound (60,000 small cases and 500 snapshot requests, 0 violations and 0 mismatches; seven planted defects caught), **not shipped**: the usefulness bar (at most 30% unresolved in each rise template) was missed on the graph template, 3 of its 4 candidates (one patient moves the share by 25 points), by D30's order rule on its `first` blocker; rises stay refused by name. The build fingerprint moved to its own increment after a review's must-fix; this branch changes documentation only |
 | D34 | A runtime record of what the scaling report's builds load and read, by whole-file digests, with the engine split so that a build loads no matching code, so that a change to matching alone can reuse the report's builds (the static fingerprint of D33's part 2 superseded after two reviews), under rules fixed before measuring | Decided; shipped after three reviews. Every rule met (one stated exception: D32's paired verdict frozen). Results byte-identical: 300 digests, 1,170 matcher digests, scaling and MIMIC as D32. Reuse shown in tests, not yet at scale |
 | D35 | An exact target split for the relaxation sets D30 and D31 leave undecided (`first` and `last` steps whose target is uncertain, typically with their end read), under rules fixed before measuring, after a disclosed calibration | Decided; shipped. Every rule met: 0 violations in 60,000 small cases, equal to the truth wherever the split completed, the reference agrees, four planted defects caught; only undecided results moved; MIMIC unchanged. The parity trajectory "a seizure while taking the first blocker" 0 of 10 unresolved (was 9; all `possible`); the 12 order-uncertain results at 10,000 all decided. Paired 14-worker p95 ratios 0.90 to 0.97 against main (bar 1.05), p95 8.97 s. First reuse of the scaling builds at 1,000,000: 1,740 s against 9,197 s. The evidence for usefulness is about 22 patients over two queries |
+| D36 | Rises and falls retried: D33's relative conditions restored onto D35, in a module no build loads (so the scaling builds can be reused), with a usefulness test on 30 distinct synthetic cohorts and a MIMIC demo differential, under rules fixed before measuring | Rules committed; not yet measured |
 
 ## D1 Package with hatchling, in place
 
@@ -2046,3 +2047,67 @@ It shares no decision code with the engine.
 - K: the order-note results need products up to 2,048 (91% within 128). Widening K is a later increment's question, under its own rule.
 
 **Decision: D35 ships.** The target split decides the sets D30 and D31 left undecided, wherever its gate admits them and its searches complete. Every result it decides equals the profile's semantics, and nothing decided before D35 changed. The parity trajectory that sank D33's graph template is now decided for all ten candidates. Rises and falls can be retried under their own rule, with a usefulness test on more patients.
+
+## D36 Rises and falls retried: D33's relative conditions on D35, in a module no build loads, with a usefulness test on 30 cohorts
+
+D33 built rises and falls (bccee57) and they were sound on every check, but missed the usefulness bar on one template: the graph template had 3 of its 4 candidates `unresolved`, all by D30's order rule on the `first` blocker whose end a `during` reads. The owner confirmed the per-template reading of the bar, asked to fix that rule first, and to retry rises later on more patients. D35's target split now decides that shape: "a seizure while taking the first blocker" went from 9 `unresolved` of 10 candidates to 0. This entry retries rises on main after D35 (81e812c), under rules written and committed before any measurement.
+
+**What is restored, and what is not changed.** The semantics are D33's, with the owner's decisions of 2026-11-14 unchanged:
+- monthly summaries are whole-month periods, ordered by their start, with windows measured between period starts;
+- the baseline is the mean of up to k (at most 3) strictly earlier readings of the same item class and unit within W, in exact arithmetic, with an explicit positive floor;
+- certainty is "every configuration satisfies the condition", and an undetermined baseline counts as possible through D32's two-pass rule.
+
+The request (profile `execution-store-conditions-1.2`, `relative`, `widen_factor`, the refusals by name), the readings and their exact strengths, the two-pass rule with relative steps counted, D18 reach by the step's scope, the reference written again, the worlds checker, the three small-case generators, the tests, the translator's rise rule (k = 2, W = 75 days, floors 1 and 10⁻⁹) and the parity templates are bccee57's, carried onto main. Nothing in them needed changing for D35: the relative path reaches the engine through `match_prepared` and `decide_ordered`, so the target split applies to rise templates as to any query.
+
+**Design: a module of its own** (owner policy on build reuse, D34).
+- The scaling report's build record hashes every repository module a build loads, among them `patterns/execution_store.py` and the converter `patterns/synthetic_ingest.py`. D33 had put rises in both. Here they live in `patterns/store_conditions_relative.py`, which no build loads. `execution_store.py`, `synthetic_ingest.py`, `trajectory_times.py`, `series_values.py`, the build worker and every other file the record lists are byte-identical to main, so `--reuse-builds` can reuse the kept D34 builds.
+- The module holds `Request` (the store's `Request` with profile 1.2), the readings loader and strengths, `derive_patient`, `match_derived`, the candidate filter for relative tags, D18 reach, the context, and `match` and `candidates`. Where bccee57 had edited a function of the store, the module carries that function with bccee57's edit (the store's code plus the relative branches), since the store's own file cannot change. Everything else (loading, pruning, comparability, excluded records, worker pools) is the store's own code, called as it is.
+- `store_conditions_relative.match` and `candidates` hand every request but a 1.2 one to `execution_store.match` and `candidates` unchanged. `execution_store.Request` still refuses profile 1.2 (`INVALID_CONDITIONS`), as on main. Callers that may send a rise call the module: the parity harness, the usefulness test and the MIMIC demo's relative differential. Nothing a build runs imports it.
+- With workers, a 1.2 request runs in the store's own pools (`get_pool`), each unit by the module's worker function over the store the worker opened.
+- The context of a 1.2 result binds the module's digest beside the engine's artifacts, with the derived and relative rules' digests, so a change to the module changes `context_id`.
+- *A departure from D33: the period label.* D33 had the converter label diary summaries as period readings (`labels.period_reading_kinds`). The converter must now stay byte-identical, so the synthetic source's declaration is made by the module (`synthetic_provenance`, `synthetic_ingest`): the converter's own provenance with the label added when series are on. The label is still in the snapshot's provenance, so still part of its identity, and the store still reads it from the snapshot. Builds without series (the scaling report's) carry no label, as before.
+- *The cost of the copies.* The module's copies of the store's `Request.__init__`, `derive_patient`, `match_derived`, `_candidates`, `_derived_reach` and `match` must follow any later change to the originals. Tests compare the two where they should agree: a 1.0 or 1.1 request compiles to the same request in both, and a 1.2 request without a relative step gives the 1.1 answer's results.
+- *The translator.* `storeRequest(def, freeText, pids, options)` translates rises only when asked (`options.rises`, as the parity and usefulness tests do). By default it refuses them by name (`RELATIVE_CONDITION_UNSUPPORTED`; the constant `STORE_RISES`). If rises ship, the default is flipped.
+
+**The usefulness test** (`demos/mockups/rise_usefulness.cjs`, report `verification/d36-rise-usefulness-report.json`). D33 rested on 6, 6 and 4 candidates from one cohort.
+- *Cohorts.* Distinct synthetic cohorts from the generator with different seeds (`generate.py --seed`), 48 children each. Each child's timeline and records are drawn from `Random(f'{seed}:{key}')`, so two seeds share no patient. Each cohort is built by the converter emitting series, with the period label (`store_parity.py build`). Copying patients would add nothing, so none are copied.
+- *Declared seeds:* **1001 to 1030** (30 cohorts, 1,440 children).
+- *Extension rule:* if some template has fewer than 30 candidates pooled over those, seeds 1031, 1032, … are added in order, one at a time, until every template has at least 30. The stop depends on candidate counts only, never on a status.
+- *Templates (ruled):* the trajectory page's three rise templates, through the page's own translator, as the parity test translates them: Sequence; Tree and Graph without their gene step (which the store refuses by name, `GENE_CLASSIFICATION_UNSUPPORTED`). Each has the page's window (from the second seizure, 24 months), scope (`from_start`) and free-text setting (stated findings).
+- *Variants (declared now, reported, not ruled):* each template with factor 1.5 instead of 2; each with the window from the first seizure for 36 months.
+- *Candidates:* patients with a store candidate (`candidates`) and an index window, as in D33.
+- *Reported:* per template, per seed and pooled; status mixes and reasons; and what D35's split contributes (each cohort matched again with `_SPLIT` off).
+- *Disclosed before these rules.* While porting, the parity test was run on the committed cohort (seed 20261103, D33's), and the usefulness tool was smoke-tested on it. There the three templates have 0 of 6, 0 of 6 and 0 of 4 `unresolved` (D33: 0, 0 and 3 of 4); the graph template's 3 became `possible` through the split. That cohort is not among the declared seeds; it is reported as the parity cohort, not ruled.
+
+**The MIMIC demo relative differential** (`verify_mimic_store_ingest.relative_differential`).
+- Two named requests: heart rate (item 220045, bpm) rising to at least 1.25 times the mean of up to 3 readings in the 6 hours before; and invasive mean arterial pressure (220052, mmHg) falling to at most that mean divided by 1.25, with a relaxation to 1.1.
+- 60 seeded requests: a measured step of a random query given a rise or a fall (factor 1.1 to 2, a recorded unit, a floor, k from 1 to 3, W from 1 to 72 hours), a third of them with `widen_factor`.
+- Every chart time on the demo is exact, so every baseline is determined, unless an excluded chart row or a reading in another unit lies among the previous readings.
+- The store must equal `prepared_reference` on every query and `exhaustive_match` on the named ones and the first 4 seeded ones, with pruning on and off byte-identical and every factor relaxation contained.
+
+**Pre-committed rules** (written and committed before any measurement of this increment; the disclosure above came first).
+- **Soundness.**
+  1. *The worlds checker finds 0 violations* on at least 20,000 ad hoc small cases from each of the three generators (multi, coupled, period), with new seeds (from 2,000,000), and on the suite's volume. Every status but `unresolved` is checked, and the match beside `unresolved`.
+  2. *0 mismatches against the reference* (`json.dumps` without sorting keys):
+     - on every one of those small cases;
+     - on at least 400 seeded relative requests over snapshots (the fixtures made for it and the synthetic cohort built with series), each compared at 1 and 2 workers, at both detail levels and with pruning on and off;
+     - on the MIMIC demo relative differential.
+  3. *The seven D33 planted defects are caught*, each by the worlds checker, the enumeration of strengths or the containment check: the baseline window off by one; k + 1 readings; the floor ignored; unit mixing; an excluded reading ignored; certainty claimed only on a determined configuration; a relaxation that does not contain the stricter condition.
+  4. *Relaxations contain:* every drawn `widen_factor` holds every event of the stricter tag at both strengths (small cases, snapshots, the MIMIC demo).
+  5. *Pruning on and off are byte-identical* on every relative differential.
+- **No change without the new fields.**
+  - `execution_store.py`, `synthetic_ingest.py` and every file the D34 build record lists are byte-identical to main (81e812c).
+  - The 300 recorded match digests are unchanged.
+  - The matcher report's per-query digests equal D35's at every size, for every arm and in the confirmation.
+  - The scaling report's rows, candidate counts and status mixes equal D35's at every size.
+  - Every MIMIC demo figure other than identifiers, digests, artifact bindings, timings and the new `relative_differential` equals D35's.
+  - Every request without profile 1.2, sent through the module, gets the store's own answer byte for byte (a test, at 1 and 2 workers).
+- **Usefulness.** For each of the three templates, pooled over the declared seeds and any extension: **at least 30 candidates**, and **at most 30% of them `unresolved`**. Reported per template, per seed and pooled, with the split's contribution and the variants.
+- **Latency.** Judged under the paired protocol (`tools/benchmark_matcher.py --paired-confirm`, `paired-interleaved-1.0`) against main (81e812c), at 300,000 patients, 30 queries, 4 repeats, 14 and 8 workers, in the regeneration's matcher report:
+  - the 14-worker paired p95 ratio (this tree over main) is at most 1.05 in every pair;
+  - this tree's own 14-worker p95 is at most 10 s;
+  - the maximum is at most 30 s, and query-process memory is under 4 GB;
+  - the 8-worker figures are reported.
+- **Reuse.** The scaling report is regenerated with `--reuse-builds` on the kept D34 builds (`~/ptm-local/scaling-d34`). If the reuse is refused, the run stops and the refusal is reported, not worked around.
+- **Regeneration, only what is stale:** the MIMIC demo; the scaling report, by reuse; the matcher comparison with its confirmation and arm A; and the paired run against main. One heavy job at a time.
+- **Ship rule.** Rises ship, and the translator translates them by default, only if every rule above holds. Otherwise the translator keeps refusing them by name, and the numbers are recorded here. Whether the module then stays, unreachable from the page, or is reverted as D33's code was, is the owner's call. A failure is fixed, never tuned away.
