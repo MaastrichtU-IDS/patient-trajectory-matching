@@ -6,6 +6,8 @@
 
 *D33 (section 3) was built with the owner's decisions of 2026-11-14 (period readings ordered by their period's start; up to k previous readings within W; certainty over every configuration) and was sound on every check, but missed its pre-committed usefulness bar on the graph template, so rises and falls stay refused by name. The decision log's D33 entry has the design, the evidence and the numbers; the implementation is commit bccee57.*
 
+*D35 (2026-11-15) took up the cause of D33's miss: D30's order rule on a `first` step whose end a `during` reads. An exact split over the step's possible targets now decides the sets D30 and D31 left undecided (decision log, D35). On the synthetic cohort the parity trajectory "a seizure while taking the first blocker" went from 9 of 10 candidates unresolved to 0, all `possible`. The graph template's three unresolved patients come from the same rule, so a retry of section 3 should no longer meet it, but that retry needs its own rule and a usefulness test on more patients than four.*
+
 D29's stage-2 trigger: the store can express everything the trajectory page offers, or refuses it by name, and the parity test is clean. Clean means every difference is removed or accepted as a declared difference, measured with the converter itself emitting `series`.
 
 ## Changes after the review

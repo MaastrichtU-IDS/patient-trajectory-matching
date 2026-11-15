@@ -314,23 +314,23 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 61.75,
-    "admission_and_claims": 0.67,
-    "chartevents_built_store_comparison": 8.86,
-    "chartevents_census": 521.22,
-    "chartevents_raw_row_check": 2.98,
-    "chartevents_route_b": 20.05,
-    "derived_differential": 340.74,
-    "differential": 472.5,
-    "mapping": 0.26,
-    "store_build": 16.12,
+    "adapter": 64.34,
+    "admission_and_claims": 0.71,
+    "chartevents_built_store_comparison": 9.13,
+    "chartevents_census": 534.05,
+    "chartevents_raw_row_check": 3.04,
+    "chartevents_route_b": 20.49,
+    "derived_differential": 340.16,
+    "differential": 478.93,
+    "mapping": 0.27,
+    "store_build": 16.84,
     "store_open_and_verify": 0.04,
-    "total": 1645.77,
-    "value_differential": 200.44
+    "total": 1669.45,
+    "value_differential": 201.33
   },
   "resources": {
-    "cpu_seconds": 6798.9,
-    "peak_rss_bytes_main_process": 2275688448,
+    "cpu_seconds": 6854.0,
+    "peak_rss_bytes_main_process": 2340601856,
     "note": "this run, this machine: CPU time of the verifier and its worker processes"
   },
   "artifacts": {
@@ -374,7 +374,7 @@
     "patterns/semantic_support.py": "f9199e2777a33a111e422949c613ede4cfbe698e44b8955e511dd07e73a75e15",
     "patterns/series_values.py": "6c0ed200c4271b29d1601fedd188391e0442b9ed739d0e68a1893db2b5baf2ab",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
-    "patterns/trajectory_graph.py": "f3f93104dfa47e6ee21fcb0297572577037d999462d7c3659e53f5923e3b5aa3",
+    "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
     "patterns/trajectory_graph_sulo.py": "a092c3ef5744ae298b9eef25da28800544881c0ea3a2b4a4b5c2fcf41e672faa",
     "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",

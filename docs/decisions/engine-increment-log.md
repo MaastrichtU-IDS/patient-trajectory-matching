@@ -46,6 +46,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D32 | Nth and Nth-from-last occurrence, and "at least N times within a span or the index period", in the store's match request, over coded records; the converter's optional `series`; the translator and parity extension, under rules fixed before measuring | Decided; shipped. Sound on every check: 0 violations in 120,000 small cases against every choice of times, the reference agrees, 14 planted defects caught, 0 mismatches on 53,280 synthetic and 15,600 demo results. An early review's must-fix (derived tag names could collide) was fixed and everything regenerated. No change without the new fields: 300 digests, every matcher digest, scaling and MIMIC as D31. No latency regression: paired 14-worker p95 ratios 1.001 to 1.010 against main (bar 1.05), p95 8.10 s; replication 0.93 to 1.05. Parity 555 of 672 over fourteen trajectories, every difference named |
 | D33 | Rises and falls (relative conditions) in the store's match request: a baseline of up to k previous readings within W, period readings timed by their period's start, the two-pass rule; and a build fingerprint so that engine-only changes can reuse the scaling report's builds, under rules fixed before measuring | Built and sound (60,000 small cases and 500 snapshot requests, 0 violations and 0 mismatches; seven planted defects caught), **not shipped**: the usefulness bar (at most 30% unresolved in each rise template) was missed on the graph template, 3 of its 4 candidates (one patient moves the share by 25 points), by D30's order rule on its `first` blocker; rises stay refused by name. The build fingerprint moved to its own increment after a review's must-fix; this branch changes documentation only |
 | D34 | A runtime record of what the scaling report's builds load and read, by whole-file digests, with the engine split so that a build loads no matching code, so that a change to matching alone can reuse the report's builds (the static fingerprint of D33's part 2 superseded after two reviews), under rules fixed before measuring | Decided; shipped after three reviews. Every rule met (one stated exception: D32's paired verdict frozen). Results byte-identical: 300 digests, 1,170 matcher digests, scaling and MIMIC as D32. Reuse shown in tests, not yet at scale |
+| D35 | An exact target split for the relaxation sets D30 and D31 leave undecided (`first` and `last` steps whose target is uncertain, typically with their end read), under rules fixed before measuring, after a disclosed calibration | Decided; shipped. Every rule met: 0 violations in 60,000 small cases, equal to the truth wherever the split completed, the reference agrees, four planted defects caught; only undecided results moved; MIMIC unchanged. The parity trajectory "a seizure while taking the first blocker" 0 of 10 unresolved (was 9; all `possible`); the 12 order-uncertain results at 10,000 all decided. Paired 14-worker p95 ratios 0.90 to 0.97 against main (bar 1.05), p95 8.97 s. First reuse of the scaling builds at 1,000,000: 1,740 s against 9,197 s. The evidence for usefulness is about 22 patients over two queries |
 
 ## D1 Package with hatchling, in place
 
@@ -1873,3 +1874,175 @@ The owner's delegate decided to stop hardening a static analysis of Python, whic
 - The 8-worker paired p95 had one noisy pair (1.221, both codes slow), reported, not judged.
 
 **Decision: D34 ships.** The scaling report binds its build phase by a runtime record, and a change to matching alone can reuse its builds. The engine is split so that a build loads no matching code, with results byte-identical everywhere.
+
+## D35 An exact target split for undecided `first` and `last` sets, under rules fixed before measuring
+
+D33's rises missed their usefulness bar because D30's order rule leaves a `first` step undecided when its target is uncertain and a `during` reads its end (the graph template's blocker; the parity trajectory "a seizure while taking the first blocker", 9 of its 10 candidates unresolved). The owner asked to look at that rule first and to retry rises later. The design (a note outside the repository, with a prototype that shares no decision code with the engine) is a third stage of `decide_ordered`: an exact split over the possible targets of the uncertain steps, run only on the relaxation sets D30 or D31 leave undecided. This entry records the design, a calibration, and the rules, committed before any measurement of the stage.
+
+**The idea.** In a choice of times w, the target of a `first` step s is T exactly when every other event y of its family F satisfies t(y) − t(T) ≥ δ(T, y), with δ = 0 when T precedes y in the profile's tie order (start range, end range, id) and 1 otherwise; for `last`, mirrored, t(T) − t(y) ≥ δ with the tie order (latest start, earliest start, end range, id). These are difference constraints. A *scenario* σ gives each split step one of its possible targets; the worlds whose targets are σ form a simple temporal network N_σ (the patient's network and that region), and the scenarios partition the worlds. Within a scenario each step reads its own target's start and end variables, so a step whose end is read (a `during` from it) is covered: there is no envelope point whose end is unknown. With Σ* the scenarios whose N_σ is feasible:
+- *possible* ⇔ some σ ∈ Σ* and some binding β of the other steps make N_σ with the query's constraints C(σ, β) feasible;
+- *β exact* ⇔ for every σ ∈ Σ*, N_σ entails every constraint of C(σ, β) (each difference constraint's bounds over N_σ lie inside it);
+- *none* ⇔ no σ ∈ Σ* has a binding.
+
+This is the true semantics rewritten as a finite disjunction of simple temporal networks: exact, not only sound.
+
+**Design** (the engine's stage, `_target_split`, behind a switch `_SPLIT`):
+1. *Where it runs.* Only on a set D30 or D31 leaves undecided (`decide_ordered`'s second value is not None): D30's `exact`, `possible` or `none` beside an unsafe step, and D31's envelope search that found a binding. A stopped first search is not handed to it. *Corrected after the review:* on D30's path a second search (over every possible target) that stops is reported as `none` beside an unsafe step, and that set is handed to the split; this is harmless, since the split decides only what its own complete searches decide. Decided sets pay nothing.
+2. *Split steps S.* The unsafe uncertain steps, closed under "families share an event" over the uncertain ordered steps: a safe step whose family meets a split family is split too. *Corrected after the review:* the reason given here was wrong. The closure is not needed for exactness: an event of the safe step's family that is not a split target already starts at least δ after that target in every world of the scenario, so keeping the safe step on its envelope point would also be exact. The closure is harmless; it only enlarges the scenario products. Other safe steps stay on their envelope points, which is exact and independent of the split; certain steps bind their events as before.
+3. *Gate.* Every split family is unlinked (`_Occurrence.unlinked`), and the product of the split steps' possible targets is at most K (below). Otherwise D30's or D31's undecided result stands.
+4. *Per scenario, over the steps' variables only.* Each family event no step binds is eliminated exactly (Fourier–Motzkin; it is unlinked, so this gives difference constraints only):
+   - for a `first` step, T's start ≤ hi(y) − δ, with hi(y) from `Times.dom`, which already reflects y's own end;
+   - for a `last` step, T's start ≥ lo(y) + δ;
+   - for an event in a `first` family (target T_u) and a `last` family (target T_v), t(T_v) − t(T_u) ≥ δ_u + δ_v.
+
+   An event another step binds (an `any` step's, a certain step's, another split step's target) keeps its own variable, with a conditional fact on the two steps' starts carrying the exact δ. The unary bounds are applied whether or not y is bound (where it is bound they are implied by its fact). The narrowed start, and the target's end re-solved from it, live in a per-scenario view of the patient's times. Feasibility of each scenario (Σ*) is computed over the targets' starts, never assumed.
+5. *Possible phase.* For each scenario in Σ*, in candidate order, `decide` runs without its exact phase, each split step on its narrowed target, with the facts added; the first binding found is reported. It names real events in a feasible scenario, so it is truly possible. The scenarios share one search budget, the query's. This departs from the design note, which gave each scenario the full budget: it bounds the stage's cost, and a stopped phase concludes nothing.
+6. *Exact phase* (only when the possible phase found a binding). One backtracking search over the non-split steps, with the query's budget, accepting β only if `_certain_jointly` holds in every scenario of Σ*. A constraint among non-split steps reads the same variables in every scenario, and the scenarios' worlds are all the worlds, so it is certain in every scenario exactly when the patient's pairwise `certain` says so; that prunes exactly.
+7. *Results.*
+   - `exact`: β, naming the picked event for a split step (as D31's envelope does).
+   - `possible`: the scenario's binding (the real targets) and witness, `complete: true` when the exact phase completed, otherwise `EXACT_SEARCH_STOPPED` (still undecided).
+   - `none`: every scenario's search completed empty.
+   - A stopped possible phase leaves the set undecided, with D30's or D31's result.
+8. *D18.* An `exact` binding names the picked event for a split step. *Reworded after the review:* the displacement test reads only one end of the picked event's start range, the upper end for `first` (an excluded record before it could have been first) and the lower end for `last`. The true target's start is at most the picked event's latest start for `first` (at least its earliest, for `last`; D30, decision 1), so that test is at least as wide as needed. A `possible` binding names a real target.
+9. *Not in scope:*
+   - a split family that names a shared variable;
+   - a product above K;
+   - stopped searches;
+   - the store's own Nth and count paths (`_coupled_match` still marks a coupled Nth step's `possible` undecided);
+   - D33's rises.
+
+**Why it is exact** (the design note's argument, condensed).
+1. Every world has one target per split step (the tie order is total), and it is a possible target, so the worlds are the disjoint union of the scenarios' solution sets.
+2. In a scenario each split step reads its target's own variables, so scope, `after`, `during` with its grace and the anchors are ordinary constraints.
+3. The projection of a simple temporal network onto some of its variables is its Fourier–Motzkin elimination, again a simple temporal network.
+   - An unlinked unbound event is bounded only by its ranges, its own order and the region's edges, so eliminating it gives exactly the unary bounds and the first–last pair facts above.
+   - Bound events stay explicit through their facts.
+   - The patient's minimal network carries everything else between the binding's variables (as in `feasible`).
+4. So the possible phase, complete, is exact; `_certain_jointly` gives the exact bounds over a scenario's network (D31, second attempt, point 4).
+5. It runs only on sets the engine leaves undecided, so no decided result can change.
+6. A safe step outside S has an unlinked family no other step binds, disjoint from every split family. Its true start ranges independently over its envelope (D30), so its point is exact jointly with the scenarios.
+
+**The reference** (`trajectory_graph_reference.py`, switch `SPLIT`) writes the stage again from the profile:
+- S and the gate by its own tests;
+- the scenarios from its own possible targets;
+- Σ* by Bellman–Ford over the whole patient, with every region constraint explicit (no elimination);
+- every binding of the non-split steps enumerated per scenario.
+
+It shares no decision code with the engine.
+
+**Calibration (disclosed; measured before these rules, on main's engine, not the stage).** On the scaling report's kept snapshots (D34) at 1,000 and 10,000 patients, with its 50 queries and windows, every relaxation set the current engine leaves undecided was traced, and its split's product of possible targets counted (scripts outside the repository; aggregates only):
+- *The design note's premise was wrong.* It took the scaling report's 38 and 375 `unresolved` results as order-uncertain. They are not: at 1,000 all 38 are `SEARCH_BUDGET_EXHAUSTED`; at 10,000, 363 are and **12** are `OCCURRENCE_ORDER_UNCERTAIN` (all seed 21). So there are **0** order-uncertain results at 1,000 and **12** at 10,000.
+- *Those 12:* every one has a split whose step's end is read, every split family is unlinked, and the products are 18 to 23.
+- *The other undecided results* are incomplete `none` or `relaxed` results whose relaxation sets the order rule left open (`RELAXATION_ORDER_UNCERTAIN`, `CHEAPER_RELAXATION_ORDER_UNCERTAIN`): 35 at 1,000 (seeds 11, 29, 34) and 445 at 10,000 (seeds 11, 29, 34, 42), counted on the engine's own results (the store's output shows 444 at 10,000). Their sets' products are larger:
+  - at 1,000 the gate would admit every set of 13 of the 35 results at K = 64, and of 32 at K = 128;
+  - at 10,000, of 157 of 445 at K = 64, and of 404 at K = 128;
+  - every set has a product of at most 2,048.
+- *The design note's Q1 figure* (the parity trajectory, 9 of 9 `unresolved` → `possible`) was measured by its prototype before any rule. It is disclosed here, and the usefulness rule below is judged on the engine, not the prototype.
+
+**K = 64.** The calibration puts every order-uncertain result's set within 64 (products 18 to 23), and the design note's three graph-template patients within 5. A larger K (128) would admit most of the order-note results too, at up to twice the scenarios per set, under a latency rule whose margin is thin (D31: 8.49 s against 10 s). The order-note results are reported, not ruled. Widening K is a question for a later increment, under its own rule.
+
+**Pre-committed rules** (written and committed before any measurement of the stage; the calibration above came first and is disclosed).
+- **Soundness and exactness.**
+  1. The independent worlds checker (`trajectory_graph_worlds.py`) finds **0 violations** on at least 20,000 ad hoc cases from each of three generators, with new seeds, and on the suite's own volume. The generators:
+     - `tiny_case`;
+     - `ordered_case`;
+     - a new `during_case`: first or last steps with a `during` from them over families of exposures, points and wide points; some coupled `any` steps; some shared variables, so that the gate is exercised.
+  2. On every one of those cases where the split runs and completes, the engine's status, relaxation set and certainty equal the truth by enumeration (`trajectory_graph_worlds.truth`).
+  3. The reference agrees on every one of those cases: status, what is reported beside it, and every reported binding by `binding_reaches`.
+  4. Planted defects are caught, each by the worlds check or the comparison with the truth:
+     - the tie δ ignored (δ = 0 always);
+     - the narrowing dropped (no unary bound from an unbound event);
+     - exact tested on one scenario only;
+     - a `during` reading the picked event's end instead of the scenario target's.
+- **Movement.**
+  1. Every changed engine result starts undecided (`unresolved`, or any result with `complete: false`), classified by the engine's own result (`match_prepared` or `_coupled_match`, before the store's coverage and excluded-records rules), as in D31's second attempt.
+     - It ends decided, or still undecided (counted and listed apart, not a failure).
+     - No decided engine result changes.
+     - Checked on every small case above, on the 300 recorded digests, and in process on the kept 1,000 and 10,000 snapshots with the scaling report's 50 queries.
+  2. With `_SPLIT` off this tree reproduces main's digests: the 300 recorded match digests, and the per-query digests of the in-process runs above, against main's code.
+  3. MIMIC unchanged: every figure of the regenerated MIMIC demo report other than identifiers, digests, artifact bindings and timings equals D34's. Times are exact there, so no target is uncertain.
+  4. The 300 recorded digests are re-recorded with a per-seed fixture, `execution_store_match_digests_d35.json`, which a test recomputes. It holds, per seed:
+     - the digest with the switch off, which must be main's;
+     - the digest with it on;
+     - each changed result's transition, by the engine's own result and by the store's.
+- **Usefulness** (the reason to ship; ship only if both hold).
+  1. On the synthetic cohort, the trajectory page's "a seizure while taking the first blocker", as the store parity test translates it, has **at most 1 of its 10 candidates** (patients with a store candidate) `unresolved`. Disclosed: the prototype measured 0 of 10 before this rule.
+  2. **At least 75%** of the `OCCURRENCE_ORDER_UNCERTAIN` results are decided, at 1,000 and at 10,000 (in process, with the switch off and on, on the scaling report's queries).
+     - At 1,000 there are none (calibration), so the rule holds there vacuously; at 10,000 it is judged on 12 results.
+     - The share of order-note results decided is reported at both sizes, not ruled.
+- **Latency.** Judged under the paired protocol (`tools/benchmark_matcher.py --paired-confirm`, `paired-interleaved-1.0`) against main (39b72c7), at 300,000 patients, with 30 queries, 4 repeats, and 14 and 8 workers, in the regeneration's matcher report:
+  - the 14-worker paired p95 ratio (this tree over main) is **at most 1.05 in every pair**;
+  - this tree's own 14-worker p95 is **at most 10 s**;
+  - the maximum is at most 30 s, and query-process memory is under 4 GB;
+  - the 8-worker figures are reported.
+- **Regeneration** (owner policy and D34). The change is matching only: no file a build loads changes (`trajectory_times.py` and everything the build record lists are untouched).
+  - The scaling report is regenerated with `--reuse-builds` on the kept D34 snapshots, its first use at 1,000,000. Whether the reuse probe accepted, and the run's time against a fresh build, are reported. A refusal is reported with its reason, not worked around.
+  - Also regenerated: the MIMIC demo (it binds `trajectory_graph.py`), the matcher comparison with its confirmation and arm A, and the paired confirmation against main.
+  - One heavy job at a time.
+- A failure is fixed, never tuned away. If a ship condition is missed, the stage is left switched off or reverted, and the numbers are recorded here.
+
+**Built** (d00ffa9):
+- the engine's `_target_split` and its switch, with `TargetFact`, the scenario view and the two phases;
+- the reference written again;
+- `trajectory_graph_worlds.truth`;
+- `during_case` and `TargetSplitTests`: worlds check, truth, reference, movement, the gate, a named tie case, and the four planted defects;
+- the D30 and D31 tests, which keep those increments' records, now run with the split off;
+- `D35MovementTests` and its fixture, and the 300 recorded digests re-recorded;
+- the store parity table and the mockups README;
+- the profile's description of the split.
+
+**Measurement** (after the rules, 0f8e3c0; on d00ffa9; one heavy job at a time, from 22:21 to 03:04).
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| Soundness 1: the worlds check, at least 20,000 per generator | 60,000 ad hoc cases (seeds `d35-rule-tiny`, `d35-rule-ordered`, `d35-rule-during`): **0 violations**. The split ran on 3,065, 3,277 and 6,945 of them, and decided every set it ran on in 2,457, 3,277 and 6,291; on the rest the gate refused (shared variables) somewhere. The suite repeats this on 600 cases per generator and the review cases | met |
+| Soundness 2: equal to the truth where the split ran and completed | All 12,025 such cases (and every other decided case) compared with `truth` by enumeration: **0 differences** | met |
+| Soundness 3: the reference | Agrees on all 60,000: status, what is reported beside it, and every reported binding (`binding_reaches`) | met |
+| Soundness 4: planted defects | Over 15,000 cases (5,000 per generator, seed `d35-rule-defects`), counted as unsound / not the truth: tie δ ignored 15 / 15; narrowing dropped 492 / 452; exact on one scenario 550 / 534; a `during` reading the picked event's end 119 / 112. The suite catches each one; the tie is caught by a named case (`TIE_CASE`) | met |
+| Movement 1: only from undecided, by the engine's own result | Small cases: every changed result started undecided and ended decided (2,457, 3,277 and 6,291). The 300 digests: 12 seeds and 35 engine results moved. 27 went to a decision. The other 8 stay undecided: 6 `unresolved` → `possible` with `EXACT_SEARCH_STOPPED` (seed 144, whose query has a search budget of at most 300), and 2 `unresolved` → `none` with `RELAXATION_ORDER_UNCERTAIN`. In process on the kept snapshots: 13 results at 1,000, all to a decision; 169 at 10,000, 168 to a decision and 1 within undecided (a `relaxed` result whose exact search stopped). No decided result changed anywhere | met |
+| Movement 2: switch off reproduces main | The 300 recorded digests (a test), and all 50 in-process per-query digests at 1,000 and 10,000 against main's code (39b72c7, extracted) | met |
+| Movement 3: MIMIC unchanged | Every figure of the regenerated demo report other than artifact bindings, timings and resources equals D34's; the snapshot identifier is unchanged too | met |
+| Movement 4: the fixture | `execution_store_match_digests_d35.json`, recomputed by `D35MovementTests` | met |
+| Usefulness 1: Q1 at most 1 of 10 unresolved | **0 of 10**. All ten candidates are `possible` with `complete: true` (none `exact`, none incomplete). Main's engine gave 9 `unresolved` and 1 `possible` | met |
+| Usefulness 2: at least 75% of order-uncertain results decided | 1,000: none exist (vacuous). 10,000: **12 of 12** decided, every one `unresolved` → `none` with `complete: true` (no `possible` among them). Order-note results, reported: 13 of 35 decided at 1,000 and 156 of 445 at 10,000 | met |
+| **Latency** (paired, 300,000, 14 workers) | Ratios by pair 0.954, 0.969, 0.966, 0.900 (reference first, candidate first, reference first, candidate first); pooled 0.973. This tree's p95 **8.97 s** (9.21, 8.53, 8.48, 8.24 by repeat), max 12.21 s, 0.75 GiB; main's code in the same session 9.22 s | met |
+
+*What the latency figures show.* Seed 29 is slower: median 7.73 → 8.44 s over the four 14-worker pairs (+9%), the cost of the split on its order-note sets. Seed 21 is about the same (3.20 → 3.24 s). The p95 of 30 queries is the second-slowest query: in every run of both codes it is seed 26, except main's first run (seed 15). Seed 29 is third in three of this tree's four runs, within 0.1 s of seed 26, so the p95 rule had little margin against seed 29 overtaking. Seed 7 stays the maximum. Total time per run moved by 0.96 to 0.99. *At 8 workers* (reported): ratios 0.978, 1.024, 0.996, 1.055. Both candidate-first pairs are above 1, so this tree is slower there or the order matters; pooled 1.043. This tree's p95 is 10.91 s and main's 10.45 s in the same session; the 8-worker target is still missed, as it has been since D30. *The sequential confirmation* (reported, not the rule): 14 workers p95 10.01 s (D34: 8.12 s), 8 workers 9.93 s (9.94 s). The 14-worker arm runs last, after about 90 minutes of load, and drifted in the same way in D31. The paired runs govern, and in them this tree is faster than main at 14 workers in every pair, which a change that only adds work cannot cause. So the gap between 0.90 and 1.0 is noise and order, and the honest reading is "no measurable regression at 14 workers, about +4% at 8".
+
+*Byte identity at scale.* Arm B's per-query digests differ from D34's exactly where the in-process check said they would: seeds 29 and 34 at 1,000; 21, 29, 34 and 42 at 10,000; none at 100,000 and 300,000 (their ten queries carry no undecided set); seeds 21 and 29 in the confirmation. In the paired run the two codes agree on 28 of 30 queries (seeds 21 and 29 differ), and each code's digests are stable across its runs. Arms B, `B_unpruned` and every C arm agree at every size. Arm A's digests equal D34's.
+
+*Scaling, with the D34 builds reused* (`--reuse-builds`; its first use at 1,000,000). The reuse probe's build recorded exactly what D34's builds recorded, so reuse was accepted. The run took **1,740 s against D34's fresh 9,197 s**. By size (this run against D34's): 1,000: 24 / 39 s; 10,000: 134 / 225 s; 100,000: 109 / 666 s; 300,000: 326 / 1,913 s; 1,000,000: 1,137 / 6,354 s. Snapshot identifiers, table rows and every query's candidate count equal D34's. Each size says `build_reused`, and the results page marks its build figures (†) and names the origin. Status mixes:
+- 1,000: `relaxed` 561 → 574, `none` 38,918 → 38,905; incomplete `none` with `RELAXATION_ORDER_UNCERTAIN` 35 → 22.
+- 10,000:
+  - `unresolved` 375 → 363 (the 12 order-uncertain results, now `none`);
+  - `relaxed` 5,814 → 5,958;
+  - `none` 389,606 → 389,475;
+  - `not_comparable` 61,627 → 61,626 (an engine `none` with an order note that the coverage rule had read as `not_comparable`, now decided as `relaxed`, as in D31's part B1);
+  - incomplete `none` with `RELAXATION_ORDER_UNCERTAIN` 431 → 288.
+- 100,000, 300,000 and 1,000,000: unchanged.
+
+**Evidence in proportion** (from the independent review):
+- The 10,000 usefulness rule rests on 12 patients of a single query (seed 21).
+- The Q1 bar was set after the prototype had measured 0 of 10 (disclosed in the rules).
+- Every Q1 result becomes `possible`, not `exact`: the split says what is true of these records, which is that the blocker may or may not have been the first.
+- Usefulness as a whole rests on two queries and about 22 patients.
+- The small-case checks are broad (60,000 cases, three generators). The cohort-level gain is narrow. The order-note results, which K = 64 mostly leaves undecided (22 of 35 and 289 of 445 still undecided), are where most of the remaining undecided results are.
+
+**Independent review** (its scripts in `/tmp/rv35`). No must-fix. About 116,000 fuzz cases against its own enumeration oracle found 0 wrong `exact`, `none` or `possible`; `_SPLIT` off is byte-identical to main; no build file was touched. Its other points, folded in here as documentation (no code changed after the rules' measurements):
+- *"Decided" was undefined in the usefulness rules.* Usefulness had been measured before the review arrived, so the rule stands as written. Read strictly, decided means `exact`, `none` or `relaxed`, or `possible` with `complete: true`, and anything with `complete: false` is undecided. Under that reading the verdicts are the same: Q1's ten are all complete `possible`, and the 12 at 10,000 are all complete `none`. The 300-digest fixture does hold 6 incomplete `possible` results (seed 144), counted there as within undecided.
+- *Stopped searches.* The design said a stopped search is not handed to the split; on D30's path a stopped second search is (corrected above, point 1). Harmless.
+- *The closure's stated reason was wrong* (corrected above, point 2); the closure only enlarges products.
+- *The scenario view shares mutable state with `Times`* (`component`, `synthetic`, `_occurrences`, `_relations`). It is safe only because nothing writes new values there through a view: the occurrences and the records' keys are computed on the patient's own `Times` first, and `_solve` rewrites `component` with the same roots. That is fragile; a later change that creates points or occurrences through a view would corrupt the patient's own cache.
+- *D18 point 8* reworded above: only the upper end (for `first`) or the lower end (for `last`) of the picked event's start range is read.
+
+*Follow-ups:*
+- `trajectory_graph_worlds.check` flags `possible` with `EXACT_SEARCH_STOPPED` as unsound whenever some binding is exact, though such a result does not claim that no binding is exact. This predates D35 (the engine's own `EXACT_SEARCH_STOPPED`). No check here met it: the small cases have a 10,000,000 budget.
+- The gate multiplies the possible targets of two steps on one concept and occurrence, though only their diagonal scenarios are feasible; counting them once would admit more sets.
+- Planted defects to add: the first–last pair facts dropped, and the conditional target facts dropped.
+- Latency watch:
+  - `_split_exact` costs up to the search budget times the number of feasible scenarios;
+  - `_scenario_view` rebuilds and re-sorts every kernel record per scenario;
+  - seed 29's +9% is the measured cost of both.
+- K: the order-note results need products up to 2,048 (91% within 128). Widening K is a later increment's question, under its own rule.
+
+**Decision: D35 ships.** The target split decides the sets D30 and D31 left undecided, wherever its gate admits them and its searches complete. Every result it decides equals the profile's semantics, and nothing decided before D35 changed. The parity trajectory that sank D33's graph template is now decided for all ten candidates. Rises and falls can be retried under their own rule, with a usefulness test on more patients.

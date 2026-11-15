@@ -217,6 +217,35 @@ def check(result, query, patient, horizon=None):
     return wrong
 
 
+def _horizon(query, patient):
+    window = patient['window']
+    return max([window['end']] + [v for e in patient['events'] for v in e['start'] + e.get('end', []) if v is not None]) \
+        + 1 + max([r.get('grace', 0) for r in query.get('relations', []) if r['kind'] == 'during'] + [0])
+
+
+def truth(query, patient, horizon=None):
+    """The true result as (status, relaxation ids, certainty) (D35): `exact` or `possible` when the unrelaxed query is,
+    else `relaxed` by the first relaxation set within the budget that is possible, with the certainty it reaches, else
+    `none`. A decided engine result must equal it; `check` asks only that what a result claims be true."""
+    events, all_worlds = worlds(patient, _horizon(query, patient) if horizon is None else horizon)
+    window = patient['window']
+    unrelaxed = _Question(query, (), events, all_worlds, window)
+    if unrelaxed.exact():
+        return ('exact', None, None)
+    if unrelaxed.possible():
+        return ('possible', None, None)
+    for chosen in _sets(query):
+        question = _Question(query, chosen, events, all_worlds, window)
+        if question.possible():
+            return ('relaxed', [x['id'] for x in chosen], 'exact' if question.exact() else 'possible')
+    return ('none', None, None)
+
+
+def result_key(result):
+    """An engine result as `truth` names it: (status, relaxation ids, certainty)."""
+    return (result['status'], result.get('relaxations'), result.get('certainty'))
+
+
 # D32: derived steps read as what they mean. The store compiles an Nth occurrence into a point over its envelope and a
 # count into tags on the records at which it is reached; here neither is used. In a world:
 # - an Nth step's time is the Nth smallest start (Nth from last: the Nth largest) among the patient's coded events of

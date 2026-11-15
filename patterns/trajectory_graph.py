@@ -34,6 +34,8 @@ The decision procedure (docs/trajectory-graph-profile.md):
   exact, and the result is otherwise unresolved (`decide_ordered`). Since D31 a step another
   step can bind is decided by one envelope search that over-approximates the true semantics,
   so its exact and none results stand and a binding it finds leaves the result unresolved.
+  Since D35 a set either rule leaves undecided is decided exactly by a split over the possible
+  targets of its uncertain steps (`_target_split`), where a gate admits it.
 
 `patterns/trajectory_graph_reference.py` enumerates every binding instead, and the tests
 compare the two on seeded random trajectories of every shape.
@@ -670,6 +672,24 @@ class OrderFact(Constraint):
         e = binding[self.y[0]]
         return e.sv not in times.synthetic and self.concept in e.concepts
 
+    def applies_to(self, e, times):
+        """`applies`, given the event the step `y` names is bound to."""
+        return self.concept is None or (e.sv not in times.synthetic and self.concept in e.concepts)
+
+
+@dataclass(frozen=True)
+class TargetFact(OrderFact):
+    """D35: a conditional fact of the target split, value(y) - value(x) in [lo, hi] on two steps' starts, that holds
+    when the step `y` names is bound to one of the patient's own events listed in `ids` (never to a point
+    `_Occurrence` adds). Its `concept` is None, so the possible phase's arcs scan its pairs one by one."""
+    ids: frozenset = frozenset()
+
+    def applies(self, binding, times):
+        return self.applies_to(binding[self.y[0]], times)
+
+    def applies_to(self, e, times):
+        return e.sv not in times.synthetic and e.id in self.ids
+
 
 def _applying(facts, binding, times):
     """The facts whose two steps `binding` binds and whose condition it meets."""
@@ -698,7 +718,7 @@ class _FactArc(_Arc):
         for c in self.facts:
             rx, ry = (ra, rb) if c.x[0] == a else (rb, ra)
             e = ry[_EVENT]
-            if c.concept is not None and (e.sv in times.synthetic or c.concept not in e.concepts):
+            if not c.applies_to(e, times):
                 continue
             if rx is ry or (rx[_KEYS] is not None and ry[_KEYS] is not None and not rx[_KEYS].isdisjoint(ry[_KEYS])):
                 if not plausible(c, {c.x[0]: rx[_EVENT], c.y[0]: e}, times):
@@ -1299,6 +1319,321 @@ def _exact_with_facts(times, plan, base, facts, budget, step_ids):
     return out
 
 
+# D35: the target split, a third stage of `decide_ordered` for the sets D30 and D31 leave undecided. A switch, for the
+# tests and the movement fixture that show what it moves; as the others here, a module global that worker processes
+# never see changed. `SPLIT_LIMIT` is the gate's K, fixed by the calibration in the decision log (D35).
+_SPLIT = True
+SPLIT_LIMIT = 64
+
+
+def _split_delta(which, t, y):
+    """0 when target t wins a tie with y in the profile's order (for `first`: (start range, end range, id), the least
+    wins; for `last`: (latest start, earliest start, end range, id), the greatest wins), else 1: in a choice of times
+    t is the target exactly when every other event y of its family starts at least this much after t (before, for
+    `last`)."""
+    if which == 'first':
+        return 0 if (t.s, t.f, t.id) < (y.s, y.f, y.id) else 1
+    return 0 if last_key(y) < last_key(t) else 1
+
+
+def _split_bounds(which, target, family):
+    """(lo, hi): the bounds on the start of `target` (a record) that the other events of its family give it as the
+    step's target, each of them eliminated (D35): for `first`, start <= hi(y) - delta for every other y; for `last`,
+    start >= lo(y) + delta. hi(y) and lo(y) are y's tightened start range (`Times.dom`, which reflects its own end), and
+    the family is unlinked, so each bound is exactly what eliminating y leaves on the target."""
+    t = target[_EVENT]
+    lo, hi = -INF, INF
+    for r in family:
+        if r is target:
+            continue
+        d = _split_delta(which, t, r[_EVENT])
+        if which == 'first':
+            hi = min(hi, r[_SHI] - d)
+        else:
+            lo = max(lo, r[_SLO] + d)
+    return lo, hi
+
+
+def _split_record(view, s, target, occurrence):
+    """The candidate record of split step s in one scenario: its target's record over the scenario's view (the target's
+    own start and end variables, with the narrowed ranges)."""
+    return _view_record(view, target)
+
+
+def _view_record(view, record):
+    """A kernel record over a view's ranges: the same event and keys (a view keeps the patient's components)."""
+    e, dom = record[_EVENT], view.dom
+    return (*dom[e.sv], *dom[e.fv], record[_KEYS], e)
+
+
+def _scenario_view(times, ranges):
+    """The patient's times in one scenario (D35): a copy whose split targets' starts lie in `ranges` ({event: (lo, hi)},
+    each an unlinked event's narrowed start), each target's end re-solved from its start in its own two-variable
+    component. Every other variable, component and distance is the patient's own: the targets are unlinked, so a bound
+    on one of them changes nothing else. Kernel records are rebuilt from the copy's ranges; ordered steps are given
+    their records by the caller."""
+    view = object.__new__(Times)
+    view.__dict__.update(times.__dict__)
+    view.dom, view.distance = dict(times.dom), dict(times.distance)
+    view._records, view._by_concept = None, {}
+    for e, (lo, hi) in ranges.items():
+        root = times.component[e.sv]
+        if e.sv == e.fv or root not in times.distance:
+            view.dom[e.sv] = (lo, hi)
+            continue
+        index, _ = times.distance[root]
+        members = sorted(index, key=index.get)
+        bounds = {v: times.dom[v] for v in members}
+        bounds[e.sv] = (lo, hi)
+        view._solve(root, members, bounds, [(e.sv, e.fv)], {(e.sv, e.fv)} if e.proper else ())
+    return view
+
+
+def _split_scenarios(plan, targets, split):
+    """The scenarios of the split steps that are feasible (D35's Σ*), in candidate order, each as (targets, ranges,
+    facts): the target record of each split step; the narrowed start range of each target event (the unary bounds of
+    its family's other events, then tightened by the facts between targets); and the fixed facts between split steps:
+    - a target in another split step's family keeps its variable: value(u) - value(s) >= delta (s `first`), or
+      value(s) - value(u) >= delta (s `last`), on their starts;
+    - an event in a `first` family (target T_u) and a `last` one (target T_v), the target of neither, eliminated:
+      value(v) - value(u) >= delta_u + delta_v.
+    Feasibility is that of the targets' starts under these (the families are unlinked, so each target's own start
+    range carries its end), decided by shortest paths over them."""
+    pools = [targets[s].possible() for s in split]
+    which = {s: plan.occurrence[s] for s in split}
+    family = {s: targets[s].records for s in split}
+    members = {s: {id(r) for r in family[s]} for s in split}
+    out = []
+    for combo in _product(pools):
+        chosen = dict(zip(split, combo))
+        nodes = {}
+        for s in split:
+            nodes.setdefault(id(chosen[s]), chosen[s])
+        bound = {k: (r[_SLO], r[_SHI]) for k, r in nodes.items()}
+        for s in split:
+            lo, hi = _split_bounds(which[s], chosen[s], family[s])
+            a, b = bound[id(chosen[s])]
+            bound[id(chosen[s])] = (max(a, lo), min(b, hi))
+        facts, edges = [], []  # edges: (u, v, w) for value(v) - value(u) >= w, between target nodes
+        for s in split:
+            ts = chosen[s]
+            for u in split:
+                tu = chosen[u]
+                if u == s or tu is ts or id(tu) not in members[s]:
+                    continue
+                d = _split_delta(which[s], ts[_EVENT], tu[_EVENT])
+                if which[s] == 'first':
+                    facts.append(OrderFact((s, 's'), (u, 's'), d, INF, 'split'))
+                    edges.append((id(ts), id(tu), d))
+                else:
+                    facts.append(OrderFact((s, 's'), (u, 's'), -INF, -d, 'split'))
+                    edges.append((id(tu), id(ts), d))
+        ok = True
+        for u in split:
+            if which[u] != 'first':
+                continue
+            for v in split:
+                if which[v] != 'last':
+                    continue
+                tu, tv = chosen[u], chosen[v]
+                w = None
+                for r in family[u]:
+                    if r is tu or r is tv or id(r) not in members[v]:
+                        continue
+                    x = _split_delta('first', tu[_EVENT], r[_EVENT]) + _split_delta('last', tv[_EVENT], r[_EVENT])
+                    w = x if w is None else max(w, x)
+                if w is None:
+                    continue
+                if tu is tv:
+                    ok = ok and w <= 0
+                    continue
+                facts.append(OrderFact((u, 's'), (v, 's'), w, INF, 'split'))
+                edges.append((id(tu), id(tv), w))
+        if not ok:
+            continue
+        ranges = _target_ranges(bound, edges)
+        if ranges is None:
+            continue
+        out.append(({s: chosen[s] for s in split}, {nodes[k][_EVENT]: ranges[k] for k in nodes}, facts))
+    return out
+
+
+def _product(pools):
+    if not pools:
+        yield ()
+        return
+    for head in pools[0]:
+        for rest in _product(pools[1:]):
+            yield (head, *rest)
+
+
+def _target_ranges(bound, edges):
+    """The tightest start range of each target under its unary bounds and the edges (value(v) - value(u) >= w), or None
+    when they leave no time: shortest paths over the targets and a zero node."""
+    keys = list(bound)
+    n = len(keys) + 1
+    at = {k: i + 1 for i, k in enumerate(keys)}
+    d = [[0 if i == j else INF for j in range(n)] for i in range(n)]
+    for k, (lo, hi) in bound.items():
+        if lo > hi:
+            return None
+        d[0][at[k]] = min(d[0][at[k]], hi)    # value(k) - zero <= hi
+        d[at[k]][0] = min(d[at[k]][0], -lo)   # zero - value(k) <= -lo
+    for u, v, w in edges:
+        d[at[v]][at[u]] = min(d[at[v]][at[u]], -w)  # value(u) - value(v) <= -w
+    for k in range(n):
+        dk = d[k]
+        for i in range(n):
+            dik = d[i][k]
+            if dik != INF:
+                d[i] = [a if a <= dik + b else dik + b for a, b in zip(d[i], dk)]
+    if any(d[i][i] < 0 for i in range(n)):
+        return None
+    return {k: (-d[at[k]][0], d[0][at[k]]) for k in keys}
+
+
+def _split_facts(plan, targets, split, chosen, step_ids):
+    """The conditional facts of one scenario between a split step s (target T, family F) and another step t that can
+    bind an event of F other than T (D35): an `any` step whose concept such an event carries, or a certain `first` or
+    `last` step whose event it is. value(t) - value(s) >= delta(T, y) (s `first`), or value(s) - value(t) >= delta(T, y)
+    (s `last`), when t is bound to y, grouped by delta. A safe step outside the split binds no such event."""
+    out = []
+    for s in split:
+        which, ts = plan.occurrence[s], chosen[s]
+        for t in step_ids:
+            if t in split or t == s:
+                continue
+            if plan.occurrence[t] == 'any':
+                concept = plan.concepts[t]
+                pool = [r for r in targets[s].records if r is not ts and concept in r[_EVENT].concepts]
+            elif targets[t] is not None and targets[t].certain:
+                pool = [r for r in targets[s].records if r is not ts and r is targets[t].record]
+            else:
+                continue
+            groups = {}
+            for r in pool:
+                groups.setdefault(_split_delta(which, ts[_EVENT], r[_EVENT]), set()).add(r[_EVENT].id)
+            for d, ids in sorted(groups.items()):
+                lo, hi = (d, INF) if which == 'first' else (-INF, -d)
+                out.append(TargetFact((s, 's'), (t, 's'), lo, hi, 'split', None, frozenset(ids)))
+    return out
+
+
+def _target_split(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids):
+    """D35: decide a set D30 or D31 left undecided exactly, by splitting over the possible targets of its uncertain
+    steps, or return None (the undecided result stands).
+
+    In a choice of times the target of a `first` step is T exactly when every other event y of its family starts at
+    least delta(T, y) after T (`_split_delta`; before T, for `last`): difference constraints. A scenario gives each split
+    step one possible target; the choices of times whose targets are that scenario form a simple temporal network, the
+    scenarios partition the choices of times, and in a scenario each split step reads its own target's start and end.
+    The split steps are the unsafe ones, closed under sharing an event of their families with an uncertain step; the
+    gate asks that their families name no shared variable and that the product of their possible targets is at most
+    `SPLIT_LIMIT`. Every unbound event of a split family is eliminated exactly (`_split_bounds`, the pair facts of
+    `_split_scenarios`); a bound one keeps its variable, with a conditional fact (`_split_facts`). Then:
+    - possible phase: per feasible scenario, in order, `decide` without its exact phase, each split step on its target
+      over the scenario's view (`_scenario_view`), with the facts; the scenarios share the query's search budget. The
+      first binding found holds in some choice of times;
+    - exact phase, if a binding was found: one search over the other steps, a binding accepted only if every constraint
+      is certain in every feasible scenario (`_split_exact`);
+    - none, if every scenario's search completed empty. A stopped possible phase decides nothing (None).
+    The argument is in the decision log (D35) and the profile."""
+    split = [s for s in uncertain if s in unsafe]
+    family = {s: {id(r) for r in targets[s].records} for s in uncertain}
+    grew = True
+    while grew:
+        grew = False
+        for s in uncertain:
+            if s not in split and any(not family[s].isdisjoint(family[t]) for t in split):
+                split.append(s)
+                grew = True
+    split = [s for s in uncertain if s in split]
+    if not all(targets[s].unlinked for s in split):
+        return None
+    if math.prod(len(targets[s].possible()) for s in split) > SPLIT_LIMIT:
+        return None
+    scenarios = []
+    for chosen, ranges, fixed in _split_scenarios(plan, targets, split):
+        view = _scenario_view(times, ranges)
+        override = {s: v for s, v in safe.items() if s not in split}
+        for s in split:
+            override[s] = [_split_record(view, s, chosen[s], targets[s])]
+        for t in plan.ordered:
+            if t not in override and targets[t] is not None:
+                override[t] = [_view_record(view, targets[t].record)]
+        scenarios.append((chosen, view, override, fixed + _split_facts(plan, targets, split, chosen, step_ids)))
+    remaining, found = budget, None
+    for chosen, view, override, facts in scenarios:
+        p = decide(query, view, relaxations, remaining, plan, override, exact=False, facts=facts)
+        if p['possible']['found']:
+            found = p
+            break
+        if not p['possible']['complete']:
+            return None
+        remaining -= p['possible'].get('search_steps', 0)
+    result = {'forest': plan.forest}
+    if found is None:
+        result['exact'] = {'found': False, 'complete': True, 'method': 'target_split'}
+        result['possible'] = {'found': False, 'complete': True, 'method': 'target_split'}
+        return result
+    exact = _split_exact(times, plan, budget, step_ids, split, safe, targets, scenarios)
+    if exact['found']:
+        result['exact'] = exact
+        return result
+    result['exact'] = exact
+    result['possible'] = {'found': True, 'complete': True, 'method': 'target_split_' + found['possible']['method'],
+                          'binding': found['possible']['binding'], 'witness': found['possible']['witness']}
+    return result
+
+
+def _split_exact(times, plan, budget, step_ids, split, safe, targets, scenarios):
+    """The target split's exact phase (D35): the first binding of the steps outside the split (`any` steps on their
+    candidates, safe ones on their envelope points, certain ones on their events) under which every constraint is
+    certain in every feasible scenario (`_certain_jointly` over the scenario's view and facts, each split step on its
+    target). A constraint among those steps reads the same variables in every scenario, and the scenarios' choices of
+    times are all the patient's, so it is certain in every scenario exactly when it is certain over the patient: unary
+    and pairwise certainty prune exactly. The search has the query's budget; a split step's binding names its picked
+    event."""
+    rest = [s for s in step_ids if s not in split]
+    base = {}
+    for s in rest:
+        if s in safe:
+            base[s] = safe[s]
+        else:
+            base[s] = plan.candidates(s, times)
+    domains = plan.domains(base, certain, times)
+    constraints = plan.constraints
+    picked = {s: targets[s].record[_EVENT] for s in split}
+    if not all(domains.values()) or not _arc_consistency(
+            domains, [a for a in plan.arcs[certain] if a.a in base and a.b in base], times):
+        return {'found': False, 'complete': True, 'method': 'target_split_exact'}
+    domains = {s: [r[_EVENT] for r in domains[s]] for s in rest}
+    n = len(rest)
+
+    def every(b):
+        for chosen, view, override, facts in scenarios:
+            full = dict(b)
+            full.update({s: override[s][0][_EVENT] for s in split})
+            if not _certain_jointly(full, constraints, facts, view):
+                return False
+        return True
+
+    def accept(b):
+        if not all(certain(c, b, times) for c in constraints if all(t[0] in ANCHORS or t[0] in b for t in (c.x, c.y))):
+            return False
+        return len(b) < n or every(b)
+    meter = Budget(budget)
+    if n:
+        found = _backtrack(sorted(rest, key=lambda s: len(domains[s])), domains, accept, meter)
+    else:
+        found = {} if every({}) else None
+    out = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
+           'method': 'target_split_exact', 'search_steps': meter.steps}
+    if found is not None:
+        out['binding'] = {s: (found[s] if s in found else picked[s]) for s in step_ids}
+    return out
+
+
 def decide_ordered(query, times, relaxations, budget, plan=None):
     """`decide`, made sound for `first` and `last` steps whose target the patient's facts leave uncertain (D30).
 
@@ -1319,7 +1654,9 @@ def decide_ordered(query, times, relaxations, budget, plan=None):
       over-approximation, and a binding found leaves the set undecided ('possible');
     - otherwise (D30) a binding found on the picked event proves nothing either way: undecided, with the binding
       beside it; and when none is found the search is repeated with every event that can be first (last) as the
-      step's candidates, a superset of the true targets, so a none there is sound; anything else is undecided."""
+      step's candidates, a superset of the true targets, so a none there is sound; anything else is undecided.
+    A set either path leaves undecided (not a stopped search) goes to the target split (D35, `_target_split`), which
+    decides it exactly where its gate admits it and its searches complete; otherwise the undecided result stands."""
     step_ids = [s['id'] for s in query['steps']]
     plan = plan or _Plan(query, relaxations)
     if not plan.ordered or not _ORDER_RULE:
@@ -1334,15 +1671,26 @@ def decide_ordered(query, times, relaxations, budget, plan=None):
             safe[s] = [targets[s].synthetic()]
         else:
             unsafe.append(s)
+
+    def undecided(r, why):
+        # D35: a set left undecided goes to the target split, which decides it where its gate admits it and its searches
+        # complete; otherwise the undecided result stands.
+        if _SPLIT:
+            split = _target_split(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids)
+            if split is not None:
+                return split, None
+        return r, why
+
     if unsafe and _ENVELOPE and all(_covered(plan, s, targets) for s in unsafe):
-        return _envelope_search(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids)
+        r, why = _envelope_search(query, times, relaxations, budget, plan, targets, safe, unsafe, uncertain, step_ids)
+        return (r, None) if why is None else undecided(r, why)
     r = decide(query, times, relaxations, budget, plan, safe)
     if not unsafe:
         return r, None
     if r['exact']['found']:
-        return r, ('exact', uncertain)
+        return undecided(r, ('exact', uncertain))
     if r['possible']['found']:
-        return r, ('possible', uncertain)
+        return undecided(r, ('possible', uncertain))
     if not r['possible']['complete']:
         return r, None  # a stopped search: unresolved already
     wide = dict(safe)
@@ -1350,7 +1698,7 @@ def decide_ordered(query, times, relaxations, budget, plan=None):
     # Only whether any binding exists matters here, so the exact phase is skipped (D30 review, lever 3).
     again = decide(query, times, relaxations, budget, plan, wide, exact=not _LEVERS)
     if again['exact']['found'] or again['possible']['found'] or not again['possible']['complete']:
-        return r, ('none', uncertain)
+        return undecided(r, ('none', uncertain))
     return r, None
 
 
