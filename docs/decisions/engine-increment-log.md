@@ -46,7 +46,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D32 | Nth and Nth-from-last occurrence, and "at least N times within a span or the index period", in the store's match request, over coded records; the converter's optional `series`; the translator and parity extension, under rules fixed before measuring | Decided; shipped. Sound on every check: 0 violations in 120,000 small cases against every choice of times, the reference agrees, 14 planted defects caught, 0 mismatches on 53,280 synthetic and 15,600 demo results. An early review's must-fix (derived tag names could collide) was fixed and everything regenerated. No change without the new fields: 300 digests, every matcher digest, scaling and MIMIC as D31. No latency regression: paired 14-worker p95 ratios 1.001 to 1.010 against main (bar 1.05), p95 8.10 s; replication 0.93 to 1.05. Parity 555 of 672 over fourteen trajectories, every difference named |
 | D33 | Rises and falls (relative conditions) in the store's match request: a baseline of up to k previous readings within W, period readings timed by their period's start, the two-pass rule; and a build fingerprint so that engine-only changes can reuse the scaling report's builds, under rules fixed before measuring | Built and sound (60,000 small cases and 500 snapshot requests, 0 violations and 0 mismatches; seven planted defects caught), **not shipped**: the usefulness bar (at most 30% unresolved in each rise template) was missed on the graph template, 3 of its 4 candidates (one patient moves the share by 25 points), by D30's order rule on its `first` blocker; rises stay refused by name. The build fingerprint moved to its own increment after a review's must-fix; this branch changes documentation only |
 | D34 | A runtime record of what the scaling report's builds load and read, by whole-file digests, with the engine split so that a build loads no matching code, so that a change to matching alone can reuse the report's builds (the static fingerprint of D33's part 2 superseded after two reviews), under rules fixed before measuring | Decided; shipped after three reviews. Every rule met (one stated exception: D32's paired verdict frozen). Results byte-identical: 300 digests, 1,170 matcher digests, scaling and MIMIC as D32. Reuse shown in tests, not yet at scale |
-| D35 | An exact target split for the relaxation sets D30 and D31 leave undecided (`first` and `last` steps whose target is uncertain, typically with their end read), under rules fixed before measuring, after a disclosed calibration | Rules committed; in progress |
+| D35 | An exact target split for the relaxation sets D30 and D31 leave undecided (`first` and `last` steps whose target is uncertain, typically with their end read), under rules fixed before measuring, after a disclosed calibration | Decided; shipped. Every rule met: 0 violations in 60,000 small cases, equal to the truth wherever the split completed, the reference agrees, four planted defects caught; only undecided results moved; MIMIC unchanged. The parity trajectory "a seizure while taking the first blocker" 0 of 10 unresolved (was 9; all `possible`); the 12 order-uncertain results at 10,000 all decided. Paired 14-worker p95 ratios 0.90 to 0.97 against main (bar 1.05), p95 8.97 s. First reuse of the scaling builds at 1,000,000: 1,740 s against 9,197 s. The evidence for usefulness is about 22 patients over two queries |
 
 ## D1 Package with hatchling, in place
 
@@ -1887,8 +1887,8 @@ D33's rises missed their usefulness bar because D30's order rule leaves a `first
 This is the true semantics rewritten as a finite disjunction of simple temporal networks: exact, not only sound.
 
 **Design** (the engine's stage, `_target_split`, behind a switch `_SPLIT`):
-1. *Where it runs.* Only on a set D30 or D31 leaves undecided (`decide_ordered`'s second value is not None): D30's `exact`, `possible` or `none` beside an unsafe step, and D31's envelope search that found a binding. A stopped search is not handed to it. Decided sets pay nothing.
-2. *Split steps S.* The unsafe uncertain steps, closed under "families share an event" over the uncertain ordered steps: a safe step whose family meets a split family is split too (the region constrains its events, so its envelope point would over-approximate). Other safe steps stay on their envelope points, which is exact and independent of the split; certain steps bind their events as before.
+1. *Where it runs.* Only on a set D30 or D31 leaves undecided (`decide_ordered`'s second value is not None): D30's `exact`, `possible` or `none` beside an unsafe step, and D31's envelope search that found a binding. A stopped first search is not handed to it. *Corrected after the review:* on D30's path a second search (over every possible target) that stops is reported as `none` beside an unsafe step, and that set is handed to the split; this is harmless, since the split decides only what its own complete searches decide. Decided sets pay nothing.
+2. *Split steps S.* The unsafe uncertain steps, closed under "families share an event" over the uncertain ordered steps: a safe step whose family meets a split family is split too. *Corrected after the review:* the reason given here was wrong. The closure is not needed for exactness: an event of the safe step's family that is not a split target already starts at least δ after that target in every world of the scenario, so keeping the safe step on its envelope point would also be exact. The closure is harmless; it only enlarges the scenario products. Other safe steps stay on their envelope points, which is exact and independent of the split; certain steps bind their events as before.
 3. *Gate.* Every split family is unlinked (`_Occurrence.unlinked`), and the product of the split steps' possible targets is at most K (below). Otherwise D30's or D31's undecided result stands.
 4. *Per scenario, over the steps' variables only.* Each family event no step binds is eliminated exactly (Fourier–Motzkin; it is unlinked, so this gives difference constraints only):
    - for a `first` step, T's start ≤ hi(y) − δ, with hi(y) from `Times.dom`, which already reflects y's own end;
@@ -1903,7 +1903,7 @@ This is the true semantics rewritten as a finite disjunction of simple temporal 
    - `possible`: the scenario's binding (the real targets) and witness, `complete: true` when the exact phase completed, otherwise `EXACT_SEARCH_STOPPED` (still undecided).
    - `none`: every scenario's search completed empty.
    - A stopped possible phase leaves the set undecided, with D30's or D31's result.
-8. *D18.* A split step's true start lies in its envelope, inside the picked event's start range (D31, point 11), so the displacement test on an `exact` binding's picked range is at least as wide as needed; a `possible` binding names a real target.
+8. *D18.* An `exact` binding names the picked event for a split step. *Reworded after the review:* the displacement test reads only one end of the picked event's start range, the upper end for `first` (an excluded record before it could have been first) and the lower end for `last`. The true target's start is at most the picked event's latest start for `first` (at least its earliest, for `last`; D30, decision 1), so that test is at least as wide as needed. A `possible` binding names a real target.
 9. *Not in scope:*
    - a split family that names a shared variable;
    - a product above K;
@@ -1980,3 +1980,69 @@ It shares no decision code with the engine.
   - Also regenerated: the MIMIC demo (it binds `trajectory_graph.py`), the matcher comparison with its confirmation and arm A, and the paired confirmation against main.
   - One heavy job at a time.
 - A failure is fixed, never tuned away. If a ship condition is missed, the stage is left switched off or reverted, and the numbers are recorded here.
+
+**Built** (d00ffa9):
+- the engine's `_target_split` and its switch, with `TargetFact`, the scenario view and the two phases;
+- the reference written again;
+- `trajectory_graph_worlds.truth`;
+- `during_case` and `TargetSplitTests`: worlds check, truth, reference, movement, the gate, a named tie case, and the four planted defects;
+- the D30 and D31 tests, which keep those increments' records, now run with the split off;
+- `D35MovementTests` and its fixture, and the 300 recorded digests re-recorded;
+- the store parity table and the mockups README;
+- the profile's description of the split.
+
+**Measurement** (after the rules, 0f8e3c0; on d00ffa9; one heavy job at a time, from 22:21 to 03:04).
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| Soundness 1: the worlds check, at least 20,000 per generator | 60,000 ad hoc cases (seeds `d35-rule-tiny`, `d35-rule-ordered`, `d35-rule-during`): **0 violations**. The split ran on 3,065, 3,277 and 6,945 of them, and decided every set it ran on in 2,457, 3,277 and 6,291; on the rest the gate refused (shared variables) somewhere. The suite repeats this on 600 cases per generator and the review cases | met |
+| Soundness 2: equal to the truth where the split ran and completed | All 12,025 such cases (and every other decided case) compared with `truth` by enumeration: **0 differences** | met |
+| Soundness 3: the reference | Agrees on all 60,000: status, what is reported beside it, and every reported binding (`binding_reaches`) | met |
+| Soundness 4: planted defects | Over 15,000 cases (5,000 per generator, seed `d35-rule-defects`), counted as unsound / not the truth: tie δ ignored 15 / 15; narrowing dropped 492 / 452; exact on one scenario 550 / 534; a `during` reading the picked event's end 119 / 112. The suite catches each one; the tie is caught by a named case (`TIE_CASE`) | met |
+| Movement 1: only from undecided, by the engine's own result | Small cases: every changed result started undecided and ended decided (2,457, 3,277 and 6,291). The 300 digests: 12 seeds and 35 engine results moved. 27 went to a decision. The other 8 stay undecided: 6 `unresolved` → `possible` with `EXACT_SEARCH_STOPPED` (seed 144, whose query has a search budget of at most 300), and 2 `unresolved` → `none` with `RELAXATION_ORDER_UNCERTAIN`. In process on the kept snapshots: 13 results at 1,000, all to a decision; 169 at 10,000, 168 to a decision and 1 within undecided (a `relaxed` result whose exact search stopped). No decided result changed anywhere | met |
+| Movement 2: switch off reproduces main | The 300 recorded digests (a test), and all 50 in-process per-query digests at 1,000 and 10,000 against main's code (39b72c7, extracted) | met |
+| Movement 3: MIMIC unchanged | Every figure of the regenerated demo report other than artifact bindings, timings and resources equals D34's; the snapshot identifier is unchanged too | met |
+| Movement 4: the fixture | `execution_store_match_digests_d35.json`, recomputed by `D35MovementTests` | met |
+| Usefulness 1: Q1 at most 1 of 10 unresolved | **0 of 10**. All ten candidates are `possible` with `complete: true` (none `exact`, none incomplete). Main's engine gave 9 `unresolved` and 1 `possible` | met |
+| Usefulness 2: at least 75% of order-uncertain results decided | 1,000: none exist (vacuous). 10,000: **12 of 12** decided, every one `unresolved` → `none` with `complete: true` (no `possible` among them). Order-note results, reported: 13 of 35 decided at 1,000 and 156 of 445 at 10,000 | met |
+| **Latency** (paired, 300,000, 14 workers) | Ratios by pair 0.954, 0.969, 0.966, 0.900 (reference first, candidate first, reference first, candidate first); pooled 0.973. This tree's p95 **8.97 s** (9.21, 8.53, 8.48, 8.24 by repeat), max 12.21 s, 0.75 GiB; main's code in the same session 9.22 s | met |
+
+*What the latency figures show.* Seed 29 is slower: median 7.73 → 8.44 s over the four 14-worker pairs (+9%), the cost of the split on its order-note sets. Seed 21 is about the same (3.20 → 3.24 s). The p95 of 30 queries is the second-slowest query: in every run of both codes it is seed 26, except main's first run (seed 15). Seed 29 is third in three of this tree's four runs, within 0.1 s of seed 26, so the p95 rule had little margin against seed 29 overtaking. Seed 7 stays the maximum. Total time per run moved by 0.96 to 0.99. *At 8 workers* (reported): ratios 0.978, 1.024, 0.996, 1.055. Both candidate-first pairs are above 1, so this tree is slower there or the order matters; pooled 1.043. This tree's p95 is 10.91 s and main's 10.45 s in the same session; the 8-worker target is still missed, as it has been since D30. *The sequential confirmation* (reported, not the rule): 14 workers p95 10.01 s (D34: 8.12 s), 8 workers 9.93 s (9.94 s). The 14-worker arm runs last, after about 90 minutes of load, and drifted in the same way in D31. The paired runs govern, and in them this tree is faster than main at 14 workers in every pair, which a change that only adds work cannot cause. So the gap between 0.90 and 1.0 is noise and order, and the honest reading is "no measurable regression at 14 workers, about +4% at 8".
+
+*Byte identity at scale.* Arm B's per-query digests differ from D34's exactly where the in-process check said they would: seeds 29 and 34 at 1,000; 21, 29, 34 and 42 at 10,000; none at 100,000 and 300,000 (their ten queries carry no undecided set); seeds 21 and 29 in the confirmation. In the paired run the two codes agree on 28 of 30 queries (seeds 21 and 29 differ), and each code's digests are stable across its runs. Arms B, `B_unpruned` and every C arm agree at every size. Arm A's digests equal D34's.
+
+*Scaling, with the D34 builds reused* (`--reuse-builds`; its first use at 1,000,000). The reuse probe's build recorded exactly what D34's builds recorded, so reuse was accepted. The run took **1,740 s against D34's fresh 9,197 s**. By size (this run against D34's): 1,000: 24 / 39 s; 10,000: 134 / 225 s; 100,000: 109 / 666 s; 300,000: 326 / 1,913 s; 1,000,000: 1,137 / 6,354 s. Snapshot identifiers, table rows and every query's candidate count equal D34's. Each size says `build_reused`, and the results page marks its build figures (†) and names the origin. Status mixes:
+- 1,000: `relaxed` 561 → 574, `none` 38,918 → 38,905; incomplete `none` with `RELAXATION_ORDER_UNCERTAIN` 35 → 22.
+- 10,000:
+  - `unresolved` 375 → 363 (the 12 order-uncertain results, now `none`);
+  - `relaxed` 5,814 → 5,958;
+  - `none` 389,606 → 389,475;
+  - `not_comparable` 61,627 → 61,626 (an engine `none` with an order note that the coverage rule had read as `not_comparable`, now decided as `relaxed`, as in D31's part B1);
+  - incomplete `none` with `RELAXATION_ORDER_UNCERTAIN` 431 → 288.
+- 100,000, 300,000 and 1,000,000: unchanged.
+
+**Evidence in proportion** (from the independent review):
+- The 10,000 usefulness rule rests on 12 patients of a single query (seed 21).
+- The Q1 bar was set after the prototype had measured 0 of 10 (disclosed in the rules).
+- Every Q1 result becomes `possible`, not `exact`: the split says what is true of these records, which is that the blocker may or may not have been the first.
+- Usefulness as a whole rests on two queries and about 22 patients.
+- The small-case checks are broad (60,000 cases, three generators). The cohort-level gain is narrow. The order-note results, which K = 64 mostly leaves undecided (22 of 35 and 289 of 445 still undecided), are where most of the remaining undecided results are.
+
+**Independent review** (its scripts in `/tmp/rv35`). No must-fix. About 116,000 fuzz cases against its own enumeration oracle found 0 wrong `exact`, `none` or `possible`; `_SPLIT` off is byte-identical to main; no build file was touched. Its other points, folded in here as documentation (no code changed after the rules' measurements):
+- *"Decided" was undefined in the usefulness rules.* Usefulness had been measured before the review arrived, so the rule stands as written. Read strictly, decided means `exact`, `none` or `relaxed`, or `possible` with `complete: true`, and anything with `complete: false` is undecided. Under that reading the verdicts are the same: Q1's ten are all complete `possible`, and the 12 at 10,000 are all complete `none`. The 300-digest fixture does hold 6 incomplete `possible` results (seed 144), counted there as within undecided.
+- *Stopped searches.* The design said a stopped search is not handed to the split; on D30's path a stopped second search is (corrected above, point 1). Harmless.
+- *The closure's stated reason was wrong* (corrected above, point 2); the closure only enlarges products.
+- *The scenario view shares mutable state with `Times`* (`component`, `synthetic`, `_occurrences`, `_relations`). It is safe only because nothing writes new values there through a view: the occurrences and the records' keys are computed on the patient's own `Times` first, and `_solve` rewrites `component` with the same roots. That is fragile; a later change that creates points or occurrences through a view would corrupt the patient's own cache.
+- *D18 point 8* reworded above: only the upper end (for `first`) or the lower end (for `last`) of the picked event's start range is read.
+
+*Follow-ups:*
+- `trajectory_graph_worlds.check` flags `possible` with `EXACT_SEARCH_STOPPED` as unsound whenever some binding is exact, though such a result does not claim that no binding is exact. This predates D35 (the engine's own `EXACT_SEARCH_STOPPED`). No check here met it: the small cases have a 10,000,000 budget.
+- The gate multiplies the possible targets of two steps on one concept and occurrence, though only their diagonal scenarios are feasible; counting them once would admit more sets.
+- Planted defects to add: the first–last pair facts dropped, and the conditional target facts dropped.
+- Latency watch:
+  - `_split_exact` costs up to the search budget times the number of feasible scenarios;
+  - `_scenario_view` rebuilds and re-sorts every kernel record per scenario;
+  - seed 29's +9% is the measured cost of both.
+- K: the order-note results need products up to 2,048 (91% within 128). Widening K is a later increment's question, under its own rule.
+
+**Decision: D35 ships.** The target split decides the sets D30 and D31 left undecided, wherever its gate admits them and its searches complete. Every result it decides equals the profile's semantics, and nothing decided before D35 changed. The parity trajectory that sank D33's graph template is now decided for all ten candidates. Rises and falls can be retried under their own rule, with a usefulness test on more patients.
