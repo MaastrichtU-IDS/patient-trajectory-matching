@@ -61,6 +61,7 @@ class PreparedReference:
                 for c in ref.expanded([x['concept']], ancestors):
                     excluded.setdefault(c, []).append(position)
             self.patients.append({'patient_id': p['patient_id'], 'coverage': p['coverage'], 'events': events,
+                                  'ingest': p,
                                   'mentions': {e['event_id'] for e in p['events'] if e['kind'] == 'mention'},
                                   'index': index, 'shares': ref.shares_variables(p),
                                   'position': {e['id']: i for i, e in enumerate(events)},
@@ -124,16 +125,20 @@ class PreparedReference:
         change nothing, by the argument above."""
         dq = ref.DerivedQuery(self.ingest, query, conditions)
         value = dq.value
-        recorders = {**self.recorders, **(value.recorders if value else {})}
+        recorders = {**self.recorders, **(value.recorders if value else {}), **dq.unit_sources}
+        labels = (self.ingest.get('provenance') or {}).get('labels') or {}
+        period = [k for k in labels.get('period_reading_kinds', '').split(',') if k]
+        relative = any(spec[0] == 'relative' for spec in dq.spec.values())
         wanted = set().union(*dq.loads.values())
         concepts = set().union(*dq.base.values())
         results = []
         for p in self.patients:
             pid, window = p['patient_id'], windows.get(p['patient_id'])
             events = self.engine_events(p, wanted) if value is None else self.tagged_events(p, wanted, value)
-            result, points = ref.derived_result(dq, pid, window, events, p['mentions'])
+            readings = ref.patient_readings(p['ingest'], self.ancestors, period) if relative else None
+            result, points = ref.derived_result(dq, pid, window, events, p['mentions'], readings)
             if result['status'] == 'none':
-                result = coverage_rule(dq.query, dq.loads, recorders, p['coverage'], window, result)
+                result = coverage_rule(dq.query, dq.coverage_loads, recorders, p['coverage'], window, result)
             if window is not None and result['status'] != 'not_comparable':
                 positions = sorted({i for c in concepts for i in p['excluded_index'].get(c, ())})
                 relevant = {'patient_id': pid, 'excluded': [p['excluded'][i] for i in positions]}
