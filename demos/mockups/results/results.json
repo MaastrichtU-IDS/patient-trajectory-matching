@@ -5,12 +5,12 @@
    "by_workers": [
     {
      "max_seconds": [
-      13.06,
+      14.48,
       14.46
      ],
      "meets_target": false,
      "p95_seconds": [
-      9.86,
+      10.28,
       10.91
      ],
      "query_peak_gib": [
@@ -21,16 +21,16 @@
     },
     {
      "max_seconds": [
-      10.24,
+      11.44,
       12.21
      ],
      "meets_target": true,
      "p95_seconds": [
-      8.1,
+      8.64,
       8.97
      ],
      "query_peak_gib": [
-      0.75,
+      0.76,
       0.75
      ],
      "workers": 14
@@ -38,8 +38,8 @@
    ],
    "protocol": "paired-interleaved-1.0",
    "runs": [
-    "verdict run",
-    "replication"
+    "D36 verdict run",
+    "matcher report (D35)"
    ]
   },
   "identical_results": {
@@ -50,65 +50,65 @@
    {
     "arms": [
      {
-      "max_seconds": 13.06,
-      "meets_target": true,
+      "max_seconds": 14.48,
+      "meets_target": false,
       "p95_by_repeat": [
        9.86,
-       9.77,
-       9.84,
-       10.47
+       10.11,
+       10.1,
+       10.93
       ],
-      "p95_seconds": 9.86,
+      "p95_seconds": 10.28,
       "query_peak_gib": 0.74,
       "ratio_p95_by_repeat": [
-       1.022,
+       0.998,
+       0.941,
        0.993,
-       1.007,
-       1.038
+       1.006
       ],
-      "ratio_p95_pooled": 1.001,
+      "ratio_p95_pooled": 0.957,
       "ratio_total_by_repeat": [
-       1.011,
-       0.999,
-       1.0,
-       1.008
+       0.991,
+       0.952,
+       0.996,
+       1.004
       ],
-      "reference_p95_seconds": 9.84,
+      "reference_p95_seconds": 10.74,
       "workers": 8
      },
      {
-      "max_seconds": 10.24,
+      "max_seconds": 11.44,
       "meets_target": true,
       "p95_by_repeat": [
-       8.08,
-       8.12,
-       8.1,
-       8.13
+       8.07,
+       8.13,
+       8.64,
+       8.74
       ],
-      "p95_seconds": 8.1,
-      "query_peak_gib": 0.75,
+      "p95_seconds": 8.64,
+      "query_peak_gib": 0.76,
       "ratio_p95_by_repeat": [
        1.01,
-       1.001,
-       1.001,
-       1.001
+       1.0,
+       0.957,
+       0.964
       ],
-      "ratio_p95_pooled": 1.001,
+      "ratio_p95_pooled": 0.961,
       "ratio_total_by_repeat": [
-       1.017,
+       1.013,
        1.003,
-       0.999,
-       1.005
+       0.976,
+       0.981
       ],
-      "reference_p95_seconds": 8.09,
+      "reference_p95_seconds": 8.99,
       "workers": 14
      }
     ],
     "compared_queries": 30,
     "identical_queries": 30,
-    "name": "verdict run",
+    "name": "D36 verdict run",
     "queries": 30,
-    "reference": "7f5930e",
+    "reference": "81e812c",
     "repeats": 4
    },
    {
@@ -170,7 +170,7 @@
     ],
     "compared_queries": 30,
     "identical_queries": 28,
-    "name": "replication",
+    "name": "matcher report (D35)",
     "queries": 30,
     "reference": "39b72c7",
     "repeats": 4
@@ -303,6 +303,154 @@
    "source_concepts": 393
   }
  },
+ "rises": {
+  "children": 1440,
+  "cohorts": 30,
+  "mimic": {
+   "containment_violations": 0,
+   "factor_relaxations_checked": 11,
+   "mismatches": 0,
+   "named": [
+    "heart rate rising to at least 1.25 x the mean of up to 3 readings in the 6 hours before",
+    "invasive mean arterial pressure falling to at most the mean of up to 3 readings in the 6 hours before / 1.25"
+   ],
+   "pruning_on_off_differences": 0,
+   "queries": 62,
+   "results_compared": 6800,
+   "status_mix": {
+    "heart rate rising to at least 1.25 x the mean of up to 3 readings in the 6 hours before": {
+     "exact": 30,
+     "excluded": 6,
+     "none": 52,
+     "not_comparable": 9,
+     "unresolved": 3
+    },
+    "invasive mean arterial pressure falling to at most the mean of up to 3 readings in the 6 hours before / 1.25": {
+     "exact": 19,
+     "excluded": 7,
+     "none": 39,
+     "not_comparable": 19,
+     "relaxed": 14,
+     "unresolved": 2
+    },
+    "seeded": {
+     "exact": 63,
+     "excluded": 286,
+     "none": 1144,
+     "not_comparable": 4434,
+     "relaxed": 3,
+     "unresolved": 70
+    }
+   }
+  },
+  "seeds": [
+   1001,
+   1030
+  ],
+  "templates": [
+   {
+    "candidates": 189,
+    "name": "sequence",
+    "statuses": {
+     "none": 44,
+     "possible": 96,
+     "relaxed": 49
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 0
+   },
+   {
+    "candidates": 189,
+    "name": "tree without its gene step",
+    "statuses": {
+     "none": 42,
+     "possible": 102,
+     "relaxed": 45
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 0
+   },
+   {
+    "candidates": 142,
+    "name": "graph without its gene step",
+    "statuses": {
+     "none": 15,
+     "possible": 96,
+     "relaxed": 31
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 67
+   }
+  ],
+  "variants": [
+   {
+    "candidates": 189,
+    "name": "sequence, factor 1.5",
+    "statuses": {
+     "none": 21,
+     "possible": 127,
+     "relaxed": 41
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 0
+   },
+   {
+    "candidates": 173,
+    "name": "sequence, from the first seizure for 36 months",
+    "statuses": {
+     "none": 43,
+     "possible": 86,
+     "relaxed": 44
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 0
+   },
+   {
+    "candidates": 189,
+    "name": "tree without its gene step, factor 1.5",
+    "statuses": {
+     "none": 19,
+     "possible": 145,
+     "relaxed": 25
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 0
+   },
+   {
+    "candidates": 173,
+    "name": "tree without its gene step, from the first seizure for 36 months",
+    "statuses": {
+     "none": 41,
+     "possible": 92,
+     "relaxed": 40
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 0
+   },
+   {
+    "candidates": 142,
+    "name": "graph without its gene step, factor 1.5",
+    "statuses": {
+     "none": 13,
+     "possible": 127,
+     "relaxed": 2
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 97
+   },
+   {
+    "candidates": 126,
+    "name": "graph without its gene step, from the first seizure for 36 months",
+    "statuses": {
+     "none": 14,
+     "possible": 86,
+     "relaxed": 26
+    },
+    "unresolved": 0,
+    "unresolved_split_off": 57
+   }
+  ]
+ },
  "scaling": {
   "build_origin": {
    "first_built_at": "2026-11-14T13:19:52+00:00",
@@ -313,7 +461,7 @@
    "machine": "Apple M4 Pro"
   },
   "distinct_patients": 10000,
-  "generated_at": "2026-11-14T21:49:03+00:00",
+  "generated_at": "2026-11-15T13:54:53+00:00",
   "memory_limit": "4GB",
   "sizes": [
    {
@@ -323,11 +471,11 @@
     "events": 172754,
     "match_max_seconds": 0.2,
     "match_p50_seconds": 0.05,
-    "open_seconds_warm": 0.02,
+    "open_seconds_warm": 0.03,
     "patients": 1000,
     "pruned_share_mean": 0.699,
     "queries": 50,
-    "query_peak_gib": 0.56,
+    "query_peak_gib": 0.57,
     "snapshot_gb": 0.01,
     "verify_content_seconds": 0.8,
     "verify_peak_gib": 0.18
@@ -338,46 +486,46 @@
     "build_seconds": 51.0,
     "events": 1731493,
     "match_max_seconds": 2.5,
-    "match_p50_seconds": 0.39,
+    "match_p50_seconds": 0.38,
     "open_seconds_warm": 0.06,
     "patients": 10000,
     "pruned_share_mean": 0.699,
     "queries": 50,
     "query_peak_gib": 0.97,
     "snapshot_gb": 0.13,
-    "verify_content_seconds": 6.7,
-    "verify_peak_gib": 0.38
+    "verify_content_seconds": 6.6,
+    "verify_peak_gib": 0.39
    },
    {
     "build_peak_gib": 4.62,
     "build_reused": true,
     "build_seconds": 512.2,
     "events": 17314930,
-    "match_max_seconds": 23.9,
-    "match_p50_seconds": 1.24,
-    "open_seconds_warm": 0.43,
+    "match_max_seconds": 23.8,
+    "match_p50_seconds": 1.23,
+    "open_seconds_warm": 0.42,
     "patients": 100000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 1.18,
+    "query_peak_gib": 1.19,
     "snapshot_gb": 1.23,
-    "verify_content_seconds": 65.1,
-    "verify_peak_gib": 1.75
+    "verify_content_seconds": 64.6,
+    "verify_peak_gib": 1.73
    },
    {
     "build_peak_gib": 8.03,
     "build_reused": true,
     "build_seconds": 1541.2,
     "events": 51944790,
-    "match_max_seconds": 79.4,
-    "match_p50_seconds": 3.37,
-    "open_seconds_warm": 1.2,
+    "match_max_seconds": 79.1,
+    "match_p50_seconds": 3.34,
+    "open_seconds_warm": 1.18,
     "patients": 300000,
     "pruned_share_mean": 0.886,
     "queries": 10,
     "query_peak_gib": 2.34,
     "snapshot_gb": 3.55,
-    "verify_content_seconds": 191.1,
+    "verify_content_seconds": 190.5,
     "verify_peak_gib": 1.77
    },
    {
@@ -385,16 +533,16 @@
     "build_reused": true,
     "build_seconds": 5177.3,
     "events": 173149300,
-    "match_max_seconds": 316.3,
-    "match_p50_seconds": 11.73,
+    "match_max_seconds": 318.5,
+    "match_p50_seconds": 11.75,
     "open_seconds_warm": 1.79,
     "patients": 1000000,
     "pruned_share_mean": 0.886,
     "queries": 10,
     "query_peak_gib": 6.73,
     "snapshot_gb": 5.39,
-    "verify_content_seconds": 627.7,
-    "verify_peak_gib": 1.73
+    "verify_content_seconds": 627.9,
+    "verify_peak_gib": 1.72
    }
   ]
  },
@@ -405,15 +553,19 @@
   },
   "mimic": {
    "path": "verification/execution-store-mimic-demo-report.json",
-   "sha256": "6f0adf25df8a955aa8829734a7584d18691b8e2c23e4628810ef3560e154bf72"
+   "sha256": "74f73654950b988572031e4ef02dd461c54262d5b56347d5721e3d26779a800c"
+  },
+  "rises": {
+   "path": "verification/d36-rise-usefulness-report.json",
+   "sha256": "9c77414dc5080ffce08d3c3d05b033781c13881adb58abdc31ef67c7e2b1d582"
   },
   "scaling": {
    "path": "verification/execution-store-scaling-report.json",
-   "sha256": "788dcf8af9629cb4bc8032ac0bd82c23dc759cc4f9688d50d28b16d3c5dfae97"
+   "sha256": "caee35c24214872dd980805b6c78ff1b370a2423abf442c3ade60bb436f34aba"
   },
   "verdict": {
-   "path": "verification/d32-paired-verdict.json",
-   "sha256": "9e470f599d05d42e48c6c1dceeb70912a31bb6d46416a562abccb6a77720b0f9"
+   "path": "verification/d36-paired-verdict.json",
+   "sha256": "da3e80f17a48ace14b7fa5782b38d2fafba5ecdbbf9b610047dbce2a4254d411"
   }
  }
 }

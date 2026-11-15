@@ -8,6 +8,8 @@
 
 *D35 (2026-11-15) took up the cause of D33's miss: D30's order rule on a `first` step whose end a `during` reads. An exact split over the step's possible targets now decides the sets D30 and D31 left undecided (decision log, D35). On the synthetic cohort the parity trajectory "a seizure while taking the first blocker" went from 9 of 10 candidates unresolved to 0, all `possible`. The graph template's three unresolved patients come from the same rule, so a retry of section 3 should no longer meet it, but that retry needs its own rule and a usefulness test on more patients than four.*
 
+*D36 (2026-11-15) retried section 3 and shipped it: D33's implementation restored in `patterns/store_conditions_relative.py`, a module no build loads, under its own rules. 0 of 189, 0 of 189 and 0 of 142 candidates were unresolved in the three rise templates over 30 redrawn synthetic cohorts. With D35's split off, the graph template would have had 67 of 142. The translator writes rises by default (decision log, D36).*
+
 D29's stage-2 trigger: the store can express everything the trajectory page offers, or refuses it by name, and the parity test is clean. Clean means every difference is removed or accepted as a declared difference, measured with the converter itself emitting `series`.
 
 ## Changes after the review

@@ -36,6 +36,12 @@ span or a count within the index period (some on readings meeting a value condit
 must equal the prepared reference with the request on every query and `exhaustive_match` on the first
 `DERIVED_EXHAUSTIVE_SEEDS`, result for result, with pruning on and off byte-identical, and every count relaxation must
 hold the stricter tag's events. The report gives the unresolved share per feature.
+
+Rises and falls (D33, D36). Two named requests (a heart-rate rise, a mean-arterial-pressure fall) and `RELATIVE_SEEDS`
+further queries give one measured step a relative condition (`store_conditions_relative`), some with `widen_factor`.
+The store must equal the prepared reference on every query and `exhaustive_match` on the named ones and the first
+`RELATIVE_EXHAUSTIVE_SEEDS`, result for result, with pruning on and off byte-identical, and every factor relaxation
+must hold the stricter tag's events. The report gives the status mix and unresolved share, per named request.
 """
 from __future__ import annotations
 
@@ -59,6 +65,7 @@ from . import mimic_chartevents_check as chart_check
 from . import mimic_chartevents_raw_check as raw_check
 from . import mimic_store_ingest as msi
 from . import prepared_reference as pr
+from . import store_conditions_relative as rc
 from . import trajectory_graph as tg
 from . import verify_mimic_demo as demo
 
@@ -82,7 +89,7 @@ FILES = tuple(sorted(set(msi.FILES + (
     'patterns/verify_mimic_store_ingest.py', 'patterns/verify_mimic_demo.py', 'patterns/mimic_store_ingest.py',
     'patterns/execution_store_reference.py', 'data/mimic-inputevents-demo-pin.json'))))
 CHART_FILES = tuple(sorted(set(FILES + msi.CHART_FILES + (
-    'patterns/prepared_reference.py', 'data/clinical-source-demo-pin.json'))))
+    'patterns/prepared_reference.py', 'data/clinical-source-demo-pin.json', 'patterns/store_conditions_relative.py'))))
 
 
 # ---------------------------------------------------------------- seeded queries over source item classes
@@ -624,6 +631,146 @@ def derived_differential(store, ingest, seeds=DERIVED_SEEDS, exhaustive_seeds=DE
             'mismatch_examples': examples[:5]}
 
 
+# ---------------------------------------------------------------- rises and falls (D33, D36)
+
+RELATIVE_SEEDS = 60  # D36: relative requests, after the named ones below
+RELATIVE_EXHAUSTIVE_SEEDS = 4
+RELATIVE_FIRST_SEED = 300_000
+HOUR = 60 * MINUTE
+# Named relative requests (D36): one step, a reading against the mean of earlier readings of its item class. Heart rate
+# (220045, bpm) rising to at least 1.25 times the mean of up to 3 readings in the 6 hours before; mean arterial pressure
+# (220052, invasive, mmHg) falling to at most the mean of up to 3 readings in the 6 hours before divided by 1.25, with a
+# relaxation to 1.1; every chart time on the demo is exact, so every baseline is determined.
+RELATIVE_NAMED = (
+    ('heart rate rising to at least 1.25 x the mean of up to 3 readings in the 6 hours before', '220045', 'bpm',
+     {'kind': 'rise', 'factor': '1.25', 'floor': '1', 'baseline': {'previous': 3, 'within': 6 * HOUR}}, None),
+    ('invasive mean arterial pressure falling to at most the mean of up to 3 readings in the 6 hours before / 1.25',
+     '220052', 'mmHg', {'kind': 'fall', 'factor': '1.25', 'floor': '1', 'baseline': {'previous': 3, 'within': 6 * HOUR}},
+     '1.1'),
+)
+
+
+def relative_request(rng, pool, ingest, values):
+    """A seeded query (`random_query`) with one step on a measured item class (or grouping) given a rise or a fall
+    (D33): a factor of 1.1 to 2, a unit the concept holds rows in, a floor, a baseline of up to 1 to 3 readings within 1
+    to 72 hours; one time in three a `widen_factor` to a smaller factor. The step becomes `any` (an occurrence on a
+    relative step is refused)."""
+    query, windows = random_query(rng, pool, ingest), random_windows(rng, ingest)
+    measured = [s for s in query['steps'] if values.get(s['concept'])]
+    if not measured:
+        return None
+    step = rng.choice(measured)
+    step['occurrence'] = 'any'
+    unit = rng.choice(values[step['concept']])[0]
+    factor = rng.choice(('1.1', '1.25', '1.5', '2'))
+    entry = {'relative': {'kind': rng.choice(('rise', 'rise', 'fall')), 'factor': factor, 'unit': unit,
+                          'floor': rng.choice(('1', '0.5', '0.000000001')),
+                          'baseline': {'previous': rng.randint(1, 3), 'within': rng.choice((1, 6, 24, 72)) * HOUR}}}
+    conditions = {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {step['id']: entry}}
+    smaller = [f for f in ('1.05', '1.1', '1.25', '1.5') if float(f) < float(factor)]
+    if rng.random() < 0.33 and smaller:
+        conditions['relaxations'] = [{'id': f"f{step['id']}", 'kind': 'widen_factor', 'step': step['id'],
+                                      'cost': rng.choice(COSTS), 'factor': rng.choice(smaller)}]
+    return query, conditions, windows
+
+
+def relative_cases(ingest, seeds, first_seed=RELATIVE_FIRST_SEED):
+    """The named relative requests (each over random windows from its own seed), then the seeded ones."""
+    pool, values = concept_pool(ingest), series_pool(ingest)
+    for k, (name, item, unit, relative, wider) in enumerate(RELATIVE_NAMED):
+        concept = chart.ITEM_NS + item
+        if not values.get(concept):
+            continue
+        query = {'profile': tg.PROFILE_ID, 'scope': 'within', 'steps': [{'id': 'A', 'concept': concept}],
+                 'relations': [], 'relaxations': [], 'budget': '1'}
+        conditions = {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {'A': {'relative': {**relative, 'unit': unit}}}}
+        if wider:
+            conditions['relaxations'] = [{'id': 'fA', 'kind': 'widen_factor', 'step': 'A', 'cost': '1',
+                                          'factor': wider}]
+        yield name, query, conditions, random_windows(random.Random(first_seed - 1 - k), ingest)
+    for seed in range(first_seed, first_seed + seeds):
+        rng = random.Random(seed)
+        while True:
+            drawn = relative_request(rng, pool, ingest, values)
+            if drawn is not None:
+                try:
+                    rc.Request(drawn[0], drawn[1])
+                except es.StoreError:
+                    continue
+                yield seed, *drawn
+                break
+
+
+def relative_differential(store, ingest, seeds=RELATIVE_SEEDS, exhaustive_seeds=RELATIVE_EXHAUSTIVE_SEEDS):
+    """Relative requests (D33, D36): the store (`store_conditions_relative.match`) against the prepared reference on
+    every query and `exhaustive_match` on the first, result for result; pruning on against off on every query; every
+    `widen_factor` checked to hold the stricter tag's events at both strengths; the status mix and unresolved share,
+    for the named requests one by one and for the seeded ones together."""
+    from unittest.mock import patch
+    prepared = pr.PreparedReference(ingest)
+    cases = list(relative_cases(ingest, seeds))
+    wrong, compared, examples, pruning = 0, 0, [], 0
+    mix, unresolved, tagged = defaultdict(Counter), defaultdict(Counter), Counter()
+    relaxations = violations = 0
+    pids = dict(store.query('SELECT patient_idx, patient_id FROM patients'))
+    for k, (seed, query, conditions, windows) in enumerate(cases):
+        group = seed if isinstance(seed, str) else 'seeded'
+        out = rc.match(store, query, windows, conditions=conditions)
+        got = out['results']
+        with patch.object(es, '_PRUNE', False):
+            pruning += json.dumps(rc.match(store, query, windows, conditions=conditions)) != json.dumps(out)
+        wants = [prepared.match(query, windows, conditions)]
+        if k < exhaustive_seeds + len(RELATIVE_NAMED):
+            wants.append(ref.exhaustive_match(ingest, query, windows, conditions))
+        for want in wants:
+            for g, w in zip(got, want, strict=True):
+                compared += 1
+                if json.dumps(_unfiltered(g)) != json.dumps(w):
+                    wrong += 1
+                    examples.append({'seed': seed, 'store': g['status'], 'reference': w['status']})
+        for g in got:
+            mix[group][g['status']] += 1
+            if g['status'] == 'unresolved':
+                unresolved[group][g['reason']] += 1
+        request = rc.Request(query, conditions)
+        idxs = sorted(pids)
+        ws = [windows.get(pids[i]) or {'start': 0, 'end': 0} for i in idxs]
+        strict = {s['id']: s['concept'] for s in request.query['steps']}
+        wide = {r['id']: r['concept'] for r in request.query['relaxations'] if 'concept' in r}
+        factors = [x for x in conditions.get('relaxations', []) if wide[x['id']] in request.derived_used]
+        relaxations += len(factors)
+        for part in range(0, len(idxs), 25):
+            chunk = idxs[part:part + 25]
+            for _, d in rc._derived_chunk(store, request, chunk, [pids[i] for i in chunk], ws[part:part + 25], chunk):
+                for doc in (d.first, d.second or d.first):
+                    have = lambda name: {e['id'] for e in doc['events'] if name in e['concepts']}
+                    violations += sum(not have(strict[x['step']]) <= have(wide[x['id']]) for x in factors)
+                own = [s for s in strict.values() if s in request.derived_used]
+                tagged['certain'] += sum(1 for e in d.first['events'] if any(s in e['concepts'] for s in own))
+                tagged['possible_only'] += sum(1 for e in (d.second or d.first)['events']
+                                               if any(s in e['concepts'] for s in own)) - sum(
+                    1 for e in d.first['events'] if any(s in e['concepts'] for s in own))
+    decided = {f: sum(c.values()) - c.get('excluded', 0) for f, c in mix.items()}
+    return {'queries': len(cases), 'named': [name for name, *_ in RELATIVE_NAMED], 'first_seed': RELATIVE_FIRST_SEED,
+            'results_compared': compared,
+            'reference': ('prepared_reference with the request on every query; exhaustive_match with the request on the '
+                          'named queries and the first seeded ones; each reads the request and computes the readings, '
+                          'baselines, strengths and the two-pass rule independently of the store '
+                          '(execution_store_reference.DerivedQuery, _relative_tags)'),
+            'exhaustive_queries': min(exhaustive_seeds + len(RELATIVE_NAMED), len(cases)), 'mismatches': wrong,
+            'pruning_on_off_differences': pruning,
+            'status_mix': {f: dict(sorted(c.items())) for f, c in sorted(mix.items())},
+            'unresolved_share': {f: {'unresolved': sum(unresolved[f].values()), 'results_with_a_window': decided[f],
+                                     'by_reason': dict(sorted(unresolved[f].items()))} for f in sorted(mix)},
+            'readings_tagged_on_the_own_condition': dict(sorted(tagged.items())),
+            'factor_relaxations_checked': relaxations, 'factor_relaxation_containment_violations': violations,
+            'note': ('every chart time on the demo is exact and the demo has no period readings, so every baseline is '
+                     'determined unless an excluded chart row of the item class or a reading in another unit lies '
+                     'among the previous readings; readings are tagged certain or possible-only for every candidate, '
+                     'windows aside'),
+            'mismatch_examples': examples[:5]}
+
+
 def raw_time_check(ingest, segments):
     """Every event's times against the raw source row: start, end and recorded time, to the microsecond."""
     by_key = {s['id']: s for s in segments}
@@ -697,7 +844,8 @@ def built_store_comparison(store, outcomes):
 
 
 def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, census_workers=None,
-           exhaustive_seeds=EXHAUSTIVE_SEEDS, value_seeds=VALUE_SEEDS, derived_seeds=DERIVED_SEEDS):
+           exhaustive_seeds=EXHAUSTIVE_SEEDS, value_seeds=VALUE_SEEDS, derived_seeds=DERIVED_SEEDS,
+           relative_seeds=RELATIVE_SEEDS):
     started = time.perf_counter()
     result = msi.convert(input_dir, DATASET, workers=workers, chartevents=chartevents)
     admission = demo.verify_summary(result['prepared']['admission']['summary'])
@@ -760,6 +908,11 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
                 t = time.perf_counter()
                 derived = derived_differential(store, result['ingest'], derived_seeds)
                 timings['derived_differential'] = time.perf_counter() - t
+            relative = None
+            if chartevents and relative_seeds:
+                t = time.perf_counter()
+                relative = relative_differential(store, result['ingest'], relative_seeds)
+                timings['relative_differential'] = time.perf_counter() - t
     times = raw_time_check(result['ingest'], result['prepared']['admission']['segments'])
     timings['total'] = time.perf_counter() - started
     import resource
@@ -781,6 +934,9 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
     if derived is not None:
         ei.require(derived['mismatches'] == 0 and derived['pruning_on_off_differences'] == 0
                    and derived['count_relaxation_containment_violations'] == 0, 'DEMO_DERIVED_DIFFERENTIAL_MISMATCH')
+    if relative is not None:
+        ei.require(relative['mismatches'] == 0 and relative['pruning_on_off_differences'] == 0
+                   and relative['factor_relaxation_containment_violations'] == 0, 'DEMO_RELATIVE_DIFFERENTIAL_MISMATCH')
     report = {
         'profile': 'execution-store-mimic-demo-verification-1.2' if chartevents else
                    'execution-store-mimic-demo-verification-1.0',
@@ -819,6 +975,8 @@ def verify(input_dir, seeds=SEEDS, workers=1, root=None, chartevents=True, censu
         report['value_differential'] = values
     if derived is not None:
         report['derived_differential'] = derived
+    if relative is not None:
+        report['relative_differential'] = relative
     return report
 
 
@@ -835,13 +993,15 @@ def main(argv=None):
     parser.add_argument('--value-seeds', type=int, default=VALUE_SEEDS, help='value-condition queries (D28); 0 for none')
     parser.add_argument('--derived-seeds', type=int, default=DERIVED_SEEDS,
                         help='Nth-occurrence and count queries (D32); 0 for none')
+    parser.add_argument('--relative-seeds', type=int, default=RELATIVE_SEEDS,
+                        help='rise and fall queries (D36), after the named ones; 0 for none')
     args = parser.parse_args(argv)
     try:
         inputs = {p.resolve() for p in importer.source_paths(args.input_dir).values()}
         ei.require(args.output.resolve() not in inputs, 'OUTPUT_OVERWRITES_INPUT')
         report = verify(args.input_dir, args.seeds, args.workers, args.store_root, chartevents=not args.no_chartevents,
                         census_workers=args.census_workers, value_seeds=args.value_seeds,
-                        derived_seeds=args.derived_seeds)
+                        derived_seeds=args.derived_seeds, relative_seeds=args.relative_seeds)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.output.with_suffix(args.output.suffix + '.tmp')
         temporary.write_text(json.dumps(report, indent=2) + '\n')

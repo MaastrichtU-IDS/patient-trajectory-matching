@@ -19,7 +19,8 @@ REPORTS = {
     'scaling': 'verification/execution-store-scaling-report.json',
     'matcher': 'verification/matcher-comparison-report.json',
     'mimic': 'verification/execution-store-mimic-demo-report.json',
-    'verdict': 'verification/d32-paired-verdict.json',
+    'verdict': 'verification/d36-paired-verdict.json',
+    'rises': 'verification/d36-rise-usefulness-report.json',
 }
 GIB = 1024 ** 3
 
@@ -108,8 +109,8 @@ def matcher(m, verdict):
         })
     arms.sort(key=lambda a: a['workers'])
     ident = c['byte_identity_C_against_B']
-    paired = [paired_run('verdict run', verdict['paired_confirmation'], target),
-              paired_run('replication', m['paired_confirmation'], target)]
+    paired = [paired_run('D36 verdict run', verdict['paired_confirmation'], target),
+              paired_run('matcher report (D35)', m['paired_confirmation'], target)]
     # The D21 status per worker count: met only if met in every paired run (decision log, D31, second attempt).
     governing = []
     for n in sorted({a['workers'] for r in paired for a in r['arms']}):
@@ -156,6 +157,27 @@ def mimic(r):
     }
 
 
+def rises(u, r):
+    """D36: the rise templates' usefulness over the declared synthetic cohorts, and the MIMIC demo's relative
+    differential."""
+    def row(name, t):
+        return {'name': name, 'candidates': t['candidates'], 'unresolved': t['unresolved'],
+                'unresolved_split_off': t['unresolved_split_off'], 'statuses': t['statuses']}
+    rel = r.get('relative_differential')
+    return {
+        'cohorts': len(u['seeds_used']), 'children': sum(s['children'] for s in u['per_seed'].values()),
+        'seeds': [u['seeds_used'][0], u['seeds_used'][-1]],
+        'templates': [row(n, t) for n, t in u['templates'].items()],
+        'variants': [row(n, t) for n, t in u['variants'].items()],
+        'mimic': None if rel is None else {
+            'queries': rel['queries'], 'named': rel['named'], 'results_compared': rel['results_compared'],
+            'mismatches': rel['mismatches'], 'pruning_on_off_differences': rel['pruning_on_off_differences'],
+            'factor_relaxations_checked': rel['factor_relaxations_checked'],
+            'containment_violations': rel['factor_relaxation_containment_violations'],
+            'status_mix': rel['status_mix']},
+    }
+
+
 def build():
     loaded = {k: load(v) for k, v in REPORTS.items()}
     return {
@@ -164,6 +186,7 @@ def build():
         'scaling': scaling(loaded['scaling'][0]),
         'matching': matcher(loaded['matcher'][0], loaded['verdict'][0]),
         'mimic_demo': mimic(loaded['mimic'][0]),
+        'rises': rises(loaded['rises'][0], loaded['mimic'][0]),
     }
 
 

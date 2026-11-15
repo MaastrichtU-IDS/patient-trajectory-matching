@@ -193,4 +193,17 @@ Cautions on the matching rows:
   - *Usefulness, in proportion.* "A seizure while taking the first blocker" goes from 9 of 10 candidates unresolved to 0, all `possible` (the records allow both answers; none is `exact`). The 12 order-uncertain results at 10,000 are all decided (`none`). That is about 22 patients over two queries; the Q1 bar was set after the prototype had measured it. The page and the store now agree on 557 of 672 parity results.
   - *Latency.* No regression at 14 workers under the paired protocol: ratios 0.90 to 0.97 (bar 1.05), p95 8.97 s, max 12.2 s, 0.75 GiB. One query (seed 29) is about 9% slower. At 8 workers the ratio is about 1.04 (reported; the target is still missed there).
   - *Next.* Retry rises and falls under their own rule, with a usefulness test on more patients. Most undecided results left are relaxation sets needing more than 64 scenarios; widening that limit is a separate decision.
+- **D36, rises and falls: shipped.** A query can now ask the store for "the monthly seizure count rises to at least twice its baseline", with your decisions of 2026-11-14 unchanged: whole-month periods ordered by start, a mean of up to k earlier readings with a floor, and certain only when every configuration agrees.
+  - *Where it lives.* D33's code, restored in its own module, which no build loads. So the store's file, the converter and every file a build reads are unchanged, and the scaling report reused its 1,000,000-patient builds (1,740 s).
+  - *Evidence.*
+    - No wrong claim in 60,000 small cases checked against every choice of times. The independent reference agrees on all of them, on 500 snapshot requests and on a new MIMIC demo differential: 6,800 results, including a heart-rate rise and a mean-arterial-pressure fall.
+    - Seven planted defects caught. Requests without a rise give byte-identical answers.
+  - *Usefulness, in proportion.*
+    - 0 unresolved among 189, 189 and 142 candidates of the Sequence, Tree and Graph templates, over 30 synthetic cohorts. The graph template is the one that missed in D33.
+    - All of that comes from D35's split. Without it the graph template would have 67 of 142 unresolved.
+    - No result is `exact`. The records allow both answers for the first blocker, and the store says `possible`.
+    - The review pointed out that the 30 cohorts are redraws of one 48-child plan, not independent children: the graph template's candidates are 7 plan slots. The bar holds however you count, but please say which count you meant by "candidates", for the record.
+  - *Latency.* No regression: 14-worker paired p95 ratios 1.010, 1.000, 0.957 and 0.964 (bar 1.05); p95 8.64 s, max 11.4 s, 0.82 GB; identical results on all 30 queries.
+  - *What shipping means.* The page's translator now writes rises by default. The page itself is not yet served from the store; that is stage 2.
+  - *Review.* An independent review found no must-fix in the code. Its must-fix in the protocol (the cohorts' independence) is disclosed and counted three ways. Its should-fixes are done: a pin on the copied store functions, a stronger equivalence test, and the protocol enforced in the tool.
 

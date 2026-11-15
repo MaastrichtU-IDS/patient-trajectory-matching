@@ -740,6 +740,18 @@ class CharteventsTests(unittest.TestCase):
         self.assertEqual(found['queries_per_feature'], {'nth': 10, 'span': 10, 'window': 10})
         self.assertTrue(any(mix.get('exact', 0) for mix in found['status_mix'].values()), found['status_mix'])
 
+    def test_the_relative_differential_on_the_synthetic_chartevents(self):
+        """D36: rise and fall requests on the merged fixture equal the reference, pruning on and off alike, and every
+        factor relaxation holds the stricter tag's events (the named demo items are absent here, so only seeded
+        requests run)."""
+        with es.open_store(self.snapshot) as store:
+            found = verify.relative_differential(store, self.result['ingest'], seeds=24, exhaustive_seeds=4)
+        self.assertEqual((found['mismatches'], found['pruning_on_off_differences'],
+                          found['factor_relaxation_containment_violations']), (0, 0, 0))
+        self.assertEqual(found['queries'], 24)
+        self.assertGreater(found['results_compared'], 0)
+        self.assertGreater(sum(found['readings_tagged_on_the_own_condition'].values()), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,4580 @@
+{
+ "profile": "d36-rise-usefulness-1.0",
+ "rule": "per template (sequence; tree and graph without their gene step), pooled over the declared seeds: at least 30 patients with a store candidate and an index window, and at most 30% of them unresolved; variants reported",
+ "declared_seeds": [
+  1001,
+  1002,
+  1003,
+  1004,
+  1005,
+  1006,
+  1007,
+  1008,
+  1009,
+  1010,
+  1011,
+  1012,
+  1013,
+  1014,
+  1015,
+  1016,
+  1017,
+  1018,
+  1019,
+  1020,
+  1021,
+  1022,
+  1023,
+  1024,
+  1025,
+  1026,
+  1027,
+  1028,
+  1029,
+  1030
+ ],
+ "extension_seeds": [
+  1031,
+  1032,
+  1033,
+  1034,
+  1035,
+  1036,
+  1037,
+  1038,
+  1039,
+  1040,
+  1041,
+  1042,
+  1043,
+  1044,
+  1045,
+  1046,
+  1047,
+  1048,
+  1049,
+  1050,
+  1051,
+  1052,
+  1053,
+  1054,
+  1055,
+  1056,
+  1057,
+  1058,
+  1059,
+  1060,
+  1061,
+  1062,
+  1063,
+  1064,
+  1065,
+  1066,
+  1067,
+  1068,
+  1069,
+  1070,
+  1071,
+  1072,
+  1073,
+  1074,
+  1075,
+  1076,
+  1077,
+  1078,
+  1079,
+  1080,
+  1081,
+  1082,
+  1083,
+  1084,
+  1085,
+  1086,
+  1087,
+  1088,
+  1089,
+  1090,
+  1091,
+  1092,
+  1093,
+  1094,
+  1095,
+  1096,
+  1097,
+  1098,
+  1099,
+  1100
+ ],
+ "seeds_used": [
+  1001,
+  1002,
+  1003,
+  1004,
+  1005,
+  1006,
+  1007,
+  1008,
+  1009,
+  1010,
+  1011,
+  1012,
+  1013,
+  1014,
+  1015,
+  1016,
+  1017,
+  1018,
+  1019,
+  1020,
+  1021,
+  1022,
+  1023,
+  1024,
+  1025,
+  1026,
+  1027,
+  1028,
+  1029,
+  1030
+ ],
+ "setting": {
+  "window": "from the second seizure, 24 months (the page's own); variants as named",
+  "scope": "from_start",
+  "free_text": "present (the page's own)",
+  "translator": "trajectory/store_request.js with rises asked for",
+  "converter": "patterns/synthetic_ingest.py emitting series, diary summaries labelled as period readings"
+ },
+ "bar": {
+  "sequence": {
+   "candidates": 189,
+   "unresolved": 0,
+   "share": 0,
+   "enough_candidates": true,
+   "met": true
+  },
+  "tree without its gene step": {
+   "candidates": 189,
+   "unresolved": 0,
+   "share": 0,
+   "enough_candidates": true,
+   "met": true
+  },
+  "graph without its gene step": {
+   "candidates": 142,
+   "unresolved": 0,
+   "share": 0,
+   "enough_candidates": true,
+   "met": true
+  }
+ },
+ "templates": {
+  "sequence": {
+   "candidates": 189,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 96,
+    "none": 44,
+    "relaxed": 49
+   },
+   "reasons": {},
+   "unresolved_split_off": 0,
+   "reasons_split_off": {},
+   "unresolved_share": 0
+  },
+  "tree without its gene step": {
+   "candidates": 189,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 102,
+    "none": 42,
+    "relaxed": 45
+   },
+   "reasons": {},
+   "unresolved_split_off": 0,
+   "reasons_split_off": {},
+   "unresolved_share": 0
+  },
+  "graph without its gene step": {
+   "candidates": 142,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 96,
+    "relaxed": 31,
+    "none": 15
+   },
+   "reasons": {},
+   "unresolved_split_off": 67,
+   "reasons_split_off": {
+    "OCCURRENCE_ORDER_UNCERTAIN": 67
+   },
+   "unresolved_share": 0
+  }
+ },
+ "variants": {
+  "sequence, factor 1.5": {
+   "candidates": 189,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 127,
+    "none": 21,
+    "relaxed": 41
+   },
+   "reasons": {},
+   "unresolved_split_off": 0,
+   "reasons_split_off": {},
+   "unresolved_share": 0
+  },
+  "sequence, from the first seizure for 36 months": {
+   "candidates": 173,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 86,
+    "none": 43,
+    "relaxed": 44
+   },
+   "reasons": {},
+   "unresolved_split_off": 0,
+   "reasons_split_off": {},
+   "unresolved_share": 0
+  },
+  "tree without its gene step, factor 1.5": {
+   "candidates": 189,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 145,
+    "none": 19,
+    "relaxed": 25
+   },
+   "reasons": {},
+   "unresolved_split_off": 0,
+   "reasons_split_off": {},
+   "unresolved_share": 0
+  },
+  "tree without its gene step, from the first seizure for 36 months": {
+   "candidates": 173,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 92,
+    "none": 41,
+    "relaxed": 40
+   },
+   "reasons": {},
+   "unresolved_split_off": 0,
+   "reasons_split_off": {},
+   "unresolved_share": 0
+  },
+  "graph without its gene step, factor 1.5": {
+   "candidates": 142,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 127,
+    "none": 13,
+    "relaxed": 2
+   },
+   "reasons": {},
+   "unresolved_split_off": 97,
+   "reasons_split_off": {
+    "OCCURRENCE_ORDER_UNCERTAIN": 97
+   },
+   "unresolved_share": 0
+  },
+  "graph without its gene step, from the first seizure for 36 months": {
+   "candidates": 126,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 86,
+    "relaxed": 26,
+    "none": 14
+   },
+   "reasons": {},
+   "unresolved_split_off": 57,
+   "reasons_split_off": {
+    "OCCURRENCE_ORDER_UNCERTAIN": 57
+   },
+   "unresolved_share": 0
+  }
+ },
+ "independence": "not independent children (D36 review, M1): C001 is the scripted reference child in every seed, and every other child takes archetype, sex, birth year and overrides from the generator's fixed PLAN; only the draws vary with the seed",
+ "shares_three_ways": {
+  "sequence": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "sequence, factor 1.5": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "sequence, from the first seizure for 36 months": {
+   "all_candidates": {
+    "candidates": 173,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 143,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step, factor 1.5": {
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step, from the first seizure for 36 months": {
+   "all_candidates": {
+    "candidates": 173,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 143,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 16,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step": {
+   "all_candidates": {
+    "candidates": 142,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 112,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 7,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step, factor 1.5": {
+   "all_candidates": {
+    "candidates": 142,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 112,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 7,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step, from the first seizure for 36 months": {
+   "all_candidates": {
+    "candidates": 126,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 96,
+    "unresolved": 0
+   },
+   "distinct_plan_keys": {
+    "keys": 7,
+    "keys_unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  }
+ },
+ "by_plan_key": {
+  "sequence": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "sequence, factor 1.5": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "sequence, from the first seizure for 36 months": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "dravet-lost": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step, factor 1.5": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step, from the first seizure for 36 months": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "dravet-lost": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "graph without its gene step": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   }
+  },
+  "graph without its gene step, factor 1.5": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   }
+  },
+  "graph without its gene step, from the first seizure for 36 months": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "dravet-lost": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   }
+  }
+ },
+ "per_seed": {
+  "1001": {
+   "children": 48,
+   "cohort_sha256": "8606015f7553c4786782bd6687a4ce6c06e0bc9d3d5348442c2bb97f56b67bae",
+   "snapshot_id": "14e1ec83b1880ab32d9eb55d7bf72795e7f5138dc60a7d41244ad4e880afabdd",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1002": {
+   "children": 48,
+   "cohort_sha256": "275bfe27b799093c8a5c593c591dc867fac8f5ba684b465cfc3c27b2b224c007",
+   "snapshot_id": "8afb5ff96d2150e385ea663748caf7d163d3f2a8b340ddf4741555a11e9a213a",
+   "templates": {
+    "sequence": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1003": {
+   "children": 48,
+   "cohort_sha256": "1b0a06c245e2cab5afdecd07f31f877da86c77797fcf3864f295cc6ae894fc10",
+   "snapshot_id": "7eb0b0f0f16384095a75194689c8cab7c6bb0be1f4ffcb1ed658a6f8e908c8a0",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    }
+   }
+  },
+  "1004": {
+   "children": 48,
+   "cohort_sha256": "5049fd6da5ebc7cff6f394c4510e920b2a450a0d8bd32c8ce7316eb08f90aeda",
+   "snapshot_id": "4d1e44a95ffbb38028a3e425357c4c29383042506c2003f1a02847354d148a0b",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1005": {
+   "children": 48,
+   "cohort_sha256": "4470837dc7964c91b0c01168fb092a9bd11c3024204567e96b7180c35191f8f2",
+   "snapshot_id": "4141a7561934a331b721e1c6122a95e521bcfd6be005782f948eba0e90f4d187",
+   "templates": {
+    "sequence": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1006": {
+   "children": 48,
+   "cohort_sha256": "d7f8729c5501ae67d04e18442afd0659e27ef8edddbf82f84afbf35613143a1c",
+   "snapshot_id": "a634c5c6279f3d2fce258316ddbef3e5a867f807b447b8884f02124285f4f847",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1007": {
+   "children": 48,
+   "cohort_sha256": "f2dcdd3b76b383c4ac6a64cc6d704869bd4506639b73c9d560ba556f191b9c49",
+   "snapshot_id": "45dba63b0ea5a8c580286561425c54b5b1e42589bb6b9e77acfaa2ffd513470d",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 5,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 5
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    }
+   }
+  },
+  "1008": {
+   "children": 48,
+   "cohort_sha256": "6ead7b24046dee057f7f25b7d614d3920a59ccb075da37e1c9de4cac2849e36d",
+   "snapshot_id": "e4c7734e8da7636d6afa886e5363bd214badc575e3fdd98e7438b3e4ca1263e7",
+   "templates": {
+    "sequence": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1009": {
+   "children": 48,
+   "cohort_sha256": "64929f19b1e96f3bdf0680c4bc8b7a4375469fd23f55173834b1bbc02cf91a22",
+   "snapshot_id": "4ab22fbdef193b8a155ea900c351a5b3a25d29e4c738cdec4b266d29a7353c38",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1010": {
+   "children": 48,
+   "cohort_sha256": "a451fe091accf93dbde05452a5cd6defbaeb2ae5d2152332a97f0904e648f4ea",
+   "snapshot_id": "31b5a6437f401866d28ee43db5639fe5cb2f8c38449ca442921a11dea3c376b6",
+   "templates": {
+    "sequence": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    }
+   }
+  },
+  "1011": {
+   "children": 48,
+   "cohort_sha256": "dd5a0f2d091ec35dde0c82d2941a282da4d214f07108e099802284a3e8bf4fc4",
+   "snapshot_id": "0e6f0104ba1a5cc82c7d9aff70eb14e46e213be2efbfab902db3f6ad493ed4e2",
+   "templates": {
+    "sequence": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 7,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1012": {
+   "children": 48,
+   "cohort_sha256": "e77551aa1894862837b011a5835b1268b031da5843611b5161845dd78e8d4b7e",
+   "snapshot_id": "e10b991f8b223a49b0b51fd865a7793a8e4f4bb30484b04dba36dac58d35a592",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1013": {
+   "children": 48,
+   "cohort_sha256": "40ba4250140b0adcff7359fca31af8f0476fffe0a66fbe980550a26dc6b46081",
+   "snapshot_id": "43e90a30e0260cd277be736355dfb546da1992fea2b5e26cb98b8fc625b4e571",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6
+     },
+     "reasons": {},
+     "unresolved_split_off": 5,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 5
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1014": {
+   "children": 48,
+   "cohort_sha256": "86df5c4ec267bb9f533b9f4ef60a06b04999ea34685ff036ed08122bc74fb3d2",
+   "snapshot_id": "8c52aca3f30fa5f8baf41df833182bfac30291ec43ec304b98f7668bf4dcf891",
+   "templates": {
+    "sequence": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 2,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    }
+   }
+  },
+  "1015": {
+   "children": 48,
+   "cohort_sha256": "4476ec71dd6f1c93e67cb998a9d2200c4d40ef69385a75709b521b100f75e17a",
+   "snapshot_id": "1f9a41bdd9015cc32e45a5f75c29f174abb8c132d3b9c3adfc9149c8854948ac",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 4,
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 4,
+      "possible": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 3,
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 7
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 3,
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 2,
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 2,
+      "possible": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1016": {
+   "children": 48,
+   "cohort_sha256": "0c1767c2815c36ece0388e721d7587b2e63ce9a08b81340160a47e621051aac6",
+   "snapshot_id": "ed03bdfb6edade72143787ca3e9f462a0d12d61a6c5146fe7d67c2df4e4ecab7",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1017": {
+   "children": 48,
+   "cohort_sha256": "35113e37571d0ceaaefa63c3e265f17d5bade95fbde187799f73596d5bfc4bb8",
+   "snapshot_id": "38ee56b9197cba4e78c6729b83e1af409abfe115d0072d644527b531532a76ca",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1018": {
+   "children": 48,
+   "cohort_sha256": "78aaa5c297f4e8158bfe5aa5fc3475c3f9b7b17f6afdd9af8609af8660d5726c",
+   "snapshot_id": "97f200b6fb0a738164fce8787d31d35bd390edbe674b51573facd6cebb1bc556",
+   "templates": {
+    "sequence": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1019": {
+   "children": 48,
+   "cohort_sha256": "e084f46351852a8176733942918fa47de887de0ea1cd0c1bf2173760fea794ab",
+   "snapshot_id": "2dcfe3b8cd8145aaddb55a32f97a33c3b39c5fb321d24ff512436749a0828e51",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6
+     },
+     "reasons": {},
+     "unresolved_split_off": 5,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 5
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1020": {
+   "children": 48,
+   "cohort_sha256": "30196a7738d2fb9698d9d12c5982ac9019296df92b5a31ad0e64b48099fb8964",
+   "snapshot_id": "a0b7737f5caba371fb374e3b59b1b81518f76bb903801ca8f5a44d5b88060448",
+   "templates": {
+    "sequence": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    }
+   }
+  },
+  "1021": {
+   "children": 48,
+   "cohort_sha256": "6f7313f0a0569349546f5d458aab8bbdbb822deac3499b66e974b3c543479a73",
+   "snapshot_id": "eb3d4b7d4f02fd1a71d1c69bac541c7a7196445436b575e5d6feddff50cbe435",
+   "templates": {
+    "sequence": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1022": {
+   "children": 48,
+   "cohort_sha256": "375ba2b382ce0d7ea1efbaad8d7e41198fafc0a515b5c56ce0da061f224441b2",
+   "snapshot_id": "5deac538b79082c06fbff4c837fcd049d1edf64e2bbd9e39d15f802f37b167e3",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1023": {
+   "children": 48,
+   "cohort_sha256": "3b845a7999b15d8536275d885d97698f49c14cce2863c5538a66e84e4ba2d440",
+   "snapshot_id": "0ff3d0ab2957fb506b56d4b53efe5eda0852e806bb4324b4a2453737abf945a7",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1024": {
+   "children": 48,
+   "cohort_sha256": "aa24596c9fb419cbb3e3c3926cf4616446705fcb50d308923bb84087b4e57b71",
+   "snapshot_id": "507365515bf6585ff76b6d6db6a1eff32f553a3cbcf33348b3fb5773e8f0ed39",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1025": {
+   "children": 48,
+   "cohort_sha256": "6830d4a543074cd3eb3eeeef51242ecfe26c99ab2e7f8d3dfcccd177e566528f",
+   "snapshot_id": "e7f8110571073f1a68050686f09f4f2d06d7b9553417c1e05f6fff06fc01e210",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1026": {
+   "children": 48,
+   "cohort_sha256": "165805b2735edd977edd8a3ee767e9e2489b4238365c8e3c5ac854d36c171c34",
+   "snapshot_id": "1f6ea10e58ad9bdd624545f2534d5118044cb92e117a216bcd6235d9d5056bd4",
+   "templates": {
+    "sequence": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6
+     },
+     "reasons": {},
+     "unresolved_split_off": 5,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 5
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    }
+   }
+  },
+  "1027": {
+   "children": 48,
+   "cohort_sha256": "776ab961b0f6f860dd3739d149af76af444e277ef0fcf731c410f1899c297be9",
+   "snapshot_id": "bc2fc2581cdaf7559f8fbdf9edc2b0613d42fd006db0ab1e2455f1f633ebea33",
+   "templates": {
+    "sequence": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  },
+  "1028": {
+   "children": 48,
+   "cohort_sha256": "64d5e4f05e866656cb2361f5dcedd84d6b5b01a1f6939f7221c329ed8624ab8d",
+   "snapshot_id": "6cd39b53ba4283a63113b07d83604dafd96313240fbca8be71b37c19c92c3766",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1029": {
+   "children": 48,
+   "cohort_sha256": "801d641f669c4a78a40b41ec1224d38f8c6ac273ecf461d1176aed0e8732bbda",
+   "snapshot_id": "0f1f5170d5d243e673c20fd30f5a0a6952f21817bb6ea1095c0f0a4b9fea79bf",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 4,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 4
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    }
+   }
+  },
+  "1030": {
+   "children": 48,
+   "cohort_sha256": "15a32c37ef3f2e9830f7a5da8c5e721f708a39ace93325fde226459978870afa",
+   "snapshot_id": "c813d0c15e238c79f526c45faf9faa0492b68d8357f3c32cfe1585c24b7e4dbd",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "sequence, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, factor 1.5": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "tree without its gene step, from the first seizure for 36 months": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "unresolved_split_off": 0,
+     "reasons_split_off": {}
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 2,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 2
+     }
+    },
+    "graph without its gene step, factor 1.5": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 3,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 3
+     }
+    },
+    "graph without its gene step, from the first seizure for 36 months": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "unresolved_split_off": 1,
+     "reasons_split_off": {
+      "OCCURRENCE_ORDER_UNCERTAIN": 1
+     }
+    }
+   }
+  }
+ },
+ "split_contribution": {
+  "sequence": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 0,
+   "reasons_split_off": {}
+  },
+  "sequence, factor 1.5": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 0,
+   "reasons_split_off": {}
+  },
+  "sequence, from the first seizure for 36 months": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 0,
+   "reasons_split_off": {}
+  },
+  "tree without its gene step": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 0,
+   "reasons_split_off": {}
+  },
+  "tree without its gene step, factor 1.5": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 0,
+   "reasons_split_off": {}
+  },
+  "tree without its gene step, from the first seizure for 36 months": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 0,
+   "reasons_split_off": {}
+  },
+  "graph without its gene step": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 67,
+   "reasons_split_off": {
+    "OCCURRENCE_ORDER_UNCERTAIN": 67
+   }
+  },
+  "graph without its gene step, factor 1.5": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 97,
+   "reasons_split_off": {
+    "OCCURRENCE_ORDER_UNCERTAIN": 97
+   }
+  },
+  "graph without its gene step, from the first seizure for 36 months": {
+   "unresolved_split_on": 0,
+   "unresolved_split_off": 57,
+   "reasons_split_off": {
+    "OCCURRENCE_ORDER_UNCERTAIN": 57
+   }
+  }
+ },
+ "artifacts": {
+  "demos/mockups/rise_usefulness.cjs": "26897efc673d45a267e3ced16353421df715bd68e33a0ae60bb551959fe4e93f",
+  "demos/mockups/store_parity.py": "920dd0c36708e89a3e3f76e96e3e8e068801e79fa0b4e512dcd80262700a4f0d",
+  "demos/mockups/trajectory/store_request.js": "096d4a9496f4295c7c08d1dd683edaefafafbbc60790d862fc438b7a4f9a9688",
+  "demos/mockups/trajectory/app.js": "056d7df97e5c8f9d259693c98415b763c651a4e20d27314da045581bed39954c",
+  "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/execution_store.py": "54de9edc344ce53a1c0e34559544879886253902e28c59fab845145c8e8ec327",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ }
+}
