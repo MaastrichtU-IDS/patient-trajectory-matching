@@ -74,19 +74,18 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'weight at most 9 kg inside the period': {scope: 'within', window,
       nodes: [{id: 'A', concept: 'weight', cond: 'below', param: 9}], edges: []},
     // D32: Nth occurrences and counts, over coded records only (the page's "coded only" setting; the store refuses
-    // them over stated free text). Since D37 the translator refuses "coded only" for a query whose other steps would
-    // still read letter mentions in the store (FREE_TEXT_CODED_ONLY_UNSUPPORTED, asserted below); these three keep
-    // D32's reading, coded only for the derived step and stated findings for the others (codedOnly: 'derived'), so
-    // they still measure Nth and counts against the page.
-    'the event-frequency template': {scope: 'from_start', window, freeText: 'off', codedOnly: 'derived',
+    // them over stated free text). D37 kept three of them on D32's reading (coded only for the derived step, stated
+    // findings elsewhere); since D39 every step reads coded records only, as the page does (codedOnly: 'store': the
+    // store's profile 1.3, letter mentions left out of every step).
+    'the event-frequency template': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
       nodes: TEMPLATES.frequency.nodes, edges: TEMPLATES.frequency.edges},
-    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off', codedOnly: 'derived',
+    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth', n: 2}, {id: 'B', concept: 'sodium_channel_blocker', occ: 'first'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 12, unit: 'month'}]},
-    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off', codedOnly: 'derived',
+    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off', codedOnly: 'store',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
-    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
+    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off', codedOnly: 'store',
       nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
     // D33: the page's three rise templates, with the page's own window, scope and free-text setting. The tree and graph
     // templates carry a gene step, which the store refuses by name (asserted below), so they run here without that step
@@ -102,6 +101,15 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     // D38: the tree and graph templates as the page writes them, gene step included (the store's gene condition).
     'the tree template': {scope: 'from_start', window, nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges},
     'the graph template': {scope: 'from_start', window, nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges},
+    // D39: the other templates under "coded only", every step over coded records (the store's profile 1.3).
+    'the sequence template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+      nodes: TEMPLATES.sequence.nodes, edges: TEMPLATES.sequence.edges},
+    'the tree template without its gene step, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+      ...withoutNodes({nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges}, new Set(['B']))},
+    'the graph template without its gene step, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+      ...withoutNodes({nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges}, new Set(['E']))},
+    'the blank template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store', nodes: BLANK.nodes,
+      edges: BLANK.edges},
   };
   // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
   var withFreeText = function (name, fn) {
@@ -392,33 +400,22 @@ const EXPECTED = {
     C028: "measurement-records: page none, store not_comparable",
   },
   "the event-frequency template": {
-    C001: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C004: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed possible count:A, store possible",
-    C008: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed exact count:A, store possible",
-    C015: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C021: "count-timing+letter-mentions+medication-records: page relaxed exact count:A, store relaxed possible count:A",
-    C023: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed exact count:A, store unresolved  count:A",
-    C036: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C038: "count-timing+letter-mentions+medication-records+record-reconciliation: page relaxed exact count:A, store relaxed possible count:A",
-    C044: "count-timing+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C004: "count-timing+medication-records+record-reconciliation: page relaxed possible count:A, store exact",
+    C008: "count-timing+record-reconciliation: page relaxed exact count:A, store exact",
+    C015: "count-timing+medication-records+record-reconciliation: page exact, store possible",
+    C023: "count-timing+record-reconciliation: page relaxed exact count:A, store unresolved  count:A",
   },
   "the second seizure, then a sodium-channel blocker": {
-    C001: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
-    C004: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page possible, store none",
-    C008: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
-    C015: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
-    C021: "letter-mentions+medication-records+occurrence-envelope: page exact, store possible",
-    C023: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
-    C036: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
-    C044: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page exact, store possible",
+    C004: "medication-records+occurrence-envelope+record-reconciliation: page possible, store none",
+    C008: "occurrence-envelope+record-reconciliation: page exact, store possible",
+    C023: "occurrence-envelope+record-reconciliation: page exact, store possible",
   },
   "the second-to-last seizure, then levetiracetam": {
-    C022: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
-    C032: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
-    C033: "letter-mentions+medication-records+occurrence-envelope: page none, store exact",
-    C038: "letter-mentions+medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
-    C048: "letter-mentions+medication-records+occurrence-envelope: page none, store exact",
+    C022: "medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C032: "medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C033: "medication-records+occurrence-envelope: page none, store exact",
+    C038: "medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C048: "medication-records+occurrence-envelope: page none, store exact",
   },
   "at least 2 febrile seizures in the index period": {
     C005: "count-timing+record-reconciliation: page none, store unresolved  count:A+node:A",
@@ -641,6 +638,10 @@ const REFUSALS = vm.runInContext(`(() => {
     'frequency template, coded only': refusalOf(d('frequency'), 'off'),
     'frequency template, coded only for the count (D32)': refusalOf(d('frequency'), 'off', {codedOnly: 'derived'}),
     'a count alone, coded only': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off'),
+    'frequency template, coded only in the store (D39)': refusalOf(d('frequency'), 'off', {codedOnly: 'store'}),
+    'rise (sequence template), coded only in the store (D39)': refusalOf(d('sequence'), 'off', {codedOnly: 'store'}),
+    'gene step (tree template), coded only in the store (D39)': refusalOf(d('tree'), 'off', {codedOnly: 'store'}),
+    'frequency template, coded only refused on request (D39)': refusalOf(d('frequency'), 'off', {codedOnly: false}),
     'a threshold that is not a plain decimal': refusalOf(huge, 'present'),
     // D38: gene steps when asked for (the default follows STORE_GENES).
     'gene step (tree template), genes asked for': refusalOf(d('tree'), 'present', {genes: true}),
@@ -667,6 +668,11 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'frequency template, coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'frequency template, coded only for the count (D32)': null,
   'a count alone, coded only': null,
+  // D39: the store leaves letter mentions out of every step (profile 1.3); a caller may still ask for the refusal.
+  'frequency template, coded only in the store (D39)': null,
+  'rise (sequence template), coded only in the store (D39)': null,
+  'gene step (tree template), coded only in the store (D39)': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'frequency template, coded only refused on request (D39)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'a threshold that is not a plain decimal': 'VALUE_NOT_A_PLAIN_DECIMAL',
   'gene step (tree template), genes asked for': null,
   // D38 review: gene steps under coded-only wait for a joint profile with the store's coded-only option.

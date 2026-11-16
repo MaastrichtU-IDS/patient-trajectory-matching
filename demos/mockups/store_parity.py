@@ -15,8 +15,9 @@ genetic result's reports and classifications added to its evidence, and the labe
 read.
 
 `match` answers every request through `store_conditions.match` (D38), the one entry point, which routes a gene step's
-request to `store_conditions_gene` and any other to `store_conditions_relative.match`, which hands any request other
-than a rise's (profile 1.2) to `execution_store.match` unchanged.
+request to `store_conditions_gene`, a coded-only request (profile 1.3, D39) to `store_conditions_coded`, and any other
+to `store_conditions_relative.match`, which hands any request other than a rise's (profile 1.2) to
+`execution_store.match` unchanged.
 
 `match` reads `{"cohort", "cases": [{"name", "query", "conditions", "windows"}], "split"?}` (`"split": false` runs the
 engine with D35's target split off, for D36's report of what it contributes), times in whole minutes from each patient's
@@ -28,7 +29,8 @@ because the synthetic converter counts each record's patient-local wall-clock ti
 A case may also name `candidates`, {key: {concept, condition?, relative?}} for each step and relaxed alternative. The
 answer then adds `<name>#candidates`, each patient's events per key (for explaining a difference from the page), and
 `<name>#replayed`, the engine's status on exactly those events (`replay`), which the test requires to equal the
-store's own result up to its comparability rule. For a key with a relative condition (D33) the events are the readings
+store's own result up to its comparability rule. Under a coded-only request (D39) the events of the kinds it leaves
+out are not listed. For a key with a relative condition (D33) the events are the readings
 carrying the store's relative tag, each with its strength ('certain' or 'possible'), and `<name>#inexact` lists the
 patients for whom some relative tag was decided inexactly.
 """
@@ -137,7 +139,8 @@ def match(snapshot, cases, cohort):
                     keep['relaxations'] = r['relaxed_match']['relaxations']
                 mine[r['patient_id']] = keep
             if case.get('candidates'):
-                found = out[case['name'] + '#candidates'] = candidates(store, case['candidates'], births)
+                left_out = (case.get('conditions') or {}).get('exclude_kinds', ())
+                found = out[case['name'] + '#candidates'] = candidates(store, case['candidates'], births, left_out)
                 inexact = relative_candidates(store, case['candidates'], births, found)
                 out[case['name'] + '#inexact'] = sorted(inexact)
                 out[case['name'] + '#replayed'] = replay(case, found, inexact)
@@ -240,10 +243,11 @@ def satisfies(condition, row):
     return all(tests[op](Decimal(t)) for op, t in condition.items() if op != 'unit')
 
 
-def candidates(store, wanted, births):
+def candidates(store, wanted, births, left_out=()):
     """For explaining differences: {patient: {key: [[start lo, start hi, end lo, end hi, event id, kind], ...]}}, in
-    minutes from birth, of the events carrying each key's concept (through the closure) and meeting its condition. A key
-    naming `gene` (D38) lists the gene step's derived points instead (`store_conditions_gene.gene_candidates`)."""
+    minutes from birth, of the events carrying each key's concept (through the closure) and meeting its condition; none
+    whose kind a coded-only request leaves out (`left_out`, D39). A key naming `gene` (D38) lists the gene step's derived
+    points instead (`store_conditions_gene.gene_candidates`)."""
     rows = store.query('''SELECT p.patient_id, e.event_id, e.kind, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
                                  list(DISTINCT cc.ancestor)
                           FROM events e JOIN patients p USING (patient_idx)
@@ -253,6 +257,8 @@ def candidates(store, wanted, births):
         'SELECT p.patient_id, s.event_id, s.unit, s.value_lexical FROM series s JOIN patients p USING (patient_idx)')}
     out = {}
     for pid, eid, kind, slo, shi, elo, ehi, ancestors in rows:
+        if kind in left_out:
+            continue
         minutes = lambda t: None if t is None else (t - births[pid]) / MINUTE
         for key, spec in wanted.items():
             if spec.get('gene') or spec['concept'] not in ancestors:

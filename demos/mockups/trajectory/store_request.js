@@ -23,7 +23,10 @@
    - FREE_TEXT_CODED_ONLY_UNSUPPORTED (D37): "coded records only" on a query with a step that is neither derived (an Nth
      with N > 1, a count) nor a measurement. The store reads the converter's letter mentions for every such step, so the
      option would silently become "also stated findings" there. `options.codedOnly: 'derived'` keeps D32's reading
-     (coded only for derived steps, stated findings elsewhere), for the parity test's Nth and count trajectories only;
+     (coded only for derived steps, stated findings elsewhere). Since D39 the store can leave letter mentions out of
+     every step (profile 1.3, `exclude_kinds: ["mention"]`, patterns/store_conditions_coded.py): `options.codedOnly:
+     'store'` translates "coded only" so (STORE_CODED_ONLY makes it the default once D39's rules hold), and
+     `options.codedOnly: false` asks for the named refusal;
    - VALUE_NOT_A_PLAIN_DECIMAL (D37): a threshold or factor that does not print as a plain decimal (such as 1e+21).
    Everything else is translated:
    - an Nth occurrence with N = 1 is the engine's first (Nth from last: last); with N > 1, the store's
@@ -64,6 +67,10 @@ const STORE_RISES = true;
 const STORE_GENES = true;
 const GENE_PROFILE = 'execution-store-conditions-gene-1.0';
 const GENE_CONDITION = {report: 'first_not_negative', timed_by: 'recorded_at'};
+// D39: "coded only" as the store's own exclusion of letter mentions from every step (profile 1.3), when asked for
+// (`options.codedOnly: 'store'`); the default until D39's verdict is D37's named refusal.
+const STORE_CODED_ONLY = false;
+const codedOnlyMode = options => options.codedOnly === undefined ? (STORE_CODED_ONLY ? 'store' : null) : options.codedOnly;
 const derivedOcc = n => (n.occ === 'nth' || n.occ === 'nth_last') && Math.max(1, +n.n || 1) > 1;
 // D33: the page's rise and fall rule (shared/core.js, measureEvents) in the store's terms.
 const RELATIVE_PREVIOUS = 2, RELATIVE_WITHIN_DAYS = 75;
@@ -86,8 +93,10 @@ function storeRefusals(def, freeText, options = {}) {
     if (derivedOcc(n) && kind !== 'measure' && def.edges.some(e => e.rel === 'during' && e.from === n.id))
       throw new StoreRefusal('NTH_STEP_HAS_NO_END', n.id);
   }
-  // D37: the store reads letter mentions for every step that is not derived, so "coded only" cannot be honoured there.
-  if (freeText === 'off' && options.codedOnly !== 'derived')
+  // D37: without D39's exclusion the store reads letter mentions for every step that is not derived, so "coded only"
+  // cannot be honoured there.
+  const mode = codedOnlyMode(options);
+  if (freeText === 'off' && mode !== 'derived' && mode !== 'store')
     for (const n of def.nodes)
       if (stepKind(n) !== 'measure' && n.occ !== 'count' && !derivedOcc(n)) throw new StoreRefusal('FREE_TEXT_CODED_ONLY_UNSUPPORTED', n.id);
 }
@@ -142,14 +151,18 @@ function storeRequest(def, freeText, pids, options = {}) {
   const windows = {};
   for (const pid of pids) { const w = req.windows.get(pid); windows[pid] = w.reason ? null : {start: toGrid(w.start), end: toGrid(w.end)}; }
   let conditions = null;
-  if (Object.keys(steps11).length) {
+  const coded = freeText === 'off' && codedOnlyMode(options) === 'store';
+  if (Object.keys(steps11).length || coded) {
     // At least 1.1 (D32 review): a value condition on a snapshot built without series is then refused by name; 1.2
-    // when a step rises or falls (D33).
+    // when a step rises or falls (D33); 1.3 with letter mentions left out of every step under "coded only" (D39; a gene
+    // step under "coded only" is refused above, GENE_WITH_CODED_ONLY_UNSUPPORTED).
     const rises = Object.values(steps11).some(s => s.relative), gene = Object.values(steps11).some(s => s.gene);
-    conditions = {profile: gene ? GENE_PROFILE : rises ? 'execution-store-conditions-1.2' : 'execution-store-conditions-1.1',
+    conditions = {profile: gene ? GENE_PROFILE : coded ? 'execution-store-conditions-1.3' : rises ? 'execution-store-conditions-1.2'
+                    : 'execution-store-conditions-1.1',
                   steps: steps11};
     const all = [...valueRelax, ...relax11];
     if (all.length) conditions.relaxations = all;
+    if (coded) conditions.exclude_kinds = ['mention'];
   }
   return {query: {...q, steps, relaxations}, conditions, windows};
 }

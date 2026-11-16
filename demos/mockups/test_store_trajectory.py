@@ -34,7 +34,8 @@ TEN_YEARS = 3653 * DAY
 
 def requests(pids):
     """Requests in the translator's form (`storeRequest`): a plain query with a relaxation, a value condition with its
-    relaxation, an Nth occurrence, a count, and a rise with a smaller factor; minutes from birth throughout."""
+    relaxation, an Nth occurrence, a count, a rise with a smaller factor, and (D39) the event-frequency shape over coded
+    records only; minutes from birth throughout."""
     windows = {pid: {'start': 0, 'end': TEN_YEARS} for pid in pids}
     windows[pids[-1]] = None  # a patient without an index period
     q = lambda steps, relations=(), relaxations=(), scope='any': {
@@ -76,6 +77,12 @@ def requests(pids):
                  'conditions': {'profile': 'execution-store-conditions-gene-1.0',
                                 'steps': {'B': {'gene': {'report': 'first_not_negative', 'timed_by': 'recorded_at'}}}},
                  'windows': windows},
+        'coded': {'query': q([{'id': 'A', 'concept': 'seizure', 'occurrence': 'any'},
+                              {'id': 'B', 'concept': 'sodium_channel_blocker', 'occurrence': 'first'}],
+                             [{'id': 'edge:0', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 183 * DAY}], scope='from_start'),
+                  'conditions': {'profile': 'execution-store-conditions-1.3', 'exclude_kinds': ['mention'],
+                                 'steps': {'A': {'count': {'at_least': 3, 'within': {'span': 183 * DAY}}}}},
+                  'windows': windows},
     }
 
 
@@ -138,6 +145,7 @@ class TrajectoryStoreTests(unittest.TestCase):
         self.assertEqual(body['store_profile'], 'execution-store-3.1')
         self.assertIn('execution-store-conditions-1.2', body['conditions_profiles'])
         self.assertIn('execution-store-conditions-gene-1.0', body['conditions_profiles'])
+        self.assertIn('execution-store-conditions-1.3', body['conditions_profiles'])
         with es.open_store(self.snapshot) as store:  # the converter is deterministic: the same snapshot
             self.assertEqual(body['snapshot_id'], store.snapshot_id)
 
@@ -223,6 +231,8 @@ class TrajectoryStoreTests(unittest.TestCase):
             'the engine refuses the profile': ({**good, 'query': {**good['query'], 'profile': 'other'}}, 'UNSUPPORTED_PROFILE'),
             'the store refuses a factor of 1': (self.with_factor('1'), 'INVALID_FACTOR'),
             'the store refuses an unknown conditions profile': ({**good, 'conditions': {'profile': 'x', 'steps': {}}}, 'INVALID_CONDITIONS'),
+            'the store leaves out letter mentions only': ({**good, 'conditions': {'profile': 'execution-store-conditions-1.3', 'steps': {},
+                                                           'exclude_kinds': ['registry_entry']}}, 'EXCLUDE_KIND_UNSUPPORTED'),
             'a count span as a string': ({**requests(self.pids)['count'], 'conditions': {'profile': 'execution-store-conditions-1.1',
                                           'steps': {'A': {'count': {'at_least': 2, 'within': {'span': '1'}}}}}}, 'TIME_MUST_BE_WHOLE_MINUTES'),
             'a count that is not an object': ({**requests(self.pids)['count'], 'conditions': {'profile': 'execution-store-conditions-1.1',
@@ -231,7 +241,7 @@ class TrajectoryStoreTests(unittest.TestCase):
                                                 'steps': {'A': {'count': {'at_least': 2, 'within': {'span': -10 ** 10}}}}}}, 'TIME_OUT_OF_RANGE'),
         }
         # Who refused: the server's own check before the store, or the store (or engine) by its code.
-        by_store = {'UNSUPPORTED_PROFILE', 'INVALID_FACTOR', 'INVALID_CONDITIONS'}
+        by_store = {'UNSUPPORTED_PROFILE', 'INVALID_FACTOR', 'INVALID_CONDITIONS', 'EXCLUDE_KIND_UNSUPPORTED'}
         for name, (body, code) in cases.items():
             with self.subTest(name):
                 status, answer = self.served.post(body)
