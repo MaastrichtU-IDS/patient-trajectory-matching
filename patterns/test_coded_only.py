@@ -30,6 +30,7 @@ from unittest.mock import patch
 from . import coded_only_cases as co
 from . import execution_store as es
 from . import series_values as sv
+from . import store_conditions as sc
 from . import store_conditions_coded as cc
 from . import store_conditions_relative as rc
 from . import test_derived_steps as tds
@@ -450,7 +451,24 @@ class RequestTests(unittest.TestCase):
 
 
 class ModuleBoundaryTests(unittest.TestCase):
-    """D39 lives in a module no build loads; every request without profile 1.3 is the relative module's own answer."""
+    """D39 lives in a module no build loads; every request without profile 1.3 is the relative module's own answer,
+    through this module and through the dispatcher."""
+
+    def test_the_dispatcher_routes_coded_only_requests_here(self):
+        """`store_conditions` (D38's one entry point) answers a 1.3 request by this module, byte for byte, and lists 1.3."""
+        state = _STATE['fixture']
+        self.assertEqual(sc.CODED_PROFILE, L13)
+        self.assertIn(L13, sc.profiles())
+        for feature in FEATURES:
+            made = request(1, 'fixture', feature)
+            if made is None:
+                continue
+            query, conditions, windows = made
+            self.assertEqual(json.dumps(sc.match(state['store'], query, windows, conditions=conditions)),
+                             json.dumps(cc.match(state['store'], query, windows, conditions=conditions)))
+            self.assertEqual(sc.candidates(state['store'], query, conditions), cc.candidates(state['store'], query, conditions))
+            self.assertEqual(sc.match_context(state['store'], query, windows, conditions),
+                             cc.match_context(state['store'], query, windows, conditions))
 
     def test_every_other_request_is_the_relative_modules_answer(self):
         state = _STATE['relative']
@@ -467,10 +485,13 @@ class ModuleBoundaryTests(unittest.TestCase):
                            {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {'A': {'relative': relative}}}):
             windows = trc.windows_for(rng, ingest)
             for workers in (1, 2):
-                self.assertEqual(json.dumps(cc.match(store, q, windows, workers=workers, conditions=conditions)),
-                                 json.dumps(rc.match(store, q, windows, workers=workers, conditions=conditions)))
-            self.assertEqual(cc.candidates(store, q, conditions), rc.candidates(store, q, conditions))
-            self.assertEqual(cc.match_context(store, q, windows, conditions), rc.match_context(store, q, windows, conditions))
+                want = json.dumps(rc.match(store, q, windows, workers=workers, conditions=conditions))
+                # Through this module and through the dispatcher (the path every caller takes since D38).
+                self.assertEqual(json.dumps(cc.match(store, q, windows, workers=workers, conditions=conditions)), want)
+                self.assertEqual(json.dumps(sc.match(store, q, windows, workers=workers, conditions=conditions)), want)
+            for module in (cc, sc):
+                self.assertEqual(module.candidates(store, q, conditions), rc.candidates(store, q, conditions))
+                self.assertEqual(module.match_context(store, q, windows, conditions), rc.match_context(store, q, windows, conditions))
 
     # The originals this module carries a copy of (with D39's hooks): if one changes, the copy must follow. Each is
     # pinned by the sha256 of its source.
@@ -534,6 +555,7 @@ class ModuleBoundaryTests(unittest.TestCase):
 
     def test_no_build_or_store_module_names_it(self):
         for path in ('patterns/execution_store.py', 'patterns/synthetic_ingest.py', 'patterns/store_conditions_relative.py',
+                     'patterns/store_conditions_gene.py',
                      'tools/scaling_build_worker.py', 'patterns/build_record.py'):
             self.assertNotIn('store_conditions_coded', (ROOT / path).read_text(encoding='utf-8'), path)
 

@@ -6,8 +6,9 @@
    readings (store_parity.py build). Every page template is translated by the page's own translator
    (trajectory/store_request.js) under the page's "coded only" setting, with `codedOnly: 'store'`, with the page's own
    window and scope, as the parity test translates them, and matched in the store (store_parity.py match, which calls
-   store_conditions_coded.match). Tree and Graph run without their gene step, which the store refuses by name. For each
-   template it counts the patients with a store candidate and an index window, and the unresolved results among them
+   the dispatcher store_conditions.match, which routes profile 1.3 to store_conditions_coded.match). Tree and Graph run
+   without their gene step, which the translator refuses by name under "coded only" (GENE_WITH_CODED_ONLY_UNSUPPORTED,
+   D38). For each template it counts the patients with a store candidate and an index window, and the unresolved results among them
    (with their reasons), per seed and pooled. The same templates under the page's default setting (stated findings) are
    matched beside them and reported, not ruled (Event frequency is refused there by name).
 
@@ -34,6 +35,7 @@ const run = (args, input) => execFileSync(python, args, {cwd: root, input, encod
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const OUTPUT = arg('--output', null);
 const MINIMUM = 30, SHARE = 0.3;
+const GENE_CODES = ['GENE_CLASSIFICATION_UNSUPPORTED', 'GENE_WITH_CODED_ONLY_UNSUPPORTED'];  // refused for the gene step
 const SEEDS = Array.from({length: 30}, (_, i) => 1001 + i);  // declared in D39 before any measurement
 const EXTEND = Array.from({length: 70}, (_, i) => 1031 + i);  // the extension rule's order
 if (process.argv.length > 2 && !(process.argv.length === 4 && process.argv[2] === '--output')) {
@@ -111,7 +113,7 @@ const strip = t => Object.fromEntries(Object.entries(t).filter(([k]) => !k.endsW
 const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex');
 const ARTIFACTS = ['demos/mockups/coded_usefulness.cjs', 'demos/mockups/store_parity.py', 'demos/mockups/trajectory/store_request.js',
   'demos/mockups/trajectory/app.js', 'demos/mockups/shared/core.js', 'demos/mockups/synthetic/generate.py',
-  'patterns/store_conditions_coded.py', 'patterns/store_conditions_relative.py', 'patterns/execution_store.py',
+  'patterns/store_conditions.py', 'patterns/store_conditions_coded.py', 'patterns/store_conditions_relative.py', 'patterns/execution_store.py',
   'patterns/synthetic_ingest.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py', 'patterns/temporal_stn.py'];
 
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'coded-usefulness-'));
@@ -184,7 +186,8 @@ try {
   const coverage = {answered_under_coded_only: TEMPLATE_NAMES.filter(n => !pooled[n].refused),
                     whole_templates_refused: wholeRefusals,
                     met: TEMPLATE_NAMES.every(n => !pooled[n].refused)
-                      && Object.values(wholeRefusals).every(code => code === 'GENE_CLASSIFICATION_UNSUPPORTED')};
+                      // D38 translates gene steps, and refuses one under "coded only" (GENE_WITH_CODED_ONLY_UNSUPPORTED).
+                      && Object.values(wholeRefusals).every(code => GENE_CODES.includes(code))};
   const report = {
     profile: 'd39-coded-usefulness-1.0',
     rule: ('per template under "coded only" (sequence; tree and graph without their gene step; event frequency; blank), '

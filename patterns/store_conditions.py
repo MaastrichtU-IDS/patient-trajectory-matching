@@ -8,6 +8,7 @@ answer on unchanged, so the answer to any other request is byte-identical to cal
 
 Routing, by `conditions['profile']`:
 - `execution-store-conditions-gene-1.0`: `store_conditions_gene`;
+- `execution-store-conditions-1.3` (coded only: letter mentions left out of every step, D39): `store_conditions_coded`;
 - every other request (none, 1.0, 1.1, 1.2): `store_conditions_relative`, which hands all but 1.2 to
   `execution_store`.
 
@@ -18,7 +19,7 @@ from __future__ import annotations
 from . import execution_store as es
 
 GENE_PROFILE = 'execution-store-conditions-gene-1.0'
-# D39 (Track B) adds its route here: its profile, and its module in `_module` below.
+CODED_PROFILE = 'execution-store-conditions-1.3'  # D39
 
 
 def _module(conditions):
@@ -26,7 +27,9 @@ def _module(conditions):
     if profile == GENE_PROFILE:
         from . import store_conditions_gene as module
         return module
-    # D39: `if profile == CODED_PROFILE: from . import store_conditions_coded as module; return module`
+    if profile == CODED_PROFILE:
+        from . import store_conditions_coded as module
+        return module
     from . import store_conditions_relative as module
     return module
 
@@ -34,7 +37,7 @@ def _module(conditions):
 def profiles():
     """Every conditions profile a request through this module may carry."""
     from . import store_conditions_relative as rc
-    return [*rc.CONDITIONS_PROFILES, GENE_PROFILE]
+    return [*rc.CONDITIONS_PROFILES, GENE_PROFILE, CODED_PROFILE]
 
 
 def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers=1, conditions=None):
