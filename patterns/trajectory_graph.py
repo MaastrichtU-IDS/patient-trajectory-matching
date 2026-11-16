@@ -36,6 +36,9 @@ The decision procedure (docs/trajectory-graph-profile.md):
   so its exact and none results stand and a binding it finds leaves the result unresolved.
   Since D35 a set either rule leaves undecided is decided exactly by a split over the possible
   targets of its uncertain steps (`_target_split`), where a gate admits it.
+- Settling (D40): where the possible phase's bounded search stops, propagation that spends no
+  search steps (pair consistency, a network over the steps' hulls, one checked descent) decides
+  the set where it can (`_settle`); elsewhere the stopped search stands.
 
 `patterns/trajectory_graph_reference.py` enumerates every binding instead, and the tests
 compare the two on seeded random trajectories of every shape.
@@ -1102,12 +1105,286 @@ def decide(query, times, relaxations, budget, plan=None, override=None, exact=Tr
     meter = Budget(budget)
     order = sorted(step_ids, key=lambda s: len(domains[s]))
     found = _backtrack(order, domains, lambda b: feasible(b, joint(b), times).feasible, meter)
+    if found is None and meter.steps > meter.limit and _SETTLE:
+        # D40: the search stopped. Propagation that spends no search steps may still decide the set (`_settle`); where
+        # it does not, the stopped search stands. Only a stopped search is settled, so every search that completed
+        # within its budget, and every result decided before D40, is unchanged.
+        settled = _settle(step_ids, domains, plan, facts, times)
+        if settled is not None:
+            result['possible'] = {**settled, 'search_steps': meter.steps}
+            return result
     result['possible'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
                           'method': 'bounded_backtracking', 'search_steps': meter.steps}
     if found is not None:
         witness = feasible(found, joint(found), times).witness()
         result['possible'].update(binding=found, witness={s: witness[_node(e.sv)] for s, e in found.items()})
     return result
+
+
+# D40: settling a stopped search. A bounded search counts each event it tries for a step against the query's budget;
+# arc consistency, the forest methods and the point forest's joint check have never counted, since they are polynomial.
+# Where the possible phase's search stops, `_settle` runs more propagation of that kind on the domains the search had,
+# and decides the set where it can. A switch, for the tests and the movement fixture that show what it moves; as the
+# others here, a module global that worker processes never see changed. `SETTLE_LIMIT` bounds the pair tests one
+# settling may make, so that its cost stays polynomial in practice too; past it the stopped search stands.
+_SETTLE = True
+SETTLE_LIMIT = 20_000
+
+
+def _small_feasible(binding, constraints, times):
+    """`feasible(binding, constraints, times).feasible`, for the small bindings `_settle` tests (one or two steps)."""
+    return _closure(binding, constraints, times) is not None
+
+
+def _closure(binding, constraints, times):
+    """`feasible`'s network for a small binding, closed by Floyd–Warshall over the binding's variables alone: (index,
+    distances), distances[i][j] bounding value(j) - value(i) with node 0 time zero; or None when it has no solution. The
+    network is `feasible`'s: each variable within its range, the patient's distances between linked variables, and
+    every constraint whose steps the binding binds. An anchor is a constant (its range is one value), so it is time
+    zero shifted by its value rather than a variable of its own."""
+    dom = times.dom
+    variables = []
+    for e in binding.values():
+        for v in (e.sv, e.fv):
+            if v not in variables:
+                variables.append(v)
+    index = {v: k + 1 for k, v in enumerate(variables)}
+    n = len(variables) + 1
+    # d[i][j] bounds value(j) - value(i); node 0 is time zero.
+    d = [[0 if i == j else INF for j in range(n)] for i in range(n)]
+    for v, k in index.items():
+        lo, hi = dom[v]
+        d[0][k], d[k][0] = hi, -lo
+    for u, v in combinations(variables, 2):
+        if times.linked(u, v):
+            i, j = index[u], index[v]
+            d[i][j] = min(d[i][j], times.gap(u, v))
+            d[j][i] = min(d[j][i], times.gap(v, u))
+
+    def term(t):
+        if t[0] in ANCHORS:
+            return 0, dom[('anchor', t[0])][0]
+        e = binding[t[0]]
+        return index[e.sv if t[1] == 's' else e.fv], 0
+    for c in constraints:
+        if not all(t[0] in ANCHORS or t[0] in binding for t in (c.x, c.y)):
+            continue
+        (x, ox), (y, oy) = term(c.x), term(c.y)
+        # value(y) - value(x) in [lo, hi], with value = node + offset
+        if c.hi != INF:
+            d[x][y] = min(d[x][y], c.hi - oy + ox)
+        if c.lo != -INF:
+            d[y][x] = min(d[y][x], -c.lo + oy - ox)
+    for i in range(n):
+        if d[i][i] < 0:
+            return None
+    for k in range(n):
+        dk = d[k]
+        for i in range(n):
+            dik = d[i][k]
+            if dik == INF:
+                continue
+            di = d[i]
+            for j in range(n):
+                w = dik + dk[j]
+                if w < di[j]:
+                    di[j] = w
+    return (index, d) if all(d[i][i] >= 0 for i in range(n)) else None
+
+
+def _bounds_network(step_ids, domains, constraints, facts, times):
+    """D40: the network over each step's hull, or None when it has no solution. Each step has a start and an end
+    variable ranging over the union hull of its events' ranges (`Times.dom`), its end minus its start within the least
+    and greatest its events allow, every constraint of the set, and every fact whose condition each event of its step
+    meets. A binding's times satisfy all of these (dropping the links between shared variables only widens it), so no
+    solution means no binding. Otherwise each step's minimal bounds, (start lo, start hi, end lo, end hi): every
+    binding's times lie within them, so an event whose range misses them is in no binding."""
+    dom = times.dom
+    node = {}
+    for k, s in enumerate(step_ids):
+        node[(s, 's')], node[(s, 'f')] = 1 + 2 * k, 2 + 2 * k
+    n = 1 + 2 * len(step_ids)
+    d = [[0 if i == j else INF for j in range(n)] for i in range(n)]
+    for s in step_ids:
+        es, ef = node[(s, 's')], node[(s, 'f')]
+        events = domains[s]
+        d[0][es] = max(dom[e.sv][1] for e in events)
+        d[es][0] = -min(dom[e.sv][0] for e in events)
+        d[0][ef] = max(dom[e.fv][1] for e in events)
+        d[ef][0] = -min(dom[e.fv][0] for e in events)
+        d[es][ef] = max(times.gap(e.sv, e.fv) for e in events)
+        d[ef][es] = max(times.gap(e.fv, e.sv) for e in events)
+    applying = [c for c in facts if all(c.applies_to(e, times) for e in domains[c.y[0]])]
+
+    def term(t):
+        return (0, dom[('anchor', t[0])][0]) if t[0] in ANCHORS else (node[t], 0)
+    for c in list(constraints) + applying:
+        (x, ox), (y, oy) = term(c.x), term(c.y)
+        if c.hi != INF:
+            d[x][y] = min(d[x][y], c.hi - oy + ox)
+        if c.lo != -INF:
+            d[y][x] = min(d[y][x], -c.lo + oy - ox)
+    for k in range(n):
+        dk = d[k]
+        for i in range(n):
+            dik = d[i][k]
+            if dik == INF:
+                continue
+            di = d[i]
+            for j in range(n):
+                w = dik + dk[j]
+                if w < di[j]:
+                    di[j] = w
+    if any(d[i][i] < 0 for i in range(n)):
+        return None
+    return {s: (-d[node[(s, 's')]][0], d[0][node[(s, 's')]], -d[node[(s, 'f')]][0], d[0][node[(s, 'f')]])
+            for s in step_ids}
+
+
+def _pair_test(step_ids, plan, facts, times, direct=True):
+    """D40: the joint test of two steps' events that `_settle` makes, as ok(a, ea, b, eb): `feasible` on the binding
+    {a: ea, b: eb} with both steps' unary constraints, every constraint between them and every fact the pair meets.
+    With `direct` (always, but for the test that compares the two), a pair of the common shape is decided without
+    building the network, by the argument below; every other pair by `_small_feasible`."""
+    unary, binary = plan.unary, plan.binary
+    pair_constraints, pair_facts = {}, {}
+    for a, b in combinations(step_ids, 2):
+        key = (a, b) if (a, b) in binary else (b, a)
+        cs = unary[a] + unary[b] + binary.get(key, [])
+        fs = [c for c in facts if {c.x[0], c.y[0]} == {a, b}]
+        pair_constraints[(a, b)] = pair_constraints[(b, a)] = cs
+        pair_facts[(a, b)] = pair_facts[(b, a)] = fs
+    projections, simple, shared = {}, {}, times.shared
+
+    def projection(s, e):
+        """The ranges of e's start and end over its own network with its step's unary constraints, or None."""
+        key = (s, id(e))
+        if key not in projections:
+            closed = _closure({s: e}, unary[s], times)
+            if closed is None:
+                projections[key] = None
+            else:
+                index, d = closed
+                projections[key] = {part: (-d[index[v]][0], d[0][index[v]]) for part, v in (('s', e.sv), ('f', e.fv))}
+        return projections[key]
+    # A pair whose constraints and facts all bound one term of each step, the same two terms, as value(b's term) -
+    # value(a's term) in [lo, hi] (`simple`). For two distinct events of a patient with no shared variable, the pair's
+    # network is then each event's own network (with its step's unary constraints) joined only by those bounds, so it is
+    # feasible exactly when some value of a's term's range and some value of b's meet them: the range of a variable in
+    # a simple temporal network is its projection, and every value in it extends to a solution. With no constraint or
+    # fact between them, the two networks are disjoint.
+    for a, b in pair_constraints:
+        key = (a, b) if (a, b) in binary else (b, a)
+        terms, lo, hi, conditional = set(), -INF, INF, []
+        for c in binary.get(key, []) + pair_facts[(a, b)]:
+            flip = c.x[0] != a
+            terms.add((c.y[1], c.x[1]) if flip else (c.x[1], c.y[1]))
+            clo, chi = (-c.hi, -c.lo) if flip else (c.lo, c.hi)
+            if isinstance(c, OrderFact):
+                conditional.append((c, clo, chi))
+            else:
+                lo, hi = max(lo, clo), min(hi, chi)
+        if len(terms) <= 1:
+            simple[(a, b)] = (next(iter(terms)) if terms else None, lo, hi, conditional)
+
+    def ok(a, ea, b, eb):
+        binding = {a: ea, b: eb}
+        spec = simple.get((a, b))
+        if spec is not None and direct and not shared and ea is not eb:
+            pa, pb = projection(a, ea), projection(b, eb)
+            if pa is None or pb is None:
+                return False
+            terms, lo, hi, conditional = spec
+            if terms is None:
+                return True
+            for c, clo, chi in conditional:
+                if c.applies(binding, times):
+                    lo, hi = max(lo, clo), min(hi, chi)
+            (alo, ahi), (blo, bhi) = pa[terms[0]], pb[terms[1]]
+            return max(lo, blo - ahi) <= min(hi, bhi - alo)
+        return _small_feasible(binding, pair_constraints[(a, b)] + [c for c in pair_facts[(a, b)]
+                                                                    if c.applies(binding, times)], times)
+    return ok
+
+
+def _settle(step_ids, domains, plan, facts, times):
+    """D40: decide a possible phase whose bounded search stopped, by propagation that spends no search steps; or None,
+    and the stopped search stands. `domains` are the events the search had for each step (after the unary filter and
+    arc consistency on plausibility), `facts` the order facts the phase adds.
+
+    1. *Pair consistency.* An event of a step is kept only if, for every other step, some event of that step's domain
+       makes the pair jointly feasible: the two events' own network, both steps' unary constraints, every constraint
+       between them and every fact the pair meets (`_small_feasible`, which is `feasible` on that binding). Arc
+       consistency on plausibility tests each constraint alone; this tests them together. Every binding's pairs are
+       jointly feasible (a part of a feasible network is feasible), so no binding is lost. Each event alone is tested
+       first with its step's unary constraints.
+    2. *Bounds.* The network over the steps' hulls (`_bounds_network`): no solution means no binding; otherwise events
+       outside a step's minimal bounds are dropped, and 1 runs again, until nothing changes.
+    3. An empty domain: no binding, a complete `none` for the set.
+    4. *One descent.* Otherwise each step, in the search's order (fewest events first), takes its first event that is
+       pair-consistent with every step already taken; the whole binding is then checked once, jointly (`feasible`), as
+       the point forest's binding is. It holds: a binding, with its witness. It fails, or some step has no such event:
+       None. No step is revisited, so this is no search: it tests at most each event once per earlier step.
+    A binding of at most two steps is its pairs, so every set of one or two steps is decided here (within the limit).
+    The pair tests are counted; past `SETTLE_LIMIT` the settling gives up (None)."""
+    constraints, unary = plan.constraints, plan.unary
+    doms = {s: list(domains[s]) for s in step_ids}
+    ok, tests = _pair_test(step_ids, plan, facts, times), 0
+    refuted = lambda method: {'found': False, 'complete': True, 'method': method}
+    for s in step_ids:
+        tests += len(doms[s])
+        doms[s] = [e for e in doms[s] if _small_feasible({s: e}, unary[s], times)]
+        if not doms[s]:
+            return refuted('pair_consistency')
+    arcs = [(a, b) for a in step_ids for b in step_ids if a != b]
+    queue = list(arcs)
+    while True:
+        while queue:
+            a, b = queue.pop(0)
+            kept = []
+            for ea in doms[a]:
+                for eb in doms[b]:
+                    tests += 1
+                    if ok(a, ea, b, eb):
+                        kept.append(ea)
+                        break
+            if tests > SETTLE_LIMIT:
+                return None
+            if len(kept) != len(doms[a]):
+                doms[a] = kept
+                if not kept:
+                    return refuted('pair_consistency')
+                queue.extend(arc for arc in arcs if arc[1] == a and arc[0] != b and arc not in queue)
+        bounds = _bounds_network(step_ids, doms, constraints, facts, times)
+        if bounds is None:
+            return refuted('bounds_network')
+        for s in step_ids:
+            slo, shi, flo, fhi = bounds[s]
+            dom = times.dom
+            kept = [e for e in doms[s] if max(dom[e.sv][0], slo) <= min(dom[e.sv][1], shi)
+                    and max(dom[e.fv][0], flo) <= min(dom[e.fv][1], fhi)]
+            if len(kept) != len(doms[s]):
+                doms[s] = kept
+                if not kept:
+                    return refuted('bounds_network')
+                queue.extend(arc for arc in arcs if arc[1] == s and arc not in queue)
+        if not queue:
+            break
+    binding = {}
+    for s in sorted(step_ids, key=lambda s: len(doms[s])):
+        for e in doms[s]:
+            tests += len(binding)
+            if all(ok(s, e, t, binding[t]) for t in binding):
+                binding[s] = e
+                break
+        else:
+            return None
+    network = feasible(binding, constraints + _applying(facts, binding, times), times)
+    if not network.feasible:
+        return None
+    witness = network.witness()
+    return {'found': True, 'complete': True, 'method': 'pair_consistency_checked', 'binding': binding,
+            'witness': {s: witness[_node(e.sv)] for s, e in binding.items()}}
 
 
 # D30: the order rule for `first` and `last` steps. Switch, for the tests that show what each fix moves.

@@ -1045,11 +1045,12 @@ def d30_stage_digests(legacy_store, seed):
     the latest start, with the order rule as well, and with the mention timing (the store and the case as they are
     now); and, for a second ordering, this store and case with the order rule off (mention timing before the order
     rule)."""
-    tg._ENVELOPE = tg._SPLIT = False
+    # D40: and with settling off, so that these are D30's own results.
+    tg._ENVELOPE = tg._SPLIT = tg._SETTLE = False
     try:
         return _d30_stage_digests(legacy_store, seed)
     finally:
-        tg._ENVELOPE = tg._SPLIT = True
+        tg._ENVELOPE = tg._SPLIT = tg._SETTLE = True
 
 
 def _d30_stage_digests(legacy_store, seed):
@@ -1151,12 +1152,12 @@ def d31_match(q, w, envelope, exact_facts):
     def spy(pq, patient, trusted=False):
         r = engine[patient['patient_id']] = inner(pq, patient, trusted)
         return r
-    # D35: with the target split off, so that these are D31's own results.
-    tg._ENVELOPE, tg._EXACT_FACTS, tg._SPLIT, tg.match_prepared = envelope, exact_facts, False, spy
+    # D35: with the target split off, so that these are D31's own results (and D40's settling off).
+    tg._ENVELOPE, tg._EXACT_FACTS, tg._SPLIT, tg._SETTLE, tg.match_prepared = envelope, exact_facts, False, False, spy
     try:
         return es.match(_STATE['store'], q, w), engine
     finally:
-        tg._ENVELOPE, tg._EXACT_FACTS, tg._SPLIT, tg.match_prepared = True, True, True, inner
+        tg._ENVELOPE, tg._EXACT_FACTS, tg._SPLIT, tg._SETTLE, tg.match_prepared = True, True, True, True, inner
 
 
 def d31_movement(seed):
@@ -1210,10 +1211,10 @@ class D31MovementTests(unittest.TestCase):
 D35_DIGESTS = ROOT / 'patterns/fixtures/execution_store_match_digests_d35.json'
 
 
-def d35_match(q, w, split):
+def d35_match(q, w, split, settle=False):
     """The store's result with the target split on or off, and the engine's own result for each patient the engine ran
     on (`match_prepared`, or `_coupled_match` for a coupled Nth step, before the store's coverage and excluded-records
-    rules), by patient id."""
+    rules), by patient id. D40's settling is off unless asked for, so that D35's record stands as it was."""
     engine, inner, coupled = {}, tg.match_prepared, es._coupled_match
     def spy(pq, patient, trusted=False):
         r = engine[patient['patient_id']] = inner(pq, patient, trusted)
@@ -1221,11 +1222,11 @@ def d35_match(q, w, split):
     def spy_coupled(pq, patient, steps):
         r = engine[patient['patient_id']] = coupled(pq, patient, steps)
         return r
-    tg._SPLIT, tg.match_prepared, es._coupled_match = split, spy, spy_coupled
+    tg._SPLIT, tg._SETTLE, tg.match_prepared, es._coupled_match = split, settle, spy, spy_coupled
     try:
         return es.match(_STATE['store'], q, w), engine
     finally:
-        tg._SPLIT, tg.match_prepared, es._coupled_match = True, inner, coupled
+        tg._SPLIT, tg._SETTLE, tg.match_prepared, es._coupled_match = True, True, inner, coupled
 
 
 def d35_movement(seed):
@@ -1250,12 +1251,13 @@ def d35_movement(seed):
 class D35MovementTests(unittest.TestCase):
     """D35 (decision log): the target split moves a recorded result only from undecided (by the engine's own result:
     `unresolved`, or not `complete`) to a decision, or within undecided; no decided result changes. With the switch off
-    this tree gives the digest recorded before D35 (D31's, which D32 to D34 kept); on, the digest recorded now."""
+    this tree gives the digest recorded before D35 (D31's, which D32 to D34 kept); on, the digest D35 recorded, which D36
+    and D37 kept and D40's settling (off here) starts from."""
 
     def test_the_300_recorded_digests_move_only_from_undecided_results(self):
         recorded = json.loads(D35_DIGESTS.read_text())
         d31 = json.loads(D31_DIGESTS.read_text())['seeds']
-        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        now = {s: e['before'] for s, e in json.loads(D40_DIGESTS.read_text())['seeds'].items()}
         kinds = Counter()
         for seed in range(SEEDS):
             entry = recorded['seeds'][str(seed)]
@@ -1263,6 +1265,54 @@ class D35MovementTests(unittest.TestCase):
             with self.subTest(seed=seed):
                 self.assertEqual(got, entry)
                 self.assertEqual(got['before'], d31[str(seed)]['after'])
+                self.assertEqual(got['after'], now[str(seed)])
+                for transition, n in got['engine_transitions'].items():
+                    kinds[d31_kind(transition)] += n
+                    self.assertNotEqual(d31_kind(transition), 'decided changed', transition)
+        self.assertEqual(sum(1 for e in recorded['seeds'].values() if e['before'] != e['after']),
+                         recorded['summary']['moved'])
+        self.assertEqual(dict(sorted(kinds.items())), recorded['summary']['engine_by_kind'])
+        self.assertGreater(kinds['to a decision'], 0)
+
+
+D40_DIGESTS = ROOT / 'patterns/fixtures/execution_store_match_digests_d40.json'
+
+
+def d40_movement(seed):
+    """The seed's digest with settling off (main before D40) and on, and each changed result's transition, by the
+    engine's own result and by the store's."""
+    q, w = MatcherScalingTests.case(seed)
+    (before, eb), (after, ea) = (d35_match(q, w, True, settle) for settle in (False, True))
+    digest = lambda out: hashlib.sha256(json.dumps({k: out[k] for k in ('plan', 'candidates', 'counts', 'results')},
+                                                   sort_keys=True).encode()).hexdigest()
+    store, engine = Counter(), Counter()
+    for a, b in zip(before['results'], after['results']):
+        pid = a['patient_id']
+        x, y = eb.get(pid), ea.get(pid)
+        if a != b or x != y:
+            store[f'{d31_label(a)} -> {d31_label(b)}'] += 1
+            engine[f'{d31_label(x or a)} -> {d31_label(y or b)}'] += 1
+    return {'before': digest(before), 'after': digest(after),
+            'engine_transitions': dict(sorted(engine.items())), 'store_transitions': dict(sorted(store.items()))}
+
+
+class D40MovementTests(unittest.TestCase):
+    """D40 (decision log): settling a stopped search moves a recorded result only from undecided (by the engine's own
+    result: `unresolved`, or not `complete`) to a decision, or within undecided; no decided result changes. With the
+    switch off this tree gives the digest recorded before D40 (D35's, which D36 and D37 kept); on, the digest recorded
+    now."""
+
+    def test_the_300_recorded_digests_move_only_from_undecided_results(self):
+        recorded = json.loads(D40_DIGESTS.read_text())
+        d35 = json.loads(D35_DIGESTS.read_text())['seeds']
+        now = json.loads(MatcherScalingTests.FIXTURE.read_text())
+        kinds = Counter()
+        for seed in range(SEEDS):
+            entry = recorded['seeds'][str(seed)]
+            got = d40_movement(seed)
+            with self.subTest(seed=seed):
+                self.assertEqual(got, entry)
+                self.assertEqual(got['before'], d35[str(seed)]['after'])
                 self.assertEqual(got['after'], now[str(seed)])
                 for transition, n in got['engine_transitions'].items():
                     kinds[d31_kind(transition)] += n

@@ -227,7 +227,9 @@ class DecisionMethodTests(unittest.TestCase):
     def test_an_exhausted_budget_is_unresolved_never_a_non_match(self):
         # A cycle with no solution: B and C must each be 1-2 after A and 10 apart. With exact
         # times arc consistency proves that alone; with wide uncertain ranges every pair is
-        # plausible, so only the joint test can, binding by binding.
+        # plausible, so only the joint test can, binding by binding. Since D40 a stopped search is settled, and the
+        # network over the steps' hulls refutes this cycle from its relations alone; so the stopped search is shown
+        # here with settling off, and then on a cycle settling cannot decide.
         q = query([{'id': s, 'concept': 'x'} for s in 'ABC'],
                   [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 1, 'max': 2},
                    {'id': 'AC', 'kind': 'after', 'from': 'A', 'to': 'C', 'min': 1, 'max': 2},
@@ -235,14 +237,27 @@ class DecisionMethodTests(unittest.TestCase):
                   search_budget=50,
                   relaxations=[{'id': 'loose', 'kind': 'extend_max', 'cost': 1, 'relation': 'AC', 'max': 20}], budget=1)
         p = patient([event(f'e{i}', 'x', (i, i + 500)) for i in range(15)])
-        result = tg.match(q, p)
+        result = unsettled(q, p)
         self.assertEqual((result['status'], result['reason']), ('unresolved', 'SEARCH_BUDGET_EXHAUSTED'))
         self.assertFalse(result['complete'])
         self.assertEqual(result['relaxed_match']['relaxations'], ['loose'])
+        settled = tg.match(q, p)
+        self.assertEqual((settled['status'], settled['relaxations'], settled['complete']), ('relaxed', ['loose'], True))
         q['search_budget'] = 1_000_000
         self.assertEqual(tg.match(q, p)['status'], 'relaxed')
         q['relaxations'] = []
         self.assertEqual(tg.match(q, p), {'patient_id': 'P1', 'status': 'none', 'complete': True})
+        # Every pair of this cycle is jointly feasible, its hulls too, and the descent's binding fails the joint check:
+        # settling gives up and the stopped search stands, though a binding exists.
+        stuck = query([{'id': s, 'concept': 'x'} for s in 'ABC'],
+                      [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 1, 'max': 3},
+                       {'id': 'BC', 'kind': 'after', 'from': 'B', 'to': 'C', 'min': 1, 'max': 3},
+                       {'id': 'AC', 'kind': 'after', 'from': 'A', 'to': 'C', 'min': 4, 'max': 5}], search_budget=1)
+        p = patient([event('e0', 'x', (10, 16)), event('e1', 'x', (6, 10)), event('e2', 'x', (3, 9)),
+                     event('e3', 'x', (17, 22)), event('e4', 'x', (17, 24))], (0, 100))
+        self.assertEqual(tg.match(stuck, p), {'patient_id': 'P1', 'status': 'unresolved',
+                                              'reason': 'SEARCH_BUDGET_EXHAUSTED', 'complete': False})
+        self.assertEqual(tg.match({**stuck, 'search_budget': 1_000_000}, p)['status'], 'possible')
 
     def test_arc_consistency_alone_refutes_a_contradictory_cycle_on_exact_times(self):
         q = query([{'id': s, 'concept': 'x'} for s in 'ABC'],
@@ -729,8 +744,12 @@ class KernelIdentityTests(unittest.TestCase):
 
     def setUp(self):
         self.counts = Counter()
+        # D40 settles searches that stop, which the frozen engine reports as stopped: the comparison is made with
+        # settling off (SettleTests shows what settling moves, and that it moves only undecided results).
+        tg._SETTLE = False
 
     def tearDown(self):
+        tg._SETTLE = True
         # Most cases are untouched by D30 and still decided exactly as by the frozen engine.
         if self.counts:
             assert self.counts['compared'] > self.counts['moved by D30'], self.counts
@@ -1531,6 +1550,353 @@ class TargetSplitTests(unittest.TestCase):
                     self.assertGreater(wrong(), 0)
             finally:
                 setattr(tg, attr, original)
+
+
+def budget_case(rng, make):
+    """D40: a case from `make` (`tiny_case`, `ordered_case` or `during_case`) whose bounded searches stop: a search
+    budget of 1 to 12, and two to five more events at exact times (an exact event adds no choice of times, so the worlds
+    stay as few), and steps made `any` steps now and then, so that steps often have more candidates than the budget
+    lets a search try."""
+    while True:
+        q, p = make(rng)
+        p = deepcopy(p)
+        for i in range(rng.randint(2, 5)):
+            t = rng.randint(0, 8)
+            e = {'id': f'z{i}', 'concepts': [*rng.choice([['x'], ['y'], ['x', 'y']]), 'any'], 'start': [t, t]}
+            if rng.random() < 0.3:
+                e['end'] = [t + rng.randint(0, 3)] * 2
+            p['events'].append(e)
+        q = {**q, 'search_budget': rng.choice([1, 1, 2, 3, 5, 12])}
+        # An `any` step tries every candidate, so its search stops more often: one step made `any` half the time,
+        # every step a quarter of the time.
+        k, every = rng.randrange(len(q['steps'])), rng.random() < 0.25
+        if every or rng.random() < 0.5:
+            q['steps'] = [{**s, 'occurrence': 'any'} if every or i == k else s for i, s in enumerate(q['steps'])]
+        try:
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        return q, p
+
+
+def search_case(rng):
+    """D40: a case built to make bounded searches stop and to give settling work beyond pairs: three or four steps,
+    mostly `any`, on concepts x and y whose families overlap, related by a tree of relations and one or two more (so
+    there is a cycle), on five to eight events, three of them with narrow uncertain ranges (some exposures, some sharing a variable) on a
+    short grid, with a search budget of 1 to 12. Sometimes a `first` or `last` step, a widening or a longer bound."""
+    while True:
+        events = []
+        for i in range(rng.randint(5, 8)):
+            lo = rng.randint(0, 8)
+            e = {'id': f'e{i}', 'concepts': rng.choice([['x'], ['y'], ['x', 'y'], ['x'], ['y']]),
+                 'start': [lo, lo + (rng.choice([0, 0, 1, 2]) if i < 3 else 0)]}
+            if rng.random() < 0.25:
+                end = e['start'][1] + rng.randint(0, 3)
+                e['end'] = [end, end + (rng.choice([0, 1]) if i < 3 else 0)]
+            events.append(e)
+        if rng.random() < 0.1:
+            a, b = rng.sample(events[:3], 2)
+            b['start_var'], b['start'] = a.get('start_var', a['id'] + '.s'), list(a['start'])
+            if 'end' in b:
+                b['end'] = [max(b['end'][0], b['start'][1] + 1), max(b['end'][1], b['start'][1] + 1)]
+        k = rng.choice([3, 3, 4])
+        names = 'ABCD'[:k]
+        steps = [{'id': s, 'concept': rng.choice('xy'),
+                  'occurrence': rng.choice(['any', 'any', 'any', 'any', 'first', 'last'])} for s in names]
+        def relation(rid, a, b):
+            if rng.random() < 0.15:
+                return {'id': rid, 'kind': 'during', 'from': a, 'to': b, 'grace': rng.choice([0, 1])}
+            lo = rng.choice([-4, -2, -1, 0, 0, 1, None])
+            hi = None if lo is None and rng.random() < 0.5 else rng.choice([1, 3, 5]) if lo is None else lo + rng.choice([1, 3, 5, 8])
+            return {'id': rid, 'kind': 'after', 'from': a, 'to': b,
+                    **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})}
+        relations = [relation(f'r{j}', names[rng.randrange(j)], names[j]) for j in range(1, k)]
+        for j in range(rng.randint(1, 2)):
+            a, b = rng.sample(names, 2)
+            relations.append(relation(f'c{j}', a, b))
+        if rng.random() < 0.3:
+            relations.append({'id': 'w', 'kind': 'after', 'from': 'START', 'to': rng.choice(names),
+                              'min': rng.choice([0, 1, 2])})
+        relaxations = []
+        if rng.random() < 0.3:
+            relaxations.append({'id': 'wd', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),
+                                'concept': rng.choice('xy')})
+        bounded = [r for r in relations if r['kind'] == 'after' and r.get('max') is not None]
+        if bounded and rng.random() < 0.3:
+            r = rng.choice(bounded)
+            relaxations.append({'id': 'longer', 'kind': 'extend_max', 'cost': '0.25', 'relation': r['id'],
+                                'max': r['max'] + 2})
+        q = query(steps, relations, scope=rng.choice(['any', 'any', 'from_start']), relaxations=relaxations, budget=1,
+                  search_budget=rng.choice([1, 1, 2, 3, 5, 12]))
+        p = patient(events, (0, 12), 'P')
+        try:
+            tg.validate_query(q)
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        if worlds.count_worlds(p, 20) <= 3000:
+            return q, p
+
+
+BUDGET_GENERATORS = (('tiny', lambda rng: budget_case(rng, tiny_case)),
+                     ('ordered', lambda rng: budget_case(rng, ordered_case)),
+                     ('during', lambda rng: budget_case(rng, during_case)),
+                     ('search', search_case))
+
+
+def budget_cases(each=300, seed='d40'):
+    """D40's suite cases: `each` cases of every budgeted generator."""
+    cases = []
+    for name, make in BUDGET_GENERATORS:
+        rng = random.Random(f'{seed}-{name}')
+        cases += [make(rng) for _ in range(each)]
+    return cases
+
+
+def settle_runs(q, p):
+    """The engine's result, and how many settlings ran and decided their set."""
+    calls, inner = [], tg._settle
+    def spy(*a):
+        out = inner(*a)
+        calls.append(out is not None)
+        return out
+    tg._settle = spy
+    try:
+        r = tg.match(q, p)
+    finally:
+        tg._settle = inner
+    return r, len(calls), sum(calls)
+
+
+def unsettled(q, p):
+    """The engine's result with settling off (D40's switch), as main gives it."""
+    tg._SETTLE = False
+    try:
+        return tg.match(q, p)
+    finally:
+        tg._SETTLE = True
+
+
+def decided_view(r):
+    """What a decided engine result and the reference both say: status, and the relaxation set and certainty."""
+    return r['status'], r.get('relaxations'), r.get('certainty')
+
+
+def reference_view(r):
+    return r['status'], r.get('relaxations'), r.get('certainty')
+
+
+def d40_check(q, p, seen):
+    """D40's checks on one case; returns the list of failures (empty when every check passes) and counts what moved.
+    - the worlds check finds nothing wrong in the result;
+    - a decided result (not `unresolved`, and `complete`) equals the truth by enumeration, and the reference's result;
+    - every binding the result reports reaches its certainty (the reference's `binding_reaches`);
+    - against settling off, a changed result was undecided (the engine's own result: `unresolved`, or not `complete`)."""
+    new, ran, settled = settle_runs(q, p)
+    old = unsettled(q, p)
+    out = [f'worlds: {w}' for w in worlds.check(new, q, p)]
+    if not engine_undecided(new):
+        truth = worlds.truth(q, p)
+        if worlds.result_key(new) != truth:
+            out.append(f'decided {worlds.result_key(new)} but the truth is {truth}')
+        reference = ref.match(q, p)
+        if reference.get('passed') or reference['status'] == 'unresolved' or decided_view(new) != reference_view(reference):
+            out.append(f'decided {decided_view(new)} but the reference says {reference}')
+    for certainty, relaxations, binding in reported_bindings(new):
+        # The match beside an order-uncertain `unresolved` is read off the model of the search that left the set
+        # undecided, which a stopped target split leaves the envelope's; `binding_reaches` reads the split's. The worlds
+        # check does not read it either: it claims nothing about the truth.
+        if 'unverified_match' in new and relaxations == [] and binding == new['unverified_match']['binding']:
+            continue
+        chosen = [x for x in q.get('relaxations', []) if x['id'] in relaxations]
+        if not ref.binding_reaches(q, p, chosen, binding, certainty):
+            out.append(f'{certainty} binding {binding} does not reach its certainty')
+    if new != old:
+        if not engine_undecided(old):
+            out.append(f'a decided result changed: {old} -> {new}')
+        seen['to a decision' if not engine_undecided(new) else 'within undecided'] += 1
+    seen['settlings'] += ran
+    seen['settled'] += settled
+    seen['undecided before'] += engine_undecided(old)
+    return out
+
+
+class SettleTests(unittest.TestCase):
+    """D40: where a bounded search stops, propagation that spends no search steps decides the set where it can
+    (`_settle`). It is sound against the true semantics, equal to the truth and to the reference wherever the result is
+    decided, and it moves a result of the switch off (`_SETTLE`) only from undecided."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = budget_cases()
+
+    def test_small_feasible_is_feasible(self):
+        """`_small_feasible` decides as `feasible` does, on one- and two-step bindings with exposures, proper events,
+        shared variables, anchors, both ends read and infinite bounds."""
+        rng = random.Random('d40-small-feasible')
+        checked = Counter()
+        for _ in range(3000):
+            q, p = tiny_case(rng)
+            if rng.random() < 0.4:
+                share_variables(rng, p['events'])
+            try:
+                times = tg.patient_times(p)
+            except tg.TrajectoryError:
+                continue
+            events = times.events
+            steps = rng.choice([['A'], ['A', 'B']])
+            binding = {s: rng.choice(events) for s in steps}
+            constraints = []
+            for _ in range(rng.randint(0, 4)):
+                terms = [(s, rng.choice('sf')) for s in steps] + [('START', None), ('END', None)]
+                x, y = rng.sample(terms, 2)
+                lo = rng.choice([-tg.INF, -3, 0, 1, 2])
+                hi = rng.choice([tg.INF, 0, 1, 3, 5])
+                constraints.append(tg.Constraint(x, y, lo, hi, 'r'))
+            got = tg._small_feasible(binding, constraints, times)
+            self.assertEqual(got, tg.feasible(binding, constraints, times).feasible, (p, binding, constraints))
+            checked[got] += 1
+        self.assertGreater(min(checked.values()), 300, checked)
+
+    def test_the_direct_pair_test_decides_as_the_network(self):
+        """`_pair_test` decides a pair of the common shape (one term of each step bounded, no shared variable) without
+        building its network; on every pair of events of every settling the budgeted cases make, it decides as the
+        network does (`direct=False`, which is `_small_feasible` throughout)."""
+        calls, inner = [], tg._settle
+        def spy(*a):
+            calls.append(a)
+            return inner(*a)
+        tg._settle = spy
+        try:
+            for q, p in self.cases:
+                tg.match(q, p)
+        finally:
+            tg._settle = inner
+        compared = Counter()
+        for step_ids, domains, plan, facts, times in calls:
+            direct = tg._pair_test(step_ids, plan, facts, times)
+            network = tg._pair_test(step_ids, plan, facts, times, direct=False)
+            for a in step_ids:
+                for b in step_ids:
+                    for ea in domains[a] if a != b else ():
+                        for eb in domains[b]:
+                            got = direct(a, ea, b, eb)
+                            self.assertEqual(got, network(a, ea, b, eb), (a, ea, b, eb))
+                            compared[got] += 1
+        self.assertGreater(min(compared.values()), 300, compared)
+
+    def test_small_cases_are_sound_exact_agree_with_the_reference_and_move_only_from_undecided(self):
+        seen = Counter()
+        for i, (q, p) in enumerate(self.cases):
+            with self.subTest(case=i):
+                self.assertEqual(d40_check(q, p, seen), [], (q, p))
+        self.assertGreater(seen['to a decision'], 30, seen)
+        self.assertGreater(seen['settlings'], seen['settled'], seen)  # some settlings give up: the stop stands
+
+    def test_sets_of_at_most_two_steps_are_always_settled(self):
+        """A binding of one or two steps is its pairs, so pair consistency and the descent decide every such set."""
+        for i, (q, p) in enumerate(self.cases):
+            if len(q['steps']) <= 2:
+                r, ran, settled = settle_runs(q, p)
+                with self.subTest(case=i):
+                    self.assertEqual(ran, settled, (q, p))
+                    self.assertNotEqual(r.get('reason'), 'SEARCH_BUDGET_EXHAUSTED')
+                    self.assertNotIn(r.get('note'), ('RELAXATION_SEARCH_STOPPED', 'CHEAPER_RELAXATION_SEARCH_STOPPED'))
+
+    def test_a_search_that_completes_is_never_settled(self):
+        """With the budget the earlier increments' cases have (10,000,000), no search stops, nothing is settled, and
+        every result is the switch-off result."""
+        for i, (q, p) in enumerate(split_cases(150)):
+            r, ran, _ = settle_runs(q, p)
+            with self.subTest(case=i):
+                self.assertEqual(ran, 0)
+                self.assertEqual(r, unsettled(q, p))
+
+    def test_the_limit_leaves_the_stopped_search(self):
+        """Past `SETTLE_LIMIT` pair tests the settling gives up and the stopped search stands, as with the switch off."""
+        q = query([{'id': 'A', 'concept': 'x'}, {'id': 'B', 'concept': 'y'}],
+                  [{'id': 'r', 'kind': 'during', 'from': 'A', 'to': 'B'}], search_budget=1)
+        p = patient([event(f'a{i}', 'x', (i, i + 3), (i + 10, i + 12)) for i in range(30)]
+                    + [event(f'b{i}', 'y', (i + 40, i + 41)) for i in range(30)], (0, 100))
+        self.assertTrue(tg.match(q, p)['complete'])
+        self.assertEqual(unsettled(q, p)['reason'], 'SEARCH_BUDGET_EXHAUSTED')
+        limit, tg.SETTLE_LIMIT = tg.SETTLE_LIMIT, 3
+        try:
+            self.assertEqual(tg.match(q, p), unsettled(q, p))
+        finally:
+            tg.SETTLE_LIMIT = limit
+
+    def test_the_calibration_shapes(self):
+        """The two shapes behind most of the scaling report's `SEARCH_BUDGET_EXHAUSTED` results (decision log, D40):
+        two steps on exposures with a search budget of 1 (seeds 19 and 32), and a `first` step and an `any` step on one
+        concept in a cycle whose relation puts the `any` event before the first one (seed 35), which only the order fact
+        and the relation together refute."""
+        two = query([{'id': 'S0', 'concept': 'S'}, {'id': 'S1', 'concept': 'D'}],
+                    [{'id': 'R1', 'kind': 'after', 'from': 'S1', 'to': 'S0', 'min': 2, 'max': 5},
+                     {'id': 'R2', 'kind': 'after', 'from': 'START', 'to': 'S1', 'min': 0}], search_budget=1)
+        p = patient([event('d0', 'D', (21, 26), (39, 42)), event('d1', 'D', (32, 38), (52, 53)),
+                     event('d2', 'D', (19, 21), (38, 41)), event('d3', 'D', (32, 35), (51, 51)),
+                     event('d4', 'D', (30, 31), (46, 49)), event('s0', 'S', (42, 43)), event('s1', 'S', (23, 27)),
+                     event('s2', 'S', (56, 58))], (10, 60))
+        self.assertEqual(unsettled(two, p)['reason'], 'SEARCH_BUDGET_EXHAUSTED')
+        r = tg.match(two, p)
+        self.assertEqual((r['status'], r['method'], r['complete']), ('possible', 'pair_consistency_checked', True))
+        self.assertEqual(ref.match(two, p)['status'], 'possible')
+        cycle = query([{'id': 'S0', 'concept': 'K', 'occurrence': 'first'}, {'id': 'S1', 'concept': 'J'},
+                       {'id': 'S2', 'concept': 'K'}],
+                      [{'id': 'R1', 'kind': 'after', 'from': 'S1', 'to': 'S0', 'min': -10, 'max': -3},
+                       {'id': 'R2', 'kind': 'after', 'from': 'S2', 'to': 'S1', 'min': 2, 'max': 28},
+                       {'id': 'R3', 'kind': 'after', 'from': 'S0', 'to': 'S2', 'min': -20, 'max': -1}], search_budget=1)
+        p = patient([event('k0', 'K', (38, 46)), event('k1', 'K', (23, 33)), event('k2', 'K', (21, 24)),
+                     event('k3', 'K', (18, 25)), event('j0', 'J', (8, 12)), event('j1', 'J', (35, 35)),
+                     event('j2', 'J', (20, 20)), event('j3', 'J', (26, 26)), event('j4', 'J', (24, 25)),
+                     event('j5', 'J', (8, 10))], (0, 100))
+        self.assertEqual(unsettled(cycle, p)['reason'], 'SEARCH_BUDGET_EXHAUSTED')
+        self.assertEqual(tg.match(cycle, p), {'patient_id': 'P1', 'status': 'none', 'complete': True})
+        self.assertEqual(ref.match(cycle, p)['status'], 'none')
+
+    def test_planted_defects(self):
+        """Each defect makes some budgeted small case unsound, or a decided one differ from the truth: a stopped search
+        taken as a complete `none`; the descent's binding accepted without its joint check; a fact applied to a pair
+        whatever its condition; a fact in the bounds network that some event of its step does not meet; and the
+        narrowing off by one (an event kept only strictly inside its step's bounds)."""
+        cases = self.cases
+        def wrong():
+            seen = Counter()
+            return sum(bool(d40_check(q, p, seen)) for q, p in cases)
+        self.assertEqual(wrong(), 0)
+        settle, bounds, small, feas = tg._settle, tg._bounds_network, tg._small_feasible, tg.feasible
+        def unchecked(*a):  # the descent's binding without the joint check
+            tg.feasible = lambda b, c, t: type('N', (), {'feasible': True, 'witness': lambda self: {
+                tg._node(e.sv): t.dom[e.sv][0] for e in b.values()}})()
+            try:
+                return settle(*a)
+            finally:
+                tg.feasible = feas
+        def every_fact(step_ids, domains, plan, facts, times):
+            free = [tg.OrderFact(c.x, c.y, c.lo, c.hi, c.source, None) for c in facts]
+            return settle(step_ids, domains, plan, free, times)
+        def every_bound_fact(step_ids, domains, constraints, facts, times):
+            return bounds(step_ids, domains, constraints, [tg.OrderFact(c.x, c.y, c.lo, c.hi, c.source, None)
+                                                           for c in facts], times)
+        def strict(step_ids, domains, constraints, facts, times):
+            out = bounds(step_ids, domains, constraints, facts, times)
+            return out and {s: (a + 1, b - 1, c + 1, d - 1) for s, (a, b, c, d) in out.items()}
+        for name, attr, planted in (
+                ('a stopped search taken as none', '_settle', lambda *a: {'found': False, 'complete': True,
+                                                                         'method': 'planted'}),
+                ('the joint check skipped', '_settle', unchecked),
+                ('a fact applied whatever its condition', '_settle', every_fact),
+                ('a fact in the bounds network some event does not meet', '_bounds_network', every_bound_fact),
+                ('the narrowing off by one', '_bounds_network', strict)):
+            original = getattr(tg, attr)
+            setattr(tg, attr, planted)
+            try:
+                with self.subTest(defect=name):
+                    self.assertGreater(wrong(), 0)
+            finally:
+                setattr(tg, attr, original)
+        self.assertIs(tg._small_feasible, small)
 
 
 class PreparedQueryTests(unittest.TestCase):
