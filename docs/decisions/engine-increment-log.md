@@ -50,6 +50,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D36 | Rises and falls retried: D33's relative conditions restored onto D35, in a module no build loads (so the scaling builds can be reused), with a usefulness test on 30 distinct synthetic cohorts and a MIMIC demo differential, under rules fixed before measuring | Decided; shipped. Every rule met: 0 violations in 60,000 small cases, 0 reference mismatches (500 snapshot requests, 6,800 MIMIC demo results), seven planted defects caught; nothing changed without the new fields (scaling reused at every size); usefulness 0 of 189, 0 of 189 and 0 of 142 `unresolved` over 30 redrawn cohorts (with D35's split off, the graph template 67 of 142); 14-worker p95 ratios at most 1.010, p95 8.64 s. The translator writes rises by default; the page is not yet served from the store |
 | D37 | D29 stage 2: the trajectory page matches in the execution store by default, through the page's own translator; a decision on each parity cause; refusals shown as a labelled in-browser fallback, under rules fixed before measuring | Decided; shipped. Every rule met: every page template and 561 swept page definitions answered by the store (286) or refused by a named code (translator 255, store 20); parity 643 of 864 over eighteen trajectories, every difference from the closed declared list; the endpoint equals the store's own answers; store, engine and converter unchanged (one report rebound, figures identical). Two of five templates answered at the page's default setting; stage 3 waits on hosting |
 | D38 | Gene steps in the store: the first report that is not negative, timed by its recording, across reclassification, from the classification the synthetic source now keeps in each genetic result's evidence (a converter wrapper in a module no build loads), with one entry point routing requests by profile, under rules fixed before measuring | Decided; shipped. Every rule met after a review's must-fix (letters counted as recording a gene step) was fixed: 0 violations in 60,000 small cases (undetermined classifications read every way), 0 reference mismatches there and on 400 snapshot requests, six planted defects caught, pruning on and off identical; nothing changed without gene steps (594 requests against main's builds, scaling builds reusable); Tree and Graph with their gene step 0 of 7 child types unresolved (0 of 122 candidates each) over seeds 1001 to 1030; parity 687 of 960, every difference declared, none from a gene step; 14-worker paired p95 ratios 0.83 to 1.02, p95 9.38 s. The translator writes gene steps by default; under coded only they are refused until a joint profile with D39 |
+| D39 | A store-side "coded only": the match request may leave letter mentions out of every step (`exclude_kinds`, profile `execution-store-conditions-1.3`), in a module no build loads, so that the trajectory page's "coded only" and its Event frequency template can run on the store, under rules fixed before measuring | Rules committed before any measurement; in progress |
 | D40 | Fewer `unresolved` results from exhausted search budgets: a stopped possible search settled by propagation (pair consistency, a bounds network, one checked descent), under rules fixed before measuring, after a disclosed calibration | Built, sound (0 violations in 80,000 small cases; 363 of 363 and 38 of 38 `SEARCH_BUDGET_EXHAUSTED` decided), **not shipped**: the MIMIC rule was missed as written; reverted. The finding: every large-store `unresolved` figure quoted since D35 comes from budget-1 queries the benchmark's generator draws, all decidable with a budget of 1,000,000 |
 
 ## D1 Package with hatchling, in place
@@ -2418,6 +2419,88 @@ The trajectory page's Tree and Graph templates carry a gene step ("SCN1A variant
 - A joint profile: gene steps over D39's profile 1.3, with `exclude_kinds` allowed, so gene steps answer under "coded records only".
 - Report-time coverage for gene steps, if a source declares it.
 - Gene requests in the latency benchmark, on a snapshot built with the wrapper.
+
+## D39 A store-side "coded only": letter mentions left out of any step, by request
+
+The trajectory page offers three free-text settings: coded records only, also findings that letters state (the default), and also hedged findings. The store's converter emits each stated letter mention as an event of kind `mention`, from birth to its letter (D30). Since D32 the store ranks and counts coded records only (`MENTION_KIND`, `_mentions`), but every other step reads mentions. So D37 refused "coded only" on the page wherever a step other than an Nth occurrence or a count would still read them (`FREE_TEXT_CODED_ONLY_UNSUPPORTED`), and the Event frequency template was refused under every setting: its count needs coded records, and its blocker step could not be coded-only in the store. D32 and D37 named the store's `exclude_kinds` as the follow-up. This entry builds it, under rules written and committed before any measurement.
+
+**The request.** A new conditions profile, `execution-store-conditions-1.3`: everything of 1.2 (D36), plus a request-level `exclude_kinds`, which 1.3 requires.
+- `exclude_kinds` is a non-empty list of distinct strings; otherwise `INVALID_EXCLUDE_KINDS`. The only kind accepted is `"mention"`; any other is refused by name (`EXCLUDE_KIND_UNSUPPORTED`). The page needs no other, and each further kind would need its own argument about series rows, period readings and excluded records.
+- `steps` may be empty in 1.3, so a query with no conditioned step can still be asked over coded records only.
+- `execution_store.Request` and `store_conditions_relative.Request` refuse profile 1.3 (`INVALID_CONDITIONS`), as they do today; neither file changes.
+
+**The semantics** (rule `exclude_kinds_v1`). A 1.3 request is answered as the same request as profile 1.2, without `exclude_kinds`, would be answered on the snapshot with every event of an excluded kind removed: its concepts, evidence, series rows and time variables go with it. Everything else stays: the patients, the coverage periods, the excluded records, the concept closure and the labels. Per step kind:
+- *`any` steps* bind kept events only.
+- *`first` and `last`* choose their target among kept events. D30's order rule and D35's split run over kept events. A mention ranges from birth to its letter, so leaving mentions out usually removes the order uncertainty they cause.
+- *Nth occurrences and counts* are D32's, unchanged: they already read coded records only. Their envelopes and strengths are over kept events.
+- *Value conditions*: a tag is carried by series rows of kept events only.
+- *Rises and falls*: a reading is a series row of a kept event, or an excluded record of the item class. A left-out event's reading is neither the rising reading nor in a baseline.
+- *Shared variables*: a left-out event's variables leave with it. A kept event that shared a variable with one keeps its own recorded range, which still holds its true time; only the constraint the left-out event added is gone.
+- *Coverage*: a step is recorded by the sources that hold a kept event of one of its concepts (`source_concepts`, restricted to kept kinds), or, for a value tag, a series row of a kept event in its unit. A source that records a concept only through left-out events does not cover the step. In the synthetic cohort the letter sources (`letters`, `discharge_fr`, `referral_nl`) hold only mentions, so a `none` that rested on a letter source's coverage alone becomes `not_comparable`.
+- *D18*: excluded records are unchanged; they reach, displace and weaken results as before. **A mention left out by request is not an excluded record.** An excluded record is a fact about the source: it recorded something the store does not hold. A left-out mention is a question the user asked: "what do the coded records say?" So a left-out mention never makes a result `not_comparable`, `unresolved` or incomplete; it is simply not there.
+- *Candidates*: the candidate filter first reads the postings and series over every event, kept or not, which is a superset. The survivors are then refined to the patients holding, for every step, a kept event of one of the step's concepts. For a value tag, that means a kept event carrying it. For an Nth or count tag, at least N′ kept events of its concept, N′ the smallest over its widenings. For a relative tag, a kept event of its unit tag. One query runs over the survivors only, so `candidates` and the `FILTERED` results equal those on the snapshot without left-out events. The output's `plan` still counts each step's postings over every event; this is stated in the output's rule.
+- *Pruning* reads the posting summaries, which cover every event. Kept events lie inside them, so `_impossible`'s argument holds unchanged: a pruned candidate's `none` is the engine's own `none` over kept events. Pruning on and off must be byte-identical.
+- *Output*: `excluded_kinds: {kinds, rule}`. The context binds this module's digest, the rule's digest and, through the conditions' digest, the kinds.
+- *Refusals*: `INVALID_EXCLUDE_KINDS` and `EXCLUDE_KIND_UNSUPPORTED`, and every refusal of 1.2.
+
+**Design: a module of its own** (owner policy on build reuse, D34; the parallel-work rules of 2026-11-16).
+- `patterns/store_conditions_coded.py` holds everything D39 adds. No build loads it, and nothing loaded by the store or the engine imports it. `execution_store.py`, `store_conditions_relative.py`, `synthetic_ingest.py`, `trajectory_graph*.py`, `trajectory_times.py` and every file the D34 build record lists stay byte-identical to main (e682817).
+- Its `match` and `candidates` hand every request other than a 1.3 one to `store_conditions_relative.match` and `candidates` unchanged, and those hand every request other than a 1.2 one to `execution_store`.
+- A 1.3 request is compiled by `store_conditions_relative.Request` as profile 1.2, so value conditions, Nth occurrences, counts and rises keep their code.
+- The store's loaders are called as they are. Left-out events are dropped after loading, per patient, by event id, from one query of the events of excluded kinds over the chunk's patients. The same holds for the relative readings' rows.
+- Three pieces are new code. Coverage is a copy of `_comparability` with the sources restricted to kept kinds. The candidate refinement is new. `match` is a copy of `store_conditions_relative.match` with these hooks, its own worker unit and context.
+- A test pins the sources of the copied functions by digest, as D36 does.
+- *Callers*: the server's endpoint (`store_trajectory.py`), `store_parity.py` (match, sweep and the candidate lists, which leave out the excluded kinds) and the usefulness tool call this module. The change to each is additive.
+- *The translator*: `storeRequest(..., options)` writes "coded only" as profile 1.3 with `exclude_kinds: ["mention"]` when asked (`options.codedOnly: 'store'`). By default it keeps refusing (`FREE_TEXT_CODED_ONLY_UNSUPPORTED`) until the rules below hold; then the default flips, and the refusal remains for a caller that asks for it. D37's `codedOnly: 'derived'` stays as an option.
+- *The MIMIC demo*: its events carry no letter mentions, so a 1.3 request equals the 1.2 answer there. This is argued, not measured; the MIMIC report binds none of D39's files, so it is not regenerated.
+
+**The independent reference.** It is written in the test support module (`patterns/coded_only_cases.py`). It shares no code with `store_conditions_coded`.
+- It removes every event of an excluded kind, and its series rows, from the ingest document with dictionaries and loops.
+- It then calls the existing reference (`prepared_reference.PreparedReference`, or `execution_store_reference.exhaustive_match`) with the request as profile 1.2, or without conditions when `steps` is empty.
+- The reference knows nothing about exclusion by request, so it tests the store's SQL filters, coverage, refinement and loaders against the definition itself.
+- A second check, store against store: a store built from the filtered ingest, answering the 1.2 request, must equal the 1.3 answer on the full snapshot, result for result (the `plan` aside).
+
+**Pre-committed rules** (written and committed before any measurement of this increment).
+1. **Soundness.**
+   1. *The independent reference agrees:* 0 mismatches (`json.dumps` without sorting keys, a `FILTERED` reason read as the reference's `none`).
+      - At least 400 seeded 1.3 requests over snapshots: D32's derived fixtures (mentions, exposures, shared variables, excluded records, partial coverage, values) and the synthetic cohort built with series and the period label. The requests are plain steps with `any`, `first` and `last`, value conditions, Nth occurrences, counts and rises, with relaxations.
+      - Each request is compared at 1 and 2 workers, at both detail levels and with pruning on and off.
+      - The store-against-store check holds on the same requests.
+   2. *A worlds check on at least 20,000 small cases per new generator*, with seeds apart from the suite's. A case is a tiny patient on an integer grid, in a small snapshot built from many such patients, with a 1.3 request and a window. The store's answer, through `store_conditions_coded.match`, is checked by `trajectory_graph_worlds` (`check`, or `check_derived` for derived steps) against every choice of times of the patient's **kept** events. Every status but `unresolved` is checked, and the match beside `unresolved`. Every case is also compared with the reference. The new generators:
+      - `coded-plain`: coded events and mentions of x, y or both (z wider), point events and exposures, some proper. Shared variables, among them a mention sharing a variable with a coded event. Excluded records, and partial coverage, among it a letter source that alone covers a window. Requests of one to three steps with `any`, `first` and `last`, relations, relaxations and every scope.
+      - `coded-derived`: the same patients, each request with an Nth occurrence or a count beside such steps.
+   3. *Every planted defect is caught* (a switch, `_D39_DEFECT`), by the worlds check or the reference:
+      - a mention still read: the plain path does not drop left-out events;
+      - a coded record dropped: left-out events matched by event id across patients (ids are unique within a patient only);
+      - D18 confused with exclusion by request: left-out events treated as excluded records;
+      - coverage not restricted: a source that records a concept only through left-out events still covers it;
+      - the candidate refinement on the step's own concept only, its widenings ignored.
+   4. *Pruning on and off are byte-identical* on every differential above.
+2. **No change without the new fields: byte-identical to main.**
+   - `execution_store.py`, `store_conditions_relative.py`, `synthetic_ingest.py`, `trajectory_graph*.py`, `trajectory_times.py` and every file the D34 build record lists are byte-identical to main (e682817).
+   - The 300 recorded match digests are unchanged.
+   - Every request without profile 1.3, sent through `store_conditions_coded`, gets `store_conditions_relative`'s answer byte for byte, at 1 and 2 workers (a test).
+   - The scaling report, regenerated with `--reuse-builds ~/ptm-local/scaling-d34`, has the same rows, candidate counts and status mixes at every size. If the reuse is refused, the run stops and the refusal is reported.
+   - The paired run gives byte-identical results between this tree and main on its 30 queries.
+3. **Usefulness** (`demos/mockups/coded_usefulness.cjs`, report `verification/d39-coded-usefulness-report.json`).
+   - *Cohorts:* D36's protocol. Seeds **1001 to 1030**, then 1031, 1032, … in order while some template has fewer than 30 candidates pooled. The stop depends on candidate counts only.
+   - *Templates (ruled):* every page template under "coded only", through the page's own translator with `codedOnly: 'store'`, each with the page's own window and scope: Sequence; Tree and Graph without their gene step (the store refuses gene steps by name, `GENE_CLASSIFICATION_UNSUPPORTED`); Event frequency; Blank.
+   - *Candidates:* patients with a store candidate (`store_conditions_coded.candidates`) and an index window.
+   - *The bar, per template:* counted by distinct child types (the owner's rule of 2026-11-16), at most 30% of them `unresolved`. A child type is a `PLAN` key of the generator, with C001 as the key `reference`. A type counts as a candidate when any of its children is one in some seed, and as unresolved when any of its candidates is unresolved (D36's reading, the strict one).
+   - *Also reported:* the share over all candidates and without C001, status mixes and reasons, per seed and pooled. The same templates under stated findings are reported beside them, for the change.
+   - *Coverage:* each of the five templates under "coded only" is answered by the store, with Tree and Graph refused by name for their gene step only.
+4. **Parity.**
+   - Every store–page difference in `test_store_parity.cjs` has a cause from D37's closed declared list. There is no `UNEXPLAINED` difference, and the replay holds for every trajectory.
+   - The three trajectories that D37 kept on `codedOnly: 'derived'` move to the page's real coded-only request (1.3). New parity trajectories cover every template the store now answers under "coded only" (at least Sequence and Blank), so the template table's answered entries are all pinned.
+   - The option sweep is re-pinned: each definition answered or refused by a named code.
+5. **Latency.** Paired against main (e682817 or the main this branch is rebased on), `tools/benchmark_matcher.py --paired-confirm` (`paired-interleaved-1.0`), at 300,000 patients, 30 queries, 4 repeats, 14 workers, into `verification/d39-paired-verdict.json`. It passes only if:
+   - the 14-worker p95 ratio (this tree over main) is at most **1.05 in every pair**;
+   - this tree's own 14-worker p95 is at most **10 s**.
+
+   The maximum and memory are reported. The benchmark's queries carry no 1.3 request, so the two trees run the same store code; the run checks that nothing else moved.
+6. **Ship rule.** "Coded only" is translated by default, and the page stops refusing it, only if every rule above holds. Otherwise the translator keeps refusing it by name and the numbers are recorded here. A failure is fixed, never tuned away. If the scope proves too large, the increment stops after a coherent part that meets every rule, and says so.
+
+*Disclosed before these rules:* none of this increment's figures had been measured. The committed cohort was generated locally, and its records were counted by source and kind to find which sources hold only mentions (the three letter sources).
 
 ## D40 Fewer `unresolved` results from exhausted search budgets: a stopped search settled by propagation, under rules fixed before measuring
 
