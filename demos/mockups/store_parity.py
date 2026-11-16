@@ -14,9 +14,9 @@ Since D38 it converts through the converter wrapper of `store_conditions_gene` (
 genetic result's reports and classifications added to its evidence, and the label `gene_report_kinds`), which gene steps
 read.
 
-`match` answers every request through `store_conditions_gene.match` (D38), which hands any request other than a gene
-step's to `store_conditions_relative.match`, which hands any request other than a rise's (profile 1.2) to
-`execution_store.match` unchanged.
+`match` answers every request through `store_conditions.match` (D38), the one entry point, which routes a gene step's
+request to `store_conditions_gene` and any other to `store_conditions_relative.match`, which hands any request other
+than a rise's (profile 1.2) to `execution_store.match` unchanged.
 
 `match` reads `{"cohort", "cases": [{"name", "query", "conditions", "windows"}], "split"?}` (`"split": false` runs the
 engine with D35's target split off, for D36's report of what it contributes), times in whole minutes from each patient's
@@ -43,6 +43,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 from patterns import execution_store as es  # noqa: E402
 from patterns import series_values  # noqa: E402
+from patterns import store_conditions as sc  # noqa: E402
 from patterns import store_conditions_gene as gc  # noqa: E402
 from patterns import store_conditions_relative as rc  # noqa: E402
 from patterns import synthetic_ingest as si  # noqa: E402
@@ -124,10 +125,10 @@ def match(snapshot, cases, cohort):
             windows = {pid: None if w is None else {'start': births[pid] + w['start'] * MINUTE,
                                                     'end': births[pid] + w['end'] * MINUTE}
                        for pid, w in case['windows'].items()}
-            result = gc.match(store, to_micros(case['query']), windows, conditions=conditions_micros(case.get('conditions')))
+            result = sc.match(store, to_micros(case['query']), windows, conditions=conditions_micros(case.get('conditions')))
             mine = out[case['name']] = {}
             # The patients with a candidate and an index window (D33's usefulness bar is a share of these).
-            found = gc.candidates(store, to_micros(case['query']), conditions_micros(case.get('conditions')))
+            found = sc.candidates(store, to_micros(case['query']), conditions_micros(case.get('conditions')))
             ids = dict(store.query('SELECT patient_idx, patient_id FROM patients'))
             out[case['name'] + '#with_candidate'] = sorted(ids[i] for i in found['patient_idx'] if windows.get(ids[i]))
             for r in result['results']:
@@ -266,7 +267,7 @@ def candidates(store, wanted, births):
 
 
 def sweep(snapshot, cases, cohort):
-    """D37's option sweep: each case through `store_conditions_gene.match` (D38; `store_conditions_relative.match`
+    """D37's option sweep: each case through `store_conditions.match` (D38; `store_conditions_relative.match`
     before), called directly here with the same conversion to the store's clock the page's endpoint uses (the endpoint
     itself is tested in test_store_trajectory.py). Answers
     {name: {"counts": ...}} when the store answers, {"error": code} when it refuses by name, and {"error": "UNNAMED",
@@ -279,7 +280,7 @@ def sweep(snapshot, cases, cohort):
                                                     'end': births[pid] + w['end'] * MINUTE}
                        for pid, w in case['windows'].items()}
             try:
-                result = gc.match(store, to_micros(case['query']), windows,
+                result = sc.match(store, to_micros(case['query']), windows,
                                   conditions=conditions_micros(case.get('conditions')))
                 out[case['name']] = {'counts': result['counts']}
             except Exception as error:  # noqa: BLE001 - every failure is reported, named or not

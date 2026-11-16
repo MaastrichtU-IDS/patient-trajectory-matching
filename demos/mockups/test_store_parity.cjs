@@ -555,8 +555,10 @@ const EXPECTED = {
     C005: "coverage: page none, store not_comparable",
     C006: "coverage: page none, store not_comparable",
     C008: "coverage: page none, store not_comparable",
+    C009: "coverage: page none, store not_comparable",
     C010: "coverage: page none, store not_comparable",
     C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C018: "coverage: page none, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
     C025: "coverage: page none, store not_comparable",
@@ -565,8 +567,10 @@ const EXPECTED = {
     C030: "coverage: page none, store not_comparable",
     C031: "coverage: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
+    C034: "coverage: page none, store not_comparable",
     C035: "coverage: page none, store not_comparable",
     C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C039: "coverage: page none, store not_comparable",
     C040: "coverage: page none, store not_comparable",
     C041: "coverage: page none, store not_comparable",
     C042: "coverage: page none, store not_comparable",
@@ -579,8 +583,10 @@ const EXPECTED = {
     C005: "coverage: page none, store not_comparable",
     C006: "coverage: page none, store not_comparable",
     C008: "coverage: page none, store not_comparable",
+    C009: "coverage: page none, store not_comparable",
     C010: "coverage: page none, store not_comparable",
     C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C018: "coverage: page none, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
     C025: "coverage: page none, store not_comparable",
@@ -589,8 +595,10 @@ const EXPECTED = {
     C030: "coverage: page none, store not_comparable",
     C031: "coverage: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
+    C034: "coverage: page none, store not_comparable",
     C035: "coverage: page none, store not_comparable",
     C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C039: "coverage: page none, store not_comparable",
     C040: "coverage: page none, store not_comparable",
     C041: "coverage: page none, store not_comparable",
     C042: "coverage: page none, store not_comparable",
@@ -639,6 +647,7 @@ const REFUSALS = vm.runInContext(`(() => {
     'gene step (tree template), coded only, genes asked for': refusalOf(d('tree'), 'off', {genes: true}),
     'gene step and rise (graph template), genes refused on request': refusalOf(d('graph'), 'present', {genes: false}),
     'a gene step alone, coded only, genes asked for': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'gene:SCN1A'}], edges: []}, 'off', {genes: true}),
+    'a gene step with an occurrence, genes asked for': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'gene:SCN1A', occ: 'first'}], edges: []}, 'present', {genes: true}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
@@ -659,10 +668,11 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'a count alone, coded only': null,
   'a threshold that is not a plain decimal': 'VALUE_NOT_A_PLAIN_DECIMAL',
   'gene step (tree template), genes asked for': null,
-  // The seizure and blocker steps still read letter mentions in the store; the gene step reads coded results only.
-  'gene step (tree template), coded only, genes asked for': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  // D38 review: gene steps under coded-only wait for a joint profile with the store's coded-only option.
+  'gene step (tree template), coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'gene step and rise (graph template), genes refused on request': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'a gene step alone, coded only, genes asked for': null,
+  'a gene step alone, coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'a gene step with an occurrence, genes asked for': 'OCCURRENCE_ON_GENE_STEP',
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.

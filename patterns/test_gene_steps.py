@@ -30,6 +30,7 @@ from unittest.mock import patch
 from . import execution_store as es
 from . import gene_cases as gk
 from . import gene_reference as gr
+from . import store_conditions as sc
 from . import store_conditions_gene as gc
 from . import store_conditions_relative as rc
 from . import synthetic_ingest as si
@@ -399,6 +400,31 @@ class CohortTests(unittest.TestCase):
         for pid, eid in negatives:  # a negative result is never bound
             self.assertNotIn(f'derived-step:B/own@{eid}', json.dumps(by[pid]))
 
+    def test_letters_do_not_cover_a_gene_step(self):
+        """D38 review, M1: C002, C003 and C016 hold no genetic result and no genetics coverage, only letters (which
+        mention genes). Over a lifetime window a gene step is not comparable for them, not `none`; the reference agrees."""
+        ingest, store, _ = _STATE['cohort']
+        cohort = _STATE['cohort_json']
+        three = ('C002', 'C003', 'C016')
+        for p in ingest['patients']:
+            if p['patient_id'] in three:
+                self.assertFalse(any(e['kind'] == 'genetic_result' for e in p['events']), p['patient_id'])
+                self.assertEqual({c['source'] for c in p['coverage']} & {'genetics', 'letters'}, {'letters'})
+        self.assertIn(('letters', 'gene:SCN1A'), store.query("SELECT source, concept FROM source_concepts"))
+        q = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'B', 'concept': 'gene:SCN1A'}], 'relations': [],
+             'relaxations': [], 'budget': '0'}
+        c = {'profile': gc.GENE_PROFILE, 'steps': {'B': {'gene': dict(GENE)}}}
+        births = {p['patient_id']: si.micros(p['birth_date'] + 'T00:00') for p in cohort['patients']}
+        windows = {pid: {'start': b, 'end': b + 3653 * 1440 * MINUTE} for pid, b in births.items()}
+        got = gc.match(store, q, windows, conditions=c)['results']
+        by = {r['patient_id']: r for r in got}
+        for pid in three:
+            self.assertEqual(by[pid], {'patient_id': pid, 'status': 'not_comparable', 'reason': 'NO_SOURCE_COVERAGE',
+                                       'uncovered_steps': ['B']})
+        want = gr.gene_exhaustive_match(ingest, q, windows, c)
+        self.assertEqual([json.dumps(trc.unfiltered(r)) for r in got], [json.dumps(r) for r in want])
+        self.assertEqual(gc._gene_sources(store, gc.Request(q, c)), {'derived-step:B/own': {'genetics'}})
+
     def test_a_snapshot_built_without_the_wrapper_refuses_by_name(self):
         plain, store, _ = _STATE['main']
         q = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'B', 'concept': 'gene:SCN1A'}], 'relations': []}
@@ -488,6 +514,7 @@ class ModuleBoundaryTests(unittest.TestCase):
         'store_conditions_relative.match_context': '440b9ab9d76c51b58701f3ff9d8f4aac477d09b374cf82657a5342befcdaca93',
         'store_conditions_relative.derive_patient': 'f9cd8cba1b5703139623644846d179b1b37bffe9000d32403014114aefcb1999',
         'execution_store._prune': 'ee5bcab69b7fc71f85c370bfc01600b0fee14652509ef98cddb5e41464b4e67d',
+        'execution_store._comparability': 'b16a9f9e578f2ae7f9d6f41a496b1134190d209da26c6ec03ec9b0ee8fcac729',
     }
 
     def test_the_copied_functions_have_not_changed(self):
@@ -500,6 +527,32 @@ class ModuleBoundaryTests(unittest.TestCase):
             got = hashlib.sha256(inspect.getsource(obj).encode()).hexdigest()
             self.assertEqual(got, digest, f'{name} changed: update store_conditions_gene, whose copy of it (or code '
                                           f'built on it) must follow, then this pin')
+
+    def test_the_dispatcher_routes_by_profile(self):
+        """`store_conditions` is the one entry point: a gene request is the gene module's answer, any other the relative
+        module's, byte for byte; it lists every profile it accepts."""
+        ingest, store, _ = _STATE['fixture']
+        self.assertEqual(sc.GENE_PROFILE, gc.GENE_PROFILE)
+        self.assertEqual(sc.profiles(), [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE])
+        for seed in range(3):
+            query, conditions, windows = case(seed, 'fixture')
+            self.assertEqual(json.dumps(sc.match(store, query, windows, conditions=conditions)),
+                             json.dumps(gc.match(store, query, windows, conditions=conditions)))
+            self.assertEqual(sc.candidates(store, query, conditions), gc.candidates(store, query, conditions))
+            self.assertEqual(sc.match_context(store, query, windows, conditions),
+                             gc.match_context(store, query, windows, conditions))
+        q = {'profile': tg.PROFILE_ID, 'steps': [{'id': 'A', 'concept': 'm:freq'}], 'relations': []}
+        windows = windows_for(random.Random('d38/dispatch'), ingest)
+        for conditions in (None, {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {'A': trc.rel(unit='/month', within=75 * DAY)}}):
+            self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions)),
+                             json.dumps(rc.match(store, q, windows, conditions=conditions)))
+
+    def test_a_missing_superseded_record_is_named(self):
+        patient = {'records': [{'source': 'genetics', 'record_id': 'b', 'supersedes': 'a', 'recorded_at': '2020-01-01T00:00',
+                                'attributes': {'classification': 'pathogenic'}}]}
+        with self.assertRaises(ValueError) as raised:
+            gc.gene_reports(patient, 'genetics', 'b')
+        self.assertTrue(str(raised.exception).startswith('GENE_REPORT_RECORD_MISSING'))
 
     def test_every_other_request_is_the_relative_modules_answer(self):
         ingest, store, _ = _STATE['fixture']
@@ -529,6 +582,7 @@ class ModuleBoundaryTests(unittest.TestCase):
                              check=True, capture_output=True, text=True, cwd=ROOT).stdout
         loaded = json.loads(out)
         self.assertNotIn('patterns.store_conditions_gene', loaded)
+        self.assertNotIn('patterns.store_conditions', loaded)
         for path in ('patterns/execution_store.py', 'patterns/synthetic_ingest.py', 'tools/scaling_build_worker.py',
                      'patterns/store_conditions_relative.py'):
             self.assertNotIn('store_conditions_gene', (ROOT / path).read_text(encoding='utf-8'), path)

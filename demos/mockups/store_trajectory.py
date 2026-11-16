@@ -5,9 +5,9 @@
 - `GET /api/trajectory-store/status`: whether the store is ready, its snapshot and profiles, or why there is none;
 - `POST /api/trajectory-store/match`: the page's query as its translator writes it (`trajectory/store_request.js`,
   `storeRequest`): `{"query", "conditions", "windows"}`, every time in whole minutes from each patient's birth. The
-  answer is `store_conditions_gene.match`'s (D38), which hands every request but a gene step's to
-  `store_conditions_relative.match`, which hands every request but a rise's (profile 1.2) to `execution_store.match`
-  unchanged, with times turned back into minutes from birth and each bound event described from the store's own rows
+  answer is `store_conditions.match`'s (D38, the one entry point), which routes a gene step's request to
+  `store_conditions_gene` and every other to `store_conditions_relative.match`, which hands every request but a rise's
+  (profile 1.2) to `execution_store.match` unchanged, with times turned back into minutes from birth and each bound event described from the store's own rows
   (kind, source, record, recorded times, value); a gene step's point by the genetic result it comes from.
 
 **The store.** At startup the cohort the page downloads (`data/synthetic-paediatric-rare.json`) is built into a
@@ -253,17 +253,16 @@ class TrajectoryStore:
             store = self._wait()
         except Unavailable as error:
             return {'profile': PROFILE, 'available': False, 'error': str(error), 'how_to_build': HOW_TO_BUILD}
-        from patterns import store_conditions_gene as gc
-        from patterns import store_conditions_relative as rc
+        from patterns import store_conditions as sc
         return {'profile': PROFILE, 'available': True, 'snapshot_id': store.snapshot_id,
                 'store_profile': store.manifest.get('profile'), 'dataset_id': store.manifest.get('dataset_id'),
-                'patients': self.patients, 'conditions_profiles': [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE],
+                'patients': self.patients, 'conditions_profiles': sc.profiles(),
                 'built_s': self.built_s,
                 'series': True, 'per_patient': True}
 
     def match(self, spec):
         """The store's answer to the translated page query, per patient, times in minutes from birth."""
-        from patterns import store_conditions_gene as gc
+        from patterns import store_conditions as sc
         import store_parity
         store = self._wait()
         query, conditions, windows = check_request(spec, self.births)
@@ -273,7 +272,7 @@ class TrajectoryStore:
         started = time.perf_counter()
         try:
             with self._lock:
-                result = gc.match(store, store_parity.to_micros(query), micros,
+                result = sc.match(store, store_parity.to_micros(query), micros,
                                   conditions=store_parity.conditions_micros(conditions))
         except ValueError as error:  # StoreError and the engine's TrajectoryError are ValueErrors with a code
             code = refusal_code(error)

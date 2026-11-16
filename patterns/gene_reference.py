@@ -9,8 +9,9 @@ steps, coverage and the excluded-records rule), on the ingest document. Its piec
 - each finding becomes, for each gene step on its gene (through the closure), a point event carrying the step's tag
   (`derived-step:<step>/own`), id `<tag>@<event id>`, at `[t, t]`; an undetermined record becomes an excluded record
   that only that gene step reads (a pseudo-concept of its own), its start the span of its reports' times;
-- the gene step's coverage is that of its gene concept, and its excluded records are those of its gene concept and its
-  own undetermined ones, reached by the query's scope.
+- the gene step is recorded, for coverage, by the sources that hold a gene-report event of its gene (not by a source
+  whose only events of the gene are letter mentions); its excluded records are those of its gene concept and its own
+  undetermined ones, reached by the query's scope.
 """
 from __future__ import annotations
 
@@ -58,6 +59,17 @@ def _pseudo(sid):
     return f'#gene-reference-undetermined/{sid}'
 
 
+def _recorded_by(sid):
+    return f'#gene-reference-recorders/{sid}'
+
+
+def _reports(e):
+    reports = e['evidence'].get('gene_reports') if isinstance(e.get('evidence'), dict) else None
+    if reports is None:
+        raise ValueError(f'GENE_REPORTS_MISSING:{e["event_id"]}')
+    return reports
+
+
 def gene_query(ingest, query, conditions):
     """The reference's reading of a gene request: a `DerivedQuery` over the tagged query, with each gene step's
     coverage and excluded records read by its gene concept (and its own pseudo-concept)."""
@@ -65,7 +77,7 @@ def gene_query(ingest, query, conditions):
     dq = ref.DerivedQuery(ingest, tagged, others)
     for sid, concept in gene_of.items():
         dq.base[sid] = {concept, _pseudo(sid)}
-        dq.coverage_loads[sid] = {concept}
+        dq.coverage_loads[sid] = {_recorded_by(sid)}
     return dq, gene_of
 
 
@@ -79,7 +91,7 @@ def patient_points(patient, gene_of, ancestors, kinds):
         for sid, concept in sorted(gene_of.items()):
             if concept not in concepts:
                 continue
-            verdict, at = report_finding(e['evidence']['gene_reports'])
+            verdict, at = report_finding(_reports(e))
             if verdict == 'finding':
                 points.append({'id': f'{ref.DERIVED}{sid}/own@{e["event_id"]}', 'concepts': [f'{ref.DERIVED}{sid}/own'],
                                'start': [at, at]})
@@ -108,6 +120,9 @@ def gene_exhaustive_match(ingest, query, windows, conditions):
     if dq.value is not None:
         recorders.update(dq.value.recorders)
     recorders.update(dq.unit_sources)
+    for sid, concept in gene_of.items():  # who records a gene step: the sources of its gene's reports
+        recorders[_recorded_by(sid)] = {e['source'] for p in ingest['patients'] for e in p['events'] if e['kind'] in kinds
+                                        and concept in ref.expanded(e['concepts'], ingest['closure']['ancestors'])}
     period = [k for k in labels.get('period_reading_kinds', '').split(',') if k]
     results = []
     for p in sorted(ingest['patients'], key=lambda p: p['patient_id']):
@@ -137,11 +152,12 @@ def gene_exhaustive_match(ingest, query, windows, conditions):
 
 
 def patient_result(query, conditions, patient, mentions, gene_reports, readings=None):
-    """One engine patient's result before coverage and the excluded-records rule (the small cases): `gene_reports`
-    maps each gene-report event's id to its reports; an event's gene is read from its concepts as listed."""
+    """One engine patient's result before coverage (the small cases), with its undetermined gene records as the gene
+    steps' excluded records (it has no other): `gene_reports` maps each gene-report event's id to its reports; an
+    event's gene is read from its concepts as listed."""
     empty = {'closure': {'ancestors': {}}, 'patients': []}
     dq, gene_of = gene_query(empty, query, conditions)
-    points = []
+    points, excluded = [], []
     for e in patient['events']:
         if e['id'] not in gene_reports:
             continue
@@ -151,5 +167,11 @@ def patient_result(query, conditions, patient, mentions, gene_reports, readings=
                 if verdict == 'finding':
                     points.append({'id': f'{ref.DERIVED}{sid}/own@{e["id"]}', 'concepts': [f'{ref.DERIVED}{sid}/own'],
                                    'start': [at, at]})
+                elif verdict == 'undetermined':
+                    excluded.append({'source': 'genetics', 'concept': _pseudo(sid), 'start': list(at), 'reason': 'x'})
     events = list(patient['events']) + points
-    return ref.derived_result(dq, patient['patient_id'], patient['window'], events, mentions, readings)[0]
+    result, nth_points = ref.derived_result(dq, patient['patient_id'], patient['window'], events, mentions, readings)
+    if patient['window'] is None or not excluded:
+        return result
+    ancestors = {_pseudo(sid): [] for sid in gene_of}
+    return ref.derived_admission(dq, result, {'excluded': excluded}, events, ancestors, patient['window'], nth_points)

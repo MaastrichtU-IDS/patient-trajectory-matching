@@ -6,10 +6,11 @@
 `build-main` builds the cohort as `store_parity.build` did before D38: the converter emitting series, with D36's period
 label, and no gene reports. `compare` reads `{"cohort", "cases": [{"name", "query", "conditions", "windows"}]}` (the
 parity test's form, minutes from birth) and runs every case without a gene step on both snapshots: through
-`store_conditions_gene.match` on the snapshot `store_parity.build` makes now (WRAPPER), and through
-`store_conditions_relative.match`, main's path, on MAIN. Every output field must be equal, except the snapshot's
-identifier, the context and its identifier (which bind the snapshot) and the copy of the snapshot's labels (the wrapper
-adds `gene_report_kinds`); the candidates must be equal too, and a refusal must be the same refusal. Synthetic data
+`store_conditions.match`, the entry point every caller uses since D38, on the snapshot `store_parity.build` makes now
+(WRAPPER), and through `store_conditions_relative.match`, main's path, on MAIN. Every output field must be equal, except
+the snapshot's identifier and the context's identifier; inside the context, everything but the snapshot's identifier
+and its file-list digest; in the labels' copies (output and context), everything but the wrapper's `gene_report_kinds`.
+The candidates must be equal too, and a refusal must be the same refusal. Synthetic data
 only; the summary holds counts and case names.
 """
 from __future__ import annotations
@@ -22,12 +23,28 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
 from patterns import execution_store as es  # noqa: E402
+from patterns import store_conditions as sc  # noqa: E402
 from patterns import store_conditions_gene as gc  # noqa: E402
 from patterns import store_conditions_relative as rc  # noqa: E402
 from patterns import synthetic_ingest as si  # noqa: E402
 import store_parity  # noqa: E402
 
-IDENTIFIERS = ('snapshot_id', 'context', 'context_id', 'labels')
+IDENTIFIERS = ('snapshot_id', 'context_id')
+
+
+def _labels(labels):
+    out = {k: v for k, v in (labels or {}).items() if k != gc.GENE_LABEL}
+    return out or None
+
+
+def _strip(out):
+    """An answer without what binds the snapshot itself (see the docstring)."""
+    out = {k: v for k, v in out.items() if k not in IDENTIFIERS}
+    out['labels'] = _labels(out.get('labels'))
+    context = {k: v for k, v in out['context'].items() if k not in ('snapshot_id', 'files_digest')}
+    context['labels'] = _labels(context.get('labels'))
+    out['context'] = context
+    return out
 
 
 def build_main(cohort, root):
@@ -63,7 +80,7 @@ def compare(wrapper, main, cases, cohort):
                        for pid, w in case['windows'].items()}
             query = store_parity.to_micros(case['query'])
             conditions = store_parity.conditions_micros(case.get('conditions'))
-            a = _answer(lambda: gc.match(mine, query, windows, conditions=conditions))
+            a = _answer(lambda: sc.match(mine, query, windows, conditions=conditions))
             b = _answer(lambda: rc.match(theirs, query, windows, conditions=conditions))
             summary['cases'] += 1
             if 'refused' in a or 'refused' in b:
@@ -71,13 +88,12 @@ def compare(wrapper, main, cases, cohort):
                 if a != b:
                     summary['differences'].append({'case': case['name'], 'what': 'refusal', 'wrapper': a, 'main': b})
                 continue
-            strip = lambda out: {k: v for k, v in out.items() if k not in IDENTIFIERS}
             summary['results'] += len(a['results'])
-            if json.dumps(strip(a)) != json.dumps(strip(b)):
-                keys = sorted(k for k in set(a) | set(b) if k not in IDENTIFIERS and a.get(k) != b.get(k))
+            if json.dumps(_strip(a)) != json.dumps(_strip(b)):
+                keys = sorted(k for k in set(a) | set(b) if k not in IDENTIFIERS and _strip(a).get(k) != _strip(b).get(k))
                 patients = sorted(x['patient_id'] for x, y in zip(a['results'], b['results']) if x != y)
                 summary['differences'].append({'case': case['name'], 'what': keys, 'patients': patients[:5]})
-            if gc.candidates(mine, query, conditions) != rc.candidates(theirs, query, conditions):
+            if sc.candidates(mine, query, conditions) != rc.candidates(theirs, query, conditions):
                 summary['differences'].append({'case': case['name'], 'what': 'candidates'})
     return summary
 

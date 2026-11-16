@@ -13,12 +13,16 @@ request: a gene step D on G, related to the case's other steps or to the period,
 `store_result` runs the store's own per-patient path (`store_conditions_gene.Request`, `findings_from_events`,
 `derive_patient`, `store_conditions_relative.match_derived`); `reference_result` the reference's
 (`gene_reference.patient_result`); `check` the worlds checker, reading gene steps from the written rule: the true
-findings (`gene_reference.report_finding`) as points carrying the step's tag. An undetermined record gives no point on
-either side here; the excluded-records rule that applies to it is checked on snapshots against the reference.
+findings (`gene_reference.report_finding`) as points carrying the step's tag. An undetermined record is the gene step's
+excluded record on both sides (`store_conditions_gene.apply_undetermined`); the checker reads it independently (D38
+review, should-fix 3): every unknown classification read as negative and as not negative, each reading's findings as
+points; `exact`, `none` and `relaxed` must hold in every reading (a `none` the record could change is weakened to
+`not_comparable` first, and claims nothing).
 """
 from __future__ import annotations
 
 import copy
+from itertools import product
 import random
 
 from . import derived_cases as dc
@@ -139,7 +143,7 @@ def store_result(query, conditions, patient, mentions, reports, readings=None):
                                        lambda eid: {'gene_reports': reports[eid]} if eid in reports else {})
     derived = gc.derive_patient(request, patient['patient_id'], patient['window'], patient['events'], mentions,
                                 dc.store_readings(readings) if readings else None, findings)
-    return rc.match_derived(pq, request, derived)
+    return gc.apply_undetermined(request, pq.query, rc.match_derived(pq, request, derived), findings, patient['window'])
 
 
 def reference_result(query, conditions, patient, mentions, reports, readings=None):
@@ -147,15 +151,39 @@ def reference_result(query, conditions, patient, mentions, reports, readings=Non
                              dc.checker_readings(readings) if readings else None)
 
 
+def outcomes(reports):
+    """The finding times (None: no finding) over every reading of each unknown classification as negative or not."""
+    unknown = [i for i, r in enumerate(reports) if r.get('classification') not in gr.NEGATIVE | gr.NOT_NEGATIVE]
+    found = set()
+    for bits in product((False, True), repeat=len(unknown)):
+        reading = [dict(r) for r in reports]
+        for i, b in zip(unknown, bits):
+            reading[i]['classification'] = 'pathogenic' if b else 'no relevant variant'
+        verdict, at = gr.report_finding(reading)
+        found.add(at if verdict == 'finding' else None)
+    return sorted(found, key=lambda x: (x is None, x))
+
+
 def check(result, query, conditions, patient, mentions, reports, readings=None):
-    """The worlds checker's violations: the gene step read as a plain step over the true findings' points."""
+    """The worlds checker's violations: the gene step read as a plain step over the true findings' points, in every
+    reading of the unknown classifications."""
     tag = f'{es._DERIVED_PREFIX}D/own'
-    points = []
-    for e in patient['events']:
-        if e['id'] in reports and 'G' in e['concepts']:
-            verdict, at = gr.report_finding(reports[e['id']])
-            if verdict == 'finding':
-                points.append({'id': f'{tag}@{e["id"]}', 'concepts': [tag], 'start': [at, at]})
+    records = [e for e in patient['events'] if e['id'] in reports and 'G' in e['concepts']]
+    choices = [outcomes(reports[e['id']]) for e in records]
+    worlds = list(product(*choices))
+    weakened = 'excluded_steps' in result or result.get('reason') == 'ADMISSION_EXCLUDED_RECORDS'
+    if weakened and result['status'] not in ('exact', 'none', 'relaxed'):
+        return []  # weakened by an undetermined record: what it still claims is checked against the reference
+    wrong = []
+    for chosen in worlds:
+        points = [{'id': f'{tag}@{e["id"]}', 'concepts': [tag], 'start': [at, at]}
+                  for e, at in zip(records, chosen) if at is not None]
+        wrong += [f'{w} (reading {list(chosen)})' if len(worlds) > 1 else w
+                  for w in _check_one(result, query, conditions, patient, mentions, readings, tag, points)]
+    return wrong
+
+
+def _check_one(result, query, conditions, patient, mentions, readings, tag, points):
     truth = dict(patient, events=list(patient['events']) + points)
     q = copy.deepcopy(query)
     for s in q['steps']:

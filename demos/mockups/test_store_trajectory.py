@@ -1,7 +1,7 @@
 """The trajectory page's store endpoints (D37): the synthetic cohort in a store, answered per patient.
 
 The server builds the generated cohort (`demos/mockups/data/`, from `synthetic/generate.py`) into a store at startup.
-These tests check that the endpoint answers with the store's own results (`store_conditions_gene.match` since D38, called
+These tests check that the endpoint answers with the store's own results (`store_conditions.match` since D38, called
 directly on the same request, on a store built the same way), that times come back in minutes from birth exactly, that
 every refusal is named, that the store is served only for the synthetic cohort the page downloads, and that its build
 lives outside the repository and is removed when the server closes. The MIMIC endpoints' tests are
@@ -25,7 +25,7 @@ import server  # noqa: E402
 import store_parity  # noqa: E402
 import store_trajectory  # noqa: E402
 from patterns import execution_store as es  # noqa: E402
-from patterns import store_conditions_gene as gc  # noqa: E402
+from patterns import store_conditions as sc  # noqa: E402
 
 COHORT = store_trajectory.COHORT
 DAY = 1440  # minutes
@@ -120,12 +120,12 @@ class TrajectoryStoreTests(unittest.TestCase):
         cls.tmp.cleanup()
 
     def direct(self, spec):
-        """The store's own answer: `store_conditions_gene.match` (D38) on a store built the same way."""
+        """The store's own answer: `store_conditions.match` (D38) on a store built the same way."""
         windows = {pid: None if w is None else {'start': self.births[pid] + w['start'] * store_parity.MINUTE,
                                                 'end': self.births[pid] + w['end'] * store_parity.MINUTE}
                    for pid, w in spec['windows'].items()}
         with es.open_store(self.snapshot) as store:
-            return gc.match(store, store_parity.to_micros(spec['query']), windows,
+            return sc.match(store, store_parity.to_micros(spec['query']), windows,
                             conditions=store_parity.conditions_micros(spec['conditions']))
 
     def test_status_names_the_synthetic_snapshot(self):
@@ -270,9 +270,9 @@ class TrajectoryStoreTests(unittest.TestCase):
             self.assertTrue(store_trajectory.inside_repository(Path(tmp) / 'root' / 'deeper'))
 
     def test_an_internal_failure_is_named_without_detail(self):
-        with mock.patch.object(gc, 'match', side_effect=RuntimeError('C001 secret')):
+        with mock.patch.object(sc, 'match', side_effect=RuntimeError('C001 secret')):
             self.assertEqual(self.served.post(requests(self.pids)['plain']), (500, {'error': 'INTERNAL_ERROR'}))
-        with mock.patch.object(gc, 'match', side_effect=ValueError('no code here')):
+        with mock.patch.object(sc, 'match', side_effect=ValueError('no code here')):
             self.assertEqual(self.served.post(requests(self.pids)['plain']), (500, {'error': 'INTERNAL_ERROR'}))
 
     def test_the_mimic_endpoints_are_unchanged_beside_it(self):

@@ -10,6 +10,9 @@
      gene step is the store's `gene` condition, profile execution-store-conditions-gene-1.0 (store_conditions_gene.py):
      each coded genetic result of the gene bound at its first report that is not negative, across reclassification, as
      a point at that report's recording time, never a letter's mention;
+   - OCCURRENCE_ON_GENE_STEP (D38): a gene step with an occurrence other than any (the store refuses it too);
+   - GENE_WITH_CODED_ONLY_UNSUPPORTED (D38 review): a gene step under "coded records only", until a joint profile of
+     gene steps over the store's coded-only option exists (a follow-up);
    - RELATIVE_CONDITION_UNSUPPORTED: rises and falls, only when a caller asks for none (`options.rises: false`); since
      D36 they are translated by default (STORE_RISES), as the store's relative conditions (D33, shipped in D36);
    - FREE_TEXT_HEDGED_UNSUPPORTED: free text read as "possible" (hedged) findings, which the converter never emits;
@@ -75,6 +78,8 @@ function storeRefusals(def, freeText, options = {}) {
   for (const n of def.nodes) {
     const kind = stepKind(n);
     if (kind === 'gene' && !genes) throw new StoreRefusal('GENE_CLASSIFICATION_UNSUPPORTED', n.id);
+    if (kind === 'gene' && n.occ && n.occ !== 'any') throw new StoreRefusal('OCCURRENCE_ON_GENE_STEP', n.id);
+    if (kind === 'gene' && freeText === 'off') throw new StoreRefusal('GENE_WITH_CODED_ONLY_UNSUPPORTED', n.id);
     if (kind === 'measure' && relative(n.cond) && !rises) throw new StoreRefusal('RELATIVE_CONDITION_UNSUPPORTED', n.id);
     if ((n.occ === 'count' || derivedOcc(n)) && kind !== 'measure' && freeText !== 'off')
       throw new StoreRefusal('FREE_TEXT_COUNT_UNSUPPORTED', n.id);
@@ -82,11 +87,9 @@ function storeRefusals(def, freeText, options = {}) {
       throw new StoreRefusal('NTH_STEP_HAS_NO_END', n.id);
   }
   // D37: the store reads letter mentions for every step that is not derived, so "coded only" cannot be honoured there.
-  // D38: a gene step reads coded genetic results only, so it honours "coded only".
   if (freeText === 'off' && options.codedOnly !== 'derived')
     for (const n of def.nodes)
-      if (stepKind(n) !== 'measure' && stepKind(n) !== 'gene' && n.occ !== 'count' && !derivedOcc(n))
-        throw new StoreRefusal('FREE_TEXT_CODED_ONLY_UNSUPPORTED', n.id);
+      if (stepKind(n) !== 'measure' && n.occ !== 'count' && !derivedOcc(n)) throw new StoreRefusal('FREE_TEXT_CODED_ONLY_UNSUPPORTED', n.id);
 }
 
 function storeRequest(def, freeText, pids, options = {}) {

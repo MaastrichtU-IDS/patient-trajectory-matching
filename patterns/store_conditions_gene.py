@@ -64,7 +64,9 @@ GENE_RULES = {
             '(the event\'s start) is not read',
     'exclusions': 'an undetermined record is an excluded record of the gene step, its start from the earliest to the '
                   'latest recorded_at of its reports, reached by the query\'s scope (D18), applied at match time',
-    'coverage': 'the store\'s coverage rule over the step\'s gene concept, as for a plain concept step',
+    'coverage': 'gene_recorders_v1: the store\'s coverage rule, a gene step recorded only by the sources holding an '
+                'event of the label\'s kinds of its gene (never by a source of letter mentions alone), their coverage '
+                'periods as the snapshot holds them (for the synthetic source, sample times)',
     'relaxations': 'none: a gene step has occurrence any, carries no other condition and no relaxation names it',
 }
 # Planted defects for the tests (D38 rules); None in every real run.
@@ -93,7 +95,9 @@ def gene_reports(patient, source, record_id):
         if key in seen:
             raise ValueError(f'GENE_REPORT_CHAIN_CYCLE:{record_id}')
         seen.add(key)
-        record = records[key]
+        record = records.get(key)
+        if record is None:
+            raise ValueError(f'GENE_REPORT_RECORD_MISSING:{key[0]}/{key[1]}')
         chain.append(_report(record))
         key = (record['source'], record['supersedes']) if record.get('supersedes') else None
     return chain[::-1]
@@ -210,9 +214,11 @@ def _gene_findings(store, request, idxs=None):
         return {}
     kinds = list(label_kinds(store)) + ([es.MENTION_KIND] if _D38_DEFECT == 'mention_bound' else [])
     sql = f"""SELECT DISTINCT e.patient_idx, cc.ancestor, e.event_id, e.start_lo, e.start_hi, e.kind, ev.evidence
-              FROM {{source}} JOIN event_concepts ec ON ec.patient_idx = e.patient_idx AND ec.event_id = e.event_id
+              FROM {{source}} JOIN event_concepts ec
+                ON ec.bucket = e.bucket AND ec.patient_idx = e.patient_idx AND ec.event_id = e.event_id
               JOIN concept_closure cc ON cc.concept = ec.concept
-              JOIN event_evidence ev ON ev.patient_idx = e.patient_idx AND ev.event_id = e.event_id
+              JOIN event_evidence ev
+                ON ev.bucket = e.bucket AND ev.patient_idx = e.patient_idx AND ev.event_id = e.event_id
               WHERE e.kind IN {es._in(kinds)} AND cc.ancestor IN {es._in(concepts)}{{where}}
               ORDER BY e.patient_idx, cc.ancestor, e.event_id"""
     if idxs is None:
@@ -226,6 +232,27 @@ def _gene_findings(store, request, idxs=None):
         finally:
             es._drop(store, '_m_gene')
     return findings_of([(idx, c, eid, lo, hi, kind, json.loads(text)) for idx, c, eid, lo, hi, kind, text in rows])
+
+
+def _gene_sources(store, request):
+    """{gene tag: the sources holding an event of the label's kinds of its gene (through the closure)}: who records a
+    gene step, for the coverage rule (D38 review, M1). A source whose only events of the gene are letter mentions does
+    not record a gene step, which never binds a mention."""
+    kinds = list(label_kinds(store))
+    out = {}
+    for name, spec in request.derived.items():
+        if spec['kind'] != 'gene':
+            continue
+        out[name] = {r[0] for r in store.query(f"""SELECT DISTINCT e.source FROM events e
+            JOIN event_concepts ec ON ec.bucket = e.bucket AND ec.patient_idx = e.patient_idx AND ec.event_id = e.event_id
+            JOIN concept_closure cc ON cc.concept = ec.concept
+            WHERE e.kind IN {es._in(kinds)} AND cc.ancestor = ?""", kinds + [spec['concept']])}
+    return out
+
+
+def _only(findings, idxs):
+    """The entries of all-patient findings for these patients."""
+    return {idx: findings[idx] for idx in idxs if idx in findings}
 
 
 # The request.
@@ -345,8 +372,9 @@ def derive_patient(request, pid, window, events, mentions, readings=None, findin
 
 # The store: candidates, pruning, chunks, reach, context and `match`.
 
-def _candidates(store, pq, request):
-    """`store_conditions_relative._candidates`, a gene tag's patients being those with a finding of its gene."""
+def _candidates(store, pq, request, findings=None):
+    """`store_conditions_relative._candidates`, a gene tag's patients being those with a finding of its gene
+    (`findings`: the all-patient findings, read here when not given)."""
     query = pq.query
     per_step = es._step_concepts(query)
     base = request.base
@@ -354,7 +382,7 @@ def _candidates(store, pq, request):
     es._visible_to_exclusions(store, sorted({c for cs in base.values() for c in cs}))
     es._check_tag_names(store, request)
     tags, derived = request.tags, request.derived
-    gene = None
+    gene = findings
     plan = []
     for step, concepts in per_step.items():
         plain = [c for c in concepts if c not in tags and c not in derived]
@@ -390,7 +418,7 @@ def candidates(store, query, conditions=None):
     return _candidates(store, tg.PreparedQuery(request.query), request)
 
 
-def _prune(store, pq, live, windows_by_idx, request, slice_size=None, tags=None, derived=None):
+def _prune(store, pq, live, windows_by_idx, request, slice_size=None, tags=None, derived=None, findings=None):
     """`execution_store._prune`, with a gene tag's summaries: the range of the patient's finding times, a point ending
     when it starts. A gene tag's events are exactly its points, so the argument of `execution_store._impossible` holds
     for it unchanged; a patient with no finding has no summary, as a concept without a posting."""
@@ -433,7 +461,7 @@ def _prune(store, pq, live, windows_by_idx, request, slice_size=None, tags=None,
             for concept in concepts:
                 if concept in derived and derived[concept]['kind'] == 'gene':  # D38
                     if gene is None:
-                        gene = _gene_findings(store, request, part)
+                        gene = _gene_findings(store, request, part) if findings is None else _only(findings, part)
                     rows = {}
                     for idx, by in gene.items():
                         found = list(((by.get(derived[concept]['concept']) or {}).get('found') or {}).values())
@@ -462,23 +490,24 @@ def _prune(store, pq, live, windows_by_idx, request, slice_size=None, tags=None,
     return pruned
 
 
-def _derived_chunk(store, request, idxs, pids, windows, linked):
-    """`store_conditions_relative._derived_chunk`, with the candidates' gene findings."""
+def _derived_chunk(store, request, idxs, pids, windows, linked, findings=None):
+    """`store_conditions_relative._derived_chunk`, with the candidates' gene findings (read here when not given)."""
     tags = request.used
     events = (es._load_events(store, idxs, request.load, linked, tags) if tags
               else es._load_events(store, idxs, request.load, linked))
     mentions = es._mentions(store, idxs)
     readings = rc._readings(store, idxs, request) if request.relative else {}
-    findings = _gene_findings(store, request, idxs) if request.genes else {}
+    if findings is None:
+        findings = _gene_findings(store, request, idxs) if request.genes else {}
     return [(idx, derive_patient(request, pid, w, events.get(idx, []), mentions.get(idx, set()), readings.get(idx),
                                  findings.get(idx)))
             for idx, pid, w in zip(idxs, pids, windows)]
 
 
-def _match_derived_chunk(store, pq, request, idxs, pids, windows, linked):
+def _match_derived_chunk(store, pq, request, idxs, pids, windows, linked, findings=None):
     """[(patient_idx, result)] for one chunk (D32's two-pass rule, `store_conditions_relative.match_derived`)."""
     return [(idx, rc.match_derived(pq, request, derived))
-            for idx, derived in _derived_chunk(store, request, idxs, pids, windows, linked)]
+            for idx, derived in _derived_chunk(store, request, idxs, pids, windows, linked, findings)]
 
 
 def _derived_reach(request, query, touched, windows_by_idx):
@@ -501,14 +530,28 @@ def _derived_reach(request, query, touched, windows_by_idx):
                     admitted.pop(sid, None)
 
 
-def _undetermined_reach(store, request, query, touched, decided, windows_by_idx):
+def apply_undetermined(request, query, result, findings, window):
+    """One engine patient's result with its undetermined gene records applied as the gene steps' excluded records
+    (`execution_store.apply_exclusions`; a gene step is `any`, so no binding is displaced): the small cases' form of
+    `_undetermined_reach` and the excluded-records rule, for a patient with no other excluded record."""
+    if _D38_DEFECT == 'undetermined_ignored' or window is None:
+        return result
+    touched = {}
+    _undetermined_reach(None, request, query, touched, {0}, {0: window}, {0: findings or {}})
+    if 0 not in touched:
+        return result
+    hit, every = touched[0]
+    return es.apply_exclusions(query, result, hit, {}, every, None)
+
+
+def _undetermined_reach(store, request, query, touched, decided, windows_by_idx, findings=None):
     """Adds, in place, each decided patient's undetermined gene records to its gene steps' excluded starts (`GENE_RULES`
     'exclusions'): every one to the step's starts, those the scope admits to its admitted starts, as
     `execution_store._excluded_starts` lists a snapshot's excluded records."""
     if not request.genes or not decided or _D38_DEFECT == 'undetermined_ignored':
         return
     scope = query.get('scope', 'any')
-    for idx, by in _gene_findings(store, request).items():
+    for idx, by in (_gene_findings(store, request) if findings is None else findings).items():
         if idx not in decided:
             continue
         w = windows_by_idx[idx]
@@ -525,6 +568,45 @@ def _undetermined_reach(store, request, query, touched, decided, windows_by_idx)
             changed = True
         if changed:
             touched[idx] = (admitted, every)
+
+
+def _comparability(store, per_step, nones, windows_by_idx, chunk, tags, recorders):
+    """`execution_store._comparability`, where `recorders` names the sources recording each gene tag
+    (`_gene_sources`) in place of `source_concepts` (D38 review, M1)."""
+    if not nones:
+        return
+    tags = tags or {}
+    concepts = sorted({c for cs in per_step.values() for c in cs if c not in tags and c not in recorders})
+    sources = {}
+    for source, concept in store.query(
+            f'SELECT source, concept FROM source_concepts WHERE concept IN {es._in(concepts)}', concepts) if concepts else ():
+        sources.setdefault(concept, set()).add(source)
+    for name, spec in tags.items():
+        sources[name] = es._tag_sources(store, spec)
+    for name, found in recorders.items():
+        sources[name] = set(found)
+    able = {step: set().union(*(sources.get(c, set()) for c in cs)) for step, cs in per_step.items()}
+    unrecorded = [step for step in per_step if not able[step]]
+    reason = 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE'
+    pairs = [(step, source) for step in per_step for source in sorted(able[step])]
+    clamp = lambda v: max(-es._BIG, min(es._BIG, v))
+    try:
+        es._temp(store, '_m_able', [('step', 'VARCHAR'), ('source', 'VARCHAR')], [p[0] for p in pairs], [p[1] for p in pairs])
+        for k in range(0, len(nones), chunk):
+            part = nones[k:k + chunk]
+            es._temp(store, '_m_none', [('idx', 'INTEGER'), ('ws', 'HUGEINT'), ('we', 'HUGEINT')], part,
+                     [clamp(windows_by_idx[i]['start']) for i in part], [clamp(windows_by_idx[i]['end']) for i in part])
+            covered = dict(store.db.execute("""
+                SELECT n.idx, list(DISTINCT a.step) FROM _m_none n
+                JOIN coverage c ON c.patient_idx = n.idx JOIN _m_able a ON a.source = c.source
+                WHERE c.lo <= n.we AND c.hi >= n.ws GROUP BY n.idx""").fetchall())
+            for idx in part:
+                have = covered.get(idx, ())
+                missing = [step for step in per_step if step not in have]
+                if missing:
+                    yield idx, reason, missing, unrecorded
+    finally:
+        es._drop(store, '_m_able', '_m_none')
 
 
 def match_context(store, query, windows, conditions=None):
@@ -546,7 +628,7 @@ _W = {}  # per worker process: the prepared gene request it last ran (the store 
 
 def _worker_unit(unit):
     """`store_conditions_relative._worker_unit` for a gene request, in the store's own worker processes."""
-    key, query, conditions, idxs, pids, windows, linked, fault = unit
+    key, query, conditions, idxs, pids, windows, linked, findings, fault = unit
     try:
         if fault == 'exit':
             os._exit(3)
@@ -555,8 +637,8 @@ def _worker_unit(unit):
         if _W.get('key') != key:
             request = Request(query, conditions)
             _W.update(key=key, pq=tg.PreparedQuery(request.query), request=request)
-        return ('ok', _match_derived_chunk(es._W['store'], _W['pq'], _W['request'], idxs, pids, windows, linked),
-                es._peak_rss())
+        return ('ok', _match_derived_chunk(es._W['store'], _W['pq'], _W['request'], idxs, pids, windows, linked,
+                                           findings), es._peak_rss())
     except Exception as exc:
         return ('error', type(exc).__name__, str(exc)[:300])
 
@@ -621,32 +703,37 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
             es._check_window(pid, w)
         windows_by_idx[idx] = w
     pid_of = dict(patients)
-    found = _candidates(store, pq, request)
+    findings = _gene_findings(store, request)  # read once, used by candidates, pruning, chunks and D18
+    found = _candidates(store, pq, request, findings)
     per_step = request.load
     base = request.base
     live = [i for i in found['patient_idx'] if windows_by_idx[i] is not None]
     results = {}
     parts = [live[k:k + chunk] for k in range(0, len(live), chunk)]
     if es._PRUNE:
-        pruned = _prune(store, pq, live, windows_by_idx, request, tags=tags, derived=request.derived_used)
+        pruned = _prune(store, pq, live, windows_by_idx, request, tags=tags, derived=request.derived_used,
+                        findings=findings)
         for idx in pruned:
             results[idx] = es._NONE(pid_of[idx])
         parts = [kept for part in parts if (kept := [i for i in part if i not in pruned])]
     if workers > 1 and parts:
         key = es._digest([given, conditions])
         units = [(key, given, conditions, part, [pid_of[i] for i in part], [windows_by_idx[i] for i in part],
-                  [i for i in part if i in linked]) for part in parts]
+                  [i for i in part if i in linked], _only(findings, part)) for part in parts]
         for unit in _run(es.get_pool(store, workers), units):
             results.update(unit)
     else:
         for part in parts:
             results.update(_match_derived_chunk(store, pq, request, part, [pid_of[i] for i in part],
-                                                [windows_by_idx[i] for i in part], [i for i in part if i in linked]))
+                                                [windows_by_idx[i] for i in part], [i for i in part if i in linked],
+                                                findings))
     filtered = [idx for idx, _ in patients if windows_by_idx[idx] is not None and idx not in results]
     filtered_result = lambda idx: {'patient_id': pid_of[idx], 'status': 'none', 'reason': 'FILTERED', 'complete': True}
     nones = sorted(filtered + [idx for idx, r in results.items() if r['status'] == 'none'])
-    for idx, reason, missing, unrecorded in es._comparability(store, per_step, nones, windows_by_idx,
-                                                              chunk * es.SET_CHUNK_FACTOR, tags):
+    # D38 review, M1: a gene step is recorded by the sources holding its gene's reports, not by letters mentioning it.
+    coverage_steps = {sid: [request.genes[sid]] if sid in request.genes else cs for sid, cs in per_step.items()}
+    for idx, reason, missing, unrecorded in _comparability(store, coverage_steps, nones, windows_by_idx,
+                                                           chunk * es.SET_CHUNK_FACTOR, tags, _gene_sources(store, request)):
         results[idx] = {'patient_id': pid_of[idx], 'status': 'not_comparable', 'reason': reason,
                         'uncovered_steps': missing}
         if unrecorded:
@@ -654,7 +741,7 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
     decided = {idx for idx, w in windows_by_idx.items()
                if w is not None and (results[idx]['status'] in es.DECIDED if idx in results else True)}
     touched = es._excluded_starts(store, query, base, decided, windows_by_idx)
-    _undetermined_reach(store, request, query, touched, decided, windows_by_idx)  # D38
+    _undetermined_reach(store, request, query, touched, decided, windows_by_idx, findings)  # D38
     bound = [idx for idx in touched if idx in results and (
         results[idx].get('binding') or results[idx].get('relaxed_match', {}).get('binding')
         or results[idx].get('unverified_match', {}).get('binding'))]
@@ -666,7 +753,7 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
     for k in range(0, len(nth_bound), chunk):
         part = nth_bound[k:k + chunk]
         for idx, d in _derived_chunk(store, request, part, [pid_of[i] for i in part],
-                                     [windows_by_idx[i] for i in part], [i for i in part if i in linked]):
+                                     [windows_by_idx[i] for i in part], [i for i in part if i in linked], findings):
             starts.setdefault(idx, {}).update(d.points)
     for idx, (hit, every) in touched.items():
         results[idx] = es.apply_exclusions(query, results[idx] if idx in results else filtered_result(idx),
