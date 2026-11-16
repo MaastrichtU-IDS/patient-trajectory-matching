@@ -1,7 +1,7 @@
 """The trajectory page's store endpoints (D37): the synthetic cohort in a store, answered per patient.
 
 The server builds the generated cohort (`demos/mockups/data/`, from `synthetic/generate.py`) into a store at startup.
-These tests check that the endpoint answers with the store's own results (`store_conditions_relative.match`, called
+These tests check that the endpoint answers with the store's own results (`store_conditions.match` since D38, called
 directly on the same request, on a store built the same way), that times come back in minutes from birth exactly, that
 every refusal is named, that the store is served only for the synthetic cohort the page downloads, and that its build
 lives outside the repository and is removed when the server closes. The MIMIC endpoints' tests are
@@ -25,7 +25,7 @@ import server  # noqa: E402
 import store_parity  # noqa: E402
 import store_trajectory  # noqa: E402
 from patterns import execution_store as es  # noqa: E402
-from patterns import store_conditions_relative as rc  # noqa: E402
+from patterns import store_conditions as sc  # noqa: E402
 
 COHORT = store_trajectory.COHORT
 DAY = 1440  # minutes
@@ -68,6 +68,13 @@ def requests(pids):
                                 'steps': {'B': {'relative': {'kind': 'rise', 'factor': '2', 'unit': '/month', 'floor': '1',
                                                              'baseline': {'previous': 2, 'within': 75 * DAY}}}},
                                 'relaxations': [{'id': 'node:B', 'kind': 'widen_factor', 'step': 'B', 'cost': '0.5', 'factor': '1.5'}]},
+                 'windows': windows},
+        # D38: a gene step (the tree template's shape: the first seizure, then the SCN1A result within two years).
+        'gene': {'query': q([{'id': 'A', 'concept': 'seizure', 'occurrence': 'first'}, {'id': 'B', 'concept': 'gene:SCN1A',
+                                                                                        'occurrence': 'any'}],
+                            [{'id': 'edge:0', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 731 * DAY}]),
+                 'conditions': {'profile': 'execution-store-conditions-gene-1.0',
+                                'steps': {'B': {'gene': {'report': 'first_not_negative', 'timed_by': 'recorded_at'}}}},
                  'windows': windows},
     }
 
@@ -113,12 +120,12 @@ class TrajectoryStoreTests(unittest.TestCase):
         cls.tmp.cleanup()
 
     def direct(self, spec):
-        """The store's own answer: `store_conditions_relative.match` on a store built the same way."""
+        """The store's own answer: `store_conditions.match` (D38) on a store built the same way."""
         windows = {pid: None if w is None else {'start': self.births[pid] + w['start'] * store_parity.MINUTE,
                                                 'end': self.births[pid] + w['end'] * store_parity.MINUTE}
                    for pid, w in spec['windows'].items()}
         with es.open_store(self.snapshot) as store:
-            return rc.match(store, store_parity.to_micros(spec['query']), windows,
+            return sc.match(store, store_parity.to_micros(spec['query']), windows,
                             conditions=store_parity.conditions_micros(spec['conditions']))
 
     def test_status_names_the_synthetic_snapshot(self):
@@ -130,6 +137,7 @@ class TrajectoryStoreTests(unittest.TestCase):
         self.assertRegex(body['snapshot_id'], r'^[0-9a-f]{64}$')
         self.assertEqual(body['store_profile'], 'execution-store-3.1')
         self.assertIn('execution-store-conditions-1.2', body['conditions_profiles'])
+        self.assertIn('execution-store-conditions-gene-1.0', body['conditions_profiles'])
         with es.open_store(self.snapshot) as store:  # the converter is deterministic: the same snapshot
             self.assertEqual(body['snapshot_id'], store.snapshot_id)
 
@@ -186,6 +194,16 @@ class TrajectoryStoreTests(unittest.TestCase):
         points = [d for r in body['results'] for d in (r.get('binding') or {}).values() if d.get('derived')]
         self.assertTrue(points)
         self.assertTrue(all(d['id'].startswith('derived-step:') for d in points))
+        # D38: a gene step's point names the genetic result it comes from and the time of its first report not negative.
+        _, body = self.served.post(requests(self.pids)['gene'])
+        genes = [(r['patient_id'], r['witness']['B'], d) for r in body['results'] if 'witness' in r
+                 for s, d in (r.get('binding') or {}).items() if s == 'B']
+        self.assertTrue(genes)
+        for pid, at, d in genes:
+            self.assertTrue(d['derived'])
+            self.assertEqual(d['gene_report']['kind'], 'genetic_result')
+            self.assertEqual(d['id'], f"derived-step:B/own@{d['gene_report']['id']}")
+            self.assertEqual(d['gene_report']['finding'], at)  # a gene point is exact: its witness is its time
 
     def test_refusals_are_named(self):
         good = requests(self.pids)['plain']
@@ -252,9 +270,9 @@ class TrajectoryStoreTests(unittest.TestCase):
             self.assertTrue(store_trajectory.inside_repository(Path(tmp) / 'root' / 'deeper'))
 
     def test_an_internal_failure_is_named_without_detail(self):
-        with mock.patch.object(rc, 'match', side_effect=RuntimeError('C001 secret')):
+        with mock.patch.object(sc, 'match', side_effect=RuntimeError('C001 secret')):
             self.assertEqual(self.served.post(requests(self.pids)['plain']), (500, {'error': 'INTERNAL_ERROR'}))
-        with mock.patch.object(rc, 'match', side_effect=ValueError('no code here')):
+        with mock.patch.object(sc, 'match', side_effect=ValueError('no code here')):
             self.assertEqual(self.served.post(requests(self.pids)['plain']), (500, {'error': 'INTERNAL_ERROR'}))
 
     def test_the_mimic_endpoints_are_unchanged_beside_it(self):

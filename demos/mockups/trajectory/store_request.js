@@ -5,7 +5,14 @@
    windows the page placed,
    in whole minutes from each patient's birth (store_parity.py converts them to the store's clock). A page feature the
    store cannot express is refused by name (`StoreRefusal`, its `code`), never translated approximately:
-   - GENE_CLASSIFICATION_UNSUPPORTED: gene steps (the first report that is not negative, timed by its recording);
+   - GENE_CLASSIFICATION_UNSUPPORTED: gene steps (the first report that is not negative, timed by its recording), only
+     when a caller asks for none (`options.genes: false`); since D38 (STORE_GENES) a
+     gene step is the store's `gene` condition, profile execution-store-conditions-gene-1.0 (store_conditions_gene.py):
+     each coded genetic result of the gene bound at its first report that is not negative, across reclassification, as
+     a point at that report's recording time, never a letter's mention;
+   - OCCURRENCE_ON_GENE_STEP (D38): a gene step with an occurrence other than any (the store refuses it too);
+   - GENE_WITH_CODED_ONLY_UNSUPPORTED (D38 review): a gene step under "coded records only", until a joint profile of
+     gene steps over the store's coded-only option exists (a follow-up);
    - RELATIVE_CONDITION_UNSUPPORTED: rises and falls, only when a caller asks for none (`options.rises: false`); since
      D36 they are translated by default (STORE_RISES), as the store's relative conditions (D33, shipped in D36);
    - FREE_TEXT_HEDGED_UNSUPPORTED: free text read as "possible" (hedged) findings, which the converter never emits;
@@ -52,6 +59,11 @@ function storeDecimal(x) {
 // D36: a rise or fall is translated by default (the store's profile 1.2, `store_conditions_relative`), since D36's
 // verdict (every rule met); a caller may still ask for the named refusal (`options.rises: false`).
 const STORE_RISES = true;
+// D38: a gene step is translated by default since D38's verdict (every rule met); a caller may still ask for the named
+// refusal (`options.genes: false`, GENE_CLASSIFICATION_UNSUPPORTED).
+const STORE_GENES = true;
+const GENE_PROFILE = 'execution-store-conditions-gene-1.0';
+const GENE_CONDITION = {report: 'first_not_negative', timed_by: 'recorded_at'};
 const derivedOcc = n => (n.occ === 'nth' || n.occ === 'nth_last') && Math.max(1, +n.n || 1) > 1;
 // D33: the page's rise and fall rule (shared/core.js, measureEvents) in the store's terms.
 const RELATIVE_PREVIOUS = 2, RELATIVE_WITHIN_DAYS = 75;
@@ -62,9 +74,12 @@ const relativeCondition = (n, factor) => ({kind: n.cond, factor: storeDecimal(fa
 function storeRefusals(def, freeText, options = {}) {
   if (freeText === 'possible') throw new StoreRefusal('FREE_TEXT_HEDGED_UNSUPPORTED');
   const rises = options.rises === undefined ? STORE_RISES : options.rises;
+  const genes = options.genes === undefined ? STORE_GENES : options.genes;
   for (const n of def.nodes) {
     const kind = stepKind(n);
-    if (kind === 'gene') throw new StoreRefusal('GENE_CLASSIFICATION_UNSUPPORTED', n.id);
+    if (kind === 'gene' && !genes) throw new StoreRefusal('GENE_CLASSIFICATION_UNSUPPORTED', n.id);
+    if (kind === 'gene' && n.occ && n.occ !== 'any') throw new StoreRefusal('OCCURRENCE_ON_GENE_STEP', n.id);
+    if (kind === 'gene' && freeText === 'off') throw new StoreRefusal('GENE_WITH_CODED_ONLY_UNSUPPORTED', n.id);
     if (kind === 'measure' && relative(n.cond) && !rises) throw new StoreRefusal('RELATIVE_CONDITION_UNSUPPORTED', n.id);
     if ((n.occ === 'count' || derivedOcc(n)) && kind !== 'measure' && freeText !== 'off')
       throw new StoreRefusal('FREE_TEXT_COUNT_UNSUPPORTED', n.id);
@@ -97,6 +112,8 @@ function storeRequest(def, freeText, pids, options = {}) {
       steps11[n.id] = {count: {at_least: Math.max(1, +n.n || 2), within}};
     } else if (derivedOcc(n)) {
       steps11[n.id] = {occurrence: {[n.occ]: Math.max(1, +n.n || 1)}};
+    } else if (stepKind(n) === 'gene') {
+      steps11[n.id] = {gene: {...GENE_CONDITION}};  // D38
     }
   }
   const parent = n => stepKind(n) === 'medicine' ? classesOf(n.concept).find(k => k !== 'antiseizure') : state.concepts[n.concept].parents[0];
@@ -128,8 +145,9 @@ function storeRequest(def, freeText, pids, options = {}) {
   if (Object.keys(steps11).length) {
     // At least 1.1 (D32 review): a value condition on a snapshot built without series is then refused by name; 1.2
     // when a step rises or falls (D33).
-    const rises = Object.values(steps11).some(s => s.relative);
-    conditions = {profile: rises ? 'execution-store-conditions-1.2' : 'execution-store-conditions-1.1', steps: steps11};
+    const rises = Object.values(steps11).some(s => s.relative), gene = Object.values(steps11).some(s => s.gene);
+    conditions = {profile: gene ? GENE_PROFILE : rises ? 'execution-store-conditions-1.2' : 'execution-store-conditions-1.1',
+                  steps: steps11};
     const all = [...valueRelax, ...relax11];
     if (all.length) conditions.relaxations = all;
   }

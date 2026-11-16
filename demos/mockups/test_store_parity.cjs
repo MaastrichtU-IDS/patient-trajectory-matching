@@ -99,6 +99,9 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       ...withoutNodes({nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges}, new Set(['E']))},
     // D37: the page's Blank template, as the page starts it.
     'the blank template (the first seizure)': {scope: 'from_start', window, nodes: BLANK.nodes, edges: BLANK.edges},
+    // D38: the tree and graph templates as the page writes them, gene step included (the store's gene condition).
+    'the tree template': {scope: 'from_start', window, nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges},
+    'the graph template': {scope: 'from_start', window, nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges},
   };
   // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
   var withFreeText = function (name, fn) {
@@ -112,12 +115,12 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     return withFreeText(name, () => {
       const pids = [...state.patients.keys()], byId = nodeById(def);
       // D36: rises are translated (the store's relative conditions), as the translator now does by default. D37: only
-      // the cases that say so read "coded only" as D32 did.
-      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true, codedOnly: CASES[name].codedOnly});
+      // the cases that say so read "coded only" as D32 did. D38: gene steps are translated (the store's gene condition).
+      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true, genes: true, codedOnly: CASES[name].codedOnly});
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
       for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
-        ...(own[n.id] && own[n.id].relative ? {relative: own[n.id].relative} : {})};
+        ...(own[n.id] && own[n.id].relative ? {relative: own[n.id].relative} : {}), ...(own[n.id] && own[n.id].gene ? {gene: true} : {})};
       for (const x of query.relaxations) if (x.kind === 'widen_concept') wanted[x.id] = {concept: x.concept};
       for (const x of (conditions || {}).relaxations || []) {
         if (x.kind === 'widen_value') wanted[x.id] = {concept: byId[x.step].concept, condition: x.condition};
@@ -227,6 +230,9 @@ function causes(name, pid, pageStatus, storeResult, storeCands, pageReason) {
     const a = mine.map(sig).sort(), b = theirs.map(sig).sort();
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
     if (derived === 'relative') { out.add('relative-baseline'); continue; }
+    // D38: a gene step's points (the first report not negative, at its recording) are expected to be the page's own; a
+    // difference has no declared cause, so it fails as such.
+    if (kind === 'gene') { out.add('gene-points-differ'); continue; }
     if (kind === 'measure') { out.add('measurement-records'); continue; }
     const onlyStore = theirs.filter(x => !a.includes(sig(x))), onlyPage = mine.filter(x => !b.includes(sig(x)));
     if (onlyStore.some(x => x.kind === 'mention') || onlyPage.some(x => x.mention)) out.add('letter-mentions');
@@ -542,6 +548,63 @@ const EXPECTED = {
     C047: "letter-mentions+record-reconciliation: page exact, store possible",
     C048: "letter-mentions+record-reconciliation: page exact, store possible",
   },
+  // D38: the tree and graph templates with their gene step.
+  "the tree template": {
+    C002: "coverage: page none, store not_comparable",
+    C003: "coverage: page none, store not_comparable",
+    C005: "coverage: page none, store not_comparable",
+    C006: "coverage: page none, store not_comparable",
+    C008: "coverage: page none, store not_comparable",
+    C009: "coverage: page none, store not_comparable",
+    C010: "coverage: page none, store not_comparable",
+    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C018: "coverage: page none, store not_comparable",
+    C019: "coverage: page none, store not_comparable",
+    C020: "coverage: page none, store not_comparable",
+    C025: "coverage: page none, store not_comparable",
+    C026: "coverage: page none, store not_comparable",
+    C028: "coverage: page none, store not_comparable",
+    C030: "coverage: page none, store not_comparable",
+    C031: "coverage: page none, store not_comparable",
+    C033: "coverage: page none, store not_comparable",
+    C034: "coverage: page none, store not_comparable",
+    C035: "coverage: page none, store not_comparable",
+    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C039: "coverage: page none, store not_comparable",
+    C040: "coverage: page none, store not_comparable",
+    C041: "coverage: page none, store not_comparable",
+    C042: "coverage: page none, store not_comparable",
+    C043: "coverage: page none, store not_comparable",
+    C048: "coverage: page none, store not_comparable",
+  },
+  "the graph template": {
+    C002: "coverage: page none, store not_comparable",
+    C003: "coverage: page none, store not_comparable",
+    C005: "coverage: page none, store not_comparable",
+    C006: "coverage: page none, store not_comparable",
+    C008: "coverage: page none, store not_comparable",
+    C009: "coverage: page none, store not_comparable",
+    C010: "coverage: page none, store not_comparable",
+    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C018: "coverage: page none, store not_comparable",
+    C019: "coverage: page none, store not_comparable",
+    C020: "coverage: page none, store not_comparable",
+    C025: "coverage: page none, store not_comparable",
+    C026: "coverage: page none, store not_comparable",
+    C028: "coverage: page none, store not_comparable",
+    C030: "coverage: page none, store not_comparable",
+    C031: "coverage: page none, store not_comparable",
+    C033: "coverage: page none, store not_comparable",
+    C034: "coverage: page none, store not_comparable",
+    C035: "coverage: page none, store not_comparable",
+    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C039: "coverage: page none, store not_comparable",
+    C040: "coverage: page none, store not_comparable",
+    C041: "coverage: page none, store not_comparable",
+    C042: "coverage: page none, store not_comparable",
+    C043: "coverage: page none, store not_comparable",
+    C048: "coverage: page none, store not_comparable",
+  },
 };
 
 
@@ -579,6 +642,12 @@ const REFUSALS = vm.runInContext(`(() => {
     'frequency template, coded only for the count (D32)': refusalOf(d('frequency'), 'off', {codedOnly: 'derived'}),
     'a count alone, coded only': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off'),
     'a threshold that is not a plain decimal': refusalOf(huge, 'present'),
+    // D38: gene steps when asked for (the default follows STORE_GENES).
+    'gene step (tree template), genes asked for': refusalOf(d('tree'), 'present', {genes: true}),
+    'gene step (tree template), coded only, genes asked for': refusalOf(d('tree'), 'off', {genes: true}),
+    'gene step and rise (graph template), genes refused on request': refusalOf(d('graph'), 'present', {genes: false}),
+    'a gene step alone, coded only, genes asked for': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'gene:SCN1A'}], edges: []}, 'off', {genes: true}),
+    'a gene step with an occurrence, genes asked for': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'gene:SCN1A', occ: 'first'}], edges: []}, 'present', {genes: true}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
@@ -586,8 +655,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'rise (sequence template)': null,
   // D37: "coded only" with steps that would still read letter mentions in the store.
   'rise (sequence template), coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
-  'gene step (tree template)': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'gene step and rise (graph template)': 'GENE_CLASSIFICATION_UNSUPPORTED',  // the rise is translated; the gene step is not
+  // D38: gene steps are translated by default (STORE_GENES); under coded only they wait for a joint profile.
+  'gene step (tree template)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'gene step and rise (graph template)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'rise (sequence template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',
   'gene step and rise (graph template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',  // first refused, in node order
   'count over stated free text (frequency template)': 'FREE_TEXT_COUNT_UNSUPPORTED',
@@ -598,6 +668,12 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'frequency template, coded only for the count (D32)': null,
   'a count alone, coded only': null,
   'a threshold that is not a plain decimal': 'VALUE_NOT_A_PLAIN_DECIMAL',
+  'gene step (tree template), genes asked for': null,
+  // D38 review: gene steps under coded-only wait for a joint profile with the store's coded-only option.
+  'gene step (tree template), coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'gene step and rise (graph template), genes refused on request': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'a gene step alone, coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'a gene step with an occurrence, genes asked for': 'OCCURRENCE_ON_GENE_STEP',
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.
@@ -619,11 +695,11 @@ assert.deepEqual(TEMPLATE_TABLE, {
   'sequence, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'sequence, present': 'store: the sequence template (a rise)',
   'sequence, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'tree, off': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'tree, present': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'tree, off': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'tree, present': 'store: the tree template',
   'tree, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'graph, off': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'graph, present': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'graph, off': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'graph, present': 'store: the graph template',
   'graph, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
   'frequency, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'frequency, present': 'FREE_TEXT_COUNT_UNSUPPORTED',
@@ -729,14 +805,31 @@ if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({sweepTally, case
 // baseline (INVALID_FACTOR: a factor must exceed 1), and the page's relaxation of "at most -1" to "at most -1.1",
 // which narrows instead of widening (VALUE_RELAXATION_MUST_WIDEN). The page shows each as a labelled fallback.
 assert.deepEqual(sweepTally, {
-  answered: 286,
+  // D38: the seven gene definitions with stated findings are answered; the seven under coded only wait for a joint profile.
+  answered: 293,
   translator: {FREE_TEXT_CODED_ONLY_UNSUPPORTED: 157, FREE_TEXT_COUNT_UNSUPPORTED: 51, NTH_STEP_HAS_NO_END: 2,
-               GENE_CLASSIFICATION_UNSUPPORTED: 14, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
+               GENE_WITH_CODED_ONLY_UNSUPPORTED: 7, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
   store: {INVALID_FACTOR: 10, VALUE_RELAXATION_MUST_WIDEN: 10},
 }, 'the option sweep changed');
 console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.answered} answered by the store; refused by the translator `
   + `${Object.entries(sweepTally.translator).sort().map(([k, v]) => `${k} ${v}`).join(', ')}; refused by the store `
   + `${Object.entries(sweepTally.store).sort().map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}; none without a code.`);
+/* D38, no change without the new fields: every parity and sweep request without a gene step gives, on the snapshot
+   store_parity.py builds now (the converter wrapper of store_conditions_gene), the same output as on main's build
+   (no gene reports), every field equal except the snapshot's and the context's identifiers and the labels' copy. */
+const changeScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-gene-no-change-'));
+const noChange = (() => {
+  try {
+    const wrapper = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(changeScratch, 'wrapper')]).trim();
+    const main = run([path.join(here, 'gene_no_change.py'), 'build-main', cohort, path.join(changeScratch, 'main')]).trim();
+    return JSON.parse(run([path.join(here, 'gene_no_change.py'), 'compare', wrapper, main], JSON.stringify({cohort, cases: [...cases, ...sweepRun]})));
+  } finally { fs.rmSync(changeScratch, {recursive: true, force: true}); }
+})();
+assert.deepEqual(noChange.differences, [], 'a request without a gene step answered differently on the wrapper\'s build');
+assert.equal(noChange.cases + noChange.gene_cases_skipped, cases.length + sweepRun.length, 'every request was compared or is a gene request');
+assert.ok(noChange.results > 10000, 'the no-change differential was vacuous');
+console.log(`No change without gene steps (D38): ${noChange.cases} requests (${noChange.results} patient results, ${noChange.refused} refused alike) `
+  + `equal on the wrapper's build and on main's, but for identifiers; ${noChange.gene_cases_skipped} gene requests left out.`);
 if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify(unresolvedShare, null, 1));
 const share = names.map(n => `${n} ${unresolvedShare[n].unresolved}/${unresolvedShare[n].results}`
   + ` (${unresolvedShare[n].candidates} with a candidate)`).join('; ');

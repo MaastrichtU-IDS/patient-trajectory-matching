@@ -82,6 +82,7 @@ LABELS = {
     'test_derived_steps': 'Execution-store Nth-occurrence and count tests',
     'test_build_record': 'Scaling build runtime-record tests',
     'test_relative_conditions': 'Execution-store rise and fall (relative condition) tests',
+    'test_gene_steps': 'Execution-store gene step tests',
 }
 
 

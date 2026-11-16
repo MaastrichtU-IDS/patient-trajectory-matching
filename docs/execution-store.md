@@ -459,6 +459,40 @@ In short:
 
 **History.** D33 built this and did not ship it: its usefulness bar (at most 30% `unresolved` among the patients with a candidate, in each of the page's three rise templates) was missed on the graph template, 3 of its 4 candidates, by D30's order rule on the template's `first` blocker whose end the rise's `during` reads. D35's target split decides that shape. D36 restored the code in its own module, retried the bar on 30 cohorts and shipped it.
 
+## Gene steps (D38)
+
+**Status.** Shipped in D38. The trajectory page's translator writes gene steps by default (`STORE_GENES`; a caller can ask for the named refusal, `GENE_CLASSIFICATION_UNSUPPORTED`), and refuses them under "coded records only" (`GENE_WITH_CODED_ONLY_UNSUPPORTED`) until a joint profile with D39's exists. In a module of its own, [`patterns/store_conditions_gene.py`](../patterns/store_conditions_gene.py), which no build loads; callers reach it through the one entry point [`patterns/store_conditions.py`](../patterns/store_conditions.py), which routes a request by its conditions' profile (gene steps here, everything else to `store_conditions_relative`, which hands all but 1.2 to `execution_store`).
+
+**The data: a converter wrapper.** The synthetic converter keeps a genetic result's coding but not its classification, and keeps only a record's latest version, so a negative result looked like a pathogenic one and a reclassified variant's first report was gone. The wrapper in the module (`iter_patients`, `synthetic_provenance`, used by `demos/mockups/store_parity.py`) calls the converter's own `convert_patient` unchanged and adds `gene_reports` to each genetic result's evidence: the reports of its record and of every record it supersedes, oldest first (`record_id`, `recorded_at` on the patient clock, `classification`, `status`). It adds the label `gene_report_kinds: genetic_result` and the rule's text to the provenance. Nothing else changes; both are snapshot content, inside its identity. The scaling report's builds, which do not use the wrapper, are unchanged and reusable. The proper fix, the converter keeping them as an option, waits for the next change to `synthetic_ingest.py`. A snapshot without the label refuses a gene step by name (`GENE_REPORTS_NOT_DECLARED`).
+
+**The request** (profile `execution-store-conditions-gene-1.0`: the 1.2 language plus gene steps):
+
+```json
+{"profile": "execution-store-conditions-gene-1.0",
+ "steps": {"B": {"gene": {"report": "first_not_negative", "timed_by": "recorded_at"}}}}
+```
+
+A gene step has occurrence `any`, carries no other condition and no relaxation names it. Refusals by name: `INVALID_GENE`, `GENE_WITH_OTHER_CONDITION`, `OCCURRENCE_ON_GENE_STEP`, `GENE_STEP_RELAXATION_UNSUPPORTED`, `RELAXATION_STEP_NOT_CONDITIONED`, D32's `DERIVED_TAG_NAME_COLLISION`.
+
+**What it means** (the module's `GENE_RULES`).
+- *What binds:* coded events of the kinds the label lists, of the step's gene through the closure; never a letter mention.
+- *The finding:* the reports in order of `recorded_at` (then supersession order); `no relevant variant`, `benign` and `likely benign` are passed over; the first `pathogenic`, `likely pathogenic`, `uncertain significance` or `homozygous deletion` is the finding. VUS then pathogenic binds at the VUS report; negative then pathogenic at the amendment; pathogenic then downgraded at the first report.
+- *Time:* a point at that report's `recorded_at`, exactly, with its own variable (`derived-step:<step>/own@<event id>`); the sample's time is not read.
+- *Undetermined:* a missing or unknown classification before any finding. For gene steps such a record is an excluded record (D18), its start from the earliest to the latest report, reached by the scope, applied at match time.
+- *Coverage:* a gene step is recorded only by the sources holding its gene's reports, never by letters alone; for the synthetic source their coverage spans sample times, which is stricter than the report times and gives some extra `not_comparable`.
+- *Evidence read at match time:* gene steps read `event_evidence` for those events only, a stated departure from D26 ("matching never reads evidence"). The findings are read once per match.
+
+**Differences from the trajectory page, declared.** The page binds every report but `no relevant variant`, so off the cohort it would bind `benign`, `likely benign`, a missing or an unknown classification; the generator writes none of those. The page matches a gene by identity, the store through the closure; the generator's genes have no parents. Both sides time a report to the minute, which rests on the generator's timestamps (minutes, no offset).
+
+**Verification** (decision log, D38): an independent reference (`patterns/gene_reference.py`, over the ingest document and `execution_store_reference`); three small-case generators (`patterns/gene_cases.py`: plain, derived, relative) checked by enumerating every choice of times and every reading of an unknown classification; `patterns/test_gene_steps.py`; the parity test's tree and graph templates; the usefulness test (`demos/mockups/gene_usefulness.cjs`); the no-change differential against main's builds (`demos/mockups/gene_no_change.py`).
+
+**In short** (decision log, D38):
+- 60,000 small cases: 0 violations, the reference agrees on every one; six planted defects caught (a negative counted, reclassification ignored, the sample's time, a VUS read as negative, a mention bound, an undetermined record ignored).
+- 400 snapshot requests (17,200 results): 0 mismatches against the reference, the same at 2 workers, at `decided` and with pruning off.
+- *Usefulness* (`verification/d38-gene-usefulness-report.json`, seeds 1001 to 1030): Tree and Graph with their gene step, 0 of 7 child types and 0 of 122 candidates `unresolved` each.
+- *No change without gene steps*: 594 requests against main's builds, equal but for identifiers; the scaling builds are reusable.
+- *Latency* (`verification/d38-paired-verdict.json`): requests without a gene step take main's path; 14-worker paired p95 ratios 0.83 to 1.02, p95 9.38 s. Gene requests at scale are not timed.
+
 ## Match output
 
 `match(store, query, windows)` returns, beside the per-patient results, the counts and the filter plan:
