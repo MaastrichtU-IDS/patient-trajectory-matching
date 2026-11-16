@@ -2502,6 +2502,21 @@ The trajectory page offers three free-text settings: coded records only, also fi
 
 *Disclosed before these rules:* none of this increment's figures had been measured. The committed cohort was generated locally, and its records were counted by source and kind to find which sources hold only mentions (the three letter sources).
 
+**Independent review of the code** (after 790f92f, before any ruled measurement; no must-fix). The reviewer ran about 81,000 fuzz cases against oracles of its own, among them mentions that narrow a coded event's time through a shared variable, with 0 mismatches. It found the meaning by removal, the coverage rule, pruning and the candidate refinement (`_refine`) sound. Its scripts are in `/tmp/d39review/`. Changed on this branch:
+- *Test gap.* The generators' mentions only ever copied a coded event's start. Now a mention names a coded event's start, or a closed exposure's end (`.f`), over a random part of that time's range, so it narrows the coded time while it is kept. This applies to `coded_only_cases.tiny_patient` and to the suite's `with_mentions`. Over 16,000 development cases on the new generators: 0 violations, 0 mismatches.
+- *Pins for mirrored code.* `_refine`, `_kept_counts`, `_left_out` and `_sources` rewrite store code over kept events: `execution_store._derived_patients`, `store_conditions_relative._derived_patients`, `execution_store._tag_counts`, `execution_store._mentions`, and the SQL that builds `source_concepts`. Each is now pinned by digest beside the copies. A test checks that `_sources` with no kind left out equals the store's `source_concepts`, and `_tag_sources` for every item class and unit, on all four fixtures.
+- *The cost of `_sources`.* Each answer scans the events joined to their concepts. It is now cached per snapshot (identifier and file list), concept or tag, and kinds.
+- **The latency of 1.3 requests at scale is unmeasured.** The paired benchmark's queries carry no 1.3 request, so rule 5 measures only the unchanged path. A 1.3 request adds:
+  - the coverage scan (cached after the first request per concept);
+  - the candidate refinement, a scan over the survivors' events;
+  - a query per chunk for the left-out ids.
+- *Stated, not changed:*
+  - A 1.3 request without a conditioned step reports `value_conditions` with an empty `tags` (as any request without derived steps does). It names the profile and the value rule and nothing else.
+  - The planted defects act only in-process: a run with workers would not reach them. Every defect run is at 1 worker.
+  - Pruning under 1.3 is weaker than it would be on the snapshot without mentions, since the summaries include mentions. That costs speed only; results are byte-identical with pruning off.
+  - `store_parity.relative_candidates`, which lists the readings carrying a relative tag for explaining parity differences, does not drop the rows of left-out events. That is moot on this cohort, where no mention has a series row.
+  - Excluded records carry no kind, so an excluded record is kept under any `exclude_kinds`. That is sound but conservative: if an excluded record would have been a mention, it can still weaken a coded-only answer. On the synthetic cohort every excluded record is a unitless measurement; on MIMIC, a continuous-segment exclusion.
+
 ## D40 Fewer `unresolved` results from exhausted search budgets: a stopped search settled by propagation, under rules fixed before measuring
 
 D35's calibration found that most `unresolved` results in the scaling report are `SEARCH_BUDGET_EXHAUSTED`, not order uncertainty: 38 at 1,000 patients and 363 of 375 at 10,000 (after D35's split, 363 of 363). D31's reviews flagged two more budget costs: seed 7 leaves 19,890 results `none` with `RELAXATION_SEARCH_STOPPED` at 300,000, and at 10,000 the exact phase with order facts stopped on its budget in 1,712 of its 2,520 runs (seed 29's cost). This increment decides more of those cases, soundly, under rules written and committed before any measurement of the change.

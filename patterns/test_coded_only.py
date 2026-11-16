@@ -20,6 +20,7 @@ import inspect
 import json
 from pathlib import Path
 import random
+import re
 import subprocess
 import sys
 import tempfile
@@ -45,7 +46,8 @@ FEATURES = ('plain', 'nth', 'span', 'window', 'relative')
 
 def with_mentions(ingest, seed, concepts, measured=()):
     """The ingest with letter mentions added: 0 to 3 per patient, from the patient's earliest record to a letter, of the
-    given concepts; a quarter of the patients have a mention naming a coded point event's start; a mention of a measured
+    given concepts; about a third of the patients have a mention naming a coded event's start or a closed exposure's end,
+    over a random part of its range (so that it narrows that time while it is kept); a mention of a measured
     concept sometimes carries a series row (which a value tag or a rise would read if the mention were kept); letters
     cover most patients."""
     rng = random.Random(f'coded/mentions/{seed}')
@@ -65,11 +67,19 @@ def with_mentions(ingest, seed, concepts, measured=()):
                 decimal, micro = sv.columns(rng.choice(('2', '9', '20')))
                 series.append({'event_id': m['event_id'], 'item_class': concept, 'value_lexical': decimal,
                                'value_decimal': decimal, 'value_micro': micro, 'unit': rng.choice(('/month', 'kg'))})
-        points = [e for e in events if 'end' not in e and e['kind'] != 'mention' and 'start_var' not in e]
-        if added and points and rng.random() < 0.25:
-            m, c = added[0], rng.choice(points)
-            m['start_var'] = c['event_id'] + '.s'
-            m['start'] = list(c['start'])
+        coded = [e for e in events if e['kind'] != 'mention' and 'start_var' not in e and 'end_var' not in e]
+        if added and coded and rng.random() < 0.3:
+            # A mention naming a coded event's start, or a closed exposure's end (D39 review), over a random part of that
+            # time's range, so that it narrows the coded event's time while it is kept.
+            m, c = added[0], rng.choice(coded)
+            if 'end' in c and c['end'][1] is not None and rng.random() < 0.5:
+                lo = max(c['end'][0], c['start'][1] + (1 if c.get('proper') else 0))
+                name, hi = c['event_id'] + '.f', c['end'][1]
+            else:
+                name, (lo, hi) = c['event_id'] + '.s', c['start']
+            if lo <= hi:
+                a = rng.randint(lo, hi)
+                m['start_var'], m['start'] = name, [a, rng.randint(a, hi)]
         coverage = list(p['coverage'])
         if added and not any(c['source'] == 'letters' for c in coverage) and rng.random() < 0.8:
             coverage.append({'source': 'letters', 'lo': first - 30 * DAY, 'hi': first + 600 * DAY, 'basis': 'declared'})
@@ -473,6 +483,48 @@ class ModuleBoundaryTests(unittest.TestCase):
         (es, '_comparability'): 'b16a9f9e578f2ae7f9d6f41a496b1134190d209da26c6ec03ec9b0ee8fcac729',
         (es, '_tag_sources'): 'aa2cc0c94e75ccd2eb5b1c4024fae3928649ee23f67eb65c15fa65d53c0000ba',
     }
+
+    # The originals `_refine`, `_kept_counts`, `_left_out` and `_sources` mirror over kept events (D39 review): if one
+    # changes, the mirror must follow.
+    MIRRORED = {
+        (es, '_derived_patients'): 'f444d69aa9d174f998bb001615eccfcfdb2992bdbb3551e60257cfc7764501b9',
+        (rc, '_derived_patients'): '33e52c7d3f3e523858ef8e40f25d13f4e38d56e66968cd2be8f6552a81266f0a',
+        (es, '_tag_counts'): 'b59bc585f971f6d5f6dbd939e908b5bdeb47cf685abb7444377d622551461c6d',
+        (es, '_mentions'): '3d4c71b3a61703dc6abdcad78bbf177805d77ef0e5b215e884c24fd8b33b453a',
+    }
+    SOURCE_CONCEPTS_SQL = '545a35583242198890a8bd2c66c617ea000be37726ccfef2bb7b2a062ca06058'
+
+    def test_the_mirrored_store_code_has_not_changed(self):
+        for (module, name), digest in self.MIRRORED.items():
+            got = hashlib.sha256(inspect.getsource(getattr(module, name)).encode()).hexdigest()
+            self.assertEqual(got, digest, f'{module.__name__}.{name} changed: update store_conditions_coded, whose '
+                                          f'mirror over kept events must follow, then this pin')
+        found = re.search(r"run\('source_concepts', \"\"\"INSERT INTO part_source_concepts.*?\"\"\"\)",
+                          inspect.getsource(es._derive), re.S)
+        self.assertIsNotNone(found, 'the build of source_concepts moved: update store_conditions_coded._sources')
+        self.assertEqual(hashlib.sha256(found.group(0).encode()).hexdigest(), self.SOURCE_CONCEPTS_SQL,
+                         'the build of source_concepts changed: update store_conditions_coded._sources, then this pin')
+
+    def test_sources_without_left_out_kinds_are_the_stores_source_concepts(self):
+        """`_sources` with no kind left out equals the store's own `source_concepts` (and `_tag_sources` for a value tag),
+        on every concept of each fixture; a second call is answered from the cache, equally."""
+        checked = 0
+        for name in ('fixture', 'shared', 'relative', 'cohort'):
+            store = _STATE[name]['store']
+            concepts = sorted(c for c, in store.query('SELECT DISTINCT concept FROM concept_closure'))
+            want = {}
+            for source, concept in store.query('SELECT source, concept FROM source_concepts'):
+                want.setdefault(concept, set()).add(source)
+            tags = {}
+            for item, unit in store.query('SELECT DISTINCT item_class, unit FROM series'):
+                tags[f'tag:{item}:{unit}'] = (item, (unit, None, None))
+            for _ in range(2):
+                got = cc._sources(store, {'all': concepts}, tags, ())
+                self.assertEqual({c: s for c, s in got.items() if c not in tags}, want, name)
+                for tag, spec in tags.items():
+                    self.assertEqual(got[tag], es._tag_sources(store, spec), (name, tag))
+            checked += len(concepts)
+        self.assertGreater(checked, 50)
 
     def test_the_copied_functions_have_not_changed(self):
         for (module, name), digest in self.COPIED.items():

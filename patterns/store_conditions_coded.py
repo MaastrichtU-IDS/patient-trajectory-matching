@@ -244,11 +244,19 @@ def candidates(store, query, conditions=None):
 
 # Coverage.
 
+_SOURCES = {}  # (snapshot, files, concept or tag, kinds) -> its recording sources; a snapshot is immutable
+_SOURCES_LIMIT = 4096
+
+
 def _sources(store, per_step, tags, kinds):
     """{concept or tag: the sources recording it through kept events}: for a plain concept, the sources of the kept
-    events carrying it through the closure (`source_concepts` restricted to kept kinds); for a value tag, the sources of
-    the kept events with a series row of its concept in its unit (`execution_store._tag_sources` likewise).
-    `_D39_DEFECT == 'coverage_all_sources'` reads the store's own, over every event."""
+    events carrying it through the closure (`source_concepts` restricted to kept kinds: the store builds that table by
+    the same join over every event); for a value tag, the sources of the kept events with a series row of its concept in
+    its unit (`execution_store._tag_sources` likewise). With no kinds left out, the store's own tables' answer.
+    `_D39_DEFECT == 'coverage_all_sources'` reads the store's own, over every event.
+
+    Each answer is a scan over the events, so it is cached per snapshot (its identifier and file list: a snapshot never
+    changes), concept or tag, and kinds (D39 review)."""
     concepts = sorted({c for cs in per_step.values() for c in cs if c not in tags})
     sources = {}
     if _D39_DEFECT == 'coverage_all_sources':
@@ -258,18 +266,33 @@ def _sources(store, per_step, tags, kinds):
         for name, spec in tags.items():
             sources[name] = es._tag_sources(store, spec)
         return sources
-    for source, concept in store.query(f"""
-            SELECT DISTINCT e.source, cc.ancestor FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
-            JOIN concept_closure cc ON cc.concept = ec.concept
-            WHERE cc.ancestor IN {es._in(concepts)} AND e.kind NOT IN {es._in(kinds)}""",
-                                       concepts + list(kinds)) if concepts else ():
-        sources.setdefault(concept, set()).add(source)
+    kinds = tuple(kinds)
+    snapshot = (store.snapshot_id, store.files_digest)
+    keep = f' AND e.kind NOT IN {es._in(kinds)}' if kinds else ''
+    if len(_SOURCES) > _SOURCES_LIMIT:
+        _SOURCES.clear()
+    wanted = [c for c in concepts if (snapshot, c, kinds) not in _SOURCES]
+    if wanted:
+        found = {c: set() for c in wanted}
+        for source, concept in store.query(f"""
+                SELECT DISTINCT e.source, cc.ancestor FROM events e JOIN event_concepts ec USING (patient_idx, event_id)
+                JOIN concept_closure cc ON cc.concept = ec.concept
+                WHERE cc.ancestor IN {es._in(wanted)}{keep}""", wanted + list(kinds)):
+            found[concept].add(source)
+        for c, mine in found.items():
+            _SOURCES[snapshot, c, kinds] = frozenset(mine)
+    for c in concepts:
+        if _SOURCES[snapshot, c, kinds]:
+            sources[c] = set(_SOURCES[snapshot, c, kinds])
     for name, spec in tags.items():
-        test, params = es._tag_where(spec)
-        sources[name] = {r[0] for r in store.query(f"""
-            SELECT DISTINCT e.source FROM series s JOIN concept_closure cc ON cc.concept = s.item_class
-            JOIN events e ON e.bucket = s.bucket AND e.patient_idx = s.patient_idx AND e.event_id = s.event_id
-            WHERE {test} AND e.kind NOT IN {es._in(kinds)}""", params + list(kinds))}
+        key = (snapshot, ('tag', spec[0], spec[1][0]), kinds)
+        if key not in _SOURCES:
+            test, params = es._tag_where(spec)
+            _SOURCES[key] = frozenset(r[0] for r in store.query(f"""
+                SELECT DISTINCT e.source FROM series s JOIN concept_closure cc ON cc.concept = s.item_class
+                JOIN events e ON e.bucket = s.bucket AND e.patient_idx = s.patient_idx AND e.event_id = s.event_id
+                WHERE {test}{keep}""", params + list(kinds)))
+        sources[name] = set(_SOURCES[key])
     return sources
 
 

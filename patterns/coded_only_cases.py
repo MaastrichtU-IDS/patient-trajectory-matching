@@ -14,7 +14,7 @@ definition itself (decision log, D39: "as the same request would be answered on 
 `store_conditions_coded.match` over a real snapshot and `trajectory_graph_worlds` can enumerate every choice of the times
 of each patient's **kept** events. Two generators:
 - `coded-plain`: coded events of x, y or both (z is wider than both) and letter mentions of x or y, point events and
-  exposures, some proper; shared variables, among them a mention sharing a coded event's start; excluded records;
+  exposures, some proper; shared variables, among them a mention naming a coded event's start or an exposure's end over part of its range; excluded records;
   partial coverage, among it a letter source that alone covers some windows. Requests of one to three steps with `any`,
   `first` and `last`, relations, relaxations and every scope.
 - `coded-derived`: the same patients; each request with an Nth occurrence or a count (`derived_cases.tiny_request`)
@@ -129,11 +129,20 @@ def tiny_patient(rng, pid):
     for k, i in enumerate(order):
         events.append({'event_id': f'e{k}', **specs[i], 'evidence': {}})
     coded_points = [e for e in events if e['kind'] != 'mention' and 'end' not in e]
+    coded = [e for e in events if e['kind'] != 'mention' and 'start_var' not in e]
     mentions = [e for e in events if e['kind'] == 'mention']
-    if mentions and coded_points and rng.random() < 0.25:  # a mention naming a coded event's start
-        m, c = rng.choice(mentions), rng.choice(coded_points)
-        m['start_var'] = c['event_id'] + '.s'
-        m['start'] = list(c['start'])
+    if mentions and coded and rng.random() < 0.3:
+        # A mention naming a coded event's start, or the end of a coded exposure (D39 review), over a random part of
+        # that time's range, so that it narrows the coded event's time while it is kept.
+        m, c = rng.choice(mentions), rng.choice(coded)
+        if 'end' in c and rng.random() < 0.5:
+            lo = max(c['end'][0], c['start'][1] + (1 if c.get('proper') else 0))
+            name, (lo, hi) = c['event_id'] + '.f', (lo, c['end'][1])
+        else:
+            name, (lo, hi) = c['event_id'] + '.s', c['start']
+        if lo <= hi:
+            a = rng.randint(lo, hi)
+            m['start_var'], m['start'] = name, [a, rng.randint(a, hi)]
     elif len(coded_points) >= 2 and rng.random() < 0.15:  # two coded events naming one start
         a, b = rng.sample(coded_points, 2)
         b['start_var'] = a['event_id'] + '.s'
