@@ -1,6 +1,6 @@
 {
   "about": "D38 (decision log): the paired, interleaved confirmation that is the verdict on \"no latency regression\", on the scaling report's 300,000-patient snapshot (the kept D34 build, reused unchanged), by tools/benchmark_matcher.py --paired-confirm (protocol paired-interleaved-1.0) into a scratch report and committed here as it was written. The reference is main before D38 (e682817, extracted from git); the candidate is this tree, whose files the artifact digests bind. The matcher comparison report is not regenerated (nothing it binds changed). The confirmation queries carry no gene step, and the snapshot holds no gene label, so this measures the path every request without a gene step takes; execution_store.py and store_conditions_relative.py are byte-identical in the two codes. Latency of gene requests at scale is not measured.",
-  "rule": "No latency regression: at 14 workers the paired p95 ratio (candidate over reference) is at most 1.05 in every pair, and the candidate's own 14-worker p95 is at most 10 s; the 8-worker figures are reported (committed in e7c4551).",
+  "rule": "No latency regression: at 14 workers the paired p95 ratio (candidate over reference) is at most 1.05 in every pair, and the candidate's own 14-worker p95 is at most 10 s; the 8-worker figures are reported (committed in a26f821).",
   "verdict": {
     "workers_14": {
       "ratio_p95_by_repeat": [
