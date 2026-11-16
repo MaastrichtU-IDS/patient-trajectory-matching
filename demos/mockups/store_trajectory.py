@@ -1,0 +1,306 @@
+"""The trajectory page's queries answered by the execution store, on the synthetic cohort (D29 stage 2, D37).
+
+`server.py` serves two endpoints from this module:
+
+- `GET /api/trajectory-store/status`: whether the store is ready, its snapshot and profiles, or why there is none;
+- `POST /api/trajectory-store/match`: the page's query as its translator writes it (`trajectory/store_request.js`,
+  `storeRequest`): `{"query", "conditions", "windows"}`, every time in whole minutes from each patient's birth. The
+  answer is `store_conditions_relative.match`'s, which hands every request but a rise's (profile 1.2) to
+  `execution_store.match` unchanged, with times turned back into minutes from birth and each bound event described
+  from the store's own rows (kind, source, record, recorded times, value).
+
+**The store.** At startup the cohort the page downloads (`data/synthetic-paediatric-rare.json`) is built into a
+store by the converter itself emitting series, with the period label (`store_parity.build`, as the parity test and
+D36 build it). The build takes about a second and goes into a fresh temporary directory, removed when the server
+closes; `root` (the server's `--trajectory-store-root`) puts that directory somewhere else, never inside the
+repository.
+
+**Per-patient answers, for synthetic data only.** Unlike the MIMIC endpoints (`store_query.py`, aggregate counts
+only), these answer per patient: the data are synthetic and the page already holds every record of the cohort. A
+content check keeps it so. The cohort's dataset id must be the generator's, and the built snapshot's dataset id and
+patients must be exactly those of the cohort file the server serves; otherwise nothing is served.
+
+**Named refusals.** A request whose shape is wrong gets a named `RequestError`; one the store or the engine refuses
+gets their code (`StoreError.code`, the engine's `TrajectoryError` message). Times must be whole minutes (integers),
+so no string or float reaches the conversion to the store's clock.
+
+The windows are the page's (it places each patient's index period by its own rule, over its own reconciled view of
+the records). The store takes windows as input; it reads no generator truth itself.
+"""
+from __future__ import annotations
+
+import atexit
+import json
+from pathlib import Path
+import re
+import shutil
+import sys
+import tempfile
+import threading
+import time
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(HERE))
+
+PROFILE = 'mockup-trajectory-store-1.0'
+COHORT = HERE / 'data' / 'synthetic-paediatric-rare.json'
+SYNTHETIC_DATASET = 'synthetic-paediatric-rare-v0'
+CODE = re.compile(r'[A-Z][A-Z0-9_]*')
+MINUTE = 60_000_000
+TIME_LIMIT = 10 ** 9  # minutes, about 1,900 years: far beyond any window or gap the page writes
+REQUEST_KEYS = {'query', 'conditions', 'windows'}
+BUILD_WAIT = 120  # seconds a request waits for the startup build
+HOW_TO_BUILD = ['python demos/mockups/synthetic/generate.py',
+                'python -m pip install -r patterns/requirements-store.lock.txt',
+                'python demos/mockups/server.py']
+
+
+class RequestError(ValueError):
+    """A request refused by name; the message is the code."""
+
+
+class Unavailable(RuntimeError):
+    """No store to answer from; the message is the code."""
+
+
+def require(condition, code):
+    if not condition:
+        raise RequestError(code)
+
+
+def _minutes(value, code):
+    """A time in whole minutes: an integer (not a bool), bounded."""
+    require(type(value) is int and -TIME_LIMIT <= value <= TIME_LIMIT, code)
+    return value
+
+
+def check_request(spec, patient_ids):
+    """The request's shape, before anything is converted: (query, conditions, windows). Only the fields the conversion
+    to the store's clock reads are checked here; the store and the engine refuse everything else by name."""
+    require(isinstance(spec, dict) and REQUEST_KEYS >= set(spec) and {'query', 'windows'} <= set(spec), 'REQUEST_FIELDS')
+    query, conditions, windows = spec['query'], spec.get('conditions'), spec['windows']
+    require(isinstance(query, dict), 'QUERY_MUST_BE_AN_OBJECT')
+    require(isinstance(query.get('relations', []), list), 'RELATIONS_MUST_BE_A_LIST')
+    require(isinstance(query.get('relaxations', []), list), 'RELAXATIONS_MUST_BE_A_LIST')
+    for r in query.get('relations', []):
+        require(isinstance(r, dict), 'RELATION_MUST_BE_AN_OBJECT')
+        for k in ('min', 'max', 'grace'):
+            if k in r:
+                _minutes(r[k], 'TIME_MUST_BE_WHOLE_MINUTES')
+    for x in query.get('relaxations', []):
+        require(isinstance(x, dict), 'RELAXATION_MUST_BE_AN_OBJECT')
+        for k in ('max', 'grace'):
+            if k in x:
+                _minutes(x[k], 'TIME_MUST_BE_WHOLE_MINUTES')
+    if conditions is not None:
+        require(isinstance(conditions, dict), 'CONDITIONS_MUST_BE_AN_OBJECT')
+        steps = conditions.get('steps', {})
+        require(isinstance(steps, dict) and all(isinstance(s, dict) for s in steps.values()), 'CONDITION_STEPS_MUST_BE_OBJECTS')
+        for raw in steps.values():
+            count = raw.get('count')
+            if isinstance(count, dict) and isinstance(count.get('within'), dict):
+                _minutes(count['within'].get('span'), 'TIME_MUST_BE_WHOLE_MINUTES')
+            relative = raw.get('relative')
+            if relative is not None:
+                require(isinstance(relative, dict) and isinstance(relative.get('baseline'), dict), 'RELATIVE_MUST_HAVE_A_BASELINE')
+                _minutes(relative['baseline'].get('within'), 'TIME_MUST_BE_WHOLE_MINUTES')
+    require(isinstance(windows, dict), 'WINDOWS_MUST_BE_AN_OBJECT')
+    for pid, w in windows.items():
+        require(pid in patient_ids, 'UNKNOWN_WINDOW_PATIENT')
+        if w is not None:
+            require(isinstance(w, dict) and set(w) == {'start', 'end'}, 'WINDOW_MUST_BE_START_AND_END')
+            _minutes(w['start'], 'TIME_MUST_BE_WHOLE_MINUTES')
+            _minutes(w['end'], 'TIME_MUST_BE_WHOLE_MINUTES')
+    return query, conditions, windows
+
+
+def refusal_code(error):
+    """The stable code of a store or engine refusal, or None when the error carries none."""
+    code = getattr(error, 'code', None) or str(error).split(':')[0].strip()
+    return code if CODE.fullmatch(code or '') else None
+
+
+class TrajectoryStore:
+    """The synthetic cohort in an execution store, built on a background thread at `start()`."""
+
+    def __init__(self, cohort=COHORT, root=None):
+        self.cohort_path = Path(cohort)
+        self.root = None if root is None else Path(root).expanduser().resolve()
+        self._ready = threading.Event()
+        self._lock = threading.Lock()  # one DuckDB connection: one query at a time
+        self._error = None
+        self._store = None
+        self._scratch = None
+        self._thread = None
+        self.built_s = None
+
+    def start(self):
+        if self._thread is None:
+            self._thread = threading.Thread(target=self._open, name='trajectory-store-build', daemon=True)
+            self._thread.start()
+            atexit.register(self.close)
+        return self
+
+    def _open(self):
+        try:
+            self._build()
+        except Unavailable as error:
+            self._error = str(error)
+        except Exception:  # noqa: BLE001 - the status names the failure; no detail leaves the server
+            self._error = 'STORE_BUILD_FAILED'
+            self._cleanup()
+        finally:
+            self._ready.set()
+
+    def _build(self):
+        started = time.perf_counter()
+        try:
+            import duckdb  # noqa: F401 - the store's dependency, named when missing
+            from patterns import execution_store as es
+            import store_parity
+        except ImportError:
+            raise Unavailable('STORE_DEPENDENCY_MISSING') from None
+        if not self.cohort_path.is_file():
+            raise Unavailable('NO_SYNTHETIC_COHORT')
+        cohort = json.loads(self.cohort_path.read_text())
+        if cohort.get('dataset_id') != SYNTHETIC_DATASET:
+            raise Unavailable('NOT_THE_SYNTHETIC_COHORT')
+        if self.root is not None:
+            if self.root == ROOT or ROOT in self.root.parents:
+                raise Unavailable('STORE_ROOT_INSIDE_REPOSITORY')
+            self.root.mkdir(parents=True, exist_ok=True)
+        self._scratch = Path(tempfile.mkdtemp(prefix='ptm-trajectory-store-', dir=self.root))
+        snapshot = store_parity.build(cohort, self._scratch / 'store')
+        store = es.open_store(snapshot)
+        ids = sorted(pid for pid, in store.query('SELECT patient_id FROM patients'))
+        if store.manifest.get('dataset_id') != SYNTHETIC_DATASET or ids != sorted(p['patient_id'] for p in cohort['patients']):
+            store.close()
+            raise Unavailable('STORE_NOT_THE_SERVED_COHORT')
+        self.births = store_parity.birth_micros(cohort)
+        self.events = self._describe_all(store)
+        self.patients = len(ids)
+        self._store = store
+        self.built_s = round(time.perf_counter() - started, 2)
+
+    def _describe_all(self, store):
+        """{(patient, event id): description}: what the page shows for a bound event, from the store's own rows."""
+        rows = store.query('''SELECT p.patient_id, e.event_id, e.kind, e.source, e.start_lo, e.start_hi, e.end_lo, e.end_hi,
+                                     e.ongoing, ev.evidence, s.value_lexical, s.unit
+                              FROM events e JOIN patients p USING (patient_idx)
+                              LEFT JOIN event_evidence ev USING (patient_idx, event_id)
+                              LEFT JOIN series s USING (patient_idx, event_id)''')
+        out = {}
+        for pid, eid, kind, source, slo, shi, elo, ehi, ongoing, evidence, value, unit in rows:
+            evidence = json.loads(evidence) if evidence else {}
+            mention = evidence.get('mention') or {}
+            d = {'id': eid, 'kind': kind, 'source': source, 'record_id': evidence.get('record_id'),
+                 'record_kind': evidence.get('record_kind'),
+                 'display': (evidence.get('coding') or {}).get('display') or mention.get('text'),
+                 'as_written': (evidence.get('occurred') or {}).get('as_written'),
+                 'start': [slo, shi]}
+            if elo is not None or ongoing:
+                d['end'] = [elo, ehi]
+            if ongoing:
+                d['ongoing'] = True
+            if value is not None:
+                d['value'], d['unit'] = value, unit
+            out[pid, eid] = d
+        return out
+
+    def _wait(self):
+        if not self._ready.wait(BUILD_WAIT):
+            raise Unavailable('STORE_BUILDING')
+        if self._store is None:
+            raise Unavailable(self._error or 'STORE_CLOSED')
+        return self._store
+
+    def status(self):
+        try:
+            store = self._wait()
+        except Unavailable as error:
+            return {'profile': PROFILE, 'available': False, 'error': str(error), 'how_to_build': HOW_TO_BUILD}
+        from patterns import store_conditions_relative as rc
+        return {'profile': PROFILE, 'available': True, 'snapshot_id': store.snapshot_id,
+                'store_profile': store.manifest.get('profile'), 'dataset_id': store.manifest.get('dataset_id'),
+                'patients': self.patients, 'conditions_profiles': list(rc.CONDITIONS_PROFILES), 'built_s': self.built_s,
+                'series': True, 'per_patient': True}
+
+    def match(self, spec):
+        """The store's answer to the translated page query, per patient, times in minutes from birth."""
+        from patterns import store_conditions_relative as rc
+        import store_parity
+        store = self._wait()
+        query, conditions, windows = check_request(spec, self.births)
+        micros = {pid: None if w is None else {'start': self.births[pid] + w['start'] * MINUTE,
+                                               'end': self.births[pid] + w['end'] * MINUTE}
+                  for pid, w in windows.items()}
+        started = time.perf_counter()
+        try:
+            with self._lock:
+                result = rc.match(store, store_parity.to_micros(query), micros,
+                                  conditions=store_parity.conditions_micros(conditions))
+        except ValueError as error:  # StoreError and the engine's TrajectoryError are ValueErrors with a code
+            code = refusal_code(error)
+            if code is None:
+                raise
+            raise RequestError(code) from None
+        elapsed = round((time.perf_counter() - started) * 1000)
+        return {'profile': PROFILE, 'snapshot_id': result['snapshot_id'], 'context_id': result['context_id'],
+                'match_profile': result['profile'], 'store_profile': store.manifest.get('profile'),
+                'conditions_profile': (conditions or {}).get('profile'), 'counts': result['counts'],
+                'elapsed_ms': elapsed, 'results': [self._patient(r) for r in result['results']]}
+
+    def _patient(self, r):
+        """A store result with its binding described and its times in minutes from birth; every other field as is."""
+        pid = r['patient_id']
+        out = {k: v for k, v in r.items() if k not in ('binding', 'witness', 'relaxed_match')}
+        if 'binding' in r:
+            out['binding'] = self._binding(pid, r['binding'])
+        if 'witness' in r:
+            out['witness'] = {s: self._minutes(pid, t) for s, t in r['witness'].items()}
+        if 'relaxed_match' in r:
+            m = dict(r['relaxed_match'])
+            if 'binding' in m:
+                m['binding'] = self._binding(pid, m['binding'])
+            if 'witness' in m:
+                m['witness'] = {s: self._minutes(pid, t) for s, t in m['witness'].items()}
+            out['relaxed_match'] = m
+        return out
+
+    def _minutes(self, pid, t):
+        if t is None:
+            return None
+        whole, rest = divmod(t - self.births[pid], MINUTE)
+        return whole if not rest else (t - self.births[pid]) / MINUTE
+
+    def _binding(self, pid, binding):
+        out = {}
+        for step, eid in binding.items():
+            d = self.events.get((pid, eid))
+            if d is None:  # a derived step's own point (an Nth occurrence), which no record holds
+                out[step] = {'id': eid, 'derived': True}
+                continue
+            d = dict(d)
+            d['start'] = [self._minutes(pid, t) for t in d['start']]
+            if 'end' in d:
+                d['end'] = [self._minutes(pid, t) for t in d['end']]
+            out[step] = d
+        return out
+
+    def _cleanup(self):
+        if self._scratch is not None:
+            shutil.rmtree(self._scratch, ignore_errors=True)
+            self._scratch = None
+
+    def close(self):
+        """Close the store and remove its build."""
+        if self._thread is not None:
+            self._ready.wait(BUILD_WAIT)
+        with self._lock:
+            if self._store is not None:
+                self._store.close()
+                self._store = None
+                self._error = self._error or 'STORE_CLOSED'
+            self._cleanup()

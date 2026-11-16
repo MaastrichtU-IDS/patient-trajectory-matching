@@ -243,6 +243,14 @@ input[type=number] { width: 64px; }
 .tj-filter { border: 1px solid #C3CED8; background: #fff; border-radius: 14px; padding: 3px 10px; font-size: 12px; }
 .tj-filter[aria-pressed="true"] { background: var(--text); color: #fff; border-color: var(--text); }
 .tj-binding { margin-top: 5px; }
+/* D37: which backend answered the trajectory query (a label always says it; the border colour only repeats it). */
+.backend { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border-left: 4px solid var(--select);
+  border-radius: 8px; padding: 7px 10px; margin: 8px 0; font-size: 12.5px; background: var(--surface); }
+.backend strong { font-size: 13px; }
+.backend .hint { margin: 2px 0 0; }
+.backend.store { border-left-color: var(--exact); background: var(--exact-soft); }
+.backend.fallback { border-left-color: var(--relaxed); background: var(--relaxed-soft); }
+.backend.note { border-left-color: var(--unresolved); }
 .status.excluded { background: #F1F4F7; color: var(--faint); }
 #edges { overflow-x: auto; }
 #edges .tj-table select { max-width: 185px; }

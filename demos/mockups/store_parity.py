@@ -3,6 +3,7 @@
 
     python demos/mockups/store_parity.py build COHORT.json ROOT     # prints the snapshot directory
     python demos/mockups/store_parity.py match SNAPSHOT < cases.json  # per-patient results, as JSON
+    python demos/mockups/store_parity.py sweep SNAPSHOT < cases.json  # D37: answered, or refused by which code
 
 `build` converts the cohort with `patterns/synthetic_ingest.py` emitting `series` (D32's option): each measured
 record with a number and a unit gets a series row (D27), the value spelled as the cohort's JSON writes it, and a measured
@@ -255,9 +256,35 @@ def candidates(store, wanted, births):
     return out
 
 
+def sweep(snapshot, cases, cohort):
+    """D37's option sweep: each case through `store_conditions_relative.match`, as the page's endpoint runs it. Answers
+    {name: {"counts": ...}} when the store answers, {"error": code} when it refuses by name, and {"error": "UNNAMED",
+    "message": ...} for any failure without a code (which the test counts as a broken rule)."""
+    births = birth_micros(cohort)
+    out = {}
+    with es.open_store(snapshot) as store:
+        for case in cases:
+            windows = {pid: None if w is None else {'start': births[pid] + w['start'] * MINUTE,
+                                                    'end': births[pid] + w['end'] * MINUTE}
+                       for pid, w in case['windows'].items()}
+            try:
+                result = rc.match(store, to_micros(case['query']), windows,
+                                  conditions=conditions_micros(case.get('conditions')))
+                out[case['name']] = {'counts': result['counts']}
+            except Exception as error:  # noqa: BLE001 - every failure is reported, named or not
+                code = getattr(error, 'code', None) or str(error).split(':')[0].strip()
+                named = isinstance(error, ValueError) and bool(code) and code.replace('_', '').isalnum() and code.isupper()
+                out[case['name']] = {'error': code} if named else {'error': 'UNNAMED', 'message': f'{type(error).__name__}: {error}'}
+    return out
+
+
 def main(argv):
     if argv[:1] == ['build'] and len(argv) == 3:
         print(build(json.loads(Path(argv[1]).read_text()), Path(argv[2])))
+        return 0
+    if argv[:1] == ['sweep'] and len(argv) == 2:
+        data = json.load(sys.stdin)
+        print(json.dumps(sweep(Path(argv[1]), data['cases'], json.loads(Path(data['cohort']).read_text()))))
         return 0
     if argv[:1] == ['match'] and len(argv) == 2:
         data = json.load(sys.stdin)

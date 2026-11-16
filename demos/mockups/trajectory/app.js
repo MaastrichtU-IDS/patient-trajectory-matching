@@ -16,7 +16,10 @@ const ORDER = ['exact', 'possible', 'relaxed', 'incomparable', 'unresolved', 'no
 const HIDDEN_BY_DEFAULT = ['none', 'excluded'];
 const DEFAULT_FILTER = ORDER.filter(s => !HIDDEN_BY_DEFAULT.includes(s));
 Object.assign(state, {lens: 'recorded', selected: null, def: null, results: [], filter: new Set(DEFAULT_FILTER), freeText: 'present',
-  matcher: 'browser', engine: null, pending: false, engineError: null});
+  matcher: 'browser', engine: null, pending: false, engineError: null,
+  // D37: the execution store under the page (its status, or why there is none), the last answer's identity, and
+  // why this query fell back to the page's own search.
+  store: null, storeError: null, storeMeta: null, fallback: null, pageAnswers: new Map()});
 
 const ANCHORS = {START: 'Index start', END: 'Index end'};
 const STEP_KINDS = ['phenotype', 'diagnosis', 'medication', 'drug_class', 'gene', 'measurement'];
@@ -63,6 +66,9 @@ const TEMPLATES = {
     edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 6, unit: 'month'}],
   },
 };
+
+// The Blank button's starting point.
+const BLANK = {nodes: [{id: 'A', concept: 'seizure', occ: 'first'}], edges: []};
 
 function defaultDef() {
   const t = clone(TEMPLATES.sequence);
@@ -120,7 +126,7 @@ function nodeText(n) {
     return n.occ && n.occ !== 'any' ? `${occurrenceText(n.occ, n.n)} start of ${what}` : `${what} started`;
   }
   if (kind === 'gene') return `${label(n.concept)} variant reported`;
-  if (kind === 'measure') return `${name} ${CONDITIONS[n.cond]}${n.param}${relative(n.cond) ? '' : ' ' + (MEASURE_UNIT[n.concept] || '')}`;
+  if (kind === 'measure') return `${name} ${CONDITIONS[n.cond]}${relative(n.cond) ? '' : ' '}${n.param}${relative(n.cond) ? '' : ' ' + (MEASURE_UNIT[n.concept] || '')}`;
   return name;
 }
 
@@ -327,7 +333,7 @@ function relaxOptions(def) {
     if (kind === 'occurrence' && c.parents.length) out.push({key: `node:${n.id}`, cost: 0.5, text: `${n.id} as any ${label(c.parents[0]).toLowerCase()}`});
     if (kind === 'occurrence' && n.occ === 'count' && (+n.n || 2) > 1) out.push({key: `count:${n.id}`, cost: 0.5, text: `${n.id} ${(+n.n || 2) - 1} times instead of ${n.n}`});
     if (kind === 'medicine' && c.kind === 'medication' && classesOf(n.concept).some(k => k !== 'antiseizure')) out.push({key: `node:${n.id}`, cost: 0.25, text: `${n.id} as any drug in the same class`});
-    if (kind === 'measure') out.push({key: `node:${n.id}`, cost: 0.5, text: `${n.id} ${CONDITIONS[n.cond]}${relaxedParam(n)}`});
+    if (kind === 'measure') out.push({key: `node:${n.id}`, cost: 0.5, text: `${n.id} ${CONDITIONS[n.cond]}${relative(n.cond) ? '' : ' '}${relaxedParam(n)}`});
   });
   def.edges.forEach((e, k) => {
     if (e.rel === 'after' && finite(e.max)) out.push({key: `edge:${k}`, cost: 0.25, text: `${e.from}→${e.to} up to ${gapText(e, +(+e.max * 1.5).toFixed(1))}`});
@@ -534,8 +540,17 @@ function run() {
   const a = analyse(state.def);
   state.analysis = a;
   const token = ++runToken;
+  state.fallback = null;
+  state.storeMeta = null;
+  state.pageAnswers = new Map();
   if (a.errors.length || !state.def.nodes.length) { state.results = []; state.pending = false; return; }
-  if (state.matcher === 'engine') {
+  if (state.matcher === 'store') return runStore(token);
+  runPage(token, state.matcher === 'engine');
+}
+
+// The page's own candidates, matched by the engine (when reachable) or by the page's search.
+function runPage(token, viaEngine) {
+  if (viaEngine) {
     state.pending = true;
     state.engineError = null;
     matchWithEngine(state.def, postEngine).then(results => {
@@ -547,22 +562,170 @@ function run() {
       if (token !== runToken) return;
       // The engine refused or is unreachable: say so, and match in the browser instead.
       state.engineError = error.message;
-      state.matcher = 'browser';
-      run();
+      if (state.matcher === 'engine') state.matcher = 'browser';
+      runPage(token, false);
       render();
     });
     return;
   }
   state.pending = false;
-  state.results = sortResults([...state.patients.keys()].map(pid => matchPatient(pid, state.def, a)));
+  state.results = sortResults([...state.patients.keys()].map(pid => matchPatient(pid, state.def, state.analysis)));
+}
+
+/* The execution store under the page (D29 stage 2, D37). The page's translator (store_request.js) writes the query in
+   the store's language, with the index windows this page places; the server answers from a store of this cohort built
+   by the converter (store_trajectory.py). What the translator or the store refuses by name is matched by the page's
+   own search instead, and labelled "in-browser fallback: <code>". The answer shown is the store's. */
+const STORE_URL = '../api/trajectory-store/match';
+const STORE_REFUSAL = {
+  GENE_CLASSIFICATION_UNSUPPORTED: 'the store has no form for a gene step (the first report that is not negative, with reclassification)',
+  FREE_TEXT_HEDGED_UNSUPPORTED: 'the store holds no hedged findings from letters',
+  FREE_TEXT_COUNT_UNSUPPORTED: 'the store ranks and counts coded records only; an Nth occurrence or a count needs "Coded records only"',
+  FREE_TEXT_CODED_ONLY_UNSUPPORTED: 'the store reads findings that letters state for every step that is not an Nth occurrence or a count, so it cannot answer "Coded records only"',
+  NTH_STEP_HAS_NO_END: '"while taking" reads a course\'s end, and an Nth start has none in the store',
+  RELATIVE_CONDITION_UNSUPPORTED: 'rises and falls were not sent to the store',
+  VALUE_NOT_A_PLAIN_DECIMAL: 'a threshold or factor is not a plain decimal number',
+  STORE_UNREACHABLE: 'the store could not be reached',
+  // Refused by the store itself (the option sweep in test_store_parity.cjs finds these two among the page's options).
+  INVALID_FACTOR: 'the store takes a rise or fall only by a factor above 1',
+  VALUE_RELAXATION_MUST_WIDEN: 'the relaxed threshold would narrow the condition instead of widening it (a negative "at most")',
+};
+const STORE_REASON = {
+  FILTERED: 'no candidate events in the store',
+  NO_SOURCE_COVERAGE: 'no source that records {steps} covers this patient\'s index period, so a non-match cannot be told from a gap in recording',
+  NO_SOURCE_RECORDS_CONCEPT: 'no source covering the period records {steps} at all',
+  ADMISSION_EXCLUDED_RECORDS: 'a record the converter left out (a measurement without a unit) could have matched {steps}',
+  STEP_CONDITION_UNCERTAIN: 'whether {steps} holds (a count, an Nth occurrence or a rise) depends on record times that are uncertain',
+  OCCURRENCE_TIME_COUPLED: 'the Nth occurrence of {steps} can share events with another step, so a possible match is left undecided',
+  OCCURRENCE_ORDER_UNCERTAIN: 'the records leave it uncertain which event is the first or last, and the match depends on it',
+  SEARCH_BUDGET_EXHAUSTED: 'the search stopped at its budget before deciding',
+};
+const STORE_NOTE = {
+  EXACT_SEARCH_STOPPED: 'the search for an exact match stopped at its budget',
+  CHEAPER_RELAXATION_SEARCH_STOPPED: 'a cheaper relaxation may exist; its search stopped',
+  CHEAPER_RELAXATION_ORDER_UNCERTAIN: 'a cheaper relaxation was left undecided because the first or last event is uncertain',
+  CHEAPER_RELAXATION_OCCURRENCE_COUPLED: 'a cheaper relaxation was left undecided because an Nth occurrence shares events with another step',
+  RELAXATION_SEARCH_STOPPED: 'a relaxed search stopped at its budget before deciding',
+  RELAXATION_ORDER_UNCERTAIN: 'a relaxed match was left undecided because the first or last event is uncertain',
+  RELAXATION_OCCURRENCE_COUPLED: 'a relaxed match was left undecided because an Nth occurrence shares events with another step',
+  EXCLUDED_RECORDS_MAY_MAKE_EXACT: 'excluded records could make the match exact',
+};
+const STORE_STATUS = {not_comparable: 'incomparable'};
+const storeSteps = r => Object.entries(r).filter(([k, v]) => k.endsWith('_steps') && Array.isArray(v)).flatMap(([, v]) => v);
+const reasonText = (dict, code, steps) => `${(dict[code] || '').replace('{steps}', steps.length ? `step ${steps.join(', ')}` : 'a step') || code} (${code})`;
+
+function runStore(token) {
+  const def = state.def;
+  let req;
+  try {
+    req = storeRequest(def, state.freeText, [...state.patients.keys()]);
+  } catch (error) {
+    if (!(error instanceof StoreRefusal)) throw error;
+    const where = error.message.startsWith(error.code + ': ') ? error.message.slice(error.code.length + 2) : '';
+    state.fallback = {code: error.code, by: 'the translator', detail: !where ? '' : /^[A-Z]$/.test(where) ? `step ${where}` : where};
+    return runPage(token, !!state.engine);
+  }
+  state.pending = true;
+  postStore(req).then(answer => {
+    if (token !== runToken) return;
+    state.results = sortResults(fromStore(answer, def));
+    state.storeMeta = {snapshot: answer.snapshot_id, context: answer.context_id, conditions: answer.conditions_profile,
+                       store: answer.store_profile, ms: answer.elapsed_ms};
+    state.pending = false;
+    render();
+  }).catch(error => {
+    if (token !== runToken) return;
+    state.fallback = error.code ? {code: error.code, by: error.status === 400 ? 'the store' : 'the server', detail: error.message}
+      : {code: 'STORE_UNREACHABLE', by: 'the network', detail: error.message};
+    runPage(token, !!state.engine);
+    render();
+  });
+}
+
+async function postStore(body) {
+  const response = await fetch(STORE_URL, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const value = await response.json().catch(() => ({}));
+  if (!response.ok) throw Object.assign(new Error(value.error || `HTTP ${response.status}`), {code: value.error, status: response.status});
+  return value;
+}
+
+// A store result as a page result: the store's status, certainty, relaxations, cost and reason, its bound records,
+// and the page's own index period (which the page placed and sent).
+function fromStore(answer, def) {
+  const opts = relaxOptions(def);
+  const textOf = key => key.split('+').map(k => (opts.find(o => o.key === k) || {text: k}).text);
+  return answer.results.map(r => {
+    const pid = r.patient_id, view = evidenceFor(pid);
+    const win = windowFor(view, {freeText: state.freeText, knownByIndex: false, window: def.window});
+    const base = {pid, win, backend: 'store', store: r, truncated: false};
+    if (r.status === 'excluded') return {...base, status: 'excluded', reason: win.reason || reasonText(STORE_REASON, r.reason, [])};
+    const m = r.relaxed_match, keys = r.relaxations || (m && m.relaxations) || [];
+    const reasons = [];
+    if (r.reason) reasons.push(reasonText(STORE_REASON, r.reason, storeSteps(r)));
+    if (m) reasons.push(`relaxing ${keys.flatMap(textOf).join('; ')} gives ${m.certainty === 'exact' ? 'an exact' : 'a possible'} match at cost ${+m.cost}, but the unrelaxed query is undecided`);
+    for (const note of (r.note || '').split('; ').filter(Boolean)) reasons.push(reasonText(STORE_NOTE, note, []));
+    return {...base, status: STORE_STATUS[r.status] || r.status, certainty: r.certainty, cost: r.cost === undefined ? 0 : +r.cost,
+            relaxations: r.status === 'relaxed' ? keys.flatMap(textOf) : [], relaxKeys: keys.length ? new Set(keys.flatMap(k => k.split('+'))) : null,
+            reason: reasons.join('; '), best: storeBest(view, r.binding || (m && m.binding), r.witness || (m && m.witness), r.certainty || (m && m.certainty) || r.status)};
+  });
+}
+
+// The store's binding as the page's {step: candidate}: each bound record's recorded range, in days of age, and what it is.
+function storeBest(view, binding, witness, status) {
+  if (!binding) return null;
+  const bind = new Map();
+  for (const [step, d] of Object.entries(binding)) {
+    const at = witness && witness[step] != null ? witness[step] / GRID : null;
+    if (d.derived) {
+      bind.set(step, {e: at ?? NaN, l: at ?? NaN, what: 'the Nth occurrence: a point the store derives from the coded records', store: d, at, measure: true});
+      continue;
+    }
+    const e = d.start[0] / GRID, l = d.start[1] / GRID;
+    const source = SOURCE_SHORT[d.source] || d.source;
+    const value = d.value !== undefined ? ` = ${d.value}${d.unit && d.unit !== '/month' ? ' ' + d.unit : d.unit ? ' per month' : ''}` : '';
+    const written = d.kind === 'mention' ? `, stated in a letter dated ${d.as_written}` : d.as_written ? `, written "${d.as_written}"` : '';
+    const what = `${source} · ${d.display || d.kind}${value}${written} · ${d.record_id}`;
+    const item = view.items.find(i => d.kind === 'mention'
+      ? i.mentions.some(x => x.note.record_id === d.record_id && x.m.text === d.display)
+      : i.recs.some(x => x.record_id === d.record_id));
+    bind.set(step, {e, l, fe: d.end ? d.end[0] / GRID : e, fl: d.end ? (d.end[1] == null ? Infinity : d.end[1] / GRID) : l,
+                    point: !d.end, what, item, store: d, at, measure: !item});
+  }
+  return {status, bind};
+}
+
+// For the drawer: the page's own answer for one patient, and the declared differences that can explain a difference.
+function pageAnswerFor(pid) {
+  if (!state.pageAnswers.has(pid)) state.pageAnswers.set(pid, matchPatient(pid, state.def, state.analysis));
+  return state.pageAnswers.get(pid);
+}
+function declaredCauses(r, page) {
+  const out = new Map(), def = state.def, reason = r.store?.reason;
+  const add = (cause, text) => { if (!out.has(cause)) out.set(cause, text || cause); };
+  if (['NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT'].includes(reason)) add('coverage', 'coverage (the store\'s comparability rule)');
+  if (reason === 'ADMISSION_EXCLUDED_RECORDS') add('measurement records', 'measurement records (unitless values are excluded records in the store)');
+  if (reason === 'OCCURRENCE_ORDER_UNCERTAIN') add('order uncertain', 'order uncertain (the store decides first and last over every time the records allow)');
+  if (page.status === 'incomparable' && /do not cover the time around/.test(page.reason || '')) add('measurement observability', 'measurement observability (a page-only check)');
+  for (const n of def.nodes) {
+    const kind = stepKind(n);
+    if (kind === 'occurrence') { add('letter mentions'); add('record reconciliation'); }
+    if (kind === 'medicine') { add('letter mentions'); add('medication records'); }
+    if (kind === 'measure') add('measurement records');
+    if (n.occ === 'count') add('count timing');
+    if (derivedOcc(n)) add('occurrence envelope');
+  }
+  return [...out.values()];
 }
 
 /* Rendering */
 
 function chip(status, cost) {
-  const [shape, text] = STATUS[status];
+  const [shape, text] = statusLabel(status);
   return `<span class="status ${status}">${shape} ${esc(status === 'relaxed' ? `${text} · cost ${cost}` : text)}</span>`;
 }
+
+// The store's unresolved is undecided for a named reason, not only a stopped search (D37).
+const statusLabel = st => st === 'unresolved' && state.matcher === 'store' && state.storeMeta ? ['◌', 'Unresolved · undecided'] : STATUS[st];
 
 function render() {
   renderContext();
@@ -712,7 +875,30 @@ function count() {
 
 function bindingChips(r) {
   if (!r.best) return '';
-  return `<div class="tj-binding">${[...r.best.bind].map(([id, c]) => `<span class="pair-chip"><strong>${esc(id)}</strong> ${esc(ageText(c.e))}${c.l - c.e > 2 ? '–' + esc(ageText(c.l)) : ''}</span>`).join('')}</div>`;
+  return `<div class="tj-binding">${[...r.best.bind].map(([id, c]) => `<span class="pair-chip"><strong>${esc(id)}</strong> ${timeText(c)}</span>`).join('')}</div>`;
+}
+
+// A bound event's recorded range as ages; a store-derived point by its witness time, if any.
+function timeText(c) {
+  if (!Number.isFinite(c.e)) return '—';
+  return esc(ageText(c.e)) + (c.l - c.e > 2 ? '–' + esc(ageText(c.l)) : '');
+}
+
+// Which backend answered this query, and what that means (D37).
+function backendBanner() {
+  const pageBy = state.engine && state.matcher !== 'browser' && !state.engineError ? 'the engine on this page\'s candidates' : 'this page\'s own search';
+  if (state.matcher === 'store' && state.fallback) {
+    const f = state.fallback;
+    return `<div class="backend fallback" role="status"><strong>In-browser fallback: ${esc(f.code)}</strong>
+      <span>${esc(STORE_REFUSAL[f.code] || `${f.by} refused the query by name`)}${f.detail && f.detail !== f.code ? ` (${esc(f.detail)})` : ''}. Matched by ${esc(pageBy)} instead.</span></div>`;
+  }
+  if (state.matcher === 'store' && state.storeMeta) {
+    const s = state.storeMeta;
+    return `<div class="backend store" role="status"><strong>Answered by the execution store</strong>
+      <span>snapshot <code title="${esc(s.snapshot)}">${esc(s.snapshot.slice(0, 12))}…</code> · ${esc(s.store)}${s.conditions ? ` · ${esc(s.conditions.replace('execution-store-', ''))}` : ''} · ${s.ms} ms</span>
+      <span class="hint">The store reads every record and letter mention as its own event, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records using the synthetic truth, builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page and sent to the store.</span></div>`;
+  }
+  return `<div class="backend page" role="status"><strong>Matched by ${esc(state.matcher === 'browser' ? 'this page\'s own search' : pageBy)}</strong></div>`;
 }
 
 function renderMatches() {
@@ -723,24 +909,25 @@ function renderMatches() {
     return;
   }
   const c = count();
-  const matcher = state.engine
-    ? `<div class="tj-filters" role="group" aria-label="Matched by"><span class="hint">Matched by</span>${[['engine', `the engine (${state.engine})`], ['browser', 'this page']].map(([m, t]) =>
+  const choices = [...(state.store ? [['store', 'the execution store']] : []), ...(state.engine ? [['engine', 'the engine on this page\'s candidates']] : []), ['browser', 'this page alone']];
+  const matcher = state.engine || state.store
+    ? `<div class="tj-filters" role="group" aria-label="Match with"><span class="hint">Match with</span>${choices.map(([m, t]) =>
         `<button class="tj-filter" aria-pressed="${state.matcher === m}" data-action="matcher" data-m="${m}">${esc(t)}</button>`).join('')}</div>`
-    : '<p class="hint">Matched in this page: no engine is reachable here. Serve the mockups with <code>demos/mockups/server.py</code> to match with the engine.</p>';
+    : '<p class="hint">Matched in this page: no server is reachable here. Serve the mockups with <code>demos/mockups/server.py</code> to match in the execution store.</p>';
   const notice = state.engineError ? `<p class="hint">The engine could not answer (${esc(state.engineError)}); matched in this page instead.</p>` : '';
   if (state.pending) {
-    $('#summary').innerHTML = `${matcher}<p class="hint">Matching every patient with the engine…</p>`;
+    $('#summary').innerHTML = `${matcher}<p class="hint">Matching every patient ${state.matcher === 'store' && !state.fallback ? 'in the execution store' : 'with the engine'}…</p>`;
     $('#list').innerHTML = '';
     return;
   }
-  $('#summary').innerHTML = `${matcher}${notice}<p class="hint">Every patient is searched; there is no reference patient here. Each step is bound to one of the patient's events, and the constraints are checked jointly over the recorded time ranges.</p>
-    <div class="tj-filters" role="group" aria-label="Show results">${ORDER.map(st => `<button class="tj-filter${HIDDEN_BY_DEFAULT.includes(st) ? ' tj-filter-none' : ''}" aria-pressed="${state.filter.has(st)}" data-action="filter" data-s="${st}">${STATUS[st][0]} ${STATUS[st][1]} · ${c[st] || 0}</button>`).join('')}</div>
+  $('#summary').innerHTML = `${matcher}${backendBanner()}${notice}<p class="hint">Every patient is searched; there is no reference patient here. Each step is bound to one of the patient's events, and the constraints are checked jointly over the recorded time ranges.</p>
+    <div class="tj-filters" role="group" aria-label="Show results">${ORDER.map(st => `<button class="tj-filter${HIDDEN_BY_DEFAULT.includes(st) ? ' tj-filter-none' : ''}" aria-pressed="${state.filter.has(st)}" data-action="filter" data-s="${st}">${statusLabel(st)[0]} ${statusLabel(st)[1]} · ${c[st] || 0}</button>`).join('')}</div>
     <p class="hint">Select several result types to see them together. <em>No recorded match</em> and <em>No index period</em> are hidden until selected; <em>No recorded match</em> is shown only on its own. <em>Unresolved</em> patients were not fully searched and may still match.</p>`;
   const rows = state.results.filter(r => state.filter.has(r.status));
   $('#list').innerHTML = rows.map(r => {
     const p = state.patients.get(r.pid);
     return `<div class="cand${state.selected === r.pid ? ' active' : ''}" tabindex="0" role="button" data-action="open" data-pid="${r.pid}">
-      <div class="rank">${STATUS[r.status][0]}</div>
+      <div class="rank">${statusLabel(r.status)[0]}</div>
       <div><div class="who">${r.pid} <small>· ${p.sex === 'F' ? 'female' : 'male'}${r.win && !r.win.reason ? ` · period ${esc(spanText(r.win))}` : ''}</small></div>
         ${chip(r.status, r.cost)}${state.lens === 'truth' ? ` <span class="hint">truth: ${esc(GROUP_LABEL[p.truth.condition_group])}</span>` : ''}
         ${r.relaxations?.length ? `<div class="hint">relaxed: ${esc(r.relaxations.join('; '))}</div>` : ''}${r.reason ? `<div class="hint">${esc(r.reason)}</div>` : ''}${r.truncated ? `<div class="hint">search stopped early; ${STOPPED_NOTE[r.status]}</div>` : ''}
@@ -755,14 +942,17 @@ function renderDetail() {
   if (!r) { drawer.hidden = true; return; }
   drawer.hidden = false;
   const view = evidenceFor(r.pid), def = state.def;
-  $('#h-detail').textContent = `${r.pid} · ${STATUS[r.status][1]}`;
+  $('#h-detail').textContent = `${r.pid} · ${statusLabel(r.status)[1]}`;
   const highlight = new Map(), markers = [];
-  if (r.best) for (const [id, c] of r.best.bind) c.measure ? markers.push({e: c.e, l: c.l, tag: id}) : highlight.set(c.item.id, id);
+  if (r.best) for (const [id, c] of r.best.bind) {
+    if (c.measure) { if (Number.isFinite(c.e)) markers.push({e: c.at ?? c.e, l: c.at ?? c.l, tag: id}); } else highlight.set(c.item.id, id);
+  }
   const width = $('#detail-body').clientWidth || drawer.clientWidth - 36;
   const out = [timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.win && !r.win.reason ? r.win : null,
                                    lens: state.lens, highlight, markers, title: `Timeline for ${r.pid}`})];
-  out.push(`<p>${chip(r.status, r.cost)} ${r.status === 'relaxed' ? esc(`by ${r.relaxations.join('; ')}${r.certainty === 'possible' ? '; times still uncertain' : ''}`) : esc(r.reason || '')}</p>`);
-  if (r.best) {
+  out.push(`<p>${chip(r.status, r.cost)} ${r.status === 'relaxed' ? esc(`by ${r.relaxations.join('; ')}${r.certainty === 'possible' ? '; times still uncertain' : ''}`) : esc(r.backend === 'store' ? '' : r.reason || '')}</p>`);
+  if (r.backend === 'store') out.push(storeDetail(r));
+  else if (r.best) {
     const {bind, net} = r.best;
     out.push('<table class="tj-table"><thead><tr><th>Step</th><th>Bound to</th><th>When</th></tr></thead><tbody>'
       + def.nodes.map(n => { const c = bind.get(n.id); return `<tr><td><span class="tj-id">${esc(n.id)}</span> ${esc(nodeText(n))}</td><td>${esc(c?.what || '—')}</td><td>${c ? esc(ageText(c.e)) + (c.l - c.e > 2 ? '–' + esc(ageText(c.l)) : '') : ''}</td></tr>`; }).join('')
@@ -778,6 +968,26 @@ function renderDetail() {
   }
   out.push(`<div class="actions"><a class="btn" href="../patient-first/">Open the record view</a></div>`);
   $('#detail-body').innerHTML = out.join('');
+}
+
+// The drawer for a store result: the store's status and reason as given, the records it bound and its witness times,
+// and this page's own answer beside it when they differ, with the declared causes that can explain it (D37).
+function storeDetail(r) {
+  const out = [`<p class="hint">Answered by the execution store: <strong>${esc(r.store.status)}</strong>${r.store.certainty ? ` (${esc(r.store.certainty)})` : ''}${r.reason ? `. ${esc(r.reason)}` : ''}.</p>`];
+  if (r.best) {
+    const {bind} = r.best;
+    out.push(`<table class="tj-table"><thead><tr><th>Step</th><th>Store record${r.status === 'unresolved' ? ' (relaxed match)' : ''}</th><th>Recorded</th><th>Witness</th></tr></thead><tbody>`
+      + state.def.nodes.map(n => { const c = bind.get(n.id); return `<tr><td><span class="tj-id">${esc(n.id)}</span> ${esc(nodeText(n))}</td><td>${esc(c?.what || '—')}</td><td>${c ? timeText(c) : ''}</td><td>${c && c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`; }).join('')
+      + '</tbody></table>');
+    out.push('<p class="hint">Recorded is each record\'s own time range in the store (a letter mention ranges from birth to its letter). The witness is one choice of times that satisfies every constraint. The store decides certainty over every choice of times; this page does not re-check it.</p>');
+  }
+  const page = pageAnswerFor(r.pid);
+  const key = x => [x.status, x.certainty || '', x.relaxKeys ? [...x.relaxKeys].sort().join('+') : ''].join(' ');
+  if (key(page) !== key(r)) {
+    out.push(`<div class="backend note"><strong>This page's own search gives ${chip(page.status, page.cost)}${page.status === 'relaxed' && page.relaxations?.length ? ` <span class="hint">by ${esc(page.relaxations.join('; '))}</span>` : ''}</strong>
+      <span class="hint">The store's answer is the one shown. Declared differences that can explain this: ${esc(declaredCauses(r, page).join('; '))}.</span></div>`);
+  }
+  return out.join('');
 }
 
 /* Interaction */
@@ -812,7 +1022,7 @@ function handle(action, el) {
     case 'open': state.selected = el.dataset.pid; return render();
     case 'close-detail': state.selected = null; return render();
     case 'template': {
-      const t = el.dataset.t === 'blank' ? {nodes: [{id: 'A', concept: 'seizure', occ: 'first'}], edges: []} : clone(TEMPLATES[el.dataset.t]);
+      const t = el.dataset.t === 'blank' ? clone(BLANK) : clone(TEMPLATES[el.dataset.t]);
       def.nodes = t.nodes; def.edges = t.edges;
       break;
     }
@@ -912,6 +1122,14 @@ async function main() {
     const health = await fetch('../api/health');
     if (health.ok) { state.engine = (await health.json()).profile; state.matcher = 'engine'; }
   } catch (error) { /* static hosting: match in the browser */ }
+  if (state.engine) {
+    // D37: with the store, the page matches there by default.
+    try {
+      const status = await fetch('../api/trajectory-store/status');
+      const value = status.ok ? await status.json() : {error: `HTTP ${status.status}`};
+      if (value.available) { state.store = value; state.matcher = 'store'; } else state.storeError = value.error;
+    } catch (error) { state.storeError = 'STORE_UNREACHABLE'; }
+  }
   state.def = defaultDef();
   run();
   wire();

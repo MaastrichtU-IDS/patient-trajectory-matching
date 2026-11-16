@@ -1,6 +1,7 @@
 """Serve the mockups and the trajectory-graph engine to them, on one local port.
 
     python demos/mockups/server.py [--port 8090] [--host 127.0.0.1] [--mimic-store PATH] [--mimic-d-items FILE]
+                                   [--trajectory-store-root DIR] [--no-trajectory-store]
 
 Static files come from this directory, as with `python -m http.server`. Two endpoints are
 added: `GET /api/health` names the engine profile, and `POST /api/trajectory-graph/match`
@@ -16,6 +17,14 @@ store, named by `--mimic-store` or the `PTM_MIMIC_STORE` environment variable (i
 snapshot whose patients are not the open demo's (checked by content, not by its label). Counts-only
 is not disclosure control (no small-cell suppression; differencing works), so these endpoints are
 for the open demo only. With no store configured, status says so and how to build one.
+
+The trajectory page matches in the execution store by default (D29 stage 2, D37), through two more endpoints from
+`store_trajectory.py`: `GET /api/trajectory-store/status` and `POST /api/trajectory-store/match`. At startup the
+server builds the page's synthetic cohort into a store (about a second, on a background thread), in a temporary
+directory removed when the server closes, or under `--trajectory-store-root` (`PTM_TRAJECTORY_STORE_ROOT`), never
+inside the repository. These answer per patient, since the data are synthetic and the page already holds every
+record; the MIMIC endpoints keep their aggregate-only rules. `--no-trajectory-store` leaves the store out, and the
+page then matches as before.
 """
 import argparse
 from functools import partial
@@ -30,12 +39,14 @@ sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
 from patterns import trajectory_graph as engine  # noqa: E402
 import store_query  # noqa: E402
+import store_trajectory  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024
 
 
 class Handler(SimpleHTTPRequestHandler):
     store = store_query.StoreService()  # `serve` gives each server its configured store
+    trajectory_store = None  # `serve` gives each server its synthetic store (D37), or none
 
     def send_json(self, status, value):
         body = json.dumps(value).encode()
@@ -53,6 +64,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self.store_answer(self.store.status)
         if self.path == '/api/store/catalogue':
             return self.store_answer(self.store.catalogue)
+        if self.path == '/api/trajectory-store/status':
+            if self.trajectory_store is None:
+                return self.send_json(200, {'profile': store_trajectory.PROFILE, 'available': False,
+                                            'error': 'STORE_NOT_CONFIGURED'})
+            return self.trajectory_answer(self.trajectory_store.status)
         if self.path.startswith('/api/'):
             return self.send_json(404, {'error': 'NOT_FOUND'})
         return super().do_GET()
@@ -75,6 +91,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/api/store/match':
             return self.store_match()
+        if self.path == '/api/trajectory-store/match':
+            return self.trajectory_match()
         if self.path != '/api/trajectory-graph/match':
             return self.send_json(404, {'error': 'NOT_FOUND'})
         data, refused = self.read_json()
@@ -109,20 +127,57 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:  # noqa: BLE001 - an internal failure is named, with no detail that could carry data
             return self.send_json(500, {'error': 'INTERNAL_ERROR'})
 
+    def trajectory_match(self):
+        data, refused = self.read_json()
+        if refused:
+            return self.send_json(refused[0], {'error': refused[1]})
+        if self.trajectory_store is None:
+            return self.send_json(503, {'error': 'STORE_NOT_CONFIGURED'})
+        return self.trajectory_answer(lambda: self.trajectory_store.match(data))
+
+    def trajectory_answer(self, answer):
+        """The trajectory store's answer (D37), or a named error; never a traceback."""
+        try:
+            return self.send_json(200, answer())
+        except store_trajectory.RequestError as error:
+            return self.send_json(400, {'error': str(error)})
+        except store_trajectory.Unavailable as error:
+            return self.send_json(503, {'error': str(error)})
+        except Exception:  # noqa: BLE001 - an internal failure is named, with no detail
+            return self.send_json(500, {'error': 'INTERNAL_ERROR'})
+
     def log_message(self, format, *args):
         if self.path.startswith('/api/'):
             super().log_message(format, *args)
 
 
-def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None):
+class Server(ThreadingHTTPServer):
+    trajectory_store = None
+
+    def server_close(self):
+        super().server_close()
+        if self.trajectory_store is not None:
+            self.trajectory_store.close()
+
+
+def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None,
+          trajectory_store=True, trajectory_store_root=None, trajectory_cohort=None):
     """The server; the MIMIC demo store comes from the arguments, else from PTM_MIMIC_STORE and PTM_MIMIC_D_ITEMS.
-    `demo_pin` replaces the open demo's (patient count, subject digest) for tests on the synthetic fixture only."""
+    `demo_pin` replaces the open demo's (patient count, subject digest) for tests on the synthetic fixture only.
+    With `trajectory_store` (D37), the synthetic cohort (`trajectory_cohort`, by default the page's) is built into a
+    store on a background thread, under `trajectory_store_root` or PTM_TRAJECTORY_STORE_ROOT, else in a temporary
+    directory; `server_close()` closes it and removes the build."""
     service = store_query.StoreService(mimic_store or os.environ.get('PTM_MIMIC_STORE'),
                                        mimic_d_items or os.environ.get('PTM_MIMIC_D_ITEMS'),
                                        **({'pin': demo_pin} if demo_pin else {}))
-    handler = type('ConfiguredHandler', (Handler,), {'store': service})
-    httpd = ThreadingHTTPServer((host, port), partial(handler, directory=str(HERE)))
+    synthetic = None
+    if trajectory_store:
+        synthetic = store_trajectory.TrajectoryStore(trajectory_cohort or store_trajectory.COHORT,
+                                                     trajectory_store_root or os.environ.get('PTM_TRAJECTORY_STORE_ROOT'))
+    handler = type('ConfiguredHandler', (Handler,), {'store': service, 'trajectory_store': synthetic})
+    httpd = Server((host, port), partial(handler, directory=str(HERE)))
     httpd.store = service
+    httpd.trajectory_store = synthetic.start() if synthetic else None
     return httpd
 
 
@@ -133,12 +188,21 @@ def main():
     parser.add_argument('--mimic-store', help='a locally built MIMIC-IV demo snapshot, or the root holding it '
                         '(default: $PTM_MIMIC_STORE); only the open demo is served')
     parser.add_argument('--mimic-d-items', help="the demo's d_items file, for item labels (default: $PTM_MIMIC_D_ITEMS)")
+    parser.add_argument('--trajectory-store-root', help="where to build the synthetic cohort's store for the trajectory "
+                        'page (default: $PTM_TRAJECTORY_STORE_ROOT, else a temporary directory); never inside the repository')
+    parser.add_argument('--no-trajectory-store', action='store_true',
+                        help='build no store; the trajectory page then matches with the engine or in the browser')
     args = parser.parse_args()
-    server = serve(args.host, args.port, args.mimic_store, args.mimic_d_items)
+    server = serve(args.host, args.port, args.mimic_store, args.mimic_d_items,
+                   trajectory_store=not args.no_trajectory_store, trajectory_store_root=args.trajectory_store_root)
     print(f'mockups and {engine.PROFILE_ID} on http://{args.host}:{server.server_port}/', flush=True)
     status = server.store.status()
     print(f"store query page: {'MIMIC-IV demo store ' + status['snapshot_id'][:12] if status['available'] else status['error']}",
           flush=True)
+    if server.trajectory_store is not None:
+        status = server.trajectory_store.status()
+        built = f"synthetic store {status['snapshot_id'][:12]} (built in {status['built_s']} s)" if status['available'] else status['error']
+        print(f'trajectory page: {built}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
