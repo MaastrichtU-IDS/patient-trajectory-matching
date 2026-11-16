@@ -74,13 +74,16 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'weight at most 9 kg inside the period': {scope: 'within', window,
       nodes: [{id: 'A', concept: 'weight', cond: 'below', param: 9}], edges: []},
     // D32: Nth occurrences and counts, over coded records only (the page's "coded only" setting; the store refuses
-    // them over stated free text).
-    'the event-frequency template': {scope: 'from_start', window, freeText: 'off',
+    // them over stated free text). Since D37 the translator refuses "coded only" for a query whose other steps would
+    // still read letter mentions in the store (FREE_TEXT_CODED_ONLY_UNSUPPORTED, asserted below); these three keep
+    // D32's reading, coded only for the derived step and stated findings for the others (codedOnly: 'derived'), so
+    // they still measure Nth and counts against the page.
+    'the event-frequency template': {scope: 'from_start', window, freeText: 'off', codedOnly: 'derived',
       nodes: TEMPLATES.frequency.nodes, edges: TEMPLATES.frequency.edges},
-    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off',
+    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off', codedOnly: 'derived',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth', n: 2}, {id: 'B', concept: 'sodium_channel_blocker', occ: 'first'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 12, unit: 'month'}]},
-    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off',
+    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off', codedOnly: 'derived',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
     'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
@@ -94,6 +97,8 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       ...withoutNodes({nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges}, new Set(['B']))},
     'the graph template without its gene step': {scope: 'from_start', window,
       ...withoutNodes({nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges}, new Set(['E']))},
+    // D37: the page's Blank template, as the page starts it.
+    'the blank template (the first seizure)': {scope: 'from_start', window, nodes: BLANK.nodes, edges: BLANK.edges},
   };
   // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
   var withFreeText = function (name, fn) {
@@ -106,8 +111,9 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
   var storeCase = function (name, def) {
     return withFreeText(name, () => {
       const pids = [...state.patients.keys()], byId = nodeById(def);
-      // D36: rises are translated (the store's relative conditions), as the translator now does by default.
-      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true});
+      // D36: rises are translated (the store's relative conditions), as the translator now does by default. D37: only
+      // the cases that say so read "coded only" as D32 did.
+      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true, codedOnly: CASES[name].codedOnly});
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
       for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
@@ -494,6 +500,48 @@ const EXPECTED = {
     C043: "coverage: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
+  // D37: the Blank template. Letter mentions range from birth in the store, so its first seizure is rarely certain.
+  "the blank template (the first seizure)": {
+    C001: "letter-mentions+record-reconciliation: page exact, store possible",
+    C002: "letter-mentions: page exact, store possible",
+    C003: "letter-mentions+record-reconciliation: page exact, store possible",
+    C004: "letter-mentions+record-reconciliation: page exact, store none",
+    C005: "letter-mentions+record-reconciliation: page exact, store possible",
+    C006: "letter-mentions+record-reconciliation: page exact, store possible",
+    C008: "letter-mentions+record-reconciliation: page exact, store possible",
+    C009: "letter-mentions: page exact, store possible",
+    C010: "letter-mentions+record-reconciliation: page exact, store possible",
+    C015: "letter-mentions+record-reconciliation: page exact, store possible",
+    C017: "letter-mentions: page exact, store possible",
+    C018: "letter-mentions+record-reconciliation: page exact, store possible",
+    C019: "letter-mentions+record-reconciliation: page exact, store possible",
+    C020: "letter-mentions+record-reconciliation: page exact, store possible",
+    C021: "letter-mentions+record-reconciliation: page exact, store possible",
+    C022: "letter-mentions+record-reconciliation: page exact, store possible",
+    C023: "letter-mentions: page exact, store possible",
+    C025: "letter-mentions+record-reconciliation: page exact, store possible",
+    C026: "letter-mentions+record-reconciliation: page exact, store possible",
+    C027: "letter-mentions+record-reconciliation: page exact, store possible",
+    C028: "letter-mentions+record-reconciliation: page exact, store possible",
+    C029: "letter-mentions: page exact, store possible",
+    C030: "letter-mentions+record-reconciliation: page exact, store possible",
+    C031: "letter-mentions+record-reconciliation: page exact, store possible",
+    C032: "letter-mentions+record-reconciliation: page exact, store possible",
+    C033: "letter-mentions+record-reconciliation: page exact, store possible",
+    C034: "letter-mentions+record-reconciliation: page exact, store possible",
+    C035: "letter-mentions+record-reconciliation: page exact, store possible",
+    C036: "letter-mentions+record-reconciliation: page exact, store possible",
+    C038: "letter-mentions+record-reconciliation: page exact, store possible",
+    C039: "letter-mentions+record-reconciliation: page exact, store possible",
+    C040: "letter-mentions+record-reconciliation: page exact, store possible",
+    C041: "letter-mentions+record-reconciliation: page exact, store possible",
+    C042: "letter-mentions+record-reconciliation: page exact, store possible",
+    C043: "letter-mentions+record-reconciliation: page exact, store possible",
+    C044: "letter-mentions+record-reconciliation: page exact, store possible",
+    C045: "letter-mentions+record-reconciliation: page exact, store possible",
+    C047: "letter-mentions+record-reconciliation: page exact, store possible",
+    C048: "letter-mentions+record-reconciliation: page exact, store possible",
+  },
 };
 
 
@@ -515,9 +563,10 @@ const REFUSALS = vm.runInContext(`(() => {
   const d = name => ({...defaultDef(), ...clone(TEMPLATES[name])});
   const nthDuring = {...defaultDef(), nodes: [{id: 'A', concept: 'sodium_channel_blocker', occ: 'nth', n: 2}, {id: 'B', concept: 'seizure'}],
                      edges: [{from: 'A', to: 'B', rel: 'during', grace: 0, unit: 'day'}]};
+  const huge = {...defaultDef(), nodes: [{id: 'A', concept: 'seizure_frequency', cond: 'above', param: 1e21}], edges: []};
   return {
-    'rise (sequence template)': refusalOf(d('sequence'), 'off'),
-    'rise (sequence template), stated free text': refusalOf(d('sequence'), 'present'),
+    'rise (sequence template)': refusalOf(d('sequence'), 'present'),
+    'rise (sequence template), coded only': refusalOf(d('sequence'), 'off'),
     'gene step (tree template)': refusalOf(d('tree'), 'off'),
     'gene step and rise (graph template)': refusalOf(d('graph'), 'off'),
     'rise (sequence template), rises refused on request': refusalOf(d('sequence'), 'off', {rises: false}),
@@ -527,12 +576,16 @@ const REFUSALS = vm.runInContext(`(() => {
     'hedged free text': refusalOf(d('frequency'), 'possible'),
     'while taking the 2nd blocker': refusalOf(nthDuring, 'off'),
     'frequency template, coded only': refusalOf(d('frequency'), 'off'),
+    'frequency template, coded only for the count (D32)': refusalOf(d('frequency'), 'off', {codedOnly: 'derived'}),
+    'a count alone, coded only': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off'),
+    'a threshold that is not a plain decimal': refusalOf(huge, 'present'),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   // D36: rises are translated by default (STORE_RISES); the named refusal remains for a caller that asks for it.
   'rise (sequence template)': null,
-  'rise (sequence template), stated free text': null,
+  // D37: "coded only" with steps that would still read letter mentions in the store.
+  'rise (sequence template), coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'gene step (tree template)': 'GENE_CLASSIFICATION_UNSUPPORTED',
   'gene step and rise (graph template)': 'GENE_CLASSIFICATION_UNSUPPORTED',  // the rise is translated; the gene step is not
   'rise (sequence template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',
@@ -541,8 +594,149 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'Nth over stated free text': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'hedged free text': 'FREE_TEXT_HEDGED_UNSUPPORTED',
   'while taking the 2nd blocker': 'NTH_STEP_HAS_NO_END',
-  'frequency template, coded only': null,
+  'frequency template, coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'frequency template, coded only for the count (D32)': null,
+  'a count alone, coded only': null,
+  'a threshold that is not a plain decimal': 'VALUE_NOT_A_PLAIN_DECIMAL',
 });
+
+/* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.
+   An answered one must be a parity trajectory above (same window, scope, steps, constraints and free-text setting), so
+   its differences from the page are pinned in EXPECTED. */
+const TEMPLATE_TABLE = JSON.parse(vm.runInContext(`JSON.stringify((() => {
+  const out = {};
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  for (const name of [...Object.keys(TEMPLATES), 'blank']) for (const freeText of ['off', 'present', 'possible']) {
+    const def = {...defaultDef(), ...clone(name === 'blank' ? BLANK : TEMPLATES[name])};
+    const code = refusalOf(def, freeText);
+    const parity = Object.keys(CASES).find(k => (CASES[k].freeText || 'present') === freeText && !CASES[k].codedOnly
+      && same([CASES[k].window, CASES[k].scope, CASES[k].nodes, CASES[k].edges], [def.window, def.scope, def.nodes, def.edges]));
+    out[name + ', ' + freeText] = code || (parity ? 'store: ' + parity : 'ANSWERED BUT NOT A PARITY TRAJECTORY');
+  }
+  return out;
+})())`, context));
+assert.deepEqual(TEMPLATE_TABLE, {
+  'sequence, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'sequence, present': 'store: the sequence template (a rise)',
+  'sequence, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
+  'tree, off': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'tree, present': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'tree, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
+  'graph, off': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'graph, present': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'graph, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
+  'frequency, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'frequency, present': 'FREE_TEXT_COUNT_UNSUPPORTED',
+  'frequency, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
+  'blank, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'blank, present': 'store: the blank template (the first seizure)',
+  'blank, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
+});
+
+/* D37, rule 1: the option sweep. A fixed grid of page definitions over every step option, relation, anchor, scope,
+   index-period rule and free-text setting the page offers, each valid on the page (no `analyse` error), is translated
+   and, unless the translator refuses it by name, run in the store. Each must be answered, or refused by a named code;
+   a thrown error or a store failure without a code breaks the rule. The tally by outcome is pinned. */
+const SWEEP_CASES = JSON.parse(vm.runInContext(`JSON.stringify((() => {
+  const subjects = {
+    'any seizure': {concept: 'seizure', occ: 'any'}, 'first seizure': {concept: 'seizure', occ: 'first'},
+    'last seizure': {concept: 'seizure', occ: 'last'}, '1st seizure': {concept: 'seizure', occ: 'nth', n: 1},
+    '2nd seizure': {concept: 'seizure', occ: 'nth', n: 2}, '1st-to-last seizure': {concept: 'seizure', occ: 'nth_last', n: 1},
+    '2nd-to-last seizure': {concept: 'seizure', occ: 'nth_last', n: 2},
+    '1 seizure within a month': {concept: 'seizure', occ: 'count', n: 1, within: {amount: 1, unit: 'month'}},
+    '3 seizures within 6 months': {concept: 'seizure', occ: 'count', n: 3, within: {amount: 6, unit: 'month'}},
+    '2 febrile seizures in the period': {concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'},
+    'first febrile seizure': {concept: 'febrile_seizure', occ: 'first'}, 'first Dravet diagnosis': {concept: 'dravet', occ: 'first'},
+    'any blocker start': {concept: 'sodium_channel_blocker', occ: 'any'}, 'first blocker start': {concept: 'sodium_channel_blocker', occ: 'first'},
+    'last blocker start': {concept: 'sodium_channel_blocker', occ: 'last'}, '2nd blocker start': {concept: 'sodium_channel_blocker', occ: 'nth', n: 2},
+    'first carbamazepine start': {concept: 'carbamazepine', occ: 'first'}, '2nd-to-last valproate start': {concept: 'valproate', occ: 'nth_last', n: 2},
+    'SCN1A result': {concept: 'gene:SCN1A'},
+    'diary rises x2': {concept: 'seizure_frequency', cond: 'rise', param: 2}, 'diary falls /2': {concept: 'seizure_frequency', cond: 'fall', param: 2},
+    'diary rises x1': {concept: 'seizure_frequency', cond: 'rise', param: 1}, 'diary rises x1.2': {concept: 'seizure_frequency', cond: 'rise', param: 1.2},
+    'diary at least 8': {concept: 'seizure_frequency', cond: 'above', param: 8}, 'diary at most 2': {concept: 'seizure_frequency', cond: 'below', param: 2},
+    'weight at least 10': {concept: 'weight', cond: 'above', param: 10}, 'weight at most 9': {concept: 'weight', cond: 'below', param: 9},
+    'height at least 80': {concept: 'height', cond: 'above', param: 80}, 'head circumference at most 40': {concept: 'head_circ', cond: 'below', param: 40},
+    'weight at most -1': {concept: 'weight', cond: 'below', param: -1}, 'weight at least 0': {concept: 'weight', cond: 'above', param: 0},
+  };
+  const relations = {
+    'alone': () => ({nodes: [], edges: []}),
+    'then a febrile seizure within 12 months': () => ({nodes: [{id: 'B', concept: 'febrile_seizure', occ: 'any'}], edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 12, unit: 'month'}]}),
+    'then a febrile seizure at least a day later': () => ({nodes: [{id: 'B', concept: 'febrile_seizure', occ: 'any'}], edges: [{from: 'A', to: 'B', rel: 'after', min: 1, max: null, unit: 'day'}]}),
+    'and a febrile seizure up to 2 years either side': () => ({nodes: [{id: 'B', concept: 'febrile_seizure', occ: 'any'}], edges: [{from: 'A', to: 'B', rel: 'after', min: -24, max: 24, unit: 'month'}]}),
+    'and a seizure while taking it, or 30 days after': () => ({nodes: [{id: 'B', concept: 'seizure', occ: 'any'}], edges: [{from: 'A', to: 'B', rel: 'during', grace: 30, unit: 'day'}]}),
+    'within 6 months of the period start': () => ({nodes: [], edges: [{from: 'START', to: 'A', rel: 'after', min: 0, max: 6, unit: 'month'}]}),
+    'within a year either side of the period end': () => ({nodes: [], edges: [{from: 'END', to: 'A', rel: 'after', min: -12, max: 12, unit: 'month'}]}),
+    'after the first blocker, within 60 days': () => ({nodes: [{id: 'B', concept: 'sodium_channel_blocker', occ: 'first'}], edges: [{from: 'B', to: 'A', rel: 'after', min: 0, max: 60, unit: 'day'}]}),
+  };
+  const windows = {
+    'the 2nd seizure for 24 months': defaultDef().window,
+    'birth to 6 years': {start: {kind: 'birth'}, end: {kind: 'age', amount: 6, unit: 'year'}},
+    'from 2020-01-01 for 3 years': {start: {kind: 'date', date: '2020-01-01'}, end: {kind: 'span', amount: 3, unit: 'year'}},
+    '12 months up to the last seizure': {start: {kind: 'span', amount: 12, unit: 'month'}, end: {kind: 'event', event: 'seizure', which: 'last', n: 1, offset: 0, unit: 'month'}},
+    'a month before the 2nd-to-last febrile seizure to 10 years': {start: {kind: 'event', event: 'febrile_seizure', which: 'nth_last', n: 2, offset: -1, unit: 'month'}, end: {kind: 'age', amount: 10, unit: 'year'}},
+    'the first diagnosis for 2 years': {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}},
+    'the first genetic result for 2 years': {start: {kind: 'event', event: '@any_genetic', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}},
+  };
+  const cases = [], pids = [...state.patients.keys()];
+  const add = (name, def, freeText) => {
+    if (analyse(def).errors.length) return;
+    const before = state.freeText;
+    state.freeText = freeText;
+    try {
+      const {query, conditions, windows} = storeRequest(def, freeText, pids);
+      cases.push({name, query, conditions, windows});
+    } catch (e) {
+      cases.push({name, refused: e instanceof StoreRefusal ? e.code : 'UNNAMED: ' + e.message});
+    } finally { state.freeText = before; }
+  };
+  for (const [s, subject] of Object.entries(subjects)) for (const [r, rel] of Object.entries(relations)) for (const freeText of ['present', 'off']) {
+    const extra = rel();
+    add([s, r, freeText].join(' / '), {...defaultDef(), nodes: [{id: 'A', ...subject}, ...extra.nodes], edges: extra.edges}, freeText);
+  }
+  for (const s of Object.keys(subjects)) add([s, 'alone', 'possible'].join(' / '), {...defaultDef(), nodes: [{id: 'A', ...subjects[s]}], edges: []}, 'possible');
+  const probes = {'first seizure then a febrile seizure': ['first seizure', 'then a febrile seizure within 12 months'],
+                  'a blocker then the diary rising': ['diary rises x2', 'after the first blocker, within 60 days'],
+                  '2 febrile seizures in the period': ['2 febrile seizures in the period', 'alone']};
+  for (const [p, [s, r]] of Object.entries(probes)) for (const scope of Object.keys(SCOPES)) for (const [w, window] of Object.entries(windows)) {
+    const extra = relations[r]();
+    add([p, scope, w].join(' / '), {window: clone(window), scope, nodes: [{id: 'A', ...subjects[s]}, ...extra.nodes], edges: extra.edges},
+        s.includes('in the period') ? 'off' : 'present');
+  }
+  return cases;
+})())`, context));
+const sweepScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-sweep-'));
+const sweepSnapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(sweepScratch, 'store')]).trim();
+const sweepRun = SWEEP_CASES.filter(c => !c.refused);
+const sweepStore = JSON.parse(run([path.join(here, 'store_parity.py'), 'sweep', sweepSnapshot], JSON.stringify({cohort, cases: sweepRun})));
+fs.rmSync(sweepScratch, {recursive: true, force: true});
+const sweepTally = {answered: 0, translator: {}, store: {}}, unnamed = [];
+const patientCount = JSON.parse(fs.readFileSync(cohort, 'utf8')).patients.length;
+for (const c of SWEEP_CASES) {
+  if (c.refused) {
+    if (c.refused.startsWith('UNNAMED')) unnamed.push(`${c.name}: ${c.refused}`);
+    sweepTally.translator[c.refused] = (sweepTally.translator[c.refused] || 0) + 1;
+    continue;
+  }
+  const answer = sweepStore[c.name];
+  if (answer.error === 'UNNAMED') unnamed.push(`${c.name}: ${answer.message}`);
+  if (answer.error) { sweepTally.store[answer.error] = (sweepTally.store[answer.error] || 0) + 1; continue; }
+  assert.equal(Object.values(answer.counts).reduce((a, b) => a + b, 0), patientCount, `${c.name}: every patient has a result`);
+  sweepTally.answered += 1;
+}
+assert.deepEqual(unnamed, [], 'page options that are neither answered by the store nor refused by a named code');
+if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({sweepTally, cases: SWEEP_CASES.length, store: Object.fromEntries(sweepRun.filter(c => sweepStore[c.name].error).map(c => [c.name, sweepStore[c.name].error]))}, null, 1));
+// The store's two refusals here are page options with no meaning in its language: a rise "to at least 1 times" the
+// baseline (INVALID_FACTOR: a factor must exceed 1), and the page's relaxation of "at most -1" to "at most -1.1",
+// which narrows instead of widening (VALUE_RELAXATION_MUST_WIDEN). The page shows each as a labelled fallback.
+assert.deepEqual(sweepTally, {
+  answered: 286,
+  translator: {FREE_TEXT_CODED_ONLY_UNSUPPORTED: 157, FREE_TEXT_COUNT_UNSUPPORTED: 51, NTH_STEP_HAS_NO_END: 2,
+               GENE_CLASSIFICATION_UNSUPPORTED: 14, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
+  store: {INVALID_FACTOR: 10, VALUE_RELAXATION_MUST_WIDEN: 10},
+}, 'the option sweep changed');
+console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.answered} answered by the store; refused by the translator `
+  + `${Object.entries(sweepTally.translator).sort().map(([k, v]) => `${k} ${v}`).join(', ')}; refused by the store `
+  + `${Object.entries(sweepTally.store).sort().map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}; none without a code.`);
 if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify(unresolvedShare, null, 1));
 const share = names.map(n => `${n} ${unresolvedShare[n].unresolved}/${unresolvedShare[n].results}`
   + ` (${unresolvedShare[n].candidates} with a candidate)`).join('; ');

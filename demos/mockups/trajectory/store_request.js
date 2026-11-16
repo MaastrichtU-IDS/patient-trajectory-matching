@@ -1,4 +1,4 @@
-/* The trajectory page's query in the execution store's request language (D29 stage 1; D32; D33).
+/* The trajectory page's query in the execution store's request language (D29 stage 1; D32; D33; D37).
 
    `storeRequest(def, freeText, pids, options)` translates a page definition into a store match request: the engine query, the
    store's `conditions` (D28 value conditions; D32 Nth occurrences and counts; D33 rises and falls) and the index
@@ -12,7 +12,12 @@
    - FREE_TEXT_COUNT_UNSUPPORTED: an Nth occurrence (N > 1) or a count asked over stated free text. The store counts and
      ranks coded records only (a letter mention ranges from birth to its letter, D30, which would leave almost every
      count and rank uncertain), so these need the page's "coded only" setting;
-   - NTH_STEP_HAS_NO_END: "while taking" from an Nth step (its time is a start; its end belongs to no known record).
+   - NTH_STEP_HAS_NO_END: "while taking" from an Nth step (its time is a start; its end belongs to no known record);
+   - FREE_TEXT_CODED_ONLY_UNSUPPORTED (D37): "coded records only" on a query with a step that is neither derived (an Nth
+     with N > 1, a count) nor a measurement. The store reads the converter's letter mentions for every such step, so the
+     option would silently become "also stated findings" there. `options.codedOnly: 'derived'` keeps D32's reading
+     (coded only for derived steps, stated findings elsewhere), for the parity test's Nth and count trajectories only;
+   - VALUE_NOT_A_PLAIN_DECIMAL (D37): a threshold or factor that does not print as a plain decimal (such as 1e+21).
    Everything else is translated:
    - an Nth occurrence with N = 1 is the engine's first (Nth from last: last); with N > 1, the store's
      `occurrence: {nth | nth_last: N}`;
@@ -29,7 +34,9 @@
    - the rest as before D32: concepts, a parent concept or a drug class as `widen_concept`, absolute value conditions
      with a literal unit and their relaxation as `widen_value`, the page's relations and their relaxations.
    On the store, counts and occurrences are over recorded events, not over the page's reconciled happenings; the page
-   must say so when it shows the store's answer. */
+   must say so when it shows the store's answer. Since D37 the page sends this request to the server
+   (`POST /api/trajectory-store/match`, store_trajectory.py), which answers from the store; a refusal here is shown as
+   the page's in-browser fallback, labelled with its code. */
 const STORE_UNIT = {seizure_frequency: '/month', weight: 'kg', height: 'cm', head_circ: 'cm'};
 
 class StoreRefusal extends Error {
@@ -38,7 +45,7 @@ class StoreRefusal extends Error {
 
 function storeDecimal(x) {
   const s = String(x);
-  if (!/^-?[0-9]+(\.[0-9]+)?$/.test(s)) throw new Error('not a plain decimal: ' + s);
+  if (!/^-?[0-9]+(\.[0-9]+)?$/.test(s)) throw new StoreRefusal('VALUE_NOT_A_PLAIN_DECIMAL', s);
   return s;
 }
 
@@ -64,6 +71,10 @@ function storeRefusals(def, freeText, options = {}) {
     if (derivedOcc(n) && kind !== 'measure' && def.edges.some(e => e.rel === 'during' && e.from === n.id))
       throw new StoreRefusal('NTH_STEP_HAS_NO_END', n.id);
   }
+  // D37: the store reads letter mentions for every step that is not derived, so "coded only" cannot be honoured there.
+  if (freeText === 'off' && options.codedOnly !== 'derived')
+    for (const n of def.nodes)
+      if (stepKind(n) !== 'measure' && n.occ !== 'count' && !derivedOcc(n)) throw new StoreRefusal('FREE_TEXT_CODED_ONLY_UNSUPPORTED', n.id);
 }
 
 function storeRequest(def, freeText, pids, options = {}) {

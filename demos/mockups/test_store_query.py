@@ -163,9 +163,10 @@ class StoreQueryTests(unittest.TestCase):
             self.assertEqual(store.manifest['tables']['patients']['rows'], store_query.DEMO_PATIENTS)
 
     def test_the_real_demo_store_passes(self):
+        # A store only counts when it holds a snapshot: temp cleaners can leave an empty directory behind.
         candidates = [os.environ.get('PTM_MIMIC_STORE'), ROOT / 'verification/execution-store-mimic-run/store',
-                      '/tmp/ptm-store-mockup/mimic/store']
-        path = next((Path(p) for p in candidates if p and Path(p).exists()), None)
+                      Path.home() / 'ptm-local/mimic-demo-store/store']
+        path = next((Path(p) for p in candidates if p and any(Path(p).glob('**/manifest.json'))), None)
         if path is None:
             self.skipTest('no MIMIC-IV demo store built locally')
         service = store_query.StoreService(path)
