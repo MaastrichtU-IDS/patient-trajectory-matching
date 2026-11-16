@@ -7,7 +7,9 @@
 label, and no gene reports. `compare` reads `{"cohort", "cases": [{"name", "query", "conditions", "windows"}]}` (the
 parity test's form, minutes from birth) and runs every case without a gene step on both snapshots: through
 `store_conditions.match`, the entry point every caller uses since D38, on the snapshot `store_parity.build` makes now
-(WRAPPER), and through `store_conditions_relative.match`, main's path, on MAIN. Every output field must be equal, except
+(WRAPPER), and through `store_conditions_relative.match`, main's path, on MAIN (for a coded-only request, D39's profile
+1.3, through `store_conditions_coded.match`, the module the dispatcher names for it, so the comparison is still of the
+two builds). Every output field must be equal, except
 the snapshot's identifier and the context's identifier; inside the context, everything but the snapshot's identifier
 and its file-list digest; in the labels' copies (output and context), everything but the wrapper's `gene_report_kinds`.
 The candidates must be equal too, and a refusal must be the same refusal. Synthetic data
@@ -24,6 +26,7 @@ sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
 from patterns import execution_store as es  # noqa: E402
 from patterns import store_conditions as sc  # noqa: E402
+from patterns import store_conditions_coded as cc  # noqa: E402
 from patterns import store_conditions_gene as gc  # noqa: E402
 from patterns import store_conditions_relative as rc  # noqa: E402
 from patterns import synthetic_ingest as si  # noqa: E402
@@ -80,8 +83,9 @@ def compare(wrapper, main, cases, cohort):
                        for pid, w in case['windows'].items()}
             query = store_parity.to_micros(case['query'])
             conditions = store_parity.conditions_micros(case.get('conditions'))
+            direct = cc if cc.is_coded_request(conditions) else rc  # D39: 1.3 is answered by its own module
             a = _answer(lambda: sc.match(mine, query, windows, conditions=conditions))
-            b = _answer(lambda: rc.match(theirs, query, windows, conditions=conditions))
+            b = _answer(lambda: direct.match(theirs, query, windows, conditions=conditions))
             summary['cases'] += 1
             if 'refused' in a or 'refused' in b:
                 summary['refused'] += 1
@@ -93,7 +97,7 @@ def compare(wrapper, main, cases, cohort):
                 keys = sorted(k for k in set(a) | set(b) if k not in IDENTIFIERS and _strip(a).get(k) != _strip(b).get(k))
                 patients = sorted(x['patient_id'] for x, y in zip(a['results'], b['results']) if x != y)
                 summary['differences'].append({'case': case['name'], 'what': keys, 'patients': patients[:5]})
-            if sc.candidates(mine, query, conditions) != rc.candidates(theirs, query, conditions):
+            if sc.candidates(mine, query, conditions) != direct.candidates(theirs, query, conditions):
                 summary['differences'].append({'case': case['name'], 'what': 'candidates'})
     return summary
 

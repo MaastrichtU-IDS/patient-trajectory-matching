@@ -557,7 +557,7 @@
   },
   "rises": {
    "path": "verification/d36-rise-usefulness-report.json",
-   "sha256": "c996e5ccb49eca8ab329b91cd01a524eedd42318676d464be1be5472b8d94cb7"
+   "sha256": "5f50ed31946c2e576a75e8b0e74ff198604167b0a4567299e5f88bb5b64e447e"
   },
   "scaling": {
    "path": "verification/execution-store-scaling-report.json",

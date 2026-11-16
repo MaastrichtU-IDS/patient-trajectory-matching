@@ -533,7 +533,7 @@ class ModuleBoundaryTests(unittest.TestCase):
         module's, byte for byte; it lists every profile it accepts."""
         ingest, store, _ = _STATE['fixture']
         self.assertEqual(sc.GENE_PROFILE, gc.GENE_PROFILE)
-        self.assertEqual(sc.profiles(), [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE])
+        self.assertEqual(sc.profiles(), [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE, sc.CODED_PROFILE])  # D39 adds 1.3
         for seed in range(3):
             query, conditions, windows = case(seed, 'fixture')
             self.assertEqual(json.dumps(sc.match(store, query, windows, conditions=conditions)),

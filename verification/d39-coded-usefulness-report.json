@@ -1,0 +1,4638 @@
+{
+ "profile": "d39-coded-usefulness-1.0",
+ "rule": "per template under \"coded only\" (sequence; tree and graph without their gene step; event frequency; blank), pooled over the declared seeds: at least 30 patients with a store candidate and an index window, and at most 30% of the distinct child types (PLAN keys) with a candidate unresolved; the whole tree and graph templates refused for their gene step only; the share over all candidates and without C001, and stated findings, reported",
+ "declared_seeds": [
+  1001,
+  1002,
+  1003,
+  1004,
+  1005,
+  1006,
+  1007,
+  1008,
+  1009,
+  1010,
+  1011,
+  1012,
+  1013,
+  1014,
+  1015,
+  1016,
+  1017,
+  1018,
+  1019,
+  1020,
+  1021,
+  1022,
+  1023,
+  1024,
+  1025,
+  1026,
+  1027,
+  1028,
+  1029,
+  1030
+ ],
+ "extension_seeds": [
+  1031,
+  1032,
+  1033,
+  1034,
+  1035,
+  1036,
+  1037,
+  1038,
+  1039,
+  1040,
+  1041,
+  1042,
+  1043,
+  1044,
+  1045,
+  1046,
+  1047,
+  1048,
+  1049,
+  1050,
+  1051,
+  1052,
+  1053,
+  1054,
+  1055,
+  1056,
+  1057,
+  1058,
+  1059,
+  1060,
+  1061,
+  1062,
+  1063,
+  1064,
+  1065,
+  1066,
+  1067,
+  1068,
+  1069,
+  1070,
+  1071,
+  1072,
+  1073,
+  1074,
+  1075,
+  1076,
+  1077,
+  1078,
+  1079,
+  1080,
+  1081,
+  1082,
+  1083,
+  1084,
+  1085,
+  1086,
+  1087,
+  1088,
+  1089,
+  1090,
+  1091,
+  1092,
+  1093,
+  1094,
+  1095,
+  1096,
+  1097,
+  1098,
+  1099,
+  1100
+ ],
+ "seeds_used": [
+  1001,
+  1002,
+  1003,
+  1004,
+  1005,
+  1006,
+  1007,
+  1008,
+  1009,
+  1010,
+  1011,
+  1012,
+  1013,
+  1014,
+  1015,
+  1016,
+  1017,
+  1018,
+  1019,
+  1020,
+  1021,
+  1022,
+  1023,
+  1024,
+  1025,
+  1026,
+  1027,
+  1028,
+  1029,
+  1030
+ ],
+ "setting": {
+  "window": "from the second seizure, 24 months (the page's own)",
+  "scope": "from_start",
+  "free_text": "off (coded records only); the comparison: present (stated findings)",
+  "translator": "trajectory/store_request.js with codedOnly \"store\" and rises asked for",
+  "store": "patterns/store_conditions_coded.py (profile execution-store-conditions-1.3, exclude_kinds [\"mention\"])",
+  "converter": "patterns/synthetic_ingest.py emitting series, diary summaries labelled as period readings"
+ },
+ "bar": {
+  "sequence": {
+   "types": 16,
+   "types_unresolved": 0,
+   "share_of_types": 0,
+   "candidates": 188,
+   "unresolved": 0,
+   "enough_candidates": true,
+   "met": true
+  },
+  "tree without its gene step": {
+   "types": 16,
+   "types_unresolved": 0,
+   "share_of_types": 0,
+   "candidates": 188,
+   "unresolved": 0,
+   "enough_candidates": true,
+   "met": true
+  },
+  "graph without its gene step": {
+   "types": 7,
+   "types_unresolved": 0,
+   "share_of_types": 0,
+   "candidates": 142,
+   "unresolved": 0,
+   "enough_candidates": true,
+   "met": true
+  },
+  "event frequency": {
+   "types": 16,
+   "types_unresolved": 11,
+   "share_of_types": 0.6875,
+   "candidates": 278,
+   "unresolved": 23,
+   "enough_candidates": true,
+   "met": false
+  },
+  "blank": {
+   "types": 44,
+   "types_unresolved": 0,
+   "share_of_types": 0,
+   "candidates": 1099,
+   "unresolved": 0,
+   "enough_candidates": true,
+   "met": true
+  }
+ },
+ "coverage": {
+  "answered_under_coded_only": [
+   "sequence",
+   "tree without its gene step",
+   "graph without its gene step",
+   "event frequency",
+   "blank"
+  ],
+  "whole_templates_refused": {
+   "tree": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "graph": "GENE_WITH_CODED_ONLY_UNSUPPORTED"
+  },
+  "met": true
+ },
+ "templates": {
+  "sequence": {
+   "candidates": 188,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 87,
+    "none": 54,
+    "relaxed": 33,
+    "exact": 14
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  },
+  "tree without its gene step": {
+   "candidates": 188,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 88,
+    "none": 51,
+    "relaxed": 35,
+    "exact": 14
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  },
+  "graph without its gene step": {
+   "candidates": 142,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 93,
+    "relaxed": 33,
+    "none": 9,
+    "exact": 7
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  },
+  "event frequency": {
+   "candidates": 278,
+   "unresolved": 23,
+   "statuses": {
+    "exact": 172,
+    "unresolved": 23,
+    "relaxed": 51,
+    "none": 23,
+    "possible": 9
+   },
+   "reasons": {
+    "STEP_CONDITION_UNCERTAIN": 23
+   },
+   "unresolved_share": 0.08273381294964029
+  },
+  "blank": {
+   "candidates": 1099,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 509,
+    "exact": 578,
+    "none": 12
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  }
+ },
+ "stated_findings": {
+  "sequence": {
+   "candidates": 189,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 96,
+    "none": 44,
+    "relaxed": 49
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  },
+  "tree without its gene step": {
+   "candidates": 189,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 102,
+    "none": 42,
+    "relaxed": 45
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  },
+  "graph without its gene step": {
+   "candidates": 142,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 96,
+    "relaxed": 31,
+    "none": 15
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  },
+  "event frequency": {
+   "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+  },
+  "blank": {
+   "candidates": 1113,
+   "unresolved": 0,
+   "statuses": {
+    "possible": 1092,
+    "none": 18,
+    "exact": 3
+   },
+   "reasons": {},
+   "unresolved_share": 0
+  }
+ },
+ "independence": "not independent children (D36 review, M1): C001 is the scripted reference child in every seed, and every other child takes archetype, sex, birth year and overrides from the generator's fixed PLAN; only the draws vary with the seed",
+ "shares_three_ways": {
+  "sequence": {
+   "distinct_child_types": {
+    "types": 16,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 188,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 158,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "sequence, stated findings": {
+   "distinct_child_types": {
+    "types": 16,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step": {
+   "distinct_child_types": {
+    "types": 16,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 188,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 158,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "tree without its gene step, stated findings": {
+   "distinct_child_types": {
+    "types": 16,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 189,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 159,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step": {
+   "distinct_child_types": {
+    "types": 7,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 142,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 112,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "graph without its gene step, stated findings": {
+   "distinct_child_types": {
+    "types": 7,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 142,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 112,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "event frequency": {
+   "distinct_child_types": {
+    "types": 16,
+    "types_unresolved": 11
+   },
+   "all_candidates": {
+    "candidates": 278,
+    "unresolved": 23
+   },
+   "without_C001": {
+    "candidates": 248,
+    "unresolved": 23
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "blank": {
+   "distinct_child_types": {
+    "types": 44,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 1099,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 1069,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  },
+  "blank, stated findings": {
+   "distinct_child_types": {
+    "types": 44,
+    "types_unresolved": 0
+   },
+   "all_candidates": {
+    "candidates": 1113,
+    "unresolved": 0
+   },
+   "without_C001": {
+    "candidates": 1083,
+    "unresolved": 0
+   },
+   "C001": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   }
+  }
+ },
+ "by_plan_key": {
+  "sequence": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 4,
+    "unresolved": 0,
+    "cohorts": 4
+   }
+  },
+  "sequence, stated findings": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "tree without its gene step": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 4,
+    "unresolved": 0,
+    "cohorts": 4
+   }
+  },
+  "tree without its gene step, stated findings": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "pcdh19-1": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "pcdh19-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-0": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "pcdh19-4": {
+    "candidates": 3,
+    "unresolved": 0,
+    "cohorts": 3
+   },
+   "cdkl5-0": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-2": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "cdkl5-1": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   }
+  },
+  "graph without its gene step": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   }
+  },
+  "graph without its gene step, stated findings": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-preterm": {
+    "candidates": 18,
+    "unresolved": 0,
+    "cohorts": 18
+   },
+   "dravet-ncb-2": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-typo": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "dravet-ncb-3": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-lost": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "dravet-ncb-1": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   }
+  },
+  "event frequency": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 8,
+    "unresolved": 2,
+    "cohorts": 8
+   },
+   "dravet-preterm": {
+    "candidates": 30,
+    "unresolved": 2,
+    "cohorts": 30
+   },
+   "dravet-ncb-2": {
+    "candidates": 30,
+    "unresolved": 4,
+    "cohorts": 30
+   },
+   "dravet-typo": {
+    "candidates": 30,
+    "unresolved": 2,
+    "cohorts": 30
+   },
+   "pcdh19-1": {
+    "candidates": 6,
+    "unresolved": 0,
+    "cohorts": 6
+   },
+   "dravet-lost": {
+    "candidates": 30,
+    "unresolved": 2,
+    "cohorts": 30
+   },
+   "dravet-ncb-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-ncb-3": {
+    "candidates": 30,
+    "unresolved": 2,
+    "cohorts": 30
+   },
+   "cdkl5-1": {
+    "candidates": 8,
+    "unresolved": 4,
+    "cohorts": 8
+   },
+   "cdkl5-2": {
+    "candidates": 8,
+    "unresolved": 1,
+    "cohorts": 8
+   },
+   "pcdh19-2": {
+    "candidates": 10,
+    "unresolved": 0,
+    "cohorts": 10
+   },
+   "pcdh19-0": {
+    "candidates": 9,
+    "unresolved": 1,
+    "cohorts": 9
+   },
+   "cdkl5-3": {
+    "candidates": 8,
+    "unresolved": 1,
+    "cohorts": 8
+   },
+   "pcdh19-4": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "cdkl5-0": {
+    "candidates": 6,
+    "unresolved": 2,
+    "cohorts": 6
+   }
+  },
+  "blank": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-5": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-gap": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-sibling": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-1": {
+    "candidates": 13,
+    "unresolved": 0,
+    "cohorts": 13
+   },
+   "dravet-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "rett-3": {
+    "candidates": 7,
+    "unresolved": 0,
+    "cohorts": 7
+   },
+   "dravet-negative-fr": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-4": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-preterm": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-ncb-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "cdkl5-1": {
+    "candidates": 29,
+    "unresolved": 0,
+    "cohorts": 29
+   },
+   "dravet-typo": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-4": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-0": {
+    "candidates": 21,
+    "unresolved": 0,
+    "cohorts": 21
+   },
+   "gefs-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "rett-1": {
+    "candidates": 12,
+    "unresolved": 0,
+    "cohorts": 12
+   },
+   "tsc-5": {
+    "candidates": 26,
+    "unresolved": 0,
+    "cohorts": 26
+   },
+   "dravet-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-2": {
+    "candidates": 23,
+    "unresolved": 0,
+    "cohorts": 23
+   },
+   "cdkl5-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-0": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "tsc-0": {
+    "candidates": 24,
+    "unresolved": 0,
+    "cohorts": 24
+   },
+   "gefs-4": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-0": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-lost": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "tsc-4": {
+    "candidates": 28,
+    "unresolved": 0,
+    "cohorts": 28
+   },
+   "cdkl5-0": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-3": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "dravet-ncb-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-ncb-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "cdkl5-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "tsc-3": {
+    "candidates": 24,
+    "unresolved": 0,
+    "cohorts": 24
+   },
+   "tsc-2": {
+    "candidates": 25,
+    "unresolved": 0,
+    "cohorts": 25
+   },
+   "rett-2": {
+    "candidates": 10,
+    "unresolved": 0,
+    "cohorts": 10
+   },
+   "tsc-1": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "rett-0": {
+    "candidates": 14,
+    "unresolved": 0,
+    "cohorts": 14
+   },
+   "fs-5": {
+    "candidates": 5,
+    "unresolved": 0,
+    "cohorts": 5
+   },
+   "rett-4": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   }
+  },
+  "blank, stated findings": {
+   "reference": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-5": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-gap": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-sibling": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-1": {
+    "candidates": 14,
+    "unresolved": 0,
+    "cohorts": 14
+   },
+   "dravet-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "rett-3": {
+    "candidates": 10,
+    "unresolved": 0,
+    "cohorts": 10
+   },
+   "dravet-negative-fr": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-4": {
+    "candidates": 20,
+    "unresolved": 0,
+    "cohorts": 20
+   },
+   "dravet-preterm": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-ncb-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "cdkl5-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-typo": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-4": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-0": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "gefs-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "rett-1": {
+    "candidates": 13,
+    "unresolved": 0,
+    "cohorts": 13
+   },
+   "tsc-5": {
+    "candidates": 27,
+    "unresolved": 0,
+    "cohorts": 27
+   },
+   "dravet-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-2": {
+    "candidates": 23,
+    "unresolved": 0,
+    "cohorts": 23
+   },
+   "cdkl5-2": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-0": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "tsc-0": {
+    "candidates": 24,
+    "unresolved": 0,
+    "cohorts": 24
+   },
+   "gefs-4": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "pcdh19-0": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-lost": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "tsc-4": {
+    "candidates": 28,
+    "unresolved": 0,
+    "cohorts": 28
+   },
+   "cdkl5-0": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "fs-3": {
+    "candidates": 15,
+    "unresolved": 0,
+    "cohorts": 15
+   },
+   "dravet-ncb-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "dravet-ncb-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "cdkl5-3": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "gefs-1": {
+    "candidates": 30,
+    "unresolved": 0,
+    "cohorts": 30
+   },
+   "tsc-3": {
+    "candidates": 24,
+    "unresolved": 0,
+    "cohorts": 24
+   },
+   "tsc-2": {
+    "candidates": 25,
+    "unresolved": 0,
+    "cohorts": 25
+   },
+   "rett-2": {
+    "candidates": 12,
+    "unresolved": 0,
+    "cohorts": 12
+   },
+   "tsc-1": {
+    "candidates": 22,
+    "unresolved": 0,
+    "cohorts": 22
+   },
+   "rett-0": {
+    "candidates": 17,
+    "unresolved": 0,
+    "cohorts": 17
+   },
+   "fs-5": {
+    "candidates": 6,
+    "unresolved": 0,
+    "cohorts": 6
+   },
+   "rett-4": {
+    "candidates": 1,
+    "unresolved": 0,
+    "cohorts": 1
+   }
+  }
+ },
+ "per_seed": {
+  "1001": {
+   "children": 48,
+   "cohort_sha256": "8606015f7553c4786782bd6687a4ce6c06e0bc9d3d5348442c2bb97f56b67bae",
+   "snapshot_id": "cae0966b3437a16ab5d173632888c9ece6d774a490a1feba1575de21b6553b31",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 7,
+      "unresolved": 1,
+      "relaxed": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 22,
+      "exact": 16,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 38,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1002": {
+   "children": 48,
+   "cohort_sha256": "275bfe27b799093c8a5c593c591dc867fac8f5ba684b465cfc3c27b2b224c007",
+   "snapshot_id": "85fd596a05244f43435b87440ee546cf5b55bb565cc3ee2a75f66bb9281c7a2c",
+   "templates": {
+    "sequence": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 2,
+     "statuses": {
+      "exact": 5,
+      "relaxed": 2,
+      "unresolved": 2
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 2
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 21
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1003": {
+   "children": 48,
+   "cohort_sha256": "1b0a06c245e2cab5afdecd07f31f877da86c77797fcf3864f295cc6ae894fc10",
+   "snapshot_id": "a42380167e35de7151caf5934d1f9f6af5bbddb1f81ca6b135f03a127dd67073",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 4
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 11,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 6,
+      "relaxed": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 14,
+      "exact": 22,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1004": {
+   "children": 48,
+   "cohort_sha256": "5049fd6da5ebc7cff6f394c4510e920b2a450a0d8bd32c8ce7316eb08f90aeda",
+   "snapshot_id": "dbe8b01c9baadaa1d8c6f080b152b73c51443b90eed83fd528cbdd4f0fcd39a4",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 3,
+      "none": 2,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 3,
+      "none": 2,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 3,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 11,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 6,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 19,
+      "exact": 17
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1005": {
+   "children": 48,
+   "cohort_sha256": "4470837dc7964c91b0c01168fb092a9bd11c3024204567e96b7180c35191f8f2",
+   "snapshot_id": "b17e068b7ce934850ca395aff968175fccf2f7d476fd4abe182e5aaae44615e4",
+   "templates": {
+    "sequence": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 3,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 4
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 3,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 4
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 2,
+     "statuses": {
+      "exact": 6,
+      "unresolved": 2,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 2
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 17,
+      "exact": 20
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1006": {
+   "children": 48,
+   "cohort_sha256": "d7f8729c5501ae67d04e18442afd0659e27ef8edddbf82f84afbf35613143a1c",
+   "snapshot_id": "465d9b77898e5f81ff42fe9a0a852a338513457c34539ec0af66f0785508bdaf",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1,
+      "relaxed": 2,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 1,
+      "relaxed": 2,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 7,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 18,
+      "exact": 18,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1007": {
+   "children": 48,
+   "cohort_sha256": "f2dcdd3b76b383c4ac6a64cc6d704869bd4506639b73c9d560ba556f191b9c49",
+   "snapshot_id": "6acf9b197460cbafb25df82cb2e198c3701e67b8dfc75e28390e6b74e204cd1e",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "exact": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "exact": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 6,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 7,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 4,
+      "relaxed": 2,
+      "unresolved": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 22
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 37,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1008": {
+   "children": 48,
+   "cohort_sha256": "6ead7b24046dee057f7f25b7d614d3920a59ccb075da37e1c9de4cac2849e36d",
+   "snapshot_id": "9964be3ceb7bb9ce87344518f01bf65a10bf20be995474122eac40b63ba8bacf",
+   "templates": {
+    "sequence": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 4,
+      "relaxed": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 17,
+      "exact": 22
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 40,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 40
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1009": {
+   "children": 48,
+   "cohort_sha256": "64929f19b1e96f3bdf0680c4bc8b7a4375469fd23f55173834b1bbc02cf91a22",
+   "snapshot_id": "2c8934ae603c3752fd2fa46426ed25015ee334d28320c62c83bf9f6d9da11c8c",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 11,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 8,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 35,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 22,
+      "exact": 12,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "none": 1,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1010": {
+   "children": 48,
+   "cohort_sha256": "a451fe091accf93dbde05452a5cd6defbaeb2ae5d2152332a97f0904e648f4ea",
+   "snapshot_id": "eef6ab71d632d14ee31dc6f9d16bd765ca6f47363aa95dd1f5335b6b98d68cfe",
+   "templates": {
+    "sequence": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 2,
+     "statuses": {
+      "exact": 5,
+      "relaxed": 2,
+      "unresolved": 2,
+      "none": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 2
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 17,
+      "exact": 19
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1011": {
+   "children": 48,
+   "cohort_sha256": "dd5a0f2d091ec35dde0c82d2941a282da4d214f07108e099802284a3e8bf4fc4",
+   "snapshot_id": "53e5535f013657d96e480f6ac6b749f8c1c68da0307157ceac7453f83f60eacd",
+   "templates": {
+    "sequence": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 4,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 4,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 7,
+      "unresolved": 1,
+      "none": 2
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 16,
+      "exact": 21,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "exact": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1012": {
+   "children": 48,
+   "cohort_sha256": "e77551aa1894862837b011a5835b1268b031da5843611b5161845dd78e8d4b7e",
+   "snapshot_id": "e6b8b1cf25e21dbb96dbddc37f29c5ed0acdcd4101c88aea6edc5690cccb33b3",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 6,
+      "possible": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 34,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 14,
+      "exact": 19,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 35,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 34,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1013": {
+   "children": 48,
+   "cohort_sha256": "40ba4250140b0adcff7359fca31af8f0476fffe0a66fbe980550a26dc6b46081",
+   "snapshot_id": "d8ab50f65b23de015774213f4c3549380580bd872b5a143989dc8de7123fdb30",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "exact": 2,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "exact": 2,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "exact": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 6,
+      "unresolved": 1,
+      "none": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 34,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 21,
+      "exact": 13
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 34,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 34
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1014": {
+   "children": 48,
+   "cohort_sha256": "86df5c4ec267bb9f533b9f4ef60a06b04999ea34685ff036ed08122bc74fb3d2",
+   "snapshot_id": "9433820306e84c5a5eb7a17d1b8f8c49f69ad26071fea1179080c7952e5173f3",
+   "templates": {
+    "sequence": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 6,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 35,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 21,
+      "exact": 13,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 35,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 34,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1015": {
+   "children": 48,
+   "cohort_sha256": "4476ec71dd6f1c93e67cb998a9d2200c4d40ef69385a75709b521b100f75e17a",
+   "snapshot_id": "171e72da1a43269f830e27d7b63709603c41b817161ae4401609e6fcc53b8141",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 2,
+      "none": 2,
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 4,
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 2,
+      "none": 2,
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 3,
+      "possible": 4
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 2,
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "relaxed": 2,
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 7,
+      "none": 1,
+      "unresolved": 1,
+      "relaxed": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 20,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 35,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1016": {
+   "children": 48,
+   "cohort_sha256": "0c1767c2815c36ece0388e721d7587b2e63ce9a08b81340160a47e621051aac6",
+   "snapshot_id": "1591167e0e7a6b52cad97a9e22b85a6b0006ccb0496cdbb6b365fd766f307980",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "exact": 1,
+      "none": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "exact": 1,
+      "none": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 7,
+      "possible": 1,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 16,
+      "exact": 20
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 38,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1017": {
+   "children": 48,
+   "cohort_sha256": "35113e37571d0ceaaefa63c3e265f17d5bade95fbde187799f73596d5bfc4bb8",
+   "snapshot_id": "0b906b14eabfa095e9b60c8c8158157f1929cc154ff28a77c6d3302f90d7f2c4",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 11,
+     "unresolved": 2,
+     "statuses": {
+      "exact": 2,
+      "relaxed": 5,
+      "unresolved": 2,
+      "none": 1,
+      "possible": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 2
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 19,
+      "exact": 19
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 37,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1018": {
+   "children": 48,
+   "cohort_sha256": "78aaa5c297f4e8158bfe5aa5fc3475c3f9b7b17f6afdd9af8609af8660d5726c",
+   "snapshot_id": "bb860ed5742a0b4bff4a568ef76ee14b572b3d5aee49f557d10630b67c0b62b9",
+   "templates": {
+    "sequence": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 7,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 13,
+      "exact": 25
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 39
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1019": {
+   "children": 48,
+   "cohort_sha256": "e084f46351852a8176733942918fa47de887de0ea1cd0c1bf2173760fea794ab",
+   "snapshot_id": "4a91254c954bc463a217c09ee213d29a9a3d25cb36f123fad5b5a80eaf6e65a6",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "exact": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 3,
+      "exact": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "exact": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 5,
+      "none": 1,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 17,
+      "exact": 19
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 37
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1020": {
+   "children": 48,
+   "cohort_sha256": "30196a7738d2fb9698d9d12c5982ac9019296df92b5a31ad0e64b48099fb8964",
+   "snapshot_id": "558e2593f118f031d3499be2d34dd8a12136838403c659b86872bf5c5a74dab6",
+   "templates": {
+    "sequence": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 6,
+      "unresolved": 1,
+      "possible": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 22,
+      "exact": 17
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 38,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1021": {
+   "children": 48,
+   "cohort_sha256": "6f7313f0a0569349546f5d458aab8bbdbb822deac3499b66e974b3c543479a73",
+   "snapshot_id": "5030ae063d9eb6ed2644db45e758d1ef537f69b7cd7512b8058115f08a59a0af",
+   "templates": {
+    "sequence": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 1,
+      "relaxed": 1,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 3,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 4,
+      "none": 2,
+      "unresolved": 1,
+      "possible": 1,
+      "relaxed": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 9,
+      "exact": 26,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 35,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1022": {
+   "children": 48,
+   "cohort_sha256": "375ba2b382ce0d7ea1efbaad8d7e41198fafc0a515b5c56ce0da061f224441b2",
+   "snapshot_id": "198cc170f7fca2182710117017e35d78377e88180b1462678e142586ddc06d17",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "exact": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "exact": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "exact": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 2,
+     "statuses": {
+      "exact": 5,
+      "relaxed": 1,
+      "unresolved": 2
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 2
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 22,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 40,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 39,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1023": {
+   "children": 48,
+   "cohort_sha256": "3b845a7999b15d8536275d885d97698f49c14cce2863c5538a66e84e4ba2d440",
+   "snapshot_id": "97c4c4b7183128ba45e3cd89150138053ce14dd930feff599b4181fa1abfb561",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 5,
+      "unresolved": 1,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 16,
+      "exact": 20,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1024": {
+   "children": 48,
+   "cohort_sha256": "aa24596c9fb419cbb3e3c3926cf4616446705fcb50d308923bb84087b4e57b71",
+   "snapshot_id": "dcd37fb20b5ab8fb22780e54840cab8e003de73d6e1bf18e43a2744578aa5158",
+   "templates": {
+    "sequence": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 2,
+     "statuses": {
+      "exact": 5,
+      "relaxed": 1,
+      "unresolved": 2
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 2
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 35,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 20
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 35,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 35
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1025": {
+   "children": 48,
+   "cohort_sha256": "6830d4a543074cd3eb3eeeef51242ecfe26c99ab2e7f8d3dfcccd177e566528f",
+   "snapshot_id": "69bf1b74352e7e964bbf1ed6a88269b9c240a7b152d638dad2852606ad0601ea",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 2,
+      "relaxed": 3
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "none": 3,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 11,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 7,
+      "relaxed": 3,
+      "unresolved": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 18,
+      "exact": 18
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 36,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1026": {
+   "children": 48,
+   "cohort_sha256": "165805b2735edd977edd8a3ee767e9e2489b4238365c8e3c5ac854d36c171c34",
+   "snapshot_id": "f90fa3f6883a56851d98408292077afb448532a0962101935d1a64b6863c6290",
+   "templates": {
+    "sequence": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 9,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 11,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 5,
+      "relaxed": 2,
+      "unresolved": 1,
+      "possible": 1,
+      "none": 2
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 22
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 37
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1027": {
+   "children": 48,
+   "cohort_sha256": "776ab961b0f6f860dd3739d149af76af444e277ef0fcf731c410f1899c297be9",
+   "snapshot_id": "ace99def3cadeed374e5e1bc7d8c721d19784f51cbfdfdcaf8438510cfba2335",
+   "templates": {
+    "sequence": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "exact": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "exact": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 2,
+      "exact": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 4,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 7,
+      "possible": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 15,
+      "exact": 23
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 38,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 38
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1028": {
+   "children": 48,
+   "cohort_sha256": "64d5e4f05e866656cb2361f5dcedd84d6b5b01a1f6939f7221c329ed8624ab8d",
+   "snapshot_id": "99a8cbe7f551bc4d88a3201f1a2d1e7dc1b67f4ef7d9731b318f2cf7c67b1dd1",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 6,
+      "relaxed": 1,
+      "possible": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 33,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 19,
+      "none": 1,
+      "exact": 13
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 34,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 33,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1029": {
+   "children": 48,
+   "cohort_sha256": "801d641f669c4a78a40b41ec1224d38f8c6ac273ecf461d1176aed0e8732bbda",
+   "snapshot_id": "7d47ee8a430797299034d53576fbb65596041a8d85e8ba175d636cae24d0c6d4",
+   "templates": {
+    "sequence": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 8,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 3,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 5,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 6,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 10,
+     "unresolved": 0,
+     "statuses": {
+      "exact": 5,
+      "relaxed": 4,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 16,
+      "exact": 23
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 39,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 38,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  },
+  "1030": {
+   "children": 48,
+   "cohort_sha256": "15a32c37ef3f2e9830f7a5da8c5e721f708a39ace93325fde226459978870afa",
+   "snapshot_id": "7af1d8c286717aef1bd128d8de56f7c493f74186ad751fb354244028cb299be4",
+   "templates": {
+    "sequence": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "sequence, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "tree without its gene step": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "none": 2,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "tree without its gene step, stated findings": {
+     "candidates": 7,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 2,
+      "relaxed": 2
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "graph without its gene step": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 4,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "graph without its gene step, stated findings": {
+     "candidates": 5,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 3,
+      "none": 1,
+      "relaxed": 1
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.2"
+    },
+    "event frequency": {
+     "candidates": 9,
+     "unresolved": 1,
+     "statuses": {
+      "exact": 6,
+      "unresolved": 1,
+      "none": 1,
+      "possible": 1
+     },
+     "reasons": {
+      "STEP_CONDITION_UNCERTAIN": 1
+     },
+     "profile": "execution-store-conditions-1.3"
+    },
+    "event frequency, stated findings": {
+     "refused": "FREE_TEXT_COUNT_UNSUPPORTED"
+    },
+    "blank": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 21,
+      "exact": 16
+     },
+     "reasons": {},
+     "profile": "execution-store-conditions-1.3"
+    },
+    "blank, stated findings": {
+     "candidates": 37,
+     "unresolved": 0,
+     "statuses": {
+      "possible": 36,
+      "none": 1
+     },
+     "reasons": {},
+     "profile": null
+    }
+   }
+  }
+ },
+ "artifacts": {
+  "demos/mockups/coded_usefulness.cjs": "d0dbd91e16ed7bedc5503e4e0bd6dd107e43f60e93fe9f6bfd424a216b986054",
+  "demos/mockups/store_parity.py": "9cd0604ddd6e294e998cf82613c3f41352a262997b0cae11a18c78d526dea78b",
+  "demos/mockups/trajectory/store_request.js": "e8afcabd57cfe73ff2306d79807da885592094a4356e8bcd361e9a02b73d7b21",
+  "demos/mockups/trajectory/app.js": "1d8b97fb7caff993c223648be32efc2d1db2ce3a7013e61dec9929bfad870e44",
+  "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "24cdacd7b8f1cff11347c9165c455e1f971bf4949891f7f660b0893c4e1d395e",
+  "patterns/store_conditions_coded.py": "8c17d338e4fe30fc78dc427d697c2c91654c64be1c04f14d744b750ea9a2429f",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/execution_store.py": "54de9edc344ce53a1c0e34559544879886253902e28c59fab845145c8e8ec327",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ }
+}

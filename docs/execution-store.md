@@ -493,6 +493,52 @@ A gene step has occurrence `any`, carries no other condition and no relaxation n
 - *No change without gene steps*: 594 requests against main's builds, equal but for identifiers; the scaling builds are reusable.
 - *Latency* (`verification/d38-paired-verdict.json`): requests without a gene step take main's path; 14-worker paired p95 ratios 0.83 to 1.02, p95 9.38 s. Gene requests at scale are not timed.
 
+## Coded records only, by request (D39)
+
+**Status.** Built and sound on every check. Not made the page's default: the usefulness bar was missed on the Event frequency template, under the strict reading by distinct child types (decision log, D39). The translator writes it only when asked (`codedOnly: 'store'`); by default it still refuses "coded records only" where letter mentions would be read (`FREE_TEXT_CODED_ONLY_UNSUPPORTED`). The code is in [`patterns/store_conditions_coded.py`](../patterns/store_conditions_coded.py), which no build loads. Callers reach it through [`patterns/store_conditions.py`](../patterns/store_conditions.py), which routes profile 1.3 there and hands everything else on unchanged.
+
+**The request** (profile `execution-store-conditions-1.3`: the 1.2 language plus `exclude_kinds`, which it requires):
+
+```json
+{"profile": "execution-store-conditions-1.3", "exclude_kinds": ["mention"],
+ "steps": {"A": {"count": {"at_least": 3, "within": {"span": 15811200000000}}}}}
+```
+
+`steps` may be empty. Only `"mention"` is accepted.
+
+Refusals by name:
+- `INVALID_EXCLUDE_KINDS`: not a non-empty list of distinct strings;
+- `EXCLUDE_KIND_UNSUPPORTED`: any kind other than `"mention"`;
+- `INVALID_CONDITIONS`: relaxations without a conditioned step;
+- every refusal of 1.2.
+
+`execution_store` and `store_conditions_relative` refuse 1.3 (`INVALID_CONDITIONS`), as before.
+
+**What it means** (`EXCLUDE_RULE`, `exclude_kinds_v1`). A 1.3 request is answered as the same request as profile 1.2 would be on the snapshot with every letter mention removed. The mention's concepts, evidence, series rows and time variables go with it. The patients, coverage periods, excluded records, closure and labels are unchanged.
+- *Every step kind* binds, ranks, counts and reads kept events only. This covers `any`, first and last (with D30's order rule and D35's split), Nth and counts (already coded only since D32), value tags and rises (a left-out event's series row is neither the reading nor in a baseline).
+- *Shared variables*: a mention's variables leave with it. A coded event whose time a mention narrowed keeps its own recorded range.
+- *Coverage*: a step is recorded by the sources holding a kept event of its concepts. For a value tag, that means a series row of a kept event in its unit. The synthetic letter sources hold only mentions, so they never cover a coded-only step.
+- *D18*: a mention left out by request is not an excluded record. It never makes a result not comparable, unresolved or incomplete. Excluded records act as before; they carry no kind, so they are kept under any `exclude_kinds` (sound, conservative).
+- *Candidates*: the filter's survivors are refined to patients with kept events for every step (N′ for derived steps), so `candidates` and `FILTERED` are those of the snapshot without mentions. The output's `plan` still counts postings over every record.
+- *Pruning*: the posting summaries include mentions, so they bound the kept events. The argument of `_impossible` holds unchanged; pruning is only weaker, never different.
+- *Output*: `excluded_kinds: {kinds, rule}`. The context binds the module's and the relative module's digests and the rule's digest.
+
+**Verification** (decision log, D39):
+- the independent reference (`patterns/coded_only_cases.py`): the existing reference on the ingest with mentions removed;
+- two small-snapshot generators checked against every choice of the kept events' times, and five planted defects;
+- the snapshot differential, and the store against itself on the snapshot built without mentions;
+- `patterns/test_coded_only.py`;
+- parity trajectories under "coded only";
+- the usefulness test (`demos/mockups/coded_usefulness.cjs`).
+
+The latency of 1.3 requests at scale is not measured: the paired benchmark carries none.
+
+**In short** (decision log, D39):
+- 40,000 small cases (two generators): 0 violations and 0 reference mismatches; five planted defects caught.
+- 420 snapshot requests (18,000 results): 0 mismatches, the same at 2 workers, at `decided` and with pruning off; the store equals itself on the snapshot without mentions.
+- *Usefulness* (`verification/d39-coded-usefulness-report.json`, seeds 1001 to 1030): Sequence, Tree and Graph without their gene step, and Blank, 0 unresolved. Event frequency 23 of 278 candidates unresolved, in 11 of 16 child types, all from D32's count: the bar (30% of types) is missed.
+- *Latency* (`verification/d39-paired-verdict.json`): requests without 1.3 take main's path; 14-worker paired p95 ratios 1.016, 0.999, 1.012, 1.051 (one pair over 1.05, with identical code on both sides), p95 9.20 s.
+
 ## Match output
 
 `match(store, query, windows)` returns, beside the per-patient results, the counts and the filter plan:
@@ -1120,7 +1166,7 @@ Most `none` results become `not_comparable`, and most relaxed ones `unresolved`.
   - bucket-level roots so that an append rebuilds and rehashes only the buckets it touches (the per-bucket derive of D23, which lets 1,000,000 patients build, is done: [Scaling](#1000000-patients-before-and-after-d23));
   - matching, the next wall per D19 step 3.
 - **`chartevents`**: done in D27 by route (b), with a census on the demo ([Chartevents](#chartevents-d27)). Value conditions in the match request (stage 2) are done in D28 ([Value conditions](#value-conditions-d28)). Next for it: textual and unitless measurements, unit equivalence and reviewed item mappings (stage 3).
-- **The mockups on the store** (D29). Stage 1 is done: a mockup page queries a locally built demo store with aggregate counts only, serving it only if it holds the open demo's own patients, and the synthetic cohort in a store is compared with the trajectory page (`demos/mockups/README.md`). Stage 2 is done (D37): the trajectory page matches in a store of the synthetic cohort by default, through its own translator; what the store cannot express (gene steps, hedged text, counts over stated text, "coded only" where letter mentions would still be read) is refused by name and matched in the browser, labelled. Stage 3 waits for the hosting decision.
+- **The mockups on the store** (D29). Stage 1 is done: a mockup page queries a locally built demo store with aggregate counts only, serving it only if it holds the open demo's own patients, and the synthetic cohort in a store is compared with the trajectory page (`demos/mockups/README.md`). Stage 2 is done (D37): the trajectory page matches in a store of the synthetic cohort by default, through its own translator; what the store cannot express (gene steps, hedged text, counts over stated text, "coded only" where letter mentions would still be read) is refused by name and matched in the browser, labelled. D39 built "coded only" for every step (profile 1.3); the translator writes it when asked, and by default still refuses it, since D39 missed its usefulness bar on the Event frequency template. Stage 3 waits for the hosting decision.
 - **A Merkle input digest** (`patterns/merkle_patients.py`, built and tested, D27): wired in only when incremental appends exist; until then the flat D20 digest stays the identity.
 - **Time pruning** on the posting summaries: done in D25, with a differential of pruning on against off, and on end summaries for a `during` relation's grace in D26 ([Time pruning](#time-pruning-d25-d26)).
 - **Per-bucket joins.** The candidate patient and event lookups are `IN` lists over the candidate set today. At full scale they become joins against a candidate table, one bucket partition at a time.

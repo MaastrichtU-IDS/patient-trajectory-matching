@@ -83,6 +83,7 @@ LABELS = {
     'test_build_record': 'Scaling build runtime-record tests',
     'test_relative_conditions': 'Execution-store rise and fall (relative condition) tests',
     'test_gene_steps': 'Execution-store gene step tests',
+    'test_coded_only': 'Execution-store coded-only (letter mentions left out by request) tests',
 }
 
 
