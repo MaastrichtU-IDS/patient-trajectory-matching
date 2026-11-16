@@ -198,7 +198,7 @@ class TrajectoryStoreTests(unittest.TestCase):
             'a gap as a float': ({**good, 'query': {**good['query'], 'relations': [{**good['query']['relations'][0], 'max': 1.5}]}},
                                  'TIME_MUST_BE_WHOLE_MINUTES'),
             'a gap beyond any record': ({**good, 'query': {**good['query'], 'relations': [{**good['query']['relations'][0], 'max': 10 ** 12}]}},
-                                        'TIME_MUST_BE_WHOLE_MINUTES'),
+                                        'TIME_OUT_OF_RANGE'),
             'a boolean window end': ({**good, 'windows': {self.pids[0]: {'start': 0, 'end': True}}}, 'TIME_MUST_BE_WHOLE_MINUTES'),
             'an unknown patient': ({**good, 'windows': {'X999': window}}, 'UNKNOWN_WINDOW_PATIENT'),
             'a window with extra keys': ({**good, 'windows': {self.pids[0]: {**window, 'note': 'x'}}}, 'WINDOW_MUST_BE_START_AND_END'),
@@ -207,11 +207,17 @@ class TrajectoryStoreTests(unittest.TestCase):
             'the store refuses an unknown conditions profile': ({**good, 'conditions': {'profile': 'x', 'steps': {}}}, 'INVALID_CONDITIONS'),
             'a count span as a string': ({**requests(self.pids)['count'], 'conditions': {'profile': 'execution-store-conditions-1.1',
                                           'steps': {'A': {'count': {'at_least': 2, 'within': {'span': '1'}}}}}}, 'TIME_MUST_BE_WHOLE_MINUTES'),
+            'a count that is not an object': ({**requests(self.pids)['count'], 'conditions': {'profile': 'execution-store-conditions-1.1',
+                                               'steps': {'A': {'count': [2]}}}}, 'COUNT_MUST_BE_AN_OBJECT'),
+            'a count span beyond any record': ({**requests(self.pids)['count'], 'conditions': {'profile': 'execution-store-conditions-1.1',
+                                                'steps': {'A': {'count': {'at_least': 2, 'within': {'span': -10 ** 10}}}}}}, 'TIME_OUT_OF_RANGE'),
         }
+        # Who refused: the server's own check before the store, or the store (or engine) by its code.
+        by_store = {'UNSUPPORTED_PROFILE', 'INVALID_FACTOR', 'INVALID_CONDITIONS'}
         for name, (body, code) in cases.items():
             with self.subTest(name):
                 status, answer = self.served.post(body)
-                self.assertEqual((status, answer), (400, {'error': code}))
+                self.assertEqual((status, answer), (400, {'error': code, 'by': 'store' if code in by_store else 'server'}))
         self.assertEqual(self.served.post(b'{not json'), (400, {'error': 'MALFORMED_REQUEST'}))
         self.assertEqual(self.served.post(b'{}', 'text/plain'), (415, {'error': 'JSON_REQUIRED'}))
 
@@ -220,6 +226,30 @@ class TrajectoryStoreTests(unittest.TestCase):
         spec['conditions']['steps']['B']['relative']['factor'] = factor
         del spec['conditions']['relaxations']
         return spec
+
+    def test_an_unverified_match_is_described_like_a_binding(self):
+        # A match the store reports beside an order-uncertain `unresolved` (D30) gets the same description as a binding.
+        _, body = self.served.post(requests(self.pids)['plain'])
+        bound = next(r for r in body['results'] if r.get('binding'))
+        pid, step, event = bound['patient_id'], *next(iter(bound['binding'].items()))
+        store = self.served.httpd.trajectory_store
+        raw = {'patient_id': pid, 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN', 'uncertain_steps': [step],
+               'unverified_match': {'certainty': 'possible', 'binding': {step: event['id']}, 'method': 'm'}, 'complete': False}
+        out = store._patient(raw)
+        self.assertEqual(out['unverified_match']['binding'][step], event)
+        self.assertEqual(out['unverified_match']['certainty'], 'possible')
+        self.assertEqual({k: v for k, v in out.items() if k != 'unverified_match'},
+                         {k: v for k, v in raw.items() if k != 'unverified_match'})
+
+    def test_the_repository_check_holds_for_other_spellings_and_other_working_trees(self):
+        self.assertTrue(store_trajectory.inside_repository(ROOT / 'verification' / 'not-yet'))
+        lower = Path(str(ROOT).lower())
+        if lower != ROOT and lower.exists():  # a case-insensitive disk (macOS): the same directory, spelled otherwise
+            self.assertTrue(store_trajectory.inside_repository(lower / 'x'))
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertFalse(store_trajectory.inside_repository(Path(tmp) / 'root'))
+            (Path(tmp) / '.git').mkdir()  # another git working tree
+            self.assertTrue(store_trajectory.inside_repository(Path(tmp) / 'root' / 'deeper'))
 
     def test_an_internal_failure_is_named_without_detail(self):
         with mock.patch.object(rc, 'match', side_effect=RuntimeError('C001 secret')):

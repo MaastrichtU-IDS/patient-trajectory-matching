@@ -257,7 +257,8 @@ def candidates(store, wanted, births):
 
 
 def sweep(snapshot, cases, cohort):
-    """D37's option sweep: each case through `store_conditions_relative.match`, as the page's endpoint runs it. Answers
+    """D37's option sweep: each case through `store_conditions_relative.match`, called directly here with the same
+    conversion to the store's clock the page's endpoint uses (the endpoint itself is tested in test_store_trajectory.py). Answers
     {name: {"counts": ...}} when the store answers, {"error": code} when it refuses by name, and {"error": "UNNAMED",
     "message": ...} for any failure without a code (which the test counts as a broken rule)."""
     births = birth_micros(cohort)

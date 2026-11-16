@@ -21,7 +21,7 @@ for the open demo only. With no store configured, status says so and how to buil
 The trajectory page matches in the execution store by default (D29 stage 2, D37), through two more endpoints from
 `store_trajectory.py`: `GET /api/trajectory-store/status` and `POST /api/trajectory-store/match`. At startup the
 server builds the page's synthetic cohort into a store (about a second, on a background thread), in a temporary
-directory removed when the server closes, or under `--trajectory-store-root` (`PTM_TRAJECTORY_STORE_ROOT`), never
+directory removed when the server closes (cleanly, or on SIGTERM, SIGINT or SIGHUP; never on SIGKILL), or under `--trajectory-store-root` (`PTM_TRAJECTORY_STORE_ROOT`), never
 inside the repository. These answer per patient, since the data are synthetic and the page already holds every
 record; the MIMIC endpoints keep their aggregate-only rules. `--no-trajectory-store` leaves the store out, and the
 page then matches as before.
@@ -140,8 +140,8 @@ class Handler(SimpleHTTPRequestHandler):
         """The trajectory store's answer (D37), or a named error; never a traceback."""
         try:
             return self.send_json(200, answer())
-        except store_trajectory.RequestError as error:
-            return self.send_json(400, {'error': str(error)})
+        except store_trajectory.RequestError as error:  # `by`: the server's own check, or the store's refusal
+            return self.send_json(400, {'error': str(error), 'by': error.by})
         except store_trajectory.Unavailable as error:
             return self.send_json(503, {'error': str(error)})
         except Exception:  # noqa: BLE001 - an internal failure is named, with no detail
@@ -190,31 +190,31 @@ def main():
                         '(default: $PTM_MIMIC_STORE); only the open demo is served')
     parser.add_argument('--mimic-d-items', help="the demo's d_items file, for item labels (default: $PTM_MIMIC_D_ITEMS)")
     parser.add_argument('--trajectory-store-root', help="where to build the synthetic cohort's store for the trajectory "
-                        'page (default: $PTM_TRAJECTORY_STORE_ROOT, else a temporary directory); never inside the repository')
+                        'page (default: $PTM_TRAJECTORY_STORE_ROOT, else a temporary directory); never inside a git working tree')
     parser.add_argument('--no-trajectory-store', action='store_true',
                         help='build no store; the trajectory page then matches with the engine or in the browser')
     args = parser.parse_args()
+
+    def stop(signum, frame):  # a terminated server closes too, so the store's build is removed (D37); SIGKILL cannot be caught
+        raise KeyboardInterrupt
+    for name in ('SIGTERM', 'SIGINT', 'SIGHUP'):
+        signal.signal(getattr(signal, name), stop)
     server = serve(args.host, args.port, args.mimic_store, args.mimic_d_items,
                    trajectory_store=not args.no_trajectory_store, trajectory_store_root=args.trajectory_store_root)
-    print(f'mockups and {engine.PROFILE_ID} on http://{args.host}:{server.server_port}/', flush=True)
-    status = server.store.status()
-    print(f"store query page: {'MIMIC-IV demo store ' + status['snapshot_id'][:12] if status['available'] else status['error']}",
-          flush=True)
-    if server.trajectory_store is not None:
-        status = server.trajectory_store.status()
-        built = f"synthetic store {status['snapshot_id'][:12]} (built in {status['built_s']} s)" if status['available'] else status['error']
-        print(f'trajectory page: {built}', flush=True)
-
-    def stop(signum, frame):  # a terminated server closes too, so the store's build is removed (D37)
-        raise KeyboardInterrupt
-    signal.signal(signal.SIGTERM, stop)
-    try:
+    try:  # a signal while the store builds closes the server too (the build also has an atexit hook)
+        print(f'mockups and {engine.PROFILE_ID} on http://{args.host}:{server.server_port}/', flush=True)
+        status = server.store.status()
+        print(f"store query page: {'MIMIC-IV demo store ' + status['snapshot_id'][:12] if status['available'] else status['error']}",
+              flush=True)
+        if server.trajectory_store is not None:
+            status = server.trajectory_store.status()
+            built = f"synthetic store {status['snapshot_id'][:12]} (built in {status['built_s']} s)" if status['available'] else status['error']
+            print(f'trajectory page: {built}', flush=True)
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
         server.server_close()
-
 
 if __name__ == '__main__':
     main()

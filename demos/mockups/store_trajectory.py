@@ -12,16 +12,16 @@
 **The store.** At startup the cohort the page downloads (`data/synthetic-paediatric-rare.json`) is built into a
 store by the converter itself emitting series, with the period label (`store_parity.build`, as the parity test and
 D36 build it). The build takes about a second and goes into a fresh temporary directory, removed when the server
-closes; `root` (the server's `--trajectory-store-root`) puts that directory somewhere else, never inside the
-repository.
+closes cleanly or on SIGTERM, SIGINT or SIGHUP (never on SIGKILL, which no process can catch); `root` (the server's
+`--trajectory-store-root`) puts that directory somewhere else, never inside this checkout or any git working tree.
 
 **Per-patient answers, for synthetic data only.** Unlike the MIMIC endpoints (`store_query.py`, aggregate counts
 only), these answer per patient: the data are synthetic and the page already holds every record of the cohort. A
 content check keeps it so. The cohort's dataset id must be the generator's, and the built snapshot's dataset id and
 patients must be exactly those of the cohort file the server serves; otherwise nothing is served.
 
-**Named refusals.** A request whose shape is wrong gets a named `RequestError`; one the store or the engine refuses
-gets their code (`StoreError.code`, the engine's `TrajectoryError` message). Times must be whole minutes (integers),
+**Named refusals.** A request whose shape is wrong gets a named `RequestError` (`by: server`); one the store or the
+engine refuses gets their code (`StoreRefused`, `by: store`). Times must be whole minutes (integers),
 so no string or float reaches the conversion to the store's clock.
 
 The windows are the page's (it places each patient's index period by its own rule, over its own reconciled view of
@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import atexit
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -58,7 +59,15 @@ HOW_TO_BUILD = ['python demos/mockups/synthetic/generate.py',
 
 
 class RequestError(ValueError):
-    """A request refused by name; the message is the code."""
+    """A request the server refuses by name, before the store sees it; the message is the code."""
+
+    by = 'server'
+
+
+class StoreRefused(RequestError):
+    """A request the store or the engine refuses by name; the message is their code."""
+
+    by = 'store'
 
 
 class Unavailable(RuntimeError):
@@ -70,10 +79,25 @@ def require(condition, code):
         raise RequestError(code)
 
 
-def _minutes(value, code):
-    """A time in whole minutes: an integer (not a bool), bounded."""
-    require(type(value) is int and -TIME_LIMIT <= value <= TIME_LIMIT, code)
+def _minutes(value, code='TIME_MUST_BE_WHOLE_MINUTES'):
+    """A time in whole minutes: an integer (not a bool), within TIME_LIMIT (else TIME_OUT_OF_RANGE)."""
+    require(type(value) is int, code)
+    require(-TIME_LIMIT <= value <= TIME_LIMIT, 'TIME_OUT_OF_RANGE')
     return value
+
+
+def inside_repository(path):
+    """Whether `path` lies in this checkout or in any git working tree, judged on its nearest existing ancestor by file
+    identity (so a path spelled in another case on a case-insensitive disk is still inside)."""
+    path = Path(os.path.abspath(os.path.expanduser(str(path))))
+    existing = next(p for p in (path, *path.parents) if p.exists())
+    for p in (existing, *existing.parents):
+        try:
+            if os.path.samefile(p, ROOT) or (p / '.git').exists():
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def check_request(spec, patient_ids):
@@ -100,8 +124,10 @@ def check_request(spec, patient_ids):
         require(isinstance(steps, dict) and all(isinstance(s, dict) for s in steps.values()), 'CONDITION_STEPS_MUST_BE_OBJECTS')
         for raw in steps.values():
             count = raw.get('count')
-            if isinstance(count, dict) and isinstance(count.get('within'), dict):
-                _minutes(count['within'].get('span'), 'TIME_MUST_BE_WHOLE_MINUTES')
+            if count is not None:
+                require(isinstance(count, dict), 'COUNT_MUST_BE_AN_OBJECT')
+                if isinstance(count.get('within'), dict):
+                    _minutes(count['within'].get('span'), 'TIME_MUST_BE_WHOLE_MINUTES')
             relative = raw.get('relative')
             if relative is not None:
                 require(isinstance(relative, dict) and isinstance(relative.get('baseline'), dict), 'RELATIVE_MUST_HAVE_A_BASELINE')
@@ -168,7 +194,7 @@ class TrajectoryStore:
         if cohort.get('dataset_id') != SYNTHETIC_DATASET:
             raise Unavailable('NOT_THE_SYNTHETIC_COHORT')
         if self.root is not None:
-            if self.root == ROOT or ROOT in self.root.parents:
+            if inside_repository(self.root):
                 raise Unavailable('STORE_ROOT_INSIDE_REPOSITORY')
             self.root.mkdir(parents=True, exist_ok=True)
         self._scratch = Path(tempfile.mkdtemp(prefix='ptm-trajectory-store-', dir=self.root))
@@ -245,7 +271,7 @@ class TrajectoryStore:
             code = refusal_code(error)
             if code is None:
                 raise
-            raise RequestError(code) from None
+            raise StoreRefused(code) from None
         elapsed = round((time.perf_counter() - started) * 1000)
         return {'profile': PROFILE, 'snapshot_id': result['snapshot_id'], 'context_id': result['context_id'],
                 'match_profile': result['profile'], 'store_profile': store.manifest.get('profile'),
@@ -255,18 +281,19 @@ class TrajectoryStore:
     def _patient(self, r):
         """A store result with its binding described and its times in minutes from birth; every other field as is."""
         pid = r['patient_id']
-        out = {k: v for k, v in r.items() if k not in ('binding', 'witness', 'relaxed_match')}
+        out = {k: v for k, v in r.items() if k not in ('binding', 'witness', 'relaxed_match', 'unverified_match')}
         if 'binding' in r:
             out['binding'] = self._binding(pid, r['binding'])
         if 'witness' in r:
             out['witness'] = {s: self._minutes(pid, t) for s, t in r['witness'].items()}
-        if 'relaxed_match' in r:
-            m = dict(r['relaxed_match'])
-            if 'binding' in m:
-                m['binding'] = self._binding(pid, m['binding'])
-            if 'witness' in m:
-                m['witness'] = {s: self._minutes(pid, t) for s, t in m['witness'].items()}
-            out['relaxed_match'] = m
+        for key in ('relaxed_match', 'unverified_match'):  # a match reported beside an unresolved status
+            if key in r:
+                m = dict(r[key])
+                if 'binding' in m:
+                    m['binding'] = self._binding(pid, m['binding'])
+                if 'witness' in m:
+                    m['witness'] = {s: self._minutes(pid, t) for s, t in m['witness'].items()}
+                out[key] = m
         return out
 
     def _minutes(self, pid, t):

@@ -589,6 +589,21 @@ const STORE_REFUSAL = {
   // Refused by the store itself (the option sweep in test_store_parity.cjs finds these two among the page's options).
   INVALID_FACTOR: 'the store takes a rise or fall only by a factor above 1',
   VALUE_RELAXATION_MUST_WIDEN: 'the relaxed threshold would narrow the condition instead of widening it (a negative "at most")',
+  // The server's own checks, before the store sees the query.
+  TIME_OUT_OF_RANGE: 'a time or gap lies beyond what the server accepts (about 1,900 years)',
+  TIME_MUST_BE_WHOLE_MINUTES: 'the server takes times in whole minutes',
+};
+// Why the store is not offered here (the server's status), shown so the fallback to the engine is not silent.
+const STORE_UNAVAILABLE = {
+  STORE_NOT_CONFIGURED: 'the server was started without it (--no-trajectory-store)',
+  STORE_DEPENDENCY_MISSING: 'DuckDB is not installed on the server (pip install -r patterns/requirements-store.lock.txt)',
+  STORE_BUILD_FAILED: 'building it from the synthetic cohort failed on the server',
+  NO_SYNTHETIC_COHORT: 'the synthetic cohort has not been generated on the server (python demos/mockups/synthetic/generate.py)',
+  NOT_THE_SYNTHETIC_COHORT: 'the cohort file on the server is not the synthetic cohort',
+  STORE_NOT_THE_SERVED_COHORT: 'the built store does not hold the served cohort\'s patients',
+  STORE_ROOT_INSIDE_REPOSITORY: 'its build directory was set inside a git working tree',
+  STORE_BUILDING: 'it was still building',
+  STORE_UNREACHABLE: 'its status could not be read',
 };
 const STORE_REASON = {
   FILTERED: 'no candidate events in the store',
@@ -635,7 +650,7 @@ function runStore(token) {
     render();
   }).catch(error => {
     if (token !== runToken) return;
-    state.fallback = error.code ? {code: error.code, by: error.status === 400 ? 'the store' : 'the server', detail: error.message}
+    state.fallback = error.code ? {code: error.code, by: error.by === 'store' ? 'the store' : 'the server', detail: error.message}
       : {code: 'STORE_UNREACHABLE', by: 'the network', detail: error.message};
     runPage(token, !!state.engine);
     render();
@@ -645,7 +660,7 @@ function runStore(token) {
 async function postStore(body) {
   const response = await fetch(STORE_URL, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const value = await response.json().catch(() => ({}));
-  if (!response.ok) throw Object.assign(new Error(value.error || `HTTP ${response.status}`), {code: value.error, status: response.status});
+  if (!response.ok) throw Object.assign(new Error(value.error || `HTTP ${response.status}`), {code: value.error, status: response.status, by: value.by});
   return value;
 }
 
@@ -659,14 +674,17 @@ function fromStore(answer, def) {
     const win = windowFor(view, {freeText: state.freeText, knownByIndex: false, window: def.window});
     const base = {pid, win, backend: 'store', store: r, truncated: false};
     if (r.status === 'excluded') return {...base, status: 'excluded', reason: win.reason || reasonText(STORE_REASON, r.reason, [])};
-    const m = r.relaxed_match, keys = r.relaxations || (m && m.relaxations) || [];
+    const m = r.relaxed_match, u = r.unverified_match, keys = r.relaxations || (m && m.relaxations) || [];
     const reasons = [];
     if (r.reason) reasons.push(reasonText(STORE_REASON, r.reason, storeSteps(r)));
+    if (u) reasons.push(`an unrelaxed ${u.certainty} match was found but is not verified`);
     if (m) reasons.push(`relaxing ${keys.flatMap(textOf).join('; ')} gives ${m.certainty === 'exact' ? 'an exact' : 'a possible'} match at cost ${+m.cost}, but the unrelaxed query is undecided`);
     for (const note of (r.note || '').split('; ').filter(Boolean)) reasons.push(reasonText(STORE_NOTE, note, []));
     return {...base, status: STORE_STATUS[r.status] || r.status, certainty: r.certainty, cost: r.cost === undefined ? 0 : +r.cost,
             relaxations: r.status === 'relaxed' ? keys.flatMap(textOf) : [], relaxKeys: keys.length ? new Set(keys.flatMap(k => k.split('+'))) : null,
-            reason: reasons.join('; '), best: storeBest(view, r.binding || (m && m.binding), r.witness || (m && m.witness), r.certainty || (m && m.certainty) || r.status)};
+            reason: reasons.join('; '), unverified: !!(u && !r.binding),
+            best: storeBest(view, r.binding || (u && u.binding) || (m && m.binding), r.witness || (u && u.witness) || (m && m.witness),
+                            r.certainty || (u && u.certainty) || (m && m.certainty) || r.status)};
   });
 }
 
@@ -677,7 +695,7 @@ function storeBest(view, binding, witness, status) {
   for (const [step, d] of Object.entries(binding)) {
     const at = witness && witness[step] != null ? witness[step] / GRID : null;
     if (d.derived) {
-      bind.set(step, {e: at ?? NaN, l: at ?? NaN, what: 'the Nth occurrence: a point the store derives from the coded records', store: d, at, measure: true});
+      bind.set(step, {e: NaN, l: NaN, what: 'the Nth occurrence: a point the store derives from the coded records', store: d, at, measure: true, derived: true});
       continue;
     }
     const e = d.start[0] / GRID, l = d.start[1] / GRID;
@@ -708,9 +726,11 @@ function declaredCauses(r, page) {
   if (page.status === 'incomparable' && /do not cover the time around/.test(page.reason || '')) add('measurement observability', 'measurement observability (a page-only check)');
   for (const n of def.nodes) {
     const kind = stepKind(n);
-    if (kind === 'occurrence') { add('letter mentions'); add('record reconciliation'); }
-    if (kind === 'medicine') { add('letter mentions'); add('medication records'); }
+    const mentions = state.freeText !== 'off';  // with coded records only, the page reads no letter mention
+    if (kind === 'occurrence') { if (mentions) add('letter mentions'); add('record reconciliation'); }
+    if (kind === 'medicine') { if (mentions) add('letter mentions'); add('medication records'); }
     if (kind === 'measure') add('measurement records');
+    if (kind === 'measure' && relative(n.cond)) add('relative baseline');
     if (n.occ === 'count') add('count timing');
     if (derivedOcc(n)) add('occurrence envelope');
   }
@@ -719,8 +739,8 @@ function declaredCauses(r, page) {
 
 /* Rendering */
 
-function chip(status, cost) {
-  const [shape, text] = statusLabel(status);
+function chip(status, cost, own = false) {
+  const [shape, text] = own ? STATUS[status] : statusLabel(status);
   return `<span class="status ${status}">${shape} ${esc(status === 'relaxed' ? `${text} · cost ${cost}` : text)}</span>`;
 }
 
@@ -880,6 +900,7 @@ function bindingChips(r) {
 
 // A bound event's recorded range as ages; a store-derived point by its witness time, if any.
 function timeText(c) {
+  if (c.derived) return c.at != null ? `${esc(ageText(c.at))} (witness)` : '— (a derived point)';
   if (!Number.isFinite(c.e)) return '—';
   return esc(ageText(c.e)) + (c.l - c.e > 2 ? '–' + esc(ageText(c.l)) : '');
 }
@@ -890,13 +911,13 @@ function backendBanner() {
   if (state.matcher === 'store' && state.fallback) {
     const f = state.fallback;
     return `<div class="backend fallback" role="status"><strong>In-browser fallback: ${esc(f.code)}</strong>
-      <span>${esc(STORE_REFUSAL[f.code] || `${f.by} refused the query by name`)}${f.detail && f.detail !== f.code ? ` (${esc(f.detail)})` : ''}. Matched by ${esc(pageBy)} instead.</span></div>`;
+      <span>${esc(STORE_REFUSAL[f.code] || (f.by === 'the store' ? 'the store refused the query by name' : `${f.by} could not answer`))}${f.detail && f.detail !== f.code ? ` (${esc(f.detail)})` : ''}. Matched by ${esc(pageBy)} instead.</span></div>`;
   }
   if (state.matcher === 'store' && state.storeMeta) {
     const s = state.storeMeta;
     return `<div class="backend store" role="status"><strong>Answered by the execution store</strong>
       <span>snapshot <code title="${esc(s.snapshot)}">${esc(s.snapshot.slice(0, 12))}…</code> · ${esc(s.store)}${s.conditions ? ` · ${esc(s.conditions.replace('execution-store-', ''))}` : ''} · ${s.ms} ms</span>
-      <span class="hint">The store reads every record and letter mention as its own event, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records using the synthetic truth, builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page and sent to the store.</span></div>`;
+      <span class="hint">The store reads every record and letter mention as its own event, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records using the synthetic truth, builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page, over its view of the records grouped by the synthetic truth, and sent to the store as input.</span></div>`;
   }
   return `<div class="backend page" role="status"><strong>Matched by ${esc(state.matcher === 'browser' ? 'this page\'s own search' : pageBy)}</strong></div>`;
 }
@@ -914,7 +935,8 @@ function renderMatches() {
     ? `<div class="tj-filters" role="group" aria-label="Match with"><span class="hint">Match with</span>${choices.map(([m, t]) =>
         `<button class="tj-filter" aria-pressed="${state.matcher === m}" data-action="matcher" data-m="${m}">${esc(t)}</button>`).join('')}</div>`
     : '<p class="hint">Matched in this page: no server is reachable here. Serve the mockups with <code>demos/mockups/server.py</code> to match in the execution store.</p>';
-  const notice = state.engineError ? `<p class="hint">The engine could not answer (${esc(state.engineError)}); matched in this page instead.</p>` : '';
+  const notice = (state.engineError ? `<p class="hint">The engine could not answer (${esc(state.engineError)}); matched in this page instead.</p>` : '')
+    + (state.engine && !state.store && state.storeError ? `<p class="hint">The execution store is not available here: ${esc(STORE_UNAVAILABLE[state.storeError] || 'the server said so')} (${esc(state.storeError)}). Matching with the engine on this page's candidates or with this page alone.</p>` : '');
   if (state.pending) {
     $('#summary').innerHTML = `${matcher}<p class="hint">Matching every patient ${state.matcher === 'store' && !state.fallback ? 'in the execution store' : 'with the engine'}…</p>`;
     $('#list').innerHTML = '';
@@ -922,7 +944,7 @@ function renderMatches() {
   }
   $('#summary').innerHTML = `${matcher}${backendBanner()}${notice}<p class="hint">Every patient is searched; there is no reference patient here. Each step is bound to one of the patient's events, and the constraints are checked jointly over the recorded time ranges.</p>
     <div class="tj-filters" role="group" aria-label="Show results">${ORDER.map(st => `<button class="tj-filter${HIDDEN_BY_DEFAULT.includes(st) ? ' tj-filter-none' : ''}" aria-pressed="${state.filter.has(st)}" data-action="filter" data-s="${st}">${statusLabel(st)[0]} ${statusLabel(st)[1]} · ${c[st] || 0}</button>`).join('')}</div>
-    <p class="hint">Select several result types to see them together. <em>No recorded match</em> and <em>No index period</em> are hidden until selected; <em>No recorded match</em> is shown only on its own. <em>Unresolved</em> patients were not fully searched and may still match.</p>`;
+    <p class="hint">Select several result types to see them together. <em>No recorded match</em> and <em>No index period</em> are hidden until selected; <em>No recorded match</em> is shown only on its own. ${state.matcher === 'store' && state.storeMeta ? '<em>Unresolved</em> patients are undecided in the store, for the reason given (a stopped search, record times that leave a count or condition uncertain, or excluded records), and may still match.' : '<em>Unresolved</em> patients were not fully searched and may still match.'}</p>`;
   const rows = state.results.filter(r => state.filter.has(r.status));
   $('#list').innerHTML = rows.map(r => {
     const p = state.patients.get(r.pid);
@@ -945,7 +967,7 @@ function renderDetail() {
   $('#h-detail').textContent = `${r.pid} · ${statusLabel(r.status)[1]}`;
   const highlight = new Map(), markers = [];
   if (r.best) for (const [id, c] of r.best.bind) {
-    if (c.measure) { if (Number.isFinite(c.e)) markers.push({e: c.at ?? c.e, l: c.at ?? c.l, tag: id}); } else highlight.set(c.item.id, id);
+    if (c.measure) { const e = c.at ?? c.e, l = c.at ?? c.l; if (Number.isFinite(e)) markers.push({e, l, tag: id}); } else highlight.set(c.item.id, id);
   }
   const width = $('#detail-body').clientWidth || drawer.clientWidth - 36;
   const out = [timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.win && !r.win.reason ? r.win : null,
@@ -973,18 +995,25 @@ function renderDetail() {
 // The drawer for a store result: the store's status and reason as given, the records it bound and its witness times,
 // and this page's own answer beside it when they differ, with the declared causes that can explain it (D37).
 function storeDetail(r) {
-  const out = [`<p class="hint">Answered by the execution store: <strong>${esc(r.store.status)}</strong>${r.store.certainty ? ` (${esc(r.store.certainty)})` : ''}${r.reason ? `. ${esc(r.reason)}` : ''}.</p>`];
+  const sentence = text => text ? text[0].toUpperCase() + text.slice(1) : '';
+  const out = [`<p class="hint">Answered by the execution store: <strong>${esc(r.store.status)}</strong>${r.store.certainty ? ` (${esc(r.store.certainty)})` : ''}.${r.reason ? ` ${esc(sentence(r.reason))}.` : ''}</p>`];
   if (r.best) {
     const {bind} = r.best;
-    out.push(`<table class="tj-table"><thead><tr><th>Step</th><th>Store record${r.status === 'unresolved' ? ' (relaxed match)' : ''}</th><th>Recorded</th><th>Witness</th></tr></thead><tbody>`
-      + state.def.nodes.map(n => { const c = bind.get(n.id); return `<tr><td><span class="tj-id">${esc(n.id)}</span> ${esc(nodeText(n))}</td><td>${esc(c?.what || '—')}</td><td>${c ? timeText(c) : ''}</td><td>${c && c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`; }).join('')
+    const which = r.status !== 'unresolved' ? '' : r.unverified ? ' (unverified match)' : ' (relaxed match)';
+    out.push(`<table class="tj-table"><thead><tr><th>Step</th><th>Store record${which}</th><th>Recorded</th><th>Witness</th></tr></thead><tbody>`
+      + state.def.nodes.map(n => {
+        const c = bind.get(n.id);
+        const recorded = !c ? '' : c.derived ? '— (no record holds this point)' : timeText(c);
+        return `<tr><td><span class="tj-id">${esc(n.id)}</span> ${esc(nodeText(n))}</td><td>${esc(c?.what || '—')}</td><td>${recorded}</td><td>${c && c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`;
+      }).join('')
       + '</tbody></table>');
-    out.push('<p class="hint">Recorded is each record\'s own time range in the store (a letter mention ranges from birth to its letter). The witness is one choice of times that satisfies every constraint. The store decides certainty over every choice of times; this page does not re-check it.</p>');
+    out.push(`<p class="hint">Recorded is each record's own time range in the store (a letter mention ranges from birth to its letter); an Nth occurrence is a point the store derives, which no record holds, so it has only a witness. The witness is one choice of times that satisfies every constraint. The store decides certainty over every choice of times; this page does not re-check it. On the timeline, a bound record is marked on this page\'s own event that holds it, at this page\'s time for that event, which can differ from the store\'s range.${r.unverified ? ' An unverified match is a binding the search found whose standing the store could not settle (which event is first or last, or an Nth occurrence shared with another step, is uncertain), so the status stays undecided.' : ''}</p>`);
   }
   const page = pageAnswerFor(r.pid);
   const key = x => [x.status, x.certainty || '', x.relaxKeys ? [...x.relaxKeys].sort().join('+') : ''].join(' ');
   if (key(page) !== key(r)) {
-    out.push(`<div class="backend note"><strong>This page's own search gives ${chip(page.status, page.cost)}${page.status === 'relaxed' && page.relaxations?.length ? ` <span class="hint">by ${esc(page.relaxations.join('; '))}</span>` : ''}</strong>
+    const certainty = page.certainty && page.certainty !== page.status ? ` <span class="hint">(${esc(page.certainty)})</span>` : '';
+    out.push(`<div class="backend note"><strong>This page's own search gives ${chip(page.status, page.cost, true)}${certainty}${page.status === 'relaxed' && page.relaxations?.length ? ` <span class="hint">by ${esc(page.relaxations.join('; '))}</span>` : ''}</strong>
       <span class="hint">The store's answer is the one shown. Declared differences that can explain this: ${esc(declaredCauses(r, page).join('; '))}.</span></div>`);
   }
   return out.join('');
