@@ -52,7 +52,12 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # branch (against main at 7f5930e), binds `tools/benchmark_execution_store.py`, which D34's
               # build record changed. It records D32's decision; for the current tree the matcher report's
               # `paired_confirmation` supersedes it.
-              'verification/d32-paired-verdict.json'}
+              'verification/d32-paired-verdict.json',
+              # D39 froze a fourth, on the same precedent, for the coordinator's sign-off: D38's paired latency
+              # verdict binds `patterns/store_conditions.py`, the one entry point, into which D39 added its route
+              # (profile 1.3), as D38 had provided. It records D38's decision on the D38 tree (against main at
+              # e682817); for the current tree `verification/d39-paired-verdict.json` supersedes it.
+              'verification/d38-paired-verdict.json'}
 
 
 def digests(path):
