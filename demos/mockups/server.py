@@ -32,6 +32,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import signal
 import sys
 
 HERE = Path(__file__).resolve().parent
@@ -203,6 +204,10 @@ def main():
         status = server.trajectory_store.status()
         built = f"synthetic store {status['snapshot_id'][:12]} (built in {status['built_s']} s)" if status['available'] else status['error']
         print(f'trajectory page: {built}', flush=True)
+
+    def stop(signum, frame):  # a terminated server closes too, so the store's build is removed (D37)
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stop)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -4565,9 +4565,9 @@
  },
  "artifacts": {
   "demos/mockups/rise_usefulness.cjs": "26897efc673d45a267e3ced16353421df715bd68e33a0ae60bb551959fe4e93f",
-  "demos/mockups/store_parity.py": "920dd0c36708e89a3e3f76e96e3e8e068801e79fa0b4e512dcd80262700a4f0d",
-  "demos/mockups/trajectory/store_request.js": "096d4a9496f4295c7c08d1dd683edaefafafbbc60790d862fc438b7a4f9a9688",
-  "demos/mockups/trajectory/app.js": "056d7df97e5c8f9d259693c98415b763c651a4e20d27314da045581bed39954c",
+  "demos/mockups/store_parity.py": "e52e8f86c555b4cb01395d1f61b2751bca87763a23aca70c35f8579201e25738",
+  "demos/mockups/trajectory/store_request.js": "bdec6fee415f9c0cf60f12e074e7dc1225aa4d540b923f78425d5e8e0fddf9c1",
+  "demos/mockups/trajectory/app.js": "1ea67fe96c107d3ed29497284f1d77ba9039903d2e23ef59c3bd830dce5bf5b1",
   "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
