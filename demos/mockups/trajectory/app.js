@@ -694,6 +694,13 @@ function storeBest(view, binding, witness, status) {
   const bind = new Map();
   for (const [step, d] of Object.entries(binding)) {
     const at = witness && witness[step] != null ? witness[step] / GRID : null;
+    if (d.derived && d.gene_report) {  // D38: a gene step's point, at its result's first report that is not negative
+      const g = d.gene_report, t = g.finding / GRID;
+      const item = view.items.find(i => i.recs.some(x => x.record_id === g.record_id));
+      bind.set(step, {e: t, l: t, fe: t, fl: t, point: true, item, store: d, at, measure: !item,
+                      what: `${SOURCE_SHORT[g.source] || g.source} · ${g.display || g.kind} · ${g.record_id}: its first report that is not negative, at its recording`});
+      continue;
+    }
     if (d.derived) {
       bind.set(step, {e: NaN, l: NaN, what: 'the Nth occurrence: a point the store derives from the coded records', store: d, at, measure: true, derived: true});
       continue;
@@ -1007,7 +1014,7 @@ function storeDetail(r) {
         return `<tr><td><span class="tj-id">${esc(n.id)}</span> ${esc(nodeText(n))}</td><td>${esc(c?.what || '—')}</td><td>${recorded}</td><td>${c && c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`;
       }).join('')
       + '</tbody></table>');
-    out.push(`<p class="hint">Recorded is each record's own time range in the store (a letter mention ranges from birth to its letter); an Nth occurrence is a point the store derives, which no record holds, so it has only a witness. The witness is one choice of times that satisfies every constraint. The store decides certainty over every choice of times; this page does not re-check it. On the timeline, a bound record is marked on this page\'s own event that holds it, at this page\'s time for that event, which can differ from the store\'s range.${r.unverified ? ' An unverified match is a binding the search found whose standing the store could not settle (which event is first or last, or an Nth occurrence shared with another step, is uncertain), so the status stays undecided.' : ''}</p>`);
+    out.push(`<p class="hint">Recorded is each record's own time range in the store (a letter mention ranges from birth to its letter); an Nth occurrence is a point the store derives, which no record holds, so it has only a witness; a gene step is the time its result's first report that is not negative was recorded. The witness is one choice of times that satisfies every constraint. The store decides certainty over every choice of times; this page does not re-check it. On the timeline, a bound record is marked on this page\'s own event that holds it, at this page\'s time for that event, which can differ from the store\'s range.${r.unverified ? ' An unverified match is a binding the search found whose standing the store could not settle (which event is first or last, or an Nth occurrence shared with another step, is uncertain), so the status stays undecided.' : ''}</p>`);
   }
   const page = pageAnswerFor(r.pid);
   const key = x => [x.status, x.certainty || '', x.relaxKeys ? [...x.relaxKeys].sort().join('+') : ''].join(' ');

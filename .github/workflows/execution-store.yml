@@ -18,5 +18,6 @@ jobs:
       - run: python -m unittest -v patterns.test_value_conditions
       - run: python -m unittest -v patterns.test_derived_steps
       - run: python -m unittest -v patterns.test_relative_conditions
+      - run: python -m unittest -v patterns.test_gene_steps
       - run: python -m unittest -v tools.test_benchmark_execution_store
       - run: python -m unittest -v tools.test_benchmark_matcher

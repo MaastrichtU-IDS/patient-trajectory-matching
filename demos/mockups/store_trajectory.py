@@ -5,9 +5,10 @@
 - `GET /api/trajectory-store/status`: whether the store is ready, its snapshot and profiles, or why there is none;
 - `POST /api/trajectory-store/match`: the page's query as its translator writes it (`trajectory/store_request.js`,
   `storeRequest`): `{"query", "conditions", "windows"}`, every time in whole minutes from each patient's birth. The
-  answer is `store_conditions_relative.match`'s, which hands every request but a rise's (profile 1.2) to
-  `execution_store.match` unchanged, with times turned back into minutes from birth and each bound event described
-  from the store's own rows (kind, source, record, recorded times, value).
+  answer is `store_conditions_gene.match`'s (D38), which hands every request but a gene step's to
+  `store_conditions_relative.match`, which hands every request but a rise's (profile 1.2) to `execution_store.match`
+  unchanged, with times turned back into minutes from birth and each bound event described from the store's own rows
+  (kind, source, record, recorded times, value); a gene step's point by the genetic result it comes from.
 
 **The store.** At startup the cohort the page downloads (`data/synthetic-paediatric-rare.json`) is built into a
 store by the converter itself emitting series, with the period label (`store_parity.build`, as the parity test and
@@ -217,6 +218,7 @@ class TrajectoryStore:
                               FROM events e JOIN patients p USING (patient_idx)
                               LEFT JOIN event_evidence ev USING (patient_idx, event_id)
                               LEFT JOIN series s USING (patient_idx, event_id)''')
+        from patterns import store_conditions_gene as gc
         out = {}
         for pid, eid, kind, source, slo, shi, elo, ehi, ongoing, evidence, value, unit in rows:
             evidence = json.loads(evidence) if evidence else {}
@@ -232,6 +234,10 @@ class TrajectoryStore:
                 d['ongoing'] = True
             if value is not None:
                 d['value'], d['unit'] = value, unit
+            if 'gene_reports' in evidence:  # D38: the time of its first report that is not negative, if any
+                verdict, span = gc.finding(evidence['gene_reports'])
+                if verdict == 'found':
+                    d['finding'] = span[0]
             out[pid, eid] = d
         return out
 
@@ -247,15 +253,17 @@ class TrajectoryStore:
             store = self._wait()
         except Unavailable as error:
             return {'profile': PROFILE, 'available': False, 'error': str(error), 'how_to_build': HOW_TO_BUILD}
+        from patterns import store_conditions_gene as gc
         from patterns import store_conditions_relative as rc
         return {'profile': PROFILE, 'available': True, 'snapshot_id': store.snapshot_id,
                 'store_profile': store.manifest.get('profile'), 'dataset_id': store.manifest.get('dataset_id'),
-                'patients': self.patients, 'conditions_profiles': list(rc.CONDITIONS_PROFILES), 'built_s': self.built_s,
+                'patients': self.patients, 'conditions_profiles': [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE],
+                'built_s': self.built_s,
                 'series': True, 'per_patient': True}
 
     def match(self, spec):
         """The store's answer to the translated page query, per patient, times in minutes from birth."""
-        from patterns import store_conditions_relative as rc
+        from patterns import store_conditions_gene as gc
         import store_parity
         store = self._wait()
         query, conditions, windows = check_request(spec, self.births)
@@ -265,7 +273,7 @@ class TrajectoryStore:
         started = time.perf_counter()
         try:
             with self._lock:
-                result = rc.match(store, store_parity.to_micros(query), micros,
+                result = gc.match(store, store_parity.to_micros(query), micros,
                                   conditions=store_parity.conditions_micros(conditions))
         except ValueError as error:  # StoreError and the engine's TrajectoryError are ValueErrors with a code
             code = refusal_code(error)
@@ -306,6 +314,13 @@ class TrajectoryStore:
         out = {}
         for step, eid in binding.items():
             d = self.events.get((pid, eid))
+            source = self.events.get((pid, eid.split('@', 1)[1])) if '@' in eid and eid.startswith('derived-step:') else None
+            if d is None and source is not None and 'finding' in source:  # D38: a gene step's point, from its result
+                g = dict(source)
+                g['start'] = [self._minutes(pid, t) for t in g['start']]
+                g['finding'] = self._minutes(pid, g['finding'])
+                out[step] = {'id': eid, 'derived': True, 'gene_report': g}
+                continue
             if d is None:  # a derived step's own point (an Nth occurrence), which no record holds
                 out[step] = {'id': eid, 'derived': True}
                 continue
