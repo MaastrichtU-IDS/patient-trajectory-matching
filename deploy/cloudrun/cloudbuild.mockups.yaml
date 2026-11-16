@@ -1,0 +1,8 @@
+# DRAFT, not submitted. Builds deploy/cloudrun/Dockerfile.mockups from the repository root.
+# Needs an Artifact Registry repository (step 2 of the checklist). Runs on Google, not locally.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'deploy/cloudrun/Dockerfile.mockups',
+           '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/ptm/ptm-mockups:draft', '.']
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/ptm/ptm-mockups:draft

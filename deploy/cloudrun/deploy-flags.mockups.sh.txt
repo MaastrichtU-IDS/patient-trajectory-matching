@@ -1,0 +1,11 @@
+# DRAFT, not a script and never run. The same service as service.mockups.yaml, as flags.
+# Option (b). Source deploys need a Dockerfile at the repo root, which this is not, so the image
+# goes through Cloud Build with an explicit Dockerfile (cloudbuild.mockups.yaml, below).
+#
+#   gcloud builds submit --config deploy/cloudrun/cloudbuild.mockups.yaml --project dumontier-charm .
+#   gcloud run deploy ptm-mockups --project dumontier-charm --region us-central1 \
+#     --image us-central1-docker.pkg.dev/dumontier-charm/ptm/ptm-mockups:draft \
+#     --cpu 1 --memory 1Gi --concurrency 20 --timeout 60 \
+#     --min-instances 0 --max-instances 2 --cpu-boost \
+#     --port 8080 --ingress all --no-allow-unauthenticated
+#   # no --set-secrets, no --set-env-vars: nothing here needs either
