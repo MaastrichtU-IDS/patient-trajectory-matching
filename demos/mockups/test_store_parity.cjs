@@ -655,8 +655,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'rise (sequence template)': null,
   // D37: "coded only" with steps that would still read letter mentions in the store.
   'rise (sequence template), coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
-  'gene step (tree template)': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'gene step and rise (graph template)': 'GENE_CLASSIFICATION_UNSUPPORTED',  // the rise is translated; the gene step is not
+  // D38: gene steps are translated by default (STORE_GENES); under coded only they wait for a joint profile.
+  'gene step (tree template)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'gene step and rise (graph template)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'rise (sequence template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',
   'gene step and rise (graph template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',  // first refused, in node order
   'count over stated free text (frequency template)': 'FREE_TEXT_COUNT_UNSUPPORTED',
@@ -694,11 +695,11 @@ assert.deepEqual(TEMPLATE_TABLE, {
   'sequence, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'sequence, present': 'store: the sequence template (a rise)',
   'sequence, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'tree, off': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'tree, present': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'tree, off': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'tree, present': 'store: the tree template',
   'tree, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'graph, off': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'graph, present': 'GENE_CLASSIFICATION_UNSUPPORTED',
+  'graph, off': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'graph, present': 'store: the graph template',
   'graph, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
   'frequency, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'frequency, present': 'FREE_TEXT_COUNT_UNSUPPORTED',
@@ -804,9 +805,10 @@ if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({sweepTally, case
 // baseline (INVALID_FACTOR: a factor must exceed 1), and the page's relaxation of "at most -1" to "at most -1.1",
 // which narrows instead of widening (VALUE_RELAXATION_MUST_WIDEN). The page shows each as a labelled fallback.
 assert.deepEqual(sweepTally, {
-  answered: 286,
+  // D38: the seven gene definitions with stated findings are answered; the seven under coded only wait for a joint profile.
+  answered: 293,
   translator: {FREE_TEXT_CODED_ONLY_UNSUPPORTED: 157, FREE_TEXT_COUNT_UNSUPPORTED: 51, NTH_STEP_HAS_NO_END: 2,
-               GENE_CLASSIFICATION_UNSUPPORTED: 14, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
+               GENE_WITH_CODED_ONLY_UNSUPPORTED: 7, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
   store: {INVALID_FACTOR: 10, VALUE_RELAXATION_MUST_WIDEN: 10},
 }, 'the option sweep changed');
 console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.answered} answered by the store; refused by the translator `

@@ -6,7 +6,7 @@
    in whole minutes from each patient's birth (store_parity.py converts them to the store's clock). A page feature the
    store cannot express is refused by name (`StoreRefusal`, its `code`), never translated approximately:
    - GENE_CLASSIFICATION_UNSUPPORTED: gene steps (the first report that is not negative, timed by its recording), only
-     when a caller asks for none (`options.genes: false`, or the default while STORE_GENES is false); otherwise (D38) a
+     when a caller asks for none (`options.genes: false`); since D38 (STORE_GENES) a
      gene step is the store's `gene` condition, profile execution-store-conditions-gene-1.0 (store_conditions_gene.py):
      each coded genetic result of the gene bound at its first report that is not negative, across reclassification, as
      a point at that report's recording time, never a letter's mention;
@@ -59,9 +59,9 @@ function storeDecimal(x) {
 // D36: a rise or fall is translated by default (the store's profile 1.2, `store_conditions_relative`), since D36's
 // verdict (every rule met); a caller may still ask for the named refusal (`options.rises: false`).
 const STORE_RISES = true;
-// D38: a gene step is translated when asked (`options.genes`, as the parity and usefulness tests do); by default only if
-// D38's rules all held (STORE_GENES), otherwise refused by name (GENE_CLASSIFICATION_UNSUPPORTED).
-const STORE_GENES = false;
+// D38: a gene step is translated by default since D38's verdict (every rule met); a caller may still ask for the named
+// refusal (`options.genes: false`, GENE_CLASSIFICATION_UNSUPPORTED).
+const STORE_GENES = true;
 const GENE_PROFILE = 'execution-store-conditions-gene-1.0';
 const GENE_CONDITION = {report: 'first_not_negative', timed_by: 'recorded_at'};
 const derivedOcc = n => (n.occ === 'nth' || n.occ === 'nth_last') && Math.max(1, +n.n || 1) > 1;
