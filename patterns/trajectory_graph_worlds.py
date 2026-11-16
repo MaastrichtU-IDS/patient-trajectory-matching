@@ -18,11 +18,7 @@ A result is sound when what it claims is true: `exact` (its binding's `any` even
 (the query is possible and no choice is exact), `relaxed` (the query and every cheaper set are impossible,
 and the set's binding has the certainty claimed), `none` (the query and every set within the budget are
 impossible), and a match reported beside `unresolved` (it has the certainty claimed). `unresolved` itself
-claims nothing. Where a result is not `complete`, only the claims it still makes are checked: a `possible`
-certainty claims that no binding is exact only where the exact search completed, so a `possible` result with
-`EXACT_SEARCH_STOPPED`, an incomplete `relaxed` one and a match beside `unresolved` claim only that their binding
-holds in some world (D40, in `check`; the small-budget cases of `test_trajectory_graph.budget_case` meet all three).
-`check_derived` keeps the strict reading, which a planted defect of D36's needs, on cases whose searches never stop.
+claims nothing. Where a result is not `complete`, only the claims it still makes are checked.
 
 Small grids only: the number of worlds is the product of the variables' range widths.
 """
@@ -184,23 +180,19 @@ def check(result, query, patient, horizon=None):
     by_id = {e['id']: e for e in events}
     sets = _sets(query)
     ask = lambda chosen: _Question(query, chosen, events, all_worlds, window)
-    def certainty_holds(question, certainty, binding, settled=True):
-        # `possible` claims that no binding is exact only where the exact search completed (`settled`, D40): a
-        # `possible` result with `EXACT_SEARCH_STOPPED`, an incomplete `relaxed` one, or a match beside `unresolved`
-        # (whose set's exact search may have stopped; the result does not say) claims only that its binding holds in
-        # some world.
+    def certainty_holds(question, certainty, binding):
         free = {s: by_id[binding[s]] for s in question.free}
         if any(question.concept[s] not in free[s]['concepts'] for s in free):
             return False
         if certainty == 'exact':
             return question.exact_for(free)
-        return any(question.holds(t, free) for t in all_worlds) and (not settled or not question.exact())
+        return any(question.holds(t, free) for t in all_worlds) and not question.exact()
     wrong = []
     status, complete = result['status'], result.get('complete', True)
     unrelaxed = ask(())
     if status == 'exact' and not certainty_holds(unrelaxed, 'exact', result['binding']):
         wrong.append('exact, but its binding fails in some world')
-    if status == 'possible' and not certainty_holds(unrelaxed, 'possible', result['binding'], complete):
+    if status == 'possible' and not certainty_holds(unrelaxed, 'possible', result['binding']):
         wrong.append('possible, but impossible, or some binding is exact')
     if status in ('relaxed', 'none') and unrelaxed.possible():
         wrong.append(f'{status}, but the unrelaxed query is possible')
@@ -211,7 +203,7 @@ def check(result, query, patient, horizon=None):
             for c in sets[:sets.index(chosen)]:
                 if ask(c).possible():
                     wrong.append(f'relaxed by {ids}, but the cheaper set {[x["id"] for x in c]} is possible')
-        if not certainty_holds(ask(chosen), result['certainty'], result['binding'], complete):
+        if not certainty_holds(ask(chosen), result['certainty'], result['binding']):
             wrong.append(f'relaxed {result["certainty"]} by {ids}, which its binding does not reach')
     if status == 'none' and complete:
         for c in sets:
@@ -220,7 +212,7 @@ def check(result, query, patient, horizon=None):
     if status == 'unresolved' and 'relaxed_match' in result:
         m = result['relaxed_match']
         chosen = next(c for c in sets if [x['id'] for x in c] == m['relaxations'])
-        if not certainty_holds(ask(chosen), m['certainty'], m['binding'], False):
+        if not certainty_holds(ask(chosen), m['certainty'], m['binding']):
             wrong.append('the relaxed match beside unresolved does not reach its certainty')
     return wrong
 
