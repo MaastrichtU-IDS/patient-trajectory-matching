@@ -49,19 +49,24 @@
   <div class="tiles" id="tiles"></div>
 
   <h2>Matching speed at 300,000 patients</h2>
-  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, with the engine's work spread over worker processes. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. It is met in Python, so no Rust engine was built. Since D31's second attempt the target is judged by the <b>paired confirmation</b>: this tree and main's code before it (<span data-k="p.reference"></span>) run back to back on the same snapshot, alternating which runs first, <span data-k="p.repeats"></span> times at each worker count, so that drift over the session falls on both; the target is read off this tree's own runs. There are two paired runs: the latest verdict run (<code>verification/d36-paired-verdict.json</code>, D36 against main before it) and the matcher report's own paired run (D35 against main before it). At 14 workers the target is <b>met</b> (p95 <span data-k="g14.p95"></span> s); at 8 workers it is <b>missed</b> (p95 <span data-k="g8.p95"></span> s). D32 (Nth occurrences and counts) and D36 (rises and falls, in a module of their own) leave requests without them on the same code path; their rule was no regression: a paired p95 ratio at most 1.05 in every pair at 14 workers (D31's envelope search had lowered it by 12 to 20%).</p>
+  <p>Full-detail <code>match()</code> over <span data-k="m.queries"></span> queries, with the engine's work spread over worker processes. Every query runs with the engine's default search budget, <span data-k="m.budget"></span> (<code><span data-k="m.policy"></span></code>), which is what the pages send (D41); until D41 a third of the benchmark's queries had a search budget of 1, which stopped their searches at once. The target, fixed before measuring (D21): 95th-percentile latency at most <span data-k="m.target.p95"></span> s, slowest query at most <span data-k="m.target.max"></span> s, and query-process memory under <span data-k="m.target.mem"></span> GiB. Since D31's second attempt the target is judged by the <b>paired confirmation</b>: main's code (<span data-k="p.reference"></span>) and this tree run back to back on the same snapshot and the same queries, alternating which runs first, <span data-k="p.repeats"></span> times at each worker count, so that drift over the session falls on both; the target is read off this tree's own runs. At 14 workers the target is <b><span data-k="g14.verdict"></span></b> (p95 <span data-k="g14.p95"></span> s); at 8 workers it is <b><span data-k="g8.verdict"></span></b> (p95 <span data-k="g8.p95"></span> s). Earlier paired verdicts, measured with the old budgets, are kept as historical records in the decision log.</p>
   <div class="card viz-root">
     <div class="chart-head">
-      <h3>Paired confirmation: 95th-percentile query time, main against this tree, by worker count and run</h3>
+      <h3>Paired confirmation: 95th-percentile query time, main's code against this tree, by worker count</h3>
       <button class="toggle" id="toggleTable" aria-pressed="false">Show table</button>
     </div>
     <div class="legend"><span><i style="background:var(--series-2)"></i>main before the change (<span data-k="p.reference2"></span>)</span><span><i style="background:var(--series-1)"></i>this tree (its runs govern the target)</span></div>
     <div class="chart-wrap" id="chartWrap">
-      <svg id="chart" role="img" aria-label="Grouped bar chart of the 95th-percentile match time at 300,000 patients in the paired confirmation, for main's code and this tree, at 8 and 14 workers, in the D36 verdict run and the matcher report's paired run, with the 10 second target marked" width="100%" viewBox="0 0 900 320"></svg>
+      <svg id="chart" role="img" aria-label="Grouped bar chart of the 95th-percentile match time at 300,000 patients in the paired confirmation, for main's code and this tree at the engine's default search budget, at 8 and 14 workers, with the 10 second target marked" width="100%" viewBox="0 0 900 320"></svg>
       <div class="tip" id="tip"></div>
     </div>
     <div class="scroll" id="armTable" hidden></div>
     <p class="muted" id="identity"></p>
+  </div>
+  <div class="card">
+    <h3 style="margin:0 0 6px;font-size:15px">What the search budgets change (same code, not a code comparison)</h3>
+    <p class="muted" style="margin-top:0">This tree on both sides, back to back as above: the benchmark's old drawn budgets (1, 40 or 300; <code><span data-k="b.reference"></span></code>, a stress test) against the engine's default (<code><span data-k="b.candidate"></span></code>). It measures what the budgets cost, governs nothing, and its differing queries are the ones whose results the budget moves.</p>
+    <div class="scroll" id="budgetTable"></div>
   </div>
   <div class="card">
     <h3 style="margin:0 0 6px;font-size:15px">Sequential confirmation (not the governing measure)</h3>
@@ -70,7 +75,7 @@
   </div>
 
   <h2>Building and verifying the store as the cohort grows</h2>
-  <p>DuckDB writes immutable Parquet snapshots under a <span data-k="s.limit"></span> memory limit with one database thread. Each snapshot is identified by a digest of its canonical rows, and every build is verified by content. Single-process match times are over the main run's queries at each size (50 at 1,000 and 10,000; 10 above).</p>
+  <p>DuckDB writes immutable Parquet snapshots under a <span data-k="s.limit"></span> memory limit with one database thread. Each snapshot is identified by a digest of its canonical rows, and every build is verified by content. Single-process match times are over the main run's queries at each size (50 at 1,000 and 10,000; 10 above), at the engine's default search budget. The last column is a stress test, not a realistic mix: the same queries with the old drawn budgets (1, 40 or 300), run once at the sizes up to 10,000 (D41).</p>
   <div class="card"><div class="scroll" id="scaleTable"></div>
     <p class="muted">Build peak is the whole process's resident memory, about twice DuckDB's limit; the factor is unresolved (DuckDB or the allocator). The 1,000,000 snapshot is shaped by replication of the 10,000-patient pool, so its size is not a linear extrapolation.</p>
   </div>
@@ -95,6 +100,7 @@
     <li>One machine (<span data-k="m.target.machine"></span>), one DuckDB thread, one memory limit.</li>
     <li>Synthetic data, replicated beyond 10,000 patients: candidate counts and outcomes multiply exactly, and a million distinct patients was never built.</li>
     <li>Latency at 100,000 patients and above in the main runs rests on ten queries; the target is judged on the paired confirmation (30 queries, four repeats of each code at each worker count). With 30 queries the p95 is the second-slowest query.</li>
+    <li>The queries are seeded random queries, not a clinical mix. Their search budget is the engine's default; the MIMIC-IV differentials keep the generator's drawn budgets as path coverage, so a few of their unresolved results are searches stopped by a budget of 1.</li>
     <li>Run-to-run spread between benchmark runs is not fully explained; the decision log records each instance. The paired protocol cancels drift that is slow against a pair of runs, not noise inside one run.</li>
     <li>Parallel matching at 1,000,000 patients was not measured.</li>
     <li>The MIMIC store indexes source item classes, not reviewed clinical concepts.</li>
@@ -120,19 +126,22 @@ function render(d) {
   const S = d.scaling, M = d.matching, X = d.mimic_demo;
   const big = S.sizes[S.sizes.length - 1];
   const G = M.governing.by_workers, g14 = G.find(a => a.workers === 14), g8 = G.find(a => a.workers === 8);
-  const P = M.paired, both = v => v.map(x => fmt(x, 2)).join(' and ');
+  const P = M.paired, B = M.budget_comparison;
   const fill = {
     'm.queries': M.queries, 'm.repeats': M.repeats, 'm.target.p95': fmt(M.target.p95_seconds),
     'm.target.max': fmt(M.target.max_seconds), 'm.target.mem': fmt(M.target.memory_gib),
     'm.target.machine': esc(M.target.machine || 'one machine'), 's.limit': esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2')),
-    'p.reference': esc(P[0].reference), 'p.reference2': esc(P[0].reference), 'p.repeats': P[0].repeats,
-    'g14.p95': both(g14.p95_seconds), 'g8.p95': both(g8.p95_seconds),
+    'p.reference': esc(P.reference.slice(0, 7)), 'p.reference2': esc(P.reference.slice(0, 7)), 'p.repeats': P.repeats,
+    'g14.p95': fmt(g14.p95_seconds, 2), 'g8.p95': fmt(g8.p95_seconds, 2),
+    'g14.verdict': g14.meets_target ? 'met' : 'missed', 'g8.verdict': g8.meets_target ? 'met' : 'missed',
+    'm.budget': fmt(M.budget_policy.search_budget), 'm.policy': esc(M.budget_policy.name),
+    'b.reference': esc(B.reference_policy), 'b.candidate': esc(B.candidate_policy),
   };
   document.querySelectorAll('[data-k]').forEach(el => { el.textContent = fill[el.dataset.k] ?? ''; });
 
   const tiles = [
     ['Largest store built', fmt(big.patients), `synthetic patients, ${fmt(big.events / 1e6, 0)} million events; built in ${dur(big.build_seconds)} and verified by content under a ${esc(S.memory_limit.replace(/(\d)([A-Z])/, '$1 $2'))} DuckDB limit`],
-    ['Matching at 300,000 patients', `${fmt(g14.p95_seconds[0], 2)} s`, `95th-percentile full-detail query with 14 workers in the D36 paired verdict (matcher report, D35: ${fmt(g14.p95_seconds[1], 2)} s; target ≤ ${fmt(M.target.p95_seconds)} s): met. At 8 workers ${both(g8.p95_seconds)} s: missed`],
+    ['Matching at 300,000 patients', `${fmt(g14.p95_seconds, 2)} s`, `95th-percentile full-detail query with 14 workers in the paired confirmation, at the engine's default search budget (target ≤ ${fmt(M.target.p95_seconds)} s): ${g14.meets_target ? 'met' : 'missed'}. At 8 workers ${fmt(g8.p95_seconds, 2)} s: ${g8.meets_target ? 'met' : 'missed'}`],
     ['Parallel equals single-process', `${M.identical_results.identical} / ${M.identical_results.compared}`, 'query results byte-identical across 1, 2, 4, 8 and 14 workers in the sequential confirmation'],
     ['MIMIC-IV demo census', `${fmt(X.census.mismatched_stores + X.census.built_store_mismatches)} mismatches`, `${fmt(X.census.raw_rows_checked)} chart rows checked against the raw file; ${fmt(X.census.stores_graph_checked)} claim stores through the graph route; ${fmt(X.differential.results)} differential results, ${fmt(X.differential.mismatches)} mismatches`],
   ];
@@ -141,8 +150,9 @@ function render(d) {
 
   drawChart(M);
   const rows = [];
-  for (const n of [14, 8]) for (const r of P) {
+  for (const n of [14, 8]) for (const r of [P]) {
     const a = r.arms.find(x => x.workers === n);
+    if (!a) continue;
     rows.push([n, r.name, fmt(a.p95_seconds, 2), a.p95_by_repeat.map(x => fmt(x, 2)).join(' · '), fmt(a.max_seconds, 2), fmt(a.query_peak_gib, 2),
       fmt(a.reference_p95_seconds, 2), a.ratio_p95_by_repeat.map(x => fmt(x, 3)).join(' · '), fmt(a.ratio_p95_pooled, 3),
       a.ratio_total_by_repeat.map(x => fmt(x, 2)).join(' · '), a.meets_target ? '<span class="ok">met</span>' : 'missed']);
@@ -154,7 +164,11 @@ function render(d) {
     M.sequential_arms.map(a => [a.workers, fmt(a.p95_seconds, 2), a.p95_by_repeat.map(x => fmt(x, 2)).join(' · '),
       fmt(a.max_seconds, 2), fmt(a.query_peak_gib, 2), fmt(a.per_candidate_us, 1), a.meets_target ? 'met' : 'missed']));
   document.getElementById('identity').textContent =
-    `Ratios are this tree over main, per pair; below 1 is faster. The two codes agree on ${P[0].identical_queries} of ${P[0].compared_queries} queries in each paired run (the other three moved by design, every move from an undecided result). Single process: ${fmt(M.single_process_per_candidate_us, 1)} µs per candidate; results at every worker count are byte-identical to the single-process matcher's (${M.identical_results.identical} of ${M.identical_results.compared} query comparisons).`;
+    `Ratios are this tree over main, per pair; below 1 is faster. The two codes agree on ${P.identical_queries} of ${P.compared_queries} queries. Sequential confirmation at 14 workers: p95 ${fmt(g14.sequential_p95_seconds, 2)} s. Single process: ${fmt(M.single_process_per_candidate_us, 1)} µs per candidate; results at every worker count are byte-identical to the single-process matcher's (${M.identical_results.identical} of ${M.identical_results.compared} query comparisons).`;
+  document.getElementById('budgetTable').innerHTML = table(
+    ['Workers', 'Default budget p95 (s)', 'Drawn budgets p95 (s)', 'p95 ratio per pair', 'Total-time ratio per pair', 'Queries the budget moves'],
+    B.arms.map(a => [a.workers, fmt(a.p95_seconds, 2), fmt(a.reference_p95_seconds, 2), a.ratio_p95_by_repeat.map(x => fmt(x, 3)).join(' · '),
+      a.ratio_total_by_repeat.map(x => fmt(x, 2)).join(' · '), `${fmt(B.compared_queries - B.identical_queries)} of ${fmt(B.compared_queries)} (seeds ${B.mismatching_seeds.join(', ') || 'none'})`]));
   const tb = document.getElementById('toggleTable');
   tb.onclick = () => {
     const show = document.getElementById('armTable').hidden;
@@ -167,9 +181,10 @@ function render(d) {
   // D34: a size whose snapshot an earlier run built shows that run's build figures, marked, with the origin below.
   const reused = z => z.build_reused ? ' †' : '';
   document.getElementById('scaleTable').innerHTML = table(
-    ['Patients', 'Events', 'Build', 'Build peak (GiB)', 'Snapshot (GB)', 'Content check', 'Check peak (GiB)', 'Open (warm)', 'Match p50', 'Match max'],
+    ['Patients', 'Events', 'Build', 'Build peak (GiB)', 'Snapshot (GB)', 'Content check', 'Check peak (GiB)', 'Open (warm)', 'Match p50', 'Match max', 'Unresolved', 'Unresolved, stress test'],
     S.sizes.map(z => [fmt(z.patients), fmt(z.events), dur(z.build_seconds) + reused(z), fmt(z.build_peak_gib, 2) + reused(z), fmt(z.snapshot_gb, 2),
-      dur(z.verify_content_seconds), fmt(z.verify_peak_gib, 2), `${fmt(z.open_seconds_warm, 2)} s`, dur(z.match_p50_seconds), dur(z.match_max_seconds)]))
+      dur(z.verify_content_seconds), fmt(z.verify_peak_gib, 2), `${fmt(z.open_seconds_warm, 2)} s`, dur(z.match_p50_seconds), dur(z.match_max_seconds),
+      fmt(z.unresolved), z.stress_unresolved == null ? '' : fmt(z.stress_unresolved)]))
     + (S.sizes.some(z => z.build_reused) ? (() => {
       const o = S.build_origin || {};
       return `<p class="muted">† Build figures of an earlier run, whose kept snapshots this run queried without rebuilding: first built ${esc(o.first_built_at || 'at an unrecorded time')}${o.first_built_commit ? ` at commit ${esc(o.first_built_commit.slice(0, 7))}` : ''} on ${esc(o.machine || 'an unrecorded machine')} (report ${esc(o.first_built_report || 'unnamed')}, sha256 ${esc((o.first_built_report_sha256 || '').slice(0, 12))}…). Reuse required a new probe build to load and read the same repository files, with the same library versions, build settings and machine; it does not cover the operating system or library internals beyond their versions. The benchmark that ran those builds and wrote their figures is bound only by that earlier report (its digest ${esc((o.first_built_benchmark_sha256 || 'unrecorded').slice(0, 12))}…).</p>`;
@@ -191,7 +206,7 @@ function render(d) {
 
   const D = X.differential, order = ['exact', 'relaxed', 'unresolved', 'none', 'not_comparable', 'excluded'];
   document.getElementById('diffTable').innerHTML =
-    `<p style="margin:0 0 8px"><b>Differential:</b> ${fmt(D.queries)} random queries over every patient, ${fmt(D.results)} results compared with an independent reference: <b>${fmt(D.mismatches)} mismatches</b>.</p>` +
+    `<p style="margin:0 0 8px"><b>Differential:</b> ${fmt(D.queries)} random queries over every patient, ${fmt(D.results)} results compared with an independent reference: <b>${fmt(D.mismatches)} mismatches</b>. The differential keeps the generator's drawn search budgets as path coverage, so 4 of its unresolved results are searches stopped by a budget of 1 (D40, D41).</p>` +
     table(['Result status', 'Results', 'Share'], order.filter(k => k in D.status_mix).map(k =>
       [k.replace('_', ' '), fmt(D.status_mix[k]), `${fmt(100 * D.status_mix[k] / D.results, 1)}%`]));
 
@@ -212,8 +227,9 @@ function drawChart(M) {
   const svg = document.getElementById('chart'), tip = document.getElementById('tip'), wrap = document.getElementById('chartWrap');
   const W = 900, H = 320, L = 56, R = 120, T = 18, B = 60;
   const groups = [];
-  for (const n of [8, 14]) for (const r of M.paired) {
+  for (const n of [8, 14]) for (const r of [M.paired]) {
     const a = r.arms.find(x => x.workers === n);
+    if (!a) continue;
     groups.push({ n, run: r.name, a, bars: [{ v: a.reference_p95_seconds, c: 'var(--series-2)' }, { v: a.p95_seconds, c: 'var(--series-1)' }] });
   }
   const ymax = Math.ceil(Math.max(M.target.p95_seconds, ...groups.flatMap(g => g.bars.map(b => b.v))) / 5) * 5;

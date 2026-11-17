@@ -19,7 +19,6 @@ REPORTS = {
     'scaling': 'verification/execution-store-scaling-report.json',
     'matcher': 'verification/matcher-comparison-report.json',
     'mimic': 'verification/execution-store-mimic-demo-report.json',
-    'verdict': 'verification/d36-paired-verdict.json',
     'rises': 'verification/d36-rise-usefulness-report.json',
 }
 GIB = 1024 ** 3
@@ -50,6 +49,10 @@ def scaling(s):
             'query_peak_gib': round(z['query_phase']['peak_rss_bytes'] / GIB, 2),
             'queries': q['queries'],
             'pruned_share_mean': round(q['pruning_rate']['mean'], 3),
+            # D41: unresolved at the engine's default budget, and in the stress stratum (drawn budgets) where it ran
+            'unresolved': q['status_mix'].get('unresolved', 0),
+            'stress_unresolved': (z['stress_drawn_budgets']['status_mix'].get('unresolved', 0)
+                                  if 'status_mix' in z.get('stress_drawn_budgets', {}) else None),
             # D34: build figures an earlier run measured, its snapshot reused here (the origin is named below)
             'build_reused': 'build_reused' in z,
         })
@@ -57,6 +60,8 @@ def scaling(s):
     return {'memory_limit': s['sizes'][-1]['memory_limit'],
             'distinct_patients': s['sizes'][-1].get('distinct_patients'),
             'generated_at': s.get('generated_at'),
+            'budget_policy': policy(s['budget_policy']),
+            'stress_policy': {**policy(s['stress_policy']), 'sizes': s['stress_policy']['sizes']},
             'build_origin': None if origin is None else {
                 'first_built_at': origin['first_built'].get('generated_at'),
                 'first_built_report': origin['first_built'].get('path'),
@@ -65,6 +70,11 @@ def scaling(s):
                 'first_built_benchmark_sha256': origin['first_built'].get('benchmark_sha256'),
                 'machine': (origin['first_built'].get('environment') or {}).get('cpu')},
             'sizes': rows}
+
+
+def policy(p):
+    """A report's search budget policy (D41)."""
+    return {'name': p['name'], 'search_budget': p['search_budget']}
 
 
 def paired_run(name, pc, target):
@@ -87,11 +97,15 @@ def paired_run(name, pc, target):
         })
     arms.sort(key=lambda a: a['workers'])
     return {'name': name, 'repeats': pc['repeats'], 'queries': pc['queries'], 'reference': pc['reference']['git_ref'],
+            'candidate': pc['candidate']['git_ref'],
+            'reference_policy': pc['reference']['budget_policy']['name'],
+            'candidate_policy': pc['candidate']['budget_policy']['name'],
             'identical_queries': pc['byte_identity']['identical'], 'compared_queries': pc['byte_identity']['compared'],
+            'mismatching_seeds': pc['byte_identity']['mismatching_seeds'],
             'arms': arms}
 
 
-def matcher(m, verdict):
+def matcher(m):
     c, target = m['confirmation'], m['target']
     arms = []
     for name, a in c['arms'].items():
@@ -109,23 +123,26 @@ def matcher(m, verdict):
         })
     arms.sort(key=lambda a: a['workers'])
     ident = c['byte_identity_C_against_B']
-    paired = [paired_run('D36 verdict run', verdict['paired_confirmation'], target),
-              paired_run('matcher report (D35)', m['paired_confirmation'], target)]
-    # The D21 status per worker count: met only if met in every paired run (decision log, D31, second attempt).
-    governing = []
-    for n in sorted({a['workers'] for r in paired for a in r['arms']}):
-        runs = [next(a for a in r['arms'] if a['workers'] == n) for r in paired]
-        governing.append({'workers': n, 'p95_seconds': [a['p95_seconds'] for a in runs],
-                          'max_seconds': [a['max_seconds'] for a in runs],
-                          'query_peak_gib': [a['query_peak_gib'] for a in runs],
-                          'meets_target': all(a['meets_target'] for a in runs)})
+    # D41: the D21 status is read off the matcher report's paired run of two codes (D31's protocol), both at the
+    # engine's default budget; the comparison of two budget policies on one code is shown apart and governs nothing.
+    paired = paired_run('paired run, main against this tree', m['paired_confirmation'], target)
+    if paired['reference_policy'] != paired['candidate_policy']:
+        raise SystemExit('paired_confirmation compares budget policies; it must compare codes at one policy')
+    budgets = paired_run('budget comparison, same code', m['budget_policy_comparison'], target)
+    sequential = {a['workers']: a for a in arms}
+    governing = [{'workers': a['workers'], 'p95_seconds': a['p95_seconds'], 'max_seconds': a['max_seconds'],
+                  'query_peak_gib': a['query_peak_gib'], 'meets_target': a['meets_target'],
+                  'sequential_p95_seconds': sequential[a['workers']]['p95_seconds'] if a['workers'] in sequential else None}
+                 for a in paired['arms']]
     return {
+        'budget_policy': policy(m['budget_policy']),
         'patients': c['size'], 'queries': c['queries'], 'repeats': c['repeats'],
         'target': {'p95_seconds': target['match_seconds_p95_max'], 'max_seconds': target['match_seconds_max_max'],
                    'memory_gib': round(target['query_process_peak_rss_bytes_below'] / GIB, 1),
                    'machine': target.get('machine')},
-        'governing': {'protocol': 'paired-interleaved-1.0', 'runs': [r['name'] for r in paired], 'by_workers': governing},
+        'governing': {'protocol': 'paired-interleaved-1.0', 'run': paired['name'], 'by_workers': governing},
         'paired': paired,
+        'budget_comparison': budgets,
         'sequential_arms': arms,
         'single_process_per_candidate_us': round(c['arms']['B']['per_candidate_microseconds']['end_to_end'], 1),
         'identical_results': {'compared': sum(v['compared'] for v in ident.values()),
@@ -184,7 +201,7 @@ def build():
         'generator': 'demos/mockups/results/build.py',
         'sources': {k: {'path': REPORTS[k], 'sha256': loaded[k][1]} for k in REPORTS},
         'scaling': scaling(loaded['scaling'][0]),
-        'matching': matcher(loaded['matcher'][0], loaded['verdict'][0]),
+        'matching': matcher(loaded['matcher'][0]),
         'mimic_demo': mimic(loaded['mimic'][0]),
         'rises': rises(loaded['rises'][0], loaded['mimic'][0]),
     }

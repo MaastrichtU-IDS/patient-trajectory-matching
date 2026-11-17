@@ -158,7 +158,7 @@ These trajectory-page features have no store form. Since D37 each is refused by 
 
 ## Results page
 
-`results/` summarises the execution-store and matching evidence: scale, matching latency at 300,000 patients against the D21 target, and the MIMIC-IV demo census. Every figure is read from a committed report in `verification/` by `results/build.py`, which writes `results/results.json`; run it again after those reports are regenerated (`--check` reports a stale file). The page lists each source report's digest.
+`results/` summarises the execution-store and matching evidence: scale, matching latency at 300,000 patients against the D21 target (from the matcher report's paired run of main's code against this tree, at the engine's default search budget, D41; the comparison of the old drawn budgets with the default on the same code is shown apart and labelled), and the MIMIC-IV demo census. Every figure is read from a committed report in `verification/` by `results/build.py`, which writes `results/results.json`; run it again after those reports are regenerated (`--check` reports a stale file). The page lists each source report's digest.
 
 ## Roadmap page
 

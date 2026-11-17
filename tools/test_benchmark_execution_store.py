@@ -32,6 +32,52 @@ class PureHelperTests(unittest.TestCase):
             self.assertGreater(bench.shift_for(k), 0)
 
 
+class BudgetPolicyTests(unittest.TestCase):
+    """D41: the benchmark's queries run at the engine's default search budget, with every other field as drawn."""
+
+    def test_the_policy_replaces_only_the_search_budget(self):
+        import random
+        from patterns.test_execution_store import random_query
+        drawn, ingest = bench.query_inputs(50, bench.STRESS_POLICY)
+        default, _ = bench.query_inputs(50)
+        ancestors = ingest['closure']['ancestors']
+        holders = {}
+        for p in ingest['patients']:
+            for concept in {a for e in p['events'] for c in e['concepts'] for a in (c, *ancestors[c])}:
+                holders[concept] = holders.get(concept, 0) + 1
+        pool = sorted(c for c, n in holders.items() if n >= 2)
+        self.assertEqual([s for s, _ in drawn], list(range(50)))
+        self.assertEqual([s for s, _ in default], list(range(50)))
+        for (seed, d), (_, q) in zip(drawn, default):
+            self.assertEqual(d, random_query(random.Random(seed), pool, ingest), seed)  # the generator's own draw
+            self.assertIn(d['search_budget'], (1, 40, 300))
+            self.assertEqual(q['search_budget'], 40_000)
+            self.assertEqual({**q, 'search_budget': d['search_budget']}, d, seed)
+            self.assertEqual(list(q), list(d))
+        self.assertEqual({d['search_budget'] for _, d in drawn}, {1, 40, 300})
+
+    def test_the_default_is_the_engines_and_what_the_pages_send(self):
+        import re
+        from patterns import trajectory_graph as tg
+        query = {**bench.query_inputs(1)[0][0][1]}
+        del query['search_budget']
+        self.assertEqual(tg.PreparedQuery(query).budget, bench.ENGINE_DEFAULT_SEARCH_BUDGET)
+        mockups = bench.ROOT / 'demos/mockups'
+        page = re.search(r'^SEARCH_BUDGET = ([0-9_]+)$', (mockups / 'store_query.py').read_text(), re.M)
+        app = re.search(r'^const SEARCH_BUDGET = ([0-9]+);$', (mockups / 'trajectory/app.js').read_text(), re.M)
+        self.assertEqual(int(page.group(1)), bench.ENGINE_DEFAULT_SEARCH_BUDGET)
+        self.assertEqual(int(app.group(1)), bench.ENGINE_DEFAULT_SEARCH_BUDGET)
+
+    def test_policies_are_named_and_unknown_ones_refused(self):
+        self.assertEqual(bench.BUDGET_POLICY, 'engine-default')
+        self.assertIn('STRESS TEST', bench.budget_policy_record(bench.STRESS_POLICY)['description'])
+        self.assertEqual(bench.budget_policy_record(bench.BUDGET_POLICY)['search_budget'], 40_000)
+        with self.assertRaises(ValueError):
+            bench.query_inputs(1, 'generous')
+        with self.assertRaises(SystemExit):  # a report's policy is fixed; only its workers take one
+            bench.main(['--sizes', '100', '--budget-policy', 'drawn-stress'])
+
+
 class CommittedReportTests(unittest.TestCase):
     def test_the_committed_report_builds_and_verifies_a_million_patients_with_flat_memory(self):
         """D23: the regenerated report holds a completed 1,000,000-patient size, verified by content, whose
@@ -52,6 +98,24 @@ class CommittedReportTests(unittest.TestCase):
         self.assertLessEqual(big['build_phase']['peak_rss_bytes'], 1.10 * mid['build_phase']['peak_rss_bytes'])
 
 
+    def test_the_committed_report_states_its_budget_policy_and_its_stress_stratum(self):
+        """D41: the headline figures at the engine's default search budget; the drawn budgets as a labelled stress
+        stratum at 1,000 and 10,000 only."""
+        report = json.loads((bench.ROOT / 'verification/execution-store-scaling-report.json').read_text())
+        self.assertEqual(report['budget_policy'], bench.budget_policy_record('engine-default'))
+        self.assertEqual(report['stress_policy']['name'], 'drawn-stress')
+        self.assertEqual(report['stress_policy']['sizes'], [1000, 10000])
+        for entry in report['sizes']:
+            if entry['size'] in (1000, 10000):
+                stress = entry['stress_drawn_budgets']
+                self.assertIn('STRESS TEST', stress['label'])
+                self.assertEqual(stress['budget_policy']['name'], 'drawn-stress')
+                self.assertEqual([r['candidates'] for r in stress['per_query']],
+                                 [r['candidates'] for r in entry['queries']['per_query']])
+            else:
+                self.assertNotIn('stress_drawn_budgets', entry)
+
+
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
 class ReportTests(unittest.TestCase):
     @classmethod
@@ -59,7 +123,8 @@ class ReportTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory(prefix='scaling-test-')
         cls.output = Path(cls.tmp.name) / 'report.json'
         bench.main(['--sizes', '100,200', '--queries', '3', '--repeats', '2', '--exhaustive', '1',
-                    '--exhaustive-max-size', '100', '--profile-max-size', '100', '--large-queries', '2',
+                    '--exhaustive-max-size', '100', '--profile-max-size', '100', '--stress-max-size', '100',
+                    '--large-queries', '2',
                     '--large-repeats', '2', '--work-dir', str(Path(cls.tmp.name) / 'work'), '--output', str(cls.output)])
         cls.report = json.loads(cls.output.read_text())
 
@@ -91,6 +156,35 @@ class ReportTests(unittest.TestCase):
             for row in q['per_query']:
                 self.assertLessEqual(row['candidates'], entry['patients'])
             self.assertEqual(sum(q['status_mix'].values()), n * entry['patients'])
+
+    def test_the_report_states_its_budget_policy_and_keeps_the_stress_stratum_apart(self):
+        """D41: the headline queries run at 40,000; up to --stress-max-size the drawn budgets run once, labelled."""
+        self.assertEqual(self.report['budget_policy']['name'], 'engine-default')
+        self.assertEqual(self.report['budget_policy']['search_budget'], 40_000)
+        self.assertEqual(self.report['stress_policy']['name'], 'drawn-stress')
+        self.assertEqual(self.report['stress_policy']['sizes'], [100])
+        small, large = self.report['sizes']
+        self.assertNotIn('stress_drawn_budgets', large)
+        stress = small['stress_drawn_budgets']
+        self.assertIn('STRESS TEST', stress['label'])
+        self.assertEqual(stress['budget_policy']['name'], 'drawn-stress')
+        self.assertEqual((stress['queries'], stress['repeats']), (3, 1))
+        self.assertGreater(stress['query_phase']['peak_rss_bytes'], 0)
+        drawn = {s: q['search_budget'] for s, q in bench.query_inputs(3, bench.STRESS_POLICY)[0]}
+        self.assertEqual({r['seed']: r['search_budget'] for r in stress['per_query']}, drawn)
+        self.assertEqual(sum(stress['queries_by_search_budget'].values()), 3)
+        self.assertEqual(sum(stress['status_mix'].values()), 3 * small['patients'])
+        # The same queries: the candidates do not depend on the search budget.
+        self.assertEqual([r['candidates'] for r in stress['per_query']],
+                         [r['candidates'] for r in small['queries']['per_query']])
+        for entry in self.report['sizes']:
+            rows = entry['queries']['per_query']
+            mix = {}
+            for row in rows:
+                for status, n in row['counts'].items():
+                    mix[status] = mix.get(status, 0) + n
+            self.assertEqual(dict(sorted(mix.items())), entry['queries']['status_mix'])
+            self.assertTrue(all('incomplete_none' in row for row in rows))
 
     def test_the_small_size_agrees_with_exhaustive_matching(self):
         check = self.report['sizes'][0]['exhaustive_check']
