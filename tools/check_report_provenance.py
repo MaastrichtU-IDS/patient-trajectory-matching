@@ -75,7 +75,14 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # post-pass. It records D39's decision on the D39 tree (main at 24cd863); for the current tree
               # `verification/d43-coded-usefulness-report.json` supersedes it. (D39's paired verdict, which binds the
               # dispatcher too, D41 froze above.) Undone if D43's hook is removed.
-              'verification/d39-coded-usefulness-report.json'}
+              'verification/d39-coded-usefulness-report.json',
+              # D43, rebased onto D42, froze D42's two reports on the same precedent (for the coordinator's sign-off as
+              # delegate): both bind `patterns/store_conditions.py`, into which D43 added its hook, and the usefulness
+              # report `demos/mockups/store_parity.py` and `coded_usefulness.cjs`, and its differential compares D42's
+              # tree with the main before it. Each records D42's decision on the D42 tree (against main at f99e4f9); for
+              # the current tree `verification/d43-paired-verdict.json` supersedes the verdict, and D43 changes no
+              # answer to a request without a count. Undone if D43's hook is removed.
+              'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json'}
 
 
 def digests(path):
