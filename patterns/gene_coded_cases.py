@@ -214,11 +214,25 @@ def check_result(result, query, conditions, patient, reports):
     return gk.check(result, query, gene_conditions(conditions), patient, frozenset(), reports)
 
 
+COUNT_REFINED = 'count_refined'  # in the status mix: results the dispatcher's count post-pass decided (D43b)
+
+
+def refined_count(want, got):
+    """Whether `got` differs from the reference's `want` only as the dispatcher's count post-pass (D43,
+    `store_conditions_counts`) refines a result: the reference, which applies D32's two-pass rule and knows nothing of
+    the post-pass, leaves it `unresolved` with STEP_CONDITION_UNCERTAIN. Such a result is checked by the worlds check
+    (`worlds`), and against the oracle by `count_narrowing_cases`' snapshot reference."""
+    return (want['status'] == 'unresolved' and want.get('reason') == 'STEP_CONDITION_UNCERTAIN'
+            and json.dumps(got) != json.dumps(want))
+
+
 def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, worlds=True, reference=True,
                  pruning=True, itself=False):
     """One small snapshot of `patients` tiny patients and `requests` seeded joint requests over it, each with its own
     windows: (violations, mismatches, status mix, cases). A case is one patient's result for one request. Each result is
-    checked by the worlds check (`worlds`) and compared with the reference (`reference`); the whole answer is compared
+    checked by the worlds check (`worlds`) and compared with the reference (`reference`; a result the dispatcher's count
+    post-pass decided where the reference leaves it STEP_CONDITION_UNCERTAIN is counted as `count_refined` and left to
+    the worlds check, D43b); the whole answer is compared
     with pruning off (`pruning`) and, with `itself`, with the gene profile's answer on the snapshot built without the
     left-out kinds (results and candidates)."""
     rng = random.Random(f'gene-coded/{generator}/{seed}')
@@ -263,7 +277,10 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
                     if wrong:
                         violations.append((seed, k, pid, wrong))
                 if reference and json.dumps(co.unfiltered(got)) != json.dumps(want[i]):
-                    mismatches.append((seed, k, pid))
+                    if refined_count(want[i], got):
+                        mix[COUNT_REFINED] += 1  # D43b: decided by the dispatcher's post-pass, checked by the worlds
+                    else:
+                        mismatches.append((seed, k, pid))
     return violations, mismatches, mix, cases
 
 
