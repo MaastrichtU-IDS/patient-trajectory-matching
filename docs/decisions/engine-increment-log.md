@@ -54,6 +54,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D40 | Fewer `unresolved` results from exhausted search budgets: a stopped possible search settled by propagation (pair consistency, a bounds network, one checked descent), under rules fixed before measuring, after a disclosed calibration | Built, sound (0 violations in 80,000 small cases; 363 of 363 and 38 of 38 `SEARCH_BUDGET_EXHAUSTED` decided), **not shipped**: the MIMIC rule was missed as written; reverted. The finding: every large-store `unresolved` figure quoted since D35 comes from budget-1 queries the benchmark's generator draws, all decidable with a budget of 1,000,000 |
 | D41 | Realistic search budgets in the benchmark: every query at the engine's default (40,000) with its shape unchanged, budget-1 queries kept apart as a labelled stress stratum, under rules fixed before measuring | Decided; shipped. Every rule met. Large-store `unresolved` 38 and 363 become 0 and 1 (one 10,000-patient search still stops at 40,000); every moved result went from undecided to decided, digests moved on exactly the traced queries; the stress stratum reproduces the old figures. D21 at 14 workers met by the paired run, p95 9.30 s (8 workers 11.93 s, missed); seed 19, whose searches used to stop at once, is now the p95. D36's and D39's paired verdicts frozen |
 | D42 | A joint profile: gene steps under "coded only" (D38 over D39's profile 1.3), through hooks D39's module shares rather than a third copy of `match`, so that the trajectory page's Tree and Graph templates can run on the store under "coded only", under rules fixed before measuring | Decided; built, every rule met, written only when asked: 0 worlds violations in 40,000 small cases (one disclosed carve-out from D36's excluded-records follow-up, applied once), 0 reference mismatches there and on 400 snapshot requests, four planted defects caught, pruning on and off identical; every earlier profile byte-identical to main's code on 997 requests but the stated context digests; Tree and Graph under coded only 0 of 7 child types unresolved over seeds 1001 to 1030; parity 859 of 1,248, every difference declared; 14-worker paired p95 ratios 1.005 to 1.018 under D41's budgets, p95 9.49 s. The translator's defaults stay off (`STORE_GENE_CODED_ONLY`, `STORE_CODED_ONLY`) |
+| D43 | Counts decided where D32's two-pass rule leaves them `STEP_CONDITION_UNCERTAIN`: copies of each possibly reached record over the times where its count can be reached (`count_narrowed_v1`), one engine pass, in a post-pass of the dispatcher no build loads, under rules fixed before measuring | Built and sound, **not shipped**: the latency rule missed as written on the rebased tree (14-worker paired ratios 0.999, 1.001, 1.185, 1.064 against 1.05, on a path both codes ran byte-identically). Every other rule met: 0 violations in 120,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; Event frequency under coded only 0 of 16 child types unresolved (was 11). The rule timed a path D43 never runs; the post-pass's own cost (about 32 s against 5 s for a 1.3 count request at 300,000) was unruled. The hook is removed; the code is kept at 6888d1e; retry queued as D43b |
 
 ## D1 Package with hatchling, in place
 
@@ -2903,3 +2904,157 @@ The trajectory page's Tree and Graph templates carry a gene step. Since D38 the 
 - The excluded-records rule and the match beside an `unresolved` result (D36's follow-up), in `execution_store.py` for every profile, with D40's follow-up on reading matches beside `unresolved`: queued by the coordinator as its own increment.
 - The owner's call on "coded only" by default (D39), which would bring the joint profile with it (`STORE_GENE_CODED_ONLY`).
 - A small-case generator with a gene step beside a rise or fall under the joint profile; joint requests in the latency benchmark on a snapshot built with the wrapper.
+
+## D43 Counts decided where D32's two-pass rule leaves them undecided: `count_narrowed_v1`, a post-pass in the dispatcher
+
+D39 missed its usefulness bar on one template only. Event frequency under "coded only" (profile 1.3) had 23 of 278 candidates `unresolved`, in 11 of its 16 child types, and every one was `STEP_CONDITION_UNCERTAIN`: D32's two-pass rule for "at least 3 seizures within 6 months". A design study (outside the repository, `~/ptm-local/design/counts/d43-draft.md`, with its prototype and an independent oracle, on main at 6978f43) found that none of the 23 is genuinely uncertain. Each has a determined true result: 16 `possible`, 7 relaxed by `count:A` with certainty `possible`. D32 leaves them undecided because pass 2 tests "the count is reached at e" and "the relation holds" separately, so the rule reads nothing from pass 2 but `none`. This entry builds the study's option B at its location L3, under rules written and committed before any measurement.
+
+*Outcome (details at the end of this entry):* built, and sound on every check; Event frequency under "coded only" had no unresolved child type left. It **did not ship**: the latency rule missed as written on the rebased tree, on a path both codes ran byte-identically, and the rule never timed the path D43 adds. The hook is removed and the code kept at 6888d1e; a retry is queued as D43b. The design, the argument and the rules below are kept as written.
+
+**The rule** (`count_narrowed_v1`). It applies only to a result D32 answers `unresolved` with `STEP_CONDITION_UNCERTAIN`. Two further conditions: every count tag a tried set uses was decided by the exact sweep (`count_sweep_v1`, no shared variable), and no tried tag is a rise or fall (D33).
+- *The narrowed pass (two′).* For every count tag a tried set uses, consider each record e that reaches the count in some choice of times but not in every one (possible-only).
+  - Replace e, for that tag, by copies over the maximal integer intervals of Narrow(e). Narrow(e) is the set of times τ in e's tightened start range (cut to the window for a period count) at which at least n − 1 other counted records can lie in [τ − span, τ] (in [window start, τ] for a period count). It is computed with the sweep's own interval counters, at the same breakpoints.
+  - A copy is e with its start cut to the interval, keeping its own end range and proper flag, with fresh variables. It carries only the tag.
+  - Certain records keep the tag on themselves, as in pass 1. Nth points and gene points are as in pass 1.
+  - The engine runs once over this patient.
+- *Coupling.* D32's coupling rule applies to count steps too. A set whose result would be `possible`, and that rests on a count step with copies, is undecided (`_coupled_match`, unchanged) in two cases: the step's counted records share a variable, or another step can bind one of them. "Another step" means an `any`, `first` or `last` step whose concept one of them carries, or a derived step whose family meets them.
+- *Combination* (pass 1 as D32 ran it):
+  - two′ is `none`, and both passes are complete: `none`.
+  - two′ finds the unrelaxed query (exact or possible), with at most one copy in its binding: `possible`, with two′'s binding (a copy read as its record) and a witness.
+  - two′ is relaxed by S, both passes are complete, and at most one copy is in its binding: pass 1's result if pass 1 is relaxed by S. Otherwise, relaxed by S with certainty `possible`, with two′'s binding.
+  - Anything else (two′ unresolved, a binding on two copies, a stopped search or a skipped cheaper set): D32's answer stands.
+- *Why it is sound* (the study's argument, which is D32's Nth envelope argument).
+  - *`none`:* every world in which e reaches its count has t(e) in Narrow(e). Mapped into two′ with the copy at t(e), every constraint holds, so a `none` of two′ is sound.
+  - *An exact binding:* an exact binding of two′ with one copy holds for every value of the copy. The sweep is exact, so for any τ in Narrow(e) a world reaching the count at e exists. The set is therefore truly possible.
+  - *A possible binding:* it lifts to a real world when the count step is not coupled, since the witnesses then constrain nothing else.
+  - *Exactness:* it decomposes. For a fixed binding, "holds in every world" means "the count is reached at e in every world" and "the relation holds in every world". So exactness is decided by pass 1, which tags the certain records only. A pass 1 that is `none`, or relaxed by another set, proves that no binding is exact at the unrelaxed query, or at S.
+- *A semantic note.* Some truly `possible` results hold in every world, but under a binding that changes from world to world. Typically "the third seizure" is whichever of two overlapping records is later, often a registry copy of the same seizure. Under the engine's binding-level meaning these are `possible`. A binding-free `exact` would be an engine-wide change and is out of scope.
+
+**Location: a post-pass in the dispatcher, in a module no build loads** (owner policy on build reuse, D34; the parallel-work rules).
+- `patterns/store_conditions_counts.py` holds the rule.
+- `patterns/store_conditions.py` calls it after the routed module answers, through one small hook in `match` and `match_context`. The hook acts on requests whose conditions carry a count step (profiles 1.1, 1.2, 1.3 and gene). Every other request gets the routed module's answer, untouched.
+- For each result `unresolved` with `STEP_CONDITION_UNCERTAIN`, the post-pass works as follows.
+  - It re-derives that patient through the answering module's own `_derived_chunk`: `execution_store` for 1.1, `store_conditions_relative` for 1.2, `store_conditions_coded` for 1.3 and `store_conditions_gene` for gene. So 1.3 reads kept events only, and gene requests read their findings.
+  - It checks that the module's own two-pass result for the patient is the result being refined, then applies the rule.
+  - To a changed result it reapplies the store's later rules, as the module applies them: coverage (the module's `_comparability`) to a refined `none`, then D18 (`_excluded_starts`, the module's derived reach, gene undetermined records, `apply_exclusions`).
+  - It recomputes `counts` and honours `detail='decided'`.
+  - It runs in the parent process on these few patients, so worker counts cannot change it.
+- The output of every count request gains `derived_steps.count_refinement` (the rule, and how many results were refined or skipped), and its context binds this module's digest and the rule's digest, whether or not a result moved. A refined result whose binding is two′'s has `method` `count_narrowed_v1`.
+- *Not edited:* `execution_store.py`, `execution_store_reference.py`, `trajectory_graph*.py`, `trajectory_times.py`, the converter, `store_conditions_relative.py`, `store_conditions_coded.py`, `store_conditions_gene.py` and every file of the D34 build record. So the scaling builds stay reusable, and neither MIMIC nor scaling is regenerated.
+- **Declared difference.** Callers that skip the dispatcher keep D32's rule. These are the callers of `execution_store.match`, `store_conditions_relative.match` or the other modules' `match`: the MIMIC verify differentials (store and reference alike) and the benchmarks.
+  - Their answer is never contradicted by the refined one, but it leaves undecided some results the refinement decides.
+  - D32 measured 0 `STEP_CONDITION_UNCERTAIN` store results on the MIMIC demo, where every time is exact.
+  - Every caller on the page's or the tools' path goes through the dispatcher: `store_parity.py`, the page's server and the usefulness tools.
+- *Same semantics across profiles.* Through the dispatcher, 1.1, 1.2, 1.3 and gene requests get the same count semantics. D39's identity still holds: a 1.3 answer equals the 1.2 answer on the snapshot without mentions, both through the dispatcher.
+
+**The independent reference** (`patterns/count_narrowing_cases.py`, test support).
+- *The oracle.* It holds the study's exact oracle, rewritten. The oracle gives the true result (status, relaxation ids, certainty) of a request with count steps by simple temporal networks over joint configurations: the `any` bindings, each `first` or `last` target with the worlds checker's tie-breaks, and n − 1 witnesses per count step. It shares no code with the store or the engine. It can also test whether a given binding reaches a given certainty.
+- *On snapshots.* It is applied to every patient that the D32 reference leaves `STEP_CONDITION_UNCERTAIN` (`prepared_reference`, D39's coded reference, or D38's gene reference). Coverage and D18 are then reapplied by the existing reference's own functions.
+- *Generators.* It also holds the small cases' generators, two of them new:
+  - `during-from-count`: a `during` relation from a count step, with exposures among the counted records;
+  - `two-counts`: two count steps, on one family or on overlapping ones.
+
+**Pre-committed rules** (written and committed before any measurement of this increment).
+1. **Soundness.**
+   1. *The worlds check finds 0 violations* on at least 20,000 small cases per generator, with fresh seeds. It runs `trajectory_graph_worlds.check_derived` on the refined result, for every status but `unresolved`, and on the match beside `unresolved`. The generators are the span and period counts from D32's `multi` and `coupled` generators (four generators), plus `during-from-count` and `two-counts`.
+   2. *Equal to the truth.* On every small case whose result the refinement changes, the refined result's (status, relaxation ids, certainty) equals the truth by enumeration of every choice of times (D40's form). Cases with an Nth step beside are included.
+   3. *The reference on snapshots finds 0 mismatches* on at least 400 seeded requests with count steps, through the dispatcher.
+      - Profiles 1.1, 1.2, 1.3 and gene, over D32's derived fixtures, D39's fixtures with mentions, D38's gene fixtures and the synthetic cohort built with series.
+      - Each request at 1 and 2 workers, at both detail levels, and with pruning on and off.
+      - A mismatch is any of:
+        - a result that the D32 reference does not leave `STEP_CONDITION_UNCERTAIN` and that differs from it (`json.dumps`, a FILTERED reason read as `none`);
+        - a kept result that differs from the D32 reference;
+        - a refined result that differs from the oracle's truth with coverage and D18 reapplied, in its status, relaxation ids, certainty, completeness, or D18 and coverage fields;
+        - a refined result whose binding does not reach its certainty by the oracle;
+        - a 2-worker, `decided` or unpruned answer that differs from the 1-worker one.
+   4. *Every planted defect is caught* (a switch, `_D43_DEFECT`), by the worlds check, the truth or the reference:
+      - narrowing skipped (a copy over e's whole range);
+      - coupling ignored;
+      - certainty taken from two′ (`exact` claimed);
+      - a copy without e's end (a bare point), which must be caught on `during-from-count`;
+      - a binding on two copies accepted;
+      - the refinement applied to a decided result;
+      - D18 not reapplied to a refined result;
+      - coverage not reapplied to a refined `none`.
+2. **Movement only from undecided to decided.**
+   - A result changes only if the answering module's result was `unresolved` with `STEP_CONDITION_UNCERTAIN`. Its refined engine result is decided (`possible`, `relaxed` or `none`) and complete. Coverage and D18 then apply to it as to any engine result, and the number they change is reported.
+   - Every other result is byte-identical through the dispatcher.
+   - Every request without a count step is byte-identical in every field (a test, at 1 and 2 workers, for every profile).
+   - The 300 recorded match digests are unchanged.
+   - These files are byte-identical to main (6978f43, or the main this branch is rebased on): `execution_store.py`, `execution_store_reference.py`, `trajectory_graph*.py`, `trajectory_times.py`, `synthetic_ingest.py`, `store_conditions_relative.py`, `store_conditions_coded.py`, `store_conditions_gene.py`, and every file the D34 build record lists.
+   - D39's identity holds through the dispatcher, on the snapshot requests of rule 1.3 that have profile 1.3.
+3. **Usefulness** (D39's protocol and bar, unchanged; `demos/mockups/coded_usefulness.cjs`, report `verification/d43-coded-usefulness-report.json`).
+   - Seeds 1001 to 1030, with the extension rule.
+   - **The bar: Event frequency under "coded only" (1.3) has at most 30% of its distinct child types `unresolved`.**
+   - Reported: every template under "coded only", all candidates, the share without C001, status mixes and reasons, and the stated-findings setting beside them.
+4. **Latency.**
+   - *Ruled:* the paired protocol (D31, `tools/benchmark_matcher.py --paired-confirm`, `paired-interleaved-1.0`) against main, at 300,000 patients, 30 queries, 4 repeats and 14 workers, into `verification/d43-paired-verdict.json`. It passes only if:
+     - the 14-worker p95 ratio (this tree over main) is at most **1.05 in every pair**;
+     - this tree's own 14-worker p95 is at most **10 s**.
+
+     If D41's budget policy has merged, the run uses it. The confirmation's queries carry no count, so this checks that the dispatcher's added call costs nothing.
+   - *Reported, not ruled:* the time of a 1.3 Event frequency request on the 300,000 snapshot of the kept D34 builds (`~/ptm-local/scaling-d34`), with and without the post-pass.
+5. **Not in scope.** D39's `STORE_CODED_ONLY` default is not flipped. Whether D39's rules would now be met is reported; a flip needs them re-met, including a fresh paired verdict.
+6. **Ship rule.** The hook stays in the dispatcher only if every rule above holds. Otherwise it is removed and the numbers are recorded here. A failure is fixed, never tuned away.
+
+*Disclosed before these rules.* The design study measured its prototype, not this code, on main at 6978f43.
+- On the 30 cohorts it decided 23 of 23, each equal to the oracle, and moved none of the 255 decided results.
+- On 80,000 small cases (seeds `d43-fresh`) it found 0 violations.
+- Its planted defects were caught, but the bare point only at development scale (8 of 80,000). That is why `during-from-count` is a generator here.
+
+The ruled runs use other seeds and the built code. No figure of this increment had been measured before these rules.
+
+**Independent review of the code, and amendments before any measurement** (on a106eee; disclosed; the rules above are kept as committed, with the additions below). The reviewer found no wrong status, relaxation or certainty: about 9,600 refined results against its own enumeration all equal to the truth, with 0 false bindings. Its scripts are in `/tmp/d43review/`.
+- **Must-fix M1: witnesses that describe no world.** A refined `possible` from an exact two′ took any times two′ allows as its witness. A copy stands for e only when e's n − 1 count records fit, and where another step binds e or one of those records, the chosen times can rule that out: 42 of 1,883 such results in the review's fuzz. Example: window [1, 6], A counts at least 3 z in the window, B any z, `during` from A to B with grace 1; D43 gave `possible` {A: e0, B: e1} with witness {A: 5, B: 6}, and with e1 at 6, e0 at 5 does not reach 3. The status and binding were true; the witness, which the page's drawer shows, was not.
+  - *Fixed:* the witness is now built in the patient's own times (pass 1's patient, a copy read as its record), in one network with the unrelaxed query's relations and scope, n − 1 counted records placed in the span or period of each step bound to a copy (choices tried in turn), and each `first` or `last` step's event chosen among its concept's events with the worlds checker's tie-breaks. Where no witness is found, D32's answer stands (`kept: no witness`). This applies to both the exact and the possible two′ path.
+  - *Added to rule 1.1 and 1.2:* on every small case whose refined result is `possible`, its witness describes a world: by enumeration, some choice of times places each `any` step's bound event at its witness time and the query holds there, counts included. *Added to rule 1.4:* the reviewed defect is a planted defect, `any_witness` (any times two′ allows).
+  - *A consequence, stated:* the witness check also refuses a `possible` that rests on times where the count cannot be reached, so the defects "narrowing skipped" and "coupling ignored" now show themselves less often among `possible` results; both are still caught (development scale: 2 in 18,000 cases and 24 in 12,000).
+- *Should-fix, fixed.*
+  - A patient whose re-derived two-pass result differed from the answer was skipped silently. It is still left as it is, but counted (`count_refinement.skipped_mismatch`), and the snapshot differential counts any such patient as a mismatch.
+  - Coverage and D18 on refined results ran per patient (a scan of `excluded_records` and temporary tables each time). They now run once per chunk, as the modules run them.
+  - *Reports.* `store_conditions.py`, `store_parity.py` and `gene_no_change.py` changed, so reports binding them went stale; the module's docstring wrongly said none did, and was corrected. While the hook was in the tree, D39's coded usefulness report (and, after the rebase onto D42, D42's paired verdict and joint usefulness report) were frozen as historical and D36's and D38's usefulness reports rebound by re-running them, every figure identical. With the hook removed (below), all of these are main's again and none is frozen.
+  - *Rule 1.3's displaced branch, disclosed.* Where a refined result becomes `not_comparable` by D18's displacement, it carries no binding, and the reference does not know which binding the store found. Such a result is accepted without the comparison and counted ("displaced, weak check"). Its count is reported.
+- *Nits, fixed.* The declared difference no longer names the MIMIC store query endpoint (it sends value conditions only). A copy keeps its end range and proper flag (not a "duration"). Two guards that could not fire were removed, with a comment. `_witness`'s docstring.
+
+**Built** (on the branch; kept in history, not in the tree). The last commit with the working hook, rebased onto main with D42 (c740cf7), is **6888d1e**: the retry base.
+- `patterns/store_conditions_counts.py` (the rule, the witness, the post-pass) and its hook in `patterns/store_conditions.py`; after the rebase onto D42 the post-pass covered D42's joint gene-coded profile too (coverage through D42's shared hook with the request's kinds and the gene recorders);
+- `patterns/count_narrowing_cases.py` (the oracle, the generators, the snapshot reference) and `patterns/test_count_narrowing.py`, with 13 tests;
+- the callers that read the dispatcher's answer: the parity replay, D38's no-change differential, D39's boundary tests, `test_store_trajectory.py`, and nine parity results re-pinned as decided (totals unchanged);
+- `demos/mockups/coded_usefulness.cjs` binding the module.
+
+**Measurement** (after the rules and the review fixes; one heavy job at a time under the bench lock, 2026-11-17).
+- *Order and bases.* The small cases, the snapshot differential, the usefulness report, the rebinds and the timed request ran first on the tree before any rebase (on 6978f43). D41 then changed the benchmark: the branch was rebased onto D41 (f99e4f9), and a paired verdict run there. D42 then changed the dispatcher and the coded and gene modules: the branch was rebased onto D42 (0718bda, which main became), the post-pass extended to the joint profile, and the snapshot differential, the usefulness report, the rebinds and the paired verdict run again there. The small cases go only through `execution_store`'s path and `refine`, which neither rebase changed, so they were not rerun.
+- *Three paired runs, disclosed.*
+  1. Against 6978f43: stopped at the coordinator's request after 2.5 of 4 repeats, when D41 moved the benchmark to the engine's default budget (partial 14-worker ratios 1.006 and 0.957). Not used.
+  2. Against f99e4f9 (D41), on the tree before the rebase onto D42: **met** (ratios 1.037, 1.015, 0.947, 0.995; p95 9.97 s). The rebase onto D42 made its bindings stale, so it was superseded, not used.
+  3. Against 0718bda (D42), on the rebased tree: **missed**, the verdict recorded in `verification/d43-paired-verdict.json`.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1.1 Worlds check, at least 20,000 per generator | 120,000 small cases (seeds `d43-ruled`): **0 violations**. `STEP_CONDITION_UNCERTAIN` results by generator (span multi, span coupled, period multi, period coupled, during-from-count, two-counts): 2,286, 2,127, 2,892, 2,328, 2,350, 3,661; refined 1,549, 538, 1,900, 531, 714, 860 (6,092 in all, 39%). Kept: coupled 5,452, not exact 2,605, stopped search or skipped set 1,014, two copies bound 480, a stopped two′ search 1, no witness 0 | met |
+| 1.2 Equal to the truth; the witness (amendment) | Every one of the 6,092 refined results equals the truth by enumeration, Nth steps beside included; every refined `possible` has a witness that describes a world. Only `STEP_CONDITION_UNCERTAIN` results moved, each to decided and complete. Reported: the oracle against enumeration, 11,635 count-only cases, 0 disagreements | met |
+| 1.3 The reference on snapshots | On the tree rebased onto D42: 520 requests through the dispatcher (seeds from 1000; 1.1: 160, 1.2: 50, 1.3: 160, gene: 80, and 70 of D42's joint profile, added after the rebase), 21,840 patient results: **0 mismatches**, 0 skipped re-derivations, 0 displaced results (the weak branch never ran). The 450 of the first run gave the same tallies as before the rebase: of 1,068 results the D32 reference leaves `STEP_CONDITION_UNCERTAIN`, 685 refined (468 `possible`, 146 `relaxed`, 33 `none`; then coverage or D18 made 19 `not_comparable` and 19 `unresolved`) and 383 kept; the joint requests refined 19. 2 workers, `decided` and pruning off byte-identical; D39's identity held on all 160 1.3 requests | met |
+| 1.4 Planted defects | Over 24,000 small cases per defect (seeds `d43-ruled-defect`), failing cases: narrowing skipped **1**; coupling ignored 39; certainty from two′ 886; a copy without e's end 11, 9 of them on `during-from-count`; a binding on two copies accepted **1**; the refinement applied to a decided result 3,553; any witness (the review's) 57. On the fixture with partial coverage (80 requests): D18 not reapplied, 41 mismatching results; coverage not reapplied, 2 | each caught; two only once |
+| 2 Movement | Only `STEP_CONDITION_UNCERTAIN` results moved. Requests without a count step byte-identical through the dispatcher (a test, every profile, 1 and 2 workers). The 300 recorded digests unchanged. The engine, store, converter and condition modules and every file of the D34 build record byte-identical to main at each base. D39's identity held | met |
+| **3 Usefulness** | Seeds 1001 to 1030. **Event frequency under "coded only": 0 of 16 child types unresolved** (D39: 11), 0 of 278 candidates (D39: 23), 0 of 248 without C001. Statuses: exact 172, relaxed 58 (D39: 51), possible 25 (D39: 9), none 23; the 23 became 16 `possible` and 7 relaxed, the design study's truths. The other four templates 0 unresolved, unchanged; under stated findings Event frequency is refused, as before. Identical before and after the rebase onto D42 (`verification/d43-coded-usefulness-report.json`, kept as a frozen record) | met |
+| **4 Latency** (`verification/d43-paired-verdict.json`, against 0718bda at D41's budget policy) | 14 workers, p95 ratios by pair (reference first, candidate first, reference first, candidate first): 0.999, 1.001, **1.185**, **1.064**, pooled 1.075; this tree's p95 9.56 s (8.05, 8.22, 9.70, 9.86 by repeat), max 13.55 s, 0.81 GB; the reference 8.89 s (8.06, 8.22, 8.18, 9.27). Byte-identical results on all 30 queries. 8 workers (reported): 1.005, 0.997, 1.093, 1.018; p95 11.69 s (reference 11.30 s). The benchmark calls the store directly, never the dispatcher, so the two codes ran byte-identical store, engine and benchmark files; both slowed in the last two repeats. The run took 2,455 s | **missed as written** (two of four pairs over 1.05; the p95 bar met) |
+| 4 Reported: a 1.3 Event frequency request at 300,000 | On the kept D34 snapshot, windows from each patient's second coded seizure for 730 days (217,620 patients), 14 workers, three runs: **31.6 to 32.7 s through the dispatcher, 5.0 to 5.2 s without the post-pass**. 61,620 candidates; all 5,010 `STEP_CONDITION_UNCERTAIN` results refined, serially in the parent process, about 5.4 ms each | reported |
+
+**Decision: D43 does not ship** (the coordinator, as the owner's delegate, applying the ship rule as written). The hook is removed: `patterns/store_conditions.py` and everything the store serves are main's. Following D33 and D40, only the decision log, the documentation and two frozen records land.
+- *What lands.* This entry; a note in the store doc's two-pass rule; the roadmap, the mockups README and briefing section 7. `verification/d43-paired-verdict.json` (verdict: not met) and `verification/d43-coded-usefulness-report.json` are kept in `HISTORICAL` as frozen records of this decision (they bind files only the retry base holds; the coordinator signed off as delegate).
+- *What does not.* `patterns/store_conditions_counts.py`, `patterns/count_narrowing_cases.py` and `patterns/test_count_narrowing.py` are removed from the tree; no recorded report needs them to stay reproducible from main (the two D43 records are reproducible from 6888d1e). The callers, tests, parity pins and the usefulness tool are main's again, so D36's, D38's, D39's and D42's reports are current and none of D43's freezes remains.
+
+*Why, on form and on substance.*
+- *Precedent.* The rules were committed before measuring, and D39 declined a replication in exactly this situation (a narrow miss with identical code on both sides). Replicating until a run passes would empty the protocol.
+- *The rule was badly designed.* It timed a path D43 never runs: the benchmark's queries carry no count and never reach the dispatcher, so the rule could not detect D43's own cost. The cost that matters is the serial post-pass, about 32 s against 5 s for a 1.3 count request at 300,000, and no rule measured it. So reverting is right on substance too.
+- **The lesson: a latency rule must time the path the change executes.**
+
+*Evidence in proportion.* The soundness and usefulness results stand as evidence for the retry: every refined result was the truth, and the one template D39 missed has no unresolved child type under the rule. Two planted defects (narrowing skipped, two copies accepted) were caught once each in 24,000 cases. The snapshot reference decides refined results by the oracle, which covers count, `any`, `first` and `last` steps (gene steps as their points); Nth, value and relative conditions beside a count were checked on small cases only.
+
+*D39's default, assessed, not flipped.* Unchanged: `STORE_CODED_ONLY` stays false. With D43 its usefulness rule would have been met; its latency for count requests at scale was not.
+
+**Queued: D43b, the retry** (from 6888d1e).
+- The post-pass moves into the store's worker pool, so a count request at scale costs about what the module's own answer costs.
+- The latency rule times count requests through the dispatcher at 300,000 patients (1.1 and 1.3), paired against main, beside the existing no-regression run for requests without counts.
+- Usefulness and soundness are re-checked on the rebased code.
+- D39's default stays off; flipping it remains a separate decision under D39's rules.

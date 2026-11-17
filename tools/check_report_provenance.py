@@ -69,7 +69,11 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # `store_conditions_gene.py`, `store_conditions_coded.py`: the joint profile's route and the shared hooks);
               # for the current tree `verification/d42-paired-verdict.json` supersedes it there too (coordinator's
               # sign-off as delegate).
-              'verification/d36-paired-verdict.json', 'verification/d39-paired-verdict.json'}
+              'verification/d36-paired-verdict.json', 'verification/d39-paired-verdict.json',
+              # D43 did not ship (its paired verdict missed as written), so its code is not in the tree; its two reports
+              # are kept as frozen records of that decision (coordinator's sign-off as delegate). Both bind
+              # `patterns/store_conditions_counts.py` and the dispatcher with D43's hook, as at the retry base 6888d1e.
+              'verification/d43-paired-verdict.json', 'verification/d43-coded-usefulness-report.json'}
 
 
 def digests(path):

@@ -371,7 +371,7 @@ It may also give the relaxation `widen_count` (`{id, kind, step, cost, at_least:
   - pass 1 none and pass 2 none: `none`;
   - pass 1 none and anything else from pass 2: `unresolved` (`STEP_CONDITION_UNCERTAIN`).
 
-  `complete` is false if either pass was, and notes from both are kept. A first, last or Nth on a count step is refused (`OCCURRENCE_ON_DERIVED_STEP`), since it would pick different records in the two passes.
+  `complete` is false if either pass was, and notes from both are kept. A first, last or Nth on a count step is refused (`OCCURRENCE_ON_DERIVED_STEP`), since it would pick different records in the two passes. D43 built and checked a sound refinement that decides most `STEP_CONDITION_UNCERTAIN` results (`count_narrowed_v1`: a narrowed pass over the times at which a possibly reached record can reach its count). It did not ship: its latency rule missed as written. The code is kept in history at 6888d1e, and a retry (D43b) is queued (decision log, D43).
 - *Relaxation containment.* `widen_count` is a widening to the tag of the smaller N. Certain at N implies certain at N′, and possible implies possible.
 
 **Candidates, pruning, loading.**
