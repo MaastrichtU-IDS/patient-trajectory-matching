@@ -3170,6 +3170,43 @@ D43 built `count_narrowed_v1` and found it sound and useful: every refined resul
     - Each chunk's loads cost about 0.04 s. That is why chunks are cut by the number of results (`_chunk_size`) and not fixed at 100.
   - *The bars were written after these runs.* They rest on the argument above, not on the trial's ratios. The trial's 2.04 is a pair at 1,000 patients, outside the protocol.
 
+**Independent review of the code, and amendments before any measurement** (on 463ba7c; disclosed). Its probes are in `/tmp/d43b-review/`.
+- *Verdict.* The port and the pooled post-pass are sound: 1,050 checks that the pool gives the in-process answer, 0 differences. Build reuse is intact.
+- *The amendments below change the rules above where they say so; nothing else in the rules changes.*
+- **Must-fix M1: rule 4.1 could pass with a post-pass that does nothing.** The verdict read only the times. If every pooled re-derivation had been skipped (`skipped_mismatch`), nothing would have been refined, the ratio would have been about 1 and the rule would have passed. The answer digest left out the post-pass's tally, which was recorded on the first repeat only and never checked.
+  - *Fixed, and added to rules 4.1 and 4.2.2:* the verdict is met only if the answers check passes (`answers_check`), over every run and worker count:
+    - *each count request:* one answer digest per side (the digest now binds `derived_steps.count_refinement`); the candidate's tally identical in every run and worker count; `refined` above 0 and `skipped_mismatch` 0; only results main leaves STEP_CONDITION_UNCERTAIN moved;
+    - *each request without a count:* one digest per side, the same on both sides, no tally, nothing moved.
+- **Must-fix M2: the leniency in D42's small cases was unconditional.** `gene_coded_cases.refined_count`, added at the checkpoint, accepted any result where D42's reference said STEP_CONDITION_UNCERTAIN, whatever its status or reason. With D42's carve-out, results beside undetermined gene records then went unjudged: the probe found 2 in 12,000 cases.
+  - *Fixed (the strict form the reviewer checked, 0 mismatches over 6,000 cases per generator):* the leniency is removed. D42's small-case harness and its no-change test read the routed module's own answer through the dispatcher with the post-pass off (`store_conditions.COUNT_POST_PASS`, a flag that only tests set), byte for byte against D42's reference, as D42 did.
+  - The post-pass on joint requests is checked against the oracle by rule 1.3, whose snapshot reference covers the joint profile. The no-change test also checks that the dispatcher's answer, with the post-pass on, is the module's answer through the post-pass.
+- **Should-fix, fixed.**
+  - *S1, the reference side's pool workers loaded this tree's code.* Spawned workers re-ran the tool's header, which put this tree in front of the reference's (harmless at 7179f34, whose files are the same, but false).
+    - The tool now puts this tree last, as `benchmark_matcher.import_arm` does.
+    - Each run checks which `execution_store` its pool workers imported, records it (`answers.pool_code`), and stops if it is not the side's own.
+    - A test runs a side at an extracted ref; it fails with the old header.
+  - *S2, the verdict did not enforce the protocol.* It is now met only if 14 workers were run, every one of the six requests was run, the repeats are at least 4 and even, and each request ran at least 3 times per process (`protocol_check`).
+  - *S3, rule 1.3's 2-worker variant rarely sent several units to the pool* (about 5% of requests; none for gene and the joint profile).
+    - *Added to rule 1.3:* the variant now cuts one result to refine per unit (the module's own chunk stays 9), so every request with two or more results to refine sends several units.
+    - How many requests had two or more units with a result refined is reported.
+  - *S4, planted defects caught rarely.*
+    - *Narrowing skipped.* Two catchers are added to rule 1.4:
+      - the brute-force check of `narrow` against a direct count, run on 4,000 families (the suite's 400 already fail under the defect);
+      - the lost-decision check: under a defect, a case that the clean rule decides equal to the truth, and that the defective rule leaves as D32 answered it, is a failure.
+    - *A binding on two copies.* That defect matters only on the relaxed branch.
+      - A seventh generator, `two-counts-relaxed`, is added to rules 1.1 and 1.4: two counts, each with a `widen_count` at cost 0.25, and a budget of 1 or 2.
+      - The guard's firings are reported next to the number caught.
+      - So rule 1.1 has seven generators (at least 140,000 cases), and rule 1.4 at least 28,000 cases per per-patient defect.
+    - *Coverage not reapplied.* The D18 and coverage defects run on 240 requests of the partial-coverage fixture (120 per profile, 1.1 and 1.3), not 80.
+- *Disclosed: a development check, outside the ruled seeds.* 1,500 cases of `two-counts-relaxed`:
+  - the clean rule failed none; the guard fired on 125;
+  - a binding on two copies was caught once, with its guard firing 126 times; on `two-counts` it fired 22 times and was caught 0 times;
+  - narrowing skipped was caught 25 times on `span-multi`, 24 of them by the lost-decision check.
+- *Nits, fixed.*
+  - The comment that planted defects act in the parent only was stale.
+  - The report states that a p95 over the 12 runs of a request is their maximum.
+  - The boundary test's count requests now include gene and the joint profile.
+
 *Order of the ruled runs* (one heavy job at a time under the bench lock):
 1. the small cases and planted defects;
 2. the snapshot differential;

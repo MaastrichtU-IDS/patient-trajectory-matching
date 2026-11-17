@@ -49,8 +49,13 @@ def profiles():
     return [*rc.CONDITIONS_PROFILES, GENE_PROFILE, CODED_PROFILE, GENE_CODED_PROFILE]
 
 
+COUNT_POST_PASS = True  # D43b: False only in tests that read the routed module's own answer through this module
+
+
 def _counts(conditions):
-    """D43's post-pass module when the request gives a step a count, else None."""
+    """D43's post-pass module when the request gives a step a count (and the post-pass is on), else None."""
+    if not COUNT_POST_PASS:
+        return None
     from . import store_conditions_counts as counts
     return counts if counts.has_counts(conditions) else None
 

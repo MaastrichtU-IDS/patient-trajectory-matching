@@ -309,14 +309,19 @@ class NoChangeTests(unittest.TestCase):
         for previous, conditions in before:
             for workers in (1, 2):
                 answer = previous.match(store, q, windows, conditions=conditions, workers=workers)
-                # Through the dispatcher, a count request passes D43's post-pass (D43b).
+                want = json.dumps(answer)
+                # D42's comparison, byte for byte, on the routed module's own answer (the post-pass off, D43b).
+                with patch.object(sc, 'COUNT_POST_PASS', False):
+                    self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions, workers=workers)),
+                                     want)
+                # With it on, a count request is that answer through D43's post-pass (D43b).
                 dispatched = (scn.post_pass(store, q, windows, es.CHUNK_PATIENTS, conditions, answer, workers)
                               if scn.has_counts(conditions) else answer)
                 self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions, workers=workers)),
                                  json.dumps(dispatched))
                 if previous is rc:  # the gene module hands every request it does not answer to the relative module
                     self.assertEqual(json.dumps(gc.match(store, q, windows, conditions=conditions, workers=workers)),
-                                     json.dumps(answer))
+                                     want)
             self.assertEqual(sc.candidates(store, q, conditions), previous.candidates(store, q, conditions))
 
     def test_the_hooks_without_kinds_are_the_stores_own_reads(self):

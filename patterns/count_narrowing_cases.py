@@ -18,8 +18,12 @@ It covers count steps (span or period), `any`, `first` and `last` steps, `after`
 
 **The small cases** (`small_case`): D32's span and period generators (`derived_cases.tiny_case`, `multi` and `coupled`)
 and two new ones: `during-from-count` (a `during` relation from a count step, exposures among the counted records) and
-`two-counts` (two count steps, on one family or overlapping ones). `run_small` checks each refined result against every
-choice of times (`trajectory_graph_worlds.check_derived`) and against the truth by enumeration (`enum_truth`).
+`two-counts` (two count steps, on one family or overlapping ones), and since D43b's review `two-counts-relaxed` (two
+count steps each with a cheap `widen_count`, a budget of at least 1, so that pass 1 and two' relax on counts and the
+binding-on-two-copies guard can fire). `run_small` checks each refined result against every choice of times
+(`trajectory_graph_worlds.check_derived`) and against the truth by enumeration (`enum_truth`); under a planted defect,
+with `clean`, it also flags a result the clean rule decides equal to the truth that the defective rule leaves undecided
+(`lost`). `narrow_mismatches` checks `narrow` against a direct count over every integer time.
 
 **The snapshot reference** (`ReferenceRun`): each patient's D32 answer by the existing reference (D32's derived
 reference, on the ingest without mentions for profile 1.3, with D38's gene points for a gene request), and for a patient
@@ -45,7 +49,8 @@ from . import trajectory_graph_worlds as tw
 
 INF = math.inf
 _Z = '#zero'
-GENERATORS = ('span-multi', 'span-coupled', 'window-multi', 'window-coupled', 'during-from-count', 'two-counts')
+GENERATORS = ('span-multi', 'span-coupled', 'window-multi', 'window-coupled', 'during-from-count', 'two-counts',
+              'two-counts-relaxed')
 
 
 # The oracle.
@@ -502,6 +507,54 @@ def two_counts_request(rng):
     return _query(rng, steps, relations, relaxations, conds, count_relax)
 
 
+def two_counts_relaxed_request(rng):
+    """`two_counts_request` with both counts at least 2, each with a `widen_count` to one fewer at cost 0.25 (so a
+    set relaxing both counts, at 0.5, is cheaper than any other relaxation the request carries), and a budget of 1 or 2:
+    pass 1 and two' then relax on counts, where a binding on two copies can arise (D43b review, S4)."""
+    a = rng.choice(('x', 'x', 'z'))
+    b = rng.choice((a, a, 'x', 'z'))
+    conds = {sid: {'count': {'at_least': rng.randint(2, 3), 'within': 'window' if rng.random() < 0.4
+                             else {'span': rng.randint(0, 4)}}} for sid in 'AB'}
+    count_relax = [{'id': f'c{sid}', 'kind': 'widen_count', 'step': sid, 'cost': '0.25',
+                    'at_least': conds[sid]['count']['at_least'] - 1} for sid in 'AB']
+    steps = [{'id': 'A', 'concept': a, 'occurrence': 'any'}, {'id': 'B', 'concept': b, 'occurrence': 'any'}]
+    relaxations = []
+    relations = _relations(rng, steps, conds, relaxations)
+    for x in relaxations:
+        x['cost'] = '1'
+    query, conditions = _query(rng, steps, relations, relaxations, conds, count_relax)
+    query['budget'] = rng.choice(('1', '2'))
+    return query, conditions
+
+
+def narrow_mismatches(prefix, families):
+    """How many (family, record) pairs of `families` random families `narrow` gets wrong, against a direct count over
+    every integer time, span and period (`prefix` seeds the families)."""
+    rng = random.Random(prefix)
+    wrong = 0
+    for _ in range(families):
+        k = rng.randint(1, 5)
+        ranges = []
+        for _ in range(k):
+            lo = rng.randint(0, 8)
+            ranges.append((lo, lo + rng.randint(0, 4)))
+        family = [(lo, hi, lo, hi, None, None) for lo, hi in ranges]
+        n = rng.randint(1, 4)
+        window = {'start': rng.randint(0, 4), 'end': rng.randint(5, 12)}
+        within = 'window' if rng.random() < 0.4 else rng.randint(0, 4)
+        for j in range(k):
+            got = {t for lo, hi in scn.narrow(family, j, n, within, window) for t in range(lo, hi + 1)}
+            a, b = ranges[j]
+            if within == 'window':
+                a, b = max(a, window['start']), min(b, window['end'])
+                able = lambda t, x: x[1] >= window['start'] and x[0] <= t
+            else:
+                able = lambda t, x: x[0] <= t and x[1] >= t - within
+            want = {t for t in range(a, b + 1) if sum(able(t, x) for i, x in enumerate(ranges) if i != j) >= n - 1}
+            wrong += got != want
+    return wrong
+
+
 def small_case(seed, generator):
     """(query, conditions, patient, mentions) for one seed of a generator; the request is valid."""
     if generator in GENERATORS[:4]:
@@ -512,9 +565,12 @@ def small_case(seed, generator):
         if generator == 'during-from-count':
             patient, mentions = _tiny_patient(rng, ends=0.6, shared=0.15)
             query, conditions = during_request(rng)
-        else:
+        elif generator == 'two-counts':
             patient, mentions = _tiny_patient(rng, ends=0.3, shared=0.25)
             query, conditions = two_counts_request(rng)
+        else:
+            patient, mentions = _tiny_patient(rng, ends=0.3, shared=0.25)
+            query, conditions = two_counts_relaxed_request(rng)
         try:
             tg.patient_times(patient)
             es.Request(query, conditions)
@@ -533,16 +589,31 @@ def refine_case(query, conditions, patient, mentions):
     return v1, v2, how
 
 
-def run_small(generator, seeds, prefix='d43', truth=True):
+def run_small(generator, seeds, prefix='d43', truth=True, clean=False):
     """A tally over small cases: worlds violations, moved results that were not STEP_CONDITION_UNCERTAIN or do not end
     decided and complete, refined results unequal to the truth by enumeration, refined `possible` results whose witness
-    describes no world, and how STEP_CONDITION_UNCERTAIN results fared. `failures` lists the first few cases that fail."""
+    describes no world, and how STEP_CONDITION_UNCERTAIN results fared. `failures` lists the first few cases that fail.
+
+    With `clean` under a planted defect (D43b review, S4), each case is also refined with the defect off: its `how` is
+    tallied as `clean: <how>` (so a guard's firings are counted), and a case the clean rule decides equal to the truth
+    but the defective rule leaves as D32 answered it is a failure (`lost`)."""
     tally, failures = Counter(), []
     for seed in seeds:
         query, conditions, patient, mentions = small_case(f'{prefix}-{seed}', generator)
         v1, v2, how = refine_case(query, conditions, patient, mentions)
         tally['cases'] += 1
         bad = []
+        if clean and scn._D43_DEFECT is not None:
+            saved, scn._D43_DEFECT = scn._D43_DEFECT, None
+            try:
+                _, fine, fine_how = refine_case(query, conditions, patient, mentions)
+            finally:
+                scn._D43_DEFECT = saved
+            tally[f'clean: {fine_how}'] += 1
+            if json.dumps(fine) != json.dumps(v1) and json.dumps(v2) == json.dumps(v1) and \
+                    (fine['status'], fine.get('relaxations'), fine.get('certainty')) == \
+                    enum_truth(query, conditions, patient, mentions):
+                bad.append('lost')
         if tw.check_derived(v2, query, conditions, patient, mentions):
             bad.append('violation')
         uncertain = v1['status'] == 'unresolved' and v1.get('reason') == 'STEP_CONDITION_UNCERTAIN'
@@ -840,8 +911,9 @@ def snapshot_case(seed, cohort, ingest, pool, profile):
 
 def snapshot_compare(store, ingest, query, conditions, windows, variants=True, without=None):
     """(mismatches, tally) for one request through the dispatcher against `ReferenceRun`. With `variants`, the 2-worker
-    (chunk 9), `decided` and unpruned answers must equal the 1-worker one; with `without` (a store built without letter
-    mentions, for a 1.3 request), D39's identity: the 1.2 request through the dispatcher there gives the same results."""
+    (chunk 9, and one result to refine per pool unit, D43b), `decided` and unpruned answers must equal the 1-worker
+    one; with `without` (a store built without letter mentions, for a 1.3 request), D39's identity: the 1.2 request
+    through the dispatcher there gives the same results."""
     from unittest.mock import patch
     from . import store_conditions as sc
     out = sc.match(store, query, windows, conditions=conditions)
@@ -851,9 +923,17 @@ def snapshot_compare(store, ingest, query, conditions, windows, variants=True, w
         bad.append(('re-derivation differs from the answer', out['derived_steps']['count_refinement']))
     tally.update(r['status'] for r in out['results'])
     if variants:
-        two = sc.match(store, query, windows, conditions=conditions, workers=2, chunk=9)
+        # D43b review, S3: one result per pool unit, so that a request with two or more results to refine sends several
+        # units to the pool (the module's own units: chunk 9).
+        with patch.object(scn, '_chunk_size', lambda targets, chunk: 1):
+            two = sc.match(store, query, windows, conditions=conditions, workers=2, chunk=9)
         if json.dumps(two) != json.dumps(out):
             bad.append(('2 workers', None))
+        refined = out['derived_steps']['count_refinement']['refined']
+        units = refined + sum(1 for r in out['results']
+                              if r['status'] == 'unresolved' and r.get('reason') == 'STEP_CONDITION_UNCERTAIN')
+        if units >= 2 and refined:
+            tally['pool: 2+ units, refined'] += 1
         decided = sc.match(store, query, windows, conditions=conditions, detail='decided')
         listed = {r['patient_id']: r for r in out['results']}
         if any(json.dumps(r) != json.dumps(listed[r['patient_id']]) for r in decided['results']) \

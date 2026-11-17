@@ -111,28 +111,14 @@ class SmallCaseTests(unittest.TestCase):
         self.assertFalse(cn.witness_holds(bad, query, conditions, patient, set()), bad)
 
     def test_narrow_is_the_set_of_times_the_count_can_be_reached(self):
-        """Narrow(e) against a direct count over every integer time, span and period, on random families."""
-        rng = random.Random('d43/narrow')
-        for _ in range(400):
-            k = rng.randint(1, 5)
-            ranges = []
-            for _ in range(k):
-                lo = rng.randint(0, 8)
-                ranges.append((lo, lo + rng.randint(0, 4)))
-            family = [(lo, hi, lo, hi, None, None) for lo, hi in ranges]
-            n = rng.randint(1, 4)
-            window = {'start': rng.randint(0, 4), 'end': rng.randint(5, 12)}
-            within = 'window' if rng.random() < 0.4 else rng.randint(0, 4)
-            for j in range(k):
-                got = {t for lo, hi in scn.narrow(family, j, n, within, window) for t in range(lo, hi + 1)}
-                a, b = ranges[j]
-                if within == 'window':
-                    a, b = max(a, window['start']), min(b, window['end'])
-                    able = lambda t, x: x[1] >= window['start'] and x[0] <= t
-                else:
-                    able = lambda t, x: x[0] <= t and x[1] >= t - within
-                want = {t for t in range(a, b + 1) if sum(able(t, x) for i, x in enumerate(ranges) if i != j) >= n - 1}
-                self.assertEqual(got, want, (ranges, j, n, within, window))
+        """Narrow(e) against a direct count over every integer time, span and period, on 400 random families; with
+        narrowing skipped (the planted defect `whole_range`) it is wrong (D43b review, S4: this check catches it)."""
+        self.assertEqual(cn.narrow_mismatches('d43/narrow', 400), 0)
+        scn._D43_DEFECT = 'whole_range'
+        try:
+            self.assertGreater(cn.narrow_mismatches('d43/narrow', 400), 0)
+        finally:
+            scn._D43_DEFECT = None
 
 
 class PlantedDefectTests(unittest.TestCase):
@@ -378,11 +364,12 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual((post.call_count, bind.call_count), (0, 0))
 
     def test_with_a_count_step_only_undecided_results_move(self):
-        state = _STATE['fixture']
         moved = 0
-        for profile, module in (('1.1', es), ('1.2', rc), ('1.3', cc)):
+        for name, profile, module in (('fixture', '1.1', es), ('fixture', '1.2', rc), ('fixture', '1.3', cc),
+                                      ('gene', 'gene', gc), ('gene', 'gene-coded', gc)):
+            state = _STATE[name]
             for seed in range(SNAPSHOT):
-                query, conditions, windows = cn.snapshot_case(seed, 'fixture', state['ingest'], state['pool'], profile)
+                query, conditions, windows = cn.snapshot_case(seed, name, state['ingest'], state['pool'], profile)
                 self.assertTrue(scn.has_counts(conditions))
                 got = sc.match(state['store'], query, windows, conditions=conditions)
                 base = module.match(state['store'], query, windows, conditions=conditions)

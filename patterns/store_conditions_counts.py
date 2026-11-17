@@ -73,7 +73,8 @@ RULE = ('count_narrowed_v1: where the two-pass rule answers unresolved (STEP_CON
 SEP = '@narrowed/'  # a copy's id: <tag>@narrowed/<record id>/<interval index>
 COUNT_PROFILES = (es.CONDITIONS_PROFILE_1_1, 'execution-store-conditions-1.2', 'execution-store-conditions-1.3',
                   'execution-store-conditions-gene-1.0', 'execution-store-conditions-gene-coded-1.0')  # D42's joint too
-# Planted defects for the tests (D43 rules); None in every real run. They act in this process only.
+# Planted defects for the tests (D43 rules); None in every real run. The post-pass passes the parent's to its pool
+# workers with each unit (D43b), so a defect acts at any worker count.
 DEFECTS = ('whole_range', 'coupling_ignored', 'certainty_from_two', 'point_without_end', 'two_copies',
            'decided_refined', 'no_d18', 'no_coverage', 'any_witness')
 # D43b: the results to refine are cut into about POST_PASS_UNITS chunks of at least POST_PASS_MIN_CHUNK results (and at

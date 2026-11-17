@@ -137,16 +137,34 @@ def windows_of(store):
             for pid, second in store.query(WINDOWS_SQL) if second is not None}
 
 
+def tally_of(answer):
+    """The answer's `derived_steps.count_refinement` without its rule text (None without the post-pass)."""
+    tally = answer.get('derived_steps', {}).get('count_refinement')
+    return None if tally is None else {k: v for k, v in tally.items() if k != 'rule'}
+
+
 def answer_digest(answer):
-    return hashlib.sha256(json.dumps({'counts': answer['counts'], 'results': answer['results']},
+    """sha256 of the counts, the results and the post-pass's tally (D43b review, M1: a post-pass that refined nothing
+    or skipped re-derivations changes the digest)."""
+    return hashlib.sha256(json.dumps({'counts': answer['counts'], 'results': answer['results'],
+                                      'count_refinement': answer.get('derived_steps', {}).get('count_refinement')},
                                      sort_keys=True).encode()).hexdigest()
+
+
+def _pool_code():
+    """The `execution_store` a pool worker imported (D43b review, S1)."""
+    from patterns import execution_store
+    return execution_store.__file__
 
 
 # One run, in its own process, with the code at --code-root first on the path.
 
 def worker(args):
     code_root = str(Path(args.code_root).resolve())
-    sys.path[:] = [code_root] + [p for p in sys.path if Path(p or '.').resolve() not in (ROOT, ROOT / 'tools')]
+    # This tree's ROOT goes last (as `benchmark_matcher.import_arm` puts it): the pool's spawned workers re-run this
+    # script's header, which puts ROOT in front only when it is absent (D43b review, S1).
+    sys.path[:] = ([code_root] + [p for p in sys.path if Path(p or '.').resolve() not in (ROOT, ROOT / 'tools')]
+                   + [str(ROOT)])
     from patterns import execution_store as es
     from patterns import store_conditions as sc
     if not Path(sc.__file__).resolve().is_relative_to(Path(code_root)):
@@ -155,27 +173,29 @@ def worker(args):
     try:
         pool = es.get_pool(store, args.arm_workers)
         pool.warm()
+        pool_code = sorted({f.result() for f in [pool._pool().submit(_pool_code) for _ in range(args.arm_workers)]})
+        if not all(Path(c).resolve().is_relative_to(Path(code_root)) for c in pool_code):
+            raise RuntimeError(f'pool workers imported {pool_code}, not from {code_root}')
         windows = windows_of(store)
-        out = {'code': sc.__file__, 'patients_with_window': len(windows), 'pool_start_seconds': pool.start_seconds,
-               'requests': {}}
+        out = {'code': sc.__file__, 'pool_code': pool_code, 'patients_with_window': len(windows),
+               'pool_start_seconds': pool.start_seconds, 'requests': {}}
         for name in args.requests:
             query, conditions = REQUESTS[name]
-            seconds, digests = [], []
+            seconds, digests, tallies = [], [], []
             for run in range(args.runs):
                 started = time.perf_counter()
                 answer = sc.match(store, query, windows, detail='decided', workers=args.arm_workers,
                                   conditions=conditions)
                 seconds.append(time.perf_counter() - started)
                 digests.append(answer_digest(answer))
+                tallies.append(tally_of(answer))
                 if run == 0 and args.keep_results:
                     path = Path(args.keep_results) / f'{name.replace(" ", "_")}.json'
                     path.write_text(json.dumps({'counts': answer['counts'], 'results': answer['results']}))
-                    tally = answer.get('derived_steps', {}).get('count_refinement')
-                    first = {'candidates': answer['candidates'], 'counts': answer['counts'],
-                             'count_refinement': None if tally is None else {k: v for k, v in tally.items()
-                                                                             if k != 'rule'}}
+                    first = {'candidates': answer['candidates'], 'counts': answer['counts']}
                 del answer
-            out['requests'][name] = {'seconds': seconds, 'digests': digests, **(first if args.keep_results else {})}
+            out['requests'][name] = {'seconds': seconds, 'digests': digests, 'tallies': tallies,
+                                     **(first if args.keep_results else {})}
         out['worker_peak_rss_bytes'] = pool.worker_peak_rss
         import resource
         out['parent_peak_rss_bytes'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (
@@ -242,11 +262,53 @@ def statistics_of(records, requests):
     return out
 
 
+def protocol_check(workers, requests, repeats, runs):
+    """D43b review, S2: the run follows the committed protocol, or no verdict is met."""
+    out = {'ruled_workers_run': RULED_WORKERS in workers, 'every_request_run': sorted(requests) == sorted(REQUESTS),
+           'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'runs_at_least_3': runs >= 3}
+    out['met'] = all(out.values())
+    return out
+
+
+def answers_check(records, movement_of, requests):
+    """D43b review, M1: the post-pass did its work, the same way, in every run. For each count request: one answer
+    digest per side over every run and worker count (the candidate's digest binds the tally), the candidate's tally the
+    same in every run and worker count, with `refined` above 0 and `skipped_mismatch` 0, and only results the reference
+    leaves STEP_CONDITION_UNCERTAIN moved. For each request without a count: one digest per side, the same on both
+    sides, no tally, nothing moved. `movement_of` is `movement`'s output on the first repeat."""
+    out = {}
+    for name in requests:
+        digests = {side: sorted({d for rec in records for d in rec[side]['requests'][name]['digests']})
+                   for side in ('reference', 'candidate')}
+        tallies = sorted({json.dumps(t, sort_keys=True) for rec in records
+                          for t in rec['candidate']['requests'][name]['tallies']})
+        moved = movement_of[name]
+        row = {'digests_per_side': {side: len(d) for side, d in digests.items()},
+               'one_digest_per_side': all(len(d) == 1 for d in digests.values()),
+               'tallies_seen': [json.loads(t) for t in tallies]}
+        if name in NO_COUNT_REQUESTS:
+            row.update(same_answer_both_sides=digests['reference'] == digests['candidate'], no_tally=tallies == ['null'],
+                       nothing_moved=moved['moved'] == 0 and moved['other_results_differing'] == 0)
+            row['met'] = row['one_digest_per_side'] and row['same_answer_both_sides'] and row['no_tally'] \
+                and row['nothing_moved']
+        else:
+            tally = json.loads(tallies[0]) if len(tallies) == 1 else None
+            row.update(tally_identical=len(tallies) == 1,
+                       refined_above_0=bool(tally) and tally['refined'] > 0,
+                       skipped_mismatch_0=bool(tally) and tally['skipped_mismatch'] == 0,
+                       only_uncertain_moved=moved['only_uncertain_moved'])
+            row['met'] = all(row[k] for k in ('one_digest_per_side', 'tally_identical', 'refined_above_0',
+                                              'skipped_mismatch_0', 'only_uncertain_moved'))
+        out[name] = row
+    return {'requests': out, 'met': bool(out) and all(r['met'] for r in out.values())}
+
+
 def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolute=ABSOLUTE_BAR,
-               no_count_bar=NO_COUNT_BAR):
+               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None):
     """D43b rules 4.1 and 4.2b at `ruled` workers. 4.1: every count request's ratio at most `ratio_bar` in every pair,
     and the absolute request's candidate p95 over all its runs at most the bar. 4.2b: every request without a count has
-    a pooled median ratio (the candidate's median over all its runs, over the reference's) at most `no_count_bar`."""
+    a pooled median ratio (the candidate's median over all its runs, over the reference's) at most `no_count_bar`. No
+    verdict is met unless the protocol was followed (`protocol_check`) and the answers check passed (`answers_check`)."""
     at = stats[str(ruled)]['requests']
     counted = [name for name in requests if name not in NO_COUNT_REQUESTS]
     plain = [name for name in requests if name in NO_COUNT_REQUESTS]
@@ -260,7 +322,11 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
         name: {'ratio_median_pooled': at[name]['ratio_median_pooled'], 'ratio_by_repeat': at[name]['ratio_by_repeat'],
                'met': at[name]['ratio_median_pooled'] <= no_count_bar} for name in plain}}
     rule_42b['met'] = all(r['met'] for r in rule_42b['requests'].values())
-    return {'workers': ruled, 'rule_4_1': rule_41, 'rule_4_2b': rule_42b, 'met': rule_41['met'] and rule_42b['met']}
+    protocol = protocol or {'met': False}
+    answers = answers or {'met': False}
+    return {'workers': ruled, 'protocol': protocol, 'answers': {'met': answers['met']}, 'rule_4_1': rule_41,
+            'rule_4_2b': rule_42b,
+            'met': protocol['met'] and answers['met'] and rule_41['met'] and rule_42b['met']}
 
 
 # D43b rule 4.2a: the matcher benchmark's path (requests without counts through `execution_store.match`) loads only
@@ -366,16 +432,23 @@ def paired(args):
                           for name in args.requests} for side in ('reference', 'candidate')}
         first = {(side, rec['workers']): rec[side] for rec in records if rec['repeat'] == 0
                  for side in ('reference', 'candidate')}
+        moved = movement(kept[('reference', ruled)], kept[('candidate', ruled)], args.requests)
         identity = {
             'each_code_one_answer_per_request': {side: {name: len(d) == 1 for name, d in by.items()}
                                                  for side, by in digests.items()},
-            'movement': movement(kept[('reference', ruled)], kept[('candidate', ruled)], args.requests),
+            'check': answers_check(records, moved, args.requests),
+            'pool_code': {side: sorted({c for rec in records for c in rec[side]['pool_code']})
+                          for side in ('reference', 'candidate')},
+            'movement': moved,
             'requests_first_repeat': {side: {name: {k: v for k, v in first[(side, ruled)]['requests'][name].items()
-                                                    if k not in ('seconds', 'digests')} for name in args.requests}
+                                                    if k not in ('seconds', 'digests', 'tallies')}
+                                             for name in args.requests}
                                       for side in ('reference', 'candidate')}}
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    verdict = verdict_of(stats, args.requests, ruled)
+    verdict = verdict_of(stats, args.requests, ruled,
+                         protocol=protocol_check(args.workers, args.requests, args.repeats, args.runs),
+                         answers=identity['check'])
     verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files'])}
     verdict['met'] = verdict['met'] and structural['met']
     report = {
@@ -383,6 +456,8 @@ def paired(args):
         'requests': {name: {'query': q, 'conditions': c} for name, (q, c) in REQUESTS.items() if name in args.requests},
         'windows': f"each patient's second coded seizure (a seizure record that is not a letter mention), "
                    f'{WINDOW_DAYS} days; no window without one',
+        'p95_note': ('a p95 over n runs is the ceil(0.95 n)-th smallest: over the 12 runs of a request at one worker '
+                     'count (4 repeats of 3 runs) it is the maximum'),
         'detail': 'decided', 'repeats': args.repeats, 'runs_per_request': args.runs, 'workers': list(args.workers),
         'order': 'ABBA: the reference first in even repeats, the candidate first in odd',
         'reference': {k: v for k, v in codes['reference'].items() if k != 'root'},
@@ -409,7 +484,7 @@ def main(argv=None):
     parser.add_argument('--workers', nargs='+', type=int, default=[RULED_WORKERS, 8])
     parser.add_argument('--repeats', type=int, default=4, help='repeats (even: balanced ABBA)')
     parser.add_argument('--runs', type=int, default=3, help='runs of each request in one process')
-    parser.add_argument('--requests', nargs='+', default=list(REQUESTS), choices=list(REQUESTS))
+    parser.add_argument('--requests', nargs='*', default=list(REQUESTS), choices=list(REQUESTS))
     parser.add_argument('--memory-limit', default='4GB')
     parser.add_argument('--budget-seconds', type=float, default=3600, help='per run')
     parser.add_argument('--output', type=Path, default=ROOT / 'verification/d43b-count-latency-verdict.json')
