@@ -207,7 +207,8 @@ class SnapshotTests(unittest.TestCase):
 
     def test_the_dispatcher_equals_the_reference(self):
         refined = Counter()
-        for name, profiles in (('fixture', ('1.1', '1.2', '1.3')), ('sparse', ('1.1', '1.3')), ('gene', ('gene', '1.3'))):
+        for name, profiles in (('fixture', ('1.1', '1.2', '1.3')), ('sparse', ('1.1', '1.3')),
+                               ('gene', ('gene', '1.3', 'gene-coded'))):
             for profile in profiles:
                 bad, tally = differential(name, profile, range(SNAPSHOT))
                 self.assertEqual(bad[:1], [], (name, profile))

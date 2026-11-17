@@ -34,7 +34,7 @@ step is not coupled (the witnesses constrain nothing else); exactness decomposes
 certain records only.
 
 Where it runs. `store_conditions.match` calls `post_pass` after the routed module answers a request with a count step
-(profiles 1.1, 1.2, 1.3, gene). Each STEP_CONDITION_UNCERTAIN patient is re-derived through the answering module's own
+(profiles 1.1, 1.2, 1.3, gene, and D42's joint gene-coded profile). Each STEP_CONDITION_UNCERTAIN patient is re-derived through the answering module's own
 `_derived_chunk` (`execution_store`, `store_conditions_relative`, `store_conditions_coded`, `store_conditions_gene`), its
 two-pass result recomputed and checked against the answer, the rule applied, and a changed result given the store's
 later rules as the module applies them, a chunk at a time: coverage to a refined `none`, then the excluded-records
@@ -69,7 +69,7 @@ RULE = ('count_narrowed_v1: where the two-pass rule answers unresolved (STEP_CON
         'Coverage and the excluded-records rule then apply to a changed result. Applied by the dispatcher only')
 SEP = '@narrowed/'  # a copy's id: <tag>@narrowed/<record id>/<interval index>
 COUNT_PROFILES = (es.CONDITIONS_PROFILE_1_1, 'execution-store-conditions-1.2', 'execution-store-conditions-1.3',
-                  'execution-store-conditions-gene-1.0')
+                  'execution-store-conditions-gene-1.0', 'execution-store-conditions-gene-coded-1.0')  # D42's joint too
 # Planted defects for the tests (D43 rules); None in every real run. They act in this process only.
 DEFECTS = ('whole_range', 'coupling_ignored', 'certainty_from_two', 'point_without_end', 'two_copies',
            'decided_refined', 'no_d18', 'no_coverage', 'any_witness')
@@ -341,7 +341,7 @@ class _Answering:
             from . import store_conditions_coded as cc
             self.module, self.request = cc, cc.Request(query, conditions)
             self.match_derived, self.reach = rc.match_derived, rc._derived_reach
-        else:
+        else:  # the gene profile, or D42's joint profile (gene steps under coded only), both answered there
             from . import store_conditions_gene as gc
             self.module, self.request, self.gene = gc, gc.Request(query, conditions), gc
             self.match_derived, self.reach = rc.match_derived, gc._derived_reach
@@ -357,12 +357,14 @@ class _Answering:
             return {}
         request = self.request
         per_step, tags, nones = request.load, request.used, sorted(idxs)
-        if self.module.__name__.endswith('store_conditions_coded'):
-            found = self.module._comparability(store, per_step, nones, windows_by_idx, request.exclude, tags=tags)
-        elif self.gene is not None:
+        if self.gene is not None:  # the gene module's coverage: gene steps by their reports' sources, D39's hook for
+            # the rest with the kinds a joint request leaves out (none for the gene profile), as its `match` reads it
+            from . import store_conditions_coded as cc
             steps = {sid: [request.genes[sid]] if sid in request.genes else cs for sid, cs in per_step.items()}
-            found = self.module._comparability(store, steps, nones, windows_by_idx, es.CHUNK_PATIENTS * es.SET_CHUNK_FACTOR,
-                                               tags, self.gene._gene_sources(store, request))
+            found = cc._comparability(store, steps, nones, windows_by_idx, request.exclude,
+                                      es.CHUNK_PATIENTS * es.SET_CHUNK_FACTOR, tags, self.gene._gene_sources(store, request))
+        elif self.module.__name__.endswith('store_conditions_coded'):
+            found = self.module._comparability(store, per_step, nones, windows_by_idx, request.exclude, tags=tags)
         else:
             found = es._comparability(store, per_step, nones, windows_by_idx, tags=tags)
         return {idx: (reason, missing, unrecorded) for idx, reason, missing, unrecorded in found}

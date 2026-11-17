@@ -600,6 +600,10 @@ class ReferenceRun:
         if profile == 'execution-store-conditions-1.3':  # D39's meaning: the ingest without those kinds, as 1.2
             ingest = co.without_kinds(ingest, conditions['exclude_kinds'])
             conditions = {**{k: v for k, v in conditions.items() if k != 'exclude_kinds'}, 'profile': ref.RELATIVE_PROFILE}
+        if profile == 'execution-store-conditions-gene-coded-1.0':  # D42's meaning: the gene request on the ingest without those kinds
+            ingest = co.without_kinds(ingest, conditions['exclude_kinds'])
+            conditions = {**{k: v for k, v in conditions.items() if k != 'exclude_kinds'}, 'profile': gr.PROFILE}
+            profile = gr.PROFILE
         ancestors = dict(ingest['closure']['ancestors'])
         self.oracle_conditions = {'profile': es.CONDITIONS_PROFILE_1_1,
                                   'steps': {sid: raw for sid, raw in conditions['steps'].items() if 'count' in raw}}
@@ -736,7 +740,7 @@ COHORT_POOL = {'derived': ['seizure', 'seizure', 'febrile_seizure', 'focal_seizu
                'other': ['sodium_channel_blocker', 'valproate', 'levetiracetam', 'status_epilepticus', 'seizure'],
                'parent': {'febrile_seizure': 'seizure', 'focal_seizure': 'seizure', 'generalised_tonic_clonic': 'seizure'},
                'genes': ['gene:SCN1A', 'gene:SCN1A', 'gene:CDKL5', 'gene:PCDH19']}
-SNAPSHOT_PROFILES = ('1.1', '1.2', '1.3', 'gene')
+SNAPSHOT_PROFILES = ('1.1', '1.2', '1.3', 'gene', 'gene-coded')
 
 
 def sparse_coverage(ingest, seed, keep=0.5):
@@ -781,14 +785,14 @@ def snapshot_request(rng, ingest, pool, profile):
     if pool['parent'].get(concept) and rng.random() < 0.3:
         relaxations.append({'id': 'wA', 'kind': 'widen_concept', 'step': 'A', 'concept': pool['parent'][concept],
                             'cost': rng.choice(('0.5', '1'))})
-    for i in range(rng.randint(0, 2) if profile != 'gene' else rng.randint(0, 1)):
+    for i in range(rng.randint(0, 2) if not profile.startswith('gene') else rng.randint(0, 1)):
         sid = 'BC'[i]
         other = rng.choice(pool['other'] + pool['derived'])
         step = {'id': sid, 'concept': other, 'occurrence': rng.choice(('any', 'any', 'first', 'last'))}
         if step['occurrence'] == 'any' and rng.random() < 0.25:
             conds[sid] = _snapshot_count(rng, sid, other, pool, count_relax, n_max=3)
         steps.append(step)
-    if profile == 'gene':
+    if profile.startswith('gene'):
         steps.append({'id': 'G', 'concept': rng.choice(pool['genes'])})
     relations = []
     for i in range(1, len(steps)):
@@ -806,11 +810,11 @@ def snapshot_request(rng, ingest, pool, profile):
     query = {'profile': tg.PROFILE_ID, 'scope': rng.choice(tg.SCOPES), 'steps': steps, 'relations': relations,
              'relaxations': relaxations, 'budget': rng.choice((0, '0.5', '1')), 'search_budget': rng.choice((300, 40000))}
     name = {'1.1': es.CONDITIONS_PROFILE_1_1, '1.2': ref.RELATIVE_PROFILE, '1.3': 'execution-store-conditions-1.3',
-            'gene': gr.PROFILE}[profile]
+            'gene': gr.PROFILE, 'gene-coded': 'execution-store-conditions-gene-coded-1.0'}[profile]
     conditions = {'profile': name, 'steps': conds}
-    if profile == 'gene':
+    if profile.startswith('gene'):
         conditions['steps'] = {**conds, 'G': {'gene': {'report': 'first_not_negative', 'timed_by': 'recorded_at'}}}
-    if profile == '1.3':
+    if profile in ('1.3', 'gene-coded'):
         conditions['exclude_kinds'] = ['mention']
     if count_relax:
         conditions['relaxations'] = count_relax
@@ -823,7 +827,7 @@ def snapshot_case(seed, cohort, ingest, pool, profile):
     from . import store_conditions_gene as gc
     from . import store_conditions_relative as rc
     rng = random.Random(f'd43/{cohort}/{profile}/{seed}')
-    check = {'1.1': es.Request, '1.2': rc.Request, '1.3': cc.Request, 'gene': gc.Request}[profile]
+    check = {'1.1': es.Request, '1.2': rc.Request, '1.3': cc.Request, 'gene': gc.Request, 'gene-coded': gc.Request}[profile]
     for _ in range(50):
         query, conditions, windows = snapshot_request(rng, ingest, pool, profile)
         try:
