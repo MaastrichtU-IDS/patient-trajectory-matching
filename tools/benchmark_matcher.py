@@ -46,7 +46,8 @@ Search budgets (D41). Every arm, the confirmation and the paired run's candidate
 default search budget, 40,000 (`budget_policy`, policy `engine-default` of `tools/benchmark_execution_store.py`): the
 generator's draw with only `search_budget` replaced. `--budget-policy drawn-stress` runs the generator's own budgets
 (1, 40, 300), a stress test of stopped searches. The paired run can compare the two policies on the same code
-(`--paired-reference this-tree --paired-reference-policy drawn-stress`); each side states its policy.
+(`--paired-reference this-tree --paired-reference-policy drawn-stress`), into `budget_policy_comparison`, apart from
+`paired_confirmation` (two codes at one policy, which governs the D21 target); each side states its policy.
 
 The report holds aggregates only. It is evidence for one machine and synthetic data.
 """
@@ -662,6 +663,9 @@ def confirm(args):
     entry = next(e for e in report['sizes'] if e['size'] == size)
     if manifest['snapshot_id'] != entry['snapshot_id']:
         raise SystemExit(f'snapshot {manifest["snapshot_id"]} is not the report\'s {entry["snapshot_id"]}')
+    stated = (report.get('budget_policy') or {}).get('name')
+    if stated != args.budget_policy:  # D41: a confirmation runs the queries of the report it confirms
+        raise SystemExit(f'the report ran budget policy {stated!r}, not {args.budget_policy!r}')
     arms, per_arm = {}, {}
     plan = [('B', 1, True), ('B_unpruned', 1, False)] + [(f'C_w{n}', n, True) for n in args.workers]
     for arm, workers, prune in plan:
@@ -711,11 +715,20 @@ def confirm(args):
 
 PAIRED_NOTE = (
     'Each pair is the reference code and the candidate code run back to back, each in a fresh process with a warm pool, '
-    'on the same snapshot and queries; the reference runs first in even repeats and second in odd ones (ABBA). Ratios are '
+    'on the same snapshot and queries, each at the search budget policy its side states (budget_policy, D41); the '
+    'reference runs first in even repeats and second in odd ones (ABBA). Ratios are '
     'candidate over reference: below 1 means the candidate is faster. "total" is the sum of the per-query match seconds '
     'of one run. The absolute target is judged on the candidate\'s own runs in this session. The pairing cancels drift '
     'that is slow against the length of a pair (minutes); it does not cancel noise within a run, nor a difference that '
     'only one order shows (compare the reference-first and candidate-first pairs).')
+
+
+# D41: the same protocol comparing two search budget policies on one code, recorded under its own key.
+POLICY_COMPARISON_NOTE = (
+    'Same code, different search budgets (D41): the reference side runs the queries with the budget policy it states '
+    'and the candidate with its own, on this tree, back to back and ABBA as in paired_confirmation. It measures what the '
+    'budgets change, not a code change: mismatching_seeds are the seeds whose results the budget moves, and the ratios '
+    'are the cost of the candidate\'s budgets over the reference\'s. It does not govern the D21 target.')
 
 
 def paired_statistics(records, target=TARGET):
@@ -788,7 +801,8 @@ def paired_statistics(records, target=TARGET):
 def paired_confirm(args):
     """Add `paired_confirmation` to the report at --output: the reference code (--paired-reference, a git ref
     extracted the way arm A is) and the candidate (this tree, or --paired-candidate) on one snapshot, back to back for
-    each repeat and worker count, alternating which runs first (ABBA)."""
+    each repeat and worker count, alternating which runs first (ABBA). With two budget policies (D41) it compares them
+    on this tree instead, into `budget_policy_comparison`."""
     report = json.loads(args.output.read_text())
     (item,) = args.snapshots
     size, _, path = item.partition('=')
@@ -800,6 +814,14 @@ def paired_confirm(args):
     bench = helpers()
     policies = {'reference': args.paired_reference_policy or args.budget_policy,
                 'candidate': args.paired_candidate_policy or args.budget_policy}
+    # D41: two codes at one policy go in `paired_confirmation` (D31's protocol, which governs the D21 target); two
+    # policies on one code in `budget_policy_comparison`. Codes and budgets are never compared at once.
+    comparing = policies['reference'] != policies['candidate']
+    if comparing and not (args.paired_reference == THIS_TREE and args.paired_candidate in (None, THIS_TREE)):
+        raise SystemExit('a budget policy comparison runs this tree on both sides (--paired-reference this-tree)')
+    stated = (report.get('budget_policy') or {}).get('name')
+    if not comparing and stated is not None and policies['candidate'] != stated:
+        raise SystemExit(f'the report ran budget policy {stated!r}; its paired run must too, not {policies["candidate"]!r}')
     scratch = Path(tempfile.mkdtemp(prefix='matcher-paired-'))
     try:
         codes = {}
@@ -834,13 +856,13 @@ def paired_confirm(args):
         stats = paired_statistics(records)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    report['paired_confirmation'] = {
+    report['budget_policy_comparison' if comparing else 'paired_confirmation'] = {
         'protocol': 'paired-interleaved-1.0', 'size': size, 'snapshot_id': manifest['snapshot_id'],
         'queries': args.large_queries, 'seeds': f'0..{args.large_queries - 1}', 'repeats': args.paired_repeats,
         'workers': list(args.paired_workers), 'order': 'ABBA: the reference first in even repeats, the candidate first in odd',
         'reference': {k: v for k, v in codes['reference'].items() if k != 'root'},
         'candidate': {k: v for k, v in codes['candidate'].items() if k != 'root'},
-        'note': PAIRED_NOTE, **stats, 'seconds': time.monotonic() - started}
+        'note': POLICY_COMPARISON_NOTE if comparing else PAIRED_NOTE, **stats, 'seconds': time.monotonic() - started}
     report['artifacts'] = {p: digest(p) for p in ARTIFACTS}
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(args.output)

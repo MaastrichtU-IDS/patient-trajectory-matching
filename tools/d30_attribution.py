@@ -256,6 +256,11 @@ def main(argv=None):
     matcher = load('matcher_d30', ROOT / 'tools/benchmark_matcher.py')
     report = json.loads(args.report.read_text())
     d30_report = json.loads(args.d30_report.read_text())
+    for name, r in (('--report', report), ('--d30-report', d30_report)):
+        # D41: the digests this tool reproduces were made with the drawn budgets (reports before D41 name no policy).
+        policy = (r.get('budget_policy') or {}).get('name', DRAWN_BUDGETS)
+        if policy != DRAWN_BUDGETS:
+            raise SystemExit(f'{name} ran budget policy {policy!r}; this tool reproduces {DRAWN_BUDGETS!r} digests')
     by_size = {e['size']: e for e in report['sizes']}
     d30_by_size = {e['size']: e for e in d30_report['sizes']}
     out = {'about': __doc__.split('\n\n')[0], 'stages': ['S0 before D30', *STAGES], 'sizes': [], 'confirmation': None}

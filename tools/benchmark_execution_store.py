@@ -401,6 +401,12 @@ def query_statistics(result, patients):
                            'incomplete_none': q['incomplete_none']} for q in per_query]}
 
 
+def check_policy(result, policy):
+    """A query worker ran the budget policy it was asked for (D41); a failed worker returned nothing to check."""
+    if result is not None and result.get('budget_policy') != policy:
+        raise RuntimeError(f'the query worker ran budget policy {result.get("budget_policy")!r}, not {policy!r}')
+
+
 def stress_statistics(result):
     """The stress stratum (D41): the queries once with the generator's drawn budgets, counted apart."""
     (rows,) = result['runs']
@@ -563,9 +569,11 @@ def _query_size(size, args, scratch, entry, built, started, keep):
     queries, repeats = (args.queries, args.repeats) if small else (args.large_queries, args.large_repeats)
     queried, record = run_phase('query', ['--size', str(size), '--snapshot', built['snapshot_path'], '--queries', str(queries),
                                           '--repeats', str(repeats), '--threads', str(args.threads),
-                                          '--memory-limit', args.memory_limit, '--exhaustive', str(exhaustive)],
+                                          '--memory-limit', args.memory_limit, '--exhaustive', str(exhaustive),
+                                          '--budget-policy', BUDGET_POLICY],
                                 scratch / 'query.json', remaining, RSS_LIMIT_BYTES)
     entry['query_phase'] = {k: v for k, v in record.items() if k != 'failure'}
+    check_policy(queried, BUDGET_POLICY)
     if queried is None:
         entry.update(status='failed', failed_phase='query', failure=record['failure'])
     else:
@@ -582,9 +590,12 @@ def _query_size(size, args, scratch, entry, built, started, keep):
                                                 '--queries', str(queries), '--repeats', '1', '--threads', str(args.threads),
                                                 '--memory-limit', args.memory_limit, '--exhaustive', '0',
                                                 '--budget-policy', STRESS_POLICY],
-                                      scratch / 'stress.json', args.budget_seconds, RSS_LIMIT_BYTES)
+                                      scratch / 'stress.json', max(1.0, args.budget_seconds - (time.monotonic() - started)),
+                                      RSS_LIMIT_BYTES)
+            check_policy(stressed, STRESS_POLICY)
             entry['stress_drawn_budgets'] = (stress_statistics(stressed) if stressed is not None
                                              else {'label': 'STRESS TEST', 'failure': rec['failure']})
+            entry['stress_drawn_budgets']['query_phase'] = {k: v for k, v in rec.items() if k != 'failure'}
     if queried is not None:
         profile = {}
         workers = [('verify_stages', 'verify')] + ([('match_cprofile', 'cprofile')] if small else [])
@@ -767,7 +778,7 @@ def main(argv=None):
     parser.add_argument('--stress-max-size', type=int, default=10000,
                         help='sizes up to this also run the queries once with the generator\'s drawn search budgets, '
                              'reported apart as a stress test (D41); 0 for none')
-    parser.add_argument('--budget-policy', choices=sorted(BUDGET_POLICIES), default=BUDGET_POLICY, help=argparse.SUPPRESS)
+    parser.add_argument('--budget-policy', choices=sorted(BUDGET_POLICIES), help=argparse.SUPPRESS)  # workers only
     parser.add_argument('--worker', choices=('query', 'verify', 'cprofile'), help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
@@ -781,9 +792,11 @@ def main(argv=None):
             result = cprofile_worker(args.snapshot, args.size, args.threads)
         else:
             result = query_worker(args.snapshot, args.size, args.queries, args.repeats, args.threads, args.memory_limit,
-                                  args.exhaustive, args.budget_policy)
+                                  args.exhaustive, args.budget_policy or BUDGET_POLICY)
         args.worker_output.write_text(json.dumps(result))
         return 0
+    if args.budget_policy is not None:  # D41: a report's policy is fixed; only its workers take one
+        parser.error('--budget-policy is for the query workers; reports run engine-default with a drawn-stress stratum')
     if min(args.sizes) < PER_COHORT:
         parser.error(f'sizes start at {PER_COHORT}, the first cohort the queries are anchored on')
     report = benchmark(args)

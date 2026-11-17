@@ -114,7 +114,8 @@ class ReportTests(unittest.TestCase):
         matcher.main(['--paired-confirm', '--snapshots', f'96={cls.snapshot}', '--paired-reference', matcher.THIS_TREE,
                       '--paired-reference-policy', 'drawn-stress', '--large-queries', '3', '--paired-repeats', '2',
                       '--paired-workers', '1', '--output', str(cls.policy_output)])
-        cls.policies = json.loads(cls.policy_output.read_text())['paired_confirmation']
+        cls.policy_report = json.loads(cls.policy_output.read_text())
+        cls.policies = cls.policy_report['budget_policy_comparison']
 
     @classmethod
     def tearDownClass(cls):
@@ -148,6 +149,23 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(p['candidate']['budget_policy'], bench.budget_policy_record('engine-default'))
         self.assertTrue(p['byte_identity']['each_code_stable_across_its_runs']['reference'])
         self.assertEqual(p['byte_identity']['compared'], 3)
+        # A policy comparison has its own key and note, apart from the code comparison that governs the D21 target.
+        self.assertNotIn('paired_confirmation', self.policy_report)
+        self.assertEqual(p['note'], matcher.POLICY_COMPARISON_NOTE)
+        self.assertEqual(self.paired['note'], matcher.PAIRED_NOTE)
+
+    def test_runs_refuse_a_policy_their_report_did_not_run(self):
+        with self.assertRaises(SystemExit):  # a confirmation runs the report's own queries
+            matcher.main(['--confirm', '--snapshots', f'96={self.snapshot}', '--large-queries', '1', '--large-repeats', '1',
+                          '--workers', '1', '--budget-policy', 'drawn-stress', '--output', str(self.confirmed_output)])
+        with self.assertRaises(SystemExit):  # codes and budgets are not compared at once
+            matcher.main(['--paired-confirm', '--snapshots', f'96={self.snapshot}', '--paired-reference', 'HEAD',
+                          '--paired-reference-policy', 'drawn-stress', '--large-queries', '1', '--paired-repeats', '1',
+                          '--paired-workers', '1', '--output', str(self.policy_output)])
+        with self.assertRaises(SystemExit):  # a code comparison runs the report's policy
+            matcher.main(['--paired-confirm', '--snapshots', f'96={self.snapshot}', '--paired-reference', 'HEAD',
+                          '--budget-policy', 'drawn-stress', '--large-queries', '1', '--paired-repeats', '1',
+                          '--paired-workers', '1', '--output', str(self.confirmed_output)])
 
     def test_the_budget_policies_are_the_helpers(self):
         self.assertEqual(matcher.BUDGET_POLICY_NAMES, tuple(sorted(bench.BUDGET_POLICIES)))

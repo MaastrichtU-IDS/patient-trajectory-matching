@@ -62,8 +62,9 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # paired latency verdicts bind `tools/benchmark_execution_store.py` and `tools/benchmark_matcher.py`, whose
               # queries D41 moved to the engine's default search budget. Each records its decision, measured with the
               # generator's drawn budgets (1, 40, 300) on its own tree (D36 against main at 81e812c, D39 against main
-              # at 24cd863); for the current tree the matcher report's confirmation and
-              # paired run, at realistic budgets, supersede them.
+              # at 24cd863). Their code verdicts (each ratio against the main before it) stand as recorded; for the
+              # current tree the matcher report's paired run and confirmation, at realistic budgets, supersede only
+              # their absolute figures (the D21 target's p95, maximum and memory).
               'verification/d36-paired-verdict.json', 'verification/d39-paired-verdict.json'}
 
 

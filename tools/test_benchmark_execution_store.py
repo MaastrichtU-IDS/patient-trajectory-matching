@@ -74,6 +74,8 @@ class BudgetPolicyTests(unittest.TestCase):
         self.assertEqual(bench.budget_policy_record(bench.BUDGET_POLICY)['search_budget'], 40_000)
         with self.assertRaises(ValueError):
             bench.query_inputs(1, 'generous')
+        with self.assertRaises(SystemExit):  # a report's policy is fixed; only its workers take one
+            bench.main(['--sizes', '100', '--budget-policy', 'drawn-stress'])
 
 
 class CommittedReportTests(unittest.TestCase):
@@ -149,6 +151,7 @@ class ReportTests(unittest.TestCase):
         self.assertIn('STRESS TEST', stress['label'])
         self.assertEqual(stress['budget_policy']['name'], 'drawn-stress')
         self.assertEqual((stress['queries'], stress['repeats']), (3, 1))
+        self.assertGreater(stress['query_phase']['peak_rss_bytes'], 0)
         drawn = {s: q['search_budget'] for s, q in bench.query_inputs(3, bench.STRESS_POLICY)[0]}
         self.assertEqual({r['seed']: r['search_budget'] for r in stress['per_query']}, drawn)
         self.assertEqual(sum(stress['queries_by_search_budget'].values()), 3)
