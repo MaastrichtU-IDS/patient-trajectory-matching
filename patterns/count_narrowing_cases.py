@@ -385,6 +385,18 @@ def enum_truth(query, conditions, patient, mentions):
     return ('none', None, None)
 
 
+def witness_holds(result, query, conditions, patient, mentions):
+    """Whether a `possible` result's witness describes a world (D43 review, M1): some choice of the patient's times in
+    which each `any` step's bound event starts at its witness time and the query holds (counts reached included)."""
+    events, worlds = tw.worlds(patient, _horizon(query, conditions, patient))
+    by_id = {e['id']: e for e in events}
+    q = tw._DerivedQuestion(query, conditions, (), events, worlds, patient['window'], mentions)
+    binding, witness = result['binding'], result['witness']
+    free = {s: by_id[binding[s]] for s in q.free}
+    return any(all(t[free[s]['sv']] == witness[s] for s in free if s in witness) and q.holds(t, free, True)
+               for t in worlds)
+
+
 # The small cases.
 
 def _tiny_patient(rng, ends, shared):
@@ -523,8 +535,8 @@ def refine_case(query, conditions, patient, mentions):
 
 def run_small(generator, seeds, prefix='d43', truth=True):
     """A tally over small cases: worlds violations, moved results that were not STEP_CONDITION_UNCERTAIN or do not end
-    decided and complete, refined results unequal to the truth by enumeration, and how STEP_CONDITION_UNCERTAIN results
-    fared. `failures` lists the first few cases that fail."""
+    decided and complete, refined results unequal to the truth by enumeration, refined `possible` results whose witness
+    describes no world, and how STEP_CONDITION_UNCERTAIN results fared. `failures` lists the first few cases that fail."""
     tally, failures = Counter(), []
     for seed in seeds:
         query, conditions, patient, mentions = small_case(f'{prefix}-{seed}', generator)
@@ -544,6 +556,8 @@ def run_small(generator, seeds, prefix='d43', truth=True):
             if truth and (v2['status'], v2.get('relaxations'), v2.get('certainty')) != \
                     enum_truth(query, conditions, patient, mentions):
                 bad.append('truth')
+            if v2['status'] == 'possible' and not witness_holds(v2, query, conditions, patient, mentions):
+                bad.append('witness')
         elif uncertain:
             tally[how] += 1
         for b in bad:
@@ -829,6 +843,8 @@ def snapshot_compare(store, ingest, query, conditions, windows, variants=True, w
     out = sc.match(store, query, windows, conditions=conditions)
     run = ReferenceRun(ingest, query, windows, conditions)
     bad, tally = compare(run, out['results'])
+    if out['derived_steps']['count_refinement']['skipped_mismatch']:
+        bad.append(('re-derivation differs from the answer', out['derived_steps']['count_refinement']))
     tally.update(r['status'] for r in out['results'])
     if variants:
         two = sc.match(store, query, windows, conditions=conditions, workers=2, chunk=9)

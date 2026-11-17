@@ -13,14 +13,16 @@ uses was decided by the exact sweep (`inexact` false) and no tried tag is a rise
        Narrow(e) = {tau in e's tightened start range (cut to the window for a period count) :
                     at least n - 1 other counted records can lie in [tau - span, tau] (in [window start, tau])},
    computed by the sweep's own interval counters at the same breakpoints (`narrow`). A copy is e with its start cut to
-   the interval, its own end, proper flag and duration kept, and fresh variables; it carries only the tag. Certain
+   the interval, its own end range and proper flag kept, and fresh variables; it carries only the tag. Certain
    records keep the tag, Nth and gene points stay, as in pass 1. The engine runs once over that patient, with D32's
    coupling rule extended to count steps (`_coupled_counts`): a set whose result would be `possible` and that rests on a
    count step with copies is undecided when the step's records share a variable or another step can bind one of them.
 2. *Combination*, with pass 1 as D32 ran it:
    - two' `none`, both passes complete: `none`;
    - two' finds the unrelaxed query (exact or possible), at most one copy in its binding: `possible`, with two''s
-     binding (a copy read as its record) and a witness;
+     binding (a copy read as its record) and a witness built in the patient's own times (`_witness`: the relations, the
+     scope, and n - 1 counted records placed in the span or period of each step bound to a copy); where no such witness
+     is found, D32's answer stands;
    - two' relaxed by S, both passes complete, at most one copy in its binding: pass 1's result if pass 1 is relaxed by
      S, otherwise relaxed by S with certainty `possible` and two''s binding;
    - anything else: D32's answer stands.
@@ -35,15 +37,18 @@ Where it runs. `store_conditions.match` calls `post_pass` after the routed modul
 (profiles 1.1, 1.2, 1.3, gene). Each STEP_CONDITION_UNCERTAIN patient is re-derived through the answering module's own
 `_derived_chunk` (`execution_store`, `store_conditions_relative`, `store_conditions_coded`, `store_conditions_gene`), its
 two-pass result recomputed and checked against the answer, the rule applied, and a changed result given the store's
-later rules as the module applies them: coverage to a refined `none`, then the excluded-records rule (D18). No build
-loads this module, and no file a build or a report binds changes for it (D34's build reuse). Callers that skip the
-dispatcher (`execution_store.match`, a module's own `match`) keep D32's rule: never contradicted by this one, less
-decided (the declared difference, D43).
+later rules as the module applies them, a chunk at a time: coverage to a refined `none`, then the excluded-records
+rule (D18). A patient whose re-derived two-pass result differs from the answer is left as it is and counted
+(`count_refinement.skipped_mismatch`). No build loads this module, and no file the D34 build record lists changes for
+it, so the scaling builds stay reusable; the dispatcher, `store_parity.py` and `gene_no_change.py` do change, and the
+reports binding them are rebound or frozen (D43). Callers that skip the dispatcher (`execution_store.match`, a module's
+own `match`) keep D32's rule: never contradicted by this one, less decided (the declared difference, D43).
 """
 from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
 import hashlib
+from itertools import combinations, product
 import json
 
 from . import execution_store as es
@@ -59,14 +64,16 @@ RULE = ('count_narrowed_v1: where the two-pass rule answers unresolved (STEP_CON
         'the engine runs once (two\'), with the coupling rule extended to count steps that rest on copies; two\' none: '
         'none; the unrelaxed query found with at most one copy bound: possible; relaxed by S with at most one copy bound: '
         'pass 1\'s result if pass 1 is relaxed by S, else relaxed by S, certainty possible; both passes complete for '
-        'none and relaxed; otherwise the two-pass answer stands. Coverage and the excluded-records rule then apply to a '
-        'changed result. Applied by the dispatcher only')
+        'none and relaxed; a possible result carries a witness in the patient\'s own times where each step bound to a '
+        'copy reaches its count, and without one the two-pass answer stands; otherwise the two-pass answer stands. '
+        'Coverage and the excluded-records rule then apply to a changed result. Applied by the dispatcher only')
 SEP = '@narrowed/'  # a copy's id: <tag>@narrowed/<record id>/<interval index>
 COUNT_PROFILES = (es.CONDITIONS_PROFILE_1_1, 'execution-store-conditions-1.2', 'execution-store-conditions-1.3',
                   'execution-store-conditions-gene-1.0')
 # Planted defects for the tests (D43 rules); None in every real run. They act in this process only.
 DEFECTS = ('whole_range', 'coupling_ignored', 'certainty_from_two', 'point_without_end', 'two_copies',
-           'decided_refined', 'no_d18', 'no_coverage')
+           'decided_refined', 'no_d18', 'no_coverage', 'any_witness')
+WITNESS_TRIES = 20_000  # choices of count witnesses tried per refined result before D32's answer is kept
 _D43_DEFECT = None
 
 
@@ -133,9 +140,8 @@ def _narrowed(request, derived):
             return None  # a rise or fall (D33): its possible readings are not narrowed
         mine = derived.families.get(name, set())
         family = [r for r in times.candidate_records(spec['concept']) if r[tg._EVENT].id in mine]
-        strengths, exact = es._count_strengths(times, family, spec['n'], spec['within'], first['window'])
-        if not exact and strengths:
-            return None
+        strengths, _ = es._count_strengths(times, family, spec['n'], spec['within'], first['window'])
+        # (a family the pairwise test decided would make `derived.inexact` true, refused above)
         for k, r in enumerate(family):
             eid = r[tg._EVENT].id
             if strengths.get(eid) != 'possible':
@@ -170,7 +176,8 @@ def _coupled_counts(pq, request, derived, tags):
             if spec is None or spec['kind'] != 'count' or name not in tags:
                 continue
             family = derived.families[name]
-            hit = spec['concept'] in derived.linked
+            # A family sharing a variable is never narrowed (`derived.inexact`), so only another step can couple it.
+            hit = False
             for t in pq.step_ids:
                 if hit or t == s:
                     continue
@@ -186,13 +193,80 @@ def _coupled_counts(pq, request, derived, tags):
     return out
 
 
-def _witness(doc, binding):
-    """A choice of the bound steps' times in two' (each step's start), where an exact binding holds by definition."""
-    times = tg.patient_times(doc, trusted=True)
+def _order_key(e, which):
+    """The worlds checker's tie-break between events of a `first` (`last`) step's concept at one time."""
+    f = e.s if e.point else e.f
+    return (e.s, f, e.id) if which == 'first' else (e.s[1], e.s[0], f, e.id)
+
+
+def _witness(pq, request, derived, binding, back, doc):
+    """The bound steps' start times in one choice of the patient's own times (pass 1's patient, each copy read as its
+    record) in which the unrelaxed query's relations and scope hold, every step bound to a copy reaches its count (n - 1
+    other counted records placed in [t - span, t], or in [window start, t] with t in the window), and each `first` or
+    `last` step's event, chosen among its concept's events, is the first (last) one with the worlds checker's
+    tie-breaks. None when no choice gives one within `WITNESS_TRIES` (D43 review, M1: a time two' allows need not leave
+    room for the count's records, nor fit another step that binds one of them)."""
+    if _D43_DEFECT == 'any_witness':  # the reviewed defect: any times two' allows
+        times = tg.patient_times(doc, trusted=True)
+        by_id = {e.id: e for e in times.events}
+        bound = {s: by_id[v] for s, v in binding.items()}
+        at = tg.feasible(bound, [], times).witness()
+        return {s: at[tg._node(e.sv)] for s, e in sorted(bound.items())}
+    times = tg.patient_times(derived.first, trusted=True)
     by_id = {e.id: e for e in times.events}
-    bound = {s: by_id[eid] for s, eid in binding.items()}
-    at = tg.feasible(bound, [], times).witness()
-    return {s: at[tg._node(e.sv)] for s, e in sorted(bound.items())}
+    bound = {s: by_id[back.get(v, v)] for s, v in binding.items()}
+    plan = pq.plan()
+    constraints = list(plan.constraints)
+    pools, ordered = [], []
+    for s in sorted(binding):
+        v = binding[s]
+        if plan.occurrence[s] in ('first', 'last'):
+            family = [e for e in times.events if plan.concepts[s] in e.concepts]
+            ordered.append((s, plan.occurrence[s], family))
+            pools.append(family)
+        elif v in back:
+            spec = request.derived[plan.concepts[s]]
+            others = [by_id[eid] for eid in sorted(derived.families[plan.concepts[s]]) if eid != back[v]]
+            pools.append(list(combinations(others, spec['n'] - 1)))
+            if spec['within'] == 'window':
+                constraints += [tg.Constraint(('START', None), (s, 's'), 0, tg.INF, 'count'),
+                                tg.Constraint((s, 's'), ('END', None), 0, tg.INF, 'count')]
+    kinds = [('order', s) if plan.occurrence[s] in ('first', 'last') else ('count', s) for s in sorted(binding)
+             if plan.occurrence[s] in ('first', 'last') or binding[s] in back]
+    which = dict((s, w) for s, w, _ in ordered)
+    families = dict((s, f) for s, _, f in ordered)
+    for tries, picks in enumerate(product(*pools)):
+        if tries >= WITNESS_TRIES:
+            break
+        extra, more = dict(bound), list(constraints)
+        for (kind, s), pick in zip(kinds, picks):
+            if kind == 'order':
+                extra[s] = pick
+                for k, x in enumerate(families[s]):
+                    if x is pick:
+                        continue
+                    name = f'\x00order\x00{s}\x00{k}'
+                    extra[name] = x
+                    strict = -1 if ((_order_key(x, which[s]) < _order_key(pick, which[s])) == (which[s] == 'first')) else 0
+                    if which[s] == 'first':  # t(pick) - t(x) <= 0, or -1 when x ranks first at a tie
+                        more.append(tg.Constraint((name, 's'), (s, 's'), -tg.INF, strict, 'order'))
+                    else:  # t(x) - t(pick) <= 0, or -1 when x ranks last at a tie
+                        more.append(tg.Constraint((s, 's'), (name, 's'), -tg.INF, strict, 'order'))
+                continue
+            spec = request.derived[plan.concepts[s]]
+            for k, x in enumerate(pick):
+                name = f'\x00count-witness\x00{s}\x00{k}'
+                extra[name] = x
+                if spec['within'] == 'window':
+                    more += [tg.Constraint(('START', None), (name, 's'), 0, tg.INF, 'count'),
+                             tg.Constraint((name, 's'), (s, 's'), 0, tg.INF, 'count')]
+                else:
+                    more.append(tg.Constraint((name, 's'), (s, 's'), 0, spec['within'], 'count'))
+        network = tg.feasible(extra, more, times)
+        if network.feasible:
+            at = network.witness()
+            return {s: at[tg._node(extra[s].sv)] for s in sorted(binding)}
+    return None
 
 
 def refine(pq, request, derived, v1):
@@ -228,7 +302,9 @@ def refine(pq, request, derived, v1):
         if _D43_DEFECT == 'certainty_from_two' and two['status'] == 'exact':
             return {'patient_id': pid, 'status': 'exact', 'binding': as_records(two['binding']), 'method': METHOD,
                     'complete': True}, 'decided: exact (defect)'
-        witness = two['witness'] if two['status'] == 'possible' else _witness(doc, two['binding'])
+        witness = _witness(pq, request, derived, two['binding'], back, doc)
+        if witness is None:
+            return v1, 'kept: no witness'
         return {'patient_id': pid, 'status': 'possible', 'binding': as_records(two['binding']), 'witness': witness,
                 'method': METHOD, 'complete': True}, f'decided: possible (two\' {two["status"]})'
     if two['status'] == 'relaxed':
@@ -275,40 +351,42 @@ class _Answering:
             return self.module._derived_chunk(store, self.request, idxs, pids, windows, linked, findings)
         return self.module._derived_chunk(store, self.request, idxs, pids, windows, linked)
 
-    def uncovered(self, store, idx, windows_by_idx):
-        """The coverage rule's verdict on a refined `none`: (reason, uncovered, unrecorded) or None."""
+    def uncovered(self, store, idxs, windows_by_idx):
+        """The coverage rule's verdicts on refined `none` results: {patient_idx: (reason, uncovered, unrecorded)}."""
+        if not idxs:
+            return {}
         request = self.request
-        per_step, tags = request.load, request.used
+        per_step, tags, nones = request.load, request.used, sorted(idxs)
         if self.module.__name__.endswith('store_conditions_coded'):
-            found = self.module._comparability(store, per_step, [idx], windows_by_idx, request.exclude, tags=tags)
+            found = self.module._comparability(store, per_step, nones, windows_by_idx, request.exclude, tags=tags)
         elif self.gene is not None:
             steps = {sid: [request.genes[sid]] if sid in request.genes else cs for sid, cs in per_step.items()}
-            found = self.module._comparability(store, steps, [idx], windows_by_idx, es.CHUNK_PATIENTS, tags,
-                                               self.gene._gene_sources(store, request))
+            found = self.module._comparability(store, steps, nones, windows_by_idx, es.CHUNK_PATIENTS * es.SET_CHUNK_FACTOR,
+                                               tags, self.gene._gene_sources(store, request))
         else:
-            found = es._comparability(store, per_step, [idx], windows_by_idx, tags=tags)
-        for _, reason, missing, unrecorded in found:
-            return reason, missing, unrecorded
-        return None
+            found = es._comparability(store, per_step, nones, windows_by_idx, tags=tags)
+        return {idx: (reason, missing, unrecorded) for idx, reason, missing, unrecorded in found}
 
-    def exclusions(self, store, query, idx, result, windows_by_idx, derived, findings):
-        """D18 on one refined result, as the module's `match` applies it."""
+    def exclusions(self, store, query, refined, windows_by_idx, derived, findings):
+        """D18 on refined results ({patient_idx: result}), as the module's `match` applies it, in one pass."""
+        if not refined:
+            return refined
         request = self.request
-        touched = es._excluded_starts(store, query, request.base, {idx}, windows_by_idx)
+        touched = es._excluded_starts(store, query, request.base, set(refined), windows_by_idx)
         if self.gene is not None:
-            self.gene._undetermined_reach(store, request, query, touched, {idx}, windows_by_idx, findings)
-        if idx not in touched:
-            return result
+            self.gene._undetermined_reach(store, request, query, touched, set(refined), windows_by_idx, findings)
+        if not touched:
+            return refined
         self.reach(request, query, touched, windows_by_idx)
         occurrence = {sid: 'first' if which == 'nth' else 'last'
                       for sid, (kind, which) in request.kinds.items() if kind == 'nth'}
-        starts = {}
-        if result.get('binding') or result.get('relaxed_match', {}).get('binding'):
-            starts = es._bound_starts(store, [idx]).get(idx, {})
-            if occurrence:
-                starts = {**starts, **derived.points}
-        hit, every = touched[idx]
-        return es.apply_exclusions(query, result, hit, starts, every, occurrence)
+        bound = [idx for idx in touched if refined[idx].get('binding') or refined[idx].get('relaxed_match', {}).get('binding')]
+        starts = es._bound_starts(store, bound)
+        out = dict(refined)
+        for idx, (hit, every) in touched.items():
+            mine = {**starts.get(idx, {}), **derived[idx].points} if occurrence else starts.get(idx, {})
+            out[idx] = es.apply_exclusions(query, refined[idx], hit, mine, every, occurrence)
+        return out
 
 
 def bind_context(context):
@@ -321,57 +399,60 @@ def bind_context(context):
 
 def post_pass(store, query, windows, chunk, conditions, out):
     """The routed module's answer `out` to a request with a count step, with each result `unresolved` with
-    STEP_CONDITION_UNCERTAIN refined where `count_narrowed_v1` decides it, coverage and D18 reapplied to it, `counts`
-    recomputed, and the rule named in `derived_steps` and bound in the context. Every other result is unchanged."""
+    STEP_CONDITION_UNCERTAIN refined where `count_narrowed_v1` decides it, coverage and D18 reapplied to it (a chunk at
+    a time), `counts` recomputed, and the rule and the tally named in `derived_steps.count_refinement` and bound in the
+    context. Every other result is unchanged."""
     context, context_id = bind_context(out['context'])
     out = {**out, 'context': context, 'context_id': context_id}
-    if 'derived_steps' in out:
-        out['derived_steps'] = {**out['derived_steps'], 'count_refinement': RULE}
     targets = [k for k, r in enumerate(out['results'])
                if r['status'] == 'unresolved' and r.get('reason') == 'STEP_CONDITION_UNCERTAIN']
-    if not targets:
-        return out
-    answering = _Answering(query, conditions)
-    request = answering.request
-    pq = tg.PreparedQuery(request.query)
-    compiled = pq.query
-    by_pid = {pid: idx for idx, pid in store.query('SELECT patient_idx, patient_id FROM patients')}
-    linked = {idx for idx, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')}
-    rows = [(k, by_pid[out['results'][k]['patient_id']]) for k in targets]
-    windows_by_idx = {idx: windows[out['results'][k]['patient_id']] for k, idx in rows}
-    findings = None
-    if answering.gene is not None and request.genes:
-        findings = answering.gene._gene_findings(store, request, [idx for _, idx in rows])
-    results = list(out['results'])
-    counts = dict(out['counts'])
-    for start in range(0, len(rows), chunk):
-        part = rows[start:start + chunk]
-        idxs = [idx for _, idx in part]
-        derived_list = answering.chunk(store, idxs, [results[k]['patient_id'] for k, _ in part],
-                                       [windows_by_idx[i] for i in idxs], [i for i in idxs if i in linked],
-                                       None if findings is None else {i: findings[i] for i in idxs if i in findings})
-        for (k, idx), (_, derived) in zip(part, derived_list, strict=True):
-            given = results[k]
-            v1 = answering.match_derived(pq, request, derived)
-            if json.dumps(v1) != json.dumps(given):
-                continue  # not the module's own two-pass answer: left as it is
-            refined, _ = refine(pq, request, derived, v1)
-            if refined is v1:
-                continue
-            if refined['status'] == 'none' and _D43_DEFECT != 'no_coverage':
-                verdict = answering.uncovered(store, idx, windows_by_idx)
-                if verdict is not None:
-                    reason, missing, unrecorded = verdict
-                    refined = {'patient_id': given['patient_id'], 'status': 'not_comparable', 'reason': reason,
-                               'uncovered_steps': missing}
+    tally = {'rule': RULE, 'refined': 0, 'skipped_mismatch': 0}
+    results, counts = list(out['results']), dict(out['counts'])
+    if targets:
+        answering = _Answering(query, conditions)
+        request = answering.request
+        pq = tg.PreparedQuery(request.query)
+        compiled = pq.query
+        by_pid = {pid: idx for idx, pid in store.query('SELECT patient_idx, patient_id FROM patients')}
+        linked = {idx for idx, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')}
+        rows = [(k, by_pid[results[k]['patient_id']]) for k in targets]
+        windows_by_idx = {idx: windows[results[k]['patient_id']] for k, idx in rows}
+        findings = None
+        if answering.gene is not None and request.genes:
+            findings = answering.gene._gene_findings(store, request, [idx for _, idx in rows])
+        for start in range(0, len(rows), chunk):
+            part = rows[start:start + chunk]
+            idxs = [idx for _, idx in part]
+            mine = None if findings is None else {i: findings[i] for i in idxs if i in findings}
+            derived = dict(answering.chunk(store, idxs, [results[k]['patient_id'] for k, _ in part],
+                                           [windows_by_idx[i] for i in idxs], [i for i in idxs if i in linked], mine))
+            refined, where = {}, {}
+            for k, idx in part:
+                v1 = answering.match_derived(pq, request, derived[idx])
+                if json.dumps(v1) != json.dumps(results[k]):
+                    tally['skipped_mismatch'] += 1  # not the module's own two-pass answer: left as it is, counted
+                    continue
+                result, _ = refine(pq, request, derived[idx], v1)
+                if result is not v1:
+                    refined[idx], where[idx] = result, k
+            if _D43_DEFECT != 'no_coverage':
+                for idx, (reason, missing, unrecorded) in answering.uncovered(
+                        store, [i for i, r in refined.items() if r['status'] == 'none'], windows_by_idx).items():
+                    refined[idx] = {'patient_id': refined[idx]['patient_id'], 'status': 'not_comparable', 'reason': reason,
+                                    'uncovered_steps': missing}
                     if unrecorded:
-                        refined['unrecorded_steps'] = unrecorded
-            if refined['status'] != 'not_comparable' and _D43_DEFECT != 'no_d18':
-                refined = answering.exclusions(store, compiled, idx, refined, windows_by_idx, derived,
-                                               None if findings is None else {idx: findings.get(idx, {})})
-            results[k] = refined
-            counts['unresolved'] -= 1
-            if not counts['unresolved']:
-                del counts['unresolved']
-            counts[refined['status']] = counts.get(refined['status'], 0) + 1
-    return {**out, 'counts': dict(sorted(counts.items())), 'results': results}
+                        refined[idx]['unrecorded_steps'] = unrecorded
+            if _D43_DEFECT != 'no_d18':
+                kept = {i: r for i, r in refined.items() if r['status'] != 'not_comparable'}
+                refined.update(answering.exclusions(store, compiled, kept, windows_by_idx, derived, mine))
+            for idx, result in refined.items():
+                results[where[idx]] = result
+                tally['refined'] += 1
+                counts['unresolved'] -= 1
+                if not counts['unresolved']:
+                    del counts['unresolved']
+                counts[result['status']] = counts.get(result['status'], 0) + 1
+    out = {**out, 'counts': dict(sorted(counts.items())), 'results': results}
+    if 'derived_steps' in out:
+        out['derived_steps'] = {**out['derived_steps'], 'count_refinement': tally}
+    return out

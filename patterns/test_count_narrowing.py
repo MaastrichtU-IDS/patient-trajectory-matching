@@ -84,6 +84,28 @@ class SmallCaseTests(unittest.TestCase):
         self.assertEqual(cn.enum_truth(query, conditions, patient, set()), ('possible', None, None))
         self.assertEqual(set(v2['witness']), {'A', 'B'})
 
+    def test_the_witness_leaves_room_for_the_counts_records(self):
+        """The review's must-fix (M1): with B bound to e1 at 6, e0 at 5 does not reach 3 in the window, so a witness
+        must place e1 at 5. Any time two' allows is not enough (the planted defect `any_witness`)."""
+        patient = {'patient_id': 'P', 'window': {'start': 1, 'end': 6}, 'events': [
+            {'id': 'e0', 'concepts': ['z'], 'start': [5, 9], 'end': [6, 6], 'proper': True},
+            {'id': 'e1', 'concepts': ['z'], 'start': [5, 6]},
+            {'id': 'e2', 'concepts': ['z'], 'start': [5, 7], 'end': [6, 8], 'proper': True},
+            {'id': 'e3', 'concepts': ['x', 'y'], 'start': [2, 6]}]}
+        query = {'profile': tg.PROFILE_ID, 'scope': 'within', 'steps': [{'id': 'A', 'concept': 'z'}, {'id': 'B', 'concept': 'z'}],
+                 'relations': [{'id': 'R1', 'kind': 'during', 'from': 'A', 'to': 'B', 'grace': 1}], 'relaxations': [],
+                 'budget': 0}
+        conditions = {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': {'A': {'count': {'at_least': 3, 'within': 'window'}}}}
+        _, v2, _ = cn.refine_case(query, conditions, patient, set())
+        self.assertEqual(v2['status'], 'possible')
+        self.assertTrue(cn.witness_holds(v2, query, conditions, patient, set()), v2)
+        scn._D43_DEFECT = 'any_witness'
+        try:
+            _, bad, _ = cn.refine_case(query, conditions, patient, set())
+        finally:
+            scn._D43_DEFECT = None
+        self.assertFalse(cn.witness_holds(bad, query, conditions, patient, set()), bad)
+
     def test_narrow_is_the_set_of_times_the_count_can_be_reached(self):
         """Narrow(e) against a direct count over every integer time, span and period, on random families."""
         rng = random.Random('d43/narrow')
@@ -112,9 +134,10 @@ class SmallCaseTests(unittest.TestCase):
 class PlantedDefectTests(unittest.TestCase):
     """Each planted defect makes some small case fail (seeds found once and pinned), or the differential."""
 
-    PINNED = {'whole_range': ('span-multi', 537), 'coupling_ignored': ('span-coupled', 13),
+    PINNED = {'whole_range': ('span-multi', 2944), 'coupling_ignored': ('span-coupled', 948),
               'certainty_from_two': ('span-multi', 3), 'point_without_end': ('during-from-count', 61),
-              'two_copies': ('two-counts', 53), 'decided_refined': ('span-multi', 9)}
+              'two_copies': ('two-counts', 53), 'decided_refined': ('span-multi', 9),
+              'any_witness': ('span-multi', 103)}
 
     def tearDown(self):
         scn._D43_DEFECT = None
@@ -251,7 +274,11 @@ class BoundaryTests(unittest.TestCase):
                                                                               'derived_steps')}
                 self.assertEqual(rest(got), rest(base))
                 self.assertEqual(got['counts'], dict(sorted(Counter(r['status'] for r in got['results']).items())))
-                self.assertEqual(got['derived_steps'], {**base['derived_steps'], 'count_refinement': scn.RULE})
+                tally = got['derived_steps']['count_refinement']
+                self.assertEqual(got['derived_steps'], {**base['derived_steps'], 'count_refinement': tally})
+                self.assertEqual((tally['rule'], tally['skipped_mismatch']), (scn.RULE, 0))
+                self.assertEqual(tally['refined'], sum(json.dumps(g) != json.dumps(b)
+                                                       for g, b in zip(got['results'], base['results'])))
                 self.assertIn(scn.MODULE_PATH, got['context']['artifacts'])
                 self.assertEqual(got['context']['count_rule'], es._digest(scn.RULE))
                 self.assertEqual(sc.match_context(state['store'], query, windows, conditions),
