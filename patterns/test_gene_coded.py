@@ -30,7 +30,6 @@ from . import execution_store as es
 from . import gene_coded_cases as gcc
 from . import store_conditions as sc
 from . import store_conditions_coded as cc
-from . import store_conditions_counts as scn
 from . import store_conditions_gene as gc
 from . import store_conditions_relative as rc
 from . import synthetic_ingest as si
@@ -290,8 +289,7 @@ class RequestTests(unittest.TestCase):
 
 class NoChangeTests(unittest.TestCase):
     """D42, rule 2, inside the suite: every request without the joint profile is the answer of the module that answered
-    it before (through D43's post-pass for a count step, D43b), at 1 and 2 workers, and the shared hooks without kinds
-    are the store's own reads. (D38's and D39's
+    it before, at 1 and 2 workers, and the shared hooks without kinds are the store's own reads. (D38's and D39's
     boundary tests check the same for their modules; the differential against main's code, `d42_no_change.py`, checks
     gene-1.0 and 1.3 answers byte for byte against the code before D42.)"""
 
@@ -308,20 +306,10 @@ class NoChangeTests(unittest.TestCase):
                         'steps': {'A': {'count': {'at_least': 2, 'within': 'window'}}}})]
         for previous, conditions in before:
             for workers in (1, 2):
-                answer = previous.match(store, q, windows, conditions=conditions, workers=workers)
-                want = json.dumps(answer)
-                # D42's comparison, byte for byte, on the routed module's own answer (the post-pass off, D43b).
-                with patch.object(sc, 'COUNT_POST_PASS', False):
-                    self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions, workers=workers)),
-                                     want)
-                # With it on, a count request is that answer through D43's post-pass (D43b).
-                dispatched = (scn.post_pass(store, q, windows, es.CHUNK_PATIENTS, conditions, answer, workers)
-                              if scn.has_counts(conditions) else answer)
-                self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions, workers=workers)),
-                                 json.dumps(dispatched))
+                want = json.dumps(previous.match(store, q, windows, conditions=conditions, workers=workers))
+                self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions, workers=workers)), want)
                 if previous is rc:  # the gene module hands every request it does not answer to the relative module
-                    self.assertEqual(json.dumps(gc.match(store, q, windows, conditions=conditions, workers=workers)),
-                                     want)
+                    self.assertEqual(json.dumps(gc.match(store, q, windows, conditions=conditions, workers=workers)), want)
             self.assertEqual(sc.candidates(store, q, conditions), previous.candidates(store, q, conditions))
 
     def test_the_hooks_without_kinds_are_the_stores_own_reads(self):

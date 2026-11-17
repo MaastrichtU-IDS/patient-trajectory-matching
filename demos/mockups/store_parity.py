@@ -189,11 +189,7 @@ def replay(case, found, inexact=()):
     difference from the page is a difference of candidates (or that rule), never of the query or the windows.
 
     A relative condition (D33) is replayed from the tagged readings listed, by their strengths: the store's two-pass
-    rule (`execution_store.match_derived`) over a pass of the certain readings and a pass of every listed one.
-
-    A count is replayed as the dispatcher answers it: the two-pass rule, then D43's narrowed pass
-    (`store_conditions_counts.refine`) on a STEP_CONDITION_UNCERTAIN result."""
-    from patterns import store_conditions_counts as scn
+    rule (`execution_store.match_derived`) over a pass of the certain readings and a pass of every listed one."""
     from patterns import trajectory_graph as tg
     steps = (conditions_micros(case.get('conditions')) or {}).get('steps') or {}
     if any('relative' in raw for raw in steps.values()):
@@ -231,8 +227,7 @@ def replay(case, found, inexact=()):
         patient = {'patient_id': pid, 'window': window, 'events': list(events.values())}
         if request is not None and window is not None:
             d = es.derive_patient(request, pid, window, patient['events'], mentions)
-            # D43: the dispatcher decides, where it can, what the two-pass rule leaves STEP_CONDITION_UNCERTAIN.
-            out[pid] = scn.refine(pq, request, d, es.match_derived(pq, request, d))[0]['status']
+            out[pid] = es.match_derived(pq, request, d)['status']
         else:
             out[pid] = tg.match(q, patient)['status']
     return out
