@@ -27,6 +27,12 @@ is loaded by no build, so both stay byte-identical and `--reuse-builds` can reus
   reach, the context and `match`. Where `store_conditions_relative` or `execution_store` has a function this needs with
   a gene branch, the module carries a copy with that branch (their sources are pinned by digest in the tests). Every
   request without the gene profile is `store_conditions_relative`'s own call, unchanged.
+- *The joint profile* (D42), `execution-store-conditions-gene-coded-1.0`: the gene profile plus D39's `exclude_kinds`,
+  answered as the gene request would be on the snapshot without the events of those kinds (`GENE_CODED_RULE`). Gene
+  steps read the reports of the label's kinds, which may not be left out, so they are unchanged; every other step reads
+  kept events only, with D39's coverage rule. `match` calls D39's hooks in `store_conditions_coded` (`derived_inputs`,
+  `refined`, `_comparability`) with `request.exclude`, which is empty for the gene profile, rather than a third copy of
+  `match`.
 """
 from __future__ import annotations
 
@@ -36,6 +42,7 @@ import json
 import os
 
 from . import execution_store as es
+from . import store_conditions_coded as cc
 from . import store_conditions_relative as rc
 from . import synthetic_ingest as si
 from . import trajectory_graph as tg
@@ -43,6 +50,8 @@ from ._resources import ROOT
 
 MODULE_PATH = 'patterns/store_conditions_gene.py'
 GENE_PROFILE = 'execution-store-conditions-gene-1.0'
+GENE_CODED_PROFILE = 'execution-store-conditions-gene-coded-1.0'  # D42: the gene profile with exclude_kinds
+GENE_PROFILES = (GENE_PROFILE, GENE_CODED_PROFILE)
 GENE_SPEC = {'report': 'first_not_negative', 'timed_by': 'recorded_at'}  # the only form accepted now
 GENE_LABEL = 'gene_report_kinds'  # snapshot label: the event kinds whose evidence carries `gene_reports`
 GENE_KINDS = ('genetic_result',)  # the synthetic source's gene reports
@@ -69,15 +78,28 @@ GENE_RULES = {
                 'periods as the snapshot holds them (for the synthetic source, sample times)',
     'relaxations': 'none: a gene step has occurrence any, carries no other condition and no relaxation names it',
 }
+GENE_CODED_RULE = ('gene_exclude_kinds_v1: the request is answered as the same request as profile '
+                   'execution-store-conditions-gene-1.0, without exclude_kinds, would be on the snapshot with every '
+                   'event of an excluded kind removed (exclude_kinds_v1); the kinds the snapshot label '
+                   'gene_report_kinds lists may not be excluded, so gene steps, their findings, undetermined records and '
+                   'recorders are unchanged; every other step reads kept events only and is recorded by the sources '
+                   'holding a kept event of its concepts; a left-out event is not an excluded record; the plan counts '
+                   'each step\'s postings over every event, candidates are refined to kept events')
 # Planted defects for the tests (D38 rules); None in every real run.
 _D38_DEFECT = None
 DEFECTS = ('negative_counted', 'reclassification_ignored', 'sample_time', 'vus_negative', 'mention_bound',
            'undetermined_ignored')
+# Planted defects of the joint profile (D42 rules); None in every real run. `mention_read`: the joint path loads
+# left-out events for the steps that are not gene steps; `coverage_letters`: every step of a joint request recorded by
+# the store's own `source_concepts` over every event, a gene step by its gene concept (so letters record both).
+_D42_DEFECT = None
+D42_DEFECTS = ('mention_read', 'coverage_letters')
 
 
 def is_gene_request(conditions):
-    """Whether a match request's conditions are of the gene profile, which this module alone answers."""
-    return isinstance(conditions, dict) and conditions.get('profile') == GENE_PROFILE
+    """Whether a match request's conditions are of the gene profile or the joint profile (D42), which this module alone
+    answers."""
+    return isinstance(conditions, dict) and conditions.get('profile') in GENE_PROFILES
 
 
 # The converter wrapper.
@@ -175,6 +197,16 @@ def label_kinds(store):
     return kinds
 
 
+def report_kinds(store, request):
+    """`label_kinds`, refused by name when the request leaves one of them out (D42, `GENE_REPORT_KIND_EXCLUDED`): gene
+    steps would then read events the request removed."""
+    kinds = label_kinds(store)
+    clash = sorted(set(kinds) & set(request.exclude))
+    if clash:
+        raise es.StoreError('GENE_REPORT_KIND_EXCLUDED', ', '.join(clash))
+    return kinds
+
+
 def findings_of(rows):
     """{patient_idx: {concept: {'found': {event id: (lo, hi)}, 'undetermined': [(lo, hi)]}}} from rows (patient_idx,
     concept, event id, start_lo, start_hi, kind, evidence object)."""
@@ -261,9 +293,31 @@ class Request(rc.Request):
     """`store_conditions_relative.Request` (profile 1.2) with gene steps (D38). A gene step's entry is exactly
     `{gene: GENE_SPEC}`; its concept becomes the derived tag `derived-step:<step>/own`, whose spec is
     {kind: 'gene', concept: the gene concept, report, timed_by}; `kinds` maps it to ('gene', 'first_not_negative') and
-    `genes` each gene step to its tag. The other entries are compiled exactly as a 1.2 request's."""
+    `genes` each gene step to its tag. The other entries are compiled exactly as a 1.2 request's.
+
+    A joint request (D42, `GENE_CODED_PROFILE`) is the gene request without `exclude_kinds` (validated as D39's), with
+    `exclude` the kinds left out and `profile` and `conditions` its own; it needs a gene step (`GENE_STEP_REQUIRED`).
+    For a gene request `exclude` is empty."""
 
     def __init__(self, query, conditions):
+        if isinstance(conditions, dict) and conditions.get('profile') == GENE_CODED_PROFILE:
+            if not (set(conditions) <= {'profile', 'steps', 'relaxations', 'exclude_kinds'}
+                    and {'steps', 'exclude_kinds'} <= set(conditions)):
+                raise es.StoreError('INVALID_CONDITIONS', 'profile, steps, relaxations and exclude_kinds')
+            kinds = cc.exclude_kinds(conditions['exclude_kinds'])
+            self._compile(query, {**{k: v for k, v in conditions.items() if k != 'exclude_kinds'},
+                                  'profile': GENE_PROFILE})
+            if not self.genes:
+                raise es.StoreError('GENE_STEP_REQUIRED', 'a joint request without a gene step is a 1.3 request')
+            self.profile = GENE_CODED_PROFILE
+            self.conditions = conditions
+            self.exclude = kinds
+            return
+        self._compile(query, conditions)
+        self.exclude = ()
+
+    def _compile(self, query, conditions):
+        """The gene profile's request (D38)."""
         if not (isinstance(conditions, dict) and conditions.get('profile') == GENE_PROFILE
                 and set(conditions) <= {'profile', 'steps', 'relaxations'} and 'steps' in conditions):
             raise es.StoreError('INVALID_CONDITIONS', 'profile, steps and relaxations')
@@ -337,6 +391,10 @@ class Request(rc.Request):
         out['gene_rules'] = GENE_RULES
         return out
 
+    def describe_excluded(self):
+        """The kinds a joint request leaves out, for the match output (D42)."""
+        return {'kinds': list(self.exclude), 'rule': GENE_CODED_RULE}
+
     def without_genes(self):
         """A shallow copy whose `derived_used` leaves out the gene tags, for the derivation of the other tags."""
         view = copy.copy(self)
@@ -404,17 +462,20 @@ def _candidates(store, pq, request, findings=None):
         survivors = set(s['patients']) if survivors is None else survivors & s['patients']
         if not survivors:
             break
-    return {'patient_idx': sorted(survivors or ()),
-            'plan': [{'step': s['step'], 'concepts': s['concepts'], 'patients': len(s['patients'])} for s in plan]}
+    found = {'patient_idx': sorted(survivors or ()),
+             'plan': [{'step': s['step'], 'concepts': s['concepts'], 'patients': len(s['patients'])} for s in plan]}
+    # D42: a joint request's survivors refined to kept events (D39's hook; a gene tag needs nothing more).
+    return cc.refined(store, found, request) if request.exclude else found
 
 
 def candidates(store, query, conditions=None):
-    """`store_conditions_relative.candidates`, for a gene request too; any other request is that module's own call."""
+    """`store_conditions_relative.candidates`, for a gene or joint request too; any other request is that module's own
+    call."""
     if not is_gene_request(conditions):
         return rc.candidates(store, query, conditions)
     request = Request(query, conditions)
     es._require_series(store, request)
-    label_kinds(store)
+    report_kinds(store, request)
     return _candidates(store, tg.PreparedQuery(request.query), request)
 
 
@@ -491,12 +552,11 @@ def _prune(store, pq, live, windows_by_idx, request, slice_size=None, tags=None,
 
 
 def _derived_chunk(store, request, idxs, pids, windows, linked, findings=None):
-    """`store_conditions_relative._derived_chunk`, with the candidates' gene findings (read here when not given)."""
-    tags = request.used
-    events = (es._load_events(store, idxs, request.load, linked, tags) if tags
-              else es._load_events(store, idxs, request.load, linked))
-    mentions = es._mentions(store, idxs)
-    readings = rc._readings(store, idxs, request) if request.relative else {}
+    """`store_conditions_relative._derived_chunk`, with the candidates' gene findings (read here when not given); a
+    joint request's loads drop the left-out events and their series rows (D39's hook, `store_conditions_coded.
+    derived_inputs`; D42). Findings are read apart, from the label's kinds, which are never left out."""
+    kinds = request.exclude if _D42_DEFECT != 'mention_read' else ()
+    events, mentions, readings = cc.derived_inputs(store, request, idxs, linked, kinds)
     if findings is None:
         findings = _gene_findings(store, request, idxs) if request.genes else {}
     return [(idx, derive_patient(request, pid, w, events.get(idx, []), mentions.get(idx, set()), readings.get(idx),
@@ -570,56 +630,21 @@ def _undetermined_reach(store, request, query, touched, decided, windows_by_idx,
             touched[idx] = (admitted, every)
 
 
-def _comparability(store, per_step, nones, windows_by_idx, chunk, tags, recorders):
-    """`execution_store._comparability`, where `recorders` names the sources recording each gene tag
-    (`_gene_sources`) in place of `source_concepts` (D38 review, M1)."""
-    if not nones:
-        return
-    tags = tags or {}
-    concepts = sorted({c for cs in per_step.values() for c in cs if c not in tags and c not in recorders})
-    sources = {}
-    for source, concept in store.query(
-            f'SELECT source, concept FROM source_concepts WHERE concept IN {es._in(concepts)}', concepts) if concepts else ():
-        sources.setdefault(concept, set()).add(source)
-    for name, spec in tags.items():
-        sources[name] = es._tag_sources(store, spec)
-    for name, found in recorders.items():
-        sources[name] = set(found)
-    able = {step: set().union(*(sources.get(c, set()) for c in cs)) for step, cs in per_step.items()}
-    unrecorded = [step for step in per_step if not able[step]]
-    reason = 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE'
-    pairs = [(step, source) for step in per_step for source in sorted(able[step])]
-    clamp = lambda v: max(-es._BIG, min(es._BIG, v))
-    try:
-        es._temp(store, '_m_able', [('step', 'VARCHAR'), ('source', 'VARCHAR')], [p[0] for p in pairs], [p[1] for p in pairs])
-        for k in range(0, len(nones), chunk):
-            part = nones[k:k + chunk]
-            es._temp(store, '_m_none', [('idx', 'INTEGER'), ('ws', 'HUGEINT'), ('we', 'HUGEINT')], part,
-                     [clamp(windows_by_idx[i]['start']) for i in part], [clamp(windows_by_idx[i]['end']) for i in part])
-            covered = dict(store.db.execute("""
-                SELECT n.idx, list(DISTINCT a.step) FROM _m_none n
-                JOIN coverage c ON c.patient_idx = n.idx JOIN _m_able a ON a.source = c.source
-                WHERE c.lo <= n.we AND c.hi >= n.ws GROUP BY n.idx""").fetchall())
-            for idx in part:
-                have = covered.get(idx, ())
-                missing = [step for step in per_step if step not in have]
-                if missing:
-                    yield idx, reason, missing, unrecorded
-    finally:
-        es._drop(store, '_m_able', '_m_none')
-
-
 def match_context(store, query, windows, conditions=None):
     """`store_conditions_relative.match_context`; for a gene request, the derived, relative and gene rules' digests and
-    both modules' code beside the engine's artifacts."""
+    the code of this module, the relative module and the coded module (whose hooks it runs since D42) beside the
+    engine's artifacts; for a joint request, also the joint rule's digest."""
     if not is_gene_request(conditions):
         return rc.match_context(store, query, windows, conditions)
     context, _ = es.match_context(store, query, windows, conditions)
     context['artifacts'] = {**context['artifacts'],
                             rc.MODULE_PATH: hashlib.sha256((ROOT / rc.MODULE_PATH).read_bytes()).hexdigest(),
-                            MODULE_PATH: hashlib.sha256((ROOT / MODULE_PATH).read_bytes()).hexdigest()}
+                            MODULE_PATH: hashlib.sha256((ROOT / MODULE_PATH).read_bytes()).hexdigest(),
+                            cc.MODULE_PATH: hashlib.sha256((ROOT / cc.MODULE_PATH).read_bytes()).hexdigest()}
     context.update(derived_rules=es._digest(es.DERIVED_RULES), relative_rules=es._digest(rc.RELATIVE_RULES),
                    gene_rules=es._digest(GENE_RULES))
+    if conditions.get('profile') == GENE_CODED_PROFILE:
+        context['exclude_rule'] = es._digest(GENE_CODED_RULE)
     return context, es._digest(context)
 
 
@@ -677,7 +702,11 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
     output's `derived_steps` adds `gene_rules` and the context their digest and this module's. Every other request is
     `store_conditions_relative.match`, called as it is, so its answer is byte-identical. The code below is that
     function's for a request with derived steps (a gene request always has one), with this module's request,
-    candidates, pruning, derivation, reach, context and worker units."""
+    candidates, pruning, derivation, reach, context and worker units.
+
+    A joint request (D42) runs the same code with `request.exclude` its kinds: D39's hooks drop the left-out events from
+    the loads, refine the candidates and read coverage from kept events (`GENE_CODED_RULE`); the output adds
+    `excluded_kinds`. For a gene request `exclude` is empty and the hooks are the store's own reads."""
     if not is_gene_request(conditions):
         return rc.match(store, query, windows, detail, chunk, workers, conditions)
     if not (type(workers) is int and workers >= 1):
@@ -687,7 +716,7 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
     request = Request(query, conditions)
     tags = request.used
     es._require_series(store, request)
-    label_kinds(store)
+    report_kinds(store, request)
     pq = tg.PreparedQuery(request.query)
     given, query = query, pq.query
     patients = store.query('SELECT patient_idx, patient_id FROM patients ORDER BY patient_idx')
@@ -731,9 +760,13 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
     filtered_result = lambda idx: {'patient_id': pid_of[idx], 'status': 'none', 'reason': 'FILTERED', 'complete': True}
     nones = sorted(filtered + [idx for idx, r in results.items() if r['status'] == 'none'])
     # D38 review, M1: a gene step is recorded by the sources holding its gene's reports, not by letters mentioning it.
+    # D42: under a joint request the other steps are recorded by the sources of their kept events (D39's hook).
     coverage_steps = {sid: [request.genes[sid]] if sid in request.genes else cs for sid, cs in per_step.items()}
-    for idx, reason, missing, unrecorded in _comparability(store, coverage_steps, nones, windows_by_idx,
-                                                           chunk * es.SET_CHUNK_FACTOR, tags, _gene_sources(store, request)):
+    kinds, recorders = request.exclude, _gene_sources(store, request)
+    if _D42_DEFECT == 'coverage_letters' and request.exclude:
+        coverage_steps, kinds, recorders = per_step, (), None
+    for idx, reason, missing, unrecorded in cc._comparability(store, coverage_steps, nones, windows_by_idx, kinds,
+                                                              chunk * es.SET_CHUNK_FACTOR, tags, recorders):
         results[idx] = {'patient_id': pid_of[idx], 'status': 'not_comparable', 'reason': reason,
                         'uncovered_steps': missing}
         if unrecorded:
@@ -775,6 +808,8 @@ def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers
     if request.tags:
         out['value_conditions'] = request.describe()
     out['derived_steps'] = request.describe_derived()
+    if request.exclude:
+        out['excluded_kinds'] = request.describe_excluded()
     if detail == 'decided':
         out['detail'] = 'decided'
         out['implicit'] = {'FILTERED': implicit_filtered, 'NO_INDEX_WINDOW': windowless}

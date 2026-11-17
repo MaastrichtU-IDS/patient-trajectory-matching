@@ -110,6 +110,12 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       ...withoutNodes({nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges}, new Set(['E']))},
     'the blank template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store', nodes: BLANK.nodes,
       edges: BLANK.edges},
+    // D42: the tree and graph templates under "coded only", gene step included (the joint profile: gene steps as D38,
+    // every other step over coded records as D39).
+    'the tree template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+      nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges},
+    'the graph template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+      nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges},
   };
   // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
   var withFreeText = function (name, fn) {
@@ -124,7 +130,9 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       const pids = [...state.patients.keys()], byId = nodeById(def);
       // D36: rises are translated (the store's relative conditions), as the translator now does by default. D37: only
       // the cases that say so read "coded only" as D32 did. D38: gene steps are translated (the store's gene condition).
-      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true, genes: true, codedOnly: CASES[name].codedOnly});
+      // D42: a gene step under the store's "coded only" is the joint profile, asked for here.
+      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true, genes: true, geneCodedOnly: true,
+                                                                                    codedOnly: CASES[name].codedOnly});
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
       for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
@@ -689,6 +697,60 @@ const EXPECTED = {
     C042: "record-reconciliation: page exact, store possible",
     C047: "record-reconciliation: page exact, store possible",
   },
+  // D42: the tree and graph templates under "coded only", gene step included (the joint profile).
+  "the tree template, coded only": {
+    C002: "coverage: page none, store not_comparable",
+    C003: "coverage: page none, store not_comparable",
+    C005: "coverage: page none, store not_comparable",
+    C006: "coverage: page none, store not_comparable",
+    C008: "coverage: page none, store not_comparable",
+    C010: "coverage: page none, store not_comparable",
+    C018: "coverage: page none, store not_comparable",
+    C019: "coverage: page none, store not_comparable",
+    C020: "coverage: page none, store not_comparable",
+    C025: "coverage: page none, store not_comparable",
+    C026: "coverage: page none, store not_comparable",
+    C028: "coverage: page none, store not_comparable",
+    C030: "coverage: page none, store not_comparable",
+    C031: "coverage: page none, store not_comparable",
+    C033: "coverage: page none, store not_comparable",
+    C034: "coverage: page none, store not_comparable",
+    C035: "coverage: page none, store not_comparable",
+    C036: "record-reconciliation: page exact, store possible",
+    C039: "coverage: page none, store not_comparable",
+    C040: "coverage: page none, store not_comparable",
+    C041: "coverage: page none, store not_comparable",
+    C042: "coverage: page none, store not_comparable",
+    C043: "coverage: page none, store not_comparable",
+    C048: "coverage: page none, store not_comparable",
+  },
+  "the graph template, coded only": {
+    C002: "coverage: page none, store not_comparable",
+    C003: "coverage: page none, store not_comparable",
+    C005: "coverage: page none, store not_comparable",
+    C006: "coverage: page none, store not_comparable",
+    C008: "coverage: page none, store not_comparable",
+    C010: "coverage: page none, store not_comparable",
+    C015: "medication-records: page exact, store possible",
+    C018: "coverage: page none, store not_comparable",
+    C019: "coverage: page none, store not_comparable",
+    C020: "coverage: page none, store not_comparable",
+    C025: "coverage: page none, store not_comparable",
+    C026: "coverage: page none, store not_comparable",
+    C028: "coverage: page none, store not_comparable",
+    C030: "coverage: page none, store not_comparable",
+    C031: "coverage: page none, store not_comparable",
+    C033: "coverage: page none, store not_comparable",
+    C034: "coverage: page none, store not_comparable",
+    C035: "coverage: page none, store not_comparable",
+    C036: "medication-records+record-reconciliation: page exact, store possible",
+    C039: "coverage: page none, store not_comparable",
+    C040: "coverage: page none, store not_comparable",
+    C041: "coverage: page none, store not_comparable",
+    C042: "coverage: page none, store not_comparable",
+    C043: "coverage: page none, store not_comparable",
+    C048: "coverage: page none, store not_comparable",
+  },
 };
 
 
@@ -736,6 +798,12 @@ const REFUSALS = vm.runInContext(`(() => {
     'gene step and rise (graph template), genes refused on request': refusalOf(d('graph'), 'present', {genes: false}),
     'a gene step alone, coded only, genes asked for': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'gene:SCN1A'}], edges: []}, 'off', {genes: true}),
     'a gene step with an occurrence, genes asked for': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'gene:SCN1A', occ: 'first'}], edges: []}, 'present', {genes: true}),
+    // D42: the joint profile (gene steps under the store's coded only) when asked for; the default follows STORE_GENE_CODED_ONLY.
+    'gene step (tree template), coded only in the store, joint asked for (D42)': refusalOf(d('tree'), 'off', {codedOnly: 'store', geneCodedOnly: true}),
+    'gene step and rise (graph template), coded only in the store, joint asked for (D42)': refusalOf(d('graph'), 'off', {codedOnly: 'store', geneCodedOnly: true}),
+    'gene step (tree template), coded only for the count, joint asked for (D42)': refusalOf(d('tree'), 'off', {codedOnly: 'derived', geneCodedOnly: true}),
+    'gene step (tree template), coded only in the store, joint refused on request (D42)': refusalOf(d('tree'), 'off', {codedOnly: 'store', geneCodedOnly: false}),
+    'gene step (tree template), coded only, joint asked for (D42)': refusalOf(d('tree'), 'off', {geneCodedOnly: true}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
@@ -758,7 +826,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   // D39: the store leaves letter mentions out of every step (profile 1.3); a caller may still ask for the refusal.
   'frequency template, coded only in the store (D39)': null,
   'rise (sequence template), coded only in the store (D39)': null,
-  'gene step (tree template), coded only in the store (D39)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',  // D38's refusal stands
+  'gene step (tree template), coded only in the store (D39)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',  // until D42's verdict (STORE_GENE_CODED_ONLY)
   'frequency template, coded only refused on request (D39)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'a threshold that is not a plain decimal': 'VALUE_NOT_A_PLAIN_DECIMAL',
   'gene step (tree template), genes asked for': null,
@@ -767,6 +835,13 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'gene step and rise (graph template), genes refused on request': 'GENE_CLASSIFICATION_UNSUPPORTED',
   'a gene step alone, coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'a gene step with an occurrence, genes asked for': 'OCCURRENCE_ON_GENE_STEP',
+  // D42: under the store's coded only, a gene step is the joint profile when asked for; under D32's reading of coded only,
+  // or without the store's coded only (the page's default, STORE_CODED_ONLY), D38's refusal stands.
+  'gene step (tree template), coded only in the store, joint asked for (D42)': null,
+  'gene step and rise (graph template), coded only in the store, joint asked for (D42)': null,
+  'gene step (tree template), coded only for the count, joint asked for (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'gene step (tree template), coded only in the store, joint refused on request (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'gene step (tree template), coded only, joint asked for (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.
@@ -910,6 +985,9 @@ console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.
 /* D38, no change without the new fields: every parity and sweep request without a gene step gives, on the snapshot
    store_parity.py builds now (the converter wrapper of store_conditions_gene), the same output as on main's build
    (no gene reports), every field equal except the snapshot's and the context's identifiers and the labels' copy. */
+// D42: the parity and sweep requests, written for the differential against main's code (d42_no_change.py) when asked.
+if (process.env.STORE_PARITY_DUMP_CASES)
+  fs.writeFileSync(process.env.STORE_PARITY_DUMP_CASES, JSON.stringify({cohort, cases: [...cases, ...sweepRun]}));
 const changeScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-gene-no-change-'));
 const noChange = (() => {
   try {

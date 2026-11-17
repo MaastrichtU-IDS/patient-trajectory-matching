@@ -84,7 +84,9 @@ function translate(cohortText) {
     const one = (def, freeText) => {
       const before = state.freeText;
       state.freeText = freeText;
-      try { return storeRequest({...defaultDef(), ...def}, freeText, pids, {rises: true, codedOnly: 'store'}); }
+      // D42: the joint profile (gene steps under coded only) is not asked for, so the whole templates keep the refusal
+      // D39 recorded; gene_coded_usefulness.cjs measures them under the joint profile.
+      try { return storeRequest({...defaultDef(), ...def}, freeText, pids, {rises: true, codedOnly: 'store', geneCodedOnly: false}); }
       catch (e) { if (e instanceof StoreRefusal) return {refused: e.code}; throw e; }
       finally { state.freeText = before; }
     };

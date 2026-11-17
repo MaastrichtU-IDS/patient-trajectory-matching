@@ -4620,14 +4620,14 @@
   }
  },
  "artifacts": {
-  "demos/mockups/coded_usefulness.cjs": "d0dbd91e16ed7bedc5503e4e0bd6dd107e43f60e93fe9f6bfd424a216b986054",
+  "demos/mockups/coded_usefulness.cjs": "4658f3a165dbf5b3ad24b8049da622785c8893ba0a3e4952f866e0e5323ef6fa",
   "demos/mockups/store_parity.py": "9cd0604ddd6e294e998cf82613c3f41352a262997b0cae11a18c78d526dea78b",
-  "demos/mockups/trajectory/store_request.js": "e8afcabd57cfe73ff2306d79807da885592094a4356e8bcd361e9a02b73d7b21",
+  "demos/mockups/trajectory/store_request.js": "06085f9aec6447891a8b39cc494ea3fe911c87538e23bd20ba7220f39e8c72b4",
   "demos/mockups/trajectory/app.js": "1d8b97fb7caff993c223648be32efc2d1db2ce3a7013e61dec9929bfad870e44",
   "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
-  "patterns/store_conditions.py": "24cdacd7b8f1cff11347c9165c455e1f971bf4949891f7f660b0893c4e1d395e",
-  "patterns/store_conditions_coded.py": "8c17d338e4fe30fc78dc427d697c2c91654c64be1c04f14d744b750ea9a2429f",
+  "patterns/store_conditions.py": "bacb5aa943d9b706d35d1492ba498ccaccdf59daffd986b867c3a5e4d4aba1f2",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
   "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
   "patterns/execution_store.py": "54de9edc344ce53a1c0e34559544879886253902e28c59fab845145c8e8ec327",
   "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",

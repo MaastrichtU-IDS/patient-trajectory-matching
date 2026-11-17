@@ -83,6 +83,13 @@ def requests(pids):
                   'conditions': {'profile': 'execution-store-conditions-1.3', 'exclude_kinds': ['mention'],
                                  'steps': {'A': {'count': {'at_least': 3, 'within': {'span': 183 * DAY}}}}},
                   'windows': windows},
+        # D42: the gene step under coded only (the joint profile): the first coded seizure, then the SCN1A result.
+        'gene_coded': {'query': q([{'id': 'A', 'concept': 'seizure', 'occurrence': 'first'},
+                                   {'id': 'B', 'concept': 'gene:SCN1A', 'occurrence': 'any'}],
+                                  [{'id': 'edge:0', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 731 * DAY}]),
+                       'conditions': {'profile': 'execution-store-conditions-gene-coded-1.0', 'exclude_kinds': ['mention'],
+                                      'steps': {'B': {'gene': {'report': 'first_not_negative', 'timed_by': 'recorded_at'}}}},
+                       'windows': windows},
     }
 
 
@@ -146,6 +153,7 @@ class TrajectoryStoreTests(unittest.TestCase):
         self.assertIn('execution-store-conditions-1.2', body['conditions_profiles'])
         self.assertIn('execution-store-conditions-gene-1.0', body['conditions_profiles'])
         self.assertIn('execution-store-conditions-1.3', body['conditions_profiles'])
+        self.assertIn('execution-store-conditions-gene-coded-1.0', body['conditions_profiles'])  # D42
         with es.open_store(self.snapshot) as store:  # the converter is deterministic: the same snapshot
             self.assertEqual(body['snapshot_id'], store.snapshot_id)
 
