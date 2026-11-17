@@ -371,7 +371,7 @@ It may also give the relaxation `widen_count` (`{id, kind, step, cost, at_least:
   - pass 1 none and pass 2 none: `none`;
   - pass 1 none and anything else from pass 2: `unresolved` (`STEP_CONDITION_UNCERTAIN`).
 
-  `complete` is false if either pass was, and notes from both are kept. A first, last or Nth on a count step is refused (`OCCURRENCE_ON_DERIVED_STEP`), since it would pick different records in the two passes. Since D43, a request through the dispatcher has its `STEP_CONDITION_UNCERTAIN` results decided where a narrowed pass can ([below](#counts-decided-where-the-two-pass-rule-left-them-undecided-d43)).
+  `complete` is false if either pass was, and notes from both are kept. A first, last or Nth on a count step is refused (`OCCURRENCE_ON_DERIVED_STEP`), since it would pick different records in the two passes. D43 built and checked a sound refinement that decides most `STEP_CONDITION_UNCERTAIN` results (`count_narrowed_v1`: a narrowed pass over the times at which a possibly reached record can reach its count). It did not ship: its latency rule missed as written. The code is kept in history at 6888d1e, and a retry (D43b) is queued (decision log, D43).
 - *Relaxation containment.* `widen_count` is a widening to the tag of the smaller N. Certain at N implies certain at N′, and possible implies possible.
 
 **Candidates, pruning, loading.**
@@ -538,33 +538,6 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 - 420 snapshot requests (18,000 results): 0 mismatches, the same at 2 workers, at `decided` and with pruning off; the store equals itself on the snapshot without mentions.
 - *Usefulness* (`verification/d39-coded-usefulness-report.json`, seeds 1001 to 1030): Sequence, Tree and Graph without their gene step, and Blank, 0 unresolved. Event frequency 23 of 278 candidates unresolved, in 11 of 16 child types, all from D32's count: the bar (30% of types) is missed.
 - *Latency* (`verification/d39-paired-verdict.json`, frozen as historical in D41): requests without 1.3 take main's path; 14-worker paired p95 ratios 1.016, 0.999, 1.012, 1.051 (one pair over 1.05, with identical code on both sides), p95 9.20 s, measured with the benchmark's old drawn search budgets. At the engine's default budget (D41) the current figure is 9.30 s (Matching cost).
-- *Since D43* the Event frequency template's undecided counts are decided through the dispatcher (next section): 0 of 16 child types unresolved (`verification/d43-coded-usefulness-report.json`). The default is still not flipped.
-
-## Counts decided where the two-pass rule left them undecided (D43)
-
-**Status.** Shipped in D43 (every rule met). The rule (`count_narrowed_v1`) is in [`patterns/store_conditions_counts.py`](../patterns/store_conditions_counts.py), which no build loads. [`patterns/store_conditions.py`](../patterns/store_conditions.py) applies it after the routed module answers a request whose conditions give a step a count (profiles 1.1, 1.2, 1.3 and gene). Every other request is the routed module's answer, untouched.
-
-**The rule.** It applies only to a result `unresolved` with `STEP_CONDITION_UNCERTAIN`, when every tried count tag was decided by the exact sweep and no tried tag is a rise or fall.
-- *The narrowed pass.* Each record e that reaches its count in some choice of times but not in every one is replaced, for that tag, by copies over the maximal intervals of Narrow(e): the times in e's tightened range (cut to the window for a period count) at which N − 1 other counted records can lie in the span (or in [window start, t]). A copy keeps e's end range and proper flag, with fresh variables. Certain records keep the tag, as in pass 1. The engine runs once more.
-- *Coupling.* As for an Nth step (D32): a set whose result would be `possible` and that rests on a count step with copies is undecided when another step can bind one of its records.
-- *Combination.* The narrowed pass `none` (both passes complete): `none`. The unrelaxed query found, with at most one copy bound: `possible`. Relaxed by a set S, with at most one copy bound: pass 1's result if pass 1 is relaxed by S, otherwise relaxed by S with certainty `possible`. Otherwise D32's answer stands.
-- *The witness* of a refined `possible` is built in the patient's own times, with the count's records placed in the span of each step bound to a copy and each `first` or `last` step's event ordered as the worlds checker orders it; without one, D32's answer stands (the D43 review's must-fix).
-- *After the rule.* Coverage applies to a refined `none` and D18 to every refined result, as the answering module applies them.
-- *Output.* `derived_steps.count_refinement`: `{rule, refined, skipped_mismatch}` (a patient whose re-derivation differs from the answer is left as it is and counted; never expected). The context binds the module's and the rule's digests. A refined result's `method` is `count_narrowed_v1` where its binding is the narrowed pass's.
-
-**Why it is sound** (decision log, D43). Every world in which e reaches its count has t(e) in Narrow(e), so it maps into the narrowed model: a `none` there is sound. An exact binding with one copy holds at every time in Narrow(e), and a world reaching the count there exists (the sweep is exact), so the query is truly possible. A possible binding lifts when the count step is not coupled. Exactness decomposes, so it is pass 1's to decide.
-
-**Declared difference.** Callers that skip the dispatcher (`execution_store.match`, a module's own `match`: the MIMIC verify differentials and the benchmarks) keep D32's rule. Their answers are less decided, never contradicted.
-
-**Verification**: `patterns/count_narrowing_cases.py` (an independent exact oracle by simple temporal networks; six small-case generators, among them `during-from-count` and `two-counts`; the snapshot reference) and `patterns/test_count_narrowing.py`.
-
-**In short** (decision log, D43):
-- 120,000 small cases: 0 violations; every refined result (6,092) equal to the truth by enumeration, with a witness that describes a world; eight planted defects caught, plus the review's.
-- 450 snapshot requests through the dispatcher (18,800 results; 1.1, 1.2, 1.3, gene): 0 mismatches; 685 of 1,068 `STEP_CONDITION_UNCERTAIN` results refined, 38 of them then weakened by coverage or D18; the same at 2 workers, at `decided` and with pruning off; D39's identity holds.
-- Event frequency under "coded only": 0 of 16 child types unresolved (was 11), 0 of 278 candidates (was 23).
-- A 1.3 Event frequency request on the 300,000 snapshot (14 workers): 32 s with the post-pass against 5 s without; 5,010 results refined, in the parent process (reported, not ruled).
-- *Latency* (`verification/d43-paired-verdict.json`, against D41 at its budget policy): requests without a count pass the hook untouched; 14-worker paired p95 ratios 1.037, 1.015, 0.947, 0.995, p95 9.97 s; byte-identical results.
-- *Follow-up:* run the post-pass in the store's worker pool, which D39's default needs before it can flip.
 
 ## Gene steps under coded only: the joint profile (D42)
 

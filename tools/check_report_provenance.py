@@ -70,19 +70,10 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # for the current tree `verification/d42-paired-verdict.json` supersedes it there too (coordinator's
               # sign-off as delegate).
               'verification/d36-paired-verdict.json', 'verification/d39-paired-verdict.json',
-              # D43 froze one more, signed off by the coordinator as the owner's delegate: D39's coded-only usefulness
-              # report binds `patterns/store_conditions.py` and `demos/mockups/store_parity.py`, into which D43 added its
-              # post-pass. It records D39's decision on the D39 tree (main at 24cd863); for the current tree
-              # `verification/d43-coded-usefulness-report.json` supersedes it. (D39's paired verdict, which binds the
-              # dispatcher too, D41 froze above.) Undone if D43's hook is removed.
-              'verification/d39-coded-usefulness-report.json',
-              # D43, rebased onto D42, froze D42's two reports on the same precedent (for the coordinator's sign-off as
-              # delegate): both bind `patterns/store_conditions.py`, into which D43 added its hook, and the usefulness
-              # report `demos/mockups/store_parity.py` and `coded_usefulness.cjs`, and its differential compares D42's
-              # tree with the main before it. Each records D42's decision on the D42 tree (against main at f99e4f9); for
-              # the current tree `verification/d43-paired-verdict.json` supersedes the verdict, and D43 changes no
-              # answer to a request without a count. Undone if D43's hook is removed.
-              'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json'}
+              # D43 did not ship (its paired verdict missed as written), so its code is not in the tree; its two reports
+              # are kept as frozen records of that decision (coordinator's sign-off as delegate). Both bind
+              # `patterns/store_conditions_counts.py` and the dispatcher with D43's hook, as at the retry base 6888d1e.
+              'verification/d43-paired-verdict.json', 'verification/d43-coded-usefulness-report.json'}
 
 
 def digests(path):

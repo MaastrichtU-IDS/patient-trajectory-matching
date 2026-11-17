@@ -34,8 +34,8 @@ TEN_YEARS = 3653 * DAY
 
 def requests(pids):
     """Requests in the translator's form (`storeRequest`): a plain query with a relaxation, a value condition with its
-    relaxation, an Nth occurrence, a count, a rise with a smaller factor, (D39) the event-frequency shape over coded
-    records only, and (D43) a count step another step can bind; minutes from birth throughout."""
+    relaxation, an Nth occurrence, a count, a rise with a smaller factor, and (D39) the event-frequency shape over coded
+    records only; minutes from birth throughout."""
     windows = {pid: {'start': 0, 'end': TEN_YEARS} for pid in pids}
     windows[pids[-1]] = None  # a patient without an index period
     q = lambda steps, relations=(), relaxations=(), scope='any': {
@@ -90,15 +90,6 @@ def requests(pids):
                        'conditions': {'profile': 'execution-store-conditions-gene-coded-1.0', 'exclude_kinds': ['mention'],
                                       'steps': {'B': {'gene': {'report': 'first_not_negative', 'timed_by': 'recorded_at'}}}},
                        'windows': windows},
-        # D43 decides the event-frequency shape's undecided counts; a count step that another step can bind (coupled)
-        # stays undecided where its result would rest on a possibly reached record.
-        'coupled': {'query': q([{'id': 'A', 'concept': 'seizure', 'occurrence': 'any'},
-                                {'id': 'B', 'concept': 'seizure', 'occurrence': 'any'}],
-                               [{'id': 'edge:0', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 30 * DAY}],
-                               scope='from_start'),
-                    'conditions': {'profile': 'execution-store-conditions-1.3', 'exclude_kinds': ['mention'],
-                                   'steps': {'A': {'count': {'at_least': 3, 'within': {'span': 183 * DAY}}}}},
-                    'windows': windows},
     }
 
 

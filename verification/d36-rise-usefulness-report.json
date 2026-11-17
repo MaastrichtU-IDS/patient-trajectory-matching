@@ -4565,7 +4565,7 @@
  },
  "artifacts": {
   "demos/mockups/rise_usefulness.cjs": "26897efc673d45a267e3ced16353421df715bd68e33a0ae60bb551959fe4e93f",
-  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/store_parity.py": "9cd0604ddd6e294e998cf82613c3f41352a262997b0cae11a18c78d526dea78b",
   "demos/mockups/trajectory/store_request.js": "06085f9aec6447891a8b39cc494ea3fe911c87538e23bd20ba7220f39e8c72b4",
   "demos/mockups/trajectory/app.js": "1d8b97fb7caff993c223648be32efc2d1db2ce3a7013e61dec9929bfad870e44",
   "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
