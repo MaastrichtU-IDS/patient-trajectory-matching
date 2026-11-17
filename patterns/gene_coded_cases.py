@@ -16,7 +16,8 @@ letter mentions of x and y, exposures, shared variables among them a mention nar
 partial coverage, letters alone covering some patients) with gene-report events of G or H (a sample time and a chain of
 one to three reports, classifications from both vocabularies and a missing and an unknown one, recorded at or after the
 sample; D38's `gene_cases.CLASSES`), letter mentions of G, and a genetics source whose coverage is sometimes absent.
-Two generators:
+Since the review, a mention of G sometimes names the start of a genetic result or of a coded point event, and a step
+that is not a gene step is sometimes on G itself. Two generators:
 - `gene-coded-plain`: D39's plain request (one to three steps with any, first and last, relations, relaxations, every
   scope) with a gene step D on G (`gene_cases.add_gene_step`);
 - `gene-coded-derived`: an Nth occurrence or a count (`derived_cases.tiny_request`) beside such steps, with the gene step.
@@ -24,10 +25,12 @@ Two generators:
 **The worlds check** (`check_result`) reads the truth independently: every choice of times of the patient's kept
 events, the gene step's true findings as points, in every reading of each unknown classification as negative and as not
 negative (`gene_cases.check`, D38's reading). A binding naming an event that is not kept (nor a derived point) is a
-violation in itself. An `unresolved` result of a patient with an undetermined gene record is left to the reference
-(`beside_undetermined`, counted in the status mix as `unresolved_beside_undetermined`): the excluded-records rule leaves
-an unresolved result as it is, so the certainty of the match beside it is the engine's over the known records, which the
-record leaves open.
+violation in itself. One carve-out (D42, disclosed; the coordinator's review): for an `unresolved` result of a patient
+with an undetermined gene record (`beside_undetermined`, counted in the status mix as `unresolved_beside_undetermined`),
+every check runs, but the one report that the match beside it "does not reach its certainty" (`CARVED`) is dropped and
+counted (`carved_out`). The excluded-records rule leaves an unresolved result as it is, so the certainty of the match
+beside it is the engine's over the known records, which the record leaves open (D36's follow-up on `execution_store`'s
+rule; the same answer as gene-1.0 on the snapshot without mentions).
 
 **Planted defects** (`DEFECTS`): the D42 rules' four, each a switch of `store_conditions_gene`.
 """
@@ -118,6 +121,14 @@ def tiny_patient(rng, pid):
     coverage = list(p['coverage'])
     if rng.random() < 0.75:
         coverage.append({'source': 'genetics', 'lo': rng.choice((0, 0, 3)), 'hi': 12, 'basis': 'declared'})
+    # The review's additions (D42): a mention of G naming the start of a genetic result or of a coded point event over
+    # part of its range (so it narrows that time while kept).
+    mentions = [e for e in events if e['kind'] == 'mention' and 'G' in e['concepts'] and 'start_var' not in e]
+    targets = [e for e in events if e['kind'] != 'mention' and 'start_var' not in e and 'end' not in e]
+    if mentions and targets and rng.random() < 0.4:
+        m, c = rng.choice(mentions), rng.choice(targets)
+        a = rng.randint(*c['start'])
+        m['start_var'], m['start'] = c['event_id'] + '.s', [a, rng.randint(a, c['start'][1])]
     return {**p, 'events': sorted(events, key=lambda e: e['event_id']),
             'coverage': sorted(coverage, key=lambda c: c['source'])}
 
@@ -146,6 +157,10 @@ def tiny_request(rng, generator):
             query, conditions = dc.tiny_request(rng, rng.choice(dc.FEATURES), rng.random() < 0.5)
             query, conditions = gk.add_gene_step(rng, query, conditions)
         conditions = joint(conditions)
+        if rng.random() < 0.2:  # the review's addition (D42): a step that is not a gene step on the gene G
+            for step in query['steps']:
+                if step['id'] != 'D' and step['concept'] == 'x' and rng.random() < 0.7:
+                    step['concept'] = 'G'
         try:
             gc.Request(query, conditions)
         except es.StoreError:
@@ -171,16 +186,18 @@ def kept_patient(p, window, kinds=KINDS):
     return {'patient_id': p['patient_id'], 'window': window, 'events': events}, reports
 
 
-SKIPPED = 'unresolved_beside_undetermined'  # the status mix's count of results the worlds check leaves to the reference
+ELIGIBLE = 'unresolved_beside_undetermined'  # the status mix's count of results the carve-out may apply to
+CARVED_OUT = 'carved_out'  # ... and of those whose one carved report was dropped
+CARVED = 'the relaxed match beside unresolved does not reach its certainty'  # the worlds check's report it drops
 
 
 def beside_undetermined(result, patient, reports):
     """Whether a result is `unresolved` for a patient with an undetermined record of the gene step's gene G. The
     excluded-records rule (`execution_store.apply_exclusions`, D18) leaves an unresolved result as it is: it already says
     it is incomplete, and the match beside it keeps the certainty the engine gave it over the known records. That
-    certainty (`possible`: no binding is exact) is what the undetermined record leaves open, so the worlds check, which
-    reads the record's true findings, does not judge it; the reference does (as `gene_cases.check` leaves a weakened
-    `possible` to it)."""
+    certainty (`possible`: no binding is exact) is what the undetermined record leaves open, so for such a result the
+    worlds check's report on it (`CARVED`) is dropped; every other check runs, and the reference judges the whole result
+    (as `gene_cases.check` leaves a weakened `possible` to it)."""
     return result['status'] == 'unresolved' and any(
         gr.report_finding(reports[e['id']])[0] == 'undetermined'
         for e in patient['events'] if e['id'] in reports and 'G' in e['concepts'])
@@ -236,12 +253,15 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
                 pid = got['patient_id']
                 if worlds:
                     patient, reports = kept_patient(by_id[pid], windows[pid])
+                    wrong = check_result(got, query, conditions, patient, reports)
                     if beside_undetermined(got, patient, reports):
-                        mix[SKIPPED] += 1
-                    else:
-                        wrong = check_result(got, query, conditions, patient, reports)
-                        if wrong:
-                            violations.append((seed, k, pid, wrong))
+                        mix[ELIGIBLE] += 1
+                        kept = [w for w in wrong if not w.startswith(CARVED)]
+                        if len(kept) < len(wrong):
+                            mix[CARVED_OUT] += 1
+                        wrong = kept
+                    if wrong:
+                        violations.append((seed, k, pid, wrong))
                 if reference and json.dumps(co.unfiltered(got)) != json.dumps(want[i]):
                     mismatches.append((seed, k, pid))
     return violations, mismatches, mix, cases

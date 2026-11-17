@@ -287,6 +287,53 @@ class RequestTests(unittest.TestCase):
                              gc.match_context(self.store, query, windows, conditions))
 
 
+class NoChangeTests(unittest.TestCase):
+    """D42, rule 2, inside the suite: every request without the joint profile is the answer of the module that answered
+    it before, at 1 and 2 workers, and the shared hooks without kinds are the store's own reads. (D38's and D39's
+    boundary tests check the same for their modules; the differential against main's code, `d42_no_change.py`, checks
+    gene-1.0 and 1.3 answers byte for byte against the code before D42.)"""
+
+    def test_every_request_without_the_joint_profile_is_its_previous_modules_answer(self):
+        ingest, store, _ = _STATE['fixture']
+        q = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'm:freq'},
+                                                                 {'id': 'B', 'concept': 'c:febrile', 'occurrence': 'first'}],
+             'relations': [{'id': 'R', 'kind': 'after', 'from': 'B', 'to': 'A', 'min': 0, 'max': 400 * DAY}]}
+        windows = tgs.windows_for(random.Random('d42/boundary'), ingest)
+        before = [(rc, None), (rc, {'profile': es.CONDITIONS_PROFILE, 'steps': {'A': {'unit': '/month', 'ge': '2'}}}),
+                  (rc, {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': {'A': {'count': {'at_least': 2, 'within': 'window'}}}}),
+                  (rc, {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {'A': trc.rel(unit='/month', within=75 * DAY)}}),
+                  (cc, {'profile': cc.CONDITIONS_PROFILE_1_3, 'exclude_kinds': KINDS,
+                        'steps': {'A': {'count': {'at_least': 2, 'within': 'window'}}}})]
+        for previous, conditions in before:
+            for workers in (1, 2):
+                want = json.dumps(previous.match(store, q, windows, conditions=conditions, workers=workers))
+                self.assertEqual(json.dumps(sc.match(store, q, windows, conditions=conditions, workers=workers)), want)
+                if previous is rc:  # the gene module hands every request it does not answer to the relative module
+                    self.assertEqual(json.dumps(gc.match(store, q, windows, conditions=conditions, workers=workers)), want)
+            self.assertEqual(sc.candidates(store, q, conditions), previous.candidates(store, q, conditions))
+
+    def test_the_hooks_without_kinds_are_the_stores_own_reads(self):
+        """`derived_inputs` with no kinds loads what `store_conditions_relative._derived_chunk` loads, and `_comparability`
+        with no kinds and no recorders is `execution_store._comparability`: the gene profile's path is the old one."""
+        ingest, store, _ = _STATE['fixture']
+        ids = dict(store.query('SELECT patient_id, patient_idx FROM patients'))
+        linked = {i for i, in store.query('SELECT patient_idx FROM patients WHERE shared_variables')}
+        idxs = sorted(ids.values())
+        for seed in range(10):
+            query, conditions, windows = case(seed, 'fixture')
+            request = gc.Request(query, gcc.gene_conditions(conditions))
+            tags = request.used
+            events = (es._load_events(store, idxs, request.load, sorted(linked), tags) if tags
+                      else es._load_events(store, idxs, request.load, sorted(linked)))
+            want = (events, es._mentions(store, idxs), rc._readings(store, idxs, request) if request.relative else {})
+            self.assertEqual(cc.derived_inputs(store, request, idxs, sorted(linked), ()), want)
+            by_idx = {ids[p]: w for p, w in windows.items()}
+            nones = sorted(i for i, w in by_idx.items() if w is not None)
+            plain = {sid: cs for sid, cs in request.load.items() if sid not in request.genes}
+            self.assertEqual(list(cc._comparability(store, plain, nones, by_idx, (), tags=tags)),
+                             list(es._comparability(store, plain, nones, by_idx, tags=tags)), seed)
+
+
 def adhoc(root, small=20, first=42_000, defects=1, snapshots=(('fixture', 150), ('shared', 100), ('cohort', 150))):
     """The ruled soundness measurements (decision log, D42, rule 1), after `setUpModule()`: per generator `small`
     snapshots of 1,000 cases from seed `first` (worlds check, reference, pruning off, the store against itself); each
