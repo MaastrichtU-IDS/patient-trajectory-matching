@@ -3267,7 +3267,7 @@ D43b showed that the pooled post-pass works: 27,030 refined results within 1.83 
 D43c starts from D43b's retry base (0253f87) and changes only the cost.
 
 **What it changes** (two changes, each output-identical).
-1. *Strided unit cuts.* The results to refine go to units by striding, not as runs of consecutive results. D43b's chunk independence already allows this, so no answer can change. *(Withdrawn before any measurement; see the amendment below. Rule 4.1 depends on nothing in this change and stands as written.)*
+1. *Strided unit cuts.* The results to refine go to units by striding, not as runs of consecutive results. D43b's chunk independence already allows this, so no answer can change. *(Withdrawn, see amendment. Rule 4.1 depends on nothing in this change and stands as written.)*
 2. *A pruned witness search.* `_witness` tries only:
    - counted records that can lie in the count's span (or period) around the interval of the copy bound to the step;
    - for a `first` or `last` step, events that can be the step's first or last one.
@@ -3330,3 +3330,26 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
   - 1.3 Event frequency: its heaviest patient took 0.001 s, against 0.44 s before.
 - *The small cases.* On 1,500 cases per generator (seeds `dev`), D43c's refined results were byte-identical to 0253f87's. The pruning check found 0 unusable-candidate failures in 600 cases per generator, with 131 candidates dropped; `over_prune` was caught 122 times.
 - *A trial of the tool* at 1,000 patients, 2 workers and 2 repeats, against a28c324 with `--identity-ref 0253f87`, to check it runs: identical answers on all four count requests; its times are not evidence.
+
+**Independent review of the code, and amendments before any measurement** (on 803e766; disclosed). The reviewer's scripts are in `/tmp/d43c-review/`.
+- *Verdict: no must-fix.*
+  - The pruning is sound by proof.
+  - An independent fuzzer judged 183,000 candidates with 0 violations.
+  - Side-by-side runs against the real 0253f87, at `WITNESS_TRIES` 1, 2, 3, 5 and 20,000, gave 52,500 refinements with 0 differences.
+- **S1, fixed: rule 2 at scale was outside the verdict.** The identity run's result was written but not ruled.
+  - *Added to rule 4.1's protocol check:* the identity run against the retry base (`--identity-ref`) is part of the protocol.
+  - The verdict gains a `rule_2` block, and `met` requires it: every count request's digest at 300,000 equal to 0253f87's.
+  - A tool test shows that a differing digest makes the verdict unmet.
+- **S2, fixed: the pruned search's position and cut-off arithmetic was tested only against shared code.**
+  - *Added to rule 2:* the small-case byte identity against 0253f87 also runs with `WITNESS_TRIES` set to 1, 2 and 3 in both trees, on 5,000 cases per generator each (seeds `d43c-ruled-tries-<cut-off>`), beside the default run on 20,000 per generator. At those cut-offs the cut-off binds, so the comparison is not vacuous.
+  - The results are recorded with the verdict.
+- **S3, fixed: the prune check's coverage was thin and partly self-referential.**
+  - `prune_violations` now judges a dropped `first` or `last` candidate by the worlds checker's own target ordering (earliest start, then start range, end range and id; latest start, then latest and earliest start bounds, end range and id), not by the store's `_strict`.
+  - *Added to rule 3:* a direct brute-force test of `_usable` (`count_narrowing_cases.usable_violations`, after the reviewer's `fuzz_usable.py`). It covers random families with ties forced often, shared start variables, exposures and period windows, independent of whether a witness search reaches the pool, judged over every world by the checker's ordering.
+  - It runs on 1,500 families in the suite, and on 20,000 in the ruled run.
+  - It is also a catcher for the over-pruning defects.
+- *Nits, fixed.*
+  - The over-pruning defect is now one per pool kind (`over_prune_count`, `over_prune_first`, `over_prune_last`, in `_usable`), so that order pools are tested even where a count pool comes first. Each must be caught, in the suite and in rule 1.4's run.
+  - "What it changes", item 1, reads "withdrawn, see amendment".
+  - The performance nit (materialising each count pool's combinations) is left as it is: changing it would break byte identity with the retry base.
+- *Disclosed: a smoke test of the low cut-off identity run.* 150 cases per generator at cut-offs 1 and 3 (seeds `smoke-t`), 0 differences.

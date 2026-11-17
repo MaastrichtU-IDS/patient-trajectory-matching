@@ -589,34 +589,95 @@ def refine_case(query, conditions, patient, mentions):
     return v1, v2, how
 
 
+def target_of(family, t, which):
+    """The worlds checker's target of a `first` (`last`) step among `family` (its event dicts) in the world `t`."""
+    if which == 'first':
+        return min(family, key=lambda e: (t[e['sv']], e['s'], e['f'], e['id']))
+    return max(family, key=lambda e: (t[e['sv']], e['s'][1], e['s'][0], e['f'], e['id']))
+
+
+def usable_violations(rng):
+    """One random family of events (ties forced often, shared start variables, exposures), and for it the candidates
+    `store_conditions_counts._usable` marks unusable that some choice of times could use, by brute force over every
+    world: a `first` (`last`) candidate that is the checker's target in some world, and a counted record that lies in a
+    span or the period around another (D43c review, S3; independent of whether a witness search reaches the pool).
+    Returns (judged, dropped, violations)."""
+    events = []
+    for i in range(rng.randint(2, 4)):
+        lo = rng.randint(0, 5)
+        e = {'id': f'e{i}', 'concepts': ['x'], 'start': [lo, lo + rng.choice((0, 0, 1, 2, 3))]}
+        if rng.random() < 0.3:
+            end = rng.randint(lo, e['start'][1] + 2)
+            e['end'] = [end, end + rng.randint(0, 2)]
+            if rng.random() < 0.5:
+                e['proper'] = True
+        if i and rng.random() < 0.15:
+            e['start_var'] = events[rng.randrange(i)].get('start_var', f'v{rng.randrange(i)}')
+            e['start'] = list(events[0]['start'])
+        events.append(e)
+    if rng.random() < 0.4:
+        events[1]['start'] = list(events[0]['start'])
+    patient = {'patient_id': 'P', 'window': {'start': rng.randint(0, 3), 'end': rng.randint(4, 9)}, 'events': events}
+    try:
+        times = tg.patient_times(patient)
+        checker, worlds = tw.worlds(patient, 20)
+    except tg.TrajectoryError:
+        return 0, 0, []
+    family = [e for e in times.events if 'x' in e.concepts]
+    by_id = {e['id']: e for e in checker}
+    judged, dropped, bad = 0, 0, []
+    for which in ('first', 'last'):
+        for cid, ok in scn._usable(times, ('order', 'S', which, family)).items():
+            judged += 1
+            if not ok:
+                dropped += 1
+                if any(target_of(checker, t, which)['id'] == cid for t in worlds):
+                    bad.append((which, cid, patient))
+    window = patient['window']
+    for _ in range(2):
+        e = rng.choice(family)
+        others = [x for x in family if x is not e]
+        within = 'window' if rng.random() < 0.4 else rng.randint(0, 3)
+        for cid, ok in scn._usable(times, ('count', 'S', within, e, others)).items():
+            judged += 1
+            if ok:
+                continue
+            dropped += 1
+            xs, es_ = by_id[cid]['sv'], by_id[e.id]['sv']
+            fits = ((lambda t: window['start'] <= t[xs] <= t[es_] <= window['end']) if within == 'window'
+                    else (lambda t: 0 <= t[es_] - t[xs] <= within))
+            if any(fits(t) for t in worlds):
+                bad.append(('count', within, cid, patient))
+    return judged, dropped, bad
+
+
 def prune_violations(query, conditions, patient, mentions, log):
     """D43c rule 3: the entries of `log` (candidates the witness search dropped, `store_conditions_counts._PRUNE_LOG`)
     that some choice of the engine patient's times could use, by enumeration of every choice (`trajectory_graph_worlds`):
     a counted record whose time lies in the count's span (or period) around the bound record's, or a `first` (`last`)
-    candidate that precedes (follows) every other event of its concept, with the witness search's tie-breaks."""
+    candidate that is its concept's first (last) event, by the worlds checker's own target ordering (earliest start,
+    ties by start range, end range and id; latest start, ties by latest start bound, earliest, end range and id), not
+    by the store's code."""
     if not log:
         return []
     request = es.Request(query, conditions)
     derived = es.derive_patient(request, patient['patient_id'], patient['window'], patient['events'], mentions)
     first = derived.first
-    events = {e.id: e for e in tg.patient_times(first, trusted=True).events}
-    _, worlds = tw.worlds(first, _horizon(query, conditions, patient))
+    checker, worlds = tw.worlds(first, _horizon(query, conditions, patient))
+    events = {e['id']: e for e in checker}
     window = first['window']
     bad = []
     for entry in log:
         if entry['kind'] == 'count':
-            x, e = events[entry['candidate']].sv, events[entry['record']].sv
+            x, e = events[entry['candidate']]['sv'], events[entry['record']]['sv']
             if entry['within'] == 'window':
                 fits = lambda t: window['start'] <= t[x] <= t[e] <= window['end']
             else:
                 fits = lambda t: 0 <= t[e] - t[x] <= entry['within']
         else:
-            pick = events[entry['candidate']]
-            others = [events[i] for i in entry['family'] if i != entry['candidate']]
-            if entry['which'] == 'first':
-                fits = lambda t: all(t[pick.sv] - t[o.sv] <= scn._strict(o, pick, 'first') for o in others)
-            else:
-                fits = lambda t: all(t[o.sv] - t[pick.sv] <= scn._strict(o, pick, 'last') for o in others)
+            family = [events[i] for i in entry['family']]
+            target = lambda t: target_of(family, t, entry['which'])['id']
+            fits = lambda t: target(t) == entry['candidate']
         if any(fits(t) for t in worlds):
             bad.append(entry)
     return bad

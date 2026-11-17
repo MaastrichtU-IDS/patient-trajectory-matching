@@ -78,7 +78,8 @@ COUNT_PROFILES = (es.CONDITIONS_PROFILE_1_1, 'execution-store-conditions-1.2', '
 # Planted defects for the tests (D43 rules); None in every real run. The post-pass passes the parent's to its pool
 # workers with each unit (D43b), so a defect acts at any worker count.
 DEFECTS = ('whole_range', 'coupling_ignored', 'certainty_from_two', 'point_without_end', 'two_copies',
-           'decided_refined', 'no_d18', 'no_coverage', 'any_witness', 'over_prune')
+           'decided_refined', 'no_d18', 'no_coverage', 'any_witness', 'over_prune_count', 'over_prune_first',
+           'over_prune_last')  # D43c: one usable candidate of a count, `first` or `last` pool dropped too many
 # D43b: the results to refine are cut into about POST_PASS_UNITS chunks of at least POST_PASS_MIN_CHUNK results (and at
 # most the request's `chunk`), whatever the worker count: enough units to keep a pool of 14 busy, each large enough to
 # amortise its loads. Any cut gives the same output.
@@ -251,12 +252,6 @@ def _witness(pq, request, derived, binding, back, doc):
                 constraints += [tg.Constraint(('START', None), (s, 's'), 0, tg.INF, 'count'),
                                 tg.Constraint((s, 's'), ('END', None), 0, tg.INF, 'count')]
     usable = [_usable(times, spec) for spec in specs]
-    if _D43_DEFECT == 'over_prune':  # a planted defect: one usable candidate dropped too many
-        for marks in usable:
-            first = next((cid for cid, ok in marks.items() if ok), None)
-            if first is not None:
-                marks[first] = False
-                break
     if _PRUNE_LOG is not None:  # for the soundness check against enumeration (D43c rule 3)
         for spec, marks in zip(specs, usable):
             _PRUNE_LOG.extend(_log_entry(spec, cid) for cid, ok in marks.items() if not ok)
@@ -325,7 +320,7 @@ def _usable(times, spec):
             lo, hi = dom[('anchor', 'START')][0], min(ehi, dom[('anchor', 'END')][1])
         else:
             lo, hi = elo - within, ehi
-        return {x.id: dom[x.sv][1] >= lo and dom[x.sv][0] <= hi for x in others}
+        return _over_pruned(spec, {x.id: dom[x.sv][1] >= lo and dom[x.sv][0] <= hi for x in others})
     _, _, which, family = spec
     out = {}
     for p in family:
@@ -334,7 +329,18 @@ def _usable(times, spec):
             out[p.id] = all(plo - dom[x.sv][1] <= _strict(x, p, 'first') for x in family if x is not p)
         else:
             out[p.id] = all(dom[x.sv][0] - phi <= _strict(x, p, 'last') for x in family if x is not p)
-    return out
+    return _over_pruned(spec, out)
+
+
+def _over_pruned(spec, marks):
+    """The planted defects `over_prune_count`, `over_prune_first` and `over_prune_last` (D43c rules): the first usable
+    candidate of a pool of that kind marked unusable. `marks` itself otherwise."""
+    kind = 'count' if spec[0] == 'count' else spec[2]
+    if _D43_DEFECT == f'over_prune_{kind}':
+        first = next((cid for cid, ok in marks.items() if ok), None)
+        if first is not None:
+            marks = {**marks, first: False}
+    return marks
 
 
 def _log_entry(spec, cid):

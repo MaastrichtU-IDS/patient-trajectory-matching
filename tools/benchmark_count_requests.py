@@ -262,10 +262,12 @@ def statistics_of(records, requests):
     return out
 
 
-def protocol_check(workers, requests, repeats, runs):
-    """D43b review, S2: the run follows the committed protocol, or no verdict is met."""
+def protocol_check(workers, requests, repeats, runs, identity_ref=None):
+    """D43b review, S2: the run follows the committed protocol, or no verdict is met; since D43c (review, S1) the
+    protocol includes the identity run against the retry base (`--identity-ref`)."""
     out = {'ruled_workers_run': RULED_WORKERS in workers, 'every_request_run': sorted(requests) == sorted(REQUESTS),
-           'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'runs_at_least_3': runs >= 3}
+           'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'runs_at_least_3': runs >= 3,
+           'identity_ref_run': bool(identity_ref)}
     out['met'] = all(out.values())
     return out
 
@@ -304,11 +306,12 @@ def answers_check(records, movement_of, requests):
 
 
 def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolute=ABSOLUTE_BAR,
-               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None):
+               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None, identity=None):
     """D43b rules 4.1 and 4.2b at `ruled` workers. 4.1: every count request's ratio at most `ratio_bar` in every pair,
     and the absolute request's candidate p95 over all its runs at most the bar. 4.2b: every request without a count has
     a pooled median ratio (the candidate's median over all its runs, over the reference's) at most `no_count_bar`. No
-    verdict is met unless the protocol was followed (`protocol_check`) and the answers check passed (`answers_check`)."""
+    verdict is met unless the protocol was followed (`protocol_check`), the answers check passed (`answers_check`) and,
+    since D43c (review, S1), rule 2's identity with the retry base held at scale (`identity_check`)."""
     at = stats[str(ruled)]['requests']
     counted = [name for name in requests if name not in NO_COUNT_REQUESTS]
     plain = [name for name in requests if name in NO_COUNT_REQUESTS]
@@ -324,9 +327,11 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
     rule_42b['met'] = all(r['met'] for r in rule_42b['requests'].values())
     protocol = protocol or {'met': False}
     answers = answers or {'met': False}
-    return {'workers': ruled, 'protocol': protocol, 'answers': {'met': answers['met']}, 'rule_4_1': rule_41,
-            'rule_4_2b': rule_42b,
-            'met': protocol['met'] and answers['met'] and rule_41['met'] and rule_42b['met']}
+    rule_2 = {'met': bool(identity) and identity['met'],
+              'requests': {} if not identity else {n: r['identical'] for n, r in identity['requests'].items()}}
+    return {'workers': ruled, 'protocol': protocol, 'answers': {'met': answers['met']}, 'rule_2': rule_2,
+            'rule_4_1': rule_41, 'rule_4_2b': rule_42b,
+            'met': protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and rule_42b['met']}
 
 
 # D43b rule 4.2a: the matcher benchmark's path (requests without counts through `execution_store.match`) loads only
@@ -407,7 +412,14 @@ def identity_with_ref(args, scratch, records, ruled):
     print(f'identity run ({args.identity_ref}) ...', file=sys.stderr, flush=True)
     names = [name for name in args.requests if name not in NO_COUNT_REQUESTS]
     other = run_side(root, argparse.Namespace(**{**vars(args), 'requests': names, 'runs': 1}), ruled)
-    out = {'git_ref': args.identity_ref, 'git_commit': commit, 'workers': ruled, 'requests': {}}
+    return {'git_ref': args.identity_ref, 'git_commit': commit, 'workers': ruled,
+            **identity_check(records, other, names)}
+
+
+def identity_check(records, other, names):
+    """Each count request's candidate digests (one over every run) against the identity run's (`other`, a run's
+    output): {'requests': {name: {'identical', 'tally_at_ref'}}, 'met'}."""
+    out = {'requests': {}}
     for name in names:
         mine = sorted({d for rec in records for d in rec['candidate']['requests'][name]['digests']})
         theirs = other['requests'][name]['digests']
@@ -468,8 +480,9 @@ def paired(args):
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     verdict = verdict_of(stats, args.requests, ruled,
-                         protocol=protocol_check(args.workers, args.requests, args.repeats, args.runs),
-                         answers=identity['check'])
+                         protocol=protocol_check(args.workers, args.requests, args.repeats, args.runs,
+                                                 args.identity_ref),
+                         answers=identity['check'], identity=identity.get('with_identity_ref'))
     verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files'])}
     verdict['met'] = verdict['met'] and structural['met']
     report = {

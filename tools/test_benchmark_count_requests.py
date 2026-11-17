@@ -19,6 +19,7 @@ from tools import benchmark_count_requests as bc  # noqa: E402
 NAMES = list(bc.REQUESTS)
 TALLY = {'refined': 7, 'skipped_mismatch': 0}
 MET = {'met': True}
+SAME = {'met': True, 'requests': {name: {'identical': True} for name in bc.COUNT_REQUESTS}}
 
 
 def run(seconds, side='candidate', tally=TALLY):
@@ -65,7 +66,7 @@ class RequestTests(unittest.TestCase):
 class VerdictTests(unittest.TestCase):
     def verdict(self, recs, **kw):
         return bc.verdict_of(bc.statistics_of(recs, NAMES), NAMES, protocol=kw.get('protocol', MET),
-                             answers=kw.get('answers', MET))
+                             answers=kw.get('answers', MET), identity=kw.get('identity', SAME))
 
     def test_the_bars(self):
         stats = bc.statistics_of(records(1.5), NAMES)
@@ -97,13 +98,34 @@ class VerdictTests(unittest.TestCase):
         self.assertFalse(verdict['met'])
 
     def test_no_verdict_without_the_protocol(self):
-        self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3)['met'])
+        self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, '0253f87')['met'])
+        self.assertFalse(bc.protocol_check([14, 8], NAMES, 4, 3)['met'])  # D43c: the identity run is part of it
         for workers, names, repeats, runs in (([8], NAMES, 4, 3), ([14], NAMES[:2], 4, 3), ([14], NAMES, 3, 3),
                                               ([14], NAMES, 2, 3), ([14], NAMES, 4, 2)):
-            protocol = bc.protocol_check(workers, names, repeats, runs)
+            protocol = bc.protocol_check(workers, names, repeats, runs, '0253f87')
             self.assertFalse(protocol['met'], (workers, names, repeats, runs))
             self.assertFalse(self.verdict(records(1.5), protocol=protocol)['met'])
         self.assertFalse(bc.verdict_of(bc.statistics_of(records(1.5), NAMES), NAMES)['met'])  # neither check given
+
+
+class IdentityTests(unittest.TestCase):
+    """D43c rule 2 at scale (review, S1): a differing identity digest makes the verdict unmet."""
+
+    def test_identical_and_differing_digests(self):
+        recs = records(1.5)
+        other = {'requests': {n: {'digests': ['candidate'], 'tallies': [TALLY]} for n in bc.COUNT_REQUESTS}}
+        same = bc.identity_check(recs, other, bc.COUNT_REQUESTS)
+        self.assertTrue(same['met'])
+        verdict = bc.verdict_of(bc.statistics_of(recs, NAMES), NAMES, protocol=MET, answers=MET, identity=same)
+        self.assertTrue(verdict['met'])
+        other['requests']['1.1 nth and count']['digests'] = ['retry base']
+        differ = bc.identity_check(recs, other, bc.COUNT_REQUESTS)
+        self.assertFalse(differ['met'])
+        self.assertFalse(differ['requests']['1.1 nth and count']['identical'])
+        verdict = bc.verdict_of(bc.statistics_of(recs, NAMES), NAMES, protocol=MET, answers=MET, identity=differ)
+        self.assertFalse(verdict['rule_2']['met'])
+        self.assertFalse(verdict['met'])
+        self.assertFalse(bc.verdict_of(bc.statistics_of(recs, NAMES), NAMES, protocol=MET, answers=MET)['met'])
 
 
 class AnswersTests(unittest.TestCase):

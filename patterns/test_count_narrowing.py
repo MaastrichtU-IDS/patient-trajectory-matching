@@ -136,14 +136,36 @@ class PrunedWitnessTests(unittest.TestCase):
             pruned += tally['pruned candidates']
         self.assertGreater(pruned, 20)
 
+    def test_usable_against_brute_force(self):
+        """`_usable` on random families, ties forced, period windows, shared variables: no candidate it drops is the
+        worlds checker's target, or in a span or the period around the bound record, in any world (D43c review, S3).
+        Each over-pruning defect is caught by this check too."""
+        rng = random.Random('d43c/usable')
+        judged = dropped = 0
+        for _ in range(1500):
+            j, d, bad = cn.usable_violations(rng)
+            self.assertEqual(bad, [])
+            judged, dropped = judged + j, dropped + d
+        self.assertGreater(dropped, 100)
+        for defect in ('over_prune_count', 'over_prune_first', 'over_prune_last'):
+            scn._D43_DEFECT = defect
+            rng = random.Random('d43c/usable')
+            self.assertTrue(any(cn.usable_violations(rng)[2] for _ in range(300)), defect)
+            scn._D43_DEFECT = None
+
     def test_over_pruning_is_caught(self):
-        """The planted defect `over_prune` drops one usable candidate too many: the enumeration check catches it."""
-        caught = 0
-        scn._D43_DEFECT = 'over_prune'
-        for generator in ('span-multi', 'window-multi', 'two-counts'):
-            tally, _ = cn.run_small(generator, range(SMALL), prefix='suite-prune', prune=True)
-            caught += tally['prune']
-        self.assertGreater(caught, 0)
+        """Each planted over-pruning defect (one usable candidate of a count, `first` or `last` pool dropped too many)
+        is caught on small cases by the enumeration check of the dropped candidates."""
+        for defect, generators in (('over_prune_count', ('span-multi', 'window-multi', 'two-counts')),
+                                   ('over_prune_first', ('span-coupled', 'during-from-count', 'two-counts')),
+                                   ('over_prune_last', ('span-coupled', 'during-from-count', 'two-counts'))):
+            caught = 0
+            scn._D43_DEFECT = defect
+            for generator in generators:
+                tally, _ = cn.run_small(generator, range(SMALL), prefix='suite-prune', prune=True)
+                caught += tally['prune']
+            scn._D43_DEFECT = None
+            self.assertGreater(caught, 0, defect)
 
     def unpruned(self):
         return mock.patch.object(scn, '_usable', lambda times, spec: {
