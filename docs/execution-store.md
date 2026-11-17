@@ -542,7 +542,7 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 
 ## Counts decided where the two-pass rule left them undecided (D43)
 
-**Status.** See the decision log, D43, for the verdict. The rule (`count_narrowed_v1`) is in [`patterns/store_conditions_counts.py`](../patterns/store_conditions_counts.py), which no build loads. [`patterns/store_conditions.py`](../patterns/store_conditions.py) applies it after the routed module answers a request whose conditions give a step a count (profiles 1.1, 1.2, 1.3 and gene). Every other request is the routed module's answer, untouched.
+**Status.** Shipped in D43 (every rule met). The rule (`count_narrowed_v1`) is in [`patterns/store_conditions_counts.py`](../patterns/store_conditions_counts.py), which no build loads. [`patterns/store_conditions.py`](../patterns/store_conditions.py) applies it after the routed module answers a request whose conditions give a step a count (profiles 1.1, 1.2, 1.3 and gene). Every other request is the routed module's answer, untouched.
 
 **The rule.** It applies only to a result `unresolved` with `STEP_CONDITION_UNCERTAIN`, when every tried count tag was decided by the exact sweep and no tried tag is a rise or fall.
 - *The narrowed pass.* Each record e that reaches its count in some choice of times but not in every one is replaced, for that tag, by copies over the maximal intervals of Narrow(e): the times in e's tightened range (cut to the window for a period count) at which N − 1 other counted records can lie in the span (or in [window start, t]). A copy keeps e's end range and proper flag, with fresh variables. Certain records keep the tag, as in pass 1. The engine runs once more.
@@ -563,6 +563,8 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 - 450 snapshot requests through the dispatcher (18,800 results; 1.1, 1.2, 1.3, gene): 0 mismatches; 685 of 1,068 `STEP_CONDITION_UNCERTAIN` results refined, 38 of them then weakened by coverage or D18; the same at 2 workers, at `decided` and with pruning off; D39's identity holds.
 - Event frequency under "coded only": 0 of 16 child types unresolved (was 11), 0 of 278 candidates (was 23).
 - A 1.3 Event frequency request on the 300,000 snapshot (14 workers): 32 s with the post-pass against 5 s without; 5,010 results refined, in the parent process (reported, not ruled).
+- *Latency* (`verification/d43-paired-verdict.json`, against D41 at its budget policy): requests without a count pass the hook untouched; 14-worker paired p95 ratios 1.037, 1.015, 0.947, 0.995, p95 9.97 s; byte-identical results.
+- *Follow-up:* run the post-pass in the store's worker pool, which D39's default needs before it can flip.
 
 ## Gene steps under coded only: the joint profile (D42)
 
