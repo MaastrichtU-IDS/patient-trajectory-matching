@@ -8,6 +8,8 @@ answer on unchanged, so the answer to any other request is byte-identical to cal
 
 Routing, by `conditions['profile']`:
 - `execution-store-conditions-gene-1.0`: `store_conditions_gene`;
+- `execution-store-conditions-gene-coded-1.0` (gene steps under coded only, D42): `store_conditions_gene`, which runs
+  D39's hooks from `store_conditions_coded` with the kinds the request leaves out;
 - `execution-store-conditions-1.3` (coded only: letter mentions left out of every step, D39): `store_conditions_coded`;
 - every other request (none, 1.0, 1.1, 1.2): `store_conditions_relative`, which hands all but 1.2 to
   `execution_store`.
@@ -20,11 +22,12 @@ from . import execution_store as es
 
 GENE_PROFILE = 'execution-store-conditions-gene-1.0'
 CODED_PROFILE = 'execution-store-conditions-1.3'  # D39
+GENE_CODED_PROFILE = 'execution-store-conditions-gene-coded-1.0'  # D42
 
 
 def _module(conditions):
     profile = conditions.get('profile') if isinstance(conditions, dict) else None
-    if profile == GENE_PROFILE:
+    if profile in (GENE_PROFILE, GENE_CODED_PROFILE):
         from . import store_conditions_gene as module
         return module
     if profile == CODED_PROFILE:
@@ -37,7 +40,7 @@ def _module(conditions):
 def profiles():
     """Every conditions profile a request through this module may carry."""
     from . import store_conditions_relative as rc
-    return [*rc.CONDITIONS_PROFILES, GENE_PROFILE, CODED_PROFILE]
+    return [*rc.CONDITIONS_PROFILES, GENE_PROFILE, CODED_PROFILE, GENE_CODED_PROFILE]
 
 
 def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers=1, conditions=None):

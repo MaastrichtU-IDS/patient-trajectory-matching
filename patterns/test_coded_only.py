@@ -554,8 +554,9 @@ class ModuleBoundaryTests(unittest.TestCase):
                                           f'of it must follow, then this pin')
 
     def test_no_build_or_store_module_names_it(self):
+        # D42 withdrew `store_conditions_gene.py` from this list: the gene module runs this module's hooks for the joint
+        # profile (gene steps under coded only), by design; no build loads either.
         for path in ('patterns/execution_store.py', 'patterns/synthetic_ingest.py', 'patterns/store_conditions_relative.py',
-                     'patterns/store_conditions_gene.py',
                      'tools/scaling_build_worker.py', 'patterns/build_record.py'):
             self.assertNotIn('store_conditions_coded', (ROOT / path).read_text(encoding='utf-8'), path)
 

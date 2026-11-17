@@ -6,7 +6,8 @@
 - `POST /api/trajectory-store/match`: the page's query as its translator writes it (`trajectory/store_request.js`,
   `storeRequest`): `{"query", "conditions", "windows"}`, every time in whole minutes from each patient's birth. The
   answer is `store_conditions.match`'s (D38, the one entry point), which routes a gene step's request to
-  `store_conditions_gene`, a coded-only request (profile 1.3, D39) to `store_conditions_coded`, and every other to
+  `store_conditions_gene` (under coded only too, the joint profile, D42), a coded-only request (profile 1.3, D39) to
+  `store_conditions_coded`, and every other to
   `store_conditions_relative.match`, which hands every request but a rise's (profile 1.2) to `execution_store.match`
   unchanged, with times turned back into minutes from birth and each bound event described from the store's own rows
   (kind, source, record, recorded times, value); a gene step's point by the genetic result it comes from.

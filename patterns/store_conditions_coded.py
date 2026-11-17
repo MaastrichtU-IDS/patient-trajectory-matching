@@ -29,6 +29,13 @@ excluded-records rule and the worker pools. Left-out events are dropped after lo
 query of the chunk's events of an excluded kind (`_left_out`), and their series rows from the relative readings.
 What is new: `Request` (1.3 over 1.2), `_refine`, `_comparability` (the store's, with the sources restricted to kept
 kinds), `match` (`store_conditions_relative.match` with these hooks), the worker unit and the context.
+
+Shared hooks (D42). The hooks are functions of the kinds a request leaves out, so that the gene module answers the
+joint profile (gene steps under coded only, `execution-store-conditions-gene-coded-1.0`) with its own `match`, not a
+third copy: `exclude_kinds` (validation), `derived_inputs` (a derived chunk's loads; with no kinds, the relative
+module's own), `refined` (the candidate refinement, `_refine` knowing gene tags) and `_comparability` (with no kinds,
+the store's own tables; with `recorders`, a gene tag's sources). The gene module calls them with `request.exclude`,
+empty for the gene profile.
 """
 from __future__ import annotations
 
@@ -60,6 +67,19 @@ def is_coded_request(conditions):
     return isinstance(conditions, dict) and conditions.get('profile') == CONDITIONS_PROFILE_1_3
 
 
+def exclude_kinds(kinds):
+    """A request's `exclude_kinds`, validated, as a tuple: a non-empty list of distinct non-empty strings
+    (`INVALID_EXCLUDE_KINDS`), each a supported kind (`EXCLUDE_KIND_UNSUPPORTED`). Profile 1.3 and the joint gene profile
+    (D42) read it alike."""
+    if not (isinstance(kinds, list) and kinds and all(type(k) is str and k for k in kinds)
+            and len(set(kinds)) == len(kinds)):
+        raise es.StoreError('INVALID_EXCLUDE_KINDS', repr(kinds)[:120])
+    unsupported = sorted(k for k in kinds if k not in SUPPORTED_KINDS)
+    if unsupported:
+        raise es.StoreError('EXCLUDE_KIND_UNSUPPORTED', ', '.join(unsupported))
+    return tuple(kinds)
+
+
 class Request(rc.Request):
     """`store_conditions_relative.Request` for a 1.3 request: the request without `exclude_kinds`, compiled as profile
     1.2, with `exclude` the kinds left out, and `profile` and `conditions` the 1.3 request's own. With no conditioned
@@ -71,13 +91,7 @@ class Request(rc.Request):
                 and set(conditions) <= {'profile', 'steps', 'relaxations', 'exclude_kinds'}
                 and {'steps', 'exclude_kinds'} <= set(conditions)):
             raise es.StoreError('INVALID_CONDITIONS', 'profile, steps, relaxations and exclude_kinds')
-        kinds = conditions['exclude_kinds']
-        if not (isinstance(kinds, list) and kinds and all(type(k) is str and k for k in kinds)
-                and len(set(kinds)) == len(kinds)):
-            raise es.StoreError('INVALID_EXCLUDE_KINDS', repr(kinds)[:120])
-        unsupported = sorted(k for k in kinds if k not in SUPPORTED_KINDS)
-        if unsupported:
-            raise es.StoreError('EXCLUDE_KIND_UNSUPPORTED', ', '.join(unsupported))
+        kinds = exclude_kinds(conditions['exclude_kinds'])
         if not isinstance(conditions['steps'], dict):
             raise es.StoreError('INVALID_CONDITIONS', 'steps')
         inner = {k: v for k, v in conditions.items() if k != 'exclude_kinds'}
@@ -94,7 +108,7 @@ class Request(rc.Request):
             self.used, self.derived_used = {}, {}
         self.profile = CONDITIONS_PROFILE_1_3
         self.conditions = conditions
-        self.exclude = tuple(kinds)
+        self.exclude = kinds
 
     def describe_excluded(self):
         """The kinds left out, for the match output (D39)."""
@@ -140,15 +154,31 @@ def _load_kept(store, idxs, per_step, linked, tags, kinds, derived=False):
     return out, gone
 
 
-def _derived_chunk(store, request, idxs, pids, windows, linked):
-    """`store_conditions_relative._derived_chunk` over kept events: each candidate's `Derived`; a relative condition's
-    readings lose the series rows of left-out events."""
-    events, gone = _load_kept(store, idxs, request.load, linked, request.used, request.exclude, derived=True)
+def derived_inputs(store, request, idxs, linked, kinds):
+    """(events, mentions, readings) of a chunk of a request with derived steps, as `store_conditions_relative.
+    _derived_chunk` loads them (`execution_store._load_events`, `_mentions`, the relative readings), with every event of
+    one of `kinds` dropped (`_load_kept`) and its series rows dropped from the readings. With no kinds, exactly that
+    function's loads. A hook of the kinds a request leaves out, shared by profile 1.3 and the gene module (the gene
+    profile with none, the joint profile with its own; D42)."""
+    if kinds:
+        events, gone = _load_kept(store, idxs, request.load, linked, request.used, kinds, derived=True)
+    else:
+        tags = request.used
+        events = (es._load_events(store, idxs, request.load, linked, tags) if tags
+                  else es._load_events(store, idxs, request.load, linked))
+        gone = {}
     mentions = es._mentions(store, idxs)
     readings = rc._readings(store, idxs, request) if request.relative else {}
     for idx, r in readings.items():
         for eid in gone.get(idx, ()):
             r['rows'].pop(eid, None)
+    return events, mentions, readings
+
+
+def _derived_chunk(store, request, idxs, pids, windows, linked):
+    """`store_conditions_relative._derived_chunk` over kept events: each candidate's `Derived`; a relative condition's
+    readings lose the series rows of left-out events."""
+    events, mentions, readings = derived_inputs(store, request, idxs, linked, request.exclude)
     return [(idx, rc.derive_patient(request, pid, w, events.get(idx, []), mentions.get(idx, set()), readings.get(idx)))
             for idx, pid, w in zip(idxs, pids, windows)]
 
@@ -204,33 +234,43 @@ def _kept_counts(store, survivors, plain, tags, kinds):
 def _refine(store, survivors, request):
     """The survivors holding, for every step, a kept event of one of its engine concepts: a plain concept or value tag
     carried by a kept event; an Nth or count tag, at least N kept events of what it counts; a relative tag, one kept
-    event of its unit tag (`_D39_DEFECT == 'filter_own_concept'` reads each step's own concept only)."""
+    event of its unit tag (`_D39_DEFECT == 'filter_own_concept'` reads each step's own concept only). A gene tag (D42,
+    the joint profile) needs nothing more: the gene module's filter took the patients with a finding, an event of a kind
+    the snapshot declares gene reports, which a request may not leave out."""
     per_step = es._step_concepts(request.query)
     if _D39_DEFECT == 'filter_own_concept':
         per_step = {s['id']: [s['concept']] for s in request.query['steps']}
-    need = {}  # engine concept -> (what is counted, at least)
+    need = {}  # engine concept -> (what is counted, at least), or None where the filter's own test suffices
     for cs in per_step.values():
         for c in cs:
-            if c in request.derived:
+            if c in request.derived and request.derived[c]['kind'] == 'gene':
+                need[c] = None
+            elif c in request.derived:
                 spec = request.derived[c]
                 need[c] = (spec['concept'], spec['n'] if spec['kind'] in ('nth', 'count') else 1)
             else:
                 need[c] = (c, 1)
-    counted = {what for what, _ in need.values()}
+    counted = {n[0] for n in need.values() if n is not None}
     plain = sorted(c for c in counted if c not in request.tags)
     tags = {name: request.tags[name] for name in sorted(counted) if name in request.tags}
     counts = _kept_counts(store, survivors, plain, tags, request.exclude)
     return {idx for idx in survivors
-            if all(any(counts.get((idx, need[c][0]), 0) >= need[c][1] for c in cs) for cs in per_step.values())}
+            if all(any(need[c] is None or counts.get((idx, need[c][0]), 0) >= need[c][1] for c in cs)
+                   for cs in per_step.values())}
 
 
-def _candidates(store, pq, request):
-    """`store_conditions_relative._candidates`, its survivors refined to kept events (`_refine`); the plan as the store
-    gives it (postings over every event)."""
-    found = rc._candidates(store, pq, request)
+def refined(store, found, request):
+    """A candidate filter's answer (`patient_idx`, `plan`) with its survivors refined to kept events (`_refine`); the
+    plan as the filter gives it (postings over every event). A hook shared by profile 1.3 and the joint gene profile
+    (D42)."""
     survivors = found['patient_idx']
     kept = _refine(store, survivors, request)
     return {**found, 'patient_idx': [idx for idx in survivors if idx in kept]}
+
+
+def _candidates(store, pq, request):
+    """`store_conditions_relative._candidates`, its survivors refined to kept events (`refined`)."""
+    return refined(store, rc._candidates(store, pq, request), request)
 
 
 def candidates(store, query, conditions=None):
@@ -297,13 +337,29 @@ def _sources(store, per_step, tags, kinds):
 
 
 def _comparability(store, per_step, nones, windows_by_idx, kinds, chunk=es.CHUNK_PATIENTS * es.SET_CHUNK_FACTOR,
-                   tags=None):
-    """`execution_store._comparability` with each step's recording sources read from kept events only (`_sources`);
-    the rule (COVERAGE_RULE) and the overlap test are the store's, line for line."""
+                   tags=None, recorders=None):
+    """`execution_store._comparability` with each step's recording sources read from kept events only (`_sources`) when
+    kinds are left out, and from the store's own tables (`source_concepts`, `_tag_sources`) when none are; `recorders`
+    names the sources recording each gene tag (`store_conditions_gene._gene_sources`, D38 review M1) in place of
+    either. The one copy for profile 1.3, the gene profile and the joint profile (D42); the rule (COVERAGE_RULE) and
+    the overlap test are the store's, line for line."""
     if not nones:
         return
     tags = tags or {}
-    sources = _sources(store, per_step, tags, kinds)
+    recorders = recorders or {}
+    if kinds:
+        sources = _sources(store, {step: [c for c in cs if c not in recorders] for step, cs in per_step.items()},
+                           tags, kinds)
+    else:
+        concepts = sorted({c for cs in per_step.values() for c in cs if c not in tags and c not in recorders})
+        sources = {}
+        for source, concept in store.query(
+                f'SELECT source, concept FROM source_concepts WHERE concept IN {es._in(concepts)}', concepts) if concepts else ():
+            sources.setdefault(concept, set()).add(source)
+        for name, spec in tags.items():
+            sources[name] = es._tag_sources(store, spec)
+    for name, found in recorders.items():
+        sources[name] = set(found)
     able = {step: set().union(*(sources.get(c, set()) for c in cs)) for step, cs in per_step.items()}
     unrecorded = [step for step in per_step if not able[step]]
     reason = 'NO_SOURCE_RECORDS_CONCEPT' if unrecorded else 'NO_SOURCE_COVERAGE'

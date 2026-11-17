@@ -492,7 +492,7 @@ class RequestTests(unittest.TestCase):
                          {'kind': 'gene', 'concept': 'g:SCN1A', **GENE})
         self.assertEqual(out['derived_steps']['gene_rules'], gc.GENE_RULES)
         self.assertEqual(out['derived_steps']['profile'], gc.GENE_PROFILE)
-        for path in (gc.MODULE_PATH, rc.MODULE_PATH):
+        for path in (gc.MODULE_PATH, rc.MODULE_PATH, 'patterns/store_conditions_coded.py'):  # D42: the hooks' module
             self.assertEqual(out['context']['artifacts'][path], hashlib.sha256((ROOT / path).read_bytes()).hexdigest())
         self.assertEqual(out['context']['gene_rules'], es._digest(gc.GENE_RULES))
         self.assertEqual(out['labels'][gc.GENE_LABEL], 'genetic_result')
@@ -514,6 +514,8 @@ class ModuleBoundaryTests(unittest.TestCase):
         'store_conditions_relative.match_context': '440b9ab9d76c51b58701f3ff9d8f4aac477d09b374cf82657a5342befcdaca93',
         'store_conditions_relative.derive_patient': 'f9cd8cba1b5703139623644846d179b1b37bffe9000d32403014114aefcb1999',
         'execution_store._prune': 'ee5bcab69b7fc71f85c370bfc01600b0fee14652509ef98cddb5e41464b4e67d',
+        # D42: the copy with the gene recorders moved to `store_conditions_coded._comparability`, which this module
+        # calls (pinned there too); the original is unchanged, so the pin is.
         'execution_store._comparability': 'b16a9f9e578f2ae7f9d6f41a496b1134190d209da26c6ec03ec9b0ee8fcac729',
     }
 
@@ -533,7 +535,8 @@ class ModuleBoundaryTests(unittest.TestCase):
         module's, byte for byte; it lists every profile it accepts."""
         ingest, store, _ = _STATE['fixture']
         self.assertEqual(sc.GENE_PROFILE, gc.GENE_PROFILE)
-        self.assertEqual(sc.profiles(), [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE, sc.CODED_PROFILE])  # D39 adds 1.3
+        self.assertEqual(sc.profiles(), [*rc.CONDITIONS_PROFILES, gc.GENE_PROFILE, sc.CODED_PROFILE,  # D39 adds 1.3
+                                         gc.GENE_CODED_PROFILE])  # D42 the joint profile
         for seed in range(3):
             query, conditions, windows = case(seed, 'fixture')
             self.assertEqual(json.dumps(sc.match(store, query, windows, conditions=conditions)),

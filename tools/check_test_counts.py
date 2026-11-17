@@ -84,6 +84,7 @@ LABELS = {
     'test_relative_conditions': 'Execution-store rise and fall (relative condition) tests',
     'test_gene_steps': 'Execution-store gene step tests',
     'test_coded_only': 'Execution-store coded-only (letter mentions left out by request) tests',
+    'test_gene_coded': 'Execution-store gene steps under coded only (joint profile) tests',
 }
 
 
