@@ -42,6 +42,12 @@ alternating across repeats (ABBA), with per-query paired times, each pair's p95 
 reference), the candidate's absolute target check in the same session, and the two codes' per-query digests compared.
 It governs every "keep only if faster" rule from D31 on (docs/execution-store.md, "Matching cost").
 
+Search budgets (D41). Every arm, the confirmation and the paired run's candidate run the queries with the engine's
+default search budget, 40,000 (`budget_policy`, policy `engine-default` of `tools/benchmark_execution_store.py`): the
+generator's draw with only `search_budget` replaced. `--budget-policy drawn-stress` runs the generator's own budgets
+(1, 40, 300), a stress test of stopped searches. The paired run can compare the two policies on the same code
+(`--paired-reference this-tree --paired-reference-policy drawn-stress`); each side states its policy.
+
 The report holds aggregates only. It is evidence for one machine and synthetic data.
 """
 from __future__ import annotations
@@ -96,6 +102,11 @@ ARTIFACTS = ('tools/benchmark_matcher.py', 'tools/benchmark_execution_store.py',
              'patterns/test_execution_store.py',
              'patterns/fixtures/execution_store_match_digests.json')
 RSS_LIMIT_BYTES = 48 * 2**30
+# The search budget policies of `tools/benchmark_execution_store.py` (D41), named here so that the arguments parse
+# without loading the helpers; a test checks that the two lists agree.
+BUDGET_POLICY_NAMES = ('drawn-stress', 'engine-default')
+DEFAULT_BUDGET_POLICY = 'engine-default'
+THIS_TREE = 'this-tree'
 # The store and engine files a code at a git ref is described by; `trajectory_times.py` exists only after D34's split.
 ENGINE_FILES = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py',
                 'patterns/temporal_stn.py')
@@ -104,7 +115,8 @@ LIMITATIONS = (
     'The data are synthetic and replicated beyond 10,000 distinct patients (see the scaling report): candidate sets and '
     'outcomes scale as exact multiples, which a real population would not.',
     'Queries are the scaling benchmark\'s seeded random queries (10 at 100,000 patients and above), not a clinical mix; '
-    'percentiles over 10 queries rest on few samples, and the maximum is the slowest single query.',
+    'percentiles over 10 queries rest on few samples, and the maximum is the slowest single query. Their search budget '
+    'is stated in budget_policy (D41: the engine\'s default, 40,000, unless a run states otherwise).',
     'Arm A is the code of the stated git ref extracted and imported from a scratch directory. It reads execution store '
     '2.0, so it reads its own snapshot of each size, built by its own builder and converter from the same generator '
     'output (`arm_a_snapshot` in each size entry, with a check that both snapshots hold the same rows in every column '
@@ -329,7 +341,7 @@ def worker(args):
             return len(pruner(store, pq, live, windows_by_idx))
         finally:
             es._PRUNE_ENDS = saved
-    inputs, _ = bench.query_inputs(args.queries)
+    inputs, _ = bench.query_inputs(args.queries, args.budget_policy)
     if args.no_prune:
         if not hasattr(es, '_PRUNE'):
             raise RuntimeError(f'{es.__file__} has no time pruning to turn off')
@@ -389,7 +401,7 @@ def worker(args):
                 gc.collect()
             runs.append(rows)
         out = {'runs': runs, 'rss_after_open_bytes': baseline, 'code': es.__file__, 'profile': es.PROFILE,
-               'engine_wrapper': name, 'detail': args.detail}
+               'engine_wrapper': name, 'detail': args.detail, 'budget_policy': args.budget_policy}
         if pool_info:
             pool_info['worker_peak_rss_bytes'] = pool.worker_peak_rss
             pool_info['worker_memory_limit'] = pool.memory_limit
@@ -403,11 +415,13 @@ def worker(args):
     return out
 
 
-def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_limit, budget, workers=1, prune=True):
+def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_limit, budget, workers=1, prune=True,
+               policy=DEFAULT_BUDGET_POLICY):
     out = Path(tempfile.mkdtemp(prefix='matcher-bench-')) / 'out.json'
     command = [sys.executable, str(Path(__file__).resolve()), '--worker', '--code-root', str(code_root), '--snapshot',
                str(snapshot), '--size', str(size), '--queries', str(queries), '--repeats', str(repeats), '--detail', detail,
-               '--memory-limit', memory_limit, '--arm-workers', str(workers), '--worker-output', str(out)]
+               '--memory-limit', memory_limit, '--arm-workers', str(workers), '--worker-output', str(out),
+               '--budget-policy', policy]
     command += [] if prune else ['--no-prune']
     started = time.monotonic()
     child = subprocess.Popen(command, cwd=ROOT, stderr=subprocess.PIPE, text=True, start_new_session=True)
@@ -439,6 +453,8 @@ def run_worker(arm, code_root, snapshot, size, queries, repeats, detail, memory_
         return None, {**record, 'failure': failure}
     result = json.loads(out.read_text())
     shutil.rmtree(out.parent, ignore_errors=True)
+    if result.get('budget_policy') != policy:
+        raise RuntimeError(f'the worker ran budget policy {result.get("budget_policy")!r}, not {policy!r}')
     if result.get('pool'):
         record['peak_rss_bytes'] = result['pool']['parent_peak_rss_bytes']
     return result, record
@@ -542,11 +558,17 @@ def extract_ref(ref, into):
     return commit
 
 
+def helpers():
+    """This tree's benchmark helpers (`tools/benchmark_execution_store.py`), loaded from their file."""
+    spec = importlib.util.spec_from_file_location('bench_env', ROOT / 'tools/benchmark_execution_store.py')
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    return bench
+
+
 def benchmark(args):
     started = time.monotonic()
-    helpers = importlib.util.spec_from_file_location('bench_env', ROOT / 'tools/benchmark_execution_store.py')
-    bench = importlib.util.module_from_spec(helpers)
-    helpers.loader.exec_module(bench)
+    bench = helpers()
     scratch = Path(tempfile.mkdtemp(prefix='matcher-arm-a-'))
     commit = extract_ref(args.arm_a_ref, scratch)
     arm_a = {'description': ARMS['A'], 'git_ref': args.arm_a_ref, 'git_commit': commit, 'code_root': 'extracted from git archive',
@@ -593,7 +615,7 @@ def benchmark(args):
                 continue
             print(f'size {size} arm {arm} ...', file=sys.stderr, flush=True)
             result, record = run_worker(arm, root, target, size, queries, repeats, detail, args.memory_limit,
-                                        args.budget_seconds, workers, prune)
+                                        args.budget_seconds, workers, prune, args.budget_policy)
             if result is None:
                 entry['arms'][arm] = {'status': 'failed', **record}
                 continue
@@ -612,7 +634,7 @@ def benchmark(args):
         entry['target_check_arm_C'] = {arm: target_check(entry, arm) for arm in entry['arms'] if arm.startswith('C_w')}
         sizes.append(entry)
     shutil.rmtree(scratch, ignore_errors=True)
-    return {'profile': PROFILE,
+    return {'profile': PROFILE, 'budget_policy': bench.budget_policy_record(args.budget_policy),
             'parameters': {'sizes': sorted(snapshots), 'queries': args.queries, 'repeats': args.repeats,
                            'large_queries': args.large_queries, 'large_repeats': args.large_repeats,
                            'small_max_size': args.small_max_size, 'threads': 1, 'memory_limit': args.memory_limit,
@@ -648,7 +670,7 @@ def confirm(args):
         repeats = 1 if arm.startswith('B') else args.large_repeats
         print(f'confirm size {size} arm {arm} ...', file=sys.stderr, flush=True)
         result, record = run_worker(arm, ROOT, path, size, args.large_queries, repeats, 'full', args.memory_limit,
-                                    args.budget_seconds, workers, prune)
+                                    args.budget_seconds, workers, prune, args.budget_policy)
         if result is None:
             arms[arm] = {'status': 'failed', **record}
             continue
@@ -668,6 +690,7 @@ def confirm(args):
                            'memory_met': a['query_process']['peak_rss_bytes'] < t['query_process_peak_rss_bytes_below']}
     report['confirmation'] = {
         'size': size, 'queries': args.large_queries, 'repeats': args.large_repeats, 'seeds': f'0..{args.large_queries - 1}',
+        'budget_policy': helpers().budget_policy_record(args.budget_policy),
         'note': 'Arms B and B_unpruned ran once (digests and per-candidate reference); arm C at each count with the '
                 'repeats stated. "all_runs" pools every (query, repeat) measurement; per-query figures elsewhere are medians '
                 'over repeats.',
@@ -774,16 +797,21 @@ def paired_confirm(args):
     entry = next((e for e in report.get('sizes', ()) if e['size'] == size), None)
     if entry is not None and manifest['snapshot_id'] != entry['snapshot_id']:
         raise SystemExit(f'snapshot {manifest["snapshot_id"]} is not the report\'s {entry["snapshot_id"]}')
+    bench = helpers()
+    policies = {'reference': args.paired_reference_policy or args.budget_policy,
+                'candidate': args.paired_candidate_policy or args.budget_policy}
     scratch = Path(tempfile.mkdtemp(prefix='matcher-paired-'))
     try:
         codes = {}
         for side, ref in (('reference', args.paired_reference), ('candidate', args.paired_candidate)):
-            if ref is None:
-                codes[side] = {'root': ROOT, 'git_ref': 'this tree', 'git_commit': None}
+            # D41: each side states the search budgets its queries ran with.
+            policy = {'budget_policy': bench.budget_policy_record(policies[side])}
+            if ref is None or ref == THIS_TREE:
+                codes[side] = {'root': ROOT, 'git_ref': 'this tree', 'git_commit': None, **policy}
                 continue
             root = scratch / side
             commit = extract_ref(ref, root)
-            codes[side] = {'root': root, 'git_ref': ref, 'git_commit': commit,
+            codes[side] = {'root': root, 'git_ref': ref, 'git_commit': commit, **policy,
                            'artifacts_at_ref': [{'path': p, 'sha256': hashlib.sha256((root / p).read_bytes()).hexdigest()}
                                                 for p in ENGINE_FILES if (root / p).is_file()]}
         records, started = [], time.monotonic()
@@ -794,7 +822,7 @@ def paired_confirm(args):
                 for side in order:
                     print(f'paired size {size} repeat {repeat} workers {n} {side} ...', file=sys.stderr, flush=True)
                     result, record = run_worker(side, codes[side]['root'], path, size, args.large_queries, 1, 'full',
-                                                args.memory_limit, args.budget_seconds, n, True)
+                                                args.memory_limit, args.budget_seconds, n, True, policies[side])
                     if result is None:
                         raise SystemExit(f'paired run failed ({side}, {n} workers, repeat {repeat}): {record["failure"]}')
                     rows = [{k: row[k] for k in ('seed', 'match_seconds', 'digest')} for row in result['runs'][0]]
@@ -840,7 +868,15 @@ def main(argv=None):
                         '--large-repeats) to the existing report at --output')
     parser.add_argument('--paired-confirm', action='store_true', help='add a paired, interleaved confirmation (the '
                         'reference code and the candidate on one snapshot, back to back, ABBA) to the report at --output')
-    parser.add_argument('--paired-reference', default='17728fc', help='git ref of the reference code of --paired-confirm')
+    parser.add_argument('--paired-reference', default='17728fc', help='git ref of the reference code of --paired-confirm, '
+                        f'or {THIS_TREE!r} for this tree (to compare budget policies on the same code, D41)')
+    parser.add_argument('--budget-policy', choices=BUDGET_POLICY_NAMES, default=DEFAULT_BUDGET_POLICY,
+                        help='the search budgets of the queries (D41): the engine\'s default, or the generator\'s drawn '
+                             'budgets as a stress test')
+    parser.add_argument('--paired-reference-policy', choices=BUDGET_POLICY_NAMES,
+                        help='budget policy of the paired reference (default: --budget-policy)')
+    parser.add_argument('--paired-candidate-policy', choices=BUDGET_POLICY_NAMES,
+                        help='budget policy of the paired candidate (default: --budget-policy)')
     parser.add_argument('--paired-candidate', help='git ref of the candidate code of --paired-confirm (default: this tree)')
     parser.add_argument('--paired-workers', nargs='+', type=int, default=[14, 8], help='worker counts of --paired-confirm')
     parser.add_argument('--paired-repeats', type=int, default=4, help='repeats of --paired-confirm (even: balanced ABBA)')

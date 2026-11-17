@@ -57,7 +57,14 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # verdict binds `patterns/store_conditions.py`, the one entry point, into which D39 added its route
               # (profile 1.3), as D38 had provided. It records D38's decision on the D38 tree (against main at
               # e682817); for the current tree `verification/d39-paired-verdict.json` supersedes it.
-              'verification/d38-paired-verdict.json'}
+              'verification/d38-paired-verdict.json',
+              # D41 froze a fifth and a sixth, on the same precedent, for the coordinator's sign-off: D36's and D39's
+              # paired latency verdicts bind `tools/benchmark_execution_store.py` and `tools/benchmark_matcher.py`, whose
+              # queries D41 moved to the engine's default search budget. Each records its decision, measured with the
+              # generator's drawn budgets (1, 40, 300) on its own tree (D36 against main at 81e812c, D39 against main
+              # at 24cd863); for the current tree the matcher report's confirmation and
+              # paired run, at realistic budgets, supersede them.
+              'verification/d36-paired-verdict.json', 'verification/d39-paired-verdict.json'}
 
 
 def digests(path):

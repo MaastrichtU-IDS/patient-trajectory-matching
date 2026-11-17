@@ -103,6 +103,18 @@ class ReportTests(unittest.TestCase):
                       '--large-queries', '3', '--paired-repeats', '2', '--paired-workers', '2', '1',
                       '--output', str(cls.output)])
         cls.paired = json.loads(cls.output.read_text())['paired_confirmation']
+        # D41: the confirmation states its budget policy, and the paired run can compare two policies on one code.
+        cls.confirmed_output = tmp / 'confirmed.json'
+        shutil.copy(cls.output, cls.confirmed_output)
+        matcher.main(['--confirm', '--snapshots', f'96={cls.snapshot}', '--large-queries', '2', '--large-repeats', '1',
+                      '--workers', '1', '--output', str(cls.confirmed_output)])
+        cls.confirmation = json.loads(cls.confirmed_output.read_text())['confirmation']
+        cls.policy_output = tmp / 'policies.json'
+        cls.policy_output.write_text('{}')
+        matcher.main(['--paired-confirm', '--snapshots', f'96={cls.snapshot}', '--paired-reference', matcher.THIS_TREE,
+                      '--paired-reference-policy', 'drawn-stress', '--large-queries', '3', '--paired-repeats', '2',
+                      '--paired-workers', '1', '--output', str(cls.policy_output)])
+        cls.policies = json.loads(cls.policy_output.read_text())['paired_confirmation']
 
     @classmethod
     def tearDownClass(cls):
@@ -122,6 +134,24 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(p['byte_identity']['identical'], 3)
         self.assertNotIn('per_query_digests', p['byte_identity'])
         self.assertEqual(self.report['sizes'], json.loads(self.output.read_text())['sizes'])  # the rest is kept
+
+    def test_every_run_states_its_budget_policy(self):
+        """D41: the arms, the confirmation and each side of a paired run name the search budgets they ran with."""
+        self.assertEqual(self.report['budget_policy'], bench.budget_policy_record('engine-default'))
+        self.assertEqual(self.confirmation['budget_policy']['name'], 'engine-default')
+        self.assertEqual(self.confirmation['byte_identity_C_against_B']['C_w1']['identical'], 2)
+        self.assertEqual(self.paired['reference']['budget_policy']['name'], 'engine-default')
+        self.assertEqual(self.paired['candidate']['budget_policy']['name'], 'engine-default')
+        p = self.policies
+        self.assertEqual((p['reference']['git_ref'], p['candidate']['git_ref']), ('this tree', 'this tree'))
+        self.assertEqual(p['reference']['budget_policy'], bench.budget_policy_record('drawn-stress'))
+        self.assertEqual(p['candidate']['budget_policy'], bench.budget_policy_record('engine-default'))
+        self.assertTrue(p['byte_identity']['each_code_stable_across_its_runs']['reference'])
+        self.assertEqual(p['byte_identity']['compared'], 3)
+
+    def test_the_budget_policies_are_the_helpers(self):
+        self.assertEqual(matcher.BUDGET_POLICY_NAMES, tuple(sorted(bench.BUDGET_POLICIES)))
+        self.assertEqual(matcher.DEFAULT_BUDGET_POLICY, bench.BUDGET_POLICY)
 
     def test_each_arm_reports_cost_latency_and_memory_and_later_arms_are_placeholders(self):
         entry = self.report['sizes'][0]

@@ -32,6 +32,12 @@ has its identifier (`reuse_plan` refuses by name otherwise). Each reused size sa
 earlier run's build figures and snapshot identifier; `build_origin` names the report that first built them (its path,
 digest, commit, time and machine) and the report reused directly, through any chain of reuses.
 
+Search budgets (D41). Every query is the generator's draw with its `search_budget` replaced by the engine's default,
+40,000, which is what every shipped client sends (`budget_policy` in the report, policy `engine-default`). The generator
+draws the budget last, from 1, 40 and 300, so the replacement changes nothing else in the query. The drawn budgets are
+kept as a stress test of stopped searches: up to `--stress-max-size` patients each size also runs the queries once with
+them (`stress_drawn_budgets`, policy `drawn-stress`), reported apart and never in the headline figures.
+
 The report holds aggregates only. It is evidence for one machine and synthetic data.
 """
 from __future__ import annotations
@@ -104,7 +110,9 @@ LIMITATIONS = (
     'Beyond the distinct pool the cohort is replicated: copies repeat the pool patients with a whole-day time shift and add '
     'no variety. Concept posting sizes, candidate sets and match outcomes therefore scale as exact multiples, which a real '
     'population would not.',
-    'Queries are 50 seeded random queries from the differential test\'s generator, not a clinical query mix.',
+    'Queries are 50 seeded random queries from the differential test\'s generator, not a clinical query mix. Their '
+    'search budget is the engine\'s default, 40,000 (budget_policy, D41); the generator\'s own budgets (1, 40, 300) '
+    'appear only in the stress stratum (stress_drawn_budgets), which is a stress test of stopped searches.',
     'Latencies are wall-clock times of one thread of Python and DuckDB with the thread setting stated; no tuning was attempted.',
     'Above the profile size, the query phase runs fewer queries and repeats (see parameters), so its latency percentiles '
     'rest on fewer samples.',
@@ -132,8 +140,45 @@ def patient_ref(pid):
 
 # The query set.
 
-def query_inputs(seeds):
-    """[(seed, query)] over the first cohort, and that cohort's ingest. The same for every size."""
+# Search budgets (D41). `random_query` draws `search_budget` from 1, 40 and 300 as the last draw of each seed's own
+# stream, so replacing it after the draw leaves every other field of the query as drawn. A budget of 1 stops any
+# search of two or more steps at its second step, so a third of the drawn queries measured the budget, not the engine
+# (D40's calibration). Every shipped client sends the engine's default.
+ENGINE_DEFAULT_SEARCH_BUDGET = 40_000
+BUDGET_POLICIES = {
+    'engine-default': {
+        'search_budget': ENGINE_DEFAULT_SEARCH_BUDGET,
+        'description': "every query's search_budget is 40,000: the engine's default when the field is absent and what "
+                       'every shipped client sends (the trajectory page, the store query page, the request examples). '
+                       "The query is random_query's draw with only search_budget replaced (D41)."},
+    'drawn-stress': {
+        'search_budget': 'drawn by random_query from 1, 40 and 300',
+        'description': "random_query's draw unchanged. A STRESS TEST of stopped searches, not a realistic query mix: a "
+                       'budget of 1 stops any search of two or more steps at its second step, so its unresolved and '
+                       'incomplete results measure the budget, not the engine (D40, D41). Reported apart from the '
+                       'headline figures.'},
+}
+BUDGET_POLICY = 'engine-default'
+STRESS_POLICY = 'drawn-stress'
+
+
+def with_budget(query, policy):
+    """The query under a budget policy (D41): only `search_budget` may change."""
+    if policy not in BUDGET_POLICIES:
+        raise ValueError(f'unknown budget policy {policy!r}')
+    if policy == STRESS_POLICY:
+        return query
+    return {**query, 'search_budget': BUDGET_POLICIES[policy]['search_budget']}
+
+
+def budget_policy_record(policy):
+    """What a report states about the search budgets of its queries."""
+    return {'name': policy, **BUDGET_POLICIES[policy]}
+
+
+def query_inputs(seeds, policy=BUDGET_POLICY):
+    """[(seed, query)] over the first cohort, and that cohort's ingest. The same for every size. `policy` sets the
+    queries' search budget (D41); nothing else of a query depends on it."""
     from patterns.test_execution_store import random_query
     ingest = pool_ingest(PER_COHORT)[0]
     ancestors = ingest['closure']['ancestors']
@@ -142,7 +187,7 @@ def query_inputs(seeds):
         for concept in {a for e in p['events'] for c in e['concepts'] for a in (c, *ancestors[c])}:
             holders[concept] = holders.get(concept, 0) + 1
     pool = sorted(c for c, n in holders.items() if n >= 2)
-    return [(s, random_query(random.Random(s), pool, ingest)) for s in range(seeds)], ingest
+    return [(s, with_budget(random_query(random.Random(s), pool, ingest), policy)) for s in range(seeds)], ingest
 
 
 def pool_windows(seed, bounds):
@@ -175,9 +220,9 @@ def timed(function, *args):
     return value, time.perf_counter() - started
 
 
-def query_worker(snapshot, size, queries, repeats, threads, memory_limit, exhaustive):
+def query_worker(snapshot, size, queries, repeats, threads, memory_limit, exhaustive, policy=BUDGET_POLICY):
     from patterns import execution_store as es
-    inputs, _ = query_inputs(queries)
+    inputs, _ = query_inputs(queries, policy)
     opened = []
     for _ in range(2):  # the second open is warm; the first reads the files cold
         store, seconds = timed(es.open_store, snapshot, threads, 'files', memory_limit)
@@ -211,7 +256,8 @@ def query_worker(snapshot, size, queries, repeats, threads, memory_limit, exhaus
         check = exhaustive_check(store, size, first, exhaustive)
     store.close()
     return {'open_verify_seconds_cold': opened[0], 'open_verify_seconds_warm': opened[1], 'open_verify_level': 'files',
-            'runs': runs, 'exhaustive_check': check}
+            'runs': runs, 'exhaustive_check': check, 'budget_policy': policy,
+            'search_budgets': {seed: query.get('search_budget') for seed, query in inputs}}
 
 
 def exhaustive_check(store, size, first, count):
@@ -349,8 +395,32 @@ def query_statistics(result, patients):
             'incomplete_none_by_note': dict(sorted(incomplete.items())),
             'candidates_seconds_per_repeat_p50': [pct([r['candidates_seconds'] for r in run], .5) for run in runs],
             'match_seconds_per_repeat_p50': [pct([r['match_seconds'] for r in run], .5) for run in runs],
+            # D41: each query's counts too, so that a moved status mix can be traced to its queries.
             'per_query': [{'seed': q['seed'], 'candidates': q['candidates'], 'candidates_seconds': q['candidates_seconds'],
-                           'match_seconds': q['match_seconds']} for q in per_query]}
+                           'match_seconds': q['match_seconds'], 'counts': q['counts'],
+                           'incomplete_none': q['incomplete_none']} for q in per_query]}
+
+
+def stress_statistics(result):
+    """The stress stratum (D41): the queries once with the generator's drawn budgets, counted apart."""
+    (rows,) = result['runs']
+    mix, incomplete = {}, {}
+    for row in rows:
+        for status, n in row['counts'].items():
+            mix[status] = mix.get(status, 0) + n
+        for note, n in row.get('incomplete_none', {}).items():
+            incomplete[note] = incomplete.get(note, 0) + n
+    budgets = {int(k): v for k, v in result['search_budgets'].items()}
+    return {'label': 'STRESS TEST: not a realistic query mix (D40, D41)',
+            'budget_policy': budget_policy_record(result['budget_policy']),
+            'queries': len(rows), 'repeats': 1,
+            'queries_by_search_budget': {str(b): sum(1 for v in budgets.values() if v == b)
+                                         for b in sorted(set(budgets.values()))},
+            'status_mix': dict(sorted(mix.items())),
+            'incomplete_none_by_note': dict(sorted(incomplete.items())),
+            'per_query': [{'seed': row['seed'], 'search_budget': budgets[row['seed']], 'candidates': row['candidates'],
+                           'match_seconds': row['match_seconds'], 'counts': row['counts'],
+                           'incomplete_none': row.get('incomplete_none', {})} for row in rows]}
 
 
 class ReuseRefused(ValueError):
@@ -507,6 +577,14 @@ def _query_size(size, args, scratch, entry, built, started, keep):
         entry['queries'] = query_statistics(queried, built['patients'])
         if queried['exhaustive_check']:
             entry['exhaustive_check'] = queried['exhaustive_check']
+        if size <= args.stress_max_size:  # D41: the drawn budgets, once, as a labelled stress test
+            stressed, rec = run_phase('query', ['--size', str(size), '--snapshot', built['snapshot_path'],
+                                                '--queries', str(queries), '--repeats', '1', '--threads', str(args.threads),
+                                                '--memory-limit', args.memory_limit, '--exhaustive', '0',
+                                                '--budget-policy', STRESS_POLICY],
+                                      scratch / 'stress.json', args.budget_seconds, RSS_LIMIT_BYTES)
+            entry['stress_drawn_budgets'] = (stress_statistics(stressed) if stressed is not None
+                                             else {'label': 'STRESS TEST', 'failure': rec['failure']})
     if queried is not None:
         profile = {}
         workers = [('verify_stages', 'verify')] + ([('match_cprofile', 'cprofile')] if small else [])
@@ -598,7 +676,8 @@ def benchmark(args):
                   'large_repeats': args.large_repeats,
                   'budget_seconds_per_size': args.budget_seconds, 'rss_limit_bytes': RSS_LIMIT_BYTES,
                   'threads': args.threads, 'memory_limit': args.memory_limit, 'staging': args.staging,
-                  'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT}
+                  'distinct_pool_cap': DISTINCT_CAP, 'patients_per_cohort': PER_COHORT,
+                  'stress_max_size': args.stress_max_size}
     env = environment(args.threads, args.memory_limit)
     generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
     commit = git_state()
@@ -645,7 +724,12 @@ def benchmark(args):
                 'streaming': 'the distinct pool is written to an ndjson file one seed at a time and read back a line at a '
                              'time, replicated as it is read, into StoreBuilder.add',
                 'queries': 'seeded random_query / random_windows from patterns/test_execution_store.py, anchored on the '
-                           'first cohort, identical for every size; windows follow the pool patient and its shift'},
+                           'first cohort, identical for every size; windows follow the pool patient and its shift; '
+                           'search budgets by budget_policy (D41)'},
+            'budget_policy': budget_policy_record(BUDGET_POLICY),
+            'stress_policy': {**budget_policy_record(STRESS_POLICY),
+                              'sizes': [s for s in args.sizes if s <= args.stress_max_size],
+                              'where': 'stress_drawn_budgets in each of those sizes'},
             'sizes': entries,
             'artifacts': {p: digest(p) for p in ARTIFACTS},
             'build_provenance': provenance,
@@ -680,6 +764,10 @@ def main(argv=None):
                              '--large-queries and --large-repeats')
     parser.add_argument('--large-queries', type=int, default=10)
     parser.add_argument('--large-repeats', type=int, default=1)
+    parser.add_argument('--stress-max-size', type=int, default=10000,
+                        help='sizes up to this also run the queries once with the generator\'s drawn search budgets, '
+                             'reported apart as a stress test (D41); 0 for none')
+    parser.add_argument('--budget-policy', choices=sorted(BUDGET_POLICIES), default=BUDGET_POLICY, help=argparse.SUPPRESS)
     parser.add_argument('--worker', choices=('query', 'verify', 'cprofile'), help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--size', type=int, help=argparse.SUPPRESS)
@@ -693,7 +781,7 @@ def main(argv=None):
             result = cprofile_worker(args.snapshot, args.size, args.threads)
         else:
             result = query_worker(args.snapshot, args.size, args.queries, args.repeats, args.threads, args.memory_limit,
-                                  args.exhaustive)
+                                  args.exhaustive, args.budget_policy)
         args.worker_output.write_text(json.dumps(result))
         return 0
     if min(args.sizes) < PER_COHORT:

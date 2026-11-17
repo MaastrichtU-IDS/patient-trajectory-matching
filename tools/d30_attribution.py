@@ -63,6 +63,9 @@ ARTIFACTS = ('tools/d30_attribution.py', 'tools/benchmark_matcher.py', 'tools/be
              'patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/synthetic_ingest.py')
 STAGES = ('last order', 'order rule', 'mention timing', 'envelope search')
 STAGES_TIMING_FIRST = ('last order', 'mention timing', 'order rule', 'envelope search')
+# D41 moved the benchmark's queries to the engine's default search budget. This tool's record (frozen since D32) was
+# made with the generator's drawn budgets, so it keeps them.
+DRAWN_BUDGETS = 'drawn-stress'
 
 
 def load(name, path):
@@ -94,7 +97,7 @@ def digests(matcher, snapshot, size, queries, memory_limit, order_rule, last_key
     from patterns import trajectory_graph as tg
     args = types.SimpleNamespace(code_root=str(ROOT), snapshot=str(snapshot), size=size, queries=queries, repeats=1,
                                  detail='full', memory_limit=memory_limit, arm_workers=1, no_prune=False,
-                                 no_prune_ends=False)
+                                 no_prune_ends=False, budget_policy=DRAWN_BUDGETS)
     saved = si.iter_patients, si.synthetic_provenance
     if letter:
         si.iter_patients = functools.partial(saved[0], mention_time='letter')
@@ -136,7 +139,7 @@ def envelope_pair(matcher, snapshot, size, queries, memory_limit):
     `benchmark_matcher.worker` draws them, and digested by its `result_digest`."""
     from patterns import trajectory_graph as tg
     bench, es = matcher.import_arm(str(ROOT))
-    inputs, _ = bench.query_inputs(queries)
+    inputs, _ = bench.query_inputs(queries, DRAWN_BUDGETS)
     store = es.open_store(str(snapshot), 1, 'files', memory_limit)
     off, on, moved, moved_store = {}, {}, {}, {}
     inner = tg.match_prepared
