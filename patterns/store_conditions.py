@@ -15,6 +15,11 @@ Routing, by `conditions['profile']`:
   `execution_store`.
 
 Each module is imported when a request needs it.
+
+After routing, one hook (D43): a request whose conditions give a step a count gets the routed module's answer through
+`store_conditions_counts.post_pass`, which decides, where `count_narrowed_v1` can, the results D32's two-pass rule
+leaves `unresolved` with STEP_CONDITION_UNCERTAIN, and binds the rule in the context (`match_context` likewise). Every
+other request is the routed module's answer, untouched. Callers that skip this module keep D32's rule.
 """
 from __future__ import annotations
 
@@ -43,9 +48,17 @@ def profiles():
     return [*rc.CONDITIONS_PROFILES, GENE_PROFILE, CODED_PROFILE, GENE_CODED_PROFILE]
 
 
+def _counts(conditions):
+    """D43's post-pass module when the request gives a step a count, else None."""
+    from . import store_conditions_counts as counts
+    return counts if counts.has_counts(conditions) else None
+
+
 def match(store, query, windows, detail='full', chunk=es.CHUNK_PATIENTS, workers=1, conditions=None):
-    """The store's answer to a match request, by the module its profile names."""
-    return _module(conditions).match(store, query, windows, detail, chunk, workers, conditions)
+    """The store's answer to a match request, by the module its profile names (with D43's post-pass for counts)."""
+    out = _module(conditions).match(store, query, windows, detail, chunk, workers, conditions)
+    counts = _counts(conditions)  # D43
+    return out if counts is None else counts.post_pass(store, query, windows, chunk, conditions, out)
 
 
 def candidates(store, query, conditions=None):
@@ -54,5 +67,7 @@ def candidates(store, query, conditions=None):
 
 
 def match_context(store, query, windows, conditions=None):
-    """What a result depends on, and its digest, by the module the request's profile names."""
-    return _module(conditions).match_context(store, query, windows, conditions)
+    """What a result depends on, and its digest, by the module the request's profile names (D43: and the count rule)."""
+    context = _module(conditions).match_context(store, query, windows, conditions)
+    counts = _counts(conditions)  # D43
+    return context if counts is None else counts.bind_context(context[0])

@@ -85,6 +85,7 @@ LABELS = {
     'test_gene_steps': 'Execution-store gene step tests',
     'test_coded_only': 'Execution-store coded-only (letter mentions left out by request) tests',
     'test_gene_coded': 'Execution-store gene steps under coded only (joint profile) tests',
+    'test_count_narrowing': 'Execution-store counts decided by the narrowed pass (D43) tests',
 }
 
 
