@@ -81,10 +81,10 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               'verification/d43b-count-latency-verdict.json', 'verification/d43b-coded-usefulness-report.json',
               # D43c, the second retry, puts the hook back into `patterns/store_conditions.py` (and the post-pass into
               # `demos/mockups/store_parity.py`'s replay and `coded_usefulness.cjs`'s bindings), so it freezes the three
-              # reports D43 and D43b froze while the hook was in the tree, on their precedent (for the coordinator's
-              # sign-off as delegate): D39's coded-only usefulness report (D39's decision on the D39 tree, main at
-              # 24cd863), and D42's paired verdict and joint usefulness report (D42's decision on the D42 tree, against
-              # main at f99e4f9). D43c's own reports supersede them for the current tree. Undone if the hook is removed.
+              # reports D43 and D43b froze while the hook was in the tree, on their precedent (signed off by the
+              # coordinator as delegate at D43c's code checkpoint): D39's coded-only usefulness report (D39's decision
+              # on the D39 tree, main at 24cd863), and D42's paired verdict and joint usefulness report (D42's decision
+              # on the D42 tree, against main at f99e4f9). D43c's own reports supersede them for the current tree. Undone if the hook is removed.
               'verification/d39-coded-usefulness-report.json',
               'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json'}
 

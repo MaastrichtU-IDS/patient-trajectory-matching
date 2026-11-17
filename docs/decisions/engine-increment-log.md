@@ -3267,7 +3267,7 @@ D43b showed that the pooled post-pass works: 27,030 refined results within 1.83 
 D43c starts from D43b's retry base (0253f87) and changes only the cost.
 
 **What it changes** (two changes, each output-identical).
-1. *Strided unit cuts.* The results to refine go to units by striding, not as runs of consecutive results. D43b's chunk independence already allows this, so no answer can change.
+1. *Strided unit cuts.* The results to refine go to units by striding, not as runs of consecutive results. D43b's chunk independence already allows this, so no answer can change. *(Withdrawn before any measurement; see the amendment below. Rule 4.1 depends on nothing in this change and stands as written.)*
 2. *A pruned witness search.* `_witness` tries only:
    - counted records that can lie in the count's span (or period) around the interval of the copy bound to the step;
    - for a `first` or `last` step, events that can be the step's first or last one.
@@ -3304,7 +3304,12 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
   - A dropped counted record must never lie within the count's span (or period) around the bound record. A dropped `first` (`last`) candidate must never precede (follow) every other event of its concept under the same bounds.
   - Both checks are stronger than rule 3 asks, because they need no world where the count is also reached and the query holds.
   - A planted defect, `over_prune`, drops one usable candidate too many.
-- *Rule 2 at scale.* `tools/benchmark_count_requests.py --identity-ref 0253f87` runs the retry base once per count request at 14 workers in the latency job, and compares its answer digests, which bind the post-pass's tally, with this tree's.
+- *Rule 2, how it is checked.*
+  - *At scale:* `tools/benchmark_count_requests.py --identity-ref 0253f87` runs the retry base once per count request at 14 workers in the latency job, and compares its answer digests, which bind the post-pass's tally, with this tree's.
+  - *On small cases:* each case's refined result and its `how`, as a sha256 per case, under this tree and under an extracted copy of 0253f87, for the 20,000 cases per generator of rule 1.1 (seeds `d43c-ruled`).
+  - *On snapshots:* every request of rule 1.3's plan, through each tree's dispatcher at 1 worker and at 2 workers (chunk 9, one result per pool unit), as a sha256 of the whole answer but its context, whose artifact digests name each tree's files.
+  - Scripts outside the repository (`/tmp/d43c/identity_small.py`, `identity_snap.py`, `compare_identity.py`); results reported here.
+- *Freezes* (signed off by the coordinator as delegate at the code checkpoint, as for D43b): D39's coded usefulness report and D42's paired verdict and joint usefulness report, in `HISTORICAL`. D36's and D38's usefulness reports are rebound by re-running them, every figure identical.
 - *Tests* (`test_count_narrowing.PrunedWitnessTests`):
   - every dropped candidate is unusable by enumeration, on every generator;
   - over-pruning is caught;
@@ -3312,7 +3317,7 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
   - a worked case for both pool kinds.
 - No file a build loads changes, and `execution_store.py` does not change.
 
-**Amendment before any measurement: the strided cut is withdrawn** (disclosed; for the coordinator's review at the code checkpoint). A unit's re-derivation reads the whole patient-index range its results span (`execution_store._load_events`, which a build loads and D43c may not change). Development runs at 300,000 patients, in one process, outside the protocol:
+**Amendment before any measurement: the strided cut is withdrawn** (disclosed; signed off by the coordinator as the owner's delegate at the code checkpoint). Rule 4.1 depends on nothing in it: its tool, protocol, snapshot, windows, requests and bars stand as written. A unit's re-derivation reads the whole patient-index range its results span (`execution_store._load_events`, which a build loads and D43c may not change). Development runs at 300,000 patients, in one process, outside the protocol:
 - each derivation call costs about 0.044 s however few its patients;
 - consecutive blocks of 4 results took 11.4 s per 1,024 results, against 0.39 s for blocks of 256;
 - one strided unit of 64 results spanning 32,000 patients took 0.2 s. A unit strided across all 300,000 patients reads the whole range, and the 1.3 Nth-and-count request has 64 such units.
