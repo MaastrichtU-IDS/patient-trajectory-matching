@@ -76,12 +76,12 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               'verification/d43-paired-verdict.json', 'verification/d43-coded-usefulness-report.json',
               # D43b, D43's retry, puts D43's hook back into `patterns/store_conditions.py` (and the post-pass into
               # `demos/mockups/store_parity.py`'s replay and `coded_usefulness.cjs`'s bindings), so it freezes the three
-              # reports D43 froze while its hook was in the tree, on the same precedent (for the coordinator's sign-off as
-              # delegate). D39's coded-only usefulness report records D39's decision on the D39 tree (main at 24cd863);
+              # reports D43 froze while its hook was in the tree, on the same precedent (signed off by the coordinator as
+              # the owner's delegate at D43b's code checkpoint). D39's coded-only usefulness report records D39's decision on the D39 tree (main at 24cd863);
               # D42's paired verdict and joint usefulness report record D42's decision on the D42 tree (against main at
               # f99e4f9), and the latter's differential compares D42's tree with the main before it. For the current tree
               # `verification/d43b-coded-usefulness-report.json` supersedes the usefulness figures and
-              # `verification/d43b-paired-verdict.json` the verdict; D43b changes no answer to a request without a
+              # `verification/d43b-count-latency-verdict.json` the latency verdict; D43b changes no answer to a request without a
               # count. Undone if D43b's hook is removed.
               'verification/d39-coded-usefulness-report.json',
               'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json'}

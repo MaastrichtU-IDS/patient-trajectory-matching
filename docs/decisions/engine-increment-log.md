@@ -55,7 +55,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D41 | Realistic search budgets in the benchmark: every query at the engine's default (40,000) with its shape unchanged, budget-1 queries kept apart as a labelled stress stratum, under rules fixed before measuring | Decided; shipped. Every rule met. Large-store `unresolved` 38 and 363 become 0 and 1 (one 10,000-patient search still stops at 40,000); every moved result went from undecided to decided, digests moved on exactly the traced queries; the stress stratum reproduces the old figures. D21 at 14 workers met by the paired run, p95 9.30 s (8 workers 11.93 s, missed); seed 19, whose searches used to stop at once, is now the p95. D36's and D39's paired verdicts frozen |
 | D42 | A joint profile: gene steps under "coded only" (D38 over D39's profile 1.3), through hooks D39's module shares rather than a third copy of `match`, so that the trajectory page's Tree and Graph templates can run on the store under "coded only", under rules fixed before measuring | Decided; built, every rule met, written only when asked: 0 worlds violations in 40,000 small cases (one disclosed carve-out from D36's excluded-records follow-up, applied once), 0 reference mismatches there and on 400 snapshot requests, four planted defects caught, pruning on and off identical; every earlier profile byte-identical to main's code on 997 requests but the stated context digests; Tree and Graph under coded only 0 of 7 child types unresolved over seeds 1001 to 1030; parity 859 of 1,248, every difference declared; 14-worker paired p95 ratios 1.005 to 1.018 under D41's budgets, p95 9.49 s. The translator's defaults stay off (`STORE_GENE_CODED_ONLY`, `STORE_CODED_ONLY`) |
 | D43 | Counts decided where D32's two-pass rule leaves them `STEP_CONDITION_UNCERTAIN`: copies of each possibly reached record over the times where its count can be reached (`count_narrowed_v1`), one engine pass, in a post-pass of the dispatcher no build loads, under rules fixed before measuring | Built and sound, **not shipped**: the latency rule missed as written on the rebased tree (14-worker paired ratios 0.999, 1.001, 1.185, 1.064 against 1.05, on a path both codes ran byte-identically). Every other rule met: 0 violations in 120,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; Event frequency under coded only 0 of 16 child types unresolved (was 11). The rule timed a path D43 never runs; the post-pass's own cost (about 32 s against 5 s for a 1.3 count request at 300,000) was unruled. The hook is removed; the code is kept at 6888d1e; retry queued as D43b |
-| D43b | D43 retried: its post-pass ported onto main and moved into the store's worker pool, with a latency rule that times count requests (1.1 and 1.3) through the dispatcher at 300,000, paired against main, beside D43's no-regression run, under rules fixed before measuring | Rules committed; built; measurement pending |
+| D43b | D43 retried: its post-pass ported onto main and moved into the store's worker pool, with a latency rule that times count requests (1.1 and 1.3) through the dispatcher at 300,000, paired against main, beside requests without counts and a structural check of the non-count matcher path (amended before measuring), under rules fixed before measuring | Rules committed; built; measurement pending |
 
 ## D1 Package with hatchling, in place
 
@@ -3135,10 +3135,25 @@ D43 built `count_narrowed_v1` and found it sound and useful: every refined resul
         - **2.0** says the post-pass costs at most what the routed module's own answer costs: the aim D43 queued, "a count request at scale costs about what the module's own answer costs". D43's serial post-pass cost 6.3 times the answer (31.6 s against 5.0 s). A bar of 2.0 separates a parallel post-pass from a serial or badly balanced one, with room for the pair-to-pair spread D43 saw on identical code (up to 18%).
         - **10 s** is the D21 target's p95, the bar every benchmark query is held to, applied to the request D43 timed.
         - The absolute bar is not applied to the other three requests: main's own times for them at 300,000 have not been measured, and a bar that main itself might miss would rule on main, not on this change.
-   2. **No regression for requests without counts.** D43's rule 4, against main at 7179f34.
-      - `tools/benchmark_matcher.py --paired-confirm` (`paired-interleaved-1.0`) at 300,000 patients, 30 queries, 4 repeats and 14 workers (8 reported), under D41's budget policy, into `verification/d43b-paired-verdict.json`.
-      - *It passes only if:* the 14-worker p95 ratio (this tree over main) is at most **1.05 in every pair**, and this tree's own 14-worker p95 is at most **10 s**.
-      - *Stated in advance.* This benchmark calls `execution_store.match` directly, so both sides run byte-identical store, engine and benchmark files, and D43 missed this rule on exactly such a run. A miss here is still a miss (rule 6).
+   2. **No regression for requests without counts** (as amended before any measurement; see below).
+      1. *Structural check.* Every file the non-count matcher path loads is byte-identical to main at 7179f34.
+         - The files are found mechanically: `tools/benchmark_count_requests.py` (`structural_check`) runs the matcher benchmark's own worker (`tools/benchmark_matcher.py`, queries without counts through `execution_store.match`, with a pool of 2) for 3 queries on the 300,000 snapshot.
+         - It lists every repository module that worker loaded, together with the files its report binds (`ARTIFACTS`), and compares each with the file at 7179f34 by sha256.
+         - The list and both hashes are recorded in `verification/d43b-count-latency-verdict.json` (`structural_check`). It passes only if every file is identical.
+      2. *Requests without counts through the dispatcher.* Two requests without a count run in rule 4.1's job, same protocol and windows:
+         - **1.1 sequence**: the second seizure (an Nth step), then the first sodium channel blocker within 183 days;
+         - **1.3 coded only**: the same sequence over coded records, with no step condition.
+
+         *It passes only if,* at 14 workers, each request's **pooled median ratio** is at most **1.05**: the candidate's median over all its 12 runs, over the reference's median over its 12.
+
+         The bar is pooled rather than per pair because the only cost the dispatcher adds to such a request is the `has_counts` check. A test shows that such requests never enter the post-pass: `post_pass` and `bind_context` are never called, at 1 or 2 workers, for any profile.
+
+      *The amendment, disclosed* (the coordinator, as the owner's delegate, at the code checkpoint, before any measurement).
+      - The rule as first committed (463ba7c) was D43's: `tools/benchmark_matcher.py --paired-confirm` against 7179f34, at most 1.05 in every pair, p95 at most 10 s.
+      - D43's lesson applies to that rule itself. The benchmark calls `execution_store.match` directly, so both sides would run byte-identical code, and a paired run on a byte-identical path can only measure noise. That is not a valid rule.
+      - It is replaced by 4.2.1 and 4.2.2 above, and the `--paired-confirm` run is dropped from the ruled job, saving about 40 minutes of machine time.
+      - Rule 4.1 and its bars are unchanged; the coordinator kept the Nth-and-count requests at 2.0.
+      - The tool's structural check was tried once, at 1,000 patients with 2 queries, to check that it runs: 15 files, all identical to 7179f34. No timing was involved.
 5. **Not in scope.** D39's `STORE_CODED_ONLY` default stays **false** whatever the outcome; flipping it is a separate decision of the owner's, under D39's rules. Whether D39's rules would now be met is reported.
 6. **Ship rule.** The hook ships only if every rule above holds. If any rule misses, the code is reverted and D43b lands as a record only, as D43 did. A failure is fixed, never tuned away.
 
@@ -3159,9 +3174,8 @@ D43 built `count_narrowed_v1` and found it sound and useful: every refined resul
 1. the small cases and planted defects;
 2. the snapshot differential;
 3. the usefulness report and the rebinds of D36's and D38's usefulness reports;
-4. the count-request latency run;
-5. the no-regression paired run.
+4. the count-request latency run: the structural check, then rules 4.1 and 4.2.2 in one ABBA job.
 
 *Reports.* `store_conditions.py`, `store_parity.py`, `gene_no_change.py` and `coded_usefulness.cjs` change, as at 6888d1e.
 - D36's and D38's usefulness reports are rebound by re-running them; every figure must come out identical.
-- D39's coded usefulness report, D42's paired verdict and D42's joint usefulness report record decisions on their own trees and cannot be regenerated here. They are proposed for freezing as historical, on D43's precedent, for the coordinator's sign-off as delegate.
+- D39's coded usefulness report, D42's paired verdict and D42's joint usefulness report record decisions on their own trees and cannot be regenerated here. They are frozen as historical in `tools/check_report_provenance.py`, on D43's precedent. The coordinator signed off as the owner's delegate at the code checkpoint.

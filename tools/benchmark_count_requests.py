@@ -13,6 +13,12 @@ each repeat and worker count, the order alternating across repeats (ABBA): D31's
 (`paired-interleaved-1.0`, `tools/benchmark_matcher.py --paired-confirm`) applied to these requests. In each run every
 request runs `--runs` times in a row; a pair's time for a request is the median of its runs.
 
+Two requests without a count (`NO_COUNT_REQUESTS`: a 1.1 request with an Nth step, a 1.3 request with no step
+condition) run in the same job (D43b rule 4.2b): through the dispatcher their only added cost is the `has_counts`
+check. Before the timed runs, the structural check (rule 4.2a, `structural_check`) runs the matcher benchmark's own
+worker (`tools/benchmark_matcher.py`, requests without counts through `execution_store.match`) for a few queries, lists
+every repository file it loaded, and compares each with the reference's by sha256.
+
 Beside the times it checks, on the runs of the first repeat, that each code's answer to each request is the same at
 every worker count and in every run, and that the candidate's answer differs from the reference's only where the
 reference's result is `unresolved` with STEP_CONDITION_UNCERTAIN (D43 rule 2 at scale), with the candidate's
@@ -92,9 +98,29 @@ REQUESTS = {
     '1.3 nth and count': _coded(_nth_count),
     '1.1 nth and count': _nth_count('execution-store-conditions-1.1'),
 }
+
+
+def _sequence():
+    """A sequence without a count: a seizure, then the first sodium channel blocker within 183 days (9 months as a
+    relaxation)."""
+    query, _ = _event_frequency('execution-store-conditions-1.1')
+    return query
+
+
+# Requests without a count (D43b rule 4.2b): the dispatcher's only added cost for them is the `has_counts` check.
+NO_COUNT_REQUESTS = {
+    # Profile 1.1 without a count: the second seizure (an Nth step), then the first sodium channel blocker.
+    '1.1 sequence': (_sequence(), {'profile': 'execution-store-conditions-1.1', 'steps': {'A': {'occurrence': {'nth': 2}}}}),
+    # Profile 1.3 without any step condition: the same sequence over coded records only.
+    '1.3 coded only': (_sequence(), {'profile': 'execution-store-conditions-1.3', 'exclude_kinds': ['mention'],
+                                     'steps': {}}),
+}
+REQUESTS.update(NO_COUNT_REQUESTS)
+COUNT_REQUESTS = [name for name in REQUESTS if name not in NO_COUNT_REQUESTS]
 RULED_WORKERS = 14
-RATIO_BAR = 2.0  # the candidate's time over the reference's, per request and pair (D43b rule 4.1)
+RATIO_BAR = 2.0  # the candidate's time over the reference's, per count request and pair (D43b rule 4.1)
 ABSOLUTE_BAR = {'request': '1.3 event frequency', 'p95_seconds': 10.0}  # D43b rule 4.1, the D21 target's p95
+NO_COUNT_BAR = 1.05  # a request without a count: pooled median ratio over the pairs (D43b rule 4.2b)
 
 WINDOWS_SQL = """
     WITH s AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo FROM events e
@@ -208,24 +234,77 @@ def statistics_of(records, requests):
                                    for first in ('reference', 'candidate')},
                 **{side: {'p50_seconds': pct(v, .5), 'p95_seconds': pct(v, .95), 'max_seconds': max(v)}
                    for side, v in pooled.items()},
-                'ratio_p95_pooled': pct(pooled['candidate'], .95) / pct(pooled['reference'], .95)}
+                'ratio_p95_pooled': pct(pooled['candidate'], .95) / pct(pooled['reference'], .95),
+                'ratio_median_pooled': statistics.median(pooled['candidate']) / statistics.median(pooled['reference'])}
         out[str(n)] = {'workers': n, 'requests': per_request,
                        'peak_rss_bytes': {side: max(max(r[side]['parent_peak_rss_bytes'], r[side]['worker_peak_rss_bytes'])
                                                     for r in mine) for side in ('reference', 'candidate')}}
     return out
 
 
-def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolute=ABSOLUTE_BAR):
-    """D43b rule 4.1: at `ruled` workers, every request's ratio at most `ratio_bar` in every pair, and the absolute
-    request's candidate p95 over all its runs at most the bar."""
+def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolute=ABSOLUTE_BAR,
+               no_count_bar=NO_COUNT_BAR):
+    """D43b rules 4.1 and 4.2b at `ruled` workers. 4.1: every count request's ratio at most `ratio_bar` in every pair,
+    and the absolute request's candidate p95 over all its runs at most the bar. 4.2b: every request without a count has
+    a pooled median ratio (the candidate's median over all its runs, over the reference's) at most `no_count_bar`."""
     at = stats[str(ruled)]['requests']
+    counted = [name for name in requests if name not in NO_COUNT_REQUESTS]
+    plain = [name for name in requests if name in NO_COUNT_REQUESTS]
     ratios = {name: {'ratio_by_repeat': at[name]['ratio_by_repeat'],
-                     'every_pair_at_most': all(r <= ratio_bar for r in at[name]['ratio_by_repeat'])} for name in requests}
+                     'every_pair_at_most': all(r <= ratio_bar for r in at[name]['ratio_by_repeat'])} for name in counted}
     p95 = at[absolute['request']]['candidate']['p95_seconds']
-    out = {'workers': ruled, 'ratio_bar': ratio_bar, 'ratios': ratios,
-           'absolute': {**absolute, 'candidate_p95_seconds': p95, 'met': p95 <= absolute['p95_seconds']}}
-    out['met'] = all(r['every_pair_at_most'] for r in ratios.values()) and out['absolute']['met']
-    return out
+    rule_41 = {'ratio_bar': ratio_bar, 'ratios': ratios,
+               'absolute': {**absolute, 'candidate_p95_seconds': p95, 'met': p95 <= absolute['p95_seconds']}}
+    rule_41['met'] = all(r['every_pair_at_most'] for r in ratios.values()) and rule_41['absolute']['met']
+    rule_42b = {'bar': no_count_bar, 'requests': {
+        name: {'ratio_median_pooled': at[name]['ratio_median_pooled'], 'ratio_by_repeat': at[name]['ratio_by_repeat'],
+               'met': at[name]['ratio_median_pooled'] <= no_count_bar} for name in plain}}
+    rule_42b['met'] = all(r['met'] for r in rule_42b['requests'].values())
+    return {'workers': ruled, 'rule_4_1': rule_41, 'rule_4_2b': rule_42b, 'met': rule_41['met'] and rule_42b['met']}
+
+
+# D43b rule 4.2a: the matcher benchmark's path (requests without counts through `execution_store.match`) loads only
+# files byte-identical to the reference. The files are found by running that path, not listed by hand.
+
+LOADED_FILES_SCRIPT = """
+import json, sys, types
+from pathlib import Path
+root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(root / 'tools'))
+import benchmark_matcher as bm
+args = types.SimpleNamespace(code_root=str(root), queries=int(sys.argv[3]), budget_policy=bm.DEFAULT_BUDGET_POLICY,
+                             no_prune=False, no_prune_ends=False, snapshot=sys.argv[2], memory_limit='2GB',
+                             detail='full', arm_workers=2, repeats=1)
+bm.worker(args)
+files = set()
+for module in list(sys.modules.values()):
+    path = getattr(module, '__file__', None)
+    if path and Path(path).resolve().is_relative_to(root):
+        files.add(str(Path(path).resolve().relative_to(root)))
+files.update(bm.ARTIFACTS)
+print(json.dumps(sorted(files)))
+"""
+
+
+def loaded_files(snapshot, queries=3):
+    """Every repository file the matcher benchmark's worker (`tools/benchmark_matcher.py --worker`: queries without
+    counts through `execution_store.match`, with a pool of 2) loads over `snapshot` for `queries` queries: its modules,
+    found by running it, and the files its report binds (`ARTIFACTS`)."""
+    out = subprocess.run([sys.executable, '-c', LOADED_FILES_SCRIPT, str(ROOT), snapshot, str(queries)], cwd=ROOT,
+                         capture_output=True, text=True, check=True)
+    return json.loads(out.stdout.strip().splitlines()[-1])
+
+
+def structural_check(reference, snapshot, queries=3):
+    """D43b rule 4.2a: each file `loaded_files` lists, by sha256 here and at the git ref `reference`."""
+    rows = []
+    for path in loaded_files(snapshot, queries):
+        mine = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+        shown = subprocess.run(['git', 'show', f'{reference}:{path}'], cwd=ROOT, capture_output=True)
+        theirs = hashlib.sha256(shown.stdout).hexdigest() if shown.returncode == 0 else None
+        rows.append({'path': path, 'sha256': mine, 'sha256_at_reference': theirs, 'identical': mine == theirs})
+    return {'reference': reference, 'queries': queries, 'files': rows,
+            'met': bool(rows) and all(r['identical'] for r in rows)}
 
 
 def movement(reference_dir, candidate_dir, requests):
@@ -264,7 +343,10 @@ def paired(args):
         codes['reference'] = {'root': root, 'git_ref': args.reference, 'git_commit': commit,
                               'files_at_ref': [{'path': p, 'sha256': hashlib.sha256((root / p).read_bytes()).hexdigest()}
                                                for p in REF_FILES if (root / p).is_file()]}
-        records, started, kept = [], time.monotonic(), {}
+        started = time.monotonic()
+        print('structural check (rule 4.2a) ...', file=sys.stderr, flush=True)
+        structural = structural_check(args.reference, args.snapshot_path)
+        records, kept = [], {}
         for repeat in range(args.repeats):
             order = ('reference', 'candidate') if repeat % 2 == 0 else ('candidate', 'reference')
             for n in args.workers:
@@ -293,6 +375,9 @@ def paired(args):
                                       for side in ('reference', 'candidate')}}
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
+    verdict = verdict_of(stats, args.requests, ruled)
+    verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files'])}
+    verdict['met'] = verdict['met'] and structural['met']
     report = {
         'profile': PROFILE, 'protocol': PROTOCOL, 'size': int(size), 'snapshot_id': manifest['snapshot_id'],
         'requests': {name: {'query': q, 'conditions': c} for name, (q, c) in REQUESTS.items() if name in args.requests},
@@ -303,12 +388,12 @@ def paired(args):
         'reference': {k: v for k, v in codes['reference'].items() if k != 'root'},
         'candidate': {k: v for k, v in codes['candidate'].items() if k != 'root'},
         'patients_with_window': records[0]['candidate']['patients_with_window'],
-        'by_workers': stats, 'verdict': verdict_of(stats, args.requests, ruled), 'answers': identity,
+        'by_workers': stats, 'verdict': verdict, 'structural_check': structural, 'answers': identity,
         'seconds': time.monotonic() - started,
         'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ARTIFACTS},
         'contains_patient_level_data': False,
         'limitations': ('one machine and one session; synthetic data replicated beyond 10,000 patients; four fixed '
-                        'requests, not a clinical mix; a pair\'s time is the median of a few runs in one process, so '
+                        'requests with counts and two without, not a clinical mix; a pair\'s time is the median of a few runs in one process, so '
                         'the pairing cancels slow drift, not noise inside a run'),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

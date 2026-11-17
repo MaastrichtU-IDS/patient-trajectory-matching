@@ -346,6 +346,37 @@ class BoundaryTests(unittest.TestCase):
             self.assertEqual(sc.match_context(store, query, windows, conditions),
                              module.match_context(store, query, windows, conditions))
 
+    def test_a_request_without_a_count_never_enters_the_post_pass(self):
+        """D43b rule 4.2b: through the dispatcher, a request without a count step costs only the `has_counts` check; the
+        post-pass and its context binding are never called, at 1 or 2 workers, for any profile."""
+        state = _STATE['gene']
+        store, ingest = state['store'], state['ingest']
+        windows = cn.snapshot_windows(random.Random('d43b/no-count'), ingest)
+        q = {'profile': tg.PROFILE_ID, 'scope': 'any',
+             'steps': [{'id': 'A', 'concept': 'c:febrile'}, {'id': 'B', 'concept': 'm:freq'},
+                       {'id': 'C', 'concept': 'd:a', 'occurrence': 'first'}],
+             'relations': [{'id': 'R1', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': -400 * DAY, 'max': 400 * DAY}],
+             'relaxations': [], 'budget': '1'}
+        gene_q = {**q, 'steps': q['steps'] + [{'id': 'G', 'concept': 'g:SCN1A'}]}
+        gene = {'gene': {'report': 'first_not_negative', 'timed_by': 'recorded_at'}}
+        requests = [(q, None), (q, {'profile': es.CONDITIONS_PROFILE, 'steps': {'B': {'unit': '/month', 'ge': '2'}}}),
+                    (q, {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': {'A': {'occurrence': {'nth': 2}}}}),
+                    (q, {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {'B': trc.rel(unit='/month', within=75 * DAY)}}),
+                    (q, {'profile': cc.CONDITIONS_PROFILE_1_3, 'steps': {}, 'exclude_kinds': ['mention']}),
+                    (q, {'profile': cc.CONDITIONS_PROFILE_1_3, 'exclude_kinds': ['mention'],
+                         'steps': {'A': {'occurrence': {'nth': 2}}}}),
+                    (gene_q, {'profile': gc.GENE_PROFILE, 'steps': {'G': gene}}),
+                    (gene_q, {'profile': gc.GENE_CODED_PROFILE, 'exclude_kinds': ['mention'], 'steps': {'G': gene}})]
+        refuse = AssertionError('a request without a count reached the post-pass')
+        with mock.patch.object(scn, 'post_pass', side_effect=refuse) as post, \
+                mock.patch.object(scn, 'bind_context', side_effect=refuse) as bind:
+            for query, conditions in requests:
+                self.assertFalse(scn.has_counts(conditions))
+                for workers in (1, 2):
+                    sc.match(store, query, windows, workers=workers, conditions=conditions)
+                sc.match_context(store, query, windows, conditions)
+        self.assertEqual((post.call_count, bind.call_count), (0, 0))
+
     def test_with_a_count_step_only_undecided_results_move(self):
         state = _STATE['fixture']
         moved = 0
