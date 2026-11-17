@@ -116,6 +116,7 @@ const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join
 const ARTIFACTS = ['demos/mockups/coded_usefulness.cjs', 'demos/mockups/store_parity.py', 'demos/mockups/trajectory/store_request.js',
   'demos/mockups/trajectory/app.js', 'demos/mockups/shared/core.js', 'demos/mockups/synthetic/generate.py',
   'patterns/store_conditions.py', 'patterns/store_conditions_coded.py', 'patterns/store_conditions_relative.py', 'patterns/execution_store.py',
+  'patterns/store_conditions_counts.py',  // D43: the dispatcher's post-pass for counts
   'patterns/synthetic_ingest.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py', 'patterns/temporal_stn.py'];
 
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'coded-usefulness-'));
@@ -200,7 +201,8 @@ try {
     setting: {window: 'from the second seizure, 24 months (the page\'s own)', scope: 'from_start',
               free_text: 'off (coded records only); the comparison: present (stated findings)',
               translator: 'trajectory/store_request.js with codedOnly "store" and rises asked for',
-              store: 'patterns/store_conditions_coded.py (profile execution-store-conditions-1.3, exclude_kinds ["mention"])',
+              store: 'patterns/store_conditions_coded.py (profile execution-store-conditions-1.3, exclude_kinds ["mention"]), '
+                     + 'through the dispatcher with D43\'s post-pass for counts (patterns/store_conditions_counts.py)',
               converter: 'patterns/synthetic_ingest.py emitting series, diary summaries labelled as period readings'},
     bar, coverage,
     templates: Object.fromEntries(TEMPLATE_NAMES.map(n => [n, pooled[n]])),

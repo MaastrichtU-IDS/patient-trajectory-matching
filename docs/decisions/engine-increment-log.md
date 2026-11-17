@@ -56,7 +56,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D42 | A joint profile: gene steps under "coded only" (D38 over D39's profile 1.3), through hooks D39's module shares rather than a third copy of `match`, so that the trajectory page's Tree and Graph templates can run on the store under "coded only", under rules fixed before measuring | Decided; built, every rule met, written only when asked: 0 worlds violations in 40,000 small cases (one disclosed carve-out from D36's excluded-records follow-up, applied once), 0 reference mismatches there and on 400 snapshot requests, four planted defects caught, pruning on and off identical; every earlier profile byte-identical to main's code on 997 requests but the stated context digests; Tree and Graph under coded only 0 of 7 child types unresolved over seeds 1001 to 1030; parity 859 of 1,248, every difference declared; 14-worker paired p95 ratios 1.005 to 1.018 under D41's budgets, p95 9.49 s. The translator's defaults stay off (`STORE_GENE_CODED_ONLY`, `STORE_CODED_ONLY`) |
 | D43 | Counts decided where D32's two-pass rule leaves them `STEP_CONDITION_UNCERTAIN`: copies of each possibly reached record over the times where its count can be reached (`count_narrowed_v1`), one engine pass, in a post-pass of the dispatcher no build loads, under rules fixed before measuring | Built and sound, **not shipped**: the latency rule missed as written on the rebased tree (14-worker paired ratios 0.999, 1.001, 1.185, 1.064 against 1.05, on a path both codes ran byte-identically). Every other rule met: 0 violations in 120,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; Event frequency under coded only 0 of 16 child types unresolved (was 11). The rule timed a path D43 never runs; the post-pass's own cost (about 32 s against 5 s for a 1.3 count request at 300,000) was unruled. The hook is removed; the code is kept at 6888d1e; retry queued as D43b |
 | D43b | D43 retried: its post-pass ported onto main and moved into the store's worker pool, with a latency rule that times count requests (1.1 and 1.3) through the dispatcher at 300,000, paired against main, beside requests without counts and a structural check of the non-count matcher path (amended before measuring), under rules fixed before measuring | Built and sound, **not shipped** (rule 6): rule 4.1 missed, with 14-worker ratios 3.39 to 3.59 for 1.3 Event frequency (p95 17.96 s) and 14.09 to 14.93 for 1.1, both against 2.0; Nth and count was met at 1.54 to 1.83. Every other rule met: 0 violations in 140,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; every planted defect caught; Event frequency under coded only 0 of 16 child types unresolved; requests without counts 0.99 of main's time. Diagnosis: the witness search on a few patients, and the 30 adjacent replicas of the heaviest falling into one or two pool units. The hook is removed; the code is kept at 0253f87; retry queued as D43c |
-| D43c | D43b retried: strided pool units and a witness search pruned to the candidates that can be feasible, both output-identical (answers byte-identical to 0253f87's), with D43b's latency rule 4.1 reused unchanged, under rules fixed before measuring | Queued; rules committed |
+| D43c | D43b retried: a witness search pruned to the candidates that can be feasible, output-identical (answers byte-identical to 0253f87's), with D43b's latency rule 4.1 reused unchanged, under rules fixed before measuring; the strided cut withdrawn before measuring | Rules committed; built; measurement pending |
 
 ## D1 Package with hatchling, in place
 
@@ -3258,7 +3258,7 @@ D43 built `count_narrowed_v1` and found it sound and useful: every refined resul
 - **Retry base: 0253f87.** It has the pooled post-pass, the review fixes, the `two-counts-relaxed` generator, the lost-decision check and the count-latency tool. It stays in history through a merge commit.
 - `STORE_CODED_ONLY` stays false.
 
-## D43c Counts decided where the two-pass rule leaves them undecided, a second retry: strided pool units and a pruned witness search (queued)
+## D43c Counts decided where the two-pass rule leaves them undecided, a second retry: strided pool units and a pruned witness search
 
 D43b showed that the pooled post-pass works: 27,030 refined results within 1.83 times main's time. Its Event frequency requests missed for two reasons the post-protocol diagnosis traced:
 - a costly witness search on a few patients;
@@ -3291,3 +3291,37 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
    D43b's rules 4.2.1 and 4.2.2 are reused unchanged too.
 5. *Not in scope:* `STORE_CODED_ONLY` stays false.
 6. *Ship rule:* as D43b's. If every rule holds, the hook ships; otherwise D43c lands as a record only.
+
+**Built** (on `feature/d43c-count-narrowing`, from main at a28c324, the code recovered from 0253f87).
+- *The pruned witness search* (`store_conditions_counts._witness`, `_usable`, `_strict`).
+  - Each pool of the search keeps only the candidates that the witness network's own constraints allow, judged over the patient's time domains (`times.dom`, which bound every variable of the network):
+    - a counted record must be able to start within the count's span before the bound record (in the window and before it, for a period count);
+    - a `first` (`last`) candidate must be able to precede (follow) every other event of its concept, under the order bound with its tie-break.
+  - Each kept candidate keeps its position in its unpruned pool. The search walks the product of the kept candidates in the unpruned order and stops when a choice's position in the unpruned product reaches `WITNESS_TRIES`.
+  - So the first feasible choice, its witness and the cut-off are the unpruned search's. Nothing else in the rule changes.
+- *The soundness check* (`count_narrowing_cases.prune_violations`, `run_small(prune=True)`).
+  - Every dropped candidate is logged (`_PRUNE_LOG`) and checked by enumeration of every choice of the engine patient's times.
+  - A dropped counted record must never lie within the count's span (or period) around the bound record. A dropped `first` (`last`) candidate must never precede (follow) every other event of its concept under the same bounds.
+  - Both checks are stronger than rule 3 asks, because they need no world where the count is also reached and the query holds.
+  - A planted defect, `over_prune`, drops one usable candidate too many.
+- *Rule 2 at scale.* `tools/benchmark_count_requests.py --identity-ref 0253f87` runs the retry base once per count request at 14 workers in the latency job, and compares its answer digests, which bind the post-pass's tally, with this tree's.
+- *Tests* (`test_count_narrowing.PrunedWitnessTests`):
+  - every dropped candidate is unusable by enumeration, on every generator;
+  - over-pruning is caught;
+  - the pruned search answers as the unpruned one (`_usable` patched to keep everything), with the cut-off at 40,000, 1 and 3, so that it binds;
+  - a worked case for both pool kinds.
+- No file a build loads changes, and `execution_store.py` does not change.
+
+**Amendment before any measurement: the strided cut is withdrawn** (disclosed; for the coordinator's review at the code checkpoint). A unit's re-derivation reads the whole patient-index range its results span (`execution_store._load_events`, which a build loads and D43c may not change). Development runs at 300,000 patients, in one process, outside the protocol:
+- each derivation call costs about 0.044 s however few its patients;
+- consecutive blocks of 4 results took 11.4 s per 1,024 results, against 0.39 s for blocks of 256;
+- one strided unit of 64 results spanning 32,000 patients took 0.2 s. A unit strided across all 300,000 patients reads the whole range, and the 1.3 Nth-and-count request has 64 such units.
+- Splitting the scaling cohort's 30 adjacent replicas needs blocks under 30 results: at least 900 calls for 27,030 results.
+- The pruning alone removes the cost the replicas multiplied (below). The units stay cut from consecutive results, as at 0253f87. D43c changes only the witness search, and rule 2's byte identity is unaffected.
+
+*Disclosed: development runs before the ruled ones* (none of them ruled; none of the ruled seeds).
+- *The profile the coordinator asked for,* at 10,000 patients, in one process.
+  - The 97-event patient's witness search fell from 2.10 s to 0.009 s, and the whole 1.1 Event frequency post-pass from 2.61 s to 0.09 s (141 patients).
+  - 1.3 Event frequency: its heaviest patient took 0.001 s, against 0.44 s before.
+- *The small cases.* On 1,500 cases per generator (seeds `dev`), D43c's refined results were byte-identical to 0253f87's. The pruning check found 0 unusable-candidate failures in 600 cases per generator, with 131 candidates dropped; `over_prune` was caught 122 times.
+- *A trial of the tool* at 1,000 patients, 2 workers and 2 repeats, against a28c324 with `--identity-ref 0253f87`, to check it runs: identical answers on all four count requests; its times are not evidence.

@@ -78,7 +78,15 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # not in the tree; its two reports are kept as frozen records of that decision (coordinator's sign-off as
               # delegate). Both bind `patterns/store_conditions_counts.py`, the dispatcher with the hook, the parity
               # replay and the count-latency tool as at the retry base 0253f87.
-              'verification/d43b-count-latency-verdict.json', 'verification/d43b-coded-usefulness-report.json'}
+              'verification/d43b-count-latency-verdict.json', 'verification/d43b-coded-usefulness-report.json',
+              # D43c, the second retry, puts the hook back into `patterns/store_conditions.py` (and the post-pass into
+              # `demos/mockups/store_parity.py`'s replay and `coded_usefulness.cjs`'s bindings), so it freezes the three
+              # reports D43 and D43b froze while the hook was in the tree, on their precedent (for the coordinator's
+              # sign-off as delegate): D39's coded-only usefulness report (D39's decision on the D39 tree, main at
+              # 24cd863), and D42's paired verdict and joint usefulness report (D42's decision on the D42 tree, against
+              # main at f99e4f9). D43c's own reports supersede them for the current tree. Undone if the hook is removed.
+              'verification/d39-coded-usefulness-report.json',
+              'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json'}
 
 
 def digests(path):

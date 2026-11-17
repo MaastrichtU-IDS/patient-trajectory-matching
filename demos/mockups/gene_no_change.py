@@ -9,7 +9,8 @@ parity test's form, minutes from birth) and runs every case without a gene step 
 `store_conditions.match`, the entry point every caller uses since D38, on the snapshot `store_parity.build` makes now
 (WRAPPER), and through `store_conditions_relative.match`, main's path, on MAIN (for a coded-only request, D39's profile
 1.3, through `store_conditions_coded.match`, the module the dispatcher names for it, so the comparison is still of the
-two builds). Every output field must be equal, except
+two builds; a request with a count step passes through D43's post-pass on both sides, as the dispatcher passes it).
+Every output field must be equal, except
 the snapshot's identifier and the context's identifier; inside the context, everything but the snapshot's identifier
 and its file-list digest; in the labels' copies (output and context), everything but the wrapper's `gene_report_kinds`.
 The candidates must be equal too, and a refusal must be the same refusal. Synthetic data
@@ -27,6 +28,7 @@ sys.path.insert(0, str(HERE))
 from patterns import execution_store as es  # noqa: E402
 from patterns import store_conditions as sc  # noqa: E402
 from patterns import store_conditions_coded as cc  # noqa: E402
+from patterns import store_conditions_counts as scn  # noqa: E402
 from patterns import store_conditions_gene as gc  # noqa: E402
 from patterns import store_conditions_relative as rc  # noqa: E402
 from patterns import synthetic_ingest as si  # noqa: E402
@@ -70,6 +72,13 @@ def _answer(call):
         return {'refused': getattr(error, 'code', None) or str(error).split(':')[0]}
 
 
+def _through_d43(store, query, windows, conditions, answer):
+    """D43: the dispatcher passes a count request's answer through its post-pass, so main's path does too."""
+    if not scn.has_counts(conditions):
+        return answer
+    return scn.post_pass(store, query, windows, es.CHUNK_PATIENTS, conditions, answer)
+
+
 def compare(wrapper, main, cases, cohort):
     births = store_parity.birth_micros(cohort)
     summary = {'cases': 0, 'gene_cases_skipped': 0, 'results': 0, 'refused': 0, 'differences': []}
@@ -85,7 +94,8 @@ def compare(wrapper, main, cases, cohort):
             conditions = store_parity.conditions_micros(case.get('conditions'))
             direct = cc if cc.is_coded_request(conditions) else rc  # D39: 1.3 is answered by its own module
             a = _answer(lambda: sc.match(mine, query, windows, conditions=conditions))
-            b = _answer(lambda: direct.match(theirs, query, windows, conditions=conditions))
+            b = _answer(lambda: _through_d43(theirs, query, windows, conditions,
+                                             direct.match(theirs, query, windows, conditions=conditions)))
             summary['cases'] += 1
             if 'refused' in a or 'refused' in b:
                 summary['refused'] += 1
