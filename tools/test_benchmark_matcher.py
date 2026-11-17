@@ -82,6 +82,28 @@ class PureHelperTests(unittest.TestCase):
         self.assertEqual(ident['per_query_digests'][1]['candidate'], ['x', 'y'])
 
 
+class CommittedReportTests(unittest.TestCase):
+    """D41: every section of the committed matcher report names the search budgets it ran with."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.report = json.loads((matcher.ROOT / 'verification/matcher-comparison-report.json').read_text())
+
+    def test_every_section_and_both_paired_sides_name_their_policy(self):
+        default = bench.budget_policy_record('engine-default')
+        self.assertEqual(self.report['budget_policy'], default)
+        self.assertEqual(self.report['confirmation']['budget_policy'], default)
+        paired = self.report['paired_confirmation']
+        self.assertEqual((paired['reference']['budget_policy'], paired['candidate']['budget_policy']), (default, default))
+        self.assertNotEqual(paired['reference']['git_ref'], 'this tree')  # two codes: main's against this tree
+        self.assertEqual(paired['note'], matcher.PAIRED_NOTE)
+        budgets = self.report['budget_policy_comparison']
+        self.assertEqual(budgets['reference']['budget_policy'], bench.budget_policy_record('drawn-stress'))
+        self.assertEqual(budgets['candidate']['budget_policy'], default)
+        self.assertEqual((budgets['reference']['git_ref'], budgets['candidate']['git_ref']), ('this tree', 'this tree'))
+        self.assertEqual(budgets['note'], matcher.POLICY_COMPARISON_NOTE)
+
+
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
 class ReportTests(unittest.TestCase):
     @classmethod

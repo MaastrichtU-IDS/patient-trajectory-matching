@@ -37,7 +37,7 @@
 <main>
   <div class="eyebrow">PATIENT TRAJECTORY MATCHING · ROADMAP</div>
   <h1>What exists and what comes next</h1>
-  <p class="note">As of 11 November 2026. This is a research codebase, not a product: the completion register records full-product completion as false, and nothing here is a clinical claim. Scale evidence is synthetic data on one machine. Each item names the decisions (D-numbers in <code>docs/decisions/engine-increment-log.md</code>) or documents behind it.</p>
+  <p class="note">As of 17 November 2026. This is a research codebase, not a product: the completion register records full-product completion as false, and nothing here is a clinical claim. Scale evidence is synthetic data on one machine. Each item names the decisions (D-numbers in <code>docs/decisions/engine-increment-log.md</code>) or documents behind it.</p>
   <p><a href="../">← all mockups</a> · <a href="../results/">results and evidence</a> · plain-language summary: <code>docs/decisions/briefing-2026-11.md</code></p>
 
   <div class="legend" aria-label="Status labels">
@@ -49,7 +49,7 @@
 
   <div class="facts">
     <div class="fact"><b data-r="patients">1,000,000</b>synthetic patients built and verified in one store, under a 4 GB database limit</div>
-    <div class="fact"><b data-r="p95">8.49 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers, paired confirmation (target 10 s, set in advance)</div>
+    <div class="fact"><b data-r="p95">9.30 s</b>95th-percentile query at 300,000 patients, <span data-r="workers">14</span> workers, paired confirmation at the engine's default search budget (target 10 s, set in advance)</div>
     <div class="fact"><b data-r="rows">668,862</b>MIMIC-IV demo chart rows ingested and every one checked, <span data-r="mism">0</span> mismatches</div>
     <div class="fact"><b>1,241</b>contract checks run on every push</div>
   </div>
@@ -91,6 +91,9 @@
       <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 12.0% and its content check by 38%, with identical content digests (snapshot identifiers change with the builder), under a rule set before measuring.</p>
       <p>A change to matching alone no longer forces the scaling report's 1,000,000-patient build: each build records every repository file it loaded or read, and a later run may reuse the kept snapshots when a small probe build records the same (D34; first used at scale by D35, again by D36: 1,740 s each, against 9,197 s). The engine was split so that a build loads no matching code, with results unchanged.</p>
       <p class="ref">D26, D28, D34, D35, D36</p></div>
+    <div class="item"><h3>Realistic search budgets in the benchmark</h3>
+      <p>Every benchmark query now runs at the engine's default search budget (40,000, what the pages send), with its shape unchanged; the old drawn budgets (1, 40, 300) are kept apart as a labelled stress test. "Unresolved at scale" was a benchmark artefact: 38 at 1,000 patients and 363 at 10,000 become 0 and 1 (one patient whose search still stops at 40,000), every moved result going from undecided to decided. The latency target still holds at 14 workers (p95 9.30 s); seed 19's searches, which used to stop at once, are now the p95.</p>
+      <p class="ref">D35, D40, D41</p></div>
   </div>
 
   <h2><span class="badge b-next">→ Next</span></h2>
@@ -111,9 +114,6 @@
     <div class="item"><h3>More source shapes</h3>
       <p>Sources whose time constraints link events to each other, beyond what per-event bounds express. These need the engine to take constraints between events.</p>
       <p class="ref">D22</p></div>
-    <div class="item"><h3>Realistic search budgets in the benchmark</h3>
-      <p>Every "unresolved at scale" result in the scaling report (38 at 1,000 patients, 363 at 10,000) comes from a query whose search budget is 1, which the benchmark's query generator draws; all are decided with a realistic budget. Settling such stopped searches by propagation was built and sound but not shipped (D40). Next: realistic budgets, or budget-1 queries reported apart.</p>
-      <p class="ref">D35, D40</p></div>
     <div class="item"><h3>Interface mockups A and C</h3>
       <p>Sketching a trajectory directly, and a live cohort funnel.</p>
       <p class="ref"><a href="../">mockups</a></p></div>
@@ -147,7 +147,7 @@
 fetch('../results/results.json').then(r => r.json()).then(d => {
   const f = n => Number(n).toLocaleString('en-GB'), S = d.scaling.sizes, G = d.matching.governing.by_workers, C = d.mimic_demo.census;
   const w14 = G.find(a => a.workers === 14), set = (k, v) => document.querySelectorAll(`[data-r="${k}"]`).forEach(e => { e.textContent = v; });
-  set('patients', f(S[S.length - 1].patients)); if (w14) { set('p95', `${w14.p95_seconds[0].toFixed(2)} s`); set('workers', w14.workers); }  // the paired verdict run (D31)
+  set('patients', f(S[S.length - 1].patients)); if (w14) { set('p95', `${w14.p95_seconds.toFixed(2)} s`); set('workers', w14.workers); }  // the matcher report's paired run (D31, D41)
   set('rows', f(C.raw_rows_checked)); set('mism', f(C.mismatched_stores + C.built_store_mismatches));
 }).catch(() => {});
 </script>

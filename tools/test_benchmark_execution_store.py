@@ -98,6 +98,24 @@ class CommittedReportTests(unittest.TestCase):
         self.assertLessEqual(big['build_phase']['peak_rss_bytes'], 1.10 * mid['build_phase']['peak_rss_bytes'])
 
 
+    def test_the_committed_report_states_its_budget_policy_and_its_stress_stratum(self):
+        """D41: the headline figures at the engine's default search budget; the drawn budgets as a labelled stress
+        stratum at 1,000 and 10,000 only."""
+        report = json.loads((bench.ROOT / 'verification/execution-store-scaling-report.json').read_text())
+        self.assertEqual(report['budget_policy'], bench.budget_policy_record('engine-default'))
+        self.assertEqual(report['stress_policy']['name'], 'drawn-stress')
+        self.assertEqual(report['stress_policy']['sizes'], [1000, 10000])
+        for entry in report['sizes']:
+            if entry['size'] in (1000, 10000):
+                stress = entry['stress_drawn_budgets']
+                self.assertIn('STRESS TEST', stress['label'])
+                self.assertEqual(stress['budget_policy']['name'], 'drawn-stress')
+                self.assertEqual([r['candidates'] for r in stress['per_query']],
+                                 [r['candidates'] for r in entry['queries']['per_query']])
+            else:
+                self.assertNotIn('stress_drawn_budgets', entry)
+
+
 @unittest.skipIf(duckdb is None, 'DuckDB is not installed')
 class ReportTests(unittest.TestCase):
     @classmethod
