@@ -55,6 +55,8 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D41 | Realistic search budgets in the benchmark: every query at the engine's default (40,000) with its shape unchanged, budget-1 queries kept apart as a labelled stress stratum, under rules fixed before measuring | Decided; shipped. Every rule met. Large-store `unresolved` 38 and 363 become 0 and 1 (one 10,000-patient search still stops at 40,000); every moved result went from undecided to decided, digests moved on exactly the traced queries; the stress stratum reproduces the old figures. D21 at 14 workers met by the paired run, p95 9.30 s (8 workers 11.93 s, missed); seed 19, whose searches used to stop at once, is now the p95. D36's and D39's paired verdicts frozen |
 | D42 | A joint profile: gene steps under "coded only" (D38 over D39's profile 1.3), through hooks D39's module shares rather than a third copy of `match`, so that the trajectory page's Tree and Graph templates can run on the store under "coded only", under rules fixed before measuring | Decided; built, every rule met, written only when asked: 0 worlds violations in 40,000 small cases (one disclosed carve-out from D36's excluded-records follow-up, applied once), 0 reference mismatches there and on 400 snapshot requests, four planted defects caught, pruning on and off identical; every earlier profile byte-identical to main's code on 997 requests but the stated context digests; Tree and Graph under coded only 0 of 7 child types unresolved over seeds 1001 to 1030; parity 859 of 1,248, every difference declared; 14-worker paired p95 ratios 1.005 to 1.018 under D41's budgets, p95 9.49 s. The translator's defaults stay off (`STORE_GENE_CODED_ONLY`, `STORE_CODED_ONLY`) |
 | D43 | Counts decided where D32's two-pass rule leaves them `STEP_CONDITION_UNCERTAIN`: copies of each possibly reached record over the times where its count can be reached (`count_narrowed_v1`), one engine pass, in a post-pass of the dispatcher no build loads, under rules fixed before measuring | Built and sound, **not shipped**: the latency rule missed as written on the rebased tree (14-worker paired ratios 0.999, 1.001, 1.185, 1.064 against 1.05, on a path both codes ran byte-identically). Every other rule met: 0 violations in 120,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; Event frequency under coded only 0 of 16 child types unresolved (was 11). The rule timed a path D43 never runs; the post-pass's own cost (about 32 s against 5 s for a 1.3 count request at 300,000) was unruled. The hook is removed; the code is kept at 6888d1e; retry queued as D43b |
+| D43b | D43 retried: its post-pass ported onto main and moved into the store's worker pool, with a latency rule that times count requests (1.1 and 1.3) through the dispatcher at 300,000, paired against main, beside requests without counts and a structural check of the non-count matcher path (amended before measuring), under rules fixed before measuring | Built and sound, **not shipped** (rule 6): rule 4.1 missed, with 14-worker ratios 3.39 to 3.59 for 1.3 Event frequency (p95 17.96 s) and 14.09 to 14.93 for 1.1, both against 2.0; Nth and count was met at 1.54 to 1.83. Every other rule met: 0 violations in 140,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; every planted defect caught; Event frequency under coded only 0 of 16 child types unresolved; requests without counts 0.99 of main's time. Diagnosis: the witness search on a few patients, and the 30 adjacent replicas of the heaviest falling into one or two pool units. The hook is removed; the code is kept at 0253f87; retry queued as D43c |
+| D43c | D43b retried: strided pool units and a witness search pruned to the candidates that can be feasible, both output-identical (answers byte-identical to 0253f87's), with D43b's latency rule 4.1 reused unchanged, under rules fixed before measuring | Queued; rules committed |
 
 ## D1 Package with hatchling, in place
 
@@ -3058,3 +3060,234 @@ The ruled runs use other seeds and the built code. No figure of this increment h
 - The latency rule times count requests through the dispatcher at 300,000 patients (1.1 and 1.3), paired against main, beside the existing no-regression run for requests without counts.
 - Usefulness and soundness are re-checked on the rebased code.
 - D39's default stays off; flipping it remains a separate decision under D39's rules.
+
+
+## D43b Counts decided where the two-pass rule leaves them undecided, retried: D43's post-pass in the store's worker pool, timed on the path it runs
+
+D43 built `count_narrowed_v1` and found it sound and useful: every refined result was the truth, and Event frequency under "coded only" had no unresolved child type left. It did not ship because its latency rule timed a path D43 never runs: the benchmark's queries carry no count and never reach the dispatcher. The cost D43 did add went unruled: a serial post-pass in the parent process, about 32 s against 5 s for a 1.3 Event frequency request at 300,000 patients, with 5,010 re-derivations. D43b retries from D43's retry base (6888d1e) on main at 7179f34. It moves the post-pass into the store's worker pool, and its latency rule times count requests through the dispatcher, the path the change executes. The rules below were written and committed before any measurement of this increment.
+
+*Outcome (details at the end of this entry):* built and sound on every check, and useful: Event frequency under "coded only" has no unresolved child type. The pooled post-pass gave the in-process answer everywhere. It **did not ship**: rule 4.1 missed as written. Both Event frequency requests cost more than twice main's time through the dispatcher (14-worker ratios 3.4 to 3.6 for 1.3 and about 14 for 1.1). Nth and count met its bar, and so did every other rule. The hook is removed and the code is kept at 0253f87, the retry base; D43c is queued. The rules below are kept as written, with the amendments disclosed before measurement.
+
+**What is built** (the rule itself is D43's, unchanged).
+- *The port.* From 6888d1e, as it stood there:
+  - `patterns/store_conditions_counts.py`: the rule, the witness and the post-pass;
+  - the `has_counts` hook in `patterns/store_conditions.py`;
+  - `patterns/count_narrowing_cases.py`: the oracle, the generators and the snapshot reference;
+  - `patterns/test_count_narrowing.py`;
+  - the callers that read the dispatcher's answer: the parity replay, D38's no-change differential, D39's boundary tests and `test_store_trajectory.py`;
+  - the nine parity pins re-pinned as decided, and `coded_usefulness.cjs` binding the module;
+  - the joint gene-coded profile's coverage, through D42's shared hook, as at 6888d1e.
+
+  `narrow`, `_narrowed`, `_coupled_counts`, `_witness`, `refine`, the coverage and D18 reapplication and `RULE` are byte-identical to 6888d1e. So is everything the rule decides.
+- *The post-pass in the worker pool.*
+  - The serial post-pass's per-chunk body is now one function, `_refine_chunk`. For each chunk it re-derives the patients through the answering module's own `_derived_chunk`, checks each two-pass result against the answer and applies the rule. It then reapplies coverage to a refined `none`, and D18 to the rest.
+  - With `workers > 1` each chunk is a unit run by `_worker_unit` in the processes of `execution_store.get_pool`, over the store each worker opened. This is how `store_conditions_relative`, `store_conditions_coded` and `store_conditions_gene` already run their own units. It uses the pool the module's own answer has just used, and the parent merges the units by result position. With one worker the chunks run in the parent.
+  - Chunks are cut by the number of results to refine only (`_chunk_size`): about 64 units, at least 50 results each, at most the request's `chunk`. The cut depends on neither the worker count nor any answer.
+  - The parent reads only the targets' patient rows, not every patient's.
+  - A planted defect is passed to the workers with each unit.
+  - Every step is per patient, so the answer is byte-identical at any worker count and any cut.
+  - `execution_store.py` does not change, and no file a build loads does.
+- *The tool* (`tools/benchmark_count_requests.py`). It times count requests through `store_conditions.match` under D31's paired interleaved protocol, and checks their answers at scale (rule 4.1).
+
+**Pre-committed rules** (written and committed before any measurement of this increment; D43's rules, with a new latency rule).
+1. **Soundness.** D43's rule 1 with its amendments, re-run on this code with fresh seeds.
+   1. *The worlds check finds 0 violations* on at least 20,000 small cases per generator (seeds `d43b-ruled`).
+      - The generators are D43's six: span and period counts, each multi and coupled; `during-from-count`; and `two-counts`.
+      - The check (`trajectory_graph_worlds.check_derived`) runs on the refined result for every status but `unresolved`, and on the match beside `unresolved`.
+   2. *Equal to the truth, with a witness.*
+      - On every small case whose result the refinement changes, the refined result's (status, relaxation ids, certainty) equals the truth by enumeration of every choice of times. Cases with an Nth step beside are included.
+      - Every refined `possible` has a witness that describes a world.
+   3. *The reference on snapshots finds 0 mismatches* on at least 450 seeded requests with count steps, through the dispatcher.
+      - Seeds from 2000, so none of D43's.
+      - Profiles 1.1, 1.2, 1.3, gene and D42's joint gene-coded profile. The fixtures are D43's: D32's derived fixtures, D39's fixtures with mentions, D38's gene fixtures and the synthetic cohort built with series.
+      - Each request at 1 worker and at 2 workers with `chunk` 9, so several units go to the pool. Each also at both detail levels and with pruning on and off.
+      - A mismatch is defined as in D43's rule 1.3. It includes a skipped re-derivation, and a 2-worker answer that differs from the 1-worker one.
+      - D39's identity is checked on the 1.3 requests.
+   4. *Every planted defect is caught* (`_D43_DEFECT`), by the worlds check, the truth or the reference.
+      - D43's nine: narrowing skipped; coupling ignored; certainty from two′; a copy without e's end, which must be caught on `during-from-count`; a binding on two copies; the refinement applied to a decided result; any witness; D18 not reapplied; coverage not reapplied.
+      - The per-patient defects run over at least 24,000 small cases each (seeds `d43b-ruled-defect`). D18 and coverage run on the fixture with partial coverage.
+2. **Movement only from undecided to decided, and the same answer in the pool.**
+   - D43's rule 2, as written: only results the answering module leaves `unresolved` with STEP_CONDITION_UNCERTAIN move, each to a decided, complete engine result, before coverage and D18. Every request without a count step is byte-identical in every field, a test for every profile at 1 and 2 workers. The 300 recorded match digests are unchanged, and D39's identity holds.
+   - *The pool.* The pooled post-pass gives the in-process answer byte for byte.
+     - In the suite: 1, 2 and 3 workers, with cuts from one result per unit to all of them, over every count profile.
+     - In rule 1.3's 2-worker variant.
+     - At 300,000 patients: each code's answer to each request of rule 4.1 is identical across 14 and 8 workers and every run. The candidate's answer differs from main's only at results main leaves STEP_CONDITION_UNCERTAIN.
+   - *Files byte-identical to main (7179f34).*
+     - `execution_store.py`, `execution_store_reference.py`, `trajectory_graph*.py`, `trajectory_times.py`, `synthetic_ingest.py` and `series_values.py`;
+     - `_resources.py`, `build_record.py`, `patterns/__init__.py` and `tools/scaling_build_worker.py`;
+     - `store_conditions_relative.py`, `store_conditions_coded.py` and `store_conditions_gene.py`;
+     - every file the D34 build record lists, so that `--reuse-builds ~/ptm-local/scaling-d34` keeps working.
+3. **Usefulness.** D39's protocol and bar, unchanged, as D43's rule 3, with `demos/mockups/coded_usefulness.cjs` writing `verification/d43b-coded-usefulness-report.json`.
+   - Seeds 1001 to 1030, with the extension rule.
+   - **The bar: Event frequency under "coded only" (1.3) has at most 30% of its distinct child types `unresolved`.** Distinct child types are counted with all candidates.
+   - Reported beside the bar (the owner's rule): the share over all candidates and the share without C001; every template under "coded only"; status mixes and reasons; the stated-findings setting.
+4. **Latency.**
+   1. **Count requests through the dispatcher** (new: the path the change executes).
+      - *Protocol.* `tools/benchmark_count_requests.py` on the kept D34 build of 300,000 patients (`~/ptm-local/scaling-d34`, reused unchanged), into `verification/d43b-count-latency-verdict.json`. The reference is main at 7179f34, extracted from git: the dispatcher without the post-pass. The candidate is this tree.
+      - *The requests.* Four requests through `store_conditions.match`, with `detail='decided'` (the store query server's):
+        - **1.3 Event frequency** and **1.1 Event frequency**: at least 3 seizures within 183 days, then the first sodium channel blocker within 183 days, with D43's timed request's relaxations;
+        - **1.3 Nth and count** and **1.1 Nth and count**: a cluster of at least 2 seizures within 30 days, within a year after the second sodium channel blocker record (one fewer seizure, or 18 months, as relaxations).
+      - *Windows.* The page's: each patient's second coded seizure, for 730 days.
+      - *Runs.* Each side runs in a fresh process with a warm pool, back to back with the other, ABBA over 4 repeats, at 14 and 8 workers. In each run every request runs 3 times, and a pair's time for a request is the median of its 3 runs.
+      - *It passes only if, at 14 workers:*
+        - for each of the four requests, the candidate's time over the reference's is at most **2.0 in every pair**;
+        - the 1.3 Event frequency request's candidate p95, over all 12 of its runs, is at most **10 s**.
+
+        The 8-worker figures, the other requests' absolute times, memory, the post-pass's tallies and the movement check (rule 2) are reported.
+      - *Why these bars.*
+        - **2.0** says the post-pass costs at most what the routed module's own answer costs: the aim D43 queued, "a count request at scale costs about what the module's own answer costs". D43's serial post-pass cost 6.3 times the answer (31.6 s against 5.0 s). A bar of 2.0 separates a parallel post-pass from a serial or badly balanced one, with room for the pair-to-pair spread D43 saw on identical code (up to 18%).
+        - **10 s** is the D21 target's p95, the bar every benchmark query is held to, applied to the request D43 timed.
+        - The absolute bar is not applied to the other three requests: main's own times for them at 300,000 have not been measured, and a bar that main itself might miss would rule on main, not on this change.
+   2. **No regression for requests without counts** (as amended before any measurement; see below).
+      1. *Structural check.* Every file the non-count matcher path loads is byte-identical to main at 7179f34.
+         - The files are found mechanically: `tools/benchmark_count_requests.py` (`structural_check`) runs the matcher benchmark's own worker (`tools/benchmark_matcher.py`, queries without counts through `execution_store.match`, with a pool of 2) for 3 queries on the 300,000 snapshot.
+         - It lists every repository module that worker loaded, together with the files its report binds (`ARTIFACTS`), and compares each with the file at 7179f34 by sha256.
+         - The list and both hashes are recorded in `verification/d43b-count-latency-verdict.json` (`structural_check`). It passes only if every file is identical.
+      2. *Requests without counts through the dispatcher.* Two requests without a count run in rule 4.1's job, same protocol and windows:
+         - **1.1 sequence**: the second seizure (an Nth step), then the first sodium channel blocker within 183 days;
+         - **1.3 coded only**: the same sequence over coded records, with no step condition.
+
+         *It passes only if,* at 14 workers, each request's **pooled median ratio** is at most **1.05**: the candidate's median over all its 12 runs, over the reference's median over its 12.
+
+         The bar is pooled rather than per pair because the only cost the dispatcher adds to such a request is the `has_counts` check. A test shows that such requests never enter the post-pass: `post_pass` and `bind_context` are never called, at 1 or 2 workers, for any profile.
+
+      *The amendment, disclosed* (the coordinator, as the owner's delegate, at the code checkpoint, before any measurement).
+      - The rule as first committed (463ba7c) was D43's: `tools/benchmark_matcher.py --paired-confirm` against 7179f34, at most 1.05 in every pair, p95 at most 10 s.
+      - D43's lesson applies to that rule itself. The benchmark calls `execution_store.match` directly, so both sides would run byte-identical code, and a paired run on a byte-identical path can only measure noise. That is not a valid rule.
+      - It is replaced by 4.2.1 and 4.2.2 above, and the `--paired-confirm` run is dropped from the ruled job, saving about 40 minutes of machine time.
+      - Rule 4.1 and its bars are unchanged; the coordinator kept the Nth-and-count requests at 2.0.
+      - The tool's structural check was tried once, at 1,000 patients with 2 queries, to check that it runs: 15 files, all identical to 7179f34. No timing was involved.
+5. **Not in scope.** D39's `STORE_CODED_ONLY` default stays **false** whatever the outcome; flipping it is a separate decision of the owner's, under D39's rules. Whether D39's rules would now be met is reported.
+6. **Ship rule.** The hook ships only if every rule above holds. If any rule misses, the code is reverted and D43b lands as a record only, as D43 did. A failure is fixed, never tuned away.
+
+*Disclosed before these rules.*
+- *Every figure of D43* is known: its results table, and in particular 31.6 to 32.7 s against 5.0 to 5.2 s for its 1.3 Event frequency request at 300,000.
+- *Development runs of this code before the rules*, none at 300,000 and none of them a ruled run.
+  - *A trial of the tool.* At 1,000 patients (the kept D34 build), 2 workers, 2 repeats, 1 run per request, against 7179f34, to check that the tool runs.
+    - Ratios 1.13 to 2.04, on times of 0.08 to 0.16 s, where fixed costs dominate.
+    - Only STEP_CONDITION_UNCERTAIN results moved (16, 12, 87 and 87).
+    - It showed that the Nth-and-count shape leaves many results undecided: 87 of 205 candidates.
+  - *A profile at 10,000 patients, in one process.*
+    - 1.3 Event frequency: the post-pass took 0.91 s against the module's 0.77 s, with 167 results refined; the witness search was its largest part.
+    - 1.3 Nth and count: 1.57 s against 0.80 s with 901 refined, using chunks of 100. With a single chunk it took 0.69 s.
+    - Each chunk's loads cost about 0.04 s. That is why chunks are cut by the number of results (`_chunk_size`) and not fixed at 100.
+  - *The bars were written after these runs.* They rest on the argument above, not on the trial's ratios. The trial's 2.04 is a pair at 1,000 patients, outside the protocol.
+
+**Independent review of the code, and amendments before any measurement** (on 463ba7c; disclosed). Its probes are in `/tmp/d43b-review/`.
+- *Verdict.* The port and the pooled post-pass are sound: 1,050 checks that the pool gives the in-process answer, 0 differences. Build reuse is intact.
+- *The amendments below change the rules above where they say so; nothing else in the rules changes.*
+- **Must-fix M1: rule 4.1 could pass with a post-pass that does nothing.** The verdict read only the times. If every pooled re-derivation had been skipped (`skipped_mismatch`), nothing would have been refined, the ratio would have been about 1 and the rule would have passed. The answer digest left out the post-pass's tally, which was recorded on the first repeat only and never checked.
+  - *Fixed, and added to rules 4.1 and 4.2.2:* the verdict is met only if the answers check passes (`answers_check`), over every run and worker count:
+    - *each count request:* one answer digest per side (the digest now binds `derived_steps.count_refinement`); the candidate's tally identical in every run and worker count; `refined` above 0 and `skipped_mismatch` 0; only results main leaves STEP_CONDITION_UNCERTAIN moved;
+    - *each request without a count:* one digest per side, the same on both sides, no tally, nothing moved.
+- **Must-fix M2: the leniency in D42's small cases was unconditional.** `gene_coded_cases.refined_count`, added at the checkpoint, accepted any result where D42's reference said STEP_CONDITION_UNCERTAIN, whatever its status or reason. With D42's carve-out, results beside undetermined gene records then went unjudged: the probe found 2 in 12,000 cases.
+  - *Fixed (the strict form the reviewer checked, 0 mismatches over 6,000 cases per generator):* the leniency is removed. D42's small-case harness and its no-change test read the routed module's own answer through the dispatcher with the post-pass off (`store_conditions.COUNT_POST_PASS`, a flag that only tests set), byte for byte against D42's reference, as D42 did.
+  - The post-pass on joint requests is checked against the oracle by rule 1.3, whose snapshot reference covers the joint profile. The no-change test also checks that the dispatcher's answer, with the post-pass on, is the module's answer through the post-pass.
+- **Should-fix, fixed.**
+  - *S1, the reference side's pool workers loaded this tree's code.* Spawned workers re-ran the tool's header, which put this tree in front of the reference's (harmless at 7179f34, whose files are the same, but false).
+    - The tool now puts this tree last, as `benchmark_matcher.import_arm` does.
+    - Each run checks which `execution_store` its pool workers imported, records it (`answers.pool_code`), and stops if it is not the side's own.
+    - A test runs a side at an extracted ref; it fails with the old header.
+  - *S2, the verdict did not enforce the protocol.* It is now met only if 14 workers were run, every one of the six requests was run, the repeats are at least 4 and even, and each request ran at least 3 times per process (`protocol_check`).
+  - *S3, rule 1.3's 2-worker variant rarely sent several units to the pool* (about 5% of requests; none for gene and the joint profile).
+    - *Added to rule 1.3:* the variant now cuts one result to refine per unit (the module's own chunk stays 9), so every request with two or more results to refine sends several units.
+    - How many requests had two or more units with a result refined is reported.
+  - *S4, planted defects caught rarely.*
+    - *Narrowing skipped.* Two catchers are added to rule 1.4:
+      - the brute-force check of `narrow` against a direct count, run on 4,000 families (the suite's 400 already fail under the defect);
+      - the lost-decision check: under a defect, a case that the clean rule decides equal to the truth, and that the defective rule leaves as D32 answered it, is a failure.
+    - *A binding on two copies.* That defect matters only on the relaxed branch.
+      - A seventh generator, `two-counts-relaxed`, is added to rules 1.1 and 1.4: two counts, each with a `widen_count` at cost 0.25, and a budget of 1 or 2.
+      - The guard's firings are reported next to the number caught.
+      - So rule 1.1 has seven generators (at least 140,000 cases), and rule 1.4 at least 28,000 cases per per-patient defect.
+    - *Coverage not reapplied.* The D18 and coverage defects run on 240 requests of the partial-coverage fixture (120 per profile, 1.1 and 1.3), not 80.
+- *Disclosed: a development check, outside the ruled seeds.* 1,500 cases of `two-counts-relaxed`:
+  - the clean rule failed none; the guard fired on 125;
+  - a binding on two copies was caught once, with its guard firing 126 times; on `two-counts` it fired 22 times and was caught 0 times;
+  - narrowing skipped was caught 25 times on `span-multi`, 24 of them by the lost-decision check.
+- *Nits, fixed.*
+  - The comment that planted defects act in the parent only was stale.
+  - The report states that a p95 over the 12 runs of a request is their maximum.
+  - The boundary test's count requests now include gene and the joint profile.
+
+*Order of the ruled runs* (one heavy job at a time under the bench lock):
+1. the small cases and planted defects;
+2. the snapshot differential;
+3. the usefulness report and the rebinds of D36's and D38's usefulness reports;
+4. the count-request latency run: the structural check, then rules 4.1 and 4.2.2 in one ABBA job.
+
+*Reports.* `store_conditions.py`, `store_parity.py`, `gene_no_change.py` and `coded_usefulness.cjs` change, as at 6888d1e.
+- D36's and D38's usefulness reports are rebound by re-running them; every figure must come out identical.
+- D39's coded usefulness report, D42's paired verdict and D42's joint usefulness report record decisions on their own trees and cannot be regenerated here. They are frozen as historical in `tools/check_report_provenance.py`, on D43's precedent. The coordinator signed off as the owner's delegate at the code checkpoint. With the hook removed (the decision below), these freezes are undone.
+
+**Measurement** (after the rules, the rule 4.2 amendment and the review fixes; one job under the bench lock, 2026-11-17, 21:17 to 22:19, on 1aa7dd0; logs in `~/ptm-local/d43b/`).
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1.1 Worlds check, at least 20,000 per generator | 140,000 small cases (seeds `d43b-ruled`, seven generators): **0 violations**. STEP_CONDITION_UNCERTAIN results by generator (span multi, span coupled, period multi, period coupled, during-from-count, two-counts, two-counts-relaxed): 2,270, 2,107, 2,908, 2,399, 2,348, 3,594 and 6,956. Refined: 1,467, 468, 1,843, 562, 718, 854 and 1,004 (6,916 in all, 31%) | met |
+| 1.2 Equal to the truth; the witness | Every one of the 6,916 refined results equals the truth by enumeration, Nth steps beside included. Every refined `possible` has a witness that describes a world. Only STEP_CONDITION_UNCERTAIN results moved, each to decided and complete. Reported: the oracle against enumeration, 13,604 count-only cases, 0 disagreements | met |
+| 1.3 The reference on snapshots | 520 requests through the dispatcher (seeds from 2000; 1.1: 160, 1.2: 50, 1.3: 160, gene: 80, joint: 70), 21,840 patient results: **0 mismatches**, 0 skipped re-derivations. 662 refined (488 `possible`, 109 `relaxed`, 39 `none`; then coverage or D18 made 11 `not_comparable` and 15 `unresolved`); 372 kept. 3 displaced results took the weak check. The 2-worker variant, one result per pool unit, sent several units with a refined result on 157 requests (every profile but the joint fixture's; the joint profile on the cohort once). 2 workers, `decided` and pruning off byte-identical; D39's identity held on all 160 1.3 requests | met |
+| 1.4 Planted defects | Over 28,000 small cases per defect (seeds `d43b-ruled-defect`), failing cases:<br>- narrowing skipped **336** (333 by the lost-decision check), and the brute-force check of `narrow`: 5,600 wrong of 4,000 families, 0 clean;<br>- coupling ignored 67;<br>- certainty from two′ 1,022;<br>- a copy without e's end 41, 28 of them on `during-from-count`;<br>- a binding on two copies **15**, all on `two-counts-relaxed`, its guard firing 346 times there (444 on all generators);<br>- the refinement applied to a decided result 3,611;<br>- any witness 58.<br>On the fixture with partial coverage (240 requests): D18 not reapplied, 133 mismatching results; coverage not reapplied, 9 | each caught |
+| 2 Movement and the pool | Only STEP_CONDITION_UNCERTAIN results moved, in the suite, on the snapshots and at 300,000 (5,010, 4,230, 27,030 and 27,030 results moved on the four count requests, 0 others). The two requests without a count were identical to main's. Requests without a count are byte-identical through the dispatcher (a test, every profile, 1 and 2 workers). The 300 recorded digests are unchanged. The pooled post-pass gave the in-process answer in the suite, on 520 snapshot requests and at 300,000: one answer per request across 14 and 8 workers and every run, tallies identical. The engine, store, converter and condition modules and every file of the D34 build record are byte-identical to 7179f34 | met |
+| **3 Usefulness** (`verification/d43b-coded-usefulness-report.json`) | Seeds 1001 to 1030. **Event frequency under "coded only": 0 of 16 child types unresolved** (D39: 11), 0 of 278 candidates, 0 of 248 without C001. Statuses: exact 172, relaxed 58, possible 25, none 23, as D43 measured. The other four templates have 0 unresolved; under stated findings Event frequency is refused, as before | met |
+| **4.1 Count requests through the dispatcher** (`verification/d43b-count-latency-verdict.json`, against 7179f34) | 14 workers, the candidate's time over main's by pair (reference first, candidate first, reference first, candidate first):<br>- 1.3 Event frequency **3.49, 3.45, 3.59, 3.39** (p95 **17.96 s** against main's 6.14 s);<br>- 1.1 Event frequency **14.93, 14.28, 14.33, 14.09** (p95 58.95 s against 4.10 s);<br>- 1.3 Nth and count 1.58, 1.55, 1.61, 1.54 (p95 8.08 s against 5.04 s);<br>- 1.1 Nth and count 1.79, 1.72, 1.83, 1.70 (p95 7.49 s against 4.06 s).<br>Refined per request: 5,010, 4,230, 27,030 and 27,030; skipped 0. Protocol and answers checks met. 8 workers (reported): 3.24 to 3.29, 12.96 to 13.18, 1.62 to 1.65, 1.80 to 1.83. Peak memory 4.16 GB (main 4.20 GB). The run took 3,081 s | **missed** (both Event frequency requests over 2.0 in every pair; the 10 s bar missed) |
+| 4.2.1 Structural check | 15 files the matcher benchmark's non-count path loaded, every one byte-identical to 7179f34 | met |
+| 4.2.2 Requests without counts through the dispatcher | 14 workers, pooled median ratio: 1.1 sequence **0.993** (pairs 1.016, 0.993, 1.007, 0.984); 1.3 coded only **0.991** (1.007, 0.990, 0.992, 0.990) | met |
+
+*Rebinds.* D36's and D38's usefulness reports were re-run: every figure identical, digests only.
+
+**Post-protocol diagnosis: why 4.1 missed.** These are development runs after the verdict, at 10,000 patients, in one process, outside the protocol. They rule nothing.
+- *The witness search dominates the post-pass.*
+  - For 1.3 Event frequency it took 0.50 s of the post-pass's 0.56 s over 167 patients. One patient alone took 0.44 s: 15 counted seizures and 42 events, with witness choices tried up to `WITNESS_TRIES`.
+  - For 1.1 Event frequency it took 2.55 s of 2.61 s over 141 patients. One patient alone took 2.10 s: 97 events, with a large family for the first step.
+- *The scaling cohort's adjacent replicas concentrate the heaviest patient in one or two units.* Beyond 10,000 patients the cohort replicates each patient 30 times. The replicas lie next to each other in patient order: indices 0 to 29 are `0000-C001` and its 29 replicas. The post-pass cuts units from consecutive results.
+  - So all 30 replicas of the heaviest patient fall into one or two units: about 30 × 0.44 s ≈ 13 s, and 30 × 2.1 s ≈ 63 s, on one worker.
+  - That matches what the post-pass added at 14 workers: about 12 s and 54 s over main's time.
+  - This clustering is an artifact of how the scaling cohort is built.
+- *The per-patient witness cost is real.* 2.1 s for a 97-event patient at 1.1 would hurt any cohort with long histories.
+- *The pool itself works.* The Nth-and-count requests refined 27,030 results each within 1.54 to 1.83 times main's time.
+
+**Decision: D43b does not ship** (the coordinator, as the owner's delegate, applying rule 6 as written). Rule 4.1 missed, on the path the change executes. Every other rule held.
+- *What lands.* Following D43, only the decision log and two frozen records land:
+  - this entry, with D43c queued below;
+  - a note in the store doc's two-pass rule, the roadmap, the mockups README and briefing section 7;
+  - `verification/d43b-count-latency-verdict.json` (rule 4.1 missed; 4.2.1 and 4.2.2 met) and `verification/d43b-coded-usefulness-report.json`, both kept in `HISTORICAL` as frozen records of this decision. They bind files only the retry base holds; the coordinator signed off as delegate.
+- *What does not land.* The hook, `store_conditions_counts.py`, the cases, the tests, the callers, the parity pins, the usefulness tool's binding, `tools/benchmark_count_requests.py` with its test, the CI step and the test-count label all return to main's (7179f34).
+  - The freezes made for D43b (D39's coded usefulness report, D42's paired verdict and joint usefulness report) are undone.
+  - The rebinds of D36's and D38's usefulness reports are undone. Those reports are main's again and current.
+- **Retry base: 0253f87.** It has the pooled post-pass, the review fixes, the `two-counts-relaxed` generator, the lost-decision check and the count-latency tool. It stays in history through a merge commit.
+- `STORE_CODED_ONLY` stays false.
+
+## D43c Counts decided where the two-pass rule leaves them undecided, a second retry: strided pool units and a pruned witness search (queued)
+
+D43b showed that the pooled post-pass works: 27,030 refined results within 1.83 times main's time. Its Event frequency requests missed for two reasons the post-protocol diagnosis traced:
+- a costly witness search on a few patients;
+- the scaling cohort's adjacent replicas, which concentrate the heaviest patient in one or two pool units.
+
+D43c starts from D43b's retry base (0253f87) and changes only the cost.
+
+**What it changes** (two changes, each output-identical).
+1. *Strided unit cuts.* The results to refine go to units by striding, not as runs of consecutive results. D43b's chunk independence already allows this, so no answer can change.
+2. *A pruned witness search.* `_witness` tries only:
+   - counted records that can lie in the count's span (or period) around the interval of the copy bound to the step;
+   - for a `first` or `last` step, events that can be the step's first or last one.
+
+   A choice using any other record or event cannot be feasible, so the first witness found, and every result, stay the same.
+
+**Pre-committed rules** (committed with this entry, before any measurement of D43c).
+1. *Soundness, movement and usefulness:* D43b's rules 1, 2 and 3 as amended, with fresh seeds (`d43c-ruled`, snapshot seeds from 4000), on D43c's code.
+2. **Byte-identical to the retry base.** Through the dispatcher, the post-pass answer of D43c equals 0253f87's byte for byte, in every field:
+   - on every small case of rule 1;
+   - on every snapshot request of rule 1.3, at 1 and 2 workers;
+   - on the four count requests of rule 4.1 at 300,000 patients, compared by D43b's answer digests, which bind the post-pass's tally.
+3. **The pruning is sound against enumeration.** On small cases, for every candidate the pruned search drops, no choice of times places it in a world where the step bound to the copy reaches its count and the query holds; every dropped `first` or `last` event cannot be the step's first or last event.
+   - This is checked by enumeration on at least 20,000 small cases per generator.
+   - A planted defect that prunes one candidate too many must be caught.
+4. **Latency:** D43b's rule 4.1 reused unchanged. The same tool, protocol, snapshot, windows and requests, against main. At 14 workers:
+   - each of the four count requests at most **2.0** in every pair;
+   - the 1.3 Event frequency candidate's p95 at most **10 s**;
+   - the protocol and answers checks met.
+
+   D43b's rules 4.2.1 and 4.2.2 are reused unchanged too.
+5. *Not in scope:* `STORE_CODED_ONLY` stays false.
+6. *Ship rule:* as D43b's. If every rule holds, the hook ships; otherwise D43c lands as a record only.

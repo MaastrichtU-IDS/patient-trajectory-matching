@@ -253,3 +253,22 @@ Cautions on the matching rows:
   - *Why not shipped.* The latency rule missed as written: after the rebase onto D42, two of four paired ratios were 1.185 and 1.064 against 1.05, although both codes ran byte-identical code on the benchmark's path (an earlier run against D41, before that rebase, met the rule and was superseded). Your delegate applied the ship rule, as D39 did, rather than replicate. The rule was also badly designed: it timed requests without counts, which never reach the new code, while the real cost went unruled: a 1.3 count request at 300,000 patients takes about 32 s with the post-pass against 5 s without, because it runs serially. *Lesson:* a latency rule must time the path the change executes.
   - *What lands.* The decision log, documentation and two frozen records. The hook and the code are not in the tree (kept in history at 6888d1e); nothing the store or the page answers changed.
   - *Queued: D43b.* Move the post-pass into the store's worker pool; time count requests through the dispatcher at 300,000 (profiles 1.1 and 1.3), paired against main, beside the usual no-regression run; re-check soundness and usefulness. "Coded only" stays off by default.
+- **D43b, D43 retried in the store's worker pool: built, sound and useful, not shipped.** The post-pass now runs in the store's worker pool. The latency rule timed what the change runs: four count requests through the dispatcher at 300,000 patients, paired against main.
+  - *Latency rule amended before measuring.* Your delegate replaced the paired no-regression run with two checks, because that run compares byte-identical code and can only measure noise:
+    - a structural check that the non-count path loads only files identical to main's;
+    - timing of two requests without a count through the dispatcher.
+  - *Evidence.* An independent review's two must-fixes were fixed before measuring: the latency verdict could have passed with a post-pass that did nothing, and a test leniency was too broad.
+    - No wrong claim in 140,000 small cases (seven generators); every decided result equals the truth.
+    - 0 mismatches on 520 snapshot requests.
+    - Every planted defect is caught.
+    - The pool gives the same answer at any worker count.
+  - *Usefulness.* Event frequency under "coded only": 0 of 16 child types unresolved, as in D43.
+  - *Why not shipped.* Count requests had to stay within 2 times main's time.
+    - The Nth-and-count requests did: 1.5 to 1.8, with 27,030 results decided each.
+    - The two Event frequency requests did not: 3.4 to 3.6 times for coded only (p95 18 s) and about 14 times with letters.
+    - Requests without a count were unaffected: 0.99 of main's time.
+  - *The cause, found after the verdict.*
+    - A few patients with long histories make the witness search costly; one took 2.1 s alone.
+    - The scaling cohort's 30 copies of each patient sit side by side, so all copies of the costliest patient landed on one worker. That clustering is an artifact of how the test cohort is built, but the per-patient cost is real.
+  - *What lands.* The decision log, documentation and two frozen records. The code is kept in history at 0253f87; nothing the store or the page answers changed.
+  - *Queued: D43c.* Spread the work across workers by striding, and prune the witness search to the candidates that can matter. Both changes must leave every answer byte-identical, and the same latency rule applies unchanged. "Coded only" stays off by default.
