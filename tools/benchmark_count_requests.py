@@ -31,6 +31,16 @@ at most 1.05 (pooled median); no identity run; the candidate's answers equal mai
 tally (the scaling snapshot holds no excluded record, so D44's mark cannot apply, while the post-pass's comparison
 that reads an answer without the mark runs on every result it refines); the structural check is reported, not ruled
 (`execution_store.py` differs from main by design).
+
+`--rules d44b` (decision log, D44b, rule 6.2) is D44's with the per-pair bar **control-normalised** (the D44 lesson: a
+per-pair bar of 1.05 sits below this machine's noise floor). In each ABBA pair at 14 workers, each count request's
+candidate-over-main ratio is divided by the geometric mean of the same pair's ratios for the two requests without a
+count (`NO_COUNT_REQUESTS`, which run no changed code, timed in the same processes); the bar, at most 1.05, applies to
+that normalised ratio. The controls' own pooled medians are reported, not ruled. The 1.3 Event frequency p95 (at most
+10 s), the answers, tally and protocol checks stay. A micro-measure bounds the changed code's own cost (`micro`): the
+post-pass's comparison without the mark (`store_conditions_counts.unmarked`), timed call by call over every row it
+compares, with each count request run once through the dispatcher in one process (one worker) by this tree; its total
+must be at most 1% of the request's median time at 14 workers (the timer's own overhead is counted, so it bounds).
 """
 from __future__ import annotations
 
@@ -130,8 +140,13 @@ ABSOLUTE_BAR = {'request': '1.3 event frequency', 'p95_seconds': 10.0}  # D43b r
 NO_COUNT_BAR = 1.05  # a request without a count: pooled median ratio over the pairs (D43b rule 4.2b)
 RULES = {'d43c': {'ratio_bar': RATIO_BAR, 'identity_ref': True, 'answers_equal_main': False, 'structural_ruled': True},
          # D44 rule 6.2: the same protocol against main, the bar 1.05, the answers main's (see the docstring)
-         'd44': {'ratio_bar': 1.05, 'identity_ref': False, 'answers_equal_main': True, 'structural_ruled': False}}
-OUTPUTS = {'d43c': 'verification/d43b-count-latency-verdict.json', 'd44': 'verification/d44-count-latency-verdict.json'}
+         'd44': {'ratio_bar': 1.05, 'identity_ref': False, 'answers_equal_main': True, 'structural_ruled': False},
+         # D44b rule 6.2: D44's, the per-pair bar on the control-normalised ratio, the controls reported, a micro-measure
+         'd44b': {'ratio_bar': 1.05, 'identity_ref': False, 'answers_equal_main': True, 'structural_ruled': False,
+                  'normalised': True, 'micro': True}}
+OUTPUTS = {'d43c': 'verification/d43b-count-latency-verdict.json', 'd44': 'verification/d44-count-latency-verdict.json',
+           'd44b': 'verification/d44b-count-latency-verdict.json'}
+MICRO_SHARE = 0.01  # D44b: the changed code's measured cost at most 1% of the request's median time at 14 workers
 
 WINDOWS_SQL = """
     WITH s AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo FROM events e
@@ -217,6 +232,55 @@ def worker(args):
     return out
 
 
+def micro_worker(args):
+    """D44b: each count request once through `store_conditions.match` (this tree, one worker, `decided`), with
+    `store_conditions_counts.unmarked` timed call by call (the timer's overhead included)."""
+    from patterns import execution_store as es
+    from patterns import store_conditions as sc
+    from patterns import store_conditions_counts as scn
+    store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
+    out = {}
+    try:
+        windows = windows_of(store)
+        real = scn.unmarked
+        for name in args.requests:
+            if name in NO_COUNT_REQUESTS:
+                continue
+            query, conditions = REQUESTS[name]
+            spent = {'calls': 0, 'seconds': 0.0}
+
+            def timed(answer, v1):
+                t = time.perf_counter()
+                try:
+                    return real(answer, v1)
+                finally:
+                    spent['seconds'] += time.perf_counter() - t
+                    spent['calls'] += 1
+            scn.unmarked = timed
+            try:
+                started = time.perf_counter()
+                answer = sc.match(store, query, windows, detail='decided', workers=1, conditions=conditions)
+                spent['match_seconds_one_worker'] = time.perf_counter() - started
+                spent['refined'] = tally_of(answer)['refined']
+            finally:
+                scn.unmarked = real
+            out[name] = spent
+    finally:
+        es.close_pools()
+        store.close()
+    return out
+
+
+def run_micro(args):
+    out = Path(tempfile.mkdtemp(prefix='count-latency-micro-')) / 'out.json'
+    subprocess.run([sys.executable, str(Path(__file__).resolve()), '--micro-worker', '--snapshot', args.snapshot_path,
+                    '--memory-limit', args.memory_limit, '--worker-output', str(out), '--requests', *args.requests],
+                   cwd=ROOT, check=True, timeout=args.budget_seconds)
+    result = json.loads(out.read_text())
+    shutil.rmtree(out.parent, ignore_errors=True)
+    return result
+
+
 def run_side(code_root, args, workers, keep=None):
     out = Path(tempfile.mkdtemp(prefix='count-latency-run-')) / 'out.json'
     command = [sys.executable, str(Path(__file__).resolve()), '--worker', '--code-root', str(code_root),
@@ -278,6 +342,8 @@ def protocol_check(workers, requests, repeats, runs, identity_ref=None, rules='d
     protocol includes the identity run against the retry base (`--identity-ref`), which D44's rules do not have."""
     out = {'ruled_workers_run': RULED_WORKERS in workers, 'every_request_run': sorted(requests) == sorted(REQUESTS),
            'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'runs_at_least_3': runs >= 3}
+    if RULES[rules].get('normalised'):  # D44b: both controls run beside the count requests
+        out['controls_run'] = all(name in requests for name in NO_COUNT_REQUESTS)
     if RULES[rules]['identity_ref']:
         out['identity_ref_run'] = bool(identity_ref)
     out['met'] = all(out.values())
@@ -324,8 +390,33 @@ def answers_check(records, movement_of, requests, rules='d43c'):
     return {'requests': out, 'met': bool(out) and all(r['met'] for r in out.values())}
 
 
+def normalised_of(stats, requests, ruled=RULED_WORKERS):
+    """D44b: {count request: [its ratio over the geometric mean of the controls' ratios, pair by pair]} at `ruled`
+    workers; the controls are the requests without a count (`NO_COUNT_REQUESTS`), timed in the same processes."""
+    import math
+    at = stats[str(ruled)]['requests']
+    controls = [at[name]['ratio_by_repeat'] for name in NO_COUNT_REQUESTS]
+    gmean = [math.prod(ratios) ** (1 / len(ratios)) for ratios in zip(*controls)]
+    return {name: [r / g for r, g in zip(at[name]['ratio_by_repeat'], gmean, strict=True)]
+            for name in requests if name not in NO_COUNT_REQUESTS}, gmean
+
+
+def micro_check(micro, stats, ruled=RULED_WORKERS, share=MICRO_SHARE):
+    """D44b: each count request's measured `unmarked` seconds at most `share` of its candidate median at `ruled`
+    workers."""
+    at = stats[str(ruled)]['requests']
+    rows = {}
+    for name, m in (micro or {}).items():
+        median = at[name]['candidate']['p50_seconds']
+        rows[name] = {**m, 'request_median_seconds': median, 'share': m['seconds'] / median,
+                      'met': m['calls'] > 0 and m['seconds'] <= share * median}
+    return {'share_bar': share, 'requests': rows,
+            'met': bool(rows) and sorted(rows) == sorted(n for n in at if n not in NO_COUNT_REQUESTS)
+            and all(r['met'] for r in rows.values())}
+
+
 def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolute=ABSOLUTE_BAR,
-               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None, identity=None):
+               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None, identity=None, normalised=False, micro=None):
     """D43b rules 4.1 and 4.2b at `ruled` workers. 4.1: every count request's ratio at most `ratio_bar` in every pair,
     and the absolute request's candidate p95 over all its runs at most the bar. 4.2b: every request without a count has
     a pooled median ratio (the candidate's median over all its runs, over the reference's) at most `no_count_bar`. No
@@ -336,6 +427,10 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
     plain = [name for name in requests if name in NO_COUNT_REQUESTS]
     ratios = {name: {'ratio_by_repeat': at[name]['ratio_by_repeat'],
                      'every_pair_at_most': all(r <= ratio_bar for r in at[name]['ratio_by_repeat'])} for name in counted}
+    if normalised:  # D44b: the bar on the control-normalised ratio; the raw ratio reported beside it
+        by, gmean = normalised_of(stats, requests, ruled)
+        ratios = {name: {'ratio_by_repeat': at[name]['ratio_by_repeat'], 'normalised_by_repeat': by[name],
+                         'every_pair_at_most': all(r <= ratio_bar for r in by[name])} for name in counted}
     p95 = at[absolute['request']]['candidate']['p95_seconds']
     rule_41 = {'ratio_bar': ratio_bar, 'ratios': ratios,
                'absolute': {**absolute, 'candidate_p95_seconds': p95, 'met': p95 <= absolute['p95_seconds']}}
@@ -344,6 +439,8 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
         name: {'ratio_median_pooled': at[name]['ratio_median_pooled'], 'ratio_by_repeat': at[name]['ratio_by_repeat'],
                'met': at[name]['ratio_median_pooled'] <= no_count_bar} for name in plain}}
     rule_42b['met'] = all(r['met'] for r in rule_42b['requests'].values())
+    if normalised:  # D44b: the requests without a count are the controls, reported
+        rule_42b.update(ruled=False, controls_geometric_mean_by_repeat=gmean)
     protocol = protocol or {'met': False}
     answers = answers or {'met': False}
     if identity == 'not ruled':  # D44: no identity run; the answers check compares with main instead
@@ -351,9 +448,13 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
     else:
         rule_2 = {'met': bool(identity) and identity['met'],
                   'requests': {} if not identity else {n: r['identical'] for n, r in identity['requests'].items()}}
-    return {'workers': ruled, 'protocol': protocol, 'answers': {'met': answers['met']}, 'rule_2': rule_2,
-            'rule_4_1': rule_41, 'rule_4_2b': rule_42b,
-            'met': protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and rule_42b['met']}
+    out = {'workers': ruled, 'protocol': protocol, 'answers': {'met': answers['met']}, 'rule_2': rule_2,
+           'rule_4_1': rule_41, 'rule_4_2b': rule_42b,
+           'met': protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and rule_42b['met']}
+    if normalised:
+        out['micro'] = micro_check(micro, stats, ruled)
+        out['met'] = protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and out['micro']['met']
+    return out
 
 
 # D43b rule 4.2a: the matcher benchmark's path (requests without counts through `execution_store.match`) loads only
@@ -499,6 +600,10 @@ def paired(args):
                                       for side in ('reference', 'candidate')}}
         if args.identity_ref:
             identity['with_identity_ref'] = identity_with_ref(args, scratch, records, ruled)
+        micro = None
+        if RULES[args.rules].get('micro'):
+            print('micro-measure of unmarked (D44b) ...', file=sys.stderr, flush=True)
+            micro = run_micro(args)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     rules = RULES[args.rules]
@@ -506,7 +611,8 @@ def paired(args):
                          protocol=protocol_check(args.workers, args.requests, args.repeats, args.runs,
                                                  args.identity_ref, args.rules),
                          answers=identity['check'],
-                         identity=identity.get('with_identity_ref') if rules['identity_ref'] else 'not ruled')
+                         identity=identity.get('with_identity_ref') if rules['identity_ref'] else 'not ruled',
+                         normalised=rules.get('normalised', False), micro=micro)
     verdict['rules'] = args.rules
     verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files']),
                             'ruled': rules['structural_ruled'],
@@ -554,6 +660,7 @@ def main(argv=None):
                         '--rules d43c, verification/d44-count-latency-verdict.json under --rules d44')
     parser.add_argument('--rules', choices=sorted(RULES), default='d43c', help="the bars and checks: D43b/D43c's, or D44's")
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--micro-worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
     parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)
@@ -561,6 +668,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.worker:
         args.worker_output.write_text(json.dumps(worker(args)))
+        return 0
+    if args.micro_worker:
+        args.worker_output.write_text(json.dumps(micro_worker(args)))
         return 0
     if args.output is None:  # D44 review, S2: never a frozen record by default
         args.output = ROOT / OUTPUTS[args.rules]

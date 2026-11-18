@@ -186,6 +186,44 @@ class D44RulesTests(unittest.TestCase):
         self.assertTrue(bc.answers_check(records(1.0), moved(), NAMES)['met'])  # D43c's rules allow both
 
 
+class D44bRulesTests(unittest.TestCase):
+    """D44b rule 6.2 (`--rules d44b`): the per-pair bar on the ratio normalised by the controls' geometric mean (the
+    requests without a count, same processes), the controls reported, and the micro-measured cost bound."""
+
+    def verdict(self, slow, plain, micro):
+        stats = bc.statistics_of(records(slow, plain=plain), NAMES)
+        return bc.verdict_of(stats, NAMES, ratio_bar=bc.RULES['d44b']['ratio_bar'], protocol=MET, answers=MET,
+                             identity='not ruled', normalised=True, micro=micro)
+
+    def micro(self, seconds=0.01):
+        return {n: {'calls': 27030, 'seconds': seconds} for n in bc.COUNT_REQUESTS}
+
+    def test_normalised_by_the_controls(self):
+        by, gmean = bc.normalised_of(bc.statistics_of(records(1.06, plain=1.06), NAMES), NAMES)
+        self.assertAlmostEqual(gmean[0], 1.06)
+        self.assertTrue(all(abs(r - 1.0) < 1e-9 for rs in by.values() for r in rs))
+        drift = self.verdict(1.06, 1.06, self.micro())  # the session drifted: both moved together
+        self.assertTrue(drift['rule_4_1']['met'])
+        self.assertTrue(drift['met'])
+        self.assertFalse(drift['rule_4_2b']['ruled'])
+        self.assertFalse(drift['rule_4_2b']['met'])  # the controls' own bar, reported only
+        slower = self.verdict(1.12, 1.06, self.micro())  # 1.12 / 1.06 = 1.057
+        self.assertFalse(slower['rule_4_1']['met'])
+        self.assertFalse(slower['met'])
+        self.assertAlmostEqual(slower['rule_4_1']['ratios']['1.3 event frequency']['ratio_by_repeat'][0], 1.12)
+
+    def test_the_micro_measured_bound(self):
+        self.assertTrue(self.verdict(1.0, 1.0, self.micro(0.01))['micro']['met'])  # 0.01 s of a ~5.1 s median
+        over = self.verdict(1.0, 1.0, self.micro(0.06))  # over 1%
+        self.assertFalse(over['micro']['met'])
+        self.assertFalse(over['met'])
+        self.assertFalse(self.verdict(1.0, 1.0, None)['met'])  # not measured
+        self.assertFalse(self.verdict(1.0, 1.0, {n: {'calls': 0, 'seconds': 0.0} for n in bc.COUNT_REQUESTS})['met'])
+        self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, None, 'd44b')['met'])
+        self.assertFalse(bc.protocol_check([14, 8], bc.COUNT_REQUESTS, 4, 3, None, 'd44b')['met'])
+        self.assertEqual(bc.OUTPUTS['d44b'], 'verification/d44b-count-latency-verdict.json')
+
+
 class MovementTests(unittest.TestCase):
     def test_only_uncertain_results_may_move(self):
         uncertain = {'patient_id': 'b', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN'}

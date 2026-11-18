@@ -8,7 +8,7 @@ MIMIC-IV demo does: 448,419 excluded records (admission's left-out inputevents a
 differentials' requests reach them on most results.
 
     python tools/benchmark_exclusions.py --input-dir data/local-mimic/icu --reference main \\
-        --work-dir ~/ptm-local/d44/exclusions --output verification/d44-exclusions-latency-verdict.json
+        --work-dir ~/ptm-local/d44b/exclusions --output verification/d44b-exclusions-latency-verdict.json
 
 - The demo is converted (`mimic_store_ingest.convert`, chartevents included) and built once, by this tree (the build is
   main's code byte for byte; only matching changed), into `--work-dir`.
@@ -255,7 +255,7 @@ def main(argv=None):
     parser.add_argument('--convert-workers', type=int, default=8)
     parser.add_argument('--keep-requests', action='store_true')
     parser.add_argument('--limit', type=int, help='run only the first N requests (a trial of the tool; no verdict)')
-    parser.add_argument('--output', type=Path, default=ROOT / 'verification/d44-exclusions-latency-verdict.json')
+    parser.add_argument('--output', type=Path, default=ROOT / 'verification/d44b-exclusions-latency-verdict.json')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
