@@ -46,6 +46,20 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(dm.classify({'status': 'possible'}, {'status': 'possible', 'note': 'X'}), 'other')
 
 
+class StructuralTests(unittest.TestCase):
+    """Rule 6.1a's comparison of definitions: by the AST, comments, docstrings and moved statements aside."""
+
+    def test_definitions(self):
+        old = '"""doc."""\nimport os\nA = 1\n\ndef f():\n    return A\n\ndef g():\n    return 2\n\nclass C:\n    def m(self):\n        return 1\n'
+        new = ('"""changed doc."""\nA = 2  # a comment\nimport os\n\ndef f():\n    return A\n\ndef g():\n    return 3\n\n'
+               'class C:\n    def m(self):\n        return 2\n\ndef h():\n    return A\n')
+        mine, reads = dm.top_level(new)
+        theirs, _ = dm.top_level(old)
+        changed = sorted(k for k in set(mine) | set(theirs) if mine.get(k) != theirs.get(k))
+        self.assertEqual(changed, ['A#value', 'C.m', 'g', 'h'])
+        self.assertEqual(sorted(f for f, r in reads.items() if 'A' in r), ['f', 'h'])
+
+
 class ExclusionsVerdictTests(unittest.TestCase):
     """Rule 6.3's verdict: every pair at most 1.05, at least 4 repeats and every request, the rule run on enough
     results with an `unresolved` one among them, nothing changed but the mark."""

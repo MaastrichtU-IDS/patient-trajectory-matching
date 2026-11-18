@@ -3476,13 +3476,14 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
      - every MIMIC demo figure other than identifiers, digests, artifact bindings, timings and resources equals the committed report's. MIMIC's movement is counted by rule 6.3's structure pass.
 5. **MIMIC differential.** In the regenerated MIMIC demo report, 0 mismatches between store and reference on every differential (base, value, derived, relative), as in D27 and D28; pruning on and off identical; the containment checks met.
 6. **Latency, on the paths the change executes.**
-   1. *The matcher path* (the coordinator's rule). `tools/benchmark_matcher.py --paired-confirm` against main at 300,000 patients (the fresh build), 30 queries, 4 repeats, 14 and 8 workers:
-      - the 14-worker paired p95 ratio is at most **1.05** in every pair;
-      - this tree's 14-worker p95 is at most **10 s**;
-      - the maximum is at most 30 s, and query-process memory is under 4 GB;
-      - the 8-worker figures are reported.
+   1. *The matcher path.* *Amended before any measurement* (below): a structural rule, with the paired run reported.
+      - **6.1a (ruled, structural).** `tools/d44_measure.py structural --snapshot <the fresh 300,000 build> --queries 30 --main e0b7ea9`:
+        - every repository file the matcher benchmark's worker loads is byte-identical to main, or differs from main only in functions and methods (by the AST, comments and docstrings aside) and in module-level names that only those changed definitions read, or that `CONTEXT_ONLY` names. That is `EXCLUSION_RULE`, whose value reaches only the answer's `exclusion_rule` and its context, never a result nor the matcher's digests;
+        - the worker (`tools/benchmark_matcher.py`, the paired run's 30 queries at the engine's default budget, through `execution_store.match`, in one process so that every call is counted) runs over the snapshot with a call counter on every changed or added function and method of those files, and **every counter reads 0**;
+        - the files it loads with the counters are the files it loaded without them.
+      - **6.1b (reported, not ruled).** `tools/benchmark_matcher.py --paired-confirm` against main at 300,000 patients (the fresh build), 30 queries, 4 repeats, 14 and 8 workers. Its paired p95 ratios, this tree's p95, maximum and memory are reported beside 6.1a in the verdict, as a guard. The D21 target's figures (p95 at most 10 s at 14 workers) are reported, not ruled here.
 
-      *Confirmed not to execute the changed lines:* the scaling snapshots hold no excluded record, so `_excluded_starts` (unchanged) finds none and `apply_exclusions` is never called. The rule guards the matcher path, whose `execution_store.py` changed; rules 6.2 and 6.3 time what the change runs.
+      The scaling snapshots hold no excluded record, so `_excluded_starts` (unchanged) finds none and `apply_exclusions` is never called on this path. Rules 6.2 and 6.3 time what the change runs.
    2. *Count requests through the dispatcher.* `tools/benchmark_count_requests.py --rules d44 --reference e0b7ea9` on the fresh 300,000 build, with D43b's requests, windows, protocol and worker counts:
       - every count request at most **1.05** of main's time in every pair at 14 workers;
       - the 1.3 Event frequency p95 at most **10 s**;
@@ -3501,6 +3502,13 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
    - The MIMIC demo report.
    - D36's, D38's and D43c's usefulness reports, re-run and rebound.
    - New: `verification/d44-count-latency-verdict.json` and `verification/d44-exclusions-latency-verdict.json`.
-   - *For sign-off:* `verification/d43c-count-latency-verdict.json` binds `execution_store.py`. It records D43c's decision and is frozen as historical, superseded by D44's count verdict, on the D32, D34, D41 and D43c precedent.
+   - *Signed off* (the coordinator as delegate, at the code checkpoint): `verification/d43c-count-latency-verdict.json` binds `execution_store.py`. It records D43c's decision and is frozen as historical, superseded by `verification/d44-count-latency-verdict.json`, on the D32, D34, D41 and D43c precedent.
    - One heavy job at a time, under the bench lock.
-9. **Ship rule.** D44 ships only if every rule above holds. A miss means the change is reverted and D44 lands as a record only. The revert covers the rule, the reference, the post-pass comparison, the checker's reading and the harness changes. The two bundled follow-ups change no result and land either way. A failure is fixed, never tuned away.
+9. **Ship rule.** D44 ships only if every rule above holds (rule 6.1 as amended: 6.1a ruled, 6.1b reported). A miss means the change is reverted and D44 lands as a record only. The revert covers the rule, the reference, the post-pass comparison, the checker's reading and the harness changes. The two bundled follow-ups change no result and land either way (agreed by the coordinator as delegate at the code checkpoint). A failure is fixed, never tuned away.
+
+**Amendment before any measurement: rule 6.1 becomes structural** (disclosed; signed off by the coordinator as the owner's delegate at the code checkpoint, while the independent review of 1399c10 runs).
+- *Why.* The checkpoint found that the matcher paired run never executes `apply_exclusions`: the scaling snapshots hold no excluded record. D43 showed that a per-pair timing rule on a path the change never runs can only measure noise, and D43b replaced such a rule with a structural check. Rule 6.1 does the same: 6.1a, ruled, shows mechanically and by an instrumented run that the matcher path never runs what changed; 6.1b keeps the paired run as a reported guard. Rules 6.2 and 6.3, which time the changed paths, stay ruled and unchanged.
+- *The tool* (`tools/d44_measure.py structural`, after D43b's `structural_check`): it compares each loaded file with main by the AST, puts a call counter on every changed or added function and method, and runs the matcher benchmark's worker in one process. A test covers the comparison (`tools/test_d44_tools.StructuralTests`).
+- *Disclosed: a smoke run* on the kept D34 build of 1,000 patients (3 queries), to check that the tool runs; not ruled. It loaded 12 repository files. Three differ from main: `execution_store.py` (`apply_exclusions`, `_mark_beside`, `_with_note`; names `BESIDE`, `MAY_MAKE_EXACT`, `_D44_DEFECT`, read only by those, and `EXCLUSION_RULE`, read by `match` and `match_context` for the answer's field and context), `execution_store_reference.py` (the benchmark's helpers import it) and `test_execution_store.py` (the query generator's module; three new tests). Every counter read 0. `store_conditions_counts.py` is not loaded on this path.
+
+**What the mark means: "may", not "would".** The mark is set by D18's reach test, the one that makes a `possible` result incomplete, not by a test of whether a record could in fact make the match exact. It can therefore mark a match that no record could make exact: it over-states the uncertainty, and never creates a wrong `exact` or a wrong `none`. The note says that excluded records *may* make the match exact. A cheaper exact test, if a review finds one, could tighten it later (the coordinator's note at the checkpoint).

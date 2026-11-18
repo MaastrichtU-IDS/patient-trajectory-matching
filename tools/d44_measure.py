@@ -4,6 +4,7 @@
     python tools/d44_measure.py worlds --first 44000 --snapshots 20 --gene-first 4400000 --gene-cases 20000
     python tools/d44_measure.py defects --first 45000 --snapshots 4 --gene-first 4500000 --gene-cases 4000
     python tools/d44_measure.py reference --first 44000
+    python tools/d44_measure.py structural --snapshot SNAPSHOT --queries 30
     (each with --main REF, the code the movement is measured against, and --output FILE)
 
 - `worlds` (rule 1): the worlds check with no carve-out on D39's coded-only snapshots (`coded_only_cases`, both
@@ -22,6 +23,8 @@
   coverage 1.1, 1.3; gene fixture gene, 1.3, joint) against D43's oracle (`count_narrowing_cases.snapshot_compare`:
   the D32 reference with the oracle's truth for each STEP_CONDITION_UNCERTAIN patient, coverage and D18 reapplied, its
   variants included).
+- `structural` (rule 6.1a, amended before any measurement): the matcher benchmark's path never runs what D44 changed
+  (`structural`).
 - Movement (rule 4), in every run: each call of the excluded-records rule (`execution_store.apply_exclusions`) in this
   process is also answered by MAIN's (`--main`, loaded from `git show REF:patterns/execution_store.py`), and the two
   answers are classified (`classify`): equal; this tree's is MAIN's with D44's mark (the note
@@ -36,6 +39,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import contextlib
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -349,17 +353,155 @@ def reference(args, shadow):
     return {p: t.summary() for p, t in profiles.items()}
 
 
+# Rule 6.1a (amended before any measurement): the matcher path never runs what D44 changed.
+
+def top_level(source):
+    """{name: canonical source} of a module's top-level definitions: functions, classes' methods (as Class.method) and
+    assigned names; and {function name: names it reads}."""
+    import ast
+    tree = ast.parse(source)
+    out, reads = {}, {}
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            out[node.name] = ast.dump(node)
+            reads[node.name] = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+        elif isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    name = f'{node.name}.{item.name}'
+                    out[name] = ast.dump(item)
+                    reads[name] = {n.id for n in ast.walk(item) if isinstance(n, ast.Name)}
+            out[node.name + '#class'] = ast.dump(ast.ClassDef(name=node.name, bases=node.bases, keywords=node.keywords,
+                                                              body=[], decorator_list=node.decorator_list))
+        elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for t in targets:
+                for n in ast.walk(t):
+                    if isinstance(n, ast.Name):
+                        out[n.id + '#value'] = ast.dump(node)
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            continue  # a docstring or bare string: not code
+        else:
+            dumped = ast.dump(node)  # keyed by content, so that a statement merely moved is not a change
+            out[f'#{type(node).__name__}:{hashlib.sha256(dumped.encode()).hexdigest()[:12]}'] = dumped
+    return out, reads
+
+
+def changed_definitions(path, ref):
+    """(changed or added functions and methods, changed or added module-level names, {name: functions reading it}) of
+    one file, this tree against `git show ref:path`, by the AST (comments and layout aside)."""
+    mine, reads = top_level((ROOT / path).read_text())
+    shown = subprocess.run(['git', 'show', f'{ref}:{path}'], cwd=ROOT, capture_output=True, text=True)
+    theirs, _ = top_level(shown.stdout) if shown.returncode == 0 else ({}, {})
+    names = sorted(k for k in set(mine) | set(theirs) if mine.get(k) != theirs.get(k))
+    functions = [k for k in names if '#' not in k and k in mine]
+    values = [k.split('#')[0] for k in names if k.endswith('#value')]
+    other = [k for k in names if '#' in k and not k.endswith('#value')]
+    readers = {v: sorted(f for f, r in reads.items() if v in r) for v in values}
+    return functions, values, readers, other
+
+
+INSTRUMENTED_SCRIPT = """
+import json, sys, types
+from pathlib import Path
+root = Path(sys.argv[1]).resolve()
+targets = json.loads(sys.argv[4])  # {module: [function or Class.method]}
+sys.path.insert(0, str(root / 'tools'))
+sys.path.insert(0, str(root))
+import importlib
+calls = {}
+for module, names in targets.items():
+    m = importlib.import_module(module)
+    for name in names:
+        owner, attr = (getattr(m, name.split('.')[0]), name.split('.')[1]) if '.' in name else (m, name)
+        real = getattr(owner, attr)
+        key = module + ':' + name
+        calls[key] = 0
+        def counted(*a, _real=real, _key=key, **k):
+            calls[_key] += 1
+            return _real(*a, **k)
+        setattr(owner, attr, counted)
+import benchmark_matcher as bm
+args = types.SimpleNamespace(code_root=str(root), queries=int(sys.argv[3]), budget_policy=bm.DEFAULT_BUDGET_POLICY,
+                             no_prune=False, no_prune_ends=False, snapshot=sys.argv[2], memory_limit='4GB',
+                             detail='full', arm_workers=1, repeats=1)
+out = bm.worker(args)
+files = set()
+for module in list(sys.modules.values()):
+    path = getattr(module, '__file__', None)
+    if path and Path(path).resolve().is_relative_to(root):
+        files.add(str(Path(path).resolve().relative_to(root)))
+print(json.dumps({'calls': calls, 'files': sorted(files), 'queries': len(out['runs'][0]),
+                  'listed_results': sum(r['listed_results'] for r in out['runs'][0])}))
+"""
+
+
+def structural(args):
+    """Rule 6.1a. The matcher benchmark's worker (`tools/benchmark_matcher.py`, the paired run's queries at the
+    engine's default budget, `execution_store.match`, in one process so that every call is counted) runs over the
+    snapshot with a call counter on every function or method D44 changed or added in a repository file it loads. Met
+    when: every file it loads is byte-identical to main or changed only in such definitions and in module-level names
+    that only changed definitions read (or that are named as reaching only the answer's context, `CONTEXT_ONLY`); and
+    every counter reads 0."""
+    first = subprocess.run([sys.executable, '-c', INSTRUMENTED_SCRIPT, str(ROOT), args.snapshot, '1', '{}'], cwd=ROOT,
+                           capture_output=True, text=True, check=True)
+    files = json.loads(first.stdout.strip().splitlines()[-1])['files']
+    rows, targets = [], {}
+    for path in files:
+        mine = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+        shown = subprocess.run(['git', 'show', f'{args.main}:{path}'], cwd=ROOT, capture_output=True)
+        theirs = hashlib.sha256(shown.stdout).hexdigest() if shown.returncode == 0 else None
+        row = {'path': path, 'identical': mine == theirs}
+        if not row['identical'] and path.endswith('.py'):
+            functions, values, readers, other = changed_definitions(path, args.main)
+            module = path[:-3].replace('/', '.')
+            row.update(changed_functions=functions, changed_names=values, readers=readers, other_changes=other)
+            changed = set(functions)
+            row['names_confined'] = all(
+                v in CONTEXT_ONLY.get(path, ()) or set(readers[v]) <= changed for v in values)
+            row['confined'] = row['names_confined'] and not other
+            if functions:
+                targets[module] = functions
+        rows.append(row)
+    run = subprocess.run([sys.executable, '-c', INSTRUMENTED_SCRIPT, str(ROOT), args.snapshot, str(args.queries),
+                          json.dumps(targets)], cwd=ROOT, capture_output=True, text=True, check=True)
+    counted = json.loads(run.stdout.strip().splitlines()[-1])
+    out = {'snapshot': args.snapshot, 'queries': counted['queries'], 'listed_results': counted['listed_results'],
+           'files': rows, 'calls': counted['calls'],
+           'every_other_file_identical': all(r['identical'] or r.get('confined') for r in rows),
+           'zero_calls': all(n == 0 for n in counted['calls'].values()),
+           'files_loaded_match': sorted(counted['files']) == sorted(files)}
+    out['met'] = out['every_other_file_identical'] and out['zero_calls'] and out['files_loaded_match'] \
+        and out['queries'] >= args.queries
+    return out
+
+
+# Module-level names whose new value reaches only the answer's own fields and context (stated in the rule), not any
+# result: the excluded-records rule's identifier, read by `match_context` and the answer's `exclusion_rule`.
+CONTEXT_ONLY = {'patterns/execution_store.py': ('EXCLUSION_RULE',)}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
-    parser.add_argument('what', choices=('worlds', 'defects', 'reference'))
+    parser.add_argument('what', choices=('worlds', 'defects', 'reference', 'structural'))
     parser.add_argument('--main', default='main', help='git ref of the code movement is measured against')
     parser.add_argument('--first', type=int, default=44_000, help='first seed (snapshots, requests)')
     parser.add_argument('--snapshots', type=int, default=20, help='small snapshots per generator (1,000 cases each)')
     parser.add_argument('--gene-first', type=int, default=4_400_000, help="first seed of D38's gene cases")
     parser.add_argument('--gene-cases', type=int, default=20_000, help="D38's gene cases per generator")
     parser.add_argument('--requests', type=int, default=40, help='snapshot requests per cohort (and feature)')
+    parser.add_argument('--snapshot', help='structural: the snapshot (the fresh 300,000 build)')
+    parser.add_argument('--queries', type=int, default=30, help="structural: the matcher benchmark's queries")
     parser.add_argument('--output', type=Path)
     args = parser.parse_args(argv)
+    if args.what == 'structural':
+        out = {'structural': structural(args), 'main': args.main}
+        text = json.dumps(out, indent=1)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(text + '\n')
+        print(text)
+        return 0 if out['structural']['met'] else 1
     commit, main_es = load_main(args.main)
     shadow = Shadow(main_es)
     started = time.monotonic()

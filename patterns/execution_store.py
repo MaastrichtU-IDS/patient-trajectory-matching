@@ -2824,7 +2824,8 @@ def _with_note(m, note):
 def _mark_beside(result, steps):
     """D44: an `unresolved` result whose match beside it claims `possible` (no binding of its set is exact), when some
     step reaches an excluded record (`steps`, non-empty): the match gains the note EXCLUDED_RECORDS_MAY_MAKE_EXACT and
-    the result names the steps (`excluded_steps`, if it does not already). Nothing else changes."""
+    the result names the steps (`excluded_steps`, if it does not already). Nothing else changes. The note means "may":
+    reach over-approximates, so a match no record could make exact can be marked too (never a wrong exact or none)."""
     marked = [k for k in BESIDE if k in result and (result[k]['certainty'] == 'possible'
                                                     or _D44_DEFECT == 'beside_exact_marked')]
     if not marked or _D44_DEFECT == 'beside_unmarked':
