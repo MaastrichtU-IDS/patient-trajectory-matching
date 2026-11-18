@@ -157,6 +157,103 @@ class AnswersTests(unittest.TestCase):
         self.assertFalse(bc.answers_check(records(1.5), moved(only=False), NAMES)['met'])
 
 
+class D44RulesTests(unittest.TestCase):
+    """D44 rule 6.2 (`--rules d44`): the bar 1.05 against main, no identity run, the answers main's with main's tally."""
+
+    def test_the_bar_and_the_protocol(self):
+        self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, None, 'd44')['met'])
+        # D44 review, S2: never the frozen D43b record by default
+        self.assertEqual(bc.OUTPUTS['d44'], 'verification/d44-count-latency-verdict.json')
+        stats = bc.statistics_of(records(1.04), NAMES)
+        same = bc.verdict_of(stats, NAMES, ratio_bar=bc.RULES['d44']['ratio_bar'], protocol=MET, answers=MET,
+                             identity='not ruled')
+        self.assertTrue(same['met'])
+        self.assertEqual(same['rule_2'], {'met': True, 'ruled': False})
+        slow = bc.verdict_of(bc.statistics_of(records(1.06), NAMES), NAMES, ratio_bar=bc.RULES['d44']['ratio_bar'],
+                             protocol=MET, answers=MET, identity='not ruled')
+        self.assertFalse(slow['rule_4_1']['met'])
+
+    def test_the_answers_must_be_mains_with_its_tally(self):
+        def both_refine(recs):
+            for rec in recs:
+                for name in bc.COUNT_REQUESTS:
+                    rec['reference']['requests'][name]['tallies'] = [TALLY] * 3
+            return recs
+        still = {n: {'moved': 0, 'other_results_differing': 0, 'only_uncertain_moved': True} for n in NAMES}
+        self.assertTrue(bc.answers_check(both_refine(records(1.0)), still, NAMES, 'd44')['met'])
+        self.assertFalse(bc.answers_check(both_refine(records(1.0)), moved(), NAMES, 'd44')['met'])  # results moved
+        self.assertFalse(bc.answers_check(records(1.0), still, NAMES, 'd44')['met'])  # main's tally differs
+        self.assertTrue(bc.answers_check(records(1.0), moved(), NAMES)['met'])  # D43c's rules allow both
+
+
+class D44bRulesTests(unittest.TestCase):
+    """D44b rule 6.2 (`--rules d44b`): the per-pair bar on the ratio normalised by the controls' geometric mean (the
+    requests without a count, same processes), the controls reported, and the micro-measured cost bound."""
+
+    def verdict(self, slow, plain, micro):
+        stats = bc.statistics_of(records(slow, plain=plain), NAMES)
+        return bc.verdict_of(stats, NAMES, ratio_bar=bc.RULES['d44b']['ratio_bar'], protocol=MET, answers=MET,
+                             identity='not ruled', normalised=True, micro=micro, control=MET)
+
+    def micro(self, seconds=0.01):
+        return {n: {'calls': 27030, 'seconds': seconds} for n in bc.COUNT_REQUESTS}
+
+    def test_normalised_by_the_controls(self):
+        by, gmean = bc.normalised_of(bc.statistics_of(records(1.06, plain=1.06), NAMES), NAMES)
+        self.assertAlmostEqual(gmean[0], 1.06)
+        self.assertTrue(all(abs(r - 1.0) < 1e-9 for rs in by.values() for r in rs))
+        drift = self.verdict(1.06, 1.06, self.micro())  # the session drifted: both moved together
+        self.assertTrue(drift['rule_4_1']['met'])
+        self.assertTrue(drift['met'])
+        self.assertFalse(drift['rule_4_2b']['ruled'])
+        self.assertFalse(drift['rule_4_2b']['met'])  # the controls' own bar, reported only
+        slower = self.verdict(1.12, 1.06, self.micro())  # 1.12 / 1.06 = 1.057
+        self.assertFalse(slower['rule_4_1']['met'])
+        self.assertFalse(slower['met'])
+        self.assertAlmostEqual(slower['rule_4_1']['ratios']['1.3 event frequency']['ratio_by_repeat'][0], 1.12)
+
+    def test_the_micro_measured_bound(self):
+        self.assertTrue(self.verdict(1.0, 1.0, self.micro(0.01))['micro']['met'])  # 0.01 s of a ~5.1 s median
+        over = self.verdict(1.0, 1.0, self.micro(0.06))  # over 1%
+        self.assertFalse(over['micro']['met'])
+        self.assertFalse(over['met'])
+        self.assertFalse(self.verdict(1.0, 1.0, None)['met'])  # not measured
+        self.assertFalse(self.verdict(1.0, 1.0, {n: {'calls': 0, 'seconds': 0.0} for n in bc.COUNT_REQUESTS})['met'])
+        self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, None, 'd44b')['met'])
+        self.assertFalse(bc.protocol_check([14, 8], bc.COUNT_REQUESTS, 4, 3, None, 'd44b')['met'])
+        self.assertEqual(bc.OUTPUTS['d44b'], 'verification/d44b-count-latency-verdict.json')
+
+
+class ControlStructuralTests(unittest.TestCase):
+    """D44b review, F1: the controls provably run no changed code, or the normalised verdict is not met."""
+
+    def control(self, calls):
+        return {'calls': calls, 'runs': {f'{n} at {w}': 1 for n in bc.NO_COUNT_REQUESTS for w in (1, 14)},
+                'loaded_changed_modules': ['patterns.execution_store'], 'routed': ['execution_store']}
+
+    def test_a_nonzero_control_counter_fails_the_verdict(self):
+        targets = {'patterns.execution_store': ['apply_exclusions']}
+        clean = bc.control_check(self.control({'patterns.execution_store:apply_exclusions': 0}), targets, {})
+        self.assertTrue(clean['met'])
+        called = bc.control_check(self.control({'patterns.execution_store:apply_exclusions': 3}), targets, {})
+        self.assertFalse(called['met'])
+        self.assertEqual(called['nonzero'], ['patterns.execution_store:apply_exclusions'])
+        stats = bc.statistics_of(records(1.0), NAMES)
+        micro = {n: {'calls': 1, 'seconds': 0.001} for n in bc.COUNT_REQUESTS}
+        verdict = lambda c: bc.verdict_of(stats, NAMES, ratio_bar=1.05, protocol=MET, answers=MET, identity='not ruled',
+                                          normalised=True, micro=micro, control=c)
+        self.assertTrue(verdict(clean)['met'])
+        self.assertFalse(verdict(called)['met'])
+        self.assertFalse(verdict(None)['met'])
+        self.assertFalse(bc.control_check(self.control({'patterns.execution_store:apply_exclusions': 0}), targets,
+                                          {'patterns/x.py': ['apply_exclusions']})['met'])  # a by-name import
+
+    def test_the_entry_points_the_controls_reach(self):
+        targets = {'patterns.store_conditions_counts': ['_refine_chunk'], 'patterns.execution_store': ['apply_exclusions']}
+        self.assertEqual(bc.entry_references(targets, {'execution_store', 'store_conditions_coded'}), [])
+        self.assertEqual(len(bc.entry_references(targets)), 1)  # the post-pass's unit, which only counts submit
+
+
 class MovementTests(unittest.TestCase):
     def test_only_uncertain_results_may_move(self):
         uncertain = {'patient_id': 'b', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN'}

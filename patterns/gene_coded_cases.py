@@ -23,14 +23,13 @@ that is not a gene step is sometimes on G itself. Two generators:
 - `gene-coded-derived`: an Nth occurrence or a count (`derived_cases.tiny_request`) beside such steps, with the gene step.
 
 **The worlds check** (`check_result`) reads the truth independently: every choice of times of the patient's kept
-events, the gene step's true findings as points, in every reading of each unknown classification as negative and as not
+events and (since D44) its excluded records, each an event of unknown end, the gene step's true findings as points
+(and, since the D44 review, the kept records alone: no excluded record, an undetermined record with no finding), in every reading of each unknown classification as negative and as not
 negative (`gene_cases.check`, D38's reading). A binding naming an event that is not kept (nor a derived point) is a
-violation in itself. One carve-out (D42, disclosed; the coordinator's review): for an `unresolved` result of a patient
-with an undetermined gene record (`beside_undetermined`, counted in the status mix as `unresolved_beside_undetermined`),
-every check runs, but the one report that the match beside it "does not reach its certainty" (`CARVED`) is dropped and
-counted (`carved_out`). The excluded-records rule leaves an unresolved result as it is, so the certainty of the match
-beside it is the engine's over the known records, which the record leaves open (D36's follow-up on `execution_store`'s
-rule; the same answer as gene-1.0 on the snapshot without mentions).
+violation in itself. Every result is judged in full. D42 carved out one report (the match beside an `unresolved` result
+of a patient with an undetermined gene record "does not reach its certainty"), since the excluded-records rule then left
+that match's `possible` unmarked; D44 marks it (`EXCLUDED_RECORDS_MAY_MAKE_EXACT`) and removed the carve-out. The status
+mix counts the marked matches (`beside_marked`).
 
 **Planted defects** (`DEFECTS`): the D42 rules' four, each a switch of `store_conditions_gene`.
 """
@@ -169,8 +168,9 @@ def tiny_request(rng, generator):
 
 
 def kept_patient(p, window, kinds=KINDS):
-    """(the engine patient of a tiny ingest record's kept events, concepts through the closure; {gene-report event id:
-    its reports}): what the worlds check enumerates."""
+    """(the engine patient of a tiny ingest record's kept events, concepts through the closure, and its excluded records
+    as events of unknown end (`coded_only_cases.excluded_events`, D44); {gene-report event id: its reports}): what the
+    worlds check enumerates, the whole source."""
     events, reports = [], {}
     for e in p['events']:
         if e['kind'] in kinds:
@@ -183,35 +183,24 @@ def kept_patient(p, window, kinds=KINDS):
         events.append(out)
         if e['kind'] == 'genetic_result':
             reports[e['event_id']] = e['evidence']['gene_reports']
+    events += co.excluded_events(p, ANCESTORS)  # D44: the whole source, as the gene step's undetermined records are read
     return {'patient_id': p['patient_id'], 'window': window, 'events': events}, reports
 
 
-ELIGIBLE = 'unresolved_beside_undetermined'  # the status mix's count of results the carve-out may apply to
-CARVED_OUT = 'carved_out'  # ... and of those whose one carved report was dropped
-CARVED = 'the relaxed match beside unresolved does not reach its certainty'  # the worlds check's report it drops
-
-
-def beside_undetermined(result, patient, reports):
-    """Whether a result is `unresolved` for a patient with an undetermined record of the gene step's gene G. The
-    excluded-records rule (`execution_store.apply_exclusions`, D18) leaves an unresolved result as it is: it already says
-    it is incomplete, and the match beside it keeps the certainty the engine gave it over the known records. That
-    certainty (`possible`: no binding is exact) is what the undetermined record leaves open, so for such a result the
-    worlds check's report on it (`CARVED`) is dropped; every other check runs, and the reference judges the whole result
-    (as `gene_cases.check` leaves a weakened `possible` to it)."""
-    return result['status'] == 'unresolved' and any(
-        gr.report_finding(reports[e['id']])[0] == 'undetermined'
-        for e in patient['events'] if e['id'] in reports and 'G' in e['concepts'])
+MARKED = co.MARKED  # the status mix's count of matches beside `unresolved` marked EXCLUDED_RECORDS_MAY_MAKE_EXACT (D44)
+beside_marked = co.beside_marked
 
 
 def check_result(result, query, conditions, patient, reports):
     """The worlds check of one store result against the patient's kept events and the gene step's true findings."""
-    kept = {e['id'] for e in patient['events']}
+    kept = {e['id'] for e in patient['events'] if not e['id'].startswith('#excluded/')}
     for m in (result, result.get('relaxed_match') or {}, result.get('unverified_match') or {}):
         foreign = sorted(eid for eid in (m.get('binding') or {}).values()
                          if eid not in kept and not eid.startswith(es._DERIVED_PREFIX))
         if foreign:
             return [f'binds events that are not kept: {foreign}']
-    return gk.check(result, query, gene_conditions(conditions), patient, frozenset(), reports)
+    kept_only = dict(patient, events=[e for e in patient['events'] if not e['id'].startswith('#excluded/')])
+    return gk.check(result, query, gene_conditions(conditions), patient, frozenset(), reports, kept=kept_only)
 
 
 def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, worlds=True, reference=True,
@@ -258,12 +247,11 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
                 if worlds:
                     patient, reports = kept_patient(by_id[pid], windows[pid])
                     wrong = check_result(got, query, conditions, patient, reports)
-                    if beside_undetermined(got, patient, reports):
-                        mix[ELIGIBLE] += 1
-                        kept = [w for w in wrong if not w.startswith(CARVED)]
-                        if len(kept) < len(wrong):
-                            mix[CARVED_OUT] += 1
-                        wrong = kept
+                    if beside_marked(got):
+                        mix[MARKED] += 1
+                        if [w for w in check_result(co.unmarked_copy(got), query, conditions, patient, reports)
+                                if not w.endswith('(kept records)')]:
+                            mix[co.NEEDED] += 1  # the mark was needed over the whole source (D44 review, S4)
                     if wrong:
                         violations.append((seed, k, pid, wrong))
                 if reference and json.dumps(co.unfiltered(got)) != json.dumps(want[i]):
