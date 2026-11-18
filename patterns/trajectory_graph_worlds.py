@@ -20,6 +20,14 @@ and the set's binding has the certainty claimed), `none` (the query and every se
 impossible), and a match reported beside `unresolved` (it has the certainty claimed). `unresolved` itself
 claims nothing. Where a result is not `complete`, only the claims it still makes are checked.
 
+What a `possible` certainty claims (D44, with D35's and D40's follow-ups on reading it): that its binding holds in some
+world, and that no binding of its set is exact, unless the result or the match says otherwise by its note
+(`claims_no_exact`). `EXACT_SEARCH_STOPPED` withdraws the second claim. `EXCLUDED_RECORDS_MAY_MAKE_EXACT` (D18 on a
+`possible` result; D44 on a match beside `unresolved`) withdraws it only over the whole source (`whole`: the patient's
+events include the records the store left out, such as excluded records or every reading of an undetermined gene
+record): over the records the store kept, the claim stands. A `relaxed` result is read as before (its own exact search's
+stop has no note; no check here meets one: their searches never stop).
+
 Small grids only: the number of worlds is the product of the variables' range widths.
 """
 from fractions import Fraction
@@ -27,6 +35,15 @@ from itertools import combinations, product
 import math
 
 INF = math.inf
+MAY_MAKE_EXACT = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
+
+
+def claims_no_exact(m, whole):
+    """Whether a `possible` result, or a match beside `unresolved` with certainty `possible`, still claims that no binding
+    of its set is exact (D44): unless its note says the exact search stopped, or, over the whole source (`whole`), that
+    a record the store left out may make it exact."""
+    notes = set((m.get('note') or '').split('; '))
+    return 'EXACT_SEARCH_STOPPED' not in notes and not (whole and MAY_MAKE_EXACT in notes)
 
 
 def _events(patient):
@@ -167,8 +184,9 @@ class _Question:
         return any(self.exact_for(c) for c in self.choices())
 
 
-def check(result, query, patient, horizon=None):
-    """The claims of an engine result that are false, as strings; [] when it is sound."""
+def check(result, query, patient, horizon=None, whole=False):
+    """The claims of an engine result that are false, as strings; [] when it is sound. `whole`: the patient's events are
+    the whole source, the records the store left out included (see `claims_no_exact`)."""
     window = patient.get('window')
     if window is None:
         return [] if result['status'] == 'excluded' else ['a patient without a window is not excluded']
@@ -180,19 +198,20 @@ def check(result, query, patient, horizon=None):
     by_id = {e['id']: e for e in events}
     sets = _sets(query)
     ask = lambda chosen: _Question(query, chosen, events, all_worlds, window)
-    def certainty_holds(question, certainty, binding):
+    def certainty_holds(question, certainty, binding, settled=True):
+        # `settled`: a `possible` certainty also claims that no binding of the set is exact (`claims_no_exact`)
         free = {s: by_id[binding[s]] for s in question.free}
         if any(question.concept[s] not in free[s]['concepts'] for s in free):
             return False
         if certainty == 'exact':
             return question.exact_for(free)
-        return any(question.holds(t, free) for t in all_worlds) and not question.exact()
+        return any(question.holds(t, free) for t in all_worlds) and (not settled or not question.exact())
     wrong = []
     status, complete = result['status'], result.get('complete', True)
     unrelaxed = ask(())
     if status == 'exact' and not certainty_holds(unrelaxed, 'exact', result['binding']):
         wrong.append('exact, but its binding fails in some world')
-    if status == 'possible' and not certainty_holds(unrelaxed, 'possible', result['binding']):
+    if status == 'possible' and not certainty_holds(unrelaxed, 'possible', result['binding'], claims_no_exact(result, whole)):
         wrong.append('possible, but impossible, or some binding is exact')
     if status in ('relaxed', 'none') and unrelaxed.possible():
         wrong.append(f'{status}, but the unrelaxed query is possible')
@@ -212,7 +231,7 @@ def check(result, query, patient, horizon=None):
     if status == 'unresolved' and 'relaxed_match' in result:
         m = result['relaxed_match']
         chosen = next(c for c in sets if [x['id'] for x in c] == m['relaxations'])
-        if not certainty_holds(ask(chosen), m['certainty'], m['binding']):
+        if not certainty_holds(ask(chosen), m['certainty'], m['binding'], claims_no_exact(m, whole)):
             wrong.append('the relaxed match beside unresolved does not reach its certainty')
     return wrong
 
@@ -410,7 +429,7 @@ class _DerivedQuestion(_Question):
         return True
 
 
-def check_derived(result, query, conditions, patient, mentions=frozenset(), horizon=None, readings=None):
+def check_derived(result, query, conditions, patient, mentions=frozenset(), horizon=None, readings=None, whole=False):
     """The claims of a store result for a request with derived steps (D32) that are false, as strings; [] when it is
     sound. `query` and `conditions` are the request as the caller wrote it (1.1 or 1.2, without value conditions);
     `patient` is the engine patient without any derived event, `mentions` the ids of its events whose kind is
@@ -418,7 +437,7 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
     Nth steps by their derived point, which carries no claim, and its count steps by the record at which the count is
     reached. A relative condition (D33) reads `readings`: `rows` {event id: item class, unit, value, kind},
     `excluded` [{item class, start}] (each excluded record a variable of its own in every world), `period` (the
-    period kinds) and `covers(item class, concept)`; an unknown outcome may be true or false."""
+    period kinds) and `covers(item class, concept)`; an unknown outcome may be true or false. `whole`: as in `check`."""
     window = patient.get('window')
     if window is None:
         return [] if result['status'] == 'excluded' else ['a patient without a window is not excluded']
@@ -438,7 +457,8 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
     sets = derived_sets(query, conditions)
     ask = lambda chosen: _DerivedQuestion(query, conditions, chosen, events, all_worlds, window, mentions, readings)
 
-    def certainty_holds(question, certainty, binding):
+    def certainty_holds(question, certainty, binding, settled=True):
+        # `settled`: as in `check`
         if any(binding.get(s) not in by_id for s in question.free):
             return False
         free = {s: by_id[binding[s]] for s in question.free}
@@ -446,13 +466,13 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
             return False
         if certainty == 'exact':
             return question.exact_for(free)
-        return any(question.holds(t, free, True) for t in all_worlds) and not question.exact()
+        return any(question.holds(t, free, True) for t in all_worlds) and (not settled or not question.exact())
     wrong = []
     status, complete = result['status'], result.get('complete', True)
     unrelaxed = ask(())
     if status == 'exact' and not certainty_holds(unrelaxed, 'exact', result['binding']):
         wrong.append('exact, but its binding fails in some world')
-    if status == 'possible' and not certainty_holds(unrelaxed, 'possible', result['binding']):
+    if status == 'possible' and not certainty_holds(unrelaxed, 'possible', result['binding'], claims_no_exact(result, whole)):
         wrong.append('possible, but impossible, or some binding is exact')
     if status in ('relaxed', 'none') and unrelaxed.possible():
         wrong.append(f'{status}, but the unrelaxed query is possible')
@@ -472,7 +492,7 @@ def check_derived(result, query, conditions, patient, mentions=frozenset(), hori
     if status == 'unresolved' and 'relaxed_match' in result:
         m = result['relaxed_match']
         chosen = next(c for c in sets if [x['id'] for x in c] == m['relaxations'])
-        if not certainty_holds(ask(chosen), m['certainty'], m['binding']):
+        if not certainty_holds(ask(chosen), m['certainty'], m['binding'], claims_no_exact(m, whole)):
             wrong.append('the relaxed match beside unresolved does not reach its certainty')
     return wrong
 

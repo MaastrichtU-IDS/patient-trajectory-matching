@@ -24,6 +24,13 @@ every worker count and in every run, and that the candidate's answer differs fro
 reference's result is `unresolved` with STEP_CONDITION_UNCERTAIN (D43 rule 2 at scale), with the candidate's
 `count_refinement` tally. The answers themselves are written to a scratch directory and removed; the report holds
 aggregates only. Synthetic data; one machine.
+
+`--rules d44` (decision log, D44, rule 6.2) reuses the protocol against main with D44's bars: every count request at most
+1.05 of main's time in every pair at 14 workers, the 1.3 Event frequency p95 at most 10 s, the requests without a count
+at most 1.05 (pooled median); no identity run; the candidate's answers equal main's at every result, with the same
+tally (the scaling snapshot holds no excluded record, so D44's mark cannot apply, while the post-pass's comparison
+that reads an answer without the mark runs on every result it refines); the structural check is reported, not ruled
+(`execution_store.py` differs from main by design).
 """
 from __future__ import annotations
 
@@ -121,6 +128,10 @@ RULED_WORKERS = 14
 RATIO_BAR = 2.0  # the candidate's time over the reference's, per count request and pair (D43b rule 4.1)
 ABSOLUTE_BAR = {'request': '1.3 event frequency', 'p95_seconds': 10.0}  # D43b rule 4.1, the D21 target's p95
 NO_COUNT_BAR = 1.05  # a request without a count: pooled median ratio over the pairs (D43b rule 4.2b)
+RULES = {'d43c': {'ratio_bar': RATIO_BAR, 'identity_ref': True, 'answers_equal_main': False, 'structural_ruled': True},
+         # D44 rule 6.2: the same protocol against main, the bar 1.05, the answers main's (see the docstring)
+         'd44': {'ratio_bar': 1.05, 'identity_ref': False, 'answers_equal_main': True, 'structural_ruled': False}}
+OUTPUTS = {'d43c': 'verification/d43b-count-latency-verdict.json', 'd44': 'verification/d44-count-latency-verdict.json'}
 
 WINDOWS_SQL = """
     WITH s AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo FROM events e
@@ -262,17 +273,18 @@ def statistics_of(records, requests):
     return out
 
 
-def protocol_check(workers, requests, repeats, runs, identity_ref=None):
+def protocol_check(workers, requests, repeats, runs, identity_ref=None, rules='d43c'):
     """D43b review, S2: the run follows the committed protocol, or no verdict is met; since D43c (review, S1) the
-    protocol includes the identity run against the retry base (`--identity-ref`)."""
+    protocol includes the identity run against the retry base (`--identity-ref`), which D44's rules do not have."""
     out = {'ruled_workers_run': RULED_WORKERS in workers, 'every_request_run': sorted(requests) == sorted(REQUESTS),
-           'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'runs_at_least_3': runs >= 3,
-           'identity_ref_run': bool(identity_ref)}
+           'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'runs_at_least_3': runs >= 3}
+    if RULES[rules]['identity_ref']:
+        out['identity_ref_run'] = bool(identity_ref)
     out['met'] = all(out.values())
     return out
 
 
-def answers_check(records, movement_of, requests):
+def answers_check(records, movement_of, requests, rules='d43c'):
     """D43b review, M1: the post-pass did its work, the same way, in every run. For each count request: one answer
     digest per side over every run and worker count (the candidate's digest binds the tally), the candidate's tally the
     same in every run and worker count, with `refined` above 0 and `skipped_mismatch` 0, and only results the reference
@@ -299,8 +311,15 @@ def answers_check(records, movement_of, requests):
                        refined_above_0=bool(tally) and tally['refined'] > 0,
                        skipped_mismatch_0=bool(tally) and tally['skipped_mismatch'] == 0,
                        only_uncertain_moved=moved['only_uncertain_moved'])
-            row['met'] = all(row[k] for k in ('one_digest_per_side', 'tally_identical', 'refined_above_0',
-                                              'skipped_mismatch_0', 'only_uncertain_moved'))
+            needed = ['one_digest_per_side', 'tally_identical', 'refined_above_0', 'skipped_mismatch_0',
+                      'only_uncertain_moved']
+            if RULES[rules]['answers_equal_main']:  # D44: main's answer at every result, with main's tally
+                theirs = sorted({json.dumps(t, sort_keys=True) for rec in records
+                                 for t in rec['reference']['requests'][name]['tallies']})
+                row.update(nothing_moved=moved['moved'] == 0 and moved['other_results_differing'] == 0,
+                           tally_equal_to_reference=tallies == theirs)
+                needed += ['nothing_moved', 'tally_equal_to_reference']
+            row['met'] = all(row[k] for k in needed)
         out[name] = row
     return {'requests': out, 'met': bool(out) and all(r['met'] for r in out.values())}
 
@@ -327,8 +346,11 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
     rule_42b['met'] = all(r['met'] for r in rule_42b['requests'].values())
     protocol = protocol or {'met': False}
     answers = answers or {'met': False}
-    rule_2 = {'met': bool(identity) and identity['met'],
-              'requests': {} if not identity else {n: r['identical'] for n, r in identity['requests'].items()}}
+    if identity == 'not ruled':  # D44: no identity run; the answers check compares with main instead
+        rule_2 = {'met': True, 'ruled': False}
+    else:
+        rule_2 = {'met': bool(identity) and identity['met'],
+                  'requests': {} if not identity else {n: r['identical'] for n, r in identity['requests'].items()}}
     return {'workers': ruled, 'protocol': protocol, 'answers': {'met': answers['met']}, 'rule_2': rule_2,
             'rule_4_1': rule_41, 'rule_4_2b': rule_42b,
             'met': protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and rule_42b['met']}
@@ -467,7 +489,7 @@ def paired(args):
         identity = {
             'each_code_one_answer_per_request': {side: {name: len(d) == 1 for name, d in by.items()}
                                                  for side, by in digests.items()},
-            'check': answers_check(records, moved, args.requests),
+            'check': answers_check(records, moved, args.requests, args.rules),
             'pool_code': {side: sorted({c for rec in records for c in rec[side]['pool_code']})
                           for side in ('reference', 'candidate')},
             'movement': moved,
@@ -479,12 +501,17 @@ def paired(args):
             identity['with_identity_ref'] = identity_with_ref(args, scratch, records, ruled)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    verdict = verdict_of(stats, args.requests, ruled,
+    rules = RULES[args.rules]
+    verdict = verdict_of(stats, args.requests, ruled, ratio_bar=rules['ratio_bar'],
                          protocol=protocol_check(args.workers, args.requests, args.repeats, args.runs,
-                                                 args.identity_ref),
-                         answers=identity['check'], identity=identity.get('with_identity_ref'))
-    verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files'])}
-    verdict['met'] = verdict['met'] and structural['met']
+                                                 args.identity_ref, args.rules),
+                         answers=identity['check'],
+                         identity=identity.get('with_identity_ref') if rules['identity_ref'] else 'not ruled')
+    verdict['rules'] = args.rules
+    verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files']),
+                            'ruled': rules['structural_ruled'],
+                            'differing': [r['path'] for r in structural['files'] if not r['identical']]}
+    verdict['met'] = verdict['met'] and (structural['met'] or not rules['structural_ruled'])
     report = {
         'profile': PROFILE, 'protocol': PROTOCOL, 'size': int(size), 'snapshot_id': manifest['snapshot_id'],
         'requests': {name: {'query': q, 'conditions': c} for name, (q, c) in REQUESTS.items() if name in args.requests},
@@ -523,7 +550,9 @@ def main(argv=None):
     parser.add_argument('--requests', nargs='*', default=list(REQUESTS), choices=list(REQUESTS))
     parser.add_argument('--memory-limit', default='4GB')
     parser.add_argument('--budget-seconds', type=float, default=3600, help='per run')
-    parser.add_argument('--output', type=Path, default=ROOT / 'verification/d43b-count-latency-verdict.json')
+    parser.add_argument('--output', type=Path, help='default: verification/d43b-count-latency-verdict.json under '
+                        '--rules d43c, verification/d44-count-latency-verdict.json under --rules d44')
+    parser.add_argument('--rules', choices=sorted(RULES), default='d43c', help="the bars and checks: D43b/D43c's, or D44's")
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
@@ -533,6 +562,8 @@ def main(argv=None):
     if args.worker:
         args.worker_output.write_text(json.dumps(worker(args)))
         return 0
+    if args.output is None:  # D44 review, S2: never a frozen record by default
+        args.output = ROOT / OUTPUTS[args.rules]
     if not (args.snapshot and args.reference):
         parser.error('--snapshot and --reference are required')
     paired(args)

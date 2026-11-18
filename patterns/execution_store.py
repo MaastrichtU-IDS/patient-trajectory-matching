@@ -172,7 +172,7 @@ DEFAULT_CONCEPT_BASIS = 'declared'
 COVERAGE_RULE = 'window_overlap_source_concepts_v1'
 # How `match` turns a remaining `none` into `not_comparable` when the source held records of a step's
 # concepts that the ingest left out (docs/execution-store.md, "Excluded records").
-EXCLUSION_RULE = 'excluded_records_scope_v1'
+EXCLUSION_RULE = 'excluded_records_scope_v2'  # v2 (D44): a `possible` match beside `unresolved` is marked too
 ENGINE_ARTIFACTS = ('patterns/execution_store.py', 'patterns/trajectory_graph.py', 'patterns/trajectory_times.py',
                     'patterns/temporal_stn.py')
 _MEMORY = re.compile(r'^[0-9]+(\.[0-9]+)?\s*(B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)$')
@@ -2762,7 +2762,12 @@ def apply_exclusions(query, result, touched, starts, every=None, occurrence=None
     - `none` may hide a binding: `not_comparable`;
     - `relaxed` claims no unrelaxed binding exists, which an excluded record may supply: `unresolved`,
       with the relaxed match beside it, the engine's own convention for an undecided unrelaxed search;
-    - `possible` claims no exact binding exists: still possible, but `complete: false`.
+    - `possible` claims no exact binding exists: still possible, but `complete: false`;
+    - a match reported beside `unresolved` (the relaxed match, or the match beside an order-uncertain status) whose
+      certainty is `possible` claims, as a `possible` result does, that no binding of its set is exact, which an excluded
+      record may falsify (D44): the match gains the note EXCLUDED_RECORDS_MAY_MAKE_EXACT and the result names the steps.
+      The match is marked exactly where a `possible` result would be made incomplete: some step reaches an excluded
+      record. A match whose certainty is `exact` stands, as an exact binding does.
     The displacement test reads the binding of the result, of its relaxed match, or of the match an
     order-uncertain `unresolved` reports beside it (D30).
     Every changed result names the steps (`excluded_steps`) and the reason ADMISSION_EXCLUDED_RECORDS.
@@ -2795,13 +2800,42 @@ def apply_exclusions(query, result, touched, starts, every=None, occurrence=None
         return incomparable(steps)
     if result['status'] == 'relaxed':
         relaxed = {k: result[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
-        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
-                'relaxed_match': relaxed, 'excluded_steps': steps, 'complete': False}
+        return _mark_beside({'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                             'relaxed_match': relaxed, 'excluded_steps': steps, 'complete': False}, steps)
     if result['status'] == 'possible':
-        note = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
         return {**result, 'complete': False, 'excluded_steps': steps,
-                'note': result['note'] + '; ' + note if 'note' in result else note}
+                'note': result['note'] + '; ' + MAY_MAKE_EXACT if 'note' in result else MAY_MAKE_EXACT}
+    if result['status'] == 'unresolved':
+        return _mark_beside(result, steps)
     return result
+
+
+MAY_MAKE_EXACT = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
+BESIDE = ('relaxed_match', 'unverified_match')  # the matches a result may report beside `unresolved`
+_D44_DEFECT = None  # a planted defect of the D44 rules (tests only): 'beside_unmarked' or 'beside_exact_marked'
+
+
+def _with_note(m, note):
+    """`m`'s note with `note` appended once ('; '-separated, as the engine joins notes)."""
+    notes = [n for n in (m.get('note') or '').split('; ') if n]
+    return '; '.join(notes if note in notes else notes + [note])
+
+
+def _mark_beside(result, steps):
+    """D44: an `unresolved` result whose match beside it claims `possible` (no binding of its set is exact), when some
+    step reaches an excluded record (`steps`, non-empty): the match gains the note EXCLUDED_RECORDS_MAY_MAKE_EXACT and
+    the result names the steps (`excluded_steps`, if it does not already). Nothing else changes. The note means "may":
+    reach over-approximates, so a match no record could make exact can be marked too (never a wrong exact or none)."""
+    marked = [k for k in BESIDE if k in result and (result[k]['certainty'] == 'possible'
+                                                    or _D44_DEFECT == 'beside_exact_marked')]
+    if not marked or _D44_DEFECT == 'beside_unmarked':
+        return result
+    out = dict(result)
+    for k in marked:
+        out[k] = {**result[k], 'note': _with_note(result[k], MAY_MAKE_EXACT)}
+    if 'excluded_steps' not in out:
+        out['excluded_steps'] = steps
+    return out
 
 
 # Partition-parallel matching (D21 arm C).
