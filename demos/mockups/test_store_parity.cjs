@@ -26,7 +26,24 @@ const {execFileSync} = require('node:child_process');
 const here = __dirname, root = path.resolve(here, '../..');
 const python = process.env.PYTHON || 'python';
 const cohort = path.join(here, 'data/synthetic-paediatric-rare.json');
-const run = (args, input) => execFileSync(python, args, {cwd: root, input, encoding: 'utf8', maxBuffer: 1 << 28});
+// D44: the child's stdin is a regular file holding `input` (empty without one), never a pipe. Once, the `sweep` child sat
+// in its read of stdin for about 30 minutes and passed on a rerun. A read of a regular file ends at the file's end
+// whatever any other process holds open, so no read can wait on a writer; and a call that still hangs fails after
+// RUN_TIMEOUT_MS instead of blocking the test. stderr is the parent's, as execFileSync's default shows it.
+const RUN_TIMEOUT_MS = 30 * 60 * 1000;
+const run = (args, input) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'store-parity-stdin-'));
+  const file = path.join(dir, 'stdin');
+  fs.writeFileSync(file, input === undefined ? '' : input);
+  const fd = fs.openSync(file, 'r');
+  try {
+    return execFileSync(python, args, {cwd: root, stdio: [fd, 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 1 << 28,
+                                       timeout: RUN_TIMEOUT_MS});
+  } finally {
+    fs.closeSync(fd);
+    fs.rmSync(dir, {recursive: true, force: true});
+  }
+};
 const post = body => JSON.parse(run(['-c',
   "import json,sys; from patterns import trajectory_graph as t; d=json.load(sys.stdin); print(json.dumps(t.run(d['query'], d['patients'])))"],
   JSON.stringify(body)));

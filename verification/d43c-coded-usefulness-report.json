@@ -4579,7 +4579,7 @@
  "artifacts": {
   "demos/mockups/coded_usefulness.cjs": "86b9ccf6ba21f38800126e2a9b41279cf930280b10da0f4faa5fa1bd6d312994",
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
-  "demos/mockups/trajectory/store_request.js": "06085f9aec6447891a8b39cc494ea3fe911c87538e23bd20ba7220f39e8c72b4",
+  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
   "demos/mockups/trajectory/app.js": "1d8b97fb7caff993c223648be32efc2d1db2ce3a7013e61dec9929bfad870e44",
   "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
