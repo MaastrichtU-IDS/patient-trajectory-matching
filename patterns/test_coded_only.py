@@ -32,6 +32,7 @@ from . import execution_store as es
 from . import series_values as sv
 from . import store_conditions as sc
 from . import store_conditions_coded as cc
+from . import store_conditions_counts as scn
 from . import store_conditions_relative as rc
 from . import test_derived_steps as tds
 from . import test_relative_conditions as trc
@@ -450,9 +451,16 @@ class RequestTests(unittest.TestCase):
         self.assertEqual(nth['derived_steps']['profile'], L13)
 
 
+def through_d43(store, query, windows, conditions, answer):
+    """A module's answer as the dispatcher gives it: through D43's post-pass when the request has a count step."""
+    if not scn.has_counts(conditions):
+        return answer
+    return scn.post_pass(store, query, windows, es.CHUNK_PATIENTS, conditions, answer)
+
+
 class ModuleBoundaryTests(unittest.TestCase):
     """D39 lives in a module no build loads; every request without profile 1.3 is the relative module's own answer,
-    through this module and through the dispatcher."""
+    through this module and through the dispatcher (with D43's post-pass for a count step)."""
 
     def test_the_dispatcher_routes_coded_only_requests_here(self):
         """`store_conditions` (D38's one entry point) answers a 1.3 request by this module, byte for byte, and lists 1.3."""
@@ -465,10 +473,12 @@ class ModuleBoundaryTests(unittest.TestCase):
                 continue
             query, conditions, windows = made
             self.assertEqual(json.dumps(sc.match(state['store'], query, windows, conditions=conditions)),
-                             json.dumps(cc.match(state['store'], query, windows, conditions=conditions)))
+                             json.dumps(through_d43(state['store'], query, windows, conditions,
+                                                    cc.match(state['store'], query, windows, conditions=conditions))))
             self.assertEqual(sc.candidates(state['store'], query, conditions), cc.candidates(state['store'], query, conditions))
+            context = cc.match_context(state['store'], query, windows, conditions)
             self.assertEqual(sc.match_context(state['store'], query, windows, conditions),
-                             cc.match_context(state['store'], query, windows, conditions))
+                             scn.bind_context(context[0]) if scn.has_counts(conditions) else context)
 
     def test_every_other_request_is_the_relative_modules_answer(self):
         state = _STATE['relative']
@@ -485,13 +495,19 @@ class ModuleBoundaryTests(unittest.TestCase):
                            {'profile': rc.CONDITIONS_PROFILE_1_2, 'steps': {'A': {'relative': relative}}}):
             windows = trc.windows_for(rng, ingest)
             for workers in (1, 2):
-                want = json.dumps(rc.match(store, q, windows, workers=workers, conditions=conditions))
-                # Through this module and through the dispatcher (the path every caller takes since D38).
-                self.assertEqual(json.dumps(cc.match(store, q, windows, workers=workers, conditions=conditions)), want)
-                self.assertEqual(json.dumps(sc.match(store, q, windows, workers=workers, conditions=conditions)), want)
+                answer = rc.match(store, q, windows, workers=workers, conditions=conditions)
+                # Through this module and through the dispatcher (the path every caller takes since D38; with D43's
+                # post-pass for a count).
+                self.assertEqual(json.dumps(cc.match(store, q, windows, workers=workers, conditions=conditions)),
+                                 json.dumps(answer))
+                self.assertEqual(json.dumps(sc.match(store, q, windows, workers=workers, conditions=conditions)),
+                                 json.dumps(through_d43(store, q, windows, conditions, answer)))
+            context = rc.match_context(store, q, windows, conditions)
             for module in (cc, sc):
                 self.assertEqual(module.candidates(store, q, conditions), rc.candidates(store, q, conditions))
-                self.assertEqual(module.match_context(store, q, windows, conditions), rc.match_context(store, q, windows, conditions))
+            self.assertEqual(cc.match_context(store, q, windows, conditions), context)
+            self.assertEqual(sc.match_context(store, q, windows, conditions),
+                             scn.bind_context(context[0]) if scn.has_counts(conditions) else context)
 
     # The originals this module carries a copy of (with D39's hooks): if one changes, the copy must follow. Each is
     # pinned by the sha256 of its source.

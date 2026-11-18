@@ -220,7 +220,8 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
     windows: (violations, mismatches, status mix, cases). A case is one patient's result for one request. Each result is
     checked by the worlds check (`worlds`) and compared with the reference (`reference`); the whole answer is compared
     with pruning off (`pruning`) and, with `itself`, with the gene profile's answer on the snapshot built without the
-    left-out kinds (results and candidates)."""
+    left-out kinds (results and candidates). Every answer is the dispatcher's with its count post-pass off
+    (`store_conditions.COUNT_POST_PASS`, D43b): the routed module's own, byte for byte as D42 compared it."""
     rng = random.Random(f'gene-coded/{generator}/{seed}')
     ingest = tiny_ingest(rng, f'{generator}-{seed}', patients)
     by_id = {p['patient_id']: p for p in ingest['patients']}
@@ -231,6 +232,9 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
         bare = (stack.enter_context(es.open_store(es.build(co.without_kinds(ingest, KINDS),
                                                            root / f'{generator}-{seed}-bare'))) if itself else None)
         stack.enter_context(planted(defect))
+        # D43b: the routed module's own answer, as D42 compared it; the dispatcher's count post-pass on joint requests is
+        # checked against the oracle by `count_narrowing_cases` (its snapshot reference covers the joint profile).
+        stack.enter_context(patch.object(sc, 'COUNT_POST_PASS', False))
         for k in range(requests):
             query, conditions = tiny_request(rng, generator)
             windows = co.tiny_windows(rng, ingest)

@@ -272,3 +272,19 @@ Cautions on the matching rows:
     - The scaling cohort's 30 copies of each patient sit side by side, so all copies of the costliest patient landed on one worker. That clustering is an artifact of how the test cohort is built, but the per-patient cost is real.
   - *What lands.* The decision log, documentation and two frozen records. The code is kept in history at 0253f87; nothing the store or the page answers changed.
   - *Queued: D43c.* Spread the work across workers by striding, and prune the witness search to the candidates that can matter. Both changes must leave every answer byte-identical, and the same latency rule applies unchanged. "Coded only" stays off by default.
+- **D43c, count narrowing with a pruned witness search: shipped.** The witness search now tries only the candidates a feasible choice can hold, in the same order and with the same cut-off, so every answer is byte-identical to D43b's.
+  - *Rules amended before measuring.* The planned striding of pool units was withdrawn: it would have made every unit read the whole patient range, and the pruning alone removed the cost that the replicas multiplied. An independent review found no must-fix; its should-fixes were applied before measuring.
+  - *Latency, now met.* Count requests through the dispatcher at 300,000 patients, 14 workers, against main:
+    - Event frequency 1.15 to 1.21 times (coded only, p95 7.5 s) and 1.22 to 1.26 times (with letters);
+    - Nth and count 1.5 to 1.7 times;
+    - requests without a count 1.00.
+
+    In D43b Event frequency was 3.4 and 14 times.
+  - *Evidence.*
+    - Answers byte-identical to D43b's on 140,000 small cases (and at forced low search cut-offs), on 1,040 snapshot answers and on all four requests at 300,000.
+    - No wrong claim in 140,000 small cases; 0 mismatches on 520 snapshot requests.
+    - Every planted defect caught, including three that prune too much.
+    - Every pruned candidate shown unusable by enumeration.
+  - *Usefulness.* Event frequency under "coded only": 0 of 16 child types unresolved (D39: 11).
+  - *What changes.* The store's answers through the dispatcher (the page's server, the parity test, the tools) now decide these counts. "Coded only" stays off by default.
+  - *What needs you.* D39's usefulness bar would now be met and its count latency is within these rules, so flipping "coded only" on is your decision. A flip would need D39's rules re-met, including a fresh paired verdict.
