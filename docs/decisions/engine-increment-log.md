@@ -57,6 +57,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D43 | Counts decided where D32's two-pass rule leaves them `STEP_CONDITION_UNCERTAIN`: copies of each possibly reached record over the times where its count can be reached (`count_narrowed_v1`), one engine pass, in a post-pass of the dispatcher no build loads, under rules fixed before measuring | Built and sound, **not shipped**: the latency rule missed as written on the rebased tree (14-worker paired ratios 0.999, 1.001, 1.185, 1.064 against 1.05, on a path both codes ran byte-identically). Every other rule met: 0 violations in 120,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; Event frequency under coded only 0 of 16 child types unresolved (was 11). The rule timed a path D43 never runs; the post-pass's own cost (about 32 s against 5 s for a 1.3 count request at 300,000) was unruled. The hook is removed; the code is kept at 6888d1e; retry queued as D43b |
 | D43b | D43 retried: its post-pass ported onto main and moved into the store's worker pool, with a latency rule that times count requests (1.1 and 1.3) through the dispatcher at 300,000, paired against main, beside requests without counts and a structural check of the non-count matcher path (amended before measuring), under rules fixed before measuring | Built and sound, **not shipped** (rule 6): rule 4.1 missed, with 14-worker ratios 3.39 to 3.59 for 1.3 Event frequency (p95 17.96 s) and 14.09 to 14.93 for 1.1, both against 2.0; Nth and count was met at 1.54 to 1.83. Every other rule met: 0 violations in 140,000 small cases, every refined result equal to the truth; 0 mismatches on 520 snapshot requests; every planted defect caught; Event frequency under coded only 0 of 16 child types unresolved; requests without counts 0.99 of main's time. Diagnosis: the witness search on a few patients, and the 30 adjacent replicas of the heaviest falling into one or two pool units. The hook is removed; the code is kept at 0253f87; retry queued as D43c |
 | D43c | D43b retried: a witness search pruned to the candidates that can be feasible, output-identical (answers byte-identical to 0253f87's), with D43b's latency rule 4.1 reused unchanged, under rules fixed before measuring; the strided cut withdrawn before measuring | Decided; **shipped**. Every rule met. Count requests at 300,000 through the dispatcher: 14-worker ratios 1.15 to 1.21 (1.3 Event frequency, p95 7.48 s), 1.22 to 1.26 (1.1 Event frequency), 1.46 to 1.53 and 1.66 to 1.74 (Nth and count), all against 2.0; requests without counts 1.004 and 1.005. Answers byte-identical to D43b's retry base on 140,000 small cases (and at cut-offs 1, 2, 3), 1,040 snapshot answers and the four 300,000 requests. 0 violations in 140,000 small cases; 0 mismatches on 520 snapshot requests; every planted defect caught; pruning sound by enumeration (4,355 dropped) and brute force (80,693 dropped). Event frequency under coded only 0 of 16 child types unresolved. `STORE_CODED_ONLY` stays false |
+| D44 | The match beside `unresolved` says when excluded or undetermined records may make it exact (D18's gap; D32's, D36's and D42's follow-ups; D40's on reading such matches): the mark, the reference, the post-pass comparison, the worlds checker's reading and the whole source in the checks; D42's and D38's carve-outs removed, under rules fixed before measuring | Built; rules committed; not yet measured |
 
 ## D1 Package with hatchling, in place
 
@@ -3384,3 +3385,122 @@ D43c starts from D43b's retry base (0253f87) and changes only the cost.
   - D39's usefulness bar would now be met: Event frequency under "coded only" has 0 of 16 child types unresolved.
   - Its latency for count requests at scale is now within these rules: at most 1.26 times main's for Event frequency, and a 1.3 p95 of 7.48 s.
   - A flip would still need D39's rules re-met, including a fresh paired verdict.
+
+## D44 The match beside `unresolved` says when excluded or undetermined records may make it exact (D18's gap); the worlds checks judge it in full
+
+*Status:* built; rules committed before any measurement; not yet measured.
+
+**The defect.** D18's excluded-records rule (`execution_store.apply_exclusions`) weakens what a result claims where a record the store left out could change it: a `possible` result becomes incomplete with the note `EXCLUDED_RECORDS_MAY_MAKE_EXACT`, because `possible` claims that no binding is exact. It left one claim of the same kind untouched: a match reported beside `unresolved` whose certainty is `possible`. That match claims, as a `possible` result does, that no binding of its relaxation set is exact, and an excluded record, or an undetermined gene record (an excluded record of the gene step since D38), can falsify it. The result is never a wrong `exact` or a wrong `none`; it only failed to say that the match may be exact.
+- *D32's review* found it after a count's two passes: about 11 in 30,000 of its fuzz cases. It was logged as D18's convention, a follow-up.
+- *D36* logged the same follow-up.
+- *D42* carved it out of its worlds check (`gene_coded_cases.beside_undetermined`, `CARVED`): one dropped report in 40,000 ruled cases. The development case was seed 901, request 8, patient 028.
+- *D40's follow-up on reading matches beside `unresolved`* (and D35's): the worlds check read a `possible` claim as "no binding is exact" even where the result says otherwise (`EXACT_SEARCH_STOPPED`). D40's correction, on its reverted branch, read every match beside `unresolved` for possibility only, "since the result does not say". With the mark, the result says.
+
+**What changes.**
+1. *The rule* (`excluded_records_scope_v2`, the answer's `exclusion_rule`).
+   - A match beside `unresolved` whose certainty is `possible` gains the note `EXCLUDED_RECORDS_MAY_MAKE_EXACT`, appended once to any note it has. The match is `relaxed_match`, or `unverified_match` beside an order-uncertain or coupled status. The result also names the steps (`excluded_steps`) where it names none.
+   - **This happens exactly where a `possible` result would be made incomplete: some step reaches an excluded record.** Reach is D18's (the step's concepts or widenings, by the query's scope), D32's for Nth and count steps, and D38's for undetermined gene records.
+   - It applies to the `unresolved` results the rule makes from `relaxed` ones, and to the engine's own (`STEP_CONDITION_UNCERTAIN`, `OCCURRENCE_ORDER_UNCERTAIN`, `OCCURRENCE_TIME_COUPLED`, `SEARCH_BUDGET_EXHAUSTED`).
+   - A match whose certainty is `exact` stands, as an exact binding does: adding records only adds bindings, and a displaced `first` or `last` target already makes the result `not_comparable`.
+   - Nothing else in any result changes.
+   - The code is in `patterns/execution_store.py` (`_mark_beside`, `MAY_MAKE_EXACT`, `BESIDE`). Every profile's module calls this function, so every profile gets the mark.
+2. *The reference* has the same gap and is mended the same way, written again (`execution_store_reference.weaken_beside`, from both `admission_check` and `derived_admission`). Every reference module goes through these two functions.
+3. *The count post-pass* (`store_conditions_counts`) compares each re-derived two-pass result with the answer it refines.
+   - The answer has been through the excluded-records rule; the two-pass result has not. Without the mark, the two were equal on every result the post-pass refines. With it, a marked result would count as a mismatch and stay unrefined.
+   - The comparison now reads the answer without the mark (`unmarked`). This was found on D42's development case during development (below).
+4. *The worlds checker's reading* (`trajectory_graph_worlds.claims_no_exact`; D40's and D35's follow-ups).
+   - A `possible` result, and a `possible` match beside `unresolved`, claim that no binding of the set is exact unless the result or the match says otherwise.
+   - `EXACT_SEARCH_STOPPED` withdraws the claim. `EXCLUDED_RECORDS_MAY_MAKE_EXACT` withdraws it only over the whole source (`whole=True`: the checked patient includes the records the store left out). Over the kept records the claim stands and is checked.
+   - So every match beside `unresolved` is judged in full, by what it says.
+   - A `relaxed` result is read as before. Its own exact search's stop carries no note, and no check here meets one, since their searches never stop.
+   - The engine's relaxed match beside `unresolved` does not say when its set's exact search stopped either. That part of D40's follow-up would need `trajectory_graph.py`, and is left as a follow-up.
+5. *Carve-outs removed.*
+   - D42's (`gene_coded_cases`): `beside_undetermined`, `CARVED`, `ELIGIBLE` and `CARVED_OUT` are gone. The status mix counts the marked matches instead (`beside_marked`).
+   - D38's (`gene_cases.check`): a result weakened by an undetermined record, whose status was not `exact`, `none` or `relaxed`, was left to the reference entirely. Such a result carries `excluded_steps` or reason `ADMISSION_EXCLUDED_RECORDS`. It is now judged in every reading, by the claims it makes.
+   - D36's, D39's and D43c's tooling were searched (`derived_cases`, `coded_only_cases`, `count_narrowing_cases`, the test modules). There is no other carve-out of this kind. D43's snapshot oracle accepts, by a weaker check, a refined result that the rule displaced to `not_comparable` (`displaced (weak check)`). That concerns displacement, not this claim, and is unchanged.
+6. *The whole source in the worlds checks.*
+   - D39's harness (`coded_only_cases`) now also checks every result of a patient with excluded records against the whole source, beside the kept reading. In the whole source each excluded record is an event of its concept, with its recorded start range and an unknown end (`kept_patient(..., whole=True)`, `excluded_events`).
+   - D42's harness reads the whole source throughout: its excluded records so, and its undetermined gene records in every reading, as before.
+   - Before D44 no harness could see the gap for ordinary excluded records, since none put them in the truth.
+7. *Tests.*
+   - `test_execution_store`: the rule and the reference on every kind of match, idempotence, an exact match and no reach; end to end through the store and the reference; the planted defects differ from the reference.
+   - `test_coded_only.WholeSourceTests`: a seed where the mark matters (clean, each defect caught) and the two readings.
+   - `test_gene_coded.CarveOutRemovedTests`: D42's development case (`patterns/fixtures/d44_d42_development_case.json`) judged in full, with the post-pass on and off, and failing under the unmarked defect.
+   - `tools/test_benchmark_count_requests.D44RulesTests` and `tools/test_d44_tools`.
+8. *Planted defects* (`execution_store._D44_DEFECT`):
+   - `beside_unmarked`: main's behaviour;
+   - `beside_exact_marked`: an `exact` match marked. This is a weakening, which no worlds check can see and the reference must.
+9. *Bundled follow-ups.*
+   - The stale comments in `demos/mockups/trajectory/store_request.js`, which said the defaults would change at D39's and D42's verdicts, are corrected. `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay false.
+   - The hang once seen in `demos/mockups/test_store_parity.cjs`: the `store_parity.py sweep` child sat in its read of stdin for about 30 minutes, then passed on a rerun. No cause was established: `store_parity.py` starts no pool, nothing else in it reads stdin, and its entry point is guarded. The child's stdin is now a regular file holding the input, never a pipe, so no read can wait on a writer. Each call fails after 30 minutes instead of blocking.
+
+**Tools for the ruled runs** (in the code checkpoint, before any measurement).
+- `tools/d44_measure.py`: `worlds`, `defects` and `reference` (rules 1 to 3), each with the movement shadow of rule 4. Every in-process call of `apply_exclusions` is also answered by main's (from `git show`), and the two answers are classified as equal, the mark and nothing else, or other.
+- `tools/benchmark_exclusions.py` (rule 6.3): the excluded-records path on the MIMIC demo, paired against main, with an untimed structure and movement pass.
+- `tools/benchmark_count_requests.py --rules d44` (rule 6.2): D43b's protocol with D44's bars.
+
+**Disclosed: development runs before these rules** (none ruled; none on the ruled seeds).
+- *D42's development case,* regenerated with D42's generator before its review (9ef75fc). With the fix, the store equals the reference and the worlds check finds nothing. With the unmarked defect, the check reports "the relaxed match beside unresolved does not reach its certainty". On a one-patient snapshot of the case with the post-pass on, the marked result was first left unrefined; that found change 3.
+- *Development seeds 7000 to 7039 per generator.*
+  - With the unmarked defect, the whole-source check caught the gap on `coded-plain` seed 7014 (request 7, patient 035; now a test) and on 11 of 80 `gene-coded` snapshots.
+  - The over-marking defect was caught by the reference on 5 of 15 `coded-plain` snapshots.
+  - Clean, on seeds 7000 to 7019 of the four snapshot generators: 0 violations and 0 mismatches.
+- *Smoke runs of `tools/d44_measure.py`* (seeds from 900,000; one snapshot per generator, 100 gene cases, 2 requests per cohort): 0 violations, 0 mismatches, and no movement other than the mark.
+- *A trial of `tools/benchmark_exclusions.py`* on the first 40 requests and 2 repeats, to check that it runs; its times are not evidence.
+- *The affected suites,* run while building.
+
+**Pre-committed rules** (committed with this entry, before any measurement of D44; "main" is e0b7ea9).
+1. **Soundness: the worlds checks find 0 violations, with no carve-out, on fresh seeds.** Run by `tools/d44_measure.py worlds --first 44000 --snapshots 20 --gene-first 4400000 --gene-cases 20000 --main e0b7ea9`:
+   - D39's `coded-plain` and `coded-derived`: 20,000 cases each, each against the kept events and, for a patient with excluded records, against the whole source;
+   - D42's `gene-coded-plain` and `gene-coded-derived`: 20,000 cases each, against the whole source;
+   - D38's `plain`, `derived` and `relative`: 20,000 cases each, in every reading of the undetermined records;
+   - 0 mismatches against each harness's independent reference on every one of those cases, with D42's store against itself without mentions, and pruning off, byte-identical;
+   - reported: the marked matches, the results checked against the whole source, and the status mixes.
+2. **Reference: the snapshot differential through the dispatcher gives 0 mismatches for every profile.** Run by `tools/d44_measure.py reference --first 44000 --requests 40 --main e0b7ea9`:
+   - profiles 1.0, 1.1 (Nth occurrences, and D28's value fixtures), 1.2, 1.3, gene and the joint gene-coded profile: each request through `store_conditions.match` against its own reference, at 1 and 2 workers (chunk 9), at `decided` and with pruning off, byte-identical. A request with a count among them runs with the post-pass off, as D43b compared D42's;
+   - counts: the count post-pass on D43c's plan, against D43's oracle, with its variants, D39's identity for 1.3, and `skipped_mismatch` 0. The plan is the fixture at 1.1, 1.2 and 1.3; sparse coverage at 1.1 and 1.3; the gene fixture at gene, 1.3 and joint; 20 requests each;
+   - 0 mismatching results and 0 variant differences in every profile.
+3. **Planted defects are caught.** Run by `tools/d44_measure.py defects --first 45000 --snapshots 4 --gene-first 4500000 --gene-cases 4000 --main e0b7ea9`:
+   - `beside_unmarked` is caught by the worlds check (whole source) on at least one harness, and by the reference;
+   - `beside_exact_marked` is caught by the reference;
+   - the suite's tests catch both too.
+4. **Movement: only the marked results change, and only by the mark.**
+   - In every ruled run of rules 1, 2 and 6.3, each call of `apply_exclusions` is classified against main's (rule 4's shadow), with **0 calls other than equal or the mark**.
+   - The mark is exactly this: in an `unresolved` result, a match beside it with certainty `possible` gains `EXCLUDED_RECORDS_MAY_MAKE_EXACT` in its `note`, and the result gains `excluded_steps` where it had none.
+   - Counted per workload, per main's reason and per kind of match.
+   - Beyond the results, every answer's `exclusion_rule` (v1 to v2) and its context's code digests change, as stated.
+   - Where no excluded or undetermined record exists, nothing moves:
+     - the 300 recorded match digests are unchanged (the suite);
+     - the scaling report's rows, candidate counts and status mixes equal the committed report's at every size, and so do the matcher report's per-query digests, which leave out the context. The scaling snapshots hold no excluded record;
+     - the usefulness reports of D36, D38 and D43c, re-run, give every figure as committed. Their figures are statuses, which the mark does not change;
+     - every MIMIC demo figure other than identifiers, digests, artifact bindings, timings and resources equals the committed report's. MIMIC's movement is counted by rule 6.3's structure pass.
+5. **MIMIC differential.** In the regenerated MIMIC demo report, 0 mismatches between store and reference on every differential (base, value, derived, relative), as in D27 and D28; pruning on and off identical; the containment checks met.
+6. **Latency, on the paths the change executes.**
+   1. *The matcher path* (the coordinator's rule). `tools/benchmark_matcher.py --paired-confirm` against main at 300,000 patients (the fresh build), 30 queries, 4 repeats, 14 and 8 workers:
+      - the 14-worker paired p95 ratio is at most **1.05** in every pair;
+      - this tree's 14-worker p95 is at most **10 s**;
+      - the maximum is at most 30 s, and query-process memory is under 4 GB;
+      - the 8-worker figures are reported.
+
+      *Confirmed not to execute the changed lines:* the scaling snapshots hold no excluded record, so `_excluded_starts` (unchanged) finds none and `apply_exclusions` is never called. The rule guards the matcher path, whose `execution_store.py` changed; rules 6.2 and 6.3 time what the change runs.
+   2. *Count requests through the dispatcher.* `tools/benchmark_count_requests.py --rules d44 --reference e0b7ea9` on the fresh 300,000 build, with D43b's requests, windows, protocol and worker counts:
+      - every count request at most **1.05** of main's time in every pair at 14 workers;
+      - the 1.3 Event frequency p95 at most **10 s**;
+      - the two requests without a count at most 1.05 (pooled median);
+      - the candidate's answers equal main's at every result, with main's tally;
+      - the protocol met.
+
+      This path executes the post-pass's new comparison (`unmarked`) on every result it refines (27,030 per Nth-and-count request in D43c).
+   3. *The excluded-records path.* `tools/benchmark_exclusions.py --reference e0b7ea9` on the MIMIC demo, which holds 448,419 excluded records. The 912 requests of the demo report's differentials run through the dispatcher, at one worker, with 20 warm-up requests and 4 repeats in ABBA order:
+      - the candidate's total is at most **1.05** of main's in every pair;
+      - the structure pass shows the rule ran on at least 1,000 results, at least one of them `unresolved`, and 0 calls changed other than by the mark.
+7. **Builds.** The change is in `execution_store.py`, which the D34 build record lists, so the scaling report is regenerated with fresh builds (`--keep`). They are kept under `~/ptm-local/scaling-d44/` for later reuse. The build code is unchanged; if a fresh build's tables, row counts or snapshot content differ from D34's builds, that is reported.
+8. **Regeneration, only what goes stale.**
+   - The scaling report (fresh builds).
+   - The matcher comparison report: its arms, confirmation, paired confirmation and budget policy comparison, on the fresh builds and the kept arm A snapshots.
+   - The MIMIC demo report.
+   - D36's, D38's and D43c's usefulness reports, re-run and rebound.
+   - New: `verification/d44-count-latency-verdict.json` and `verification/d44-exclusions-latency-verdict.json`.
+   - *For sign-off:* `verification/d43c-count-latency-verdict.json` binds `execution_store.py`. It records D43c's decision and is frozen as historical, superseded by D44's count verdict, on the D32, D34, D41 and D43c precedent.
+   - One heavy job at a time, under the bench lock.
+9. **Ship rule.** D44 ships only if every rule above holds. A miss means the change is reverted and D44 lands as a record only. The revert covers the rule, the reference, the post-pass comparison, the checker's reading and the harness changes. The two bundled follow-ups change no result and land either way. A failure is fixed, never tuned away.

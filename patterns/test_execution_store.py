@@ -528,6 +528,74 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual((got['status'], got['complete'], got['note'], got['excluded_steps']),
                          ('possible', False, 'EXCLUDED_RECORDS_MAY_MAKE_EXACT', ['B']))
 
+    def test_an_excluded_record_may_make_the_possible_match_beside_unresolved_exact(self):
+        """D44 (D18's gap): a relaxed result whose match is only `possible` becomes `unresolved` with the match beside it,
+        and the match now says that the excluded record may make it exact, as a `possible` result does. Here the record
+        does: Y at 30 minutes supplies even the unrelaxed binding. The reference agrees (`admission_case`)."""
+        extend = {'id': 'wider', 'kind': 'extend_max', 'relation': 'R', 'max': 200 * 60_000_000, 'cost': '0.5'}
+        steps = [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]
+        events = [('x', 'X', 0, 0), ('y', 'Y', 100, 300)]
+        got, _, _ = self.admission_case(events, [], steps, [extend])
+        self.assertEqual((got['status'], got['certainty']), ('relaxed', 'possible'))
+        got, _, _ = self.admission_case(events, [('Y', 30)], steps, [extend])
+        self.assertEqual(got, {'patient_id': 'P', 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                               'relaxed_match': {'relaxations': ['wider'], 'cost': '0.5', 'certainty': 'possible',
+                                                 'binding': {'A': 'x', 'B': 'y'}, 'method': got['relaxed_match']['method'],
+                                                 'note': 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'},
+                               'excluded_steps': ['B'], 'complete': False})
+
+    def test_the_rule_marks_a_possible_match_beside_unresolved_and_nothing_else(self):
+        """D44, the rule itself (`apply_exclusions`) and the reference's (`weaken_beside`) on results the engine leaves
+        `unresolved`: a `possible` match beside the status (relaxed, or beside an order-uncertain status) gains the note
+        where some step reaches an excluded record, and the result names the steps; an exact match, a result no record
+        reaches and a result without a match stand; marking twice changes nothing."""
+        query = {'steps': [{'id': 'A', 'concept': 'X'}, {'id': 'B', 'concept': 'Y'}]}
+        starts = {'a': (0, 0), 'b': (5, 9)}
+        relaxed = {'relaxations': ['w'], 'cost': '0.5', 'certainty': 'possible', 'binding': {'A': 'a', 'B': 'b'},
+                   'method': 'bounded_backtracking'}
+        uncertain = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN',
+                     'uncertain_steps': ['A'], 'relaxed_match': relaxed, 'complete': False}
+        ordered = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN',
+                   'uncertain_steps': ['A'], 'unverified_match': {k: relaxed[k] for k in ('certainty', 'binding', 'method')},
+                   'complete': False}
+        note = es.MAY_MAKE_EXACT
+        for result, key in ((uncertain, 'relaxed_match'), (ordered, 'unverified_match')):
+            with self.subTest(reason=result['reason']):
+                got = es.apply_exclusions(query, result, {'B': [(3, 3)]}, starts)
+                want = {**result, key: {**result[key], 'note': note}, 'excluded_steps': ['B']}
+                self.assertEqual(json.dumps(got), json.dumps(want))  # key order too
+                self.assertEqual(json.dumps(ref.weaken_beside(result, ['B'])), json.dumps(want))
+                self.assertEqual(es.apply_exclusions(query, got, {'B': [(3, 3)]}, starts), got)
+                self.assertEqual(ref.weaken_beside(got, ['B']), got)
+                exact = {**result, key: {**result[key], 'certainty': 'exact'}}
+                self.assertIs(es.apply_exclusions(query, exact, {'B': [(3, 3)]}, starts), exact)
+                self.assertIs(ref.weaken_beside(exact, ['B']), exact)
+                # a record only the scope rejects reaches no step: nothing to mark
+                self.assertIs(es.apply_exclusions(query, result, {}, starts, every={'B': [(30, 30)]}), result)
+        bare = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN', 'uncertain_steps': ['A'],
+                'complete': False}
+        self.assertIs(es.apply_exclusions(query, bare, {'B': [(3, 3)]}, starts), bare)
+        # a match with a note of its own keeps it, the mark appended
+        noted = {**uncertain, 'relaxed_match': {**relaxed, 'note': 'OTHER'}}
+        self.assertEqual(es.apply_exclusions(query, noted, {'A': [(3, 3)]}, starts)['relaxed_match']['note'],
+                         'OTHER; ' + note)
+        self.assertEqual(ref.weaken_beside(noted, ['A'])['relaxed_match']['note'], 'OTHER; ' + note)
+
+    def test_the_planted_d44_defects_change_the_answer(self):
+        """The two planted defects of the D44 rules (`_D44_DEFECT`): the mark left off a `possible` match, and an `exact`
+        match marked. Each differs from the reference; where they are caught on small cases is `test_coded_only`."""
+        query = {'steps': [{'id': 'A', 'concept': 'X'}]}
+        match = {'relaxations': ['w'], 'cost': '1', 'certainty': 'possible', 'binding': {'A': 'a'}, 'method': 'm'}
+        result = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN',
+                  'uncertain_steps': ['A'], 'relaxed_match': match, 'complete': False}
+        exact = {**result, 'relaxed_match': {**match, 'certainty': 'exact'}}
+        with patch.object(es, '_D44_DEFECT', 'beside_unmarked'):
+            self.assertNotEqual(es.apply_exclusions(query, result, {'A': [(1, 1)]}, {'a': (0, 0)}),
+                                ref.weaken_beside(result, ['A']))
+        with patch.object(es, '_D44_DEFECT', 'beside_exact_marked'):
+            self.assertNotEqual(es.apply_exclusions(query, exact, {'A': [(1, 1)]}, {'a': (0, 0)}),
+                                ref.weaken_beside(exact, ['A']))
+
     def test_structural_concepts_are_refused_where_excluded_records_cannot_carry_them(self):
         steps = [{'id': 'A', 'concept': 'K'}, {'id': 'B', 'concept': 'Y'}]
         labels = {'structural_concept_basis': 'ontology_closure'}

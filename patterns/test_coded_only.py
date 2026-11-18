@@ -2,8 +2,10 @@
 `patterns/store_conditions_coded.py`).
 
 - Small snapshots (`coded_only_cases`): each tiny patient's result checked against every choice of the times of its kept
-  events (`trajectory_graph_worlds`), and against the independent reference (the existing reference on the ingest
-  without letter mentions), on the `coded-plain` and `coded-derived` generators; pruning on and off; planted defects.
+  events (`trajectory_graph_worlds`), and, for a patient with excluded records, of the whole source (D44: each excluded
+  record an event of unknown end), and against the independent reference (the existing reference on the ingest without
+  letter mentions), on the `coded-plain` and `coded-derived` generators; pruning on and off; planted defects, D44's
+  among them (`WholeSourceTests`).
 - Snapshots: the store against the reference, result for result, on D32's derived fixtures and D33's relative fixture
   (letter mentions added, some sharing a coded event's start, some with a series row) and on the synthetic cohort with
   series, for plain steps, value conditions, Nth occurrences, counts and rises, at 1 and 2 workers, both detail levels,
@@ -209,6 +211,39 @@ class PlantedDefectTests(unittest.TestCase):
             self.assertGreater(len(mismatches), 0, defect)
             if by == 'both':
                 self.assertGreater(len(violations), 0, defect)
+
+
+class WholeSourceTests(unittest.TestCase):
+    """D44: the worlds check against the whole source (each excluded record an event of its concept, its start range and
+    an unknown end) judges the match beside `unresolved` in full, and catches the D44 defects with the reference."""
+
+    def test_the_marked_match_is_sound_and_each_d44_defect_is_caught(self):
+        root = Path(_STATE['tmp'].name) / 'd44'
+        # Seed 7014 (found in development): request 7 has a `possible` relaxed match beside `unresolved` that patient 035's
+        # excluded record makes exact.
+        violations, mismatches, mix, _ = co.run_snapshot(root / 'clean', 7014, 'coded-plain', pruning=False)
+        self.assertEqual((violations, mismatches), ([], []))
+        self.assertGreater(mix[co.WHOLE], 0)
+        with patch.object(es, '_D44_DEFECT', 'beside_unmarked'):
+            violations, mismatches, _, _ = co.run_snapshot(root / 'unmarked', 7014, 'coded-plain', pruning=False)
+        self.assertIn((7014, 7, 'coded-plain-7014-035',
+                       ['the relaxed match beside unresolved does not reach its certainty (whole source)']), violations)
+        self.assertIn((7014, 7, 'coded-plain-7014-035'), mismatches)
+        with patch.object(es, '_D44_DEFECT', 'beside_exact_marked'):
+            violations, mismatches, _, _ = co.run_snapshot(root / 'exact', 7014, 'coded-plain', pruning=False)
+        self.assertEqual(violations, [])  # a withdrawn claim is never false: the reference catches it
+        self.assertGreater(len(mismatches), 0)
+
+    def test_the_kept_reading_still_holds_a_marked_claim(self):
+        """Over the records the store kept, a mark withdraws nothing: the engine's `possible` there claims that no binding
+        is exact, and the kept reading checks it (`trajectory_graph_worlds.claims_no_exact`)."""
+        from . import trajectory_graph_worlds as tw
+        marked = {'note': es.MAY_MAKE_EXACT}
+        self.assertTrue(tw.claims_no_exact(marked, whole=False))
+        self.assertFalse(tw.claims_no_exact(marked, whole=True))
+        self.assertFalse(tw.claims_no_exact({'note': 'EXACT_SEARCH_STOPPED'}, whole=False))
+        self.assertTrue(tw.claims_no_exact({}, whole=True))
+        self.assertFalse(tw.claims_no_exact({'note': 'OTHER; ' + es.MAY_MAKE_EXACT}, whole=True))
 
 
 class DifferentialTests(unittest.TestCase):

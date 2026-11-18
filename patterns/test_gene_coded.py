@@ -1,10 +1,11 @@
 """Gene steps under "coded only" (D42): the joint profile `execution-store-conditions-gene-coded-1.0`, answered by
 `store_conditions_gene` through D39's hooks in `store_conditions_coded`.
 
-- Small cases (`gene_coded_cases`): tiny snapshots answered through the dispatcher, against the worlds check (kept events
-  and the gene step's true findings in every reading of an unknown classification) and the independent reference (D39's
-  removal of left-out events, then D38's gene reference); the store against itself on the snapshot built without
-  mentions; pruning on and off; the four planted defects of the D42 rules.
+- Small cases (`gene_coded_cases`): tiny snapshots answered through the dispatcher, against the worlds check (kept events,
+  excluded records as events of unknown end since D44, and the gene step's true findings in every reading of an unknown
+  classification; no carve-out since D44) and the independent reference (D39's removal of left-out events, then D38's
+  gene reference); the store against itself on the snapshot built without mentions; pruning on and off; the four
+  planted defects of the D42 rules; D42's development case judged in full (`CarveOutRemovedTests`, D44).
 - Snapshots: D38's gene fixtures (letter mentions of a gene and of a plain concept, undetermined records, rises, shared
   variables) and the committed cohort built by the wrapper, with D38's gene requests made joint: the store against the
   reference, at 1 and 2 workers, both detail levels, pruning on and off; the store against itself without mentions.
@@ -137,6 +138,39 @@ class SmallCaseTests(unittest.TestCase):
                                                                  pruning=False)
                     found += len(violations) + len(mismatches)
                 self.assertGreater(found, 0, defect)
+
+
+class CarveOutRemovedTests(unittest.TestCase):
+    """D44: D42's development case, judged in full. Its relaxed match beside STEP_CONDITION_UNCERTAIN is `possible` over
+    the known records, and the undetermined genetic result g1 makes it exact in some reading. D42 carved the worlds
+    check's report out; the excluded-records rule now marks the match, so the check passes with no carve-out, and fails
+    under the planted defect that leaves the mark off (main's behaviour)."""
+
+    def test_the_d42_development_case(self):
+        case = json.loads((ROOT / 'patterns/fixtures/d44_d42_development_case.json').read_text())
+        p = case['ingest']['patients'][0]
+        windows = {p['patient_id']: case['window']}
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(case['ingest'], Path(tmp) / 's')) as store:
+            reference = gcc.Reference(case['ingest']).match(case['query'], windows, case['conditions'])[0]
+            for defect, post in ((None, False), (None, True), ('beside_unmarked', False), ('beside_unmarked', True)):
+                with self.subTest(defect=defect, post_pass=post), patch.object(es, '_D44_DEFECT', defect), \
+                        patch.object(sc, 'COUNT_POST_PASS', post):
+                    out = sc.match(store, case['query'], windows, conditions=case['conditions'])
+                    got = out['results'][0]
+                    patient, reports = gcc.kept_patient(p, case['window'])
+                    wrong = gcc.check_result(got, case['query'], case['conditions'], patient, reports)
+                    if defect is None:
+                        self.assertEqual(wrong, [])
+                        self.assertEqual(got['relaxed_match']['note'], es.MAY_MAKE_EXACT)
+                        self.assertTrue(gcc.beside_marked(got))
+                        if not post:
+                            self.assertEqual(got['reason'], 'STEP_CONDITION_UNCERTAIN')
+                            self.assertEqual(json.dumps(co.unfiltered(got)), json.dumps(reference))
+                        else:  # the post-pass still refines it (its comparison reads the answer without the mark)
+                            self.assertEqual(out['derived_steps']['count_refinement']['refined'], 1)
+                            self.assertEqual(out['derived_steps']['count_refinement']['skipped_mismatch'], 0)
+                    else:
+                        self.assertEqual(wrong, ['the relaxed match beside unresolved does not reach its certainty'])
 
 
 class SnapshotTests(unittest.TestCase):
