@@ -520,6 +520,8 @@ def unmarked(answer, v1):
     steps it names (`excluded_steps`) where `v1` names none. The marking is the only change the rule makes to such a
     result that it does not make not comparable (`execution_store._mark_beside`); without this the marked results would
     count as mismatches and go unrefined."""
+    # Fails safe: a note it did not expect stays, and the result is then left unrefined and counted; the engine puts
+    # no note on these matches.
     out = dict(answer)
     for key in es.BESIDE:
         if key in out:

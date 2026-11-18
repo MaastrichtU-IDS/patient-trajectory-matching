@@ -85,6 +85,7 @@ class ExclusionsVerdictTests(unittest.TestCase):
         self.assertFalse(bx.verdict_of(bx.statistics_of(self.records(1.06), groups), 4, self.structure())['met'])
         self.assertFalse(bx.verdict_of(pairs, 2, self.structure())['met'])
         self.assertFalse(bx.verdict_of(pairs, 4, self.structure(), limit=40)['met'])
+        self.assertFalse(bx.verdict_of(pairs, 4, self.structure(), requests_run=bx.REQUESTS - 1)['met'])
         self.assertFalse(bx.verdict_of(pairs, 4, self.structure(calls=999))['met'])
         self.assertFalse(bx.verdict_of(pairs, 4, self.structure(unresolved=0))['met'])
         self.assertFalse(bx.verdict_of(pairs, 4, self.structure(other=1))['met'])

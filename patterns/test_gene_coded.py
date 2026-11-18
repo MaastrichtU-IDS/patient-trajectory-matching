@@ -171,6 +171,12 @@ class CarveOutRemovedTests(unittest.TestCase):
                             self.assertEqual(out['derived_steps']['count_refinement']['skipped_mismatch'], 0)
                     else:
                         self.assertEqual(wrong, ['the relaxed match beside unresolved does not reach its certainty'])
+            # D44 review, S1: the kept reading runs too (no excluded record, the undetermined record without a finding),
+            # and judges a binding on the undetermined record's point, which that reading does not hold.
+            forged = {**got, 'relaxed_match': {**got['relaxed_match'],
+                                                'binding': {**got['relaxed_match']['binding'], 'D': 'derived-step:D/own@g1'}}}
+            wrong = gcc.check_result(forged, case['query'], case['conditions'], patient, reports)
+            self.assertIn('the relaxed match beside unresolved does not reach its certainty (kept records)', wrong)
 
 
 class SnapshotTests(unittest.TestCase):

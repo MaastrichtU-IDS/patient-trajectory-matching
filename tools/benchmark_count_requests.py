@@ -131,6 +131,7 @@ NO_COUNT_BAR = 1.05  # a request without a count: pooled median ratio over the p
 RULES = {'d43c': {'ratio_bar': RATIO_BAR, 'identity_ref': True, 'answers_equal_main': False, 'structural_ruled': True},
          # D44 rule 6.2: the same protocol against main, the bar 1.05, the answers main's (see the docstring)
          'd44': {'ratio_bar': 1.05, 'identity_ref': False, 'answers_equal_main': True, 'structural_ruled': False}}
+OUTPUTS = {'d43c': 'verification/d43b-count-latency-verdict.json', 'd44': 'verification/d44-count-latency-verdict.json'}
 
 WINDOWS_SQL = """
     WITH s AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo FROM events e
@@ -549,7 +550,8 @@ def main(argv=None):
     parser.add_argument('--requests', nargs='*', default=list(REQUESTS), choices=list(REQUESTS))
     parser.add_argument('--memory-limit', default='4GB')
     parser.add_argument('--budget-seconds', type=float, default=3600, help='per run')
-    parser.add_argument('--output', type=Path, default=ROOT / 'verification/d43b-count-latency-verdict.json')
+    parser.add_argument('--output', type=Path, help='default: verification/d43b-count-latency-verdict.json under '
+                        '--rules d43c, verification/d44-count-latency-verdict.json under --rules d44')
     parser.add_argument('--rules', choices=sorted(RULES), default='d43c', help="the bars and checks: D43b/D43c's, or D44's")
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
@@ -560,6 +562,8 @@ def main(argv=None):
     if args.worker:
         args.worker_output.write_text(json.dumps(worker(args)))
         return 0
+    if args.output is None:  # D44 review, S2: never a frozen record by default
+        args.output = ROOT / OUTPUTS[args.rules]
     if not (args.snapshot and args.reference):
         parser.error('--snapshot and --reference are required')
     paired(args)

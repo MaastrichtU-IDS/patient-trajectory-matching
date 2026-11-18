@@ -162,6 +162,8 @@ class D44RulesTests(unittest.TestCase):
 
     def test_the_bar_and_the_protocol(self):
         self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, None, 'd44')['met'])
+        # D44 review, S2: never the frozen D43b record by default
+        self.assertEqual(bc.OUTPUTS['d44'], 'verification/d44-count-latency-verdict.json')
         stats = bc.statistics_of(records(1.04), NAMES)
         same = bc.verdict_of(stats, NAMES, ratio_bar=bc.RULES['d44']['ratio_bar'], protocol=MET, answers=MET,
                              identity='not ruled')

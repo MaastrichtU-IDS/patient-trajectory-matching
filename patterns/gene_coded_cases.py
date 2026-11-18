@@ -23,7 +23,8 @@ that is not a gene step is sometimes on G itself. Two generators:
 - `gene-coded-derived`: an Nth occurrence or a count (`derived_cases.tiny_request`) beside such steps, with the gene step.
 
 **The worlds check** (`check_result`) reads the truth independently: every choice of times of the patient's kept
-events and (since D44) its excluded records, each an event of unknown end, the gene step's true findings as points, in every reading of each unknown classification as negative and as not
+events and (since D44) its excluded records, each an event of unknown end, the gene step's true findings as points
+(and, since the D44 review, the kept records alone: no excluded record, an undetermined record with no finding), in every reading of each unknown classification as negative and as not
 negative (`gene_cases.check`, D38's reading). A binding naming an event that is not kept (nor a derived point) is a
 violation in itself. Every result is judged in full. D42 carved out one report (the match beside an `unresolved` result
 of a patient with an undetermined gene record "does not reach its certainty"), since the excluded-records rule then left
@@ -198,7 +199,8 @@ def check_result(result, query, conditions, patient, reports):
                          if eid not in kept and not eid.startswith(es._DERIVED_PREFIX))
         if foreign:
             return [f'binds events that are not kept: {foreign}']
-    return gk.check(result, query, gene_conditions(conditions), patient, frozenset(), reports)
+    kept_only = dict(patient, events=[e for e in patient['events'] if not e['id'].startswith('#excluded/')])
+    return gk.check(result, query, gene_conditions(conditions), patient, frozenset(), reports, kept=kept_only)
 
 
 def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, worlds=True, reference=True,
@@ -247,6 +249,9 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
                     wrong = check_result(got, query, conditions, patient, reports)
                     if beside_marked(got):
                         mix[MARKED] += 1
+                        if [w for w in check_result(co.unmarked_copy(got), query, conditions, patient, reports)
+                                if not w.endswith('(kept records)')]:
+                            mix[co.NEEDED] += 1  # the mark was needed over the whole source (D44 review, S4)
                     if wrong:
                         violations.append((seed, k, pid, wrong))
                 if reference and json.dumps(co.unfiltered(got)) != json.dumps(want[i]):

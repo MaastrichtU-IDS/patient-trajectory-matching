@@ -2,7 +2,7 @@
 """D44's ruled soundness, reference, planted-defect and movement measurements (decision log, D44, rules 1 to 4).
 
     python tools/d44_measure.py worlds --first 44000 --snapshots 20 --gene-first 4400000 --gene-cases 20000
-    python tools/d44_measure.py defects --first 45000 --snapshots 4 --gene-first 4500000 --gene-cases 4000
+    python tools/d44_measure.py defects --first 45000 --snapshots 8 --gene-first 4500000 --gene-cases 4000
     python tools/d44_measure.py reference --first 44000
     python tools/d44_measure.py structural --snapshot SNAPSHOT --queries 30
     (each with --main REF, the code the movement is measured against, and --output FILE)
@@ -145,6 +145,8 @@ def gene_small(generator, n, first, defect=None):
             mix[got['status']] += 1
             if co.beside_marked(got):
                 mix[co.MARKED] += 1
+                if [w for w in gk.check(co.unmarked_copy(got), q, c, p, m, r, rd) if not w.endswith('(kept records)')]:
+                    mix[co.NEEDED] += 1
             wrong = gk.check(got, q, c, p, m, r, rd)
             if wrong:
                 bad.append((seed, wrong))

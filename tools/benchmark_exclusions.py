@@ -50,6 +50,7 @@ PROFILE = 'exclusions-latency-1.0'
 PROTOCOL = 'paired-interleaved-1.0'
 RATIO_BAR = 1.05
 MIN_CALLS = 1000
+REQUESTS = 912  # the MIMIC demo report's differentials: 500 seeded, 200 value, 150 derived, 2 named and 60 relative
 ARTIFACTS = ('tools/benchmark_exclusions.py', 'tools/d44_measure.py', 'patterns/execution_store.py',
              'patterns/store_conditions.py', 'patterns/store_conditions_counts.py', 'patterns/store_conditions_relative.py',
              'patterns/verify_mimic_store_ingest.py', 'patterns/mimic_store_ingest.py', 'patterns/trajectory_graph.py')
@@ -172,9 +173,10 @@ def statistics_of(records, groups):
     return pairs
 
 
-def verdict_of(pairs, repeats, structure, limit=None):
-    protocol = {'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0, 'every_request_run': not limit}
-    protocol['met'] = all(protocol.values())
+def verdict_of(pairs, repeats, structure, limit=None, requests_run=REQUESTS):
+    protocol = {'repeats_at_least_4_and_even': repeats >= 4 and repeats % 2 == 0,
+                'every_request_run': not limit and requests_run == REQUESTS, 'requests_run': requests_run}
+    protocol['met'] = protocol['repeats_at_least_4_and_even'] and protocol['every_request_run']
     ratio = {'bar': RATIO_BAR, 'ratios': [p['ratio'] for p in pairs],
              'every_pair_at_most': bool(pairs) and all(p['ratio'] <= RATIO_BAR for p in pairs)}
     moved = structure['movement']
@@ -214,7 +216,8 @@ def paired(args):
         print('structure and movement ...', file=sys.stderr, flush=True)
         structure = run_side(ROOT, args, scratch, shadow=root)
         pairs = statistics_of(records, names)
-        verdict = verdict_of(pairs, args.repeats, structure, args.limit)
+        ran = {len(rec[side]['seconds']) for rec in records for side in ('reference', 'candidate')}
+        verdict = verdict_of(pairs, args.repeats, structure, args.limit, ran.pop() if len(ran) == 1 else -1)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
         if not args.keep_requests:

@@ -279,10 +279,25 @@ WHOLE = 'whole_source'  # the status mix's count of results also checked against
 MARKED = 'beside_marked'  # the status mix's count of matches beside `unresolved` marked EXCLUDED_RECORDS_MAY_MAKE_EXACT
 
 
+NEEDED = 'beside_marked_falsifiable'  # ... and of those whose claim, unmarked, the whole source falsifies (D44 review, S4)
+
+
 def beside_marked(result):
     """Whether a result reports a match beside `unresolved` that the excluded-records rule marked (D44)."""
     return result['status'] == 'unresolved' and any(
         es.MAY_MAKE_EXACT in (result.get(k, {}).get('note') or '').split('; ') for k in es.BESIDE)
+
+
+def unmarked_copy(result):
+    """The result without D44's mark on the matches beside it: what main's rule would have said."""
+    out = dict(result)
+    for k in es.BESIDE:
+        if k in out:
+            notes = [n for n in (out[k].get('note') or '').split('; ') if n and n != es.MAY_MAKE_EXACT]
+            out[k] = {key: v for key, v in out[k].items() if key != 'note'}
+            if notes:
+                out[k]['note'] = '; '.join(notes)
+    return out
 
 
 def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, worlds=True, reference=True,
@@ -319,8 +334,12 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
                     wrong = check_result(got, query, conditions, kept_patient(by_id[pid], windows[pid]))
                     if by_id[pid].get('excluded'):
                         mix[WHOLE] += 1
+                        whole_patient = kept_patient(by_id[pid], windows[pid], whole=True)
                         wrong += [f'{w} (whole source)' for w in check_result(
-                            got, query, conditions, kept_patient(by_id[pid], windows[pid], whole=True), whole=True)]
+                            got, query, conditions, whole_patient, whole=True)]
+                        if beside_marked(got) and check_result(unmarked_copy(got), query, conditions, whole_patient,
+                                                               whole=True):
+                            mix[NEEDED] += 1  # the mark was needed: unmarked, the claim is false over the whole source
                     if wrong:
                         violations.append((seed, k, pid, wrong))
                 if reference and json.dumps(unfiltered(got)) != json.dumps(want[i]):

@@ -244,6 +244,21 @@ class WholeSourceTests(unittest.TestCase):
         self.assertFalse(tw.claims_no_exact({'note': 'EXACT_SEARCH_STOPPED'}, whole=False))
         self.assertTrue(tw.claims_no_exact({}, whole=True))
         self.assertFalse(tw.claims_no_exact({'note': 'OTHER; ' + es.MAY_MAKE_EXACT}, whole=True))
+        # The D44 review's case: a marked `possible` relaxed match whose binding is exact over the kept records is a
+        # false claim that only the kept reading sees.
+        patient = {'patient_id': 'P', 'window': {'start': 0, 'end': 10}, 'events': [
+            {'id': 'a', 'concepts': ['x'], 'start': [2, 2]}, {'id': 'b', 'concepts': ['y'], 'start': [5, 5]}]}
+        query = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'x'}, {'id': 'B', 'concept': 'y'}],
+                 'relations': [{'id': 'R', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 1}],
+                 'relaxations': [{'id': 'w', 'kind': 'extend_max', 'relation': 'R', 'max': 5, 'cost': '1'}], 'budget': '1'}
+        wrong = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED', 'complete': False,
+                 'relaxed_match': {'relaxations': ['w'], 'cost': '1', 'certainty': 'possible', 'binding': {'A': 'a', 'B': 'b'},
+                                   'method': 'x', 'note': es.MAY_MAKE_EXACT}}
+        self.assertEqual(tw.check(wrong, query, patient, whole=False),
+                         ['the relaxed match beside unresolved does not reach its certainty'])
+        self.assertEqual(tw.check(wrong, query, patient, whole=True), [])
+        # the over-marking count reads the unmarked copy
+        self.assertNotIn('note', co.unmarked_copy(wrong)['relaxed_match'])
 
 
 class DifferentialTests(unittest.TestCase):
