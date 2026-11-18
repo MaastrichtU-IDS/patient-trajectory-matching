@@ -1,0 +1,208 @@
+{
+ "profile": "exclusions-latency-1.0",
+ "protocol": "paired-interleaved-1.0",
+ "snapshot_id": "0282b797d9356681f2484a1c59de30718cb5989f2a8190a32233b9a409aa4c78",
+ "tables": {
+  "concept_closure": 2995,
+  "concept_postings": 8891,
+  "coverage": 280,
+  "event_concepts": 172011,
+  "event_evidence": 161031,
+  "events": 161031,
+  "excluded_records": 448419,
+  "patients": 100,
+  "series": 150051,
+  "source_concepts": 393
+ },
+ "requests": {
+  "differential": 500,
+  "value": 200,
+  "derived": 150,
+  "relative": 62
+ },
+ "through": "store_conditions.match, one worker, detail full",
+ "warm_requests_untimed": 20,
+ "repeats": 4,
+ "limit": null,
+ "order": "ABBA: the reference first in even repeats, the candidate first in odd",
+ "reference": {
+  "git_ref": "e0b7ea9",
+  "git_commit": "e0b7ea92036bbc0fdf54b7a458d756d596d02422",
+  "files_at_ref": [
+   {
+    "path": "patterns/execution_store.py",
+    "sha256": "54de9edc344ce53a1c0e34559544879886253902e28c59fab845145c8e8ec327"
+   },
+   {
+    "path": "patterns/store_conditions.py",
+    "sha256": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895"
+   },
+   {
+    "path": "patterns/store_conditions_counts.py",
+    "sha256": "5d60281858c50c92d47f64aefc50985641ceceedce24b7e6652d944570516e98"
+   },
+   {
+    "path": "patterns/store_conditions_relative.py",
+    "sha256": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5"
+   },
+   {
+    "path": "patterns/trajectory_graph.py",
+    "sha256": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8"
+   }
+  ]
+ },
+ "candidate": {
+  "git_ref": "this tree",
+  "git_commit": null
+ },
+ "pairs": [
+  {
+   "repeat": 0,
+   "order": [
+    "reference",
+    "candidate"
+   ],
+   "reference_seconds": 152.86164174042642,
+   "candidate_seconds": 151.24798637535423,
+   "ratio": 0.9894436868091975,
+   "ratio_by_group": {
+    "derived": 0.9888557534391301,
+    "differential": 0.9882757556645854,
+    "relative": 0.9914383818509364,
+    "value": 0.9919451725349947
+   }
+  },
+  {
+   "repeat": 1,
+   "order": [
+    "candidate",
+    "reference"
+   ],
+   "reference_seconds": 148.83900820836425,
+   "candidate_seconds": 149.49599555553868,
+   "ratio": 1.0044140803884873,
+   "ratio_by_group": {
+    "derived": 1.0037411272852113,
+    "differential": 1.0043123578886437,
+    "relative": 1.0045796096279647,
+    "value": 1.005308285217852
+   }
+  },
+  {
+   "repeat": 2,
+   "order": [
+    "reference",
+    "candidate"
+   ],
+   "reference_seconds": 148.39704378135502,
+   "candidate_seconds": 148.8518384769559,
+   "ratio": 1.0030647153340262,
+   "ratio_by_group": {
+    "derived": 1.0054692295702774,
+    "differential": 1.0007043720761661,
+    "relative": 1.007110618775864,
+    "value": 1.004191638208024
+   }
+  },
+  {
+   "repeat": 3,
+   "order": [
+    "candidate",
+    "reference"
+   ],
+   "reference_seconds": 149.69299157429487,
+   "candidate_seconds": 148.68491662107408,
+   "ratio": 0.9932657171012548,
+   "ratio_by_group": {
+    "derived": 0.996878873920375,
+    "differential": 0.9960073046327272,
+    "relative": 0.996376556426322,
+    "value": 0.981218687311367
+   }
+  }
+ ],
+ "candidate_seconds_median": 149.1739170162473,
+ "reference_seconds_median": 149.26599989132956,
+ "peak_rss_bytes": {
+  "reference": 605913088,
+  "candidate": 596967424
+ },
+ "structure_and_movement": {
+  "movement": {
+   "by_workload": {
+    "derived": {
+     "equal": 10580,
+     "marked": 0,
+     "other": 0
+    },
+    "differential": {
+     "equal": 34999,
+     "marked": 0,
+     "other": 0
+    },
+    "relative": {
+     "equal": 4068,
+     "marked": 0,
+     "other": 0
+    },
+    "value": {
+     "equal": 11684,
+     "marked": 0,
+     "other": 0
+    }
+   },
+   "marked_by_reason_and_match": {},
+   "calls": 61331,
+   "marked": 0,
+   "other": 0,
+   "other_examples": []
+  },
+  "calls": 61331,
+  "unresolved_calls": 53,
+  "results_marked": 0
+ },
+ "verdict": {
+  "protocol": {
+   "repeats_at_least_4_and_even": true,
+   "every_request_run": true,
+   "requests_run": 912,
+   "met": true
+  },
+  "ratio": {
+   "bar": 1.05,
+   "ratios": [
+    0.9894436868091975,
+    1.0044140803884873,
+    1.0030647153340262,
+    0.9932657171012548
+   ],
+   "every_pair_at_most": true
+  },
+  "structural": {
+   "calls": 61331,
+   "unresolved_calls": 53,
+   "rule_ran_at_least": 1000,
+   "ran": true,
+   "met_unresolved": true,
+   "other_changes": 0,
+   "marked_calls": 0,
+   "results_marked": 0,
+   "met": true
+  },
+  "met": true
+ },
+ "seconds": 1502.3,
+ "artifacts": {
+  "tools/benchmark_exclusions.py": "fa70338bed8c43bd96a297b6a6058f130b0bd86edeb755f7a1bf4e49638eee79",
+  "tools/d44_measure.py": "9ac8f9b9bf05d45ad3595039fbdf50e599735866f5bbad96d40027ea72dec8db",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/verify_mimic_store_ingest.py": "d2aa59bb5457916777b0370dd02679301b0d4a06e3b70a3734196036e7ccbda0",
+  "patterns/mimic_store_ingest.py": "8f9c2eba3708981b658239418d1795f90265cdcfd5eba0c9c7316586ba5ca21c",
+  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8"
+ },
+ "contains_patient_level_data": false,
+ "limitations": "one machine and one session; the open MIMIC-IV demo (100 patients), whose times are exact, so D44's mark is rare there; a pair's time is one timed pass of every request per process"
+}
