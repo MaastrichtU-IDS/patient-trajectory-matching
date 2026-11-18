@@ -253,8 +253,7 @@ def admission_check(query, per_step, result, patient, events, ancestors, window)
     A step carries an excluded record through its concept's closure, and reaches it if the scope also
     admits its start. Then, in order: a first or last step whose target a carried record could
     displace makes the result not comparable; if some step reaches a record, a `none` is not
-    comparable, a `relaxed` is unresolved with the match beside it, a `possible` is incomplete, and a
-    `possible` match beside `unresolved` says that the record may make it exact (D44).
+    comparable, a `relaxed` is unresolved with the match beside it and a `possible` is incomplete.
     """
     scope = query.get('scope', 'any')
     reach, carrying = {}, {}
@@ -298,37 +297,14 @@ def admission_check(query, per_step, result, patient, events, ancestors, window)
                 'excluded_steps': named}
     if status == 'relaxed':
         beside = {k: result[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
-        return weaken_beside({'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
-                              'relaxed_match': beside, 'excluded_steps': named, 'complete': False}, named)
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                'relaxed_match': beside, 'excluded_steps': named, 'complete': False}
     if status == 'possible':
         out = dict(result)
         out.update(complete=False, excluded_steps=named,
                    note=(result['note'] + '; ' if 'note' in result else '') + 'EXCLUDED_RECORDS_MAY_MAKE_EXACT')
         return out
-    if status == 'unresolved':
-        return weaken_beside(result, named)
     return result
-
-
-def weaken_beside(result, named):
-    """D44, written again from docs/execution-store.md ("Excluded records"): a match reported beside an `unresolved`
-    status claims its certainty as a result would. A `possible` one claims that no binding of its set is exact, which a
-    reached record may falsify, so where some step reaches one (`named`) it says so (note
-    EXCLUDED_RECORDS_MAY_MAKE_EXACT, appended once) and the result names the steps, as a `possible` result does."""
-    out = dict(result)
-    changed = False
-    for key in ('relaxed_match', 'unverified_match'):
-        m = result.get(key)
-        if m is None or m['certainty'] != 'possible':
-            continue
-        notes = m['note'].split('; ') if m.get('note') else []
-        if 'EXCLUDED_RECORDS_MAY_MAKE_EXACT' not in notes:
-            notes.append('EXCLUDED_RECORDS_MAY_MAKE_EXACT')
-        out[key] = dict(m, note='; '.join(notes))
-        changed = True
-    if changed:
-        out.setdefault('excluded_steps', named)
-    return out if changed else result
 
 
 def coverage_rule(query, per_step, recorders, coverage, window, result):
@@ -1051,15 +1027,13 @@ def derived_admission(dq, result, patient, events, ancestors, window, points):
                 'excluded_steps': named}
     if status == 'relaxed':
         beside = {k: result[k] for k in ('relaxations', 'cost', 'certainty', 'binding', 'method')}
-        return weaken_beside({'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
-                              'relaxed_match': beside, 'excluded_steps': named, 'complete': False}, named)
+        return {'patient_id': pid, 'status': 'unresolved', 'reason': 'ADMISSION_EXCLUDED_RECORDS',
+                'relaxed_match': beside, 'excluded_steps': named, 'complete': False}
     if status == 'possible':
         out = dict(result)
         out.update(complete=False, excluded_steps=named,
                    note=(result['note'] + '; ' if 'note' in result else '') + 'EXCLUDED_RECORDS_MAY_MAKE_EXACT')
         return out
-    if status == 'unresolved':
-        return weaken_beside(result, named)
     return result
 
 

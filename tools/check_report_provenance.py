@@ -86,7 +86,12 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # on the D39 tree, main at 24cd863), and D42's paired verdict and joint usefulness report (D42's decision
               # on the D42 tree, against main at f99e4f9). D43c's own reports supersede them for the current tree. Undone if the hook is removed.
               'verification/d39-coded-usefulness-report.json',
-              'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json'}
+              'verification/d42-paired-verdict.json', 'verification/d42-gene-coded-usefulness-report.json',
+              # D44 did not ship (its count-request latency rule, 6.2, missed as written), so its code is not in the
+              # tree; its two latency verdicts are kept as frozen records of that decision (coordinator's sign-off as
+              # delegate). Both bind `patterns/execution_store.py`, `patterns/store_conditions_counts.py` and D44's
+              # tools as at the retry base 4218110.
+              'verification/d44-count-latency-verdict.json', 'verification/d44-exclusions-latency-verdict.json'}
 
 
 def digests(path):

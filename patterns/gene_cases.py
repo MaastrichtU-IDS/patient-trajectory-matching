@@ -16,11 +16,8 @@ request: a gene step D on G, related to the case's other steps or to the period,
 findings (`gene_reference.report_finding`) as points carrying the step's tag. An undetermined record is the gene step's
 excluded record on both sides (`store_conditions_gene.apply_undetermined`); the checker reads it independently (D38
 review, should-fix 3): every unknown classification read as negative and as not negative, each reading's findings as
-points; every claim a result makes must hold in every reading, and over the kept records (the reading in which an
-undetermined record has no finding, D44 review) (a `none` the record could change is weakened to
-`not_comparable` first, and claims nothing; a `possible` result or a match beside `unresolved` the record may make exact
-says so, and claims only that its binding holds in some world, D44). Until D44 a weakened `possible` or `unresolved`
-result was left to the reference.
+points; `exact`, `none` and `relaxed` must hold in every reading (a `none` the record could change is weakened to
+`not_comparable` first, and claims nothing).
 """
 from __future__ import annotations
 
@@ -167,32 +164,26 @@ def outcomes(reports):
     return sorted(found, key=lambda x: (x is None, x))
 
 
-def check(result, query, conditions, patient, mentions, reports, readings=None, kept=None):
+def check(result, query, conditions, patient, mentions, reports, readings=None):
     """The worlds checker's violations: the gene step read as a plain step over the true findings' points, in every
-    reading of the unknown classifications (the whole source, `whole=True`); and (D44 review, S1) over the records the
-    store kept (`whole=False`): the reading in which an undetermined record has no finding, on `kept` (the patient
-    without the whole source's other left-out records; the patient itself by default)."""
+    reading of the unknown classifications."""
     tag = f'{es._DERIVED_PREFIX}D/own'
     records = [e for e in patient['events'] if e['id'] in reports and 'G' in e['concepts']]
     choices = [outcomes(reports[e['id']]) for e in records]
     worlds = list(product(*choices))
-    wrong = []  # D44: every result is judged in full, a weakened one too, by the claims it still makes
+    weakened = 'excluded_steps' in result or result.get('reason') == 'ADMISSION_EXCLUDED_RECORDS'
+    if weakened and result['status'] not in ('exact', 'none', 'relaxed'):
+        return []  # weakened by an undetermined record: what it still claims is checked against the reference
+    wrong = []
     for chosen in worlds:
         points = [{'id': f'{tag}@{e["id"]}', 'concepts': [tag], 'start': [at, at]}
                   for e, at in zip(records, chosen) if at is not None]
         wrong += [f'{w} (reading {list(chosen)})' if len(worlds) > 1 else w
                   for w in _check_one(result, query, conditions, patient, mentions, readings, tag, points)]
-    known = []
-    for e in records:
-        verdict, at = gr.report_finding(reports[e['id']])
-        if verdict == 'finding':
-            known.append({'id': f'{tag}@{e["id"]}', 'concepts': [tag], 'start': [at, at]})
-    wrong += [f'{w} (kept records)' for w in _check_one(result, query, conditions, patient if kept is None else kept,
-                                                       mentions, readings, tag, known, whole=False)]
     return wrong
 
 
-def _check_one(result, query, conditions, patient, mentions, readings, tag, points, whole=True):
+def _check_one(result, query, conditions, patient, mentions, readings, tag, points):
     truth = dict(patient, events=list(patient['events']) + points)
     q = copy.deepcopy(query)
     for s in q['steps']:
@@ -204,9 +195,9 @@ def _check_one(result, query, conditions, patient, mentions, readings, tag, poin
         if conditions.get('relaxations'):
             others['relaxations'] = conditions['relaxations']
         return tw.check_derived(result, q, others, truth, mentions,
-                                readings=dc.checker_readings(readings) if readings else None, whole=whole)
+                                readings=dc.checker_readings(readings) if readings else None)
     binding = result.get('binding') or result.get('relaxed_match', {}).get('binding') or {}
     known = {e['id'] for e in truth['events']}
     if any(eid not in known for eid in binding.values()):
         return ['a binding names an event or point the truth does not hold']
-    return tw.check(result, q, truth, whole=whole)  # whole: the undetermined records read every way (D44)
+    return tw.check(result, q, truth)

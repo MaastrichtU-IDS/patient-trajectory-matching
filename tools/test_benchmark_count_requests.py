@@ -157,35 +157,6 @@ class AnswersTests(unittest.TestCase):
         self.assertFalse(bc.answers_check(records(1.5), moved(only=False), NAMES)['met'])
 
 
-class D44RulesTests(unittest.TestCase):
-    """D44 rule 6.2 (`--rules d44`): the bar 1.05 against main, no identity run, the answers main's with main's tally."""
-
-    def test_the_bar_and_the_protocol(self):
-        self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, None, 'd44')['met'])
-        # D44 review, S2: never the frozen D43b record by default
-        self.assertEqual(bc.OUTPUTS['d44'], 'verification/d44-count-latency-verdict.json')
-        stats = bc.statistics_of(records(1.04), NAMES)
-        same = bc.verdict_of(stats, NAMES, ratio_bar=bc.RULES['d44']['ratio_bar'], protocol=MET, answers=MET,
-                             identity='not ruled')
-        self.assertTrue(same['met'])
-        self.assertEqual(same['rule_2'], {'met': True, 'ruled': False})
-        slow = bc.verdict_of(bc.statistics_of(records(1.06), NAMES), NAMES, ratio_bar=bc.RULES['d44']['ratio_bar'],
-                             protocol=MET, answers=MET, identity='not ruled')
-        self.assertFalse(slow['rule_4_1']['met'])
-
-    def test_the_answers_must_be_mains_with_its_tally(self):
-        def both_refine(recs):
-            for rec in recs:
-                for name in bc.COUNT_REQUESTS:
-                    rec['reference']['requests'][name]['tallies'] = [TALLY] * 3
-            return recs
-        still = {n: {'moved': 0, 'other_results_differing': 0, 'only_uncertain_moved': True} for n in NAMES}
-        self.assertTrue(bc.answers_check(both_refine(records(1.0)), still, NAMES, 'd44')['met'])
-        self.assertFalse(bc.answers_check(both_refine(records(1.0)), moved(), NAMES, 'd44')['met'])  # results moved
-        self.assertFalse(bc.answers_check(records(1.0), still, NAMES, 'd44')['met'])  # main's tally differs
-        self.assertTrue(bc.answers_check(records(1.0), moved(), NAMES)['met'])  # D43c's rules allow both
-
-
 class MovementTests(unittest.TestCase):
     def test_only_uncertain_results_may_move(self):
         uncertain = {'patient_id': 'b', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN'}

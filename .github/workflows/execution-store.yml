@@ -25,4 +25,3 @@ jobs:
       - run: python -m unittest -v tools.test_benchmark_execution_store
       - run: python -m unittest -v tools.test_benchmark_matcher
       - run: python -m unittest -v tools.test_benchmark_count_requests
-      - run: python -m unittest -v tools.test_d44_tools

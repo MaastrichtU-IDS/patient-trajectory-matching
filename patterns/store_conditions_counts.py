@@ -495,7 +495,7 @@ def _refine_chunk(store, answering, pq, rows, windows_by_idx, linked, findings):
     refined, where, mismatches = {}, {}, 0
     for k, idx, _, answer in rows:
         v1 = answering.match_derived(pq, request, derived[idx])
-        if json.dumps(v1) != json.dumps(unmarked(answer, v1)):
+        if json.dumps(v1) != json.dumps(answer):
             mismatches += 1  # not the module's own two-pass answer: left as it is, counted
             continue
         result, _ = refine(pq, request, derived[idx], v1)
@@ -512,26 +512,6 @@ def _refine_chunk(store, answering, pq, rows, windows_by_idx, linked, findings):
         kept = {i: r for i, r in refined.items() if r['status'] != 'not_comparable'}
         refined.update(answering.exclusions(store, pq.query, kept, windows_by_idx, derived, findings))
     return sorted(((where[idx], result) for idx, result in refined.items()), key=lambda item: item[0]), mismatches
-
-
-def unmarked(answer, v1):
-    """A STEP_CONDITION_UNCERTAIN answer without D44's marking, to compare with the two-pass result `v1`, which the
-    excluded-records rule has not seen: the note EXCLUDED_RECORDS_MAY_MAKE_EXACT taken off each match beside it, and the
-    steps it names (`excluded_steps`) where `v1` names none. The marking is the only change the rule makes to such a
-    result that it does not make not comparable (`execution_store._mark_beside`); without this the marked results would
-    count as mismatches and go unrefined."""
-    # Fails safe: a note it did not expect stays, and the result is then left unrefined and counted; the engine puts
-    # no note on these matches.
-    out = dict(answer)
-    for key in es.BESIDE:
-        if key in out:
-            notes = [n for n in (out[key].get('note') or '').split('; ') if n and n != es.MAY_MAKE_EXACT]
-            out[key] = {k: v for k, v in out[key].items() if k != 'note'}
-            if notes:
-                out[key]['note'] = '; '.join(notes)
-    if 'excluded_steps' in out and 'excluded_steps' not in v1:
-        del out['excluded_steps']
-    return out
 
 
 # The post-pass in the store's worker pool (D43b). Each chunk of STEP_CONDITION_UNCERTAIN results is a unit run by

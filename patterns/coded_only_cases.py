@@ -230,18 +230,9 @@ def tiny_windows(rng, ingest):
     return out
 
 
-def excluded_events(p, ancestors=None):
-    """A tiny ingest record's excluded records as engine events of the whole source (D44): each an event of its concept
-    (through the closure) with its recorded start range and an unknown end (`[start_lo, None]`), never bound by a
-    store result (ids `#excluded/<j>`)."""
-    ancestors = ANCESTORS if ancestors is None else ancestors
-    return [{'id': f'#excluded/{j}', 'concepts': sorted({x['concept']} | set(ancestors[x['concept']])),
-             'start': list(x['start']), 'end': [x['start'][0], None]} for j, x in enumerate(p.get('excluded', []))]
-
-
-def kept_patient(p, window, kinds=KINDS, whole=False):
+def kept_patient(p, window, kinds=KINDS):
     """The engine patient of a tiny ingest record's kept events, concepts through the closure: what the worlds check
-    enumerates; with `whole`, the whole source: its excluded records too (`excluded_events`, D44)."""
+    enumerates."""
     events = []
     for e in p['events']:
         if e['kind'] in kinds:
@@ -252,62 +243,32 @@ def kept_patient(p, window, kinds=KINDS, whole=False):
             out['end'] = list(e['end'])
         out.update({k: e[k] for k in ('start_var', 'end_var', 'proper') if k in e})
         events.append(out)
-    if whole:
-        events += excluded_events(p)
     return {'patient_id': p['patient_id'], 'window': window, 'events': events}
 
 
-def check_result(result, query, conditions, patient, whole=False):
-    """The worlds check of one store result against the patient's kept events, or with `whole` against the whole source
-    (`kept_patient(..., whole=True)`; `trajectory_graph_worlds.claims_no_exact`). A binding naming an event that is not
+def check_result(result, query, conditions, patient):
+    """The worlds check of one store result against the patient's kept events. A binding naming an event that is not
     kept (nor a derived step's own point) is a violation in itself."""
-    kept = {e['id'] for e in patient['events'] if not e['id'].startswith('#excluded/')}
+    kept = {e['id'] for e in patient['events']}
     for m in (result, result.get('relaxed_match') or {}, result.get('unverified_match') or {}):
         foreign = sorted(eid for eid in (m.get('binding') or {}).values()
                          if eid not in kept and not eid.startswith(es._DERIVED_PREFIX))
         if foreign:
             return [f'binds events that are not kept: {foreign}']
     if not conditions['steps']:
-        return tw.check(result, query, patient, whole=whole)
+        return tw.check(result, query, patient)
     written = {'profile': es.CONDITIONS_PROFILE_1_1, 'steps': conditions['steps']}
     if conditions.get('relaxations'):
         written['relaxations'] = conditions['relaxations']
-    return tw.check_derived(result, query, written, patient, frozenset(), whole=whole)
-
-
-WHOLE = 'whole_source'  # the status mix's count of results also checked against the whole source (D44)
-MARKED = 'beside_marked'  # the status mix's count of matches beside `unresolved` marked EXCLUDED_RECORDS_MAY_MAKE_EXACT
-
-
-NEEDED = 'beside_marked_falsifiable'  # ... and of those whose claim, unmarked, the whole source falsifies (D44 review, S4)
-
-
-def beside_marked(result):
-    """Whether a result reports a match beside `unresolved` that the excluded-records rule marked (D44)."""
-    return result['status'] == 'unresolved' and any(
-        es.MAY_MAKE_EXACT in (result.get(k, {}).get('note') or '').split('; ') for k in es.BESIDE)
-
-
-def unmarked_copy(result):
-    """The result without D44's mark on the matches beside it: what main's rule would have said."""
-    out = dict(result)
-    for k in es.BESIDE:
-        if k in out:
-            notes = [n for n in (out[k].get('note') or '').split('; ') if n and n != es.MAY_MAKE_EXACT]
-            out[k] = {key: v for key, v in out[k].items() if key != 'note'}
-            if notes:
-                out[k]['note'] = '; '.join(notes)
-    return out
+    return tw.check_derived(result, query, written, patient, frozenset())
 
 
 def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, worlds=True, reference=True,
                  pruning=True):
     """One small snapshot of `patients` tiny patients and `requests` seeded 1.3 requests over it, each with its own
     windows: (violations, mismatches, status mix, cases). A case is one patient's result for one request. Each result is
-    checked by the worlds check against the patient's kept events (`worlds`), and, for a patient with excluded records,
-    against the whole source too (D44: its excluded records as events, `kept_patient(..., whole=True)`; counted in the
-    status mix as `whole_source`), compared with the reference (`reference`), and the whole answer with pruning off
-    (`pruning`)."""
+    checked by the worlds check against the patient's kept events (`worlds`), compared with the reference
+    (`reference`), and the whole answer with pruning off (`pruning`)."""
     rng = random.Random(f'coded/{generator}/{seed}')
     ingest = tiny_ingest(rng, f'{generator}-{seed}', patients)
     by_id = {p['patient_id']: p for p in ingest['patients']}
@@ -327,19 +288,9 @@ def run_snapshot(root, seed, generator, patients=40, requests=25, defect=None, w
             for i, got in enumerate(out['results']):
                 cases += 1
                 mix[got['status']] += 1
-                if beside_marked(got):
-                    mix[MARKED] += 1
                 pid = got['patient_id']
                 if worlds:
                     wrong = check_result(got, query, conditions, kept_patient(by_id[pid], windows[pid]))
-                    if by_id[pid].get('excluded'):
-                        mix[WHOLE] += 1
-                        whole_patient = kept_patient(by_id[pid], windows[pid], whole=True)
-                        wrong += [f'{w} (whole source)' for w in check_result(
-                            got, query, conditions, whole_patient, whole=True)]
-                        if beside_marked(got) and check_result(unmarked_copy(got), query, conditions, whole_patient,
-                                                               whole=True):
-                            mix[NEEDED] += 1  # the mark was needed: unmarked, the claim is false over the whole source
                     if wrong:
                         violations.append((seed, k, pid, wrong))
                 if reference and json.dumps(unfiltered(got)) != json.dumps(want[i]):

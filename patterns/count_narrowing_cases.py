@@ -861,10 +861,7 @@ _KEYS = ('status', 'reason', 'relaxations', 'certainty', 'complete', 'note', 'ex
 def _key(result):
     out = {k: result.get(k) for k in _KEYS}
     if 'relaxed_match' in result:
-        out.update(relaxations=result['relaxed_match']['relaxations'], certainty=result['relaxed_match']['certainty'],
-                   relaxed_note=result['relaxed_match'].get('note'))  # D44 review, S3: the mark is compared too
-    if 'unverified_match' in result:
-        out['unverified_note'] = result['unverified_match'].get('note')
+        out.update(relaxations=result['relaxed_match']['relaxations'], certainty=result['relaxed_match']['certainty'])
     return out
 
 
