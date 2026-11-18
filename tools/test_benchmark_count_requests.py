@@ -14,6 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+try:
+    import duckdb  # noqa: F401
+except ImportError:  # pragma: no cover - the store extra is optional
+    duckdb = None
+
 from tools import benchmark_count_requests as bc  # noqa: E402
 
 NAMES = list(bc.REQUESTS)
@@ -169,6 +174,7 @@ class MovementTests(unittest.TestCase):
             self.assertEqual((out['moved'], out['only_uncertain_moved']), (0, False))
 
 
+@unittest.skipIf(duckdb is None, 'DuckDB is not installed')
 class PoolCodeTests(unittest.TestCase):
     def test_a_sides_pool_workers_import_that_sides_code(self):
         """The review's S1: the reference side's spawned pool workers import the reference's `execution_store`, not
