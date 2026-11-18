@@ -193,7 +193,7 @@ class D44bRulesTests(unittest.TestCase):
     def verdict(self, slow, plain, micro):
         stats = bc.statistics_of(records(slow, plain=plain), NAMES)
         return bc.verdict_of(stats, NAMES, ratio_bar=bc.RULES['d44b']['ratio_bar'], protocol=MET, answers=MET,
-                             identity='not ruled', normalised=True, micro=micro)
+                             identity='not ruled', normalised=True, micro=micro, control=MET)
 
     def micro(self, seconds=0.01):
         return {n: {'calls': 27030, 'seconds': seconds} for n in bc.COUNT_REQUESTS}
@@ -222,6 +222,36 @@ class D44bRulesTests(unittest.TestCase):
         self.assertTrue(bc.protocol_check([14, 8], NAMES, 4, 3, None, 'd44b')['met'])
         self.assertFalse(bc.protocol_check([14, 8], bc.COUNT_REQUESTS, 4, 3, None, 'd44b')['met'])
         self.assertEqual(bc.OUTPUTS['d44b'], 'verification/d44b-count-latency-verdict.json')
+
+
+class ControlStructuralTests(unittest.TestCase):
+    """D44b review, F1: the controls provably run no changed code, or the normalised verdict is not met."""
+
+    def control(self, calls):
+        return {'calls': calls, 'runs': {f'{n} at {w}': 1 for n in bc.NO_COUNT_REQUESTS for w in (1, 14)},
+                'loaded_changed_modules': ['patterns.execution_store'], 'routed': ['execution_store']}
+
+    def test_a_nonzero_control_counter_fails_the_verdict(self):
+        targets = {'patterns.execution_store': ['apply_exclusions']}
+        clean = bc.control_check(self.control({'patterns.execution_store:apply_exclusions': 0}), targets, {})
+        self.assertTrue(clean['met'])
+        called = bc.control_check(self.control({'patterns.execution_store:apply_exclusions': 3}), targets, {})
+        self.assertFalse(called['met'])
+        self.assertEqual(called['nonzero'], ['patterns.execution_store:apply_exclusions'])
+        stats = bc.statistics_of(records(1.0), NAMES)
+        micro = {n: {'calls': 1, 'seconds': 0.001} for n in bc.COUNT_REQUESTS}
+        verdict = lambda c: bc.verdict_of(stats, NAMES, ratio_bar=1.05, protocol=MET, answers=MET, identity='not ruled',
+                                          normalised=True, micro=micro, control=c)
+        self.assertTrue(verdict(clean)['met'])
+        self.assertFalse(verdict(called)['met'])
+        self.assertFalse(verdict(None)['met'])
+        self.assertFalse(bc.control_check(self.control({'patterns.execution_store:apply_exclusions': 0}), targets,
+                                          {'patterns/x.py': ['apply_exclusions']})['met'])  # a by-name import
+
+    def test_the_entry_points_the_controls_reach(self):
+        targets = {'patterns.store_conditions_counts': ['_refine_chunk'], 'patterns.execution_store': ['apply_exclusions']}
+        self.assertEqual(bc.entry_references(targets, {'execution_store', 'store_conditions_coded'}), [])
+        self.assertEqual(len(bc.entry_references(targets)), 1)  # the post-pass's unit, which only counts submit
 
 
 class MovementTests(unittest.TestCase):

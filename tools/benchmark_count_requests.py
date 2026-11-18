@@ -41,6 +41,15 @@ that normalised ratio. The controls' own pooled medians are reported, not ruled.
 post-pass's comparison without the mark (`store_conditions_counts.unmarked`), timed call by call over every row it
 compares, with each count request run once through the dispatcher in one process (one worker) by this tree; its total
 must be at most 1% of the request's median time at 14 workers (the timer's own overhead is counted, so it bounds).
+Normalising is valid only if the controls cannot be slowed by the change, so a control-structural check is ruled too
+(`control_worker`, `control_check`; the review's F1): every function or method the change adds or alters in a
+`patterns/` module (by the AST against the reference, `tools/d44_measure.changed_definitions`) gets a call counter, and
+each control runs once through the dispatcher at 1 worker and at 14; every counter must read 0. The counters live in
+the dispatcher's process. At 1 worker every unit runs there, through the same chunk functions a pool unit calls (each
+module's `_worker_unit` calls `_load_events` and `match_prepared`, or `_match_derived_chunk` / `_match_plain_chunk`, on
+the worker's store), so those counters cover the pool path; at 14 workers the dispatcher's own part is counted. The check
+fails if a pool unit's entry point is itself changed or names a changed function in its body, or if a module imports a
+changed function by name (on the AST), which would bypass a counter.
 """
 from __future__ import annotations
 
@@ -281,6 +290,125 @@ def run_micro(args):
     return result
 
 
+POOL_ENTRY_POINTS = {'execution_store': ('_worker_init', '_worker_ready', '_worker_unit'),
+                     'store_conditions_relative': ('_worker_unit',), 'store_conditions_coded': ('_worker_unit',),
+                     'store_conditions_gene': ('_worker_unit',), 'store_conditions_counts': ('_worker_unit',)}
+
+
+def entry_references(targets, modules=None):
+    """Changed function names that a pool unit's entry point is, or names in its body (one level, on the AST), over
+    `modules` (default: every module with a pool unit): for the controls, the modules the dispatcher routes them to and
+    `execution_store`, whose pool they use; the count post-pass's unit is submitted only for a request with a count."""
+    import ast
+    changed = {f.split('.')[-1] for fs in targets.values() for f in fs}
+    found = []
+    for module, entries in POOL_ENTRY_POINTS.items():
+        if modules is not None and module not in modules:
+            continue
+        path = ROOT / 'patterns' / f'{module}.py'
+        if not path.is_file():
+            continue
+        for node in ast.parse(path.read_text()).body:
+            if isinstance(node, ast.FunctionDef) and node.name in entries:
+                names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)} | \
+                        {n.attr for n in ast.walk(node) if isinstance(n, ast.Attribute)}
+                hit = sorted(({node.name} | names) & changed)
+                if hit:
+                    found.append(f'patterns.{module}:{node.name} -> {hit}')
+    return found
+
+
+def control_targets(reference):
+    """{module: [changed or added function or Class.method]} over the `patterns/` modules (tests aside) that differ
+    from `reference`, by the AST (`tools/d44_measure.changed_definitions`), and the by-name imports of those names
+    anywhere in `patterns/` ({module: [names]}, which would bypass a counter)."""
+    import ast
+    sys.path.insert(0, str(ROOT / 'tools'))
+    import d44_measure
+    changed = subprocess.run(['git', 'diff', '--name-only', reference, '--', 'patterns'], cwd=ROOT, check=True,
+                             capture_output=True, text=True).stdout.split()
+    targets = {}
+    for path in changed:
+        name = Path(path).name
+        if not path.endswith('.py') or name.startswith('test_') or not (ROOT / path).is_file():
+            continue
+        functions, _, _, _ = d44_measure.changed_definitions(path, reference)
+        if functions:
+            targets[path[:-3].replace('/', '.')] = functions
+    bypass = {}
+    for path in sorted((ROOT / 'patterns').glob('*.py')):
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.ImportFrom) and node.module and node.level >= 1:
+                module = 'patterns.' + node.module
+                hit = sorted({a.name for a in node.names} & {f.split('.')[0] for f in targets.get(module, ())})
+                if hit:
+                    bypass.setdefault(str(path.relative_to(ROOT)), []).extend(hit)
+    return targets, bypass
+
+
+def control_worker(args):
+    """D44b, F1: each control (a request without a count) once through `store_conditions.match` at 1 worker and at
+    14, with a call counter on every changed function (`control_targets`)."""
+    import importlib
+    targets = json.loads(args.targets)
+    calls = {}
+    for module, names in targets.items():
+        m = importlib.import_module(module)
+        for name in names:
+            owner, attr = (getattr(m, name.split('.')[0]), name.split('.')[1]) if '.' in name else (m, name)
+            real = getattr(owner, attr)
+            key = f'{module}:{name}'
+            calls[key] = 0
+
+            def counted(*a, _real=real, _key=key, **k):
+                calls[_key] += 1
+                return _real(*a, **k)
+            setattr(owner, attr, counted)
+    from patterns import execution_store as es
+    from patterns import store_conditions as sc
+    store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
+    runs = {}
+    try:
+        windows = windows_of(store)
+        for name in NO_COUNT_REQUESTS:
+            query, conditions = REQUESTS[name]
+            for workers in (1, RULED_WORKERS):
+                answer = sc.match(store, query, windows, detail='decided', workers=workers, conditions=conditions)
+                runs[f'{name} at {workers}'] = len(answer['results'])
+                del answer
+    finally:
+        es.close_pools()
+        store.close()
+    loaded = sorted(m for m in sys.modules if m.startswith('patterns.'))
+    routed = sorted({sc._module(REQUESTS[name][1]).__name__.split('.')[-1] for name in NO_COUNT_REQUESTS})
+    return {'calls': calls, 'runs': runs, 'loaded_changed_modules': sorted(m for m in targets if m in loaded),
+            'routed': routed}
+
+
+def run_control(args, targets):
+    out = Path(tempfile.mkdtemp(prefix='count-latency-control-')) / 'out.json'
+    subprocess.run([sys.executable, str(Path(__file__).resolve()), '--control-worker', '--snapshot', args.snapshot_path,
+                    '--memory-limit', args.memory_limit, '--worker-output', str(out), '--targets', json.dumps(targets)],
+                   cwd=ROOT, check=True, timeout=args.budget_seconds)
+    result = json.loads(out.read_text())
+    shutil.rmtree(out.parent, ignore_errors=True)
+    return result
+
+
+def control_check(control, targets, bypass):
+    """D44b, F1: met when every counter reads 0 after both controls ran at 1 and 14 workers, no changed function is a
+    pool unit's entry point, and no module imports a changed function by name."""
+    if control is None:
+        return {'met': False, 'ran': False}
+    entry = entry_references(targets, set(control.get('routed', ())) | {'execution_store'})
+    out = {'ran': len(control['runs']) == 2 * len(NO_COUNT_REQUESTS), 'runs': control['runs'],
+           'calls': control['calls'], 'nonzero': sorted(k for k, n in control['calls'].items() if n),
+           'changed_functions': targets, 'pool_entry_points_changed': entry, 'by_name_imports': bypass,
+           'loaded_changed_modules': control['loaded_changed_modules'], 'routed': control.get('routed')}
+    out['met'] = out['ran'] and not out['nonzero'] and not entry and not bypass and bool(control['calls'])
+    return out
+
+
 def run_side(code_root, args, workers, keep=None):
     out = Path(tempfile.mkdtemp(prefix='count-latency-run-')) / 'out.json'
     command = [sys.executable, str(Path(__file__).resolve()), '--worker', '--code-root', str(code_root),
@@ -416,7 +544,8 @@ def micro_check(micro, stats, ruled=RULED_WORKERS, share=MICRO_SHARE):
 
 
 def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolute=ABSOLUTE_BAR,
-               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None, identity=None, normalised=False, micro=None):
+               no_count_bar=NO_COUNT_BAR, protocol=None, answers=None, identity=None, normalised=False, micro=None,
+               control=None):
     """D43b rules 4.1 and 4.2b at `ruled` workers. 4.1: every count request's ratio at most `ratio_bar` in every pair,
     and the absolute request's candidate p95 over all its runs at most the bar. 4.2b: every request without a count has
     a pooled median ratio (the candidate's median over all its runs, over the reference's) at most `no_count_bar`. No
@@ -453,7 +582,9 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
            'met': protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and rule_42b['met']}
     if normalised:
         out['micro'] = micro_check(micro, stats, ruled)
-        out['met'] = protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and out['micro']['met']
+        out['control_structural'] = control or {'met': False, 'ran': False}
+        out['met'] = (protocol['met'] and answers['met'] and rule_2['met'] and rule_41['met'] and out['micro']['met']
+                      and out['control_structural']['met'])
     return out
 
 
@@ -600,10 +731,13 @@ def paired(args):
                                       for side in ('reference', 'candidate')}}
         if args.identity_ref:
             identity['with_identity_ref'] = identity_with_ref(args, scratch, records, ruled)
-        micro = None
+        micro = control = None
         if RULES[args.rules].get('micro'):
             print('micro-measure of unmarked (D44b) ...', file=sys.stderr, flush=True)
             micro = run_micro(args)
+            print('control-structural check (D44b, F1) ...', file=sys.stderr, flush=True)
+            targets, bypass = control_targets(args.reference)
+            control = control_check(run_control(args, targets), targets, bypass)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     rules = RULES[args.rules]
@@ -612,7 +746,7 @@ def paired(args):
                                                  args.identity_ref, args.rules),
                          answers=identity['check'],
                          identity=identity.get('with_identity_ref') if rules['identity_ref'] else 'not ruled',
-                         normalised=rules.get('normalised', False), micro=micro)
+                         normalised=rules.get('normalised', False), micro=micro, control=control)
     verdict['rules'] = args.rules
     verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files']),
                             'ruled': rules['structural_ruled'],
@@ -661,6 +795,8 @@ def main(argv=None):
     parser.add_argument('--rules', choices=sorted(RULES), default='d43c', help="the bars and checks: D43b/D43c's, or D44's")
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--micro-worker', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--control-worker', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--targets', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
     parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)
@@ -671,6 +807,9 @@ def main(argv=None):
         return 0
     if args.micro_worker:
         args.worker_output.write_text(json.dumps(micro_worker(args)))
+        return 0
+    if args.control_worker:
+        args.worker_output.write_text(json.dumps(control_worker(args)))
         return 0
     if args.output is None:  # D44 review, S2: never a frozen record by default
         args.output = ROOT / OUTPUTS[args.rules]

@@ -3604,7 +3604,8 @@ D44 built the mark for a `possible` match beside `unresolved` (D18's gap) and me
       - the 1.3 Event frequency p95 is at most **10 s**;
       - the answers equal main's at every result, with main's tally;
       - the protocol is met, both controls run;
-      - the **micro-measured cost of `unmarked` is at most 1%** of each count request's median time at 14 workers.
+      - the **micro-measured cost of `unmarked` is at most 1%** of each count request's median time at 14 workers;
+      - the **controls provably run no changed code** (the control-structural check, amended at the review, below).
 
       8 workers and the controls' own ratios are reported.
    3. *6.3 (ruled):* D44's, unchanged: `tools/benchmark_exclusions.py --reference f9e087e` on the MIMIC demo. It is met only if all of the following hold:
@@ -3620,5 +3621,14 @@ D44 built the mark for a `possible` match beside `unresolved` (D18's gap) and me
    - the MIMIC demo report;
    - D36's, D38's and D43c's usefulness reports (re-run);
    - new: `verification/d44b-count-latency-verdict.json` and `verification/d44b-exclusions-latency-verdict.json`.
-   - *For sign-off:* `verification/d43c-count-latency-verdict.json` binds `execution_store.py`. It is frozen as historical, superseded by D44b's count verdict, as D44 had it signed off. One heavy job at a time, under the bench lock.
+   - *Signed off* (the coordinator as delegate, at D44b's checkpoint): `verification/d43c-count-latency-verdict.json` binds `execution_store.py`. It is frozen as historical, superseded by D44b's count verdict. One heavy job at a time, under the bench lock.
 9. **Ship rule:** D44's. D44b ships only if every rule above holds (6.1b reported). A miss means the change is reverted and D44b lands as a record only. A failure is fixed, never tuned away.
+
+**Review of the tool change, and an amendment before any measurement** (the coordinator, inline, on 21778c2; disclosed).
+- *Verdict:* the control-normalisation and the micro bound are sound. `calls > 0` guards the micro patch against a by-name import; every count request needs a micro row; the protocol requires both controls; comparing the one-process total with the 14-worker median overstates the cost, which is conservative.
+- **F1, added to rule 6.2: the controls must provably run no changed code.** Normalising is valid only if the change cannot slow the controls, or dividing by them could hide a real regression. Rule 6.1a proves 0 calls on the matcher path, not on the dispatcher path the controls take.
+  - *The check* (`control_worker`, `control_check`): every function or method the change adds or alters in a `patterns/` module, by the AST against main (23 of them, `apply_exclusions`, `_mark_beside`, `_with_note`, `unmarked`, `_refine_chunk`, `claims_no_exact` and the reference's and harnesses' among them), gets a call counter. Each control runs once through the dispatcher at 1 worker and at 14.
+  - *Met only if* every counter reads 0; both controls ran at both counts; no pool unit the controls can reach (`execution_store`'s and the modules they are routed to) is changed or names a changed function in its body (on the AST); and no module imports a changed function by name.
+  - *The pool path.* The counters live in the dispatcher's process. At 1 worker every unit runs there, through the same chunk functions a pool unit calls (`_load_events` and `match_prepared`, or the modules' `_match_derived_chunk` and `_match_plain_chunk`), so those counters cover what the pool runs; at 14 workers the dispatcher's own part is counted. The count post-pass's pool unit, which calls the changed `_refine_chunk`, is submitted only for a request with a count.
+  - Without the check the verdict is not met. Tests: `tools/test_benchmark_count_requests.ControlStructuralTests` (a nonzero counter, a by-name import and a missing check each fail the verdict).
+  - *Disclosed: a smoke run* on the kept 1,000-patient build: 23 counters at 0, both controls at 1 and 14 workers, no reachable entry point changed, no by-name import.

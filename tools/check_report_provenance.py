@@ -91,7 +91,12 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # tree; its two latency verdicts are kept as frozen records of that decision (coordinator's sign-off as
               # delegate). Both bind `patterns/execution_store.py`, `patterns/store_conditions_counts.py` and D44's
               # tools as at the retry base 4218110.
-              'verification/d44-count-latency-verdict.json', 'verification/d44-exclusions-latency-verdict.json'}
+              'verification/d44-count-latency-verdict.json', 'verification/d44-exclusions-latency-verdict.json',
+              # D44b puts D44's code back into `patterns/execution_store.py`, which D43c's count-latency verdict binds;
+              # it is frozen as historical (D43c's decision on the D43c tree, against main at a28c324), superseded for
+              # the current tree by `verification/d44b-count-latency-verdict.json` (coordinator's sign-off as delegate).
+              # Undone if D44b is reverted.
+              'verification/d43c-count-latency-verdict.json'}
 
 
 def digests(path):
