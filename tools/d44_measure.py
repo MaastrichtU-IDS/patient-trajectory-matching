@@ -157,7 +157,8 @@ def gene_small(generator, n, first, defect=None):
 
 def summarise(violations, mismatches, mix, cases):
     return {'cases': cases, 'violations': len(violations), 'mismatches': len(mismatches), 'mix': dict(sorted(mix.items())),
-            'first_violations': [list(v[:3]) for v in violations[:3]], 'first_mismatches': [list(m) for m in mismatches[:3]]}
+            'first_violations': [list(v[:3]) for v in violations[:3]],
+            'first_mismatches': [m if isinstance(m, int) else list(m) for m in mismatches[:3]]}  # a gene case: its seed
 
 
 def worlds(args, shadow, defect=None):
