@@ -4,7 +4,7 @@
    own interface state in the same \`state\` object and set \`hooks.hidden\` if they hide
    anything from view. Records are grouped into events by a stated rule that reads none of the
    generator's truth (`reconcile`, rule reconcile_v1: D46 for index periods, D47 for the whole
-   page); only the truth lens reads it, to show what happened. */
+   page); only the truth lens's display code reads it, to show what happened. */
 
 const state = {data: null, concepts: null, codeIndex: new Map(), patients: new Map(), evidence: new Map(), ancestry: new Map(),
                indexViews: new Map()};
@@ -134,8 +134,9 @@ function evidenceFor(pid) {
   const lastContact = day(p.follow_up.last_contact);
   const {happenings, measured, notes} = reconcile(p);
   // Data-quality cases (injected and known by the generator, a declared shortcut) attach per record (D47): to each item,
-  // series reading and letter that holds one of a case's records. A case's truth_event_id is never read, so a case on a
-  // letter stays with the letter, and a case with no record (a measurement never taken) stays unattached.
+  // series reading, letter and unplaced record that holds one of a case's records. A case's link to a true event is never read,
+  // so a case on a letter stays with the letter, a case on a record the rule could not place stays with that record, and
+  // only a case with no record at all (a measurement never taken) is unattached.
   const byRecord = new Map();
   for (const q of p.quality) q.record_ids.forEach(id => push(byRecord, id, q));
   const casesOf = recs => uniq(recs.flatMap(r => byRecord.get(r.record_id) || []));
@@ -162,10 +163,16 @@ function evidenceFor(pid) {
   }
   const letters = notes.map(n => ({record: n, day: day(n.occurred.earliest), availableDay: day(n.available_at),
                                    cases: byRecord.get(n.record_id) || []}));
+  // Records the rule could not place (D47 review, M1): held by no item, series reading or letter, such as a record
+  // coded only in a local code no concept carries, or a diary entry that meets no seizure. They are listed, with their
+  // cases, but are not events: no search or index period reads them.
+  const held = new Set([...items.flatMap(i => i.recs), ...Object.values(series).flat().map(s => s.record), ...notes].map(r => r.record_id));
+  const unplaced = p.records.filter(r => !held.has(r.record_id)).map(r => ({record: r, day: r.occurred ? day(r.occurred.earliest) : null,
+                                                                           cases: casesOf([r])}));
   const attached = new Set([...items.flatMap(i => i.cases), ...Object.values(series).flat().flatMap(s => s.cases),
-                            ...letters.flatMap(l => l.cases)].map(q => q.case_id));
+                            ...letters.flatMap(l => l.cases), ...unplaced.flatMap(u => u.cases)].map(q => q.case_id));
   Object.values(series).forEach(s => s.sort((a, b) => a.day - b.day));
-  const view = {p, items, series, letters, lastContact, snapshot: day(p.follow_up.snapshot), rule: 'reconcile_v1',
+  const view = {p, items, series, letters, unplaced, lastContact, snapshot: day(p.follow_up.snapshot), rule: 'reconcile_v1',
                 unattached: p.quality.filter(q => !attached.has(q.case_id)), byId: new Map(items.map(i => [i.id, i]))};
   state.evidence.set(pid, view);
   return view;
@@ -245,7 +252,7 @@ function timeOf(spans) {
 }
 
 /* Records into happenings without the generator's truth: rule reconcile_v1 (D46, for index periods; since D47 the
-   page's whole view, evidenceFor). It reads no truth_event_id, truth or quality field:
+   page's whole view, evidenceFor). It reads no link to a true event, no truth and no quality field:
    1. Coded findings, diagnoses and procedures (every record that is not a note, a measurement or diary summary, a
       medication record or a genetic record, with a code some concept carries), most precise first (precision, then
       earliest time, then record id): each joins the existing happening whose first record (its head) has a compatible
@@ -385,12 +392,12 @@ function indexViewFor(pid) {
 function truthItems(pid) {
   const p = state.patients.get(pid), view = evidenceFor(pid);
   const lane = {phenotype: 'phenotype', diagnosis: 'diagnosis', genetic: 'tests', procedure: 'tests', medication: 'medication'};
-  // The truth lens is the one reader of the generator's truth (D47): to show what happened, and which recorded event
-  // holds each true event's records or mentions. It builds no event.
-  const holder = id => view.items.find(i => i.recs.some(r => r.truth_event_id === id) || i.mentions.some(x => x.m.truth_event_id === id)) || null;
+  // The truth lens's display code is the only code that reads the generator's truth (D47): to show what happened, and
+  // which recorded events hold each true event's records or mentions (every one, if the rule split it). It builds no event.
+  const holders = id => view.items.filter(i => i.recs.some(r => r.truth_event_id === id) || i.mentions.some(x => x.m.truth_event_id === id));
   return p.truth.events.filter(e => lane[e.kind]).map(e => ({
     id: e.event_id, truth: e, kind: e.kind, concept: e.concept, lane: lane[e.kind],
-    display: e.kind === 'genetic' ? `${e.gene} test` : label(e.concept), recorded: holder(e.event_id),
+    display: e.kind === 'genetic' ? `${e.gene} test` : label(e.concept), recorded: holders(e.event_id),
     day: e.day, end: e.end_day ?? null,
   }));
 }
@@ -647,12 +654,12 @@ function timelineSVG(pid, opts) {
       const color = COLOR[lane];
       const selected = opts.selected === it.id;
       if (truth) {
-        const recorded = !!it.recorded;
+        const recorded = it.recorded.length > 0;
         const px = x(it.day);
-        const tip = `${it.display} · happened at ${ageText(it.day)}${recorded ? '' : ' · not in any record'}${it.day > lc ? ' · after last contact' : ''}`;
+        const tip = `${it.display} · happened at ${ageText(it.day)}${recorded ? '' : ' · not in any record'}${it.recorded.length > 1 ? ` · recorded as ${it.recorded.length} events` : ''}${it.day > lc ? ' · after last contact' : ''}`;
         let extra = '';
-        if (recorded && it.recorded.time.best && Math.abs(it.recorded.time.best.e - it.day) > 10 && it.kind !== 'medication') {
-          extra = `<line x1="${px}" x2="${x(it.recorded.time.best.e)}" y1="${cy}" y2="${cy}" stroke="#B42318" stroke-dasharray="2 2"/>`;
+        for (const h of it.kind === 'medication' ? [] : it.recorded) {
+          if (h.time.best && Math.abs(h.time.best.e - it.day) > 10) extra += `<line x1="${px}" x2="${x(h.time.best.e)}" y1="${cy}" y2="${cy}" stroke="#B42318" stroke-dasharray="2 2"/>`;
         }
         if (it.kind === 'medication') {
           const end = x(Math.min(it.end ?? view.snapshot, view.snapshot));

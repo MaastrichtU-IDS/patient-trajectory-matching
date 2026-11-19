@@ -6,7 +6,7 @@ the same rule, the page's period resolution and (D47) its view again, in Python,
 can be compared with it patient by patient (D46 rule 3, D47 rule 3):
 
     python demos/mockups/index_reference.py compare COHORT.json WINDOWS.json    # prints a JSON summary; exit 1 on a mismatch
-    python demos/mockups/index_reference.py compare-view COHORT.json VIEW.json  # D47: items, series, letters and cases
+    python demos/mockups/index_reference.py compare-view COHORT.json VIEW.json  # D47: items, series, letters, unplaced, cases
 
 WINDOWS.json is `d46_windows.cjs windows`'s output: {"rules": {name: window}, "windows": {rule: {free_text: {patient_id:
 {"start", "end"} | {"reason"}}}}}, times in whole minutes from birth (the page's engine grid), as the store request
@@ -337,8 +337,14 @@ class Patient:
             if r['kind'] == 'note':
                 letters[r['record_id']] = cases([r])
                 attached.update(letters[r['record_id']])
+        # Records the rule could not place (D47 review, M1): held by no item, series reading or letter.
+        held = {rid for it in items for rid in it['records']} | {rid for v in series.values() for rid in v} | set(letters)
+        unplaced = {r['record_id']: cases([r]) for r in self.p['records'] if r['record_id'] not in held}
+        for c in unplaced.values():
+            attached.update(c)
         return {'items': sorted(items, key=lambda x: json.dumps(x, sort_keys=True)), 'series': {k: sorted(v) for k, v in series.items()},
-                'letters': letters, 'unattached': sorted(q['case_id'] for q in self.p.get('quality', []) if q['case_id'] not in attached)}
+                'letters': letters, 'unplaced': unplaced,
+                'unattached': sorted(q['case_id'] for q in self.p.get('quality', []) if q['case_id'] not in attached)}
 
     def item(self, recs, ms):
         c = self.c
@@ -476,7 +482,7 @@ def compare_view(cohort_path, view_path):
         items += len(want['items'])
         got = page[p['patient_id']]
         got = {**got, 'items': sorted(got['items'], key=lambda x: json.dumps(x, sort_keys=True))}
-        for part in ('items', 'series', 'letters', 'unattached'):
+        for part in ('items', 'series', 'letters', 'unplaced', 'unattached'):
             compared += 1
             if json.dumps(got[part], sort_keys=True) != json.dumps(want[part], sort_keys=True):
                 mismatches.append({'patient_id': p['patient_id'], 'part': part,

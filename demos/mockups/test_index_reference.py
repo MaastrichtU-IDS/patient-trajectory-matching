@@ -156,6 +156,14 @@ class PageViewTests(unittest.TestCase):
         self.assertEqual(v['letters'], {'N1': ['Q2']})
         self.assertEqual(v['unattached'], ['Q3'])
 
+    def test_a_record_the_rule_cannot_place_is_listed_with_its_case(self):
+        local = {'record_id': 'R9', 'source': 'ehr', 'kind': 'condition', 'coding': {'system': 'local', 'code': 'OBS-X'},
+                 'occurred': {'earliest': '2020-01-01T00:00', 'latest': '2020-01-01T23:59', 'precision': 'day'}}
+        v = view([local], [{'case_id': 'Q9', 'kind': 'local-code', 'record_ids': ['R9']}])
+        self.assertEqual(v['items'], [])
+        self.assertEqual(v['unplaced'], {'R9': ['Q9']})
+        self.assertEqual(v['unattached'], [])
+
     def test_each_measured_record_is_its_own_series_reading(self):
         recs = [{'record_id': f'M{i}', 'source': 'ehr', 'kind': 'measurement', 'coding': {'system': 'LOINC', 'code': '29463-7'},
                  'occurred': {'earliest': '2020-01-0%dT10:00' % i, 'latest': '2020-01-0%dT10:00' % i, 'precision': 'minute'},

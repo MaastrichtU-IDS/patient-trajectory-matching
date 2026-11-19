@@ -447,8 +447,20 @@ function renderHistory() {
   $('#event-list').innerHTML = `<table><thead><tr><th>Age</th><th>Event</th><th>Sources</th><th>Quality</th></tr></thead><tbody>${rows.map(i =>
     `<tr><td>${esc(timeTip(i).replace(/^started /, ''))}</td><td><button class="linklike" data-action="select" data-id="${esc(i.id)}">${esc(i.display)}</button>${i.freeTextOnly ? ' <small>(letters only)</small>' : ''}</td>`
     + `<td>${esc(uniq([...i.recs.map(r => SOURCE_SHORT[r.source]), ...i.mentions.map(x => SOURCE_SHORT[x.note.source])]).join(', '))}</td><td>${i.cases.length || ''}</td></tr>`).join('')}</tbody></table>`
-    + (listed.length > rows.length ? `<p class="hint">${hiddenNote(listed.length - rows.length)}. Hidden events still count in the comparison.</p>` : '');
+    + (listed.length > rows.length ? `<p class="hint">${hiddenNote(listed.length - rows.length)}. Hidden events still count in the comparison.</p>` : '')
+    + unplacedList(view);
   renderInspector(view, win, q);
+}
+
+// Records the grouping rule could not place (D47): no event, series reading or letter holds them, so no comparison reads
+// them; they are listed with their data-quality cases rather than dropped from view.
+function unplacedList(view) {
+  if (!view.unplaced.length) return '';
+  return `<details class="unplaced"><summary>${view.unplaced.length} record${view.unplaced.length > 1 ? 's' : ''} the grouping rule could not place</summary>`
+    + `<p class="hint">Coded only in a local code no concept carries, or otherwise outside every event (README, D47). No comparison reads them.</p><ul>`
+    + view.unplaced.map(u => `<li>${u.day == null ? '' : `${esc(ageText(u.day))} · `}${esc(u.record.label_as_recorded || u.record.kind)} · ${esc(SOURCE_SHORT[u.record.source] || u.record.source)}`
+      + `${u.record.coding ? ` · <code>${esc(codeText(u.record.coding))}</code>` : ''}${u.cases.length ? u.cases.map(caseRow).join('') : ''}</li>`).join('')
+    + '</ul></details>';
 }
 
 function renderInspector(view, win, q) {
