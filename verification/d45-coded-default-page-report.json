@@ -1,0 +1,300 @@
+{
+ "profile": "d45-coded-default-page-1.0",
+ "rule": "D45 rule 3: 3.1, under the coded and the joint translator, every page template, D39's two shapes and every option-sweep definition under each free-text setting translates as the page translator with the explicit option, and as today with stated or hedged findings; 3.2, the option sweep under each translator answered with a result per patient or refused by a named code. Reported: refusal codes without a page message; the translator's own time (rule 4.4)",
+ "cohort": {
+  "children": 48,
+  "sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1"
+ },
+ "translators": {
+  "main": {
+   "constants_on": [],
+   "sha256": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda"
+  },
+  "coded": {
+   "constants_on": [
+    "STORE_CODED_ONLY"
+   ],
+   "sha256": "17e766e1e67054b720eeef560ece9b11611caf49343964fe6525f6756ac4255a"
+  },
+  "joint": {
+   "constants_on": [
+    "STORE_CODED_ONLY",
+    "STORE_GENE_CODED_ONLY"
+   ],
+   "sha256": "19f42b1e69120e1b133cc82d5012543beed150d8bc945cef78fdd718d1a81694"
+  }
+ },
+ "rule_3_1": {
+  "definitions": 568,
+  "free_text": [
+   "off",
+   "present",
+   "possible"
+  ],
+  "modes": {
+   "coded": {
+    "compared": 1704,
+    "equal_to_explicit_option": 1704,
+    "unchanged_outside_coded_only": 1136,
+    "changed_under_coded_only": 547,
+    "transitions": {
+     "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 386,
+     "profile execution-store-conditions-1.1 -> profile execution-store-conditions-1.3": 133,
+     "profile execution-store-conditions-1.2 -> profile execution-store-conditions-1.3": 28
+    },
+    "failures": [],
+    "met": true
+   },
+   "joint": {
+    "compared": 1704,
+    "equal_to_explicit_option": 1704,
+    "unchanged_outside_coded_only": 1136,
+    "changed_under_coded_only": 564,
+    "transitions": {
+     "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 386,
+     "refused GENE_WITH_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-gene-coded-1.0": 17,
+     "profile execution-store-conditions-1.1 -> profile execution-store-conditions-1.3": 133,
+     "profile execution-store-conditions-1.2 -> profile execution-store-conditions-1.3": 28
+    },
+    "failures": [],
+    "met": true
+   }
+  },
+  "met": true
+ },
+ "rule_3_2": {
+  "main": {
+   "definitions": 561,
+   "answered": 293,
+   "translator": {
+    "FREE_TEXT_CODED_ONLY_UNSUPPORTED": 157,
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED": 7,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 10,
+    "VALUE_RELAXATION_MUST_WIDEN": 10
+   },
+   "profiles_sent": {
+    "none": 109,
+    "execution-store-conditions-1.1": 129,
+    "execution-store-conditions-gene-1.0": 7,
+    "execution-store-conditions-1.2": 68
+   },
+   "unnamed": [],
+   "incomplete": [],
+   "met": true
+  },
+  "coded": {
+   "definitions": 561,
+   "answered": 442,
+   "translator": {
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED": 7,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 14,
+    "VALUE_RELAXATION_MUST_WIDEN": 14
+   },
+   "profiles_sent": {
+    "none": 109,
+    "execution-store-conditions-1.3": 242,
+    "execution-store-conditions-gene-1.0": 7,
+    "execution-store-conditions-1.2": 56,
+    "execution-store-conditions-1.1": 56
+   },
+   "unnamed": [],
+   "incomplete": [],
+   "met": true
+  },
+  "joint": {
+   "definitions": 561,
+   "answered": 449,
+   "translator": {
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 14,
+    "VALUE_RELAXATION_MUST_WIDEN": 14
+   },
+   "profiles_sent": {
+    "none": 109,
+    "execution-store-conditions-1.3": 242,
+    "execution-store-conditions-gene-1.0": 7,
+    "execution-store-conditions-gene-coded-1.0": 7,
+    "execution-store-conditions-1.2": 56,
+    "execution-store-conditions-1.1": 56
+   },
+   "unnamed": [],
+   "incomplete": [],
+   "met": true
+  }
+ },
+ "messages": {
+  "main": {
+   "codes": [
+    "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+    "FREE_TEXT_COUNT_UNSUPPORTED",
+    "FREE_TEXT_HEDGED_UNSUPPORTED",
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+    "INVALID_FACTOR",
+    "NTH_STEP_HAS_NO_END",
+    "VALUE_RELAXATION_MUST_WIDEN"
+   ],
+   "without_a_message": [
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED"
+   ]
+  },
+  "coded": {
+   "codes": [
+    "FREE_TEXT_COUNT_UNSUPPORTED",
+    "FREE_TEXT_HEDGED_UNSUPPORTED",
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+    "INVALID_FACTOR",
+    "NTH_STEP_HAS_NO_END",
+    "VALUE_RELAXATION_MUST_WIDEN"
+   ],
+   "without_a_message": [
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED"
+   ]
+  },
+  "joint": {
+   "codes": [
+    "FREE_TEXT_COUNT_UNSUPPORTED",
+    "FREE_TEXT_HEDGED_UNSUPPORTED",
+    "INVALID_FACTOR",
+    "NTH_STEP_HAS_NO_END",
+    "VALUE_RELAXATION_MUST_WIDEN"
+   ],
+   "without_a_message": []
+  }
+ },
+ "translator_time": {
+  "sequence (coded)": {
+   "coded_only": {
+    "median_ms": 1.148165999999037,
+    "max_ms": 1.4500409999964177,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 1.2537910000028205,
+    "max_ms": 1.8991250000035507,
+    "calls": 200
+   }
+  },
+  "event frequency (coded)": {
+   "coded_only": {
+    "median_ms": 0.43866699999489356,
+    "max_ms": 0.6430830000026617,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 0.00849999999627471,
+    "max_ms": 0.010291999999026302,
+    "calls": 200
+   }
+  },
+  "blank (coded)": {
+   "coded_only": {
+    "median_ms": 0.21629199999733828,
+    "max_ms": 0.370374999998603,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 0.23079199999483535,
+    "max_ms": 0.7088329999969574,
+    "calls": 200
+   }
+  },
+  "sequence (joint)": {
+   "coded_only": {
+    "median_ms": 1.1715000000040163,
+    "max_ms": 1.5162909999999101,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 1.2119999999995343,
+    "max_ms": 6.769083999999566,
+    "calls": 200
+   }
+  },
+  "tree (joint)": {
+   "coded_only": {
+    "median_ms": 1.1410829999949783,
+    "max_ms": 1.3762500000011642,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 1.1714580000043497,
+    "max_ms": 1.4144169999999576,
+    "calls": 200
+   }
+  },
+  "graph (joint)": {
+   "coded_only": {
+    "median_ms": 1.166083999996772,
+    "max_ms": 2.1252500000045984,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 1.2289579999996931,
+    "max_ms": 1.4495000000024447,
+    "calls": 200
+   }
+  },
+  "event frequency (joint)": {
+   "coded_only": {
+    "median_ms": 0.44395900000381516,
+    "max_ms": 0.6935000000012224,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 0.007791999996697996,
+    "max_ms": 0.013250000003608875,
+    "calls": 200
+   }
+  },
+  "blank (joint)": {
+   "coded_only": {
+    "median_ms": 0.2185830000016722,
+    "max_ms": 0.3597089999966556,
+    "calls": 200
+   },
+   "stated_findings_today": {
+    "median_ms": 0.224833000000217,
+    "max_ms": 0.3415420000019367,
+    "calls": 200
+   }
+  }
+ },
+ "met": {
+  "rule_3_1": true,
+  "rule_3_2": true
+ },
+ "artifacts": {
+  "demos/mockups/coded_default.cjs": "3c9bbafd1406ec3a7217b397d450111e087c5f8c1ea463e97e263db0d71e1921",
+  "demos/mockups/option_sweep.js": "873b6eb3295bf8dabf809ef84de9416b1924aa16ca53aedf91ba46566ff7280e",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
+  "demos/mockups/trajectory/app.js": "1d8b97fb7caff993c223648be32efc2d1db2ce3a7013e61dec9929bfad870e44",
+  "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false
+}
