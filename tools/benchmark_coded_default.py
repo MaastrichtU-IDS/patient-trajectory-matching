@@ -91,6 +91,10 @@ SCALE_SHAPES = ('event frequency', 'blank', 'sequence without its rise', 'tree w
                 'graph without its gene and rise steps')
 POSITIVE = ('_left_out', 'refined', '_comparability')  # each called by every candidate at one worker (review, S3)
 EXEMPT = ('is_coded_request',)  # a predicate on the profile's name: no exclusion work
+# The pool's entry point is submitted to the worker processes by reference, so a wrapper (a local function) cannot be
+# pickled: it is left unwrapped. Its body's calls (`_match_derived_chunk`, `_match_plain_chunk`) are counted at one
+# worker, where the chunks run in the counted process (the first ruled run stopped here on that defect: D45 log).
+POOL_SUBMITTED = ('_worker_unit',)
 TIMED = ('_left_out', 'refined', '_comparability', '_as_excluded')  # disjoint entry points of the exclusion work
 ARTIFACTS = ('tools/benchmark_coded_default.py', 'tools/benchmark_count_requests.py', 'demos/mockups/coded_default.cjs',
              'demos/mockups/store_trajectory.py', 'demos/mockups/store_parity.py', 'patterns/store_conditions.py',
@@ -198,11 +202,12 @@ def scale_worker(args):
 
 
 def exclusion_targets():
-    """Every top-level function and class method of `store_conditions_coded` (Class.method), but `EXEMPT`."""
+    """Every top-level function and class method of `store_conditions_coded` (Class.method), but `EXEMPT` and
+    `POOL_SUBMITTED`."""
     tree = ast.parse((ROOT / 'patterns' / 'store_conditions_coded.py').read_text())
     out = []
     for node in tree.body:
-        if isinstance(node, ast.FunctionDef) and node.name not in EXEMPT:
+        if isinstance(node, ast.FunctionDef) and node.name not in EXEMPT + POOL_SUBMITTED:
             out.append(node.name)
         elif isinstance(node, ast.ClassDef):
             out += [f'{node.name}.{m.name}' for m in node.body if isinstance(m, ast.FunctionDef)]
@@ -374,7 +379,8 @@ def structural_check(raw, data, bypass, entries):
     expected_scale = len(data['scale']) * 4 + len(SCALE_CONTROLS) * 2  # (fewer when a trial runs 1 worker as the many)
     ran = {'page': len(raw['page']) == expected_page,
            'scale': sum(len(v) for v in raw['scale'].values()) == expected_scale}
-    return {'targets': raw['targets'], 'exempt': list(EXEMPT), 'positive_control': list(POSITIVE),
+    return {'targets': raw['targets'], 'exempt': list(EXEMPT), 'not_wrapped': list(POOL_SUBMITTED),
+            'positive_control': list(POSITIVE),
             'pool_note': ("a zero at 14 workers covers the dispatcher's own part; the pool's part rests on the "
                           'one-worker readings and the AST check of the pool entry points'),
             'readings': rows, 'failures': failures, 'ran': ran,
@@ -525,6 +531,10 @@ def main_run(args):
         scale_stats, scale = size_verdict(scale_records, scale_templates, list(SCALE_CONTROLS), ruled,
                                           SCALE_P95_BAR, args.scale_runs, SCALE_RUNS_MIN, args.repeats,
                                           ruled_run=RULED_WORKERS in args.workers, expected=SCALE_SHAPES)
+        # The timed records, kept outside the repository before the structural phase, so a later failure loses none.
+        kept = Path(tempfile.gettempdir()) / f'd45-latency-records-{os.getpid()}.json'
+        kept.write_text(json.dumps({'page': page_records, 'scale': scale_records}))
+        print(f'timed records kept in {kept}', file=sys.stderr, flush=True)
         print('structural check (rule 4.3) and the exclusion work\'s time (rule 4.4) ...', file=sys.stderr, flush=True)
         raw = _run(args, '--structural-worker', ['--page-snapshot', page_snapshot, '--snapshot', args.snapshot_path,
                                                  '--arm-workers', str(ruled)],

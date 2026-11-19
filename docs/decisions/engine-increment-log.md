@@ -3800,3 +3800,14 @@ The tools load the translator as it would be flipped: they substitute each const
   - The log's `build_check` path now names the snapshot directory (rule 6, rule 4.2).
   - The report's one-worker share (`share_of_candidate_p50_at_14_attribution_only`) is labelled attribution only, not a bound.
 - *The missing refusal message (kept as written at the checkpoint):* the reviewer confirms it matters only for flipping `STORE_CODED_ONLY` alone. There it covers 7 refusals in the option sweep (`GENE_WITH_CODED_ONLY_UNSUPPORTED`, the seven gene definitions under "coded only"), and none under the joint flip. The verdict carries this detail.
+
+**The first run of rule 4 stopped on a tool defect, and rule 4 was run again from the start** (disclosed; the rules are unchanged).
+- *What happened.* The job (one job under the bench lock, 2026-11-19 from 10:02 to 10:48, on 83ddf26) ran rules 1 to 3 and rule 4's 24 timed arm processes. It then stopped in rule 4.3's structural worker, before writing a verdict. At 14 workers a candidate's coded module submits its pool entry point (`store_conditions_coded._worker_unit`) to the worker processes by reference, and the counter's wrapper, a local function, cannot be pickled (`MATCH_WORKER_FAILED: AttributeError: Can't get local object 'Counters.__init__.<locals>.counted'`). The trial on the kept 1,000-patient build had run the structural worker at one worker as its "many", so it never reached the pool.
+- *Seen, not ruled:* the arm medians the tool prints per process were in the log. No ratio, p95 or verdict was computed, and none is used.
+- *The fix* (`benchmark_coded_default.py`; no rule changes):
+  - the pool's entry point is left unwrapped (`POOL_SUBMITTED`). Its body's calls (`_match_derived_chunk`, `_match_plain_chunk`) are counted at one worker, where the chunks run in the counted process;
+  - the timed records are now kept outside the repository before the structural phase.
+
+  Test: `StoreTests.test_the_counters_leave_the_pool_entry_point_picklable`. A trial on the 1,000-patient build at 2 workers then ran the structural worker through the pool with no failure.
+- *Kept from the first job:* rules 1 to 3. Their outputs do not depend on the defect, and no file they read changed.
+- *Run again from the start:* rule 4 alone, with the same tool options, requests file, build and protocol, in a second job under the lock.

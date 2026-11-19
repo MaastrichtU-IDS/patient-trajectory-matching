@@ -239,6 +239,18 @@ class StoreTests(unittest.TestCase):
             for owner, attr, real in counters.undo:
                 setattr(owner, attr, real)
 
+    def test_the_counters_leave_the_pool_entry_point_picklable(self):
+        # The first ruled run stopped here: a candidate at 14 workers submits `_worker_unit` to the pool by reference.
+        import pickle
+        from patterns import store_conditions_coded as cc
+        counters = bd.Counters()
+        try:
+            self.assertIs(pickle.loads(pickle.dumps(cc._worker_unit)), cc._worker_unit)
+            self.assertNotIn('_worker_unit', counters.calls)
+        finally:
+            for owner, attr, real in counters.undo:
+                setattr(owner, attr, real)
+
     def test_the_dispatcher_harness(self):
         import d45_measure as dm
         with tempfile.TemporaryDirectory() as tmp:
