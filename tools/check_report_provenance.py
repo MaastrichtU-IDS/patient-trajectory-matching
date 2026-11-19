@@ -96,7 +96,16 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # it is frozen as historical (D43c's decision on the D43c tree, against main at a28c324), superseded for
               # the current tree by `verification/d44b-count-latency-verdict.json` (coordinator's sign-off as delegate).
               # Undone if D44b is reverted.
-              'verification/d43c-count-latency-verdict.json'}
+              'verification/d43c-count-latency-verdict.json',
+              # D46 places the trajectory page's index periods without the generator's truth (`shared/core.js`, rule
+              # reconcile_v1), so every usefulness report that measures over the page's windows and binds `core.js` and
+              # `trajectory/app.js` would record other figures if regenerated. Four are frozen as historical records of
+              # their decisions on truth-grouped windows, each superseded for the current tree by
+              # `verification/d46-window-usefulness-report.json` (coordinator's sign-off as delegate, D46's D3): D36's
+              # rise usefulness, D38's gene usefulness, D43c's coded usefulness and D45's coded-default usefulness, each as
+              # last regenerated on main at 28a3cbf. D45's page report is regenerated instead. Undone if D46 is reverted.
+              'verification/d36-rise-usefulness-report.json', 'verification/d38-gene-usefulness-report.json',
+              'verification/d43c-coded-usefulness-report.json', 'verification/d45-coded-default-usefulness-report.json'}
 
 
 def digests(path):

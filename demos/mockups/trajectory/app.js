@@ -924,7 +924,7 @@ function backendBanner() {
     const s = state.storeMeta;
     return `<div class="backend store" role="status"><strong>Answered by the execution store</strong>
       <span>snapshot <code title="${esc(s.snapshot)}">${esc(s.snapshot.slice(0, 12))}…</code> · ${esc(s.store)}${s.conditions ? ` · ${esc(s.conditions.replace('execution-store-', ''))}` : ''} · ${s.ms} ms</span>
-      <span class="hint">The store reads every record and letter mention as its own event, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records using the synthetic truth, builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page, over its view of the records grouped by the synthetic truth, and sent to the store as input.</span></div>`;
+      <span class="hint">The store reads every record and letter mention as its own event, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records using the synthetic truth, builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page over the records grouped by a stated rule that reads no synthetic truth (same concept, overlapping times; D46), and sent to the store as exact times: the store's answer holds for that period, though the event that places it may be known only within a range.</span></div>`;
   }
   return `<div class="backend page" role="status"><strong>Matched by ${esc(state.matcher === 'browser' ? 'this page\'s own search' : pageBy)}</strong></div>`;
 }

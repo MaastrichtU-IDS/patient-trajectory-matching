@@ -178,97 +178,97 @@
  "translator_time": {
   "sequence (coded)": {
    "coded_only": {
-    "median_ms": 1.148165999999037,
-    "max_ms": 1.4500409999964177,
+    "median_ms": 1.1552499999961583,
+    "max_ms": 1.472834000000148,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.2537910000028205,
-    "max_ms": 1.8991250000035507,
+    "median_ms": 1.2110409999950207,
+    "max_ms": 1.5120830000014394,
     "calls": 200
    }
   },
   "event frequency (coded)": {
    "coded_only": {
-    "median_ms": 0.43866699999489356,
-    "max_ms": 0.6430830000026617,
+    "median_ms": 0.44204200000240235,
+    "max_ms": 0.6397080000024289,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.00849999999627471,
-    "max_ms": 0.010291999999026302,
+    "median_ms": 0.0076249999983701855,
+    "max_ms": 0.009124999996856786,
     "calls": 200
    }
   },
   "blank (coded)": {
    "coded_only": {
-    "median_ms": 0.21629199999733828,
-    "max_ms": 0.370374999998603,
+    "median_ms": 0.2223329999978887,
+    "max_ms": 0.3714170000021113,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.23079199999483535,
-    "max_ms": 0.7088329999969574,
+    "median_ms": 0.24441700000170385,
+    "max_ms": 0.4217500000013388,
     "calls": 200
    }
   },
   "sequence (joint)": {
    "coded_only": {
-    "median_ms": 1.1715000000040163,
-    "max_ms": 1.5162909999999101,
+    "median_ms": 1.1264589999991586,
+    "max_ms": 1.3562499999970896,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.2119999999995343,
-    "max_ms": 6.769083999999566,
+    "median_ms": 1.2334170000031008,
+    "max_ms": 7.417959000005794,
     "calls": 200
    }
   },
   "tree (joint)": {
    "coded_only": {
-    "median_ms": 1.1410829999949783,
-    "max_ms": 1.3762500000011642,
+    "median_ms": 1.1042079999970156,
+    "max_ms": 1.9817909999983385,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.1714580000043497,
-    "max_ms": 1.4144169999999576,
+    "median_ms": 1.167249999998603,
+    "max_ms": 1.3803330000009737,
     "calls": 200
    }
   },
   "graph (joint)": {
    "coded_only": {
-    "median_ms": 1.166083999996772,
-    "max_ms": 2.1252500000045984,
+    "median_ms": 1.1508749999993597,
+    "max_ms": 1.3994999999995343,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.2289579999996931,
-    "max_ms": 1.4495000000024447,
+    "median_ms": 1.2229579999984708,
+    "max_ms": 1.7733339999977034,
     "calls": 200
    }
   },
   "event frequency (joint)": {
    "coded_only": {
-    "median_ms": 0.44395900000381516,
-    "max_ms": 0.6935000000012224,
+    "median_ms": 0.4434160000018892,
+    "max_ms": 0.7238749999960419,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.007791999996697996,
-    "max_ms": 0.013250000003608875,
+    "median_ms": 0.007916000002296641,
+    "max_ms": 0.008415999996941537,
     "calls": 200
    }
   },
   "blank (joint)": {
    "coded_only": {
-    "median_ms": 0.2185830000016722,
-    "max_ms": 0.3597089999966556,
+    "median_ms": 0.2210830000040005,
+    "max_ms": 0.41462500000488944,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.224833000000217,
-    "max_ms": 0.3415420000019367,
+    "median_ms": 0.23316699999850243,
+    "max_ms": 0.412917000001471,
     "calls": 200
    }
   }
@@ -279,11 +279,11 @@
  },
  "artifacts": {
   "demos/mockups/coded_default.cjs": "3c9bbafd1406ec3a7217b397d450111e087c5f8c1ea463e97e263db0d71e1921",
-  "demos/mockups/option_sweep.js": "873b6eb3295bf8dabf809ef84de9416b1924aa16ca53aedf91ba46566ff7280e",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
   "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
-  "demos/mockups/trajectory/app.js": "1d8b97fb7caff993c223648be32efc2d1db2ce3a7013e61dec9929bfad870e44",
-  "demos/mockups/shared/core.js": "a9b37f69ab26d3c10817fff49f5a1e5709fdc0eed9f38860c830479c0130a1a2",
+  "demos/mockups/trajectory/app.js": "014c8557666f690e73d5f432e38a2c3e0422c34b3f4fe9f2a5587e7548561066",
+  "demos/mockups/shared/core.js": "293d799a7039c717dd0f45494bbbfec5895616199778a326eb9f912badff6533",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",

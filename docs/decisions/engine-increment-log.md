@@ -60,6 +60,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D44 | The match beside `unresolved` says when excluded or undetermined records may make it exact (D18's gap; D32's, D36's and D42's follow-ups; D40's on reading such matches): the mark, the reference, the post-pass comparison, the worlds checker's reading and the whole source in the checks; D42's and D38's carve-outs removed, under rules fixed before measuring | Built and sound, **not shipped**: rule 6.2 missed as written (14-worker count-request ratios up to 1.060 against 1.05, with a no-change control rising in the same pairs). Every other rule met: 0 worlds violations in 140,000 cases with no carve-out (about 6% of marks needed over the whole source), 0 mismatches on 1,460 snapshot requests, both planted defects caught, nothing moved but the mark, MIMIC unchanged, 0 calls of changed code on the matcher path, the excluded-records path 0.99 to 1.00 of main's time. Reverted; kept at 4218110. The lesson: per-pair bars must be control-normalised. D44b queued |
 | D44b | D44 retried: the same code (recovered from 4218110), with rule 6.2 control-normalised (each count request's per-pair ratio over the geometric mean of two no-change controls' ratios in the same processes), a micro-measured bound on the changed code's cost and a check that the controls run no changed code, under rules fixed before measuring | Decided; **shipped**. Every rule met: 0 worlds violations in 140,000 cases with no carve-out (about 5% of marks needed over the whole source), 0 mismatches on 1,460 snapshot requests, both planted defects caught, nothing moved but the mark, MIMIC unchanged; 6.1a 0 calls of changed code on the matcher path; count requests normalised 0.98 to 1.033 (raw up to 1.046), `unmarked` at most 0.43% of a request, controls 0 calls; the excluded-records path 0.99 to 1.00 of main's. Builds reused (1,932 s). The rule is `excluded_records_scope_v2` |
 | D45 | Is "coded only" ready to be the trajectory page's default? A measured readiness verdict on flipping `STORE_CODED_ONLY` (D39), and with it `STORE_GENE_CODED_ONLY` (D42), under rules fixed before measuring; the flip is the owner's decision, and D45 keeps both false | Measured; **ready**, every rule met for both. 80,000 small cases through the dispatcher with the post-pass on, 0 violations; 1,460 snapshot requests, 0 mismatches; under coded only 0 unresolved child types on every template over seeds 4501 to 4530; the flip changes only coded-only requests, and the sweep under it has no unnamed failure (442 and 449 of 561 answered); the store's cost of leaving mentions out 1.10 to 1.85 at 300,000 (control-normalised; p95 at most 7.47 s) and 1.14 to 1.52 at page size (p95 at most 79 ms). Recommended: flip both constants together; flipping `STORE_CODED_ONLY` alone needs a message for `GENE_WITH_CODED_ONLY_UNSUPPORTED` first. Constants left false |
+| D46 | Index periods placed without the generator's truth: the page's index view grouped by a stated rule (`reconcile_v1`: compatible concept and meeting times; medication courses by the page's run-out rule; genetic tests by gene; mentions by concept and wording time), the page's own search keeping its truth grouping, under rules fixed before measuring; the index anchor as a hidden step queued for anchor uncertainty (P2) | Decided; **shipped**. Every rule met: 0 mismatches against the reference on 19,008 windows (11 cohorts, 12 rules), unchanged with the truth removed, records shuffled or ids permuted; every ruled planted defect caught. On the page's cohort 23 of 656 placed windows moved and 4 changed placement, and 225 of 14,976 store results changed, each on an explained moved window. Usefulness 0 unresolved child types on all nine ruled templates. Parity 850 of 1,248. Anchor uncertainty (P2) reported: 397 of 13,824 answers change with anchors at their latest time; queued as option (c) |
 
 ## D1 Package with hatchling, in place
 
@@ -3858,3 +3859,253 @@ The tools load the translator as it would be flipped: they substitute each const
 - The owner's decision on the flip, with the precondition above if only `STORE_CODED_ONLY` is turned on.
 - The page's "coded only" wording, and a message for `GENE_WITH_CODED_ONLY_UNSUPPORTED`, in one change to `app.js`. It binds the usefulness reports, which would then be rebound.
 - A cheaper exclusion of left-out events at scale, and joint requests timed on a 300,000 build with series and gene labels.
+
+## D46 Index periods placed without the generator's truth: a stated reconciliation rule for the page's index view, under rules fixed before measuring
+
+*Status:* **shipped**. Every rule met. The index periods the page sends to the store no longer read the generator's truth. On the page's cohort, 23 of 656 placed windows moved and 4 changed placement; 225 of 14,976 store results changed, every one on an explained moved window. Usefulness: 0 unresolved child types on all nine ruled templates.
+
+**The problem.** The store's matching reads no generator truth (`patterns/synthetic_ingest.py`). But the index periods the trajectory page places and sends with every store request come from `windowFor(evidenceFor(pid))` (`shared/core.js`). `evidenceFor` groups records into happenings by `truth_event_id`, attaches letter mentions by the same link, and splits provisional hedged mentions by it (the README's shortcuts, PR #165). So every store answer still rests, through its windows, on the generator's truth. A real system has none. D37 named this (a follow-up: windows from the store's own events); D46 removes it.
+
+**Design study** (`~/ptm-local/design/d46-windows/study.md`, at the checkpoint before code; decisions by the coordinator as the owner's delegate).
+- *Where the truth enters.*
+  - Only event bounds read evidence: the first, last, Nth or Nth-from-last item of a concept, a medicine or drug class, a gene, any diagnosis or any genetic result. Each is timed by its item's most precise record.
+  - The truth sets that item's records, so its time and its count. It also sets which letter mentions join it (a mention-only happening is timed from the letter's wording).
+- *Two problems, kept apart.*
+  - **P1, the truth link:** which records make one happening. D46 removes it.
+  - **P2, anchor uncertainty:** a window is sent as exact minutes, but the event that places it is known only within a range (a day, a month, "about 3 weeks ago"). The store's answers are sound for the window it is given, not for "the period that starts at the true first seizure". P2 holds on main too, truth or no truth. D46 does not solve it: it is recorded as a known limitation (`docs/execution-store.md`) and measured (rule 8).
+- *Options.*
+  - **(a)** The page places windows from a stated, truth-free grouping. **Chosen.**
+  - **(b)** The store places windows from its literal events. *(b-proper)*, uncertain windows in matching, needs engine variables for `START` and `END` and every window use in `execution_store.py` (build-loaded, so D34 reuse is lost) re-derived: weeks of work. *(b-point)*, a point at the envelope's earliest bound, is biased early (17 of 39 coded first-seizure anchors earlier, by up to 32 days, on a probe seed), double-counts a seizure two sources report, and is meaningless under stated findings, where letter mentions range from birth.
+  - **(c)** The index anchor as a hidden step of the query: the translator rewrites the period's scope and its `START`/`END` relations as relations from an anchor step. **Queued** as the next increment for P2 (below).
+- *Probes behind the estimates* (scratch scripts, **development seed 4601 only**, never the page's cohort; 4601 is excluded from every D46 rule): the draft rule agrees with truth grouping on same-happening pairs of coded findings with precision 0.94 and recall 0.97; the first coded seizure moves for 1 of 39 children; 2,264 of 2,410 mentions of coded happenings attach to their own happening only by concept and wording time.
+
+**Decisions** (the coordinator, as the owner's delegate, at the study's checkpoint).
+- **D1, option (a).** (c) is recorded as the queued next increment for P2, with its costs (below). P2 goes into the store's documentation as a known limitation.
+- **D2, index periods only.** The page's own search, its engine path's candidates, its timeline and its inspector keep `evidenceFor`'s grouping by truth (a declared shortcut, said so in the README). "The rule for the whole page" is a follow-up.
+- **D3, regeneration.** `verification/d45-coded-default-page-report.json` is regenerated with its own tool. Four reports are frozen as `HISTORICAL`, each superseded by D46's usefulness report, **signed off by the coordinator as delegate**:
+  - `d36-rise-usefulness-report.json`;
+  - `d38-gene-usefulness-report.json`;
+  - `d43c-coded-usefulness-report.json`;
+  - `d45-coded-default-usefulness-report.json`.
+
+  Each binds `shared/core.js` and `trajectory/app.js` and measures over the page's windows, so regenerating it would change what it records.
+- **D4, the uncertainty census:** included, reported only (rule 8).
+- **D5, seeds:** the reference differential on 4611 to 4620; usefulness on 4621 to 4650, extended in order to 4700.
+- **A naming slip, found in the study.**
+  - The page's default period is `{which: 'first', n: 2}`. `pickOccurrence` ignores `n` for `first`, the period editor shows "first" and hides N, and the summary reads "from the first seizure". So the page tells users the **first** seizure, and the behaviour matches what it says.
+  - Several tools and log entries call it the second (`option_sweep.js`'s period name; the usefulness tools' `setting.window`; D33's, D36's, D38's, D42's and D45's log text). This is a **label bug**, not a behaviour bug; nothing about what is matched changes.
+  - *Fixed in D46*, in files whose binding reports D46 regenerates or freezes, or that only already-frozen reports bind: `option_sweep.js`, `rise_usefulness.cjs`, `gene_usefulness.cjs`, `coded_usefulness.cjs`, `gene_coded_usefulness.cjs`.
+  - *Queued:*
+    - `coded_default.cjs` (it also binds `verification/d45-coded-default-latency-verdict.json`, which D46 neither regenerates nor freezes);
+    - `tools/benchmark_count_requests.py` and `tools/benchmark_coded_default.py`, which call their own 300,000-patient windows ("each patient's second coded seizure", a deliberate choice of theirs) "the page's" (each binds a latency verdict).
+
+    The log entries are historical records and are corrected here, not edited.
+
+**The rule: `reconcile_v1`** (`indexViewFor` in `shared/core.js`; the text there is the rule's statement). The index view holds the same items `evidenceFor` builds (`makeItem`, so items are kinded, conceptualised and timed exactly as before), grouped without reading any `truth_event_id`, `truth` or `quality` field:
+1. *Coded findings, diagnoses and procedures* (every record that is not a note, a measured record, a medication record or a genetic record, with a code some concept carries). Most precise first (precision, then earliest time, then record id), each joins the existing happening whose first record (its head) has a compatible concept (equal, or one a descendant of the other) and an `occurred` range that meets the record's; ties go to the nearest by the midpoint of the happening's span, then to the happening made first. Otherwise the record starts a happening. Records of one source may join (the generator's duplicate-record is the EHR re-entering a seizure the next day, less specifically). No tolerance: ranges must meet.
+2. *Uncoded seizure-diary entries*, in order of earliest time and record id (amended after the review), each join the nearest happening whose head is a seizure and whose range meets its own; otherwise they stand alone and make no item, as before. Any other uncoded record stands alone.
+3. *Medication courses, per medicine concept*, in order of earliest time, then an active order before a dispensing before a stop, then record id.
+   - An active order joins the open course if that course has no active order and the order starts by the course's reach; otherwise it opens a course.
+   - A dispensing joins the open course if it starts by the course's reach; otherwise it opens a course.
+   - A stop joins and closes the open course, or stands alone if none is open.
+   - The reach is the last dispensing plus its supply (30 days if none is given) plus 45 days, the page's own run-out rule. A course of an order without dispensings stays open, with no bound on its reach, and a stop closes the open course whatever its time. Both suit the generator's records; real data would need a bound (an order never dispensed for years is not one course) and a stop no earlier than its course's start.
+4. *Genetic records* (test orders, results, screening results) of one gene (`attributes.gene` or `gene_requested`), in order of earliest time and record id, join the nearest group of that gene whose head's range meets theirs.
+5. *Letter mentions stated or hedged about the patient* (every one; `evidenceFor` takes those with a truth link, which on the generator's cohorts is every one). Narrowest wording interval first (`textSpan`; then earliest, letter id, position).
+   - Each mention joins the nearest happening of rules 1, 3 or 4 whose concept is compatible and whose range meets the interval. A happening's range is its records' `occurred` span; a course's runs to its last dispensing's supply, and an order-only course's to last contact.
+   - Otherwise it joins the nearest mention-only happening whose head mention has a compatible concept and an interval that meets.
+   - Otherwise it starts one.
+6. *Measured records* make no item (no index period reads a series). Each happening becomes an item as `evidenceFor` makes it, the provisional split of early hedged mentions included.
+
+`windowFor` places every event bound over this view, whatever view its caller passes (it reads only the patient and last contact from it). So the trajectory page, its store requests, its engine path, its own search and the patient-first page all place index periods by the rule. Both sides of the parity test still share one window per patient.
+
+**What changes, and what does not.**
+- *Changed:*
+  - `shared/core.js` (the index view; `windowFor`'s event bounds);
+  - `trajectory/app.js` (the banner's sentence on index periods);
+  - the five tool labels above;
+  - new: `index_reference.py` (an independent reference of the rule and of period placement), `d46_windows.cjs` (the census, usefulness and reference tools), `test_index_reference.py`, and a check at the end of `test_engine_parity.cjs`.
+- *Unchanged:*
+  - no file under `patterns/`;
+  - `tools/scaling_build_worker.py`, `store_trajectory.py`, `store_parity.py` and `trajectory/store_request.js`;
+  - the generator;
+  - both constants (`STORE_CODED_ONLY`, `STORE_GENE_CODED_ONLY`) stay `false`.
+
+  No file a build loads changes (D34's record: `execution_store.py`, `synthetic_ingest.py`, `trajectory_times.py`, `series_values.py`, `build_record.py`, the package files, the build worker, `generate.py`, the manifest schema).
+
+**Disclosed: development runs before these rules** (none ruled; none on the page's cohort or a ruled seed). On seed 4601, to check that the tools run:
+- `d46_windows.cjs reference` in smoke mode: 1,008 windows, 0 mismatches against the reference; the windows unchanged with the truth removed; `tau30` gave 14 mismatches and `truth` moved 5 windows;
+- `census` in smoke mode: 51 of 14,496 store results changed, 0 without a moved window;
+- `usefulness` in smoke mode on that one seed;
+- `test_engine_parity.cjs` on a seed-4601 cohort;
+- the unit tests (`test_index_reference.py`, 9 tests on small cohorts).
+
+**Pre-committed rules** (committed with this entry, before any measurement of D46; "main" is 28a3cbf).
+1. **No change on the matching path** (structural). It stands in for the soundness check.
+   - `git diff 28a3cbf` touches no file under `patterns/`, nor `tools/scaling_build_worker.py`, `demos/mockups/store_trajectory.py`, `demos/mockups/store_parity.py`, `demos/mockups/trajectory/store_request.js` or the generator. The 300 recorded digests are unchanged (the suites).
+   - *Why this is the soundness rule:* windows enter matching as constants. In the worlds checker a window is the same in every world, so every world-level check of D30 to D45 applies unchanged to the windows sent, and the checker has nothing new to check.
+   - What D46 cannot claim, P2, is stated in rule 8 and the store's documentation.
+2. **Truth-free** (amended after the review: twelve rules, the perturbations, more defects).
+   - *Tested on the page's cohort* (`test_engine_parity.cjs`), and over rule 3's cohorts (`d46_windows.cjs reference`): every window under the twelve period rules (below) and three free-text settings is the same:
+     - with every truth field (`truth`, `quality`, each `truth_event_id`) removed from the cohort;
+     - on that stripped cohort with each patient's records shuffled;
+     - on that stripped cohort with its record ids permuted. Record ids are sequential in truth-event order and are the rule's last tie-break, so they are a possible side channel.
+   - *What "truth-free" does not cover:* letter mentions still carry the generator's pre-extracted fields (span, concept, assertion, experiencer, time expression), the README's "no extraction step" shortcut.
+   - *Planted defects* (over rule 3's cohorts). Each ruled one must be caught:
+     - `truth` (a coded record joins its truth event's happening first) must move at least one window when the truth is removed. It covers only the join path of rule 1; the twelve rules make the other paths reachable, and the defects below exercise them;
+     - `tau30` (ranges meet within 30 days), and the review's `reach400` (a course's reach 400 days instead of 45), `stop_ignored` (a stop does not close its course) and `no_precision` (findings not taken most precise first), must each give at least one mismatch against the reference.
+     - Reported, not ruled: the review's `diary_any`, `tie_last`, `mention_head`, `join_whole_range` and `gene_any`.
+3. **Reference differential** (`d46_windows.cjs reference`, report `verification/d46-window-reference-report.json`). On the page's cohort and seeds 4611 to 4620: every patient's window, under each of the twelve period rules and each free-text setting (stated, coded only, hedged), equals `index_reference.py`'s to the minute, and a window unplaced on the page is unplaced there. **0 mismatches.**
+   - The twelve rules are the option sweep's seven (which include the parity trajectories') and five added after the review:
+     - the 2nd antiseizure start for 12 months;
+     - from 6 months before the last valproate start to it;
+     - the 3rd-from-last antiseizure start for 6 months;
+     - the first SCN1A result for 1 year;
+     - the 3rd seizure for 12 months.
+
+     With them, a ruled period anchors on a medicine, a drug class, a gene and an Nth > 1.
+   - *What the reference can catch.* `index_reference.py` mirrors `core.js` step by step. It catches a divergence between the two implementations, not a flaw in the rule itself.
+4. **Movement census** (`d46_windows.cjs census`, report `verification/d46-window-census-report.json`; the page's cohort; main's page read from git at 28a3cbf in the same harness).
+   - *Windows:* for each of the twelve period rules under stated findings and coded only, the patients whose window is placed, unplaced or moved, with the shift. Each moved window is classified by the anchors that place it under main's grouping and this tree's:
+     - a mention-only happening anchoring on one side;
+     - the same happening with other records (named by kind);
+     - another happening: main's anchor split here, merged here from several of main's, or another occurrence ranks;
+     - anchored on one side only.
+   - *Results:* the store's results (status, certainty, relaxations, reason) under main's windows and this tree's, for:
+     - the five page templates under stated findings (no options) and under coded only (the parity test's options: 1.3, joint for Tree and Graph);
+     - every option-sweep definition the store answers;
+     - the Blank template under each of the five added period rules, stated findings and coded only (1.3) (added after the review).
+
+     Each changed result is classified by its window's class and its status transition. Query and conditions must be identical on both sides (asserted); refusals by the translator or the store must be the same on both sides (asserted).
+   - **Met only if** every changed result has an explained moved window, and every moved window has a class with no bound `unexplained` (`moved_windows_unexplained` empty). A changed result on an unexplained window counts as unexplained.
+   - A bound whose anchor time is the same on both sides did not move.
+   - "Another occurrence ranks" stands only if, at main's anchor time or this tree's, the number of occurrences up to and including that time differs between the two sides. Count from the start for first and Nth, and from the end for last and Nth from last. Otherwise the bound is `unexplained`.
+5. **Usefulness** (the owner's counting rule; `d46_windows.cjs usefulness`, report `verification/d46-window-usefulness-report.json`).
+   - *Cohorts:* seeds 4621 to 4650, then 4651, 4652, … in order to 4700 while a ruled template has fewer than 30 candidates pooled (the stop reads candidate counts only).
+   - *Ruled, with this tree's windows:*
+     - under stated findings (the page's default, no options): Sequence, Tree, Graph, Blank;
+     - under coded only (the parity test's options): Sequence, Event frequency and Blank (profile 1.3), Tree and Graph (joint).
+   - *Bar, per ruled template:* at least 30 candidates (patients with a store candidate and an index window) pooled, and at most 30% of the distinct child types unresolved (a `PLAN` key counts when any of its children is a candidate in some seed, and as unresolved when any of its candidates is).
+   - *Coverage:* only Event frequency under stated findings is refused (`FREE_TEXT_COUNT_UNSUPPORTED`).
+   - *Reported:* all candidates and the count without C001, status mixes and reasons, and the same with main's windows on the same seeds.
+6. **Page parity.**
+   - `test_engine_parity.cjs` and `test_store_parity.cjs` pass: every store–page difference has a declared cause, there is no `UNEXPLAINED`, and the replay holds.
+   - The option sweep's tally and the template table are unchanged.
+   - Every row of the parity test's pinned tables that moves is a patient that rule 4 lists with a moved window under that trajectory's period rule and free-text setting.
+7. **Latency.**
+   - *Structural, ruled:* rule 1. Store and engine code are byte-identical on both sides and the request shapes are unchanged (only window values move), so a paired run would time identical code (D44's lesson); no ratio is ruled.
+   - *Reported:* the page-side cost of placing periods (the index view against main's `evidenceFor`, every patient from a cold cache, in the census).
+8. **Uncertainty census** (reported, not ruled; in the census report). For every case of rule 4 with an event-anchored period: the store's results again, with each event anchor placed at the latest time its most precise record allows (a medicine at its start's latest). This is done under this tree's grouping and under main's, and the changed results are counted by transition. It sizes P2 on the page's cohort.
+9. **Builds and regeneration.**
+   - No build-loaded file changes, so the kept D34 and D44 builds stay reusable; no scaling, matcher or MIMIC report goes stale.
+   - `d45-coded-default-page-report.json` is regenerated with `coded_default.cjs page`, and `results/results.json` with `results/build.py`.
+   - The four reports of D3 are frozen in `tools/check_report_provenance.py`'s `HISTORICAL`, with the sign-off.
+   - The D46 jobs (reference, census, usefulness, the D45 page report) run as one job under the bench lock.
+10. **Gates:**
+    - all suites;
+    - `tools/check_report_provenance.py` at 0 stale;
+    - `check_test_counts --write`, then the check;
+    - `check_manifest`;
+    - both `.cjs` parity tests (node at `/private/tmp/ptm-node/bin/node`, the venv's python on PATH);
+    - `~/.claude-pcx/ci-local.sh`;
+    - `demos/mockups/results/build.py --check`.
+
+    Tests that build a store skip without DuckDB.
+11. **Defaults.** `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay `false`.
+
+**Ship rule.** D46 ships if rules 1 to 7, 9, 10 and 11 hold (8 reported). A miss is reported, investigated and never tuned away: the rule's text, its tie-breaks and τ = 0 are fixed by this commit.
+
+**Independent review of f043538, and amendments before any measurement** (the coordinator's fixes as delegate; the reviewer's probes are in `/tmp/d46-review/`). The rules above are as amended; the first version is in f043538.
+- *Verdict:* the truth-free claim holds, more strongly than the tests checked. The Python reference agreed on every window the reviewer compared.
+- **M1, must-fix.** The census verdict read only half of rule 4: a changed result on a window classed `'unexplained'` counted as explained, and an unexplained moved window did not fail `met`. Fixed: `censusMet` and `explained`. Tests: the constructed cases at the end of `test_engine_parity.cjs`.
+- **S1.** The ruled grid exercised little of `reconcile_v1`: no ruled period anchored on a medicine, a drug class, a gene or an Nth > 1, and the reviewer's mutants of the reach, the stop, the tie direction and the precision order all survived it. Fixed:
+  - the five added rules (rules 2 to 4);
+  - the Blank template under each of them, in the census's results;
+  - the mutants as planted defects.
+- **S2.** The reference's independence is stated in rule 3. The two perturbations are added to rule 2's truth-free check.
+- **S3.** The census's fallback class now checks that the occurrences up to an anchor differ (rule 4).
+- *Nits:*
+  - the medication edge cases are stated in the rule (rule 3) and in the store's documentation;
+  - uncoded diary entries are taken in order of time and record id, in both implementations;
+  - rule 2 says what "truth-free" leaves (pre-extracted mention fields) and that `truth` covers only the join path.
+- *Disclosed: development runs for the amendments* (development cohorts only: seeds 4601, 990011 and 990012, the last two the reviewer's):
+  - With the twelve rules, the clean code has 0 mismatches against the reference and is unchanged with the truth removed, with records shuffled and with record ids permuted, on all three cohorts.
+  - Windows moved by each defect, per cohort:
+    - `tau30` 36, 31 and 24;
+    - `reach400` 6 on each;
+    - `stop_ignored` 9, 3 and 15;
+    - `no_precision` 0, 3 and 6;
+    - `diary_any` 3, 0 and 0;
+    - `tie_last` 0, 3 and 0;
+    - `mention_head` 4, 0 and 0;
+    - `join_whole_range` 0, 0 and 6;
+    - `gene_any` 0 on each;
+    - `truth` moved windows on each cohort.
+
+    The defects ruled are those caught on at least two of the three cohorts; the rest are reported.
+  - Sorting the diary entries moved no window on seeds 4601 and 990011 (seven rules, against the reviewer's windows of f043538).
+  - The census in smoke mode on seed 4601: met, 0 moved windows unexplained, 53 of 14,976 results changed.
+
+**Measurement** (after the rules and the review's amendments; one job under the bench lock, 2026-11-19, 21:16 to 21:20, on c24d896; the log is in `~/ptm-local/d46/`; the page's cohort checked as the committed seed's, `generate.py --check`).
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 No change on the matching path | `git diff 28a3cbf` touches no file under `patterns/`, nor `tools/scaling_build_worker.py`, `store_trajectory.py`, `store_parity.py`, `store_request.js` or the generator; the suites pass with the 300 recorded digests | met |
+| 2 Truth-free | On the page's cohort and seeds 4611 to 4620, 19,008 windows each: **0 differ** with the truth removed, 0 with the stripped cohort's records shuffled, 0 with its record ids permuted (also checked by `test_engine_parity.cjs` on the page's cohort). Ruled planted defects, all caught: `truth` moved 69 windows when the truth was removed; `tau30` 362 mismatches, `reach400` 66, `stop_ignored` 123, `no_precision` 21. Reported: `diary_any` 3, `tie_last` 3, `mention_head` 22, `join_whole_range` 3, `gene_any` 0 | met |
+| 3 Reference differential (`verification/d46-window-reference-report.json`) | 19,008 windows (12 rules, 3 free-text settings, 48 children, 11 cohorts), 10,543 placed: **0 mismatches** | met |
+| 4 Movement census (`verification/d46-window-census-report.json`) | *Windows,* page's cohort, 12 rules × 48 children. Under stated findings, 330 placed on both sides: 15 moved, 1 placed only here, 1 only on main. Under coded only, 326 placed on both: 8 moved, 2 only on main. Unmoved on every rule: birth to 6 years, the date rule, the febrile Nth-from-last, the first diagnosis, the first genetic result, the 2nd antiseizure start, the first SCN1A result. *Classes* (bounds):<br>- another occurrence ranks 9;<br>- a mention-only happening anchors here 5;<br>- the same happening, other records 8;<br>- anchored only on main 3;<br>- main's anchor split here 2;<br>- **0 unexplained**.<br>*Results:* 312 cases answered on both sides (269 refused alike, by the translator or the store); **225 of 14,976 results changed, 0 unexplained**, in 188 cases. 170 of them are one child (C014) under the default period with stated findings: on main the period ran past last contact (`excluded`); here a seizure a letter states, whose wording dates it before the registry's record, places it earlier, so 170 results go from `excluded` to a status (none 67, not comparable 49, others 54). The rest: none → possible 25, exact → none 4, and smaller transitions | met |
+| 5 Usefulness (`verification/d46-window-usefulness-report.json`) | Seeds 4621 to 4650, no extension. Every ruled template has **0 of its distinct child types unresolved** and 0 unresolved candidates:<br>- stated findings: Sequence 16 types (205 candidates; 175 without C001), Tree and Graph 7 (137; 107), Blank 44 (1,103; 1,073);<br>- coded only: Sequence 16 (205), Event frequency 16 (292; 262), Blank 44 (1,081; 1,051), Tree and Graph (joint) 7 (137).<br>Coverage: only Event frequency under stated findings refused (`FREE_TEXT_COUNT_UNSUPPORTED`). Main's windows on the same seeds: the same candidates but Blank under stated findings (1,100), 0 unresolved; `exact` results here against main: Blank coded 572 / 565, Sequence coded 28 / 27, Tree joint 25 / 24, Graph joint 15 / 13, the rest equal | met |
+| 6 Page parity | Both `.cjs` tests pass. **850 of 1,248** results agree over 26 trajectories (859 before); the 398 differences each have a cause from the closed list (count timing 16, coverage 237, letter mentions 111, measurement records 4, medication records 65, occurrence envelope 8, record reconciliation 126); no `UNEXPLAINED`; the replay holds. 16 rows re-pinned in 13 trajectories, every one a child the census lists with a moved window under that trajectory's period rule and free-text setting: C004 (stated and coded), C014, C029 and C033 (stated). The sweep's tally (293 answered; the refusals by code) and the template table are unchanged. With stated findings 40 children now have a period (39) | met |
+| 7 Latency | Structural: rule 1. Reported: placing every child's view from a cold cache takes 23.5 ms for the index view against 16.1 ms for main's `evidenceFor` (48 children, median of 21) | met |
+| 8 Uncertainty census (reported) | With every event anchor at the latest time its most precise record allows, **397 of 13,824** results of the 308 event-anchored cases change under this tree's grouping (429 under main's). By transition: exact → possible 107, possible → none 77, relaxed exact → relaxed possible 52, relaxed possible → none 33, possible → exact 25, relaxed possible → relaxed exact 21, exact → relaxed exact 20, and smaller ones. So about 3% of the page's event-anchored answers depend on where in its anchor's recorded range the period starts: that is P2's size here | reported |
+| 9 Builds and regeneration | No build-loaded file changed. `d45-coded-default-page-report.json` regenerated: every figure equal, only the translator's own timings (reported) and three artifact digests moved. The four reports of D3 frozen in `HISTORICAL`, signed off. `results/build.py` reran with no change to `results.json` | met |
+| 10 Gates | Below | met |
+| 11 Defaults | `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` are `false` | met |
+
+*What moved, in the page's cohort.*
+- **C004** (the year-typo child of the README). On main, the first seizure's truth group was timed by its most precise record. The rule groups by meeting times instead, so that record no longer moves the happening it does not meet. The default period starts 48 days earlier; "the 3rd seizure" starts 366 days earlier.
+- **C014.** A seizure a letter states, which on main the truth link merged into a later registry record, stands alone; its wording dates it earlier, so the period is placed where main's ran past last contact.
+- **C029.** The truth keeps seven letter mentions as a febrile seizure no coded record holds (dated from "at 8 months"). By their wording, six attach to the coded febrile seizure a month later, and the seventh ("about a week ago") alone places the period 26 days later.
+- **C033.** The truth attaches four letters' "seizure cluster at 2 years" to a coded seizure recorded about 11 months later. Their wording interval does not meet that record, so they stand as their own happening and place the default period 262 days earlier.
+- **C001's last valproate start** moves 1,321 days later: a supply lapse longer than the run-out rule's 45 days splits main's single truth course in two.
+
+These are what the rule is: a stated inference from records and wording, which can merge or split differently from the generator's truth. The census names each.
+
+*Gates* (on the final tree):
+- every suite;
+- `tools/check_report_provenance.py` at 0 stale;
+- `check_test_counts --write`, then the check;
+- `check_manifest`;
+- `test_engine_parity.cjs` and `test_store_parity.cjs`;
+- `~/.claude-pcx/ci-local.sh`;
+- `results/build.py --check`.
+
+**Decision: D46 ships.** Every rule holds. The windows the trajectory page sends to the store, and those its own search and the patient-first page use, are placed by `reconcile_v1`, which reads no generator truth; the store, the engine and the converter are unchanged. The page's own search keeps its truth grouping (D2), and P2 stays: the store's answer holds for the period sent.
+
+*Evidence in proportion.*
+- The reference mirrors `core.js`: rule 3 shows the two implementations agree, not that the rule is right. The census shows what the rule changes against the truth; on the page's cohort that is 27 of 1,152 placements (12 rules, 2 settings, 48 children).
+- The cohorts are redraws of one 48-child plan, as since D36.
+- Letter mentions keep the generator's pre-extracted fields; "truth-free" is about grouping, not extraction.
+- Rule 8 is one direction of P2 (the latest bound); the earliest is what is sent.
+
+**Queued: the index anchor as a hidden step (option (c)), the next increment for P2.**
+- *What.* For an event-anchored period, the translator adds a step for the anchor (first and last natively, Nth through D32's derived occurrence; no relaxation names it). It sets the scope to `any` and writes the page's scope as `after` relations from that step:
+  - `from_start`: min = offset;
+  - `within`: [offset, offset + span];
+  - `after`: min = offset + span.
+
+  A user relation from `START` or `END` becomes one from the anchor, with its bounds shifted and its edge id kept. Follow-up eligibility becomes a relation from the anchor to `END` over a constant hull window (birth or the constant bound, to last contact).
+- *Why.* The engine's worlds then place the period per world. Uncertainty is native, including a step binding the anchor's own record (a shared variable), with D30, D31 and D35 deciding uncertain first and last targets. No store or engine change, and no build-loaded file.
+- *Its costs, from the study:*
+  - coverage (`NO_SOURCE_COVERAGE`) is judged over the hull, more permissive, unless the server computes a tight hull from the store's envelope;
+  - a patient not followed to the end of every possible period becomes `none` or `possible`, not `excluded`;
+  - new named refusals: period counts with an event-anchored period, `@any_diagnosis` and `@any_genetic` anchors, "while taking" from an Nth anchor;
+  - under stated findings, letter mentions range from birth, so most results would move to `possible` and the usefulness bar may be missed;
+  - under coded only, registry month entries make about half the first-seizure anchors uncertain by up to a month (the store does not reconcile records);
+  - a new declared parity cause, and wide re-pinning;
+  - a D45-style latency measurement of the rewritten request against the page-window request;
+  - about three to four days of work.
+
+**Follow-ups** (named now).
+- The rule for the whole page (D2): the page's own search, timeline and inspector on `reconcile_v1`, retiring the last truth link outside the truth lens.
+- Option (c) for P2, above.
+- The label fixes queued above (`coded_default.cjs`; the two benchmark tools' "the page's").

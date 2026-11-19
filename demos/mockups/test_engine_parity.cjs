@@ -4,6 +4,7 @@
    template and three heavier trajectories, each patient is matched twice: by the page's
    in-browser search, and through the page's engine path, whose requests are answered by
    patterns/trajectory_graph.py. Status, certainty and relaxation set must agree.
+   D46: the index periods both paths share are placed without the generator's truth, checked at the end.
    Run after demos/mockups/synthetic/generate.py. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -63,3 +64,53 @@ for (const {name, tally, diffs} of results) {
 }
 assert.ok(matched > 0, 'no trajectory matched anyone: the comparison would be vacuous');
 console.log(`Trajectory page: engine and in-page search agree on ${patients} patient results over ${results.length} trajectories (${matched} matches).`);
+
+/* D46: index periods are placed over the index view (shared/core.js, rule reconcile_v1), which reads no truth. Every
+   window under the twelve period rules and three free-text settings is the same with every truth field removed from the
+   cohort, and again with the stripped cohort's records shuffled or its record ids permuted (the review's S2), and equals
+   the reference's (index_reference.py) to the minute. */
+const os = require('node:os');
+const d46 = require('./d46_windows.cjs');
+const cohortText = fs.readFileSync(path.join(here, 'data/synthetic-paediatric-rare.json'), 'utf8');
+const placed = d46.windowsOf(cohortText);
+assert.deepEqual(d46.windowsOf(d46.stripped(cohortText)), placed, 'an index period moved when the truth was removed');
+for (const [how, text] of Object.entries(d46.perturbed(d46.stripped(cohortText))))
+  assert.deepEqual(d46.windowsOf(text), placed, `an index period moved with the truth removed and ${how.replace(/_/g, ' ')}`);
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'index-windows-'));
+try {
+  fs.writeFileSync(path.join(scratch, 'windows.json'), JSON.stringify(placed));
+  let out;
+  try {
+    out = execFileSync(python, [path.join(here, 'index_reference.py'), 'compare', path.join(here, 'data/synthetic-paediatric-rare.json'),
+                                path.join(scratch, 'windows.json')], {cwd: root, encoding: 'utf8'});
+  } catch (e) { out = e.stdout; }
+  const summary = JSON.parse(out);
+  assert.equal(summary.mismatches, 0, `index periods differ from the reference:\n${JSON.stringify(summary.first_mismatches, null, 1)}`);
+  assert.ok(summary.placed > 0, 'no index period placed: the comparison would be vacuous');
+  console.log(`Index periods: ${summary.compared} windows (${summary.placed} placed) equal the reference's and do not read the truth.`);
+} finally {
+  fs.rmSync(scratch, {recursive: true, force: true});
+}
+
+/* D46 rule 4's verdict (the review's M1 and S3), on constructed inputs: a moved window without a class, or with an
+   unexplained bound, fails the census, and so does a changed result on it; "another occurrence ranks" needs the
+   occurrences up to an anchor to differ between the two sides. */
+{
+  const anchor = (at, times, records) => ({at, times, from_end: false, records, mentions: []});
+  const none = () => ({mainHereCount: 1, mineMainCount: 1});
+  assert.equal(d46.classify(anchor(10, [10, 20], ['a:condition']), anchor(10, [10, 20], ['b:condition']), none), 'same anchor');
+  assert.equal(d46.classify(anchor(20, [10, 20], ['a:condition']), anchor(15, [10, 15], ['b:condition']), none),
+               'another happening: another occurrence ranks');
+  assert.equal(d46.classify(anchor(20, [20], ['a:condition']), anchor(15, [20], ['b:condition']), none), 'unexplained');
+  assert.equal(d46.classify(anchor(20, [20], ['a:condition', 'b:registry_entry']), anchor(15, [15], ['a:condition', 'b:registry_entry']), none),
+               'unexplained');
+  const windows = cls => ({r: {present: {patients: {C001: {class: cls}}}}});
+  assert.equal(d46.censusMet(windows('start: another happening: another occurrence ranks'), 0).met, true);
+  assert.equal(d46.censusMet(windows('start: another happening: another occurrence ranks'), 1).met, false);
+  assert.equal(d46.censusMet(windows('unexplained'), 0).met, false);
+  assert.equal(d46.censusMet(windows('start: anchored only here; end: unexplained'), 0).met, false);
+  assert.equal(d46.explained('unexplained'), false);
+  assert.equal(d46.explained(undefined), false);
+  assert.equal(d46.explained('end: a mention-only happening anchors here'), true);
+  console.log('Index-period census verdict: a moved window or a changed result without an explanation fails it.');
+}

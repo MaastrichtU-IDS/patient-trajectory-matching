@@ -187,7 +187,7 @@ try {
            + 'distinct child types (PLAN keys) with a candidate unresolved; all candidates and the count without C001 reported; '
            + 'variants reported'),
     declared_seeds: SEEDS, seeds_used: used, smoke: !!SMOKE,
-    setting: {window: 'from the second seizure, 24 months (the page\'s own); variants as named', scope: 'from_start',
+    setting: {window: 'from the first seizure, 24 months (the page\'s own); variants as named', scope: 'from_start',
               free_text: 'present (the page\'s own); the coded-only variant as named',
               translator: 'trajectory/store_request.js with rises and genes asked for',
               converter: 'patterns/synthetic_ingest.py emitting series, through the store_conditions_gene wrapper'},
