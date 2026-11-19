@@ -180,7 +180,7 @@ const DEFINITIONS = `
     for (let k = 0; k < repeats; k++) {
       const t0 = performance.now();
       for (const pid of state.patients.keys()) {
-        if (typeof indexViewFor === 'function') { state.indexViews.delete(pid); indexViewFor(pid); }
+        if (typeof indexViewFor === 'function') { state.indexViews.delete(pid); state.evidence.delete(pid); indexViewFor(pid); }  // D47: the page's view
         else { state.evidence.delete(pid); evidenceFor(pid); }
       }
       runs.push(performance.now() - t0);

@@ -502,7 +502,7 @@ function renderInspector(view, win, q) {
   }
   if (it.cases.length) parts.push('<h3>Data quality</h3>' + it.cases.map(caseRow).join(''));
   parts.push('<h3>Use this event</h3>', eventActions(it));
-  parts.push('<p class="provenance-note">These records are grouped into one event using the synthetic generator\'s ground truth. A real system would have to infer the grouping, and could get it wrong.</p>');
+  parts.push('<p class="provenance-note">These records are grouped into one event by a stated rule that reads no synthetic truth: same or related concept, overlapping times, medication courses by supply, letter mentions by concept and wording (README). It can merge or split differently from what happened; the truth lens shows what did.</p>');
   box.innerHTML = parts.join('');
 }
 

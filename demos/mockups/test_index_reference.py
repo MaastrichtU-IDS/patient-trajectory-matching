@@ -47,6 +47,13 @@ def cohort(records):
                                                 'follow_up': {'last_contact': '2026-01-01'}, 'records': records}]}
 
 
+def view(records, quality=()):
+    data = cohort(records)
+    data['patients'][0]['quality'] = list(quality)
+    data = ir.strip(data, keep_quality=True)
+    return ir.Patient(ir.Cohort(data), data['patients'][0]).view()
+
+
 def window(records, rule, free_text='present'):
     return ir.windows(ir.strip(cohort(records)), {'r': rule}, [free_text])['r'][free_text]['P1']
 
@@ -130,6 +137,41 @@ class ReconcileTests(unittest.TestCase):
             page['windows']['r']['present']['P1']['start'] += 1
             w.write_text(json.dumps(page))
             self.assertEqual(ir.compare(c, w)['mismatches'], 1)
+
+
+class PageViewTests(unittest.TestCase):
+    """D47: the page's whole view, with data-quality cases attached per record."""
+
+    def test_a_case_attaches_to_each_event_holding_its_records_and_never_through_its_truth_link(self):
+        recs = [record('R1', 'condition', 'seizure', '2019-10-19T00:00', '2019-10-19T23:59', 'day'),
+                record('R2', 'condition', 'seizure', '2019-12-01T00:00', '2019-12-01T23:59', 'day'),
+                note('N1', '2019-12-10', [{'concept': 'seizure', 'assertion': 'present', 'experiencer': 'patient', 'time_expression': 'this week'}])]
+        quality = [{'case_id': 'Q1', 'kind': 'duplicate-record', 'record_ids': ['R1', 'R2'], 'truth_event_id': 'T1'},
+                   {'case_id': 'Q2', 'kind': 'free-text-only', 'record_ids': ['N1'], 'truth_event_id': 'T2'},
+                   {'case_id': 'Q3', 'kind': 'missing-measurement', 'record_ids': [], 'truth_event_id': 'T3'}]
+        v = view(recs, quality)
+        coded = [i for i in v['items'] if i['records']]
+        self.assertEqual([i['cases'] for i in coded], [['Q1'], ['Q1']])
+        self.assertEqual([i['cases'] for i in v['items'] if not i['records']], [[]])  # the mention's own event: the case stays with the letter
+        self.assertEqual(v['letters'], {'N1': ['Q2']})
+        self.assertEqual(v['unattached'], ['Q3'])
+
+    def test_each_measured_record_is_its_own_series_reading(self):
+        recs = [{'record_id': f'M{i}', 'source': 'ehr', 'kind': 'measurement', 'coding': {'system': 'LOINC', 'code': '29463-7'},
+                 'occurred': {'earliest': '2020-01-0%dT10:00' % i, 'latest': '2020-01-0%dT10:00' % i, 'precision': 'minute'},
+                 'value': 10 + i, 'unit': 'kg'} for i in (1, 2)]
+        cohort_concepts = dict(CONCEPTS, weight={'kind': 'measurement', 'parents': [], 'classes': [], 'codings': [{'system': 'LOINC', 'code': '29463-7'}]})
+        data = {'concepts': cohort_concepts, 'patients': [{'patient_id': 'P1', 'birth_date': '2019-01-01', 'follow_up': {'last_contact': '2026-01-01'},
+                                                           'records': recs, 'quality': []}]}
+        v = ir.Patient(ir.Cohort(data), data['patients'][0]).view()
+        self.assertEqual(v['series']['weight'], ['M1', 'M2'])
+        self.assertEqual(v['items'], [])
+
+    def test_strip_keeps_the_cases_without_their_truth_links(self):
+        data = cohort([])
+        data['patients'][0]['quality'] = [{'case_id': 'Q1', 'record_ids': [], 'truth_event_id': 'T1'}]
+        self.assertEqual(ir.strip(data, keep_quality=True)['patients'][0]['quality'], [{'case_id': 'Q1', 'record_ids': []}])
+        self.assertNotIn('quality', ir.strip(data)['patients'][0])
 
 
 if __name__ == '__main__':

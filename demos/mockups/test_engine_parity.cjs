@@ -4,7 +4,8 @@
    template and three heavier trajectories, each patient is matched twice: by the page's
    in-browser search, and through the page's engine path, whose requests are answered by
    patterns/trajectory_graph.py. Status, certainty and relaxation set must agree.
-   D46: the index periods both paths share are placed without the generator's truth, checked at the end.
+   D46: the index periods both paths share are placed without the generator's truth, checked at the end; D47: so is the
+   page's whole view.
    Run after demos/mockups/synthetic/generate.py. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -113,4 +114,45 @@ try {
   assert.equal(d46.explained(undefined), false);
   assert.equal(d46.explained('end: a mention-only happening anchors here'), true);
   console.log('Index-period census verdict: a moved window or a changed result without an explanation fails it.');
+}
+
+/* D47: the page's whole view (shared/core.js, evidenceFor over rule reconcile_v1: items, series readings, letters and
+   their data-quality cases, attached per record) reads no truth. It is the same with every truth link removed from the
+   cohort (the cases kept), with the stripped cohort's records shuffled and with its record ids permuted, and equals the
+   reference's (index_reference.py compare-view). */
+{
+  const d47 = require('./d47_page.cjs');
+  const view = d47.viewsOf(cohortText), free = d47.stripped(cohortText);
+  assert.equal(d47.differingPatients(view, d47.viewsOf(free)), 0, 'the page\'s view moved when the truth was removed');
+  for (const [how, {text, back}] of Object.entries(d47.perturbed(free)))
+    assert.equal(d47.differingPatients(view, d47.mapBack(d47.viewsOf(text), back)), 0, `the page's view moved with ${how.replace(/_/g, ' ')}`);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'page-view-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'view.json'), JSON.stringify(view));
+    let out;
+    try {
+      out = execFileSync(python, [path.join(here, 'index_reference.py'), 'compare-view', path.join(here, 'data/synthetic-paediatric-rare.json'),
+                                  path.join(dir, 'view.json')], {cwd: root, encoding: 'utf8'});
+    } catch (e) { out = e.stdout; }
+    const summary = JSON.parse(out);
+    assert.equal(summary.mismatches, 0, `the page's view differs from the reference:\n${JSON.stringify(summary.first_mismatches, null, 1)}`);
+    assert.ok(summary.items > 0, 'no item: the comparison would be vacuous');
+    console.log(`Page view: ${summary.items} events over ${Object.keys(view).length} patients equal the reference's and do not read the truth.`);
+  } finally {
+    fs.rmSync(dir, {recursive: true, force: true});
+  }
+  // Only the truth lens reads a truth link (rule 2, static): in the pages' code, outside comments, \`truth_event_id\`
+  // occurs only inside core.js's truthItems, and no page reads a data-quality case's truth link.
+  const code = file => fs.readFileSync(path.join(here, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const core = code('shared/core.js'), lens = core.slice(core.indexOf('function truthItems('), core.indexOf('\n}\n', core.indexOf('function truthItems(')));
+  assert.equal(core.split('truth_event_id').length - 1, lens.split('truth_event_id').length - 1, 'core.js reads a truth link outside the truth lens');
+  for (const f of ['trajectory/app.js', 'patient-first/app.js', 'store-query/app.js']) assert.ok(!code(f).includes('truth_event_id'), `${f} reads a truth link`);
+  // The census's classes (D47 rule 4), on constructed candidates.
+  const c = (sig, t = [1, 1, 1, 1]) => ({t, sig});
+  const held = counts => (side, sig) => counts[side + ':' + sig.join(',')] ?? 1;
+  assert.equal(d47.classify({'step:A': [c(['r1'])]}, {'step:A': [c(['r1'])]}, held({})), 'unexplained');
+  assert.equal(d47.classify({'step:A': [c(['r1', 'r2'])]}, {'step:A': [c(['r1'])]}, held({'here:r1,r2': 2})), 'regrouped + split');
+  assert.equal(d47.classify({'step:A': [c(['r1'])]}, {'step:A': [c(['n1#0'])]}, held({})), 'mention-only + regrouped');
+  assert.equal(d47.classify({'step:A': [c(['r1'], [1, 1, 1, 1])]}, {'step:A': [c(['r1'], [2, 2, 2, 2])]}, held({})), 'reordered');
+  console.log('Page-view census classes: a changed result whose candidates are unchanged is unexplained.');
 }
