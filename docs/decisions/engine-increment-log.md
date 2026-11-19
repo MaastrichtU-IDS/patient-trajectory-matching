@@ -3903,12 +3903,12 @@ The tools load the translator as it would be flipped: they substitute each const
 
 **The rule: `reconcile_v1`** (`indexViewFor` in `shared/core.js`; the text there is the rule's statement). The index view holds the same items `evidenceFor` builds (`makeItem`, so items are kinded, conceptualised and timed exactly as before), grouped without reading any `truth_event_id`, `truth` or `quality` field:
 1. *Coded findings, diagnoses and procedures* (every record that is not a note, a measured record, a medication record or a genetic record, with a code some concept carries). Most precise first (precision, then earliest time, then record id), each joins the existing happening whose first record (its head) has a compatible concept (equal, or one a descendant of the other) and an `occurred` range that meets the record's; ties go to the nearest by the midpoint of the happening's span, then to the happening made first. Otherwise the record starts a happening. Records of one source may join (the generator's duplicate-record is the EHR re-entering a seizure the next day, less specifically). No tolerance: ranges must meet.
-2. *An uncoded seizure-diary entry* joins the nearest happening whose head is a seizure and whose range meets its own; otherwise it stands alone and makes no item, as before. Any other uncoded record stands alone.
+2. *Uncoded seizure-diary entries*, in order of earliest time and record id (amended after the review), each join the nearest happening whose head is a seizure and whose range meets its own; otherwise they stand alone and make no item, as before. Any other uncoded record stands alone.
 3. *Medication courses, per medicine concept*, in order of earliest time, then an active order before a dispensing before a stop, then record id.
    - An active order joins the open course if that course has no active order and the order starts by the course's reach; otherwise it opens a course.
    - A dispensing joins the open course if it starts by the course's reach; otherwise it opens a course.
    - A stop joins and closes the open course, or stands alone if none is open.
-   - The reach is the last dispensing plus its supply (30 days if none is given) plus 45 days, the page's own run-out rule. A course of an order without dispensings stays open.
+   - The reach is the last dispensing plus its supply (30 days if none is given) plus 45 days, the page's own run-out rule. A course of an order without dispensings stays open, with no bound on its reach, and a stop closes the open course whatever its time. Both suit the generator's records; real data would need a bound (an order never dispensed for years is not one course) and a stop no earlier than its course's start.
 4. *Genetic records* (test orders, results, screening results) of one gene (`attributes.gene` or `gene_requested`), in order of earliest time and record id, join the nearest group of that gene whose head's range meets theirs.
 5. *Letter mentions stated or hedged about the patient* (every one; `evidenceFor` takes those with a truth link, which on the generator's cohorts is every one). Narrowest wording interval first (`textSpan`; then earliest, letter id, position).
    - Each mention joins the nearest happening of rules 1, 3 or 4 whose concept is compatible and whose range meets the interval. A happening's range is its records' `occurred` span; a course's runs to its last dispensing's supply, and an order-only course's to last contact.
@@ -3944,24 +3944,41 @@ The tools load the translator as it would be flipped: they substitute each const
    - `git diff 28a3cbf` touches no file under `patterns/`, nor `tools/scaling_build_worker.py`, `demos/mockups/store_trajectory.py`, `demos/mockups/store_parity.py`, `demos/mockups/trajectory/store_request.js` or the generator. The 300 recorded digests are unchanged (the suites).
    - *Why this is the soundness rule:* windows enter matching as constants. In the worlds checker a window is the same in every world, so every world-level check of D30 to D45 applies unchanged to the windows sent, and the checker has nothing new to check.
    - What D46 cannot claim, P2, is stated in rule 8 and the store's documentation.
-2. **Truth-free.**
-   - *Tested on the page's cohort* (`test_engine_parity.cjs`): every window under the seven period rules and three free-text settings is the same with every truth field (`truth`, `quality`, each `truth_event_id`) removed from the cohort.
-   - *Planted defects* (`d46_windows.cjs reference`, over the cohorts of rule 3). Each must be caught:
-     - `truth` (a coded record joins its truth event's happening first) must move at least one window when the truth is removed;
-     - `tau30` (ranges meet within 30 days) must give at least one mismatch against the reference.
-3. **Reference differential** (`d46_windows.cjs reference`, report `verification/d46-window-reference-report.json`). On the page's cohort and seeds 4611 to 4620: every patient's window, under each of the seven period rules (the option sweep's, which include the parity trajectories') and each free-text setting (stated, coded only, hedged), equals `index_reference.py`'s to the minute, and a window unplaced on the page is unplaced there. **0 mismatches.**
+2. **Truth-free** (amended after the review: twelve rules, the perturbations, more defects).
+   - *Tested on the page's cohort* (`test_engine_parity.cjs`), and over rule 3's cohorts (`d46_windows.cjs reference`): every window under the twelve period rules (below) and three free-text settings is the same:
+     - with every truth field (`truth`, `quality`, each `truth_event_id`) removed from the cohort;
+     - on that stripped cohort with each patient's records shuffled;
+     - on that stripped cohort with its record ids permuted. Record ids are sequential in truth-event order and are the rule's last tie-break, so they are a possible side channel.
+   - *What "truth-free" does not cover:* letter mentions still carry the generator's pre-extracted fields (span, concept, assertion, experiencer, time expression), the README's "no extraction step" shortcut.
+   - *Planted defects* (over rule 3's cohorts). Each ruled one must be caught:
+     - `truth` (a coded record joins its truth event's happening first) must move at least one window when the truth is removed. It covers only the join path of rule 1; the twelve rules make the other paths reachable, and the defects below exercise them;
+     - `tau30` (ranges meet within 30 days), and the review's `reach400` (a course's reach 400 days instead of 45), `stop_ignored` (a stop does not close its course) and `no_precision` (findings not taken most precise first), must each give at least one mismatch against the reference.
+     - Reported, not ruled: the review's `diary_any`, `tie_last`, `mention_head`, `join_whole_range` and `gene_any`.
+3. **Reference differential** (`d46_windows.cjs reference`, report `verification/d46-window-reference-report.json`). On the page's cohort and seeds 4611 to 4620: every patient's window, under each of the twelve period rules and each free-text setting (stated, coded only, hedged), equals `index_reference.py`'s to the minute, and a window unplaced on the page is unplaced there. **0 mismatches.**
+   - The twelve rules are the option sweep's seven (which include the parity trajectories') and five added after the review:
+     - the 2nd antiseizure start for 12 months;
+     - from 6 months before the last valproate start to it;
+     - the 3rd-from-last antiseizure start for 6 months;
+     - the first SCN1A result for 1 year;
+     - the 3rd seizure for 12 months.
+
+     With them, a ruled period anchors on a medicine, a drug class, a gene and an Nth > 1.
+   - *What the reference can catch.* `index_reference.py` mirrors `core.js` step by step. It catches a divergence between the two implementations, not a flaw in the rule itself.
 4. **Movement census** (`d46_windows.cjs census`, report `verification/d46-window-census-report.json`; the page's cohort; main's page read from git at 28a3cbf in the same harness).
-   - *Windows:* for each period rule under stated findings and coded only, the patients whose window is placed, unplaced or moved, with the shift. Each moved window is classified by the anchors that place it under main's grouping and this tree's:
+   - *Windows:* for each of the twelve period rules under stated findings and coded only, the patients whose window is placed, unplaced or moved, with the shift. Each moved window is classified by the anchors that place it under main's grouping and this tree's:
      - a mention-only happening anchoring on one side;
      - the same happening with other records (named by kind);
      - another happening: main's anchor split here, merged here from several of main's, or another occurrence ranks;
      - anchored on one side only.
    - *Results:* the store's results (status, certainty, relaxations, reason) under main's windows and this tree's, for:
      - the five page templates under stated findings (no options) and under coded only (the parity test's options: 1.3, joint for Tree and Graph);
-     - every option-sweep definition the store answers.
+     - every option-sweep definition the store answers;
+     - the Blank template under each of the five added period rules, stated findings and coded only (1.3) (added after the review).
 
      Each changed result is classified by its window's class and its status transition. Query and conditions must be identical on both sides (asserted); refusals by the translator or the store must be the same on both sides (asserted).
-   - **Met only if** every changed result has a moved window (`unexplained` 0) and every moved window has a class (none `unexplained`).
+   - **Met only if** every changed result has an explained moved window, and every moved window has a class with no bound `unexplained` (`moved_windows_unexplained` empty). A changed result on an unexplained window counts as unexplained.
+   - A bound whose anchor time is the same on both sides did not move.
+   - "Another occurrence ranks" stands only if, at main's anchor time or this tree's, the number of occurrences up to and including that time differs between the two sides. Count from the start for first and Nth, and from the end for last and Nth from last. Otherwise the bound is `unexplained`.
 5. **Usefulness** (the owner's counting rule; `d46_windows.cjs usefulness`, report `verification/d46-window-usefulness-report.json`).
    - *Cohorts:* seeds 4621 to 4650, then 4651, 4652, … in order to 4700 while a ruled template has fewer than 30 candidates pooled (the stop reads candidate counts only).
    - *Ruled, with this tree's windows:*
@@ -3996,6 +4013,37 @@ The tools load the translator as it would be flipped: they substitute each const
 11. **Defaults.** `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay `false`.
 
 **Ship rule.** D46 ships if rules 1 to 7, 9, 10 and 11 hold (8 reported). A miss is reported, investigated and never tuned away: the rule's text, its tie-breaks and τ = 0 are fixed by this commit.
+
+**Independent review of f043538, and amendments before any measurement** (the coordinator's fixes as delegate; the reviewer's probes are in `/tmp/d46-review/`). The rules above are as amended; the first version is in f043538.
+- *Verdict:* the truth-free claim holds, more strongly than the tests checked. The Python reference agreed on every window the reviewer compared.
+- **M1, must-fix.** The census verdict read only half of rule 4: a changed result on a window classed `'unexplained'` counted as explained, and an unexplained moved window did not fail `met`. Fixed: `censusMet` and `explained`. Tests: the constructed cases at the end of `test_engine_parity.cjs`.
+- **S1.** The ruled grid exercised little of `reconcile_v1`: no ruled period anchored on a medicine, a drug class, a gene or an Nth > 1, and the reviewer's mutants of the reach, the stop, the tie direction and the precision order all survived it. Fixed:
+  - the five added rules (rules 2 to 4);
+  - the Blank template under each of them, in the census's results;
+  - the mutants as planted defects.
+- **S2.** The reference's independence is stated in rule 3. The two perturbations are added to rule 2's truth-free check.
+- **S3.** The census's fallback class now checks that the occurrences up to an anchor differ (rule 4).
+- *Nits:*
+  - the medication edge cases are stated in the rule (rule 3) and in the store's documentation;
+  - uncoded diary entries are taken in order of time and record id, in both implementations;
+  - rule 2 says what "truth-free" leaves (pre-extracted mention fields) and that `truth` covers only the join path.
+- *Disclosed: development runs for the amendments* (development cohorts only: seeds 4601, 990011 and 990012, the last two the reviewer's):
+  - With the twelve rules, the clean code has 0 mismatches against the reference and is unchanged with the truth removed, with records shuffled and with record ids permuted, on all three cohorts.
+  - Windows moved by each defect, per cohort:
+    - `tau30` 36, 31 and 24;
+    - `reach400` 6 on each;
+    - `stop_ignored` 9, 3 and 15;
+    - `no_precision` 0, 3 and 6;
+    - `diary_any` 3, 0 and 0;
+    - `tie_last` 0, 3 and 0;
+    - `mention_head` 4, 0 and 0;
+    - `join_whole_range` 0, 0 and 6;
+    - `gene_any` 0 on each;
+    - `truth` moved windows on each cohort.
+
+    The defects ruled are those caught on at least two of the three cohorts; the rest are reported.
+  - Sorting the diary entries moved no window on seeds 4601 and 990011 (seven rules, against the reviewer's windows of f043538).
+  - The census in smoke mode on seed 4601: met, 0 moved windows unexplained, 53 of 14,976 results changed.
 
 **Queued: the index anchor as a hidden step (option (c)), the next increment for P2.**
 - *What.* For an event-anchored period, the translator adds a step for the anchor (first and last natively, Nth through D32's derived occurrence; no relaxation names it). It sets the scope to `any` and writes the page's scope as `after` relations from that step:

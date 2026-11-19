@@ -192,7 +192,8 @@ class Patient:
                 grow(h, x)
             else:
                 coded.append({'recs': [r], 'ms': [], 'concept': cid, 'head': x, 'range': x})
-        # 2. uncoded seizure-diary entries
+        # 2. uncoded seizure-diary entries, in order of earliest time and record id
+        diary.sort(key=lambda r: (day(r['occurred']['earliest']), r['record_id']))
         for r in diary:
             x = rng(r)
             h = nearest([k for k in coded if c.is_a(k['concept'], 'seizure') and meets(k['head'], x)], x)

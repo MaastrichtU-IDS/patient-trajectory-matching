@@ -11,8 +11,9 @@
        Every patient's window under every period rule and free-text setting, in the store request's minutes (the input
        of index_reference.py compare).
      node demos/mockups/d46_windows.cjs reference [--output REPORT.json]
-       Rule 3: the page's windows against index_reference.py on the page's cohort and seeds 4611-4620; rule 2's planted
-       defects (`tau30` must give a mismatch; `truth` must move a window when the cohort's truth fields are removed).
+       Rule 3: the page's windows against index_reference.py on the page's cohort and seeds 4611-4620; rule 2's
+       perturbations (records shuffled, record ids permuted) and planted defects (`truth` must move a window when the
+       cohort's truth fields are removed; each other ruled defect must give a mismatch).
      node demos/mockups/d46_windows.cjs census [--output REPORT.json]
        Rule 4: on the page's cohort, every moved window and every changed store result against main's windows, each
        classified; rule 8 (reported): the store's results again with each event anchor at its latest time.
@@ -64,7 +65,23 @@ const DEFECTS = {
   // Reading the truth: a coded record joins the happening of its truth event first.
   truth: ['const h = nearest(coded.filter(k => compatible(k.concept, c) && meets(k.head, range)), range);',
           'const h = coded.find(k => r.truth_event_id && k.recs[0].truth_event_id === r.truth_event_id) || nearest(coded.filter(k => compatible(k.concept, c) && meets(k.head, range)), range);'],
+  // The review's mutants (D46 review, S1), each a departure from one clause of reconcile_v1:
+  reach400: ['(k.lastDisp.attributes?.supply_days || 30) + 45 : Infinity', '(k.lastDisp.attributes?.supply_days || 30) + 400 : Infinity'],
+  stop_ignored: ['} else if (open) { open.recs.push(r); open = null; }', '} else if (open) { open.recs.push(r); }'],
+  diary_any: ["coded.filter(k => isA(k.concept, 'seizure') && meets(k.head, range))", 'coded.filter(k => meets(k.head, range))'],
+  tie_last: ['Math.abs(mid(h.range) - mid(x)) < Math.abs(mid(best.range) - mid(x))', 'Math.abs(mid(h.range) - mid(x)) <= Math.abs(mid(best.range) - mid(x))'],
+  no_precision: ['findings.sort((a, b) => PRECISION[a.occurred.precision] - PRECISION[b.occurred.precision] || ', 'findings.sort((a, b) => '],
+  mention_head: ['meets(k.range, y.range)), y.range);\n    if (h) { h.ms.push', 'meets(k.head || k.range, y.range)), y.range);\n    if (h) { h.ms.push'],
+  gene_any: ['tests.filter(k => k.gene === g && meets(k.head, range))', 'tests.filter(k => k.gene === g)'],
+  join_whole_range: ['coded.filter(k => compatible(k.concept, c) && meets(k.head, range))', 'coded.filter(k => compatible(k.concept, c) && meets(k.range, range))'],
 };
+// The defects rules 2 and 3 rule: each must be caught. `truth` by the truth-free check (a window moves when the truth is
+// removed); every other by the reference (at least one mismatch over rule 3's cohorts).
+// Ruled: those that moved a window on at least two of the three development cohorts (seeds 4601, 990011, 990012; disclosed
+// in the log). Reported only: diary_any, tie_last, mention_head and join_whole_range (each moved windows on one of the
+// three), and gene_any (on none: a period anchored on a gene or on any genetic result reads the earliest report, which
+// grouping cannot change).
+const RULED_DEFECTS = ['truth', 'tau30', 'reach400', 'stop_ignored', 'no_precision'];
 const CORE = path.join(here, 'shared/core.js'), APP = path.join(here, 'trajectory/app.js');
 function coreText(defect) {
   let text = fs.readFileSync(CORE, 'utf8');
@@ -87,6 +104,17 @@ const DEFINITIONS = `
     'the first diagnosis for 2 years': {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}},
     'the first genetic result for 2 years': {start: {kind: 'event', event: '@any_genetic', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}},
   };
+  // Five more (D46 review, S1), so that a ruled period anchors on a medicine, a drug class, a gene and an Nth > 1: the
+  // medication, genetic and tie-break paths of reconcile_v1 are then reachable by rules 2 to 4.
+  var EXTENDED_RULES = {
+    'the 2nd antiseizure start for 12 months': {start: {kind: 'event', event: 'antiseizure', which: 'nth', n: 2, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}},
+    'the last valproate start, 6 months before it to it': {start: {kind: 'event', event: 'valproate', which: 'last', n: 1, offset: -6, unit: 'month'}, end: {kind: 'span', amount: 6, unit: 'month'}},
+    'the 3rd-from-last antiseizure start for 6 months': {start: {kind: 'event', event: 'antiseizure', which: 'nth_last', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 6, unit: 'month'}},
+    'the first SCN1A result for 1 year': {start: {kind: 'event', event: 'gene:SCN1A', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 1, unit: 'year'}},
+    'the 3rd seizure for 12 months': {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}},
+  };
+  var SWEEP_RULE_NAMES = Object.keys(PERIOD_RULES);
+  Object.assign(PERIOD_RULES, EXTENDED_RULES);
   var pageWindow = defaultDef().window;
   var shape = t => ({scope: 'from_start', window: clone(pageWindow), nodes: clone(t.nodes), edges: clone(t.edges)});
   var TEMPLATE_DEFS = {'sequence': shape(TEMPLATES.sequence), 'tree': shape(TEMPLATES.tree), 'graph': shape(TEMPLATES.graph),
@@ -113,7 +141,7 @@ const DEFINITIONS = `
     const picked = pickOccurrence(timed, b.which, b.n)[0];
     if (!picked) return null;
     const [item, at] = picked;
-    return {at: toGrid(at), records: item.recs.map(r => r.record_id + ':' + r.kind),
+    return {at: toGrid(at), times: timed.map(x => toGrid(x[1])), from_end: b.which === 'last' || b.which === 'nth_last', records: item.recs.map(r => r.record_id + ':' + r.kind),
             mentions: item.mentions.map(x => x.note.record_id + '#' + x.note.mentions.indexOf(x.m))};
   };
   // How many of the anchor view's happenings hold any of these records or mentions (for classifying a moved window).
@@ -219,13 +247,30 @@ function stripped(cohortText) {
   return JSON.stringify(d);
 }
 
+/* The review's perturbations (S2): each patient's records shuffled, and record ids permuted (they are sequential in
+   truth-event order and are the rule's last tie-break), with a fixed generator so the run repeats. */
+function perturbed(text) {
+  let seed = 12345;
+  const rand = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const shuffled = JSON.parse(text);
+  for (const p of shuffled.patients) shuffle(p.records);
+  const renamed = JSON.parse(text);
+  for (const p of renamed.patients) {
+    const ids = p.records.map(r => r.record_id), perm = shuffle([...ids]);
+    const map = Object.fromEntries(ids.map((id, i) => [id, perm[i]]));
+    for (const r of p.records) r.record_id = map[r.record_id];
+  }
+  return {records_shuffled: JSON.stringify(shuffled), record_ids_permuted: JSON.stringify(renamed)};
+}
+
 const REFERENCE_SEEDS = Array.from({length: 10}, (_, i) => 4611 + i);
 function reference(output) {
   const work = fs.mkdtempSync(path.join(os.tmpdir(), 'd46-reference-'));
   try {
     const cohorts = SMOKE ? [['seed 4601', 4601]] : [['the page\'s cohort', null], ...REFERENCE_SEEDS.map(s => [`seed ${s}`, s])];
-    const rows = {}, defects = {tau30: {mismatches: 0}, truth: {moved_by_removing_truth: 0}};
-    let truthFree = {compared: 0, differing: 0};
+    const rows = {}, defects = Object.fromEntries(Object.keys(DEFECTS).map(k => [k, k === 'truth' ? {moved_by_removing_truth: 0} : {mismatches: 0}]));
+    let truthFree = {compared: 0, differing: 0, perturbed: {records_shuffled: 0, record_ids_permuted: 0}};
     for (const [name, seed] of cohorts) {
       const cohortPath = seed == null ? COHORT : path.join(work, `cohort-${seed}.json`);
       if (seed != null) generate(seed, cohortPath);
@@ -250,17 +295,22 @@ function reference(output) {
         truthFree.compared += 1;
         if (!same(w.windows[k][f][pid], free.windows[k][f][pid])) truthFree.differing += 1;
       }
+      // The review's perturbations (S2), on the stripped cohort: records shuffled, record ids permuted.
+      for (const [k, t] of Object.entries(perturbed(stripped(text)))) {
+        const pw = windowsOf(t);
+        for (const r of Object.keys(w.windows)) for (const f of FREE_TEXT) for (const pid of Object.keys(w.windows[r][f]))
+          if (!same(w.windows[r][f][pid], pw.windows[r][f][pid])) truthFree.perturbed[k] += 1;
+      }
       // Planted defects.
-      defects.tau30.mismatches += compareWith(windowsOf(text, 'tau30'), 'tau30').mismatches;
+      for (const k of Object.keys(DEFECTS)) if (k !== 'truth') defects[k].mismatches += compareWith(windowsOf(text, k), k).mismatches;
       const wt = windowsOf(text, 'truth'), ft = windowsOf(stripped(text), 'truth');
       for (const k of Object.keys(wt.windows)) for (const f of FREE_TEXT) for (const pid of Object.keys(wt.windows[k][f]))
         if (!same(wt.windows[k][f][pid], ft.windows[k][f][pid])) defects.truth.moved_by_removing_truth += 1;
       console.error(`${name}: ${r.compared} windows compared, ${r.placed} placed, ${r.mismatches} mismatches`);
     }
     const mismatches = Object.values(rows).reduce((a, r) => a + r.mismatches, 0);
-    defects.tau30.caught = defects.tau30.mismatches > 0;
-    defects.truth.caught = defects.truth.moved_by_removing_truth > 0;
-    truthFree.met = truthFree.differing === 0;
+    for (const [k, v] of Object.entries(defects)) { v.caught = (k === 'truth' ? v.moved_by_removing_truth : v.mismatches) > 0; v.ruled = RULED_DEFECTS.includes(k); }
+    truthFree.met = truthFree.differing === 0 && Object.values(truthFree.perturbed).every(n => n === 0);
     write(output, {
       profile: 'd46-window-reference-1.0',
       rule: ('D46 rules 2 and 3: every window the page places (seven period rules, three free-text settings, every patient) '
@@ -268,7 +318,8 @@ function reference(output) {
              + 'same with every truth field removed from the cohort; a 30-day reconciliation defect gives a mismatch and a '
              + 'defect reading truth_event_id moves a window when the truth is removed'),
       declared_seeds: REFERENCE_SEEDS, cohorts: rows, mismatches, truth_free: truthFree, defects,
-      met: {reference: mismatches === 0, truth_free: truthFree.met, defects: defects.tau30.caught && defects.truth.caught},
+      ruled_defects: RULED_DEFECTS,
+      met: {reference: mismatches === 0, truth_free: truthFree.met, defects: RULED_DEFECTS.every(k => defects[k].caught)},
       artifacts: artifacts(), contains_patient_level_data: false,
       synthetic_patient_ids: 'generator ids only, in first_mismatches', ...(SMOKE ? {smoke: true} : {}),
     });
@@ -291,21 +342,38 @@ function classify(main, mine, held) {
   if (!main && !mine) return 'no event anchor';
   if (!main) return 'anchored only here';
   if (!mine) return 'anchored only on main';
-  if (main.at === mine.at && same(keys(main).sort(), keys(mine).sort())) return 'same anchor';
+  // A bound whose anchor has the same time did not move, whatever its happening holds.
+  if (main.at === mine.at) return 'same anchor';
   const m = new Set(keys(main)), t = new Set(keys(mine));
   const shared = [...m].some(k => t.has(k));
   if (!mine.records.length && main.records.length) return 'a mention-only happening anchors here';
   if (!main.records.length && mine.records.length) return 'a mention-only happening anchored on main';
   if (shared) {
     const diff = [...m].filter(k => !t.has(k)).concat([...t].filter(k => !m.has(k)));
-    return `the same happening, other records: ${kindsOf(diff).join(', ') || 'none'}${main.at === mine.at ? '' : ' (timed differently)'}`;
+    return diff.length ? `the same happening, other records: ${kindsOf(diff).join(', ')} (timed differently)` : 'unexplained';
   }
   // Another happening: main's anchor split here, or this tree's anchor merged from several of main's, or neither (a
   // different occurrence ranks first, last or Nth because a happening elsewhere was split or merged).
   const {mainHereCount, mineMainCount} = held();
   if (mainHereCount > 1) return 'another happening: main\'s anchor is split here';
   if (mineMainCount > 1) return 'another happening: merged here from several of main\'s';
-  return 'another happening: another occurrence ranks';
+  // Another occurrence ranks only if the occurrences up to an anchor differ (D46 review, S3): at main's anchor time or
+  // this tree's, the number of occurrences counted from the occurrence's end (the start for first and Nth, the end for
+  // last and Nth from last) up to and including that time differs between the two sides.
+  const upTo = (a, t) => a.times.filter(x => a.from_end ? x >= t : x <= t).length;
+  if ([main.at, mine.at].some(t => upTo(main, t) !== upTo(mine, t))) return 'another happening: another occurrence ranks';
+  return 'unexplained';
+}
+
+// A moved window is explained only if it has a class none of whose bounds is unexplained (D46 review, M1).
+const explained = cls => !!cls && !cls.split('; ').some(part => part === 'unexplained' || part.endsWith(': unexplained'));
+// Rule 4's verdict: no changed result without an explained moved window, and no moved window unexplained.
+function censusMet(windows, unexplainedResults) {
+  const movedUnexplained = [];
+  for (const [rule, per] of Object.entries(windows))
+    for (const [f, w] of Object.entries(per))
+      for (const [pid, x] of Object.entries(w.patients)) if (!explained(x.class)) movedUnexplained.push({rule, free_text: f, patient_id: pid, class: x.class});
+  return {met: unexplainedResults === 0 && movedUnexplained.length === 0, moved_unexplained: movedUnexplained};
 }
 
 function census(output) {
@@ -319,7 +387,8 @@ function census(output) {
     const rules = inContext(ctx.mine, 'PERIOD_RULES');
     assert.ok(same(rules, inContext(ctx.main, 'PERIOD_RULES')));
     // Every sweep definition's window is one of the seven rules.
-    for (const c of inContext(ctx.mine, 'sweepCases()')) assert.ok(Object.values(rules).some(w => same(w, c.def.window)), c.name);
+    const sweepRules = inContext(ctx.mine, 'SWEEP_RULE_NAMES');
+    for (const c of inContext(ctx.mine, 'sweepCases()')) assert.ok(sweepRules.some(k => same(rules[k], c.def.window)), c.name);
     // Windows, per rule and the two settings the store is sent (stated findings, coded only).
     const windows = {}, movedBy = {};
     for (const [name, w] of Object.entries(rules)) {
@@ -372,6 +441,12 @@ function census(output) {
                  options: joint ? {codedOnly: 'store', geneCodedOnly: true} : {codedOnly: 'store'}});
     }
     for (const c of inContext(ctx.mine, 'sweepCases()')) defs.push({name: `sweep: ${c.name}`, def: c.def, freeText: c.freeText, options: {}});
+    // The Blank template under each of the five added period rules (D46 review, S1), stated findings and coded only.
+    for (const [rule, window] of Object.entries(inContext(ctx.mine, 'EXTENDED_RULES'))) {
+      const def = {...templates.blank, window};
+      defs.push({name: `blank, ${rule}, stated findings`, def, freeText: 'present', options: {}});
+      defs.push({name: `blank, ${rule}, coded only (1.3)`, def, freeText: 'off', options: {codedOnly: 'store'}});
+    }
     const cases = [], refused = {}, eventAnchored = new Set();
     const tr = (which, d, late) => inContext(ctx[which], `translateOne(${JSON.stringify(d.def)}, ${JSON.stringify(d.freeText)}, ${JSON.stringify(d.options)}, ${late})`);
     for (const d of defs) {
@@ -413,7 +488,7 @@ function census(output) {
         if (resultKey(x) === resultKey(y)) continue;
         changed += 1; mine.changed += 1;
         const cls = moved && moved[pid] ? moved[pid].class : null;
-        if (!cls) { unexplained.push({case: d.name, patient_id: pid, main: x, here: y}); continue; }
+        if (!explained(cls)) { unexplained.push({case: d.name, patient_id: pid, main: x, here: y, window_class: cls}); continue; }
         const key = `${cls} | ${statusText(x)} -> ${statusText(y)}`;
         mine.by_class[key] = (mine.by_class[key] || 0) + 1;
         changes[key] = (changes[key] || 0) + 1;
@@ -444,12 +519,12 @@ function census(output) {
       view_cost: {rule: 'reported, not ruled (D46 rule 7): node, one process, after the census',
                   index_view_here: inContext(ctx.mine, 'viewCost(21)'), evidence_view_on_main: inContext(ctx.main, 'viewCost(21)')},
       uncertainty: {rule: 'reported, not ruled (D46 rule 8)', cases: eventAnchored.size, this_tree: late.here, main: late.main},
-      met: unexplained.length === 0,
+      ...(() => { const v = censusMet(windows, unexplained.length); return {moved_windows_unexplained: v.moved_unexplained, met: v.met}; })(),
       artifacts: artifacts(), contains_patient_level_data: false,
       synthetic_patient_ids: 'generator ids only (as the parity test pins them)', ...(SMOKE ? {smoke: true} : {}),
     };
     write(output, report);
-    console.error(`census: ${changed} of ${compared} results changed, ${unexplained.length} unexplained; late anchors change ${late.here.changed} of ${late.here.compared} here, ${late.main.changed} of ${late.main.compared} on main`);
+    console.error(`census: ${report.met ? 'met' : 'MISSED'}; ${report.moved_windows_unexplained.length} moved windows unexplained; ${changed} of ${compared} results changed, ${unexplained.length} unexplained; late anchors change ${late.here.changed} of ${late.here.compared} here, ${late.main.changed} of ${late.main.compared} on main`);
   } finally {
     fs.rmSync(work, {recursive: true, force: true});
   }
@@ -573,7 +648,7 @@ function usefulness(output) {
   }
 }
 
-module.exports = {DEFECTS, REFERENCE_SEEDS, SEEDS, EXTEND, RULED, windowsOf, stripped};
+module.exports = {DEFECTS, RULED_DEFECTS, REFERENCE_SEEDS, SEEDS, EXTEND, RULED, windowsOf, stripped, perturbed, classify, explained, censusMet};
 
 if (require.main === module) {
   const what = process.argv[2], output = arg('--output', null);

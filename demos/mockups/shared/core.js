@@ -277,15 +277,17 @@ function timeOf(spans) {
       earliest time, then record id): each joins the existing happening whose first record (its head) has a compatible
       concept (equal, or one a descendant of the other) and an occurred range that meets the record's, the nearest (by the
       midpoint of the happening's records' span against the record's; ties: the happening made first); otherwise it starts one. Records of one source may join.
-   2. An uncoded seizure-diary entry (source diary, kind diary_entry) joins the nearest happening whose head is a seizure
-      (the concept or a descendant) and whose range meets its own; otherwise it stands alone, as before (no item). Any
-      other uncoded record stands alone.
+   2. Uncoded seizure-diary entries (source diary, kind diary_entry), in order of earliest time and record id: each
+      joins the nearest happening whose head is a seizure (the concept or a descendant) and whose range meets its own;
+      otherwise it stands alone, as before (no item). Any other uncoded record stands alone.
    3. Medications, per medicine concept, in order of earliest time (an active order, then a dispensing, then a stop,
       then record id): an active order joins the open course if that course has no active order and the order starts
       by the course's reach, and otherwise opens a course; a dispensing joins the open course if it starts by the
       course's reach, and otherwise opens one; a stop joins and closes the open course (alone if none is open). A
       course's reach is its last dispensing plus that dispensing's supply (30 days if none is given) plus 45 days, the
-      page's own run-out rule; a course of an order without dispensings stays open.
+      page's own run-out rule; a course of an order without dispensings stays open, its reach unbounded, and a stop
+      closes the open course whatever its time. Both suit the generator's records; real data would need a bound (an
+      order not dispensed for years is not one course) and a stop no earlier than its course's start.
    4. Genetic records (test orders, results, screening results) of one gene (attributes.gene or gene_requested), in
       order of earliest time and record id, join the nearest group of that gene whose head's range meets theirs.
    5. Letter mentions stated or hedged about the patient (every one, as evidenceFor takes those with a truth link),
@@ -330,7 +332,8 @@ function indexViewFor(pid) {
     if (h) { h.recs.push(r); h.range = {e: Math.min(h.range.e, range.e), l: Math.max(h.range.l, range.l)}; }
     else coded.push({recs: [r], ms: [], concept: c, head: range, range: {...range}});
   }
-  // 2. Uncoded seizure-diary entries.
+  // 2. Uncoded seizure-diary entries, in order of earliest time and record id.
+  diary.sort((a, b) => day(a.occurred.earliest) - day(b.occurred.earliest) || byRecord(a, b));
   for (const r of diary) {
     const range = rangeOf(r);
     const h = nearest(coded.filter(k => isA(k.concept, 'seizure') && meets(k.head, range)), range);
