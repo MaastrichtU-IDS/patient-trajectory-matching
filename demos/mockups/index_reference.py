@@ -1,11 +1,12 @@
 """D46: an independent reference for the trajectory page's index periods, placed without the generator's truth.
 
-The page places each event bound of an index period over its index view (`indexViewFor` in shared/core.js), whose
-records are grouped by rule reconcile_v1 (the rule's text is in core.js and in the decision log, D46). This module
-implements the same rule and the page's period resolution again, in Python, from their statements, so that the page's
-windows can be compared with it patient by patient (D46 rule 3):
+The page groups records into events by rule reconcile_v1 (`reconcile` in shared/core.js; the rule's text is there and in
+the decision log, D46): since D46 for index periods, since D47 for its whole view (`evidenceFor`). This module implements
+the same rule, the page's period resolution and (D47) its view again, in Python, so that the page's windows and its view
+can be compared with it patient by patient (D46 rule 3, D47 rule 3):
 
-    python demos/mockups/index_reference.py compare COHORT.json WINDOWS.json   # prints a JSON summary; exit 1 on a mismatch
+    python demos/mockups/index_reference.py compare COHORT.json WINDOWS.json    # prints a JSON summary; exit 1 on a mismatch
+    python demos/mockups/index_reference.py compare-view COHORT.json VIEW.json  # D47: items, series, letters, unplaced, cases
 
 WINDOWS.json is `d46_windows.cjs windows`'s output: {"rules": {name: window}, "windows": {rule: {free_text: {patient_id:
 {"start", "end"} | {"reason"}}}}}, times in whole minutes from birth (the page's engine grid), as the store request
@@ -13,8 +14,9 @@ carries them. A placed window must equal the reference's to the minute; an unpla
 
 Written separately from core.js, not translated from it line by line; what it shares with the page is the rule's text,
 the page's item rules it restates (how an item is kinded, conceptualised and timed: `makeItem`, `timeOf`, `textSpan`)
-and its period rules (`usable`, `eventTimes`, `pickOccurrence`, `windowFor`). It reads no `truth_event_id`, `truth` or
-`quality` field: `strip` removes them before anything else runs. Synthetic data only.
+and its period rules (`usable`, `eventTimes`, `pickOccurrence`, `windowFor`). It mirrors core.js step by step, so it
+catches a divergence between the two implementations, not a flaw in the rule itself. It reads no `truth_event_id` or
+`truth`: `strip` removes them (and, for windows, every data-quality case) before anything else runs. Synthetic data only.
 """
 from __future__ import annotations
 
@@ -35,12 +37,17 @@ MEDICATION = {'medication_order', 'dispensing'}
 GENETIC = {'test_order', 'genetic_result', 'screening_result'}
 
 
-def strip(cohort):
-    """The cohort without the generator's truth: no `truth`, no `quality`, no `truth_event_id` on records or mentions."""
+def strip(cohort, keep_quality=False):
+    """The cohort without the generator's truth: no `truth`, no `truth_event_id` on records, mentions or data-quality
+    cases, and no `quality` at all unless `keep_quality` (D47: the page shows the injected cases, per record)."""
     out = json.loads(json.dumps(cohort))
     for p in out['patients']:
         p.pop('truth', None)
-        p.pop('quality', None)
+        if keep_quality:
+            for q in p.get('quality', []):
+                q.pop('truth_event_id', None)
+        else:
+            p.pop('quality', None)
         for r in p['records']:
             r.pop('truth_event_id', None)
             for m in r.get('mentions') or []:
@@ -287,11 +294,57 @@ class Patient:
             if early:
                 it = self.item([], early)
                 if it:
-                    out.append(it)
-            it = self.item(recs, [x for x in ms if not any(x is y for y in early)])
+                    out.append({**it, 'provisional': True, 'records': [], 'mentions': early})
+            rest = [x for x in ms if not any(x is y for y in early)]
+            it = self.item(recs, rest)
             if it:
-                out.append(it)
+                out.append({**it, 'provisional': False, 'records': recs, 'mentions': rest})
         return out
+
+    # The page's whole view (D47): items, series readings, letters and the data-quality cases each holds, per record.
+    def view(self):
+        by_record = {}
+        for q in self.p.get('quality', []):
+            for rid in q['record_ids']:
+                by_record.setdefault(rid, []).append(q['case_id'])
+
+        def cases(recs):
+            return sorted({c for r in recs for c in by_record.get(r['record_id'], [])})
+
+        def key(n, m):
+            return n['record_id'] + '#' + str(next(i for i, y in enumerate(n['mentions']) if y is m))
+
+        def grid(span):
+            return None if span is None else [to_grid(span['e']), to_grid(span['l'])]
+        items = []
+        for it in self.items():
+            items.append({'records': sorted(r['record_id'] for r in it['records']), 'mentions': sorted(key(n, m) for n, m in it['mentions']),
+                          'kind': it['kind'], 'concept': it['concept'], 'text_concept': it.get('text_concept'),
+                          'provisional': it['provisional'], 'free_text_only': it['free_text_only'], 'possible_only': it['possible_only'],
+                          'best': grid(it.get('best')), 'start': grid(it.get('start')),
+                          'history': [to_grid(h) for h in it['history']] if it['kind'] == 'genetic' else None,
+                          'cases': [] if it['provisional'] else cases(it['records'])})
+        series = {k: [] for k in ('weight', 'height', 'head_circ', 'seizure_frequency')}
+        attached = {c for it in items for c in it['cases']}
+        for r in self.p['records']:
+            if r['kind'] in MEASURED and r.get('occurred'):
+                cid = self.c.concept_of(r.get('coding'))
+                if cid in series:
+                    series[cid].append(r['record_id'])
+                    attached.update(cases([r]))
+        letters = {}
+        for r in self.p['records']:
+            if r['kind'] == 'note':
+                letters[r['record_id']] = cases([r])
+                attached.update(letters[r['record_id']])
+        # Records the rule could not place (D47 review, M1): held by no item, series reading or letter.
+        held = {rid for it in items for rid in it['records']} | {rid for v in series.values() for rid in v} | set(letters)
+        unplaced = {r['record_id']: cases([r]) for r in self.p['records'] if r['record_id'] not in held}
+        for c in unplaced.values():
+            attached.update(c)
+        return {'items': sorted(items, key=lambda x: json.dumps(x, sort_keys=True)), 'series': {k: sorted(v) for k, v in series.items()},
+                'letters': letters, 'unplaced': unplaced,
+                'unattached': sorted(q['case_id'] for q in self.p.get('quality', []) if q['case_id'] not in attached)}
 
     def item(self, recs, ms):
         c = self.c
@@ -416,6 +469,28 @@ def windows(data, rules, settings):
     return out
 
 
+def compare_view(cohort_path, view_path):
+    """D47 rule 3: the page's whole view (`d47_page.cjs view`) against this reference's, patient by patient."""
+    with open(cohort_path) as f:
+        data = strip(json.load(f), keep_quality=True)
+    with open(view_path) as f:
+        page = json.load(f)
+    cohort = Cohort(data)
+    compared, items, mismatches = 0, 0, []
+    for p in data['patients']:
+        want = Patient(cohort, p).view()
+        items += len(want['items'])
+        got = page[p['patient_id']]
+        got = {**got, 'items': sorted(got['items'], key=lambda x: json.dumps(x, sort_keys=True))}
+        for part in ('items', 'series', 'letters', 'unplaced', 'unattached'):
+            compared += 1
+            if json.dumps(got[part], sort_keys=True) != json.dumps(want[part], sort_keys=True):
+                mismatches.append({'patient_id': p['patient_id'], 'part': part,
+                                   'page_only': [x for x in got[part] if x not in want[part]][:3] if isinstance(got[part], list) else None,
+                                   'reference_only': [x for x in want[part] if x not in got[part]][:3] if isinstance(want[part], list) else None})
+    return {'compared': compared, 'items': items, 'mismatches': len(mismatches), 'first_mismatches': mismatches[:20]}
+
+
 def compare(cohort_path, windows_path):
     with open(cohort_path) as f:
         data = strip(json.load(f))
@@ -437,8 +512,8 @@ def compare(cohort_path, windows_path):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4 or sys.argv[1] != 'compare':
-        sys.exit('usage: python demos/mockups/index_reference.py compare COHORT.json WINDOWS.json')
-    summary = compare(sys.argv[2], sys.argv[3])
+    if len(sys.argv) != 4 or sys.argv[1] not in ('compare', 'compare-view'):
+        sys.exit('usage: python demos/mockups/index_reference.py compare|compare-view COHORT.json WINDOWS.json|VIEW.json')
+    summary = (compare if sys.argv[1] == 'compare' else compare_view)(sys.argv[2], sys.argv[3])
     print(json.dumps(summary))
     sys.exit(1 if summary['mismatches'] else 0)

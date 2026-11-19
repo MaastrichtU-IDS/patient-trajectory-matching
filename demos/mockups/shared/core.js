@@ -2,10 +2,9 @@
 /* Shared by every mockup page: the synthetic dataset, concepts, time, records grouped into
    events, the index window, the diary rise rule and the timeline renderer. Pages keep their
    own interface state in the same \`state\` object and set \`hooks.hidden\` if they hide
-   anything from view. Records are grouped into events using the generator's ground truth,
-   which a real system would have to infer. Index periods are the exception (D46): their event
-   bounds are placed over a second view, grouped by a stated rule that reads no truth
-   (`indexViewFor`, rule reconcile_v1). */
+   anything from view. Records are grouped into events by a stated rule that reads none of the
+   generator's truth (`reconcile`, rule reconcile_v1: D46 for index periods, D47 for the whole
+   page); only the truth lens's display code reads it, to show what happened. */
 
 const state = {data: null, concepts: null, codeIndex: new Map(), patients: new Map(), evidence: new Map(), ancestry: new Map(),
                indexViews: new Map()};
@@ -132,65 +131,48 @@ function evidenceFor(pid) {
   if (state.evidence.has(pid)) return state.evidence.get(pid);
   const p = state.patients.get(pid);
   const day = iso => dayOf(p, iso);
-  const groups = new Map(), notes = [], loose = [];
-  for (const r of p.records) {
-    if (r.kind === 'note') notes.push(r);
-    else if (r.truth_event_id) push(groups, r.truth_event_id, r);
-    else loose.push(r);
-  }
-  const mentions = new Map();
-  for (const n of notes) {
-    n.p = p;
-    for (const m of n.mentions || []) {
-      if (m.truth_event_id && m.experiencer === 'patient' && (m.assertion === 'present' || m.assertion === 'possible')) {
-        push(mentions, m.truth_event_id, {note: n, m});
-      }
-    }
-  }
-  const byRecord = new Map(), byTruth = new Map();
-  for (const q of p.quality) {
-    if (q.truth_event_id) push(byTruth, q.truth_event_id, q);
-    q.record_ids.forEach(id => push(byRecord, id, q));
-  }
-  const items = [], series = {weight: [], height: [], head_circ: [], seizure_frequency: []};
-  const attached = new Set();
   const lastContact = day(p.follow_up.last_contact);
-  for (const id of uniq([...groups.keys(), ...mentions.keys()])) {
-    const recs = groups.get(id) || [], ms = mentions.get(id) || [];
-    const cases = uniq([...(byTruth.get(id) || []), ...recs.flatMap(r => byRecord.get(r.record_id) || [])]);
-    cases.forEach(q => attached.add(q.case_id));
-    const measured = recs.find(r => r.kind === 'measurement' || r.kind === 'diary_summary');
-    if (measured) {
-      const cid = conceptOf(measured.coding);
-      if (series[cid]) {
-        series[cid].push({day: day(measured.occurred.earliest), end: day(measured.occurred.latest), value: measured.value,
-                          unit: measured.unit, record: measured, cases});
-      }
-      continue;
-    }
-    // A hedged mention written before anything was coded is an earlier, separate assertion
-    // ("possible Dravet syndrome; genetics awaited"), not a copy of the later diagnosis.
+  const {happenings, measured, notes} = reconcile(p);
+  // Data-quality cases (injected and known by the generator, a declared shortcut) attach per record (D47): to each item,
+  // series reading, letter and unplaced record that holds one of a case's records. A case's link to a true event is never read,
+  // so a case on a letter stays with the letter, a case on a record the rule could not place stays with that record, and
+  // only a case with no record at all (a measurement never taken) is unattached.
+  const byRecord = new Map();
+  for (const q of p.quality) q.record_ids.forEach(id => push(byRecord, id, q));
+  const casesOf = recs => uniq(recs.flatMap(r => byRecord.get(r.record_id) || []));
+  const items = [], series = {weight: [], height: [], head_circ: [], seizure_frequency: []};
+  happenings.forEach((k, i) => {
+    const id = `ix${i + 1}`, recs = k.recs, ms = k.ms;
+    // A hedged mention written before anything was coded is an earlier, separate assertion ("possible Dravet syndrome;
+    // genetics awaited"), not a copy of the later diagnosis: before the happening's first coded record.
     const firstCoded = min(recs.filter(r => r.coding && r.occurred).map(r => day(r.occurred.earliest)));
     const early = firstCoded == null ? [] : ms.filter(x => x.m.assertion === 'possible' && day(x.note.occurred.earliest) < firstCoded);
     if (early.length) {
-      const noteIds = new Set(early.map(x => x.note.record_id));
-      const provisional = makeItem(p, `${id}:provisional`, [], early, cases.filter(q => q.record_ids.some(r => noteIds.has(r))), day, lastContact);
+      const provisional = makeItem(p, `${id}:provisional`, [], early, [], day, lastContact);
       if (provisional) { provisional.provisional = true; items.push(provisional); }
     }
-    const item = makeItem(p, id, recs, ms.filter(x => !early.includes(x)), cases, day, lastContact);
+    const item = makeItem(p, id, recs, ms.filter(x => !early.includes(x)), casesOf(recs), day, lastContact);
     if (item) items.push(item);
-  }
-  for (const r of loose) {
-    const cases = byRecord.get(r.record_id) || [];
-    cases.forEach(q => attached.add(q.case_id));
-    const item = makeItem(p, r.record_id, [r], [], cases, day, lastContact);
-    if (item) items.push(item);
+  });
+  for (const r of measured) {
+    const cid = conceptOf(r.coding);
+    if (series[cid] && r.occurred) {
+      series[cid].push({day: day(r.occurred.earliest), end: day(r.occurred.latest), value: r.value, unit: r.unit, record: r,
+                        cases: casesOf([r])});
+    }
   }
   const letters = notes.map(n => ({record: n, day: day(n.occurred.earliest), availableDay: day(n.available_at),
                                    cases: byRecord.get(n.record_id) || []}));
-  letters.forEach(l => l.cases.forEach(q => attached.add(q.case_id)));
+  // Records the rule could not place (D47 review, M1): held by no item, series reading or letter, such as a record
+  // coded only in a local code no concept carries, or a diary entry that meets no seizure. They are listed, with their
+  // cases, but are not events: no search or index period reads them.
+  const held = new Set([...items.flatMap(i => i.recs), ...Object.values(series).flat().map(s => s.record), ...notes].map(r => r.record_id));
+  const unplaced = p.records.filter(r => !held.has(r.record_id)).map(r => ({record: r, day: r.occurred ? day(r.occurred.earliest) : null,
+                                                                           cases: casesOf([r])}));
+  const attached = new Set([...items.flatMap(i => i.cases), ...Object.values(series).flat().flatMap(s => s.cases),
+                            ...letters.flatMap(l => l.cases), ...unplaced.flatMap(u => u.cases)].map(q => q.case_id));
   Object.values(series).forEach(s => s.sort((a, b) => a.day - b.day));
-  const view = {p, items, series, letters, lastContact, snapshot: day(p.follow_up.snapshot),
+  const view = {p, items, series, letters, unplaced, lastContact, snapshot: day(p.follow_up.snapshot), rule: 'reconcile_v1',
                 unattached: p.quality.filter(q => !attached.has(q.case_id)), byId: new Map(items.map(i => [i.id, i]))};
   state.evidence.set(pid, view);
   return view;
@@ -269,9 +251,8 @@ function timeOf(spans) {
   return {best, env, conflicting, spans};
 }
 
-/* The index view (D46): the same items as evidenceFor builds (makeItem), grouped without the generator's truth, for
-   placing index periods only. The page's own search, its timeline and its inspector keep evidenceFor's grouping by
-   truth (a declared shortcut). Rule reconcile_v1, which reads no truth_event_id, truth or quality field:
+/* Records into happenings without the generator's truth: rule reconcile_v1 (D46, for index periods; since D47 the
+   page's whole view, evidenceFor). It reads no link to a true event, no truth and no quality field:
    1. Coded findings, diagnoses and procedures (every record that is not a note, a measurement or diary summary, a
       medication record or a genetic record, with a code some concept carries), most precise first (precision, then
       earliest time, then record id): each joins the existing happening whose first record (its head) has a compatible
@@ -290,17 +271,16 @@ function timeOf(spans) {
       order not dispensed for years is not one course) and a stop no earlier than its course's start.
    4. Genetic records (test orders, results, screening results) of one gene (attributes.gene or gene_requested), in
       order of earliest time and record id, join the nearest group of that gene whose head's range meets theirs.
-   5. Letter mentions stated or hedged about the patient (every one, as evidenceFor takes those with a truth link),
+   5. Letter mentions stated or hedged about the patient (every one; before D47 the page took those with a truth link),
       narrowest wording interval first (textSpan; then earliest, letter id, position): each joins the nearest
       happening of rules 1, 3 or 4 whose concept is compatible and whose range (its records' occurred span; a course
       to its last dispensing's supply, an order-only course to last contact) meets the interval; otherwise the nearest
       mention-only happening whose head mention has a compatible concept and an interval that meets; otherwise it
       starts one.
-   6. Measured records give no item (evidenceFor makes them series, which no index period reads). Each happening is
-      then made an item as evidenceFor does, the provisional split of early hedged mentions included. */
-function indexViewFor(pid) {
-  if (state.indexViews.has(pid)) return state.indexViews.get(pid);
-  const p = state.patients.get(pid);
+   6. Measured records (measurements, diary summaries) stand apart: evidenceFor makes each a series reading, and none
+      is an item. evidenceFor makes each happening an item (makeItem), with the provisional split of early hedged
+      mentions: those written before the happening's first coded record are a separate, provisional item. */
+function reconcile(p) {
   const day = iso => dayOf(p, iso);
   const lastContact = day(p.follow_up.last_contact);
   const compatible = (a, b) => !!a && !!b && (isA(a, b) || isA(b, a));
@@ -312,10 +292,10 @@ function indexViewFor(pid) {
   const MEASURED = new Set(['measurement', 'diary_summary']), MEDICATION = new Set(['medication_order', 'dispensing']),
         GENETIC = new Set(['test_order', 'genetic_result', 'screening_result']);
   const happenings = [];  // {recs, ms, concept, range}
-  const findings = [], diary = [], meds = new Map(), genetic = [], notes = [];
+  const findings = [], diary = [], meds = new Map(), genetic = [], notes = [], measured = [];
   for (const r of p.records) {
     if (r.kind === 'note') notes.push(r);
-    else if (MEASURED.has(r.kind)) continue;
+    else if (MEASURED.has(r.kind)) measured.push(r);
     else if (!r.occurred) happenings.push({recs: [r], ms: [], concept: null, range: null});
     else if (MEDICATION.has(r.kind) && conceptOf(r.coding)) push(meds, conceptOf(r.coding), r);
     else if (GENETIC.has(r.kind)) genetic.push(r);
@@ -398,20 +378,13 @@ function indexViewFor(pid) {
     if (s) s.ms.push(y.x);
     else spoken.push({recs: [], ms: [y.x], concept: c, head: y.range, range: {...y.range}});
   }
-  // 6. Items, as evidenceFor makes them (with its provisional split of early hedged mentions).
-  const items = [];
-  [...coded, ...courses, ...tests, ...spoken, ...happenings].forEach((k, i) => {
-    const id = `ix${i + 1}`, recs = k.recs, ms = k.ms;
-    const firstCoded = min(recs.filter(r => r.coding && r.occurred).map(r => day(r.occurred.earliest)));
-    const early = firstCoded == null ? [] : ms.filter(x => x.m.assertion === 'possible' && day(x.note.occurred.earliest) < firstCoded);
-    if (early.length) {
-      const provisional = makeItem(p, `${id}:provisional`, [], early, [], day, lastContact);
-      if (provisional) { provisional.provisional = true; items.push(provisional); }
-    }
-    const item = makeItem(p, id, recs, ms.filter(x => !early.includes(x)), [], day, lastContact);
-    if (item) items.push(item);
-  });
-  const view = {p, items, lastContact, rule: 'reconcile_v1'};
+  return {happenings: [...coded, ...courses, ...tests, ...spoken, ...happenings], measured, notes};
+}
+
+// The index view (D46) is the page's view since D47: index periods are placed over the same items the page searches.
+function indexViewFor(pid) {
+  if (state.indexViews.has(pid)) return state.indexViews.get(pid);
+  const view = evidenceFor(pid);
   state.indexViews.set(pid, view);
   return view;
 }
@@ -419,9 +392,12 @@ function indexViewFor(pid) {
 function truthItems(pid) {
   const p = state.patients.get(pid), view = evidenceFor(pid);
   const lane = {phenotype: 'phenotype', diagnosis: 'diagnosis', genetic: 'tests', procedure: 'tests', medication: 'medication'};
+  // The truth lens's display code is the only code that reads the generator's truth (D47): to show what happened, and
+  // which recorded events hold each true event's records or mentions (every one, if the rule split it). It builds no event.
+  const holders = id => view.items.filter(i => i.recs.some(r => r.truth_event_id === id) || i.mentions.some(x => x.m.truth_event_id === id));
   return p.truth.events.filter(e => lane[e.kind]).map(e => ({
     id: e.event_id, truth: e, kind: e.kind, concept: e.concept, lane: lane[e.kind],
-    display: e.kind === 'genetic' ? `${e.gene} test` : label(e.concept), recorded: view.byId.get(e.event_id) || null,
+    display: e.kind === 'genetic' ? `${e.gene} test` : label(e.concept), recorded: holders(e.event_id),
     day: e.day, end: e.end_day ?? null,
   }));
 }
@@ -678,12 +654,12 @@ function timelineSVG(pid, opts) {
       const color = COLOR[lane];
       const selected = opts.selected === it.id;
       if (truth) {
-        const recorded = !!it.recorded;
+        const recorded = it.recorded.length > 0;
         const px = x(it.day);
-        const tip = `${it.display} · happened at ${ageText(it.day)}${recorded ? '' : ' · not in any record'}${it.day > lc ? ' · after last contact' : ''}`;
+        const tip = `${it.display} · happened at ${ageText(it.day)}${recorded ? '' : ' · not in any record'}${it.recorded.length > 1 ? ` · recorded as ${it.recorded.length} events` : ''}${it.day > lc ? ' · after last contact' : ''}`;
         let extra = '';
-        if (recorded && it.recorded.time.best && Math.abs(it.recorded.time.best.e - it.day) > 10 && it.kind !== 'medication') {
-          extra = `<line x1="${px}" x2="${x(it.recorded.time.best.e)}" y1="${cy}" y2="${cy}" stroke="#B42318" stroke-dasharray="2 2"/>`;
+        for (const h of it.kind === 'medication' ? [] : it.recorded) {
+          if (h.time.best && Math.abs(h.time.best.e - it.day) > 10) extra += `<line x1="${px}" x2="${x(h.time.best.e)}" y1="${cy}" y2="${cy}" stroke="#B42318" stroke-dasharray="2 2"/>`;
         }
         if (it.kind === 'medication') {
           const end = x(Math.min(it.end ?? view.snapshot, view.snapshot));

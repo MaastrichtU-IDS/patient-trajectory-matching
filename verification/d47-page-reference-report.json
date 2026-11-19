@@ -1,0 +1,186 @@
+{
+ "profile": "d47-page-reference-1.0",
+ "rule": "D47 rules 2 and 3: the page's whole view (items with their records, mentions, kind, concept, times and data-quality cases; series readings; letters; records the rule could not place; unattached cases) equals index_reference.py's on the page's cohort and seeds 4711-4720, and is the same with the truth removed (cases kept, their truth links removed), with the records shuffled and with the record ids permuted; the page's own search gives the same results on the stripped cohort (five templates and every sweep definition, three settings); every record is held exactly once; each ruled planted defect is caught",
+ "declared_seeds": [
+  4711,
+  4712,
+  4713,
+  4714,
+  4715,
+  4716,
+  4717,
+  4718,
+  4719,
+  4720
+ ],
+ "cohorts": {
+  "the page's cohort": {
+   "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+   "patients": 48,
+   "items": 548,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4711": {
+   "cohort_sha256": "f5991750439c61f071eff2896ea1fddeaf2e7fd0138eb586c2980cfe280f87c6",
+   "patients": 48,
+   "items": 532,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4712": {
+   "cohort_sha256": "6943d0ba1a71fc928a603333d763a68980d56ec0163ee34a141aaae919aac2cd",
+   "patients": 48,
+   "items": 529,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4713": {
+   "cohort_sha256": "093093ff9b7effc5d3045744a9f61e5cca648cee353dde3fe217aeb772eb10df",
+   "patients": 48,
+   "items": 522,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4714": {
+   "cohort_sha256": "61bb5ee6031ab03d6a6a14b8ac3b5771d0e79e136e4511a6b37da9526b99777a",
+   "patients": 48,
+   "items": 519,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4715": {
+   "cohort_sha256": "2a19e77fd125b7e9d4f2e259a7d0704900da66ee4231ae424b33153d60473518",
+   "patients": 48,
+   "items": 533,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4716": {
+   "cohort_sha256": "23b61d916a6d7fef27e5035c9358fbce04f4fbc76011c09fc55abef78bcbef0f",
+   "patients": 48,
+   "items": 548,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4717": {
+   "cohort_sha256": "8a56eb622cae9c32cddd10ae5a556f45684aef39895571d524bb3bf1bbe12fe0",
+   "patients": 48,
+   "items": 532,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4718": {
+   "cohort_sha256": "97c1265fb18ba08c9899e7c561f2f03f246483c7c9ff69e47c77cd0214647564",
+   "patients": 48,
+   "items": 519,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4719": {
+   "cohort_sha256": "afebfe053d510a5ad8ebc1c896078b1ed30c6879bfd867321c8ddffce34118f2",
+   "patients": 48,
+   "items": 532,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  },
+  "seed 4720": {
+   "cohort_sha256": "16108db0748781d8c729aa27bca87753429b4498eb120ab3e70475b3109fbd4a",
+   "patients": 48,
+   "items": 530,
+   "compared": 240,
+   "mismatches": 0,
+   "first_mismatches": []
+  }
+ },
+ "mismatches": 0,
+ "truth_free": {
+  "patients": 528,
+  "stripped": 0,
+  "records_shuffled": 0,
+  "record_ids_permuted": 0,
+  "own_search_results": 896544,
+  "own_search_differing": 0,
+  "met": true
+ },
+ "completeness": {
+  "records": 76256,
+  "held_by_none": 0,
+  "held_by_several": 0,
+  "met": true
+ },
+ "defects": {
+  "truth": {
+   "patients_moved_by_removing_truth": 16,
+   "caught": true
+  },
+  "mention_truth": {
+   "patients_moved_by_removing_truth": 226,
+   "caught": true
+  },
+  "case_truth": {
+   "patients_moved_by_removing_truth": 322,
+   "caught": true
+  },
+  "tau30": {
+   "mismatches": 229,
+   "caught": true
+  },
+  "reach400": {
+   "mismatches": 11,
+   "caught": true
+  },
+  "stop_ignored": {
+   "mismatches": 58,
+   "caught": true
+  },
+  "no_precision": {
+   "mismatches": 38,
+   "caught": true
+  },
+  "unplaced_dropped": {
+   "records_held_by_none": 439,
+   "caught": true
+  },
+  "no_provisional": {
+   "mismatches": 0,
+   "caught": false
+  }
+ },
+ "ruled_defects": [
+  "truth",
+  "mention_truth",
+  "case_truth",
+  "tau30",
+  "reach400",
+  "stop_ignored",
+  "no_precision",
+  "unplaced_dropped"
+ ],
+ "met": {
+  "reference": true,
+  "truth_free": true,
+  "completeness": true,
+  "defects": true
+ },
+ "artifacts": {
+  "demos/mockups/d47_page.cjs": "b37894fbdb788e292e7157f9a91c1e28ad35eee7c33fd3db86ddae576a7f620d",
+  "demos/mockups/index_reference.py": "d26a724c4ffaada612dc18c3b81999c408401b82bfae278ff47b21f309db522e",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
+  "demos/mockups/trajectory/app.js": "bb64343679f444476ceefbd0f6f79c4a4ffa40e3c800879d5bd6fa3f80f96b86",
+  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c"
+ },
+ "contains_patient_level_data": false
+}

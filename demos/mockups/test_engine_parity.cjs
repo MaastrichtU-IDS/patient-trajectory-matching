@@ -4,7 +4,8 @@
    template and three heavier trajectories, each patient is matched twice: by the page's
    in-browser search, and through the page's engine path, whose requests are answered by
    patterns/trajectory_graph.py. Status, certainty and relaxation set must agree.
-   D46: the index periods both paths share are placed without the generator's truth, checked at the end.
+   D46: the index periods both paths share are placed without the generator's truth, checked at the end; D47: so is the
+   page's whole view.
    Run after demos/mockups/synthetic/generate.py. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -113,4 +114,80 @@ try {
   assert.equal(d46.explained(undefined), false);
   assert.equal(d46.explained('end: a mention-only happening anchors here'), true);
   console.log('Index-period census verdict: a moved window or a changed result without an explanation fails it.');
+}
+
+/* D47: the page's whole view (shared/core.js, evidenceFor over rule reconcile_v1: items, series readings, letters and
+   their data-quality cases, attached per record) reads no truth. It is the same with every truth link removed from the
+   cohort (the cases kept), with the stripped cohort's records shuffled and with its record ids permuted, and equals the
+   reference's (index_reference.py compare-view); every record is held exactly once; the page's own search gives the same
+   results with the truth removed; and only the truth lens's display code names the truth. */
+{
+  const d47 = require('./d47_page.cjs');
+  const view = d47.viewsOf(cohortText), free = d47.stripped(cohortText);
+  assert.equal(d47.differingPatients(view, d47.viewsOf(free)), 0, 'the page\'s view moved when the truth was removed');
+  for (const [how, {text, back}] of Object.entries(d47.perturbed(free)))
+    assert.equal(d47.differingPatients(view, d47.mapBack(d47.viewsOf(text), back)), 0, `the page's view moved with ${how.replace(/_/g, ' ')}`);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'page-view-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'view.json'), JSON.stringify(view));
+    let out;
+    try {
+      out = execFileSync(python, [path.join(here, 'index_reference.py'), 'compare-view', path.join(here, 'data/synthetic-paediatric-rare.json'),
+                                  path.join(dir, 'view.json')], {cwd: root, encoding: 'utf8'});
+    } catch (e) { out = e.stdout; }
+    const summary = JSON.parse(out);
+    assert.equal(summary.mismatches, 0, `the page's view differs from the reference:\n${JSON.stringify(summary.first_mismatches, null, 1)}`);
+    assert.ok(summary.items > 0, 'no item: the comparison would be vacuous');
+    console.log(`Page view: ${summary.items} events over ${Object.keys(view).length} patients equal the reference's and do not read the truth.`);
+  } finally {
+    fs.rmSync(dir, {recursive: true, force: true});
+  }
+  // Only the truth lens's display code reads the truth (rule 2, static; widened after the review, S1): in the raw text of
+  // every page script, each line naming a truth link (\`truth_event_id\`, \`.truth\`, \`['truth\`, \`["truth\`) is one of
+  // these, the lens's own lines (core.js's truthItems; the "truth:" labels of two result lists).
+  const LENS_LINES = new Set([
+    "const holders = id => view.items.filter(i => i.recs.some(r => r.truth_event_id === id) || i.mentions.some(x => x.m.truth_event_id === id));",
+    "return p.truth.events.filter(e => lane[e.kind]).map(e => ({",
+    "${chip(r.status, r.cost)}${state.lens === 'truth' ? ` <span class=\"hint\">truth: ${esc(GROUP_LABEL[p.truth.condition_group])}</span>` : ''}",
+    "const truth = state.lens === 'truth' ? ` · <strong>truth: ${esc(GROUP_LABEL[view.p.truth.condition_group])}</strong>` : '';",
+    "out.push(`<details class=\"excluded\"><summary>${res.excluded.length} not eligible, and why</summary><ul>${res.excluded.map(e => `<li><strong>${e.pid}</strong>: ${esc(e.reason)}${state.lens === 'truth' ? ` <em>(truth: ${esc(GROUP_LABEL[state.patients.get(e.pid).truth.condition_group])})</em>` : ''}</li>`).join('')}</ul></details>`);",
+  ]);
+  const TRUTH = /truth_event_id|\.truth\b|\[\s*['"]truth/;
+  const flagged = [];
+  for (const f of ['shared/core.js', 'trajectory/app.js', 'trajectory/store_request.js', 'patient-first/app.js', 'store-query/app.js'])
+    fs.readFileSync(path.join(here, f), 'utf8').split('\n').forEach((line, k) => {
+      if (TRUTH.test(line) && !LENS_LINES.has(line.trim()))
+        flagged.push(`${f}:${k + 1}: ${line.trim().slice(0, 120)}`);
+    });
+  assert.deepEqual(flagged, [], 'a page script reads the truth outside the truth lens');
+  // Every record is held exactly once: by an item, a series reading, a letter or the list of records the rule could not place.
+  const pc = d47.pageContext(cohortText, 'this');
+  const complete = d47.inContext(pc, 'completeness()');
+  assert.ok(complete.met, `records held by none or by several: ${JSON.stringify(complete)}`);
+  // The page's own search reads no truth (S1): the templates and the first 200 sweep definitions, three settings, give the
+  // same results on the stripped cohort.
+  const own = d47.inContext(pc, 'ownAll(200)'), ownFree = d47.inContext(d47.pageContext(free, 'this'), 'ownAll(200)');
+  let ownCompared = 0;
+  for (const k of Object.keys(own)) for (const pid of Object.keys(own[k])) { ownCompared += 1; assert.deepEqual(ownFree[k][pid], own[k][pid], `${k} ${pid}: the page's own search moved with the truth removed`); }
+  console.log(`Page view: every one of ${complete.records} records held once; ${ownCompared} own-search results the same with the truth removed.`);
+  // The census's classes (D47 rule 4), on constructed candidates.
+  const c = (sig, t = [1, 1, 1, 1]) => ({t, sig});
+  const held = map => (side, sig) => map[side + ':' + sig.join(',')] ?? [['other']];
+  assert.equal(d47.classify({'step:A': [c(['r1'])]}, {'step:A': [c(['r1'])]}, held({})), 'unexplained');
+  assert.equal(d47.classify({'step:A': [c(['r1', 'r2'])]}, {'step:A': [c(['r1'])]}, held({'here:r1,r2': [['r1'], ['r2']], 'main:r1': [['r1', 'r2']]})), 'regrouped + split');
+  assert.equal(d47.classify({'step:A': [c(['r1'])]}, {'step:A': [c(['n1#0'])]}, held({})), 'mention-only + regrouped');
+  assert.equal(d47.classify({'step:A': [c(['r1'], [1, 1, 1, 1])]}, {'step:A': [c(['r1'], [2, 2, 2, 2])]}, held({})), 'reordered');
+  // S2: a holder with the candidate's own records and mentions explains nothing; nor do readings of an unchanged series;
+  // nor a window placed on one side only.
+  assert.equal(d47.classify({'step:A': [c(['r1'])]}, {'step:A': [c(['r2'])]}, held({'here:r1': [['r1']]})), 'unexplained');
+  assert.equal(d47.classify({'step:B': [c(['measure:m1'])]}, {'step:B': []}, held({}), () => true), 'unexplained');
+  assert.equal(d47.classify({'step:B': [c(['measure:m1'])]}, {'step:B': []}, held({}), () => false), 'series');
+  assert.equal(d47.classify(null, {'step:A': []}, held({})), 'unexplained');
+  // The same event picked on one side only (first, last, Nth, a count reached) is a reranking only if the step's events
+  // before the pick differ.
+  assert.equal(d47.classify({'step:A': [], 'all step:A': [c(['r1'])]}, {'step:A': [c(['r1'])], 'all step:A': [c(['r1'])]}, held({'main:r1': [['r1']]})), 'unexplained');
+  assert.equal(d47.classify({'step:A': [], 'all step:A': [c(['r1']), c(['r2', 'r3'])]}, {'step:A': [c(['r1'])], 'all step:A': [c(['r1']), c(['r2']), c(['r3'])]},
+                            held({'main:r1': [['r1']], 'here:r2,r3': [['r2'], ['r3']], 'main:r2': [['r2', 'r3']], 'main:r3': [['r2', 'r3']]})),
+               'regrouped + reranked + split');
+  console.log('Page-view census classes: a changed result whose candidates are unchanged is unexplained.');
 }

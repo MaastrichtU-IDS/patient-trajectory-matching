@@ -1,0 +1,4117 @@
+{
+ "profile": "d47-page-census-1.0",
+ "rule": "D47 rule 4: on the page's cohort, the page's own search (matchPatient) under main's view (grouped by the generator's truth) and this tree's (reconcile_v1), for the five templates under stated findings, coded only and hedged findings, and every option-sweep definition under its own setting and under hedged findings. Each changed result is classified by the regroupings that make its step candidates differ, each verified on the two views. Met only if no changed result is unexplained, and the windows and the store requests are the same on both sides for every case",
+ "base": "a4d2010",
+ "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+ "patients": 48,
+ "cases": 1106,
+ "compared": 53088,
+ "changed": 602,
+ "changed_by_setting": {
+  "present": 153,
+  "off": 101,
+  "possible": 348
+ },
+ "classes": {
+  "merged": "an event here holds records or mentions of several of main's events",
+  "split": "records or mentions of one of main's events are in several events here",
+  "regrouped": "held by one event on each side, with another set of records or mentions",
+  "mention-only": "an event of letter mentions only, held by one event on the other side with another set",
+  "ungrouped": "the other side has no event holding these records or mentions (a record it could not place; a mention it does not take)",
+  "series": "a measurement step's readings differ, and so does the series it reads",
+  "reranked": "the same event on both sides, picked (first, last, Nth, the count reached) on one only, the step's events before the pick differing",
+  "reordered": "the same events, in another order or with other times"
+ },
+ "by_class": {
+  "regrouped + reranked + split": 69,
+  "mention-only + merged + regrouped + split": 96,
+  "merged + regrouped + split": 7,
+  "mention-only + regrouped + split": 116,
+  "mention-only + regrouped + reranked + split": 21,
+  "merged + regrouped": 50,
+  "mention-only + merged + regrouped + reranked + split": 9,
+  "merged + regrouped + reranked": 13,
+  "mention-only + regrouped + reranked": 3,
+  "regrouped + split": 212,
+  "mention-only + regrouped": 4,
+  "mention-only + merged + regrouped": 2
+ },
+ "by_transition": {
+  "relaxed/possible -> possible": 7,
+  "exact -> relaxed/exact": 16,
+  "relaxed/exact -> none": 36,
+  "possible -> exact": 66,
+  "none -> relaxed/exact": 119,
+  "none -> exact": 172,
+  "relaxed/exact -> exact": 67,
+  "exact -> none": 17,
+  "possible -> none": 24,
+  "relaxed/exact -> relaxed/exact": 32,
+  "relaxed/possible -> none": 10,
+  "possible -> relaxed/exact": 4,
+  "none -> relaxed/possible": 9,
+  "relaxed/possible -> relaxed/exact": 13,
+  "relaxed/exact -> relaxed/possible": 7,
+  "relaxed/possible -> relaxed/possible": 3
+ },
+ "by_case": {
+  "template: event frequency, present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "template: event frequency, off": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "template: event frequency, possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "template: blank, present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "template: blank, possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: any seizure / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any seizure / within 6 months of the period start / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: any seizure / within 6 months of the period start / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: any seizure / within 6 months of the period start / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: any seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: any seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: any seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / alone / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / alone / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / alone / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / then a febrile seizure at least a day later / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / within 6 months of the period start / present": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / within 6 months of the period start / present / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / within 6 months of the period start / off / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: first seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: first seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: first seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: last seizure / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: last seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: last seizure / then a febrile seizure at least a day later / off": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: last seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: last seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: last seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: last seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / alone / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / alone / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / alone / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / then a febrile seizure at least a day later / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / within 6 months of the period start / present": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / within 6 months of the period start / present / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / within 6 months of the period start / off / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: 1st seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: 1st seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / alone / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / alone / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / alone / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure within 12 months / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure within 12 months / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure within 12 months / off": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure within 12 months / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure at least a day later / off": {
+   "changed": 2,
+   "patients": {
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / within 6 months of the period start / present": {
+   "changed": 1,
+   "patients": {
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / within 6 months of the period start / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / within 6 months of the period start / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / within a year either side of the period end / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / within a year either side of the period end / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / within a year either side of the period end / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / after the first blocker, within 60 days / present": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / after the first blocker, within 60 days / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd seizure / after the first blocker, within 60 days / off": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "possible -> none"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / after the first blocker, within 60 days / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / then a febrile seizure at least a day later / off": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 1st-to-last seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / alone / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / alone / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / alone / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure within 12 months / off": {
+   "changed": 1,
+   "patients": {
+    "C023": {
+     "class": "merged + regrouped + reranked",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure at least a day later / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure at least a day later / off": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within 6 months of the period start / present": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within 6 months of the period start / present / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within 6 months of the period start / off": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within 6 months of the period start / off / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "none -> exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + reranked + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within a year either side of the period end / off": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped + reranked",
+     "transition": "possible -> none"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / within 6 months of the period start / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / within 6 months of the period start / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / within 6 months of the period start / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 1 seizure within a month / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / alone / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / alone / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / alone / off": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / alone / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure within 12 months / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure within 12 months / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure within 12 months / off": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure within 12 months / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure at least a day later / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure at least a day later / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure at least a day later / off": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / then a febrile seizure at least a day later / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / and a febrile seizure up to 2 years either side / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / and a febrile seizure up to 2 years either side / off": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within 6 months of the period start / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within 6 months of the period start / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within 6 months of the period start / off": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within 6 months of the period start / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within a year either side of the period end / present": {
+   "changed": 2,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    },
+    "C032": {
+     "class": "mention-only + regrouped + reranked",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within a year either side of the period end / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    },
+    "C032": {
+     "class": "mention-only + regrouped + reranked",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within a year either side of the period end / off": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / within a year either side of the period end / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/possible -> none"
+    },
+    "C032": {
+     "class": "mention-only + regrouped + reranked",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / after the first blocker, within 60 days / present": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / after the first blocker, within 60 days / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / after the first blocker, within 60 days / off": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / after the first blocker, within 60 days / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/possible -> possible"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / alone / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / alone / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / alone / off": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / alone / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure within 12 months / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure within 12 months / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure within 12 months / off": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure within 12 months / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure at least a day later / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure at least a day later / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure at least a day later / off": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / then a febrile seizure at least a day later / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / and a febrile seizure up to 2 years either side / present": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / and a febrile seizure up to 2 years either side / off": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within 6 months of the period start / present": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within 6 months of the period start / present / possible": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within 6 months of the period start / off": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within 6 months of the period start / off / possible": {
+   "changed": 3,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within a year either side of the period end / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within a year either side of the period end / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within a year either side of the period end / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / alone / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / alone / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / alone / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / then a febrile seizure at least a day later / present": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / then a febrile seizure at least a day later / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / then a febrile seizure at least a day later / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / within 6 months of the period start / present": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / within 6 months of the period start / present / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / within 6 months of the period start / off / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C033": {
+     "class": "mention-only + regrouped + reranked + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / within a year either side of the period end / present": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: first febrile seizure / within a year either side of the period end / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: first febrile seizure / within a year either side of the period end / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: first Dravet diagnosis / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first Dravet diagnosis / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first Dravet diagnosis / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first Dravet diagnosis / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first Dravet diagnosis / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first Dravet diagnosis / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: any blocker start / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any blocker start / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any blocker start / then a febrile seizure within 12 months / off": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any blocker start / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: any blocker start / and a seizure while taking it, or 30 days after / present": {
+   "changed": 1,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: any blocker start / and a seizure while taking it, or 30 days after / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: any blocker start / and a seizure while taking it, or 30 days after / off": {
+   "changed": 1,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: any blocker start / and a seizure while taking it, or 30 days after / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure within 12 months / present": {
+   "changed": 3,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure within 12 months / present / possible": {
+   "changed": 3,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure within 12 months / off": {
+   "changed": 3,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure within 12 months / off / possible": {
+   "changed": 3,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure at least a day later / off": {
+   "changed": 2,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / and a seizure while taking it, or 30 days after / present": {
+   "changed": 4,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "possible -> none"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / and a seizure while taking it, or 30 days after / present / possible": {
+   "changed": 4,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "possible -> none"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / and a seizure while taking it, or 30 days after / off": {
+   "changed": 4,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "possible -> none"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / and a seizure while taking it, or 30 days after / off / possible": {
+   "changed": 4,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "exact -> none"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "possible -> none"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "possible -> exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "exact -> none"
+    }
+   }
+  },
+  "sweep: last blocker start / within 6 months of the period start / present": {
+   "changed": 1,
+   "patients": {
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: last blocker start / within 6 months of the period start / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: last blocker start / within 6 months of the period start / off": {
+   "changed": 1,
+   "patients": {
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: last blocker start / within 6 months of the period start / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / alone / present": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / alone / present / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / alone / off": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / alone / off / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure within 12 months / present": {
+   "changed": 5,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure within 12 months / present / possible": {
+   "changed": 5,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure within 12 months / off": {
+   "changed": 4,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure within 12 months / off / possible": {
+   "changed": 5,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/possible"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure at least a day later / present": {
+   "changed": 5,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure at least a day later / present / possible": {
+   "changed": 5,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure at least a day later / off": {
+   "changed": 4,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / then a febrile seizure at least a day later / off / possible": {
+   "changed": 5,
+   "patients": {
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a febrile seizure up to 2 years either side / present": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a febrile seizure up to 2 years either side / off": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "merged + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a seizure while taking it, or 30 days after / present": {
+   "changed": 2,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a seizure while taking it, or 30 days after / present / possible": {
+   "changed": 2,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a seizure while taking it, or 30 days after / off": {
+   "changed": 2,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / and a seizure while taking it, or 30 days after / off / possible": {
+   "changed": 2,
+   "patients": {
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / within 6 months of the period start / present": {
+   "changed": 6,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / within 6 months of the period start / present / possible": {
+   "changed": 6,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / within 6 months of the period start / off": {
+   "changed": 6,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / within 6 months of the period start / off / possible": {
+   "changed": 6,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / after the first blocker, within 60 days / present": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / after the first blocker, within 60 days / present / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / after the first blocker, within 60 days / off": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / after the first blocker, within 60 days / off / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / alone / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / alone / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / alone / off": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / alone / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure within 12 months / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure within 12 months / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure within 12 months / off": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure within 12 months / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure at least a day later / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure at least a day later / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure at least a day later / off": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / then a febrile seizure at least a day later / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a febrile seizure up to 2 years either side / off": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a seizure while taking it, or 30 days after / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a seizure while taking it, or 30 days after / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a seizure while taking it, or 30 days after / off": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / and a seizure while taking it, or 30 days after / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / within 6 months of the period start / present": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / within 6 months of the period start / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / within 6 months of the period start / off": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / within 6 months of the period start / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: diary rises x2 / and a febrile seizure up to 2 years either side / present": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: diary rises x2 / and a febrile seizure up to 2 years either side / present / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: diary rises x2 / and a febrile seizure up to 2 years either side / off / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first seizure / alone / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 1st seizure / alone / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 2nd seizure / alone / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last seizure / alone / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 3 seizures within 6 months / alone / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / alone / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first febrile seizure / alone / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: 2nd blocker start / alone / possible": {
+   "changed": 7,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C004": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C015": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C021": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C023": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C036": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    },
+    "C044": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: 2nd-to-last valproate start / alone / possible": {
+   "changed": 1,
+   "patients": {
+    "C001": {
+     "class": "regrouped + split",
+     "transition": "none -> exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / from_start / the first seizure for 24 months": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / from_start / the first seizure for 24 months / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / from_start / 12 months up to the last seizure": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / from_start / 12 months up to the last seizure / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / within / the first seizure for 24 months": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / within / the first seizure for 24 months / possible": {
+   "changed": 1,
+   "patients": {
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "possible -> exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / within / the first diagnosis for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / within / the first diagnosis for 2 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / within / the first genetic result for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / within / the first genetic result for 2 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / after / 12 months up to the last seizure": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / after / 12 months up to the last seizure / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / after / the first diagnosis for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / after / the first diagnosis for 2 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> none"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / after / the first genetic result for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: first seizure then a febrile seizure / after / the first genetic result for 2 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> none"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / the first seizure for 24 months": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / the first seizure for 24 months / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / birth to 6 years": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / birth to 6 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / 12 months up to the last seizure / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C017": {
+     "class": "mention-only + regrouped",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / the first diagnosis for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / the first diagnosis for 2 years / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / any / the first genetic result for 2 years / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / the first seizure for 24 months": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / the first seizure for 24 months / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / birth to 6 years": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / birth to 6 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / 12 months up to the last seizure / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C017": {
+     "class": "mention-only + regrouped",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / the first diagnosis for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / the first diagnosis for 2 years / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / from_start / the first genetic result for 2 years / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / the first seizure for 24 months": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / the first seizure for 24 months / possible": {
+   "changed": 2,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    },
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / birth to 6 years": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / birth to 6 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C004": {
+     "class": "regrouped + reranked + split",
+     "transition": "relaxed/exact -> exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / 12 months up to the last seizure / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/possible"
+    },
+    "C017": {
+     "class": "mention-only + regrouped",
+     "transition": "relaxed/exact -> relaxed/possible"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped",
+     "transition": "relaxed/exact -> relaxed/possible"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / the first diagnosis for 2 years": {
+   "changed": 1,
+   "patients": {
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / the first diagnosis for 2 years / possible": {
+   "changed": 3,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/possible"
+    },
+    "C028": {
+     "class": "merged + regrouped",
+     "transition": "exact -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / within / the first genetic result for 2 years / possible": {
+   "changed": 2,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / after / 12 months up to the last seizure / possible": {
+   "changed": 4,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/exact -> relaxed/exact"
+    },
+    "C017": {
+     "class": "mention-only + regrouped",
+     "transition": "none -> relaxed/exact"
+    },
+    "C023": {
+     "class": "mention-only + merged + regrouped",
+     "transition": "none -> relaxed/exact"
+    },
+    "C029": {
+     "class": "mention-only + merged + regrouped + split",
+     "transition": "none -> relaxed/exact"
+    }
+   }
+  },
+  "sweep: 2 febrile seizures in the period / after / the first diagnosis for 2 years / possible": {
+   "changed": 1,
+   "patients": {
+    "C014": {
+     "class": "mention-only + regrouped + split",
+     "transition": "relaxed/possible -> relaxed/possible"
+    }
+   }
+  }
+ },
+ "windows_differing_cases": 0,
+ "store_requests_differing": 0,
+ "unexplained": 0,
+ "first_unexplained": [],
+ "elapsed_s": 9.561,
+ "view_cost": {
+  "rule": "reported, not ruled (D47 rule 7): node, one process, after the census",
+  "here": {
+   "repeats": 21,
+   "median_ms_all_patients": 30.033167000001413,
+   "patients": 48
+  },
+  "main": {
+   "repeats": 21,
+   "median_ms_all_patients": 16.528292000000874,
+   "patients": 48
+  }
+ },
+ "met": true,
+ "artifacts": {
+  "demos/mockups/d47_page.cjs": "b37894fbdb788e292e7157f9a91c1e28ad35eee7c33fd3db86ddae576a7f620d",
+  "demos/mockups/index_reference.py": "d26a724c4ffaada612dc18c3b81999c408401b82bfae278ff47b21f309db522e",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
+  "demos/mockups/trajectory/app.js": "bb64343679f444476ceefbd0f6f79c4a4ffa40e3c800879d5bd6fa3f80f96b86",
+  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c"
+ },
+ "contains_patient_level_data": false,
+ "synthetic_patient_ids": "generator ids only (as the parity test pins them)"
+}

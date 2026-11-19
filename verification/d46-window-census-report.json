@@ -3840,12 +3840,12 @@
   "rule": "reported, not ruled (D46 rule 7): node, one process, after the census",
   "index_view_here": {
    "repeats": 21,
-   "median_ms_all_patients": 23.536791999998968,
+   "median_ms_all_patients": 30.663750000006985,
    "patients": 48
   },
   "evidence_view_on_main": {
    "repeats": 21,
-   "median_ms_all_patients": 16.09833300000173,
+   "median_ms_all_patients": 17.709542000011425,
    "patients": 48
   }
  },
@@ -3909,13 +3909,13 @@
  "moved_windows_unexplained": [],
  "met": true,
  "artifacts": {
-  "demos/mockups/d46_windows.cjs": "c95bb7de44410d8fde95da9ed6ae2e02d75bf78f6947eceb626be126802e1672",
-  "demos/mockups/index_reference.py": "b370a45486bcae2e155027ecf242e0cf6e5f0a89235afb67fc84cc52275d3489",
+  "demos/mockups/d46_windows.cjs": "292cc254a8747b4d0bf43a66fa963fe633ddb34ed1d32981d03b6a8efa44a668",
+  "demos/mockups/index_reference.py": "d26a724c4ffaada612dc18c3b81999c408401b82bfae278ff47b21f309db522e",
   "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
   "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
-  "demos/mockups/trajectory/app.js": "014c8557666f690e73d5f432e38a2c3e0422c34b3f4fe9f2a5587e7548561066",
-  "demos/mockups/shared/core.js": "293d799a7039c717dd0f45494bbbfec5895616199778a326eb9f912badff6533",
+  "demos/mockups/trajectory/app.js": "bb64343679f444476ceefbd0f6f79c4a4ffa40e3c800879d5bd6fa3f80f96b86",
+  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
