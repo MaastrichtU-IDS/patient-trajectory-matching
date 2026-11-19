@@ -4155,6 +4155,7 @@ That view also attached letter mentions only through their truth link, and data-
 - *`tools/benchmark_coded_default.py`* has no such label: it calls those windows "D43b's". Nothing to fix.
 - *The gate cannot exclude a docstring.* `tools/check_report_provenance.py` binds whole-file sha256 digests and keeps no earlier text. A docstring-insensitive binding would need the old text (or an AST digest recorded at production) and would change the gate's rule for every report. So any wording edit makes the two current verdicts stale. They record D44b's and D45's decisions, measured on code these edits would not change in behaviour.
 - *Proposal, for the coordinator's sign-off:* freeze `d44b-count-latency-verdict.json` and `d45-coded-default-latency-verdict.json` as `HISTORICAL` on the D32 to D46 precedent and apply the edits; or leave the labels until those tools next change for a reason of their own. **Not applied in this commit.**
+- *Decided at the checkpoint* (the coordinator, as delegate): **deferred**. Freezing two current latency verdicts over docstring wording is not worth it. The fixes wait for the next time those tools change for their own reasons (follow-ups, below).
 
 **Disclosed: development runs before these rules** (none ruled; none on the page's cohort or a ruled seed; the development cohorts are seeds 4601, 990011 and 990012, the last two D46's reviewer's).
 - `view` against the reference on all three: 0 mismatches (543, 557 and 541 items).
@@ -4224,3 +4225,6 @@ That view also attached letter mentions only through their truth link, and data-
 10. **Defaults.** `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay `false`.
 
 **Ship rule.** D47 ships if rules 1 to 6 and 8 to 10 hold (7 reported). A miss is reported and investigated, never tuned away.
+
+**Follow-ups** (named at the checkpoint).
+- The label fixes, deferred: `coded_default.cjs` (`setting.window`: "from the first seizure") and `tools/benchmark_count_requests.py` (two docstrings: its windows are D43b's, each patient's second coded seizure, not the page's), applied when each tool next changes for a reason of its own, which will rebind the verdicts it binds. `tools/benchmark_coded_default.py` needed no fix.
