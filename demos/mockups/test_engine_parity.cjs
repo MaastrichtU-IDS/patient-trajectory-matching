@@ -4,6 +4,7 @@
    template and three heavier trajectories, each patient is matched twice: by the page's
    in-browser search, and through the page's engine path, whose requests are answered by
    patterns/trajectory_graph.py. Status, certainty and relaxation set must agree.
+   D46: the index periods both paths share are placed without the generator's truth, checked at the end.
    Run after demos/mockups/synthetic/generate.py. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -63,3 +64,27 @@ for (const {name, tally, diffs} of results) {
 }
 assert.ok(matched > 0, 'no trajectory matched anyone: the comparison would be vacuous');
 console.log(`Trajectory page: engine and in-page search agree on ${patients} patient results over ${results.length} trajectories (${matched} matches).`);
+
+/* D46: index periods are placed over the index view (shared/core.js, rule reconcile_v1), which reads no truth. Every
+   window under the seven period rules and three free-text settings is the same with every truth field removed from the
+   cohort, and equals the independent reference's (index_reference.py) to the minute. */
+const os = require('node:os');
+const d46 = require('./d46_windows.cjs');
+const cohortText = fs.readFileSync(path.join(here, 'data/synthetic-paediatric-rare.json'), 'utf8');
+const placed = d46.windowsOf(cohortText);
+assert.deepEqual(d46.windowsOf(d46.stripped(cohortText)), placed, 'an index period moved when the truth was removed');
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'index-windows-'));
+try {
+  fs.writeFileSync(path.join(scratch, 'windows.json'), JSON.stringify(placed));
+  let out;
+  try {
+    out = execFileSync(python, [path.join(here, 'index_reference.py'), 'compare', path.join(here, 'data/synthetic-paediatric-rare.json'),
+                                path.join(scratch, 'windows.json')], {cwd: root, encoding: 'utf8'});
+  } catch (e) { out = e.stdout; }
+  const summary = JSON.parse(out);
+  assert.equal(summary.mismatches, 0, `index periods differ from the reference:\n${JSON.stringify(summary.first_mismatches, null, 1)}`);
+  assert.ok(summary.placed > 0, 'no index period placed: the comparison would be vacuous');
+  console.log(`Index periods: ${summary.compared} windows (${summary.placed} placed) equal the reference's and do not read the truth.`);
+} finally {
+  fs.rmSync(scratch, {recursive: true, force: true});
+}

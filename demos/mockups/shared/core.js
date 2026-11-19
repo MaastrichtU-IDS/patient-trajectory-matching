@@ -3,9 +3,12 @@
    events, the index window, the diary rise rule and the timeline renderer. Pages keep their
    own interface state in the same \`state\` object and set \`hooks.hidden\` if they hide
    anything from view. Records are grouped into events using the generator's ground truth,
-   which a real system would have to infer. */
+   which a real system would have to infer. Index periods are the exception (D46): their event
+   bounds are placed over a second view, grouped by a stated rule that reads no truth
+   (`indexViewFor`, rule reconcile_v1). */
 
-const state = {data: null, concepts: null, codeIndex: new Map(), patients: new Map(), evidence: new Map(), ancestry: new Map()};
+const state = {data: null, concepts: null, codeIndex: new Map(), patients: new Map(), evidence: new Map(), ancestry: new Map(),
+               indexViews: new Map()};
 const hooks = {hidden: () => false};
 
 async function loadData() {
@@ -266,6 +269,150 @@ function timeOf(spans) {
   return {best, env, conflicting, spans};
 }
 
+/* The index view (D46): the same items as evidenceFor builds (makeItem), grouped without the generator's truth, for
+   placing index periods only. The page's own search, its timeline and its inspector keep evidenceFor's grouping by
+   truth (a declared shortcut). Rule reconcile_v1, which reads no truth_event_id, truth or quality field:
+   1. Coded findings, diagnoses and procedures (every record that is not a note, a measurement or diary summary, a
+      medication record or a genetic record, with a code some concept carries), most precise first (precision, then
+      earliest time, then record id): each joins the existing happening whose first record (its head) has a compatible
+      concept (equal, or one a descendant of the other) and an occurred range that meets the record's, the nearest (by the
+      midpoint of the happening's records' span against the record's; ties: the happening made first); otherwise it starts one. Records of one source may join.
+   2. An uncoded seizure-diary entry (source diary, kind diary_entry) joins the nearest happening whose head is a seizure
+      (the concept or a descendant) and whose range meets its own; otherwise it stands alone, as before (no item). Any
+      other uncoded record stands alone.
+   3. Medications, per medicine concept, in order of earliest time (an active order, then a dispensing, then a stop,
+      then record id): an active order joins the open course if that course has no active order and the order starts
+      by the course's reach, and otherwise opens a course; a dispensing joins the open course if it starts by the
+      course's reach, and otherwise opens one; a stop joins and closes the open course (alone if none is open). A
+      course's reach is its last dispensing plus that dispensing's supply (30 days if none is given) plus 45 days, the
+      page's own run-out rule; a course of an order without dispensings stays open.
+   4. Genetic records (test orders, results, screening results) of one gene (attributes.gene or gene_requested), in
+      order of earliest time and record id, join the nearest group of that gene whose head's range meets theirs.
+   5. Letter mentions stated or hedged about the patient (every one, as evidenceFor takes those with a truth link),
+      narrowest wording interval first (textSpan; then earliest, letter id, position): each joins the nearest
+      happening of rules 1, 3 or 4 whose concept is compatible and whose range (its records' occurred span; a course
+      to its last dispensing's supply, an order-only course to last contact) meets the interval; otherwise the nearest
+      mention-only happening whose head mention has a compatible concept and an interval that meets; otherwise it
+      starts one.
+   6. Measured records give no item (evidenceFor makes them series, which no index period reads). Each happening is
+      then made an item as evidenceFor does, the provisional split of early hedged mentions included. */
+function indexViewFor(pid) {
+  if (state.indexViews.has(pid)) return state.indexViews.get(pid);
+  const p = state.patients.get(pid);
+  const day = iso => dayOf(p, iso);
+  const lastContact = day(p.follow_up.last_contact);
+  const compatible = (a, b) => !!a && !!b && (isA(a, b) || isA(b, a));
+  const meets = (a, b) => a.e <= b.l && a.l >= b.e;
+  const mid = r => (r.e + r.l) / 2;
+  const nearest = (list, x) => list.reduce((best, h) => !best || Math.abs(mid(h.range) - mid(x)) < Math.abs(mid(best.range) - mid(x)) ? h : best, null);
+  const rangeOf = r => ({e: day(r.occurred.earliest), l: day(r.occurred.latest)});
+  const byRecord = (a, b) => a.record_id < b.record_id ? -1 : a.record_id > b.record_id ? 1 : 0;
+  const MEASURED = new Set(['measurement', 'diary_summary']), MEDICATION = new Set(['medication_order', 'dispensing']),
+        GENETIC = new Set(['test_order', 'genetic_result', 'screening_result']);
+  const happenings = [];  // {recs, ms, concept, range}
+  const findings = [], diary = [], meds = new Map(), genetic = [], notes = [];
+  for (const r of p.records) {
+    if (r.kind === 'note') notes.push(r);
+    else if (MEASURED.has(r.kind)) continue;
+    else if (!r.occurred) happenings.push({recs: [r], ms: [], concept: null, range: null});
+    else if (MEDICATION.has(r.kind) && conceptOf(r.coding)) push(meds, conceptOf(r.coding), r);
+    else if (GENETIC.has(r.kind)) genetic.push(r);
+    else if (!MEDICATION.has(r.kind) && conceptOf(r.coding)) findings.push(r);
+    else if (r.source === 'diary' && r.kind === 'diary_entry') diary.push(r);
+    else happenings.push({recs: [r], ms: [], concept: null, range: null});
+  }
+  // 1. Coded findings, diagnoses and procedures.
+  const coded = [];
+  findings.sort((a, b) => PRECISION[a.occurred.precision] - PRECISION[b.occurred.precision] || day(a.occurred.earliest) - day(b.occurred.earliest) || byRecord(a, b));
+  for (const r of findings) {
+    const c = conceptOf(r.coding), range = rangeOf(r);
+    const h = nearest(coded.filter(k => compatible(k.concept, c) && meets(k.head, range)), range);
+    if (h) { h.recs.push(r); h.range = {e: Math.min(h.range.e, range.e), l: Math.max(h.range.l, range.l)}; }
+    else coded.push({recs: [r], ms: [], concept: c, head: range, range: {...range}});
+  }
+  // 2. Uncoded seizure-diary entries.
+  for (const r of diary) {
+    const range = rangeOf(r);
+    const h = nearest(coded.filter(k => isA(k.concept, 'seizure') && meets(k.head, range)), range);
+    // It times the happening only if it is its most precise record, as in evidenceFor.
+    if (h) { h.recs.push(r); h.range = {e: Math.min(h.range.e, range.e), l: Math.max(h.range.l, range.l)}; }
+    else happenings.push({recs: [r], ms: [], concept: null, range: null});
+  }
+  // 3. Medication courses.
+  const courses = [];
+  const RANK = r => r.kind === 'dispensing' ? 1 : r.status === 'active' ? 0 : 2;
+  for (const [c, recs] of meds) {
+    recs.sort((a, b) => day(a.occurred.earliest) - day(b.occurred.earliest) || RANK(a) - RANK(b) || byRecord(a, b));
+    let open = null;
+    const reach = k => k.lastDisp ? day(k.lastDisp.occurred.earliest) + (k.lastDisp.attributes?.supply_days || 30) + 45 : Infinity;
+    const start = r => { open = {recs: [r], ms: [], concept: c, ordered: r.kind === 'medication_order', lastDisp: r.kind === 'dispensing' ? r : null}; courses.push(open); };
+    for (const r of recs) {
+      const at = day(r.occurred.earliest);
+      if (r.kind === 'dispensing') {
+        if (open && at <= reach(open)) { open.recs.push(r); open.lastDisp = r; } else start(r);
+      } else if (r.status === 'active') {
+        if (open && !open.ordered && at <= reach(open)) { open.recs.push(r); open.ordered = true; } else start(r);
+      } else if (open) { open.recs.push(r); open = null; }
+      else { courses.push({recs: [r], ms: [], concept: c, closed: true}); }
+    }
+  }
+  for (const k of courses) {
+    const spans = k.recs.map(rangeOf), disp = k.recs.filter(r => r.kind === 'dispensing');
+    const supplied = disp.map(r => day(r.occurred.earliest) + (r.attributes?.supply_days || 30));
+    const stopped = k.recs.some(r => r.kind === 'medication_order' && r.status !== 'active');
+    const l = Math.max(...spans.map(s => s.l), ...supplied, !disp.length && !stopped ? lastContact : -Infinity);
+    k.range = {e: Math.min(...spans.map(s => s.e)), l};
+  }
+  // 4. Genetic tests.
+  const tests = [];
+  const geneOf = r => r.attributes?.gene || r.attributes?.gene_requested || null;
+  genetic.sort((a, b) => day(a.occurred.earliest) - day(b.occurred.earliest) || byRecord(a, b));
+  for (const r of genetic) {
+    const g = geneOf(r), range = rangeOf(r);
+    const h = g ? nearest(tests.filter(k => k.gene === g && meets(k.head, range)), range) : null;
+    if (h) { h.recs.push(r); h.range = {e: Math.min(h.range.e, range.e), l: Math.max(h.range.l, range.l)}; }
+    else tests.push({recs: [r], ms: [], gene: g, concept: g ? `gene:${g}` : null, head: range, range: {...range}});
+  }
+  // 5. Letter mentions.
+  const mentions = [];
+  for (const n of notes) {
+    n.p = p;
+    (n.mentions || []).forEach((m, i) => {
+      if (m.experiencer === 'patient' && (m.assertion === 'present' || m.assertion === 'possible')) {
+        const x = {note: n, m}, t = textSpan(x, day);
+        mentions.push({x, i, range: {e: t.e, l: t.l}});
+      }
+    });
+  }
+  mentions.sort((a, b) => (a.range.l - a.range.e) - (b.range.l - b.range.e) || a.range.e - b.range.e
+                          || byRecord(a.x.note, b.x.note) || a.i - b.i);
+  const targets = [...coded, ...courses, ...tests].filter(k => k.concept), spoken = [];
+  for (const y of mentions) {
+    const c = y.x.m.concept;
+    const h = nearest(targets.filter(k => compatible(k.concept, c) && meets(k.range, y.range)), y.range);
+    if (h) { h.ms.push(y.x); continue; }
+    const s = nearest(spoken.filter(k => compatible(k.concept, c) && meets(k.head, y.range)), y.range);
+    if (s) s.ms.push(y.x);
+    else spoken.push({recs: [], ms: [y.x], concept: c, head: y.range, range: {...y.range}});
+  }
+  // 6. Items, as evidenceFor makes them (with its provisional split of early hedged mentions).
+  const items = [];
+  [...coded, ...courses, ...tests, ...spoken, ...happenings].forEach((k, i) => {
+    const id = `ix${i + 1}`, recs = k.recs, ms = k.ms;
+    const firstCoded = min(recs.filter(r => r.coding && r.occurred).map(r => day(r.occurred.earliest)));
+    const early = firstCoded == null ? [] : ms.filter(x => x.m.assertion === 'possible' && day(x.note.occurred.earliest) < firstCoded);
+    if (early.length) {
+      const provisional = makeItem(p, `${id}:provisional`, [], early, [], day, lastContact);
+      if (provisional) { provisional.provisional = true; items.push(provisional); }
+    }
+    const item = makeItem(p, id, recs, ms.filter(x => !early.includes(x)), [], day, lastContact);
+    if (item) items.push(item);
+  });
+  const view = {p, items, lastContact, rule: 'reconcile_v1'};
+  state.indexViews.set(pid, view);
+  return view;
+}
+
 function truthItems(pid) {
   const p = state.patients.get(pid), view = evidenceFor(pid);
   const lane = {phenotype: 'phenotype', diagnosis: 'diagnosis', genetic: 'tests', procedure: 'tests', medication: 'medication'};
@@ -352,14 +499,16 @@ function eventDay(view, q, id, which = 'first', n = 1) {
   return pickOccurrence(eventTimes(view, q, id), which, n)[0] ?? null;
 }
 
-/* Resolve a patient's window. Returns {start, end} in days of age, or {reason} when it cannot be placed. */
+/* Resolve a patient's window. Returns {start, end} in days of age, or {reason} when it cannot be placed. An event bound
+   is placed over the index view (D46: grouped by rule reconcile_v1, without the generator's truth), whatever view the
+   caller holds; only its patient and last contact are read from `view`. */
 function windowFor(view, q) {
   const resolve = (b, which) => {
     if (b.kind === 'birth') return {day: 0};
     if (b.kind === 'age') return {day: toDays(b.amount, b.unit)};
     if (b.kind === 'date') return {day: dayOf(view.p, b.date)};
     if (b.kind === 'event') {
-      const d = eventDay(view, q, b.event, b.which, b.n);
+      const d = eventDay(indexViewFor(view.p.patient_id), q, b.event, b.which, b.n);
       return d == null ? {reason: `no ${occurrenceText(b.which, b.n)} ${eventLabel(b.event)} recorded, so the window cannot ${which}`} : {day: d + toDays(b.offset, b.unit)};
     }
     return null;

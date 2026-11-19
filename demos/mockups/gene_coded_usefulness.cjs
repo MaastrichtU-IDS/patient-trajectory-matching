@@ -6,7 +6,7 @@
    patterns/store_conditions_gene.py). The trajectory page's Tree and Graph templates, gene step included, are translated
    by the page's own translator (trajectory/store_request.js) under the page's "coded only" setting with the store's own
    exclusion of letter mentions and the joint profile asked for (`codedOnly: 'store'`, `geneCodedOnly: true`; profile
-   execution-store-conditions-gene-coded-1.0), at the page's own window (from the second seizure for 24 months) and scope
+   execution-store-conditions-gene-coded-1.0), at the page's own window (from the first seizure for 24 months) and scope
    (from_start), and matched in the store (store_parity.py match, through the dispatcher store_conditions.match). The same
    templates with stated findings (D38's ruled setting) are matched beside them and reported, not ruled. For each it
    counts the patients with a store candidate and an index window, and the unresolved results among them, with reasons,
@@ -199,7 +199,7 @@ try {
            + 'an index window, and at most 30% of the distinct child types (PLAN keys) with a candidate unresolved; all '
            + 'candidates and the count without C001 reported; the same templates with stated findings reported beside them'),
     declared_seeds: SEEDS, seeds_used: used, smoke: !!SMOKE,
-    setting: {window: 'from the second seizure, 24 months (the page\'s own)', scope: 'from_start',
+    setting: {window: 'from the first seizure, 24 months (the page\'s own)', scope: 'from_start',
               free_text: 'off (coded records only) for the ruled templates; present (stated findings) beside them',
               translator: 'trajectory/store_request.js with rises, genes, codedOnly: store and geneCodedOnly asked for',
               converter: 'patterns/synthetic_ingest.py emitting series, through the store_conditions_gene wrapper'},

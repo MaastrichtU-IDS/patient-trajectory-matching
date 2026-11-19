@@ -198,7 +198,7 @@ try {
            + '30% of the distinct child types (PLAN keys) with a candidate unresolved; the whole tree and graph templates '
            + 'refused for their gene step only; the share over all candidates and without C001, and stated findings, reported'),
     declared_seeds: SEEDS, extension_seeds: EXTEND, seeds_used: used,
-    setting: {window: 'from the second seizure, 24 months (the page\'s own)', scope: 'from_start',
+    setting: {window: 'from the first seizure, 24 months (the page\'s own)', scope: 'from_start',
               free_text: 'off (coded records only); the comparison: present (stated findings)',
               translator: 'trajectory/store_request.js with codedOnly "store" and rises asked for',
               store: 'patterns/store_conditions_coded.py (profile execution-store-conditions-1.3, exclude_kinds ["mention"]), '

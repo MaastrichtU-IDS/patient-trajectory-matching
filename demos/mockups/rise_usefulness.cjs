@@ -180,7 +180,7 @@ try {
     rule: ('per template (sequence; tree and graph without their gene step), pooled over the declared seeds: at least 30 '
            + 'patients with a store candidate and an index window, and at most 30% of them unresolved; variants reported'),
     declared_seeds: SEEDS, extension_seeds: EXTEND, seeds_used: used,
-    setting: {window: 'from the second seizure, 24 months (the page\'s own); variants as named', scope: 'from_start',
+    setting: {window: 'from the first seizure, 24 months (the page\'s own); variants as named', scope: 'from_start',
               free_text: 'present (the page\'s own)', translator: 'trajectory/store_request.js with rises asked for',
               converter: 'patterns/synthetic_ingest.py emitting series, diary summaries labelled as period readings'},
     bar, templates, variants,

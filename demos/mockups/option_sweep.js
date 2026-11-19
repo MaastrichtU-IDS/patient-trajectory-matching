@@ -39,7 +39,7 @@ function optionSweepDefinitions() {
     'after the first blocker, within 60 days': () => ({nodes: [{id: 'B', concept: 'sodium_channel_blocker', occ: 'first'}], edges: [{from: 'B', to: 'A', rel: 'after', min: 0, max: 60, unit: 'day'}]}),
   };
   const windows = {
-    'the 2nd seizure for 24 months': defaultDef().window,
+    'the first seizure for 24 months': defaultDef().window,
     'birth to 6 years': {start: {kind: 'birth'}, end: {kind: 'age', amount: 6, unit: 'year'}},
     'from 2020-01-01 for 3 years': {start: {kind: 'date', date: '2020-01-01'}, end: {kind: 'span', amount: 3, unit: 'year'}},
     '12 months up to the last seizure': {start: {kind: 'span', amount: 12, unit: 'month'}, end: {kind: 'event', event: 'seizure', which: 'last', n: 1, offset: 0, unit: 'month'}},
