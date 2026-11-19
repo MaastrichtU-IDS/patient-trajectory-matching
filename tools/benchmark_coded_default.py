@@ -10,10 +10,15 @@ tree, not two codes:
 - the *candidate* arm sends each template's coded-only request as the flipped translator writes it;
 - the *reference* arm sends the same request without the exclusion (`coded_default.cjs` `withoutExclusion`: query and
   windows identical, `exclude_kinds` dropped, the profile the store uses without it), which is the store's answer to
-  the same template reading letter mentions: what the page translator writes today with stated findings (Sequence,
-  Blank, Tree, Graph) or with D37's derived reading (Event frequency, refused under stated findings);
+  the same template reading letter mentions: what the page translator writes today with D37's derived reading
+  (`codedOnly: 'derived'`: Sequence, Event frequency, Blank) or, for the gene templates (Tree, Graph), with stated
+  findings, their query and conditions (`coded_default.cjs requests` checks both);
 - both arms send the same *controls*, requests that leave nothing out, so each pair's candidate-over-reference ratio is
   divided by the geometric mean of the controls' ratios in the same processes (D44's lesson, D44b's normalisation).
+The ratio is the store's cost of leaving letter mentions out, at the same windows and template. It includes the coded
+module's route (its relative-module machinery) against the plain or 1.1 route. It is not the user's before and after:
+today "coded only" is refused and the page searches in the browser. What bounds the user's experience after the flip is
+the absolute p95 bars (D45 review, S1).
 
 Arms run in fresh processes, back to back, the order alternating across repeats (ABBA), at two sizes:
 - *page* (rule 4.1): the page's cohort (48 children) in a store built once by the server's builder
@@ -32,7 +37,11 @@ Rule 4.3, the structural check (`structural_worker`): every function of `store_c
 gets a call counter (a function with a `kinds` argument, or a `request` whose `exclude` is set, counts only when that is
 non-empty; every other function of the module but the profile predicate `is_coded_request` counts every call); the
 controls and every reference must read 0, at page size and at 1 and 14 workers at scale, and every candidate more than 0
-(the counters work). No module of `patterns/` may import a function of the module by name, and no pool-unit entry point
+(the counters work): at one worker each candidate must call `_left_out`, `refined` and `_comparability` with kinds
+(`POSITIVE`; `_as_excluded` runs only where a left-out event meets a decided result, and is reported), at 14 workers
+it must count more than 0 (D45 review, S3). The counters live in the measuring process only: a zero at 14 workers
+covers the dispatcher's own part, and the pool's part rests on the one-worker readings (where every unit runs in the
+counted process) together with the AST check of the pool entry points, not on counters in the pool processes. No module of `patterns/` may import a function of the module by name, and no pool-unit entry point
 the references and controls reach at scale may name one. Reported beside it (rule 4.4): the time inside the exclusion
 work's four disjoint entry points (`_left_out`, `refined`, `_comparability` with kinds, `_as_excluded`) per candidate, at
 page size and at 300,000 at one worker in one process, and the translator's own time from the page report.
@@ -76,6 +85,11 @@ RULED_WORKERS = 14
 PAGE_RUNS_MIN, SCALE_RUNS_MIN, REPEATS_MIN = 20, 3, 4
 SCALE_CONTROLS = ('1.1 sequence', 'plain sequence')
 JOINT_TEMPLATES = ('tree', 'graph')  # judged for the joint profile; the other three for "coded only"
+# The requests file must hold every one of these (D45 review, S2): a missing template fails the protocol.
+PAGE_TEMPLATES = ('sequence', 'tree', 'graph', 'event frequency', 'blank')
+SCALE_SHAPES = ('event frequency', 'blank', 'sequence without its rise', 'tree without its gene and rise steps',
+                'graph without its gene and rise steps')
+POSITIVE = ('_left_out', 'refined', '_comparability')  # each called by every candidate at one worker (review, S3)
 EXEMPT = ('is_coded_request',)  # a predicate on the profile's name: no exclusion work
 TIMED = ('_left_out', 'refined', '_comparability', '_as_excluded')  # disjoint entry points of the exclusion work
 ARTIFACTS = ('tools/benchmark_coded_default.py', 'tools/benchmark_count_requests.py', 'demos/mockups/coded_default.cjs',
@@ -341,20 +355,29 @@ def structural_check(raw, data, bypass, entries):
     """Rule 4.3's verdict over `structural_worker`'s output."""
     rows, failures = [], []
 
-    def judge(key, reading, want_zero):
-        rows.append({'request': key, 'calls': reading['calls'], 'want': '0' if want_zero else '> 0'})
+    def judge(key, reading, want_zero, one_worker):
+        positive = want_zero is False and one_worker
+        rows.append({'request': key, 'calls': reading['calls'],
+                     'want': '0' if want_zero else f"> 0 in each of {', '.join(POSITIVE)}" if positive else '> 0',
+                     'entry_points_called': sorted(set(reading.get('nonzero', {})) & set(TIMED))})
         if (reading['calls'] == 0) != want_zero:
             failures.append(f"{key}: {reading['calls']} calls")
+        missing = [f for f in POSITIVE if not reading.get('nonzero', {}).get(f)] if positive else []
+        if missing:
+            failures.append(f'{key}: no call of {missing}')
     for key, reading in raw['page'].items():
-        judge(f'page {key}', reading, not key.endswith('(candidate)'))
+        judge(f'page {key}', reading, not key.endswith('(candidate)'), True)
     for key, by in raw['scale'].items():
         for workers, reading in by.items():
-            judge(f'scale {key} at {workers}', reading, not key.endswith('(candidate)'))
+            judge(f'scale {key} at {workers}', reading, not key.endswith('(candidate)'), workers == '1')
     expected_page = len(data['page']) * 2 + len(data['page_controls'])
     expected_scale = len(data['scale']) * 4 + len(SCALE_CONTROLS) * 2  # (fewer when a trial runs 1 worker as the many)
     ran = {'page': len(raw['page']) == expected_page,
            'scale': sum(len(v) for v in raw['scale'].values()) == expected_scale}
-    return {'targets': raw['targets'], 'exempt': list(EXEMPT), 'readings': rows, 'failures': failures, 'ran': ran,
+    return {'targets': raw['targets'], 'exempt': list(EXEMPT), 'positive_control': list(POSITIVE),
+            'pool_note': ("a zero at 14 workers covers the dispatcher's own part; the pool's part rests on the "
+                          'one-worker readings and the AST check of the pool entry points'),
+            'readings': rows, 'failures': failures, 'ran': ran,
             'by_name_imports': bypass, 'pool_entry_references': entries,
             'met': not failures and all(ran.values()) and not bypass and not entries}
 
@@ -409,7 +432,8 @@ def answers_check(records, names):
     return out
 
 
-def size_verdict(records, templates, controls, workers, p95_bar, runs, runs_min, repeats):
+def size_verdict(records, templates, controls, workers, p95_bar, runs, runs_min, repeats, ruled_run=True,
+                 expected=None):
     import benchmark_count_requests as bcr
     stats = bcr.statistics_of(records, [*templates, *controls])
     by, gmean = normalised(stats, workers, templates, controls)
@@ -429,7 +453,9 @@ def size_verdict(records, templates, controls, workers, p95_bar, runs, runs_min,
                       'reference_p50_seconds': at[name]['reference']['p50_seconds'],
                       'p95_met': p95 <= p95_bar, 'answers_met': answers[name]['met']}
         rows[name]['met'] = rows[name]['every_pair_at_most'] and rows[name]['p95_met'] and rows[name]['answers_met']
-    protocol = {'ruled_workers_run': str(workers) in stats, 'repeats_at_least_4_and_even': repeats >= REPEATS_MIN
+    protocol = {'ruled_workers_run': ruled_run and str(workers) in stats,
+                'every_template_in_the_requests_file': expected is None or sorted(templates) == sorted(expected),
+                'repeats_at_least_4_and_even': repeats >= REPEATS_MIN
                 and repeats % 2 == 0, f'runs_at_least_{runs_min}': runs >= runs_min,
                 'every_request_run': all(set(rec[a]['requests']) == {*templates, *controls}
                                          for rec in records for a in ('reference', 'candidate')),
@@ -488,15 +514,17 @@ def main_run(args):
         page_templates, scale_templates = list(data['page']), list(data['scale'])
         page_records = run_pairs(args, 'page', [1], args.page_runs, lambda n: ['--snapshot', page_snapshot])
         page_stats, page = size_verdict(page_records, page_templates, list(data['page_controls']), 1, PAGE_P95_BAR,
-                                        args.page_runs, PAGE_RUNS_MIN, args.repeats)
+                                        args.page_runs, PAGE_RUNS_MIN, args.repeats, expected=PAGE_TEMPLATES)
         page['first_run_seconds'] = {name: {arm: [rec[arm]['requests'][name]['first_run_seconds'] for rec in page_records]
                                             for arm in ('reference', 'candidate')}
                                      for name in [*page_templates, *data['page_controls']]}
         scale_records = run_pairs(args, 'scale', args.workers, args.scale_runs,
                                   lambda n: ['--snapshot', args.snapshot_path, '--arm-workers', str(n)])
-        ruled = RULED_WORKERS if RULED_WORKERS in args.workers else args.workers[0]  # (another count: a trial run)
+        # A trial run at another count reads its statistics there, but the protocol requires 14 (D45 review, S2).
+        ruled = RULED_WORKERS if RULED_WORKERS in args.workers else args.workers[0]
         scale_stats, scale = size_verdict(scale_records, scale_templates, list(SCALE_CONTROLS), ruled,
-                                          SCALE_P95_BAR, args.scale_runs, SCALE_RUNS_MIN, args.repeats)
+                                          SCALE_P95_BAR, args.scale_runs, SCALE_RUNS_MIN, args.repeats,
+                                          ruled_run=RULED_WORKERS in args.workers, expected=SCALE_SHAPES)
         print('structural check (rule 4.3) and the exclusion work\'s time (rule 4.4) ...', file=sys.stderr, flush=True)
         raw = _run(args, '--structural-worker', ['--page-snapshot', page_snapshot, '--snapshot', args.snapshot_path,
                                                  '--arm-workers', str(ruled)],
@@ -510,17 +538,25 @@ def main_run(args):
                       for k, v in raw['page'].items() if k.endswith('(candidate)')},
              'scale_one_worker': {k: {'timed_total_seconds': v['1']['timed_total_seconds'],
                                       'timed_seconds': v['1']['timed_seconds'], 'request_seconds': v['1']['seconds'],
-                                      'share_of_candidate_p50_at_14': v['1']['timed_total_seconds'] / scale['requests'][
+                                      'share_of_candidate_p50_at_14_attribution_only': v['1']['timed_total_seconds'] / scale['requests'][
                                           k[:-len(' (candidate)')]]['candidate_p50_seconds']}
                                   for k, v in raw['scale'].items() if k.endswith('(candidate)')},
              'translator': (json.loads(Path(args.page_report).read_text()).get('translator_time')
                             if args.page_report else None),
-             'ruled': False}
+             'ruled': False,
+             'note': ('attribution only, not a bound: one-process, one-worker time inside the exclusion work, beside '
+                      "the candidate's 14-worker median")}
     verdict = verdict_of(page, scale, structural, build, data)
     report = {
         'profile': PROFILE, 'protocol': PROTOCOL, 'rule': 'D45 rule 4 (decision log)',
         'arms': {'candidate': 'each template\'s coded-only request as the flipped translator writes it',
-                 'reference': 'the same request without the exclusion (query and windows identical)'},
+                 'reference': 'the same request without the exclusion (query and windows identical)',
+                 'what_the_ratio_measures': ("the store's cost of leaving letter mentions out, at the same windows "
+                                             "and template, including the coded module's route (its relative-module "
+                                             "machinery) against the plain or 1.1 route; not the user's before and "
+                                             'after (today "coded only" is refused and the page searches in the '
+                                             "browser): the absolute p95 bars bound the user's experience after "
+                                             'the flip')},
         'order': 'ABBA: the reference first in even repeats, the candidate first in odd',
         'repeats': args.repeats,
         'requests_file': {'sha256': hashlib.sha256(Path(args.requests_file).read_bytes()).hexdigest(),

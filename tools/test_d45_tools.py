@@ -50,8 +50,8 @@ def records(candidate, reference=1.0, control_drift=1.0, repeats=4, runs=20, wor
     return out
 
 
-def verdict(recs, p95=bd.PAGE_P95_BAR, runs=20, repeats=4, workers=1):
-    return bd.size_verdict(recs, TEMPLATES, CONTROLS, workers, p95, runs, bd.PAGE_RUNS_MIN, repeats)[1]
+def verdict(recs, p95=bd.PAGE_P95_BAR, runs=20, repeats=4, workers=1, **kw):
+    return bd.size_verdict(recs, TEMPLATES, CONTROLS, workers, p95, runs, bd.PAGE_RUNS_MIN, repeats, **kw)[1]
 
 
 class SizeVerdictTests(unittest.TestCase):
@@ -86,6 +86,17 @@ class SizeVerdictTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             verdict(recs)
 
+    def test_the_ruled_worker_count_is_required(self):
+        # D45 review, S2: a run without 14 workers fails the protocol, whatever count it read its statistics at.
+        self.assertFalse(verdict(records(1.0), ruled_run=False)['protocol']['met'])
+        self.assertTrue(verdict(records(1.0), ruled_run=True)['protocol']['met'])
+
+    def test_every_template_must_be_in_the_requests_file(self):
+        self.assertTrue(verdict(records(1.0), expected=TEMPLATES)['protocol']['met'])
+        self.assertFalse(verdict(records(1.0), expected=[*TEMPLATES, 'another'])['protocol']['met'])
+        self.assertEqual(sorted(bd.PAGE_TEMPLATES), sorted(TEMPLATES))
+        self.assertEqual(len(bd.SCALE_SHAPES), 5)
+
     def test_an_unstable_answer_misses(self):
         recs = records(1.0)
         recs[2]['candidate']['requests']['graph']['digests'][3] = 'other'
@@ -111,12 +122,12 @@ class SizeVerdictTests(unittest.TestCase):
 class StructuralTests(unittest.TestCase):
     DATA = {'page': {'sequence': {}}, 'page_controls': {'c': {}}, 'scale': {'blank': {}}}
 
-    def raw(self, ref=0, ctl=0, cand=5):
-        reading = lambda n: {'calls': n}
+    def raw(self, ref=0, ctl=0, cand=5, positive=bd.POSITIVE):
+        reading = lambda n, called=(): {'calls': n, 'nonzero': {f: 1 for f in called}}
         return {'targets': ['match'], 'page': {'sequence (reference)': reading(ref), 'c': reading(ctl),
-                                               'sequence (candidate)': reading(cand)},
+                                               'sequence (candidate)': reading(cand, positive)},
                 'scale': {'blank (reference)': {'1': reading(ref), '14': reading(ref)},
-                          'blank (candidate)': {'1': reading(cand), '14': reading(cand)},
+                          'blank (candidate)': {'1': reading(cand, positive), '14': reading(cand, ('match',))},
                           '1.1 sequence': {'1': reading(ctl), '14': reading(ctl)},
                           'plain sequence': {'1': reading(0), '14': reading(0)}}}
 
@@ -131,6 +142,14 @@ class StructuralTests(unittest.TestCase):
 
     def test_a_candidate_doing_none_fails(self):
         self.assertFalse(bd.structural_check(self.raw(cand=0), self.DATA, [], [])['met'])
+
+    def test_a_candidate_missing_an_entry_point_at_one_worker_fails(self):
+        # D45 review, S3: at one worker each candidate calls every POSITIVE entry point, not just any function.
+        for gone in bd.POSITIVE:
+            raw = self.raw(positive=[f for f in bd.POSITIVE if f != gone])
+            check = bd.structural_check(raw, self.DATA, [], [])
+            self.assertFalse(check['met'])
+            self.assertTrue(any(gone in f for f in check['failures']))
 
     def test_bypasses_fail(self):
         self.assertFalse(bd.structural_check(self.raw(), self.DATA, ['patterns/x.py imports [match]'], [])['met'])

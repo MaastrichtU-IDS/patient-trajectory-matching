@@ -3664,7 +3664,7 @@ D44 built the mark for a `possible` match beside `unresolved` (D18's gap) and me
 
 ## D45 Is "coded only" ready to be the trajectory page's default? A readiness verdict on the flip, under rules fixed before measuring
 
-*Status:* rules committed; measurement pending.
+*Status:* rules committed and reviewed (amended before any measurement, below); measurement pending.
 
 **The question.** The trajectory page offers three free-text settings; "coded records only" is one. Since D39 the store can answer it for every step (profile 1.3, `exclude_kinds: ["mention"]`), and since D42 with a gene step too (the joint profile). The page's translator writes those requests only when a caller asks: by default `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` are false (`demos/mockups/trajectory/store_request.js`), so under "coded only" the translator refuses by name and the page searches in the browser. D39 kept the default off because two of its rules missed: Event frequency's usefulness (11 of 16 child types unresolved, every one from D32's count rule) and the latency rule (one paired ratio 1.051, on a path that ran no D39 code). D43c fixed the first (0 of 16); D44 showed the second was noise and changed the protocol. D43c and D42 each said a flip would need D39's rules re-met. D45 re-meets them, on the current main and protocol, with fresh seeds, and gives the owner a measured verdict and a recommendation. **The flip is the owner's decision: D45 changes neither constant.** No file a build loads, no file under `patterns/` and no page file changes.
 
@@ -3729,7 +3729,7 @@ The tools load the translator as it would be flipped: they substitute each const
       - its **normalised ratio is at most 2.0 in every pair**;
       - the **candidate's p95 is at most 2 s** over its 80 timed runs (an interactive bound, a fifth of the D21 target);
       - its answer is one digest per arm over every run.
-   2. *At 300,000 patients* (the kept D44 build, `~/ptm-local/scaling-d44/size-300000`). `store_conditions.match` with `decided` detail at 14 and 8 workers, 4 repeats, 3 runs per request, windows from each patient's second coded seizure for 730 days (D43b's; the page's window over coded records). The build holds no series and no gene label, so:
+   2. *At 300,000 patients* (the kept D44 build: the snapshot directory `~/ptm-local/scaling-d44/size-300000/store/<id>`). `store_conditions.match` with `decided` detail at 14 and 8 workers, 4 repeats, 3 runs per request, windows from each patient's second coded seizure for 730 days (D43b's; the page's window over coded records). The build holds no series and no gene label, so:
       - Event frequency and Blank run as the page writes them;
       - Sequence runs without its rise, and Tree and Graph without their gene and rise steps;
       - the joint profile cannot be timed here and is judged at the page's size only.
@@ -3756,7 +3756,7 @@ The tools load the translator as it would be flipped: they substitute each const
    - No file under `patterns/`, `demos/mockups/trajectory/`, `demos/mockups/shared/`, `demos/mockups/synthetic/`, nor `store_parity.py` or `store_trajectory.py`, changes.
    - The 300 recorded digests are unchanged (the suites).
    - Every committed report stays current; the new D45 reports are the only additions.
-6. **Builds.** Rule 4.2 runs on the kept D44 build. Its runtime record (`build.json`'s `record`) and its manifest's builder digest must equal this tree's files (`build_check`); otherwise the run stops and the refusal is reported. No file the build loads changes.
+6. **Builds.** Rule 4.2 runs on the kept D44 build. `build_check` is given the snapshot directory (`…/size-300000/store/<id>`). It reads the runtime record from `build.json` two levels up (`…/size-300000/build.json`, its `record`) and the builder digest from the snapshot's manifest; both must equal this tree's files; otherwise the run stops and the refusal is reported. No file the build loads changes.
 7. **The verdict and the recommendation.**
    - **"Coded only" (the coded profile) is ready** if rules 1, 2 (coded), 3 (both translators' 3.1, the coded sweep, the parity test), 4.1 (coded templates), 4.2, 4.3, 5 and 6 all hold.
    - **The joint profile is ready with it** if, in addition, rule 2 (joint), the joint sweep and rule 4.1 (Tree and Graph) hold.
@@ -3775,3 +3775,28 @@ The tools load the translator as it would be flipped: they substitute each const
 - Seen, not measured: the page shows `GENE_WITH_CODED_ONLY_UNSUPPORTED` without a message today (it is not in `STORE_REFUSAL`), so under the coded profile alone Tree and Graph would say "the translator could not answer". `page` reports this; changing `app.js` is outside D45.
 
 **At the checkpoint** (the coordinator, as the owner's delegate, on dc3cc68; before any measurement): the message gap stays out of D45's code. The verdict records it as a **precondition for any flip that turns on `STORE_CODED_ONLY` alone**: a message for `GENE_WITH_CODED_ONLY_UNSUPPORTED` in the page's `STORE_REFUSAL`. It is not a rule. No historical freeze is expected (noted). An independent review of dc3cc68 runs before the job starts.
+
+**Independent review of dc3cc68, and amendments before any measurement** (disclosed; folded in at the coordinator's instruction as the owner's delegate). The reviewer's probes are in `/tmp/d45-review/` (`structural_probe.py`, `sweep_same.cjs`).
+- *Verdict: no must-fix.* The design holds. The option-sweep refactor and rule 3.1's parity are exact.
+- **S1, rule 4's framing (the wording; no bar moves).**
+  - The tool's docstring said the non-gene references use stated findings. They use D37's derived reading (`codedOnly: 'derived'`), as `coded_default.cjs requests` checks and as rule 4 says. The docstring is corrected.
+  - *What the ratio measures, stated in rule 4 and in the report's `arms`:* the store's cost of leaving letter mentions out, at the same windows and template. It includes the coded module's route (its relative-module machinery) against the plain or 1.1 route.
+  - It is **not** the user's before and after: today "coded only" is refused and the page searches in the browser. **The absolute p95 bars (2 s at the page's size, 10 s at 300,000) are what bound the user's experience after the flip.**
+- **S2, the protocol requires the ruled worker count.** Amended in rule 4's protocol:
+  - at 300,000, `ruled_workers_run` holds only if 14 is among the worker counts run. A trial at another count reads its statistics there, but fails the protocol;
+  - the requests file must hold all five page templates and all five scale shapes (`PAGE_TEMPLATES`, `SCALE_SHAPES`), or the protocol fails.
+
+  Tests: `SizeVerdictTests.test_the_ruled_worker_count_is_required`, `test_every_template_must_be_in_the_requests_file`.
+- **S3, rule 4.3's positive control (amended).**
+  - At one worker, at the page's size and at 300,000, every candidate must call each of `_left_out`, `refined` and `_comparability` with kinds (`POSITIVE`). Before, a call of any function of the module sufficed, and `match` and others count every call.
+  - `_as_excluded` runs only where a left-out event meets a decided result; it is reported.
+  - At 14 workers a candidate must still count more than 0.
+  - *Restated plainly:* the counters live in the measuring process only. A zero at 14 workers covers the dispatcher's own part. The pool's part rests on the one-worker readings, where every unit runs in the counted process, together with the AST check of the pool entry points, not on counters in the pool processes.
+
+  Test: `StructuralTests.test_a_candidate_missing_an_entry_point_at_one_worker_fails`. Rerun on the kept 1,000-patient build as before (a tool check): no failure.
+- **S4, rule 2's extension cap (disclosed).** The seed extension stops at 4600 (70 seeds after 4530). If a ruled template still has fewer than 30 candidates there, its bar fails through `enough_candidates`.
+- *Nits.*
+  - *Rule 1.1, the gene-coded worlds check:* it runs only the whole-source reading (`gene_coded_cases.check_result`, D44). D44's S1 residual carries over: there, a marked "no exact" claim over the kept records is left to the reference.
+  - The log's `build_check` path now names the snapshot directory (rule 6, rule 4.2).
+  - The report's one-worker share (`share_of_candidate_p50_at_14_attribution_only`) is labelled attribution only, not a bound.
+- *The missing refusal message (kept as written at the checkpoint):* the reviewer confirms it matters only for flipping `STORE_CODED_ONLY` alone. There it covers 7 refusals in the option sweep (`GENE_WITH_CODED_ONLY_UNSUPPORTED`, the seven gene definitions under "coded only"), and none under the joint flip. The verdict carries this detail.
