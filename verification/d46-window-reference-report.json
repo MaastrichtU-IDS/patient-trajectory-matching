@@ -1,0 +1,873 @@
+{
+ "profile": "d46-window-reference-1.0",
+ "rule": "D46 rules 2 and 3: every window the page places (seven period rules, three free-text settings, every patient) equals index_reference.py's, to the minute, on the page's cohort and seeds 4611-4620; the windows are the same with every truth field removed from the cohort; a 30-day reconciliation defect gives a mismatch and a defect reading truth_event_id moves a window when the truth is removed",
+ "declared_seeds": [
+  4611,
+  4612,
+  4613,
+  4614,
+  4615,
+  4616,
+  4617,
+  4618,
+  4619,
+  4620
+ ],
+ "cohorts": {
+  "the page's cohort": {
+   "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+   "compared": 1728,
+   "placed": 988,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 40,
+     "off": 38,
+     "possible": 40
+    },
+    "birth to 6 years": {
+     "present": 28,
+     "off": 28,
+     "possible": 28
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 45,
+     "off": 45,
+     "possible": 45
+    },
+    "12 months up to the last seizure": {
+     "present": 42,
+     "off": 41,
+     "possible": 42
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 2,
+     "off": 2,
+     "possible": 2
+    },
+    "the first diagnosis for 2 years": {
+     "present": 44,
+     "off": 43,
+     "possible": 44
+    },
+    "the first genetic result for 2 years": {
+     "present": 38,
+     "off": 38,
+     "possible": 38
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 17,
+     "off": 17,
+     "possible": 17
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 24,
+     "off": 23,
+     "possible": 24
+    }
+   }
+  },
+  "seed 4611": {
+   "cohort_sha256": "a542e0b1dbcdb5026b2914491a73b682c86666f15887a0175ea886fa14c2b006",
+   "compared": 1728,
+   "placed": 954,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 36,
+     "off": 35,
+     "possible": 36
+    },
+    "birth to 6 years": {
+     "present": 31,
+     "off": 31,
+     "possible": 31
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 44,
+     "off": 44,
+     "possible": 44
+    },
+    "12 months up to the last seizure": {
+     "present": 39,
+     "off": 38,
+     "possible": 39
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 3,
+     "off": 3,
+     "possible": 3
+    },
+    "the first diagnosis for 2 years": {
+     "present": 44,
+     "off": 43,
+     "possible": 44
+    },
+    "the first genetic result for 2 years": {
+     "present": 37,
+     "off": 37,
+     "possible": 37
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 13,
+     "off": 13,
+     "possible": 13
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 14,
+     "off": 14,
+     "possible": 14
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 14,
+     "off": 14,
+     "possible": 14
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 23,
+     "off": 23,
+     "possible": 23
+    }
+   }
+  },
+  "seed 4612": {
+   "cohort_sha256": "330ec2a6eeed18cea9527a0cf029e32bd2ec131396d26e8d9a26b82101040975",
+   "compared": 1728,
+   "placed": 968,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 36,
+     "off": 35,
+     "possible": 36
+    },
+    "birth to 6 years": {
+     "present": 31,
+     "off": 31,
+     "possible": 31
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 44,
+     "off": 44,
+     "possible": 44
+    },
+    "12 months up to the last seizure": {
+     "present": 37,
+     "off": 36,
+     "possible": 37
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 1,
+     "off": 1,
+     "possible": 1
+    },
+    "the first diagnosis for 2 years": {
+     "present": 44,
+     "off": 43,
+     "possible": 44
+    },
+    "the first genetic result for 2 years": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 25,
+     "off": 24,
+     "possible": 25
+    }
+   }
+  },
+  "seed 4613": {
+   "cohort_sha256": "a27b0ff989cae982f8f4004491be113c774c645e8fdf2e50d48bdb7f2a8bed5d",
+   "compared": 1728,
+   "placed": 973,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 38,
+     "off": 38,
+     "possible": 38
+    },
+    "birth to 6 years": {
+     "present": 28,
+     "off": 28,
+     "possible": 28
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 45,
+     "off": 45,
+     "possible": 45
+    },
+    "12 months up to the last seizure": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 2,
+     "off": 2,
+     "possible": 2
+    },
+    "the first diagnosis for 2 years": {
+     "present": 43,
+     "off": 42,
+     "possible": 43
+    },
+    "the first genetic result for 2 years": {
+     "present": 38,
+     "off": 38,
+     "possible": 38
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 24,
+     "off": 23,
+     "possible": 24
+    }
+   }
+  },
+  "seed 4614": {
+   "cohort_sha256": "210be9d313c6c4d61a649455f6dc8486d80603459f20bed62328f1429e8662a7",
+   "compared": 1728,
+   "placed": 955,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 37,
+     "off": 35,
+     "possible": 37
+    },
+    "birth to 6 years": {
+     "present": 30,
+     "off": 30,
+     "possible": 30
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 44,
+     "off": 44,
+     "possible": 44
+    },
+    "12 months up to the last seizure": {
+     "present": 38,
+     "off": 36,
+     "possible": 38
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 2,
+     "off": 1,
+     "possible": 2
+    },
+    "the first diagnosis for 2 years": {
+     "present": 44,
+     "off": 43,
+     "possible": 44
+    },
+    "the first genetic result for 2 years": {
+     "present": 37,
+     "off": 37,
+     "possible": 37
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 14,
+     "off": 14,
+     "possible": 14
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 14,
+     "off": 14,
+     "possible": 14
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 25,
+     "off": 23,
+     "possible": 25
+    }
+   }
+  },
+  "seed 4615": {
+   "cohort_sha256": "268bf31bbcf5cac6131aa20ab043f824440cf88d382553052d0e0c8940563cb2",
+   "compared": 1728,
+   "placed": 961,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 36,
+     "off": 36,
+     "possible": 36
+    },
+    "birth to 6 years": {
+     "present": 28,
+     "off": 28,
+     "possible": 28
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 43,
+     "off": 43,
+     "possible": 43
+    },
+    "12 months up to the last seizure": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 1,
+     "off": 1,
+     "possible": 1
+    },
+    "the first diagnosis for 2 years": {
+     "present": 43,
+     "off": 42,
+     "possible": 43
+    },
+    "the first genetic result for 2 years": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 17,
+     "off": 17,
+     "possible": 17
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 24,
+     "off": 23,
+     "possible": 24
+    }
+   }
+  },
+  "seed 4616": {
+   "cohort_sha256": "d8852de510beade4293fcffa418c2b0f2b64c02cbf1c21100556df5e9a333c4a",
+   "compared": 1728,
+   "placed": 952,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 36,
+     "off": 35,
+     "possible": 36
+    },
+    "birth to 6 years": {
+     "present": 29,
+     "off": 29,
+     "possible": 29
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 45,
+     "off": 45,
+     "possible": 45
+    },
+    "12 months up to the last seizure": {
+     "present": 37,
+     "off": 36,
+     "possible": 37
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 1,
+     "off": 1,
+     "possible": 1
+    },
+    "the first diagnosis for 2 years": {
+     "present": 44,
+     "off": 43,
+     "possible": 44
+    },
+    "the first genetic result for 2 years": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 13,
+     "off": 13,
+     "possible": 13
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 23,
+     "off": 21,
+     "possible": 23
+    }
+   }
+  },
+  "seed 4617": {
+   "cohort_sha256": "31b0acda1bcc9cfc19d68af5465983a46769e4e4fb05ecb5dae9c1d62449a0bb",
+   "compared": 1728,
+   "placed": 959,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 36,
+     "off": 36,
+     "possible": 36
+    },
+    "birth to 6 years": {
+     "present": 28,
+     "off": 28,
+     "possible": 28
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 43,
+     "off": 43,
+     "possible": 43
+    },
+    "12 months up to the last seizure": {
+     "present": 38,
+     "off": 37,
+     "possible": 38
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 2,
+     "off": 2,
+     "possible": 2
+    },
+    "the first diagnosis for 2 years": {
+     "present": 43,
+     "off": 42,
+     "possible": 43
+    },
+    "the first genetic result for 2 years": {
+     "present": 38,
+     "off": 38,
+     "possible": 38
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 25,
+     "off": 23,
+     "possible": 25
+    }
+   }
+  },
+  "seed 4618": {
+   "cohort_sha256": "f549409a83d503fe2981d153eba946d727cf5e6536ef131f265433353d31302a",
+   "compared": 1728,
+   "placed": 968,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 36,
+     "off": 36,
+     "possible": 36
+    },
+    "birth to 6 years": {
+     "present": 30,
+     "off": 30,
+     "possible": 30
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 42,
+     "off": 42,
+     "possible": 42
+    },
+    "12 months up to the last seizure": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 3,
+     "off": 3,
+     "possible": 3
+    },
+    "the first diagnosis for 2 years": {
+     "present": 43,
+     "off": 42,
+     "possible": 43
+    },
+    "the first genetic result for 2 years": {
+     "present": 39,
+     "off": 39,
+     "possible": 39
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 24,
+     "off": 24,
+     "possible": 24
+    }
+   }
+  },
+  "seed 4619": {
+   "cohort_sha256": "7a825f39eca855d5aa2cf5d8bcf3b66e5f00b3cd99b2e7112df5e26a5df46324",
+   "compared": 1728,
+   "placed": 927,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 33,
+     "off": 32,
+     "possible": 33
+    },
+    "birth to 6 years": {
+     "present": 27,
+     "off": 27,
+     "possible": 27
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 44,
+     "off": 44,
+     "possible": 44
+    },
+    "12 months up to the last seizure": {
+     "present": 37,
+     "off": 36,
+     "possible": 37
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 4,
+     "off": 4,
+     "possible": 4
+    },
+    "the first diagnosis for 2 years": {
+     "present": 42,
+     "off": 41,
+     "possible": 42
+    },
+    "the first genetic result for 2 years": {
+     "present": 37,
+     "off": 37,
+     "possible": 37
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 15,
+     "off": 15,
+     "possible": 15
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 13,
+     "off": 13,
+     "possible": 13
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 14,
+     "off": 14,
+     "possible": 14
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 23,
+     "off": 23,
+     "possible": 23
+    }
+   }
+  },
+  "seed 4620": {
+   "cohort_sha256": "d63700cd9f7510d328be6288ce5004b4f03437431686f157ba35db00d5ba3409",
+   "compared": 1728,
+   "placed": 938,
+   "mismatches": 0,
+   "first_mismatches": [],
+   "placed_by_rule": {
+    "the first seizure for 24 months (the page's default)": {
+     "present": 34,
+     "off": 33,
+     "possible": 34
+    },
+    "birth to 6 years": {
+     "present": 30,
+     "off": 30,
+     "possible": 30
+    },
+    "from 2020-01-01 for 3 years": {
+     "present": 43,
+     "off": 43,
+     "possible": 43
+    },
+    "12 months up to the last seizure": {
+     "present": 40,
+     "off": 39,
+     "possible": 40
+    },
+    "a month before the 2nd-to-last febrile seizure to 10 years": {
+     "present": 2,
+     "off": 2,
+     "possible": 2
+    },
+    "the first diagnosis for 2 years": {
+     "present": 42,
+     "off": 41,
+     "possible": 42
+    },
+    "the first genetic result for 2 years": {
+     "present": 36,
+     "off": 36,
+     "possible": 36
+    },
+    "the 2nd antiseizure start for 12 months": {
+     "present": 21,
+     "off": 21,
+     "possible": 21
+    },
+    "the last valproate start, 6 months before it to it": {
+     "present": 16,
+     "off": 16,
+     "possible": 16
+    },
+    "the 3rd-from-last antiseizure start for 6 months": {
+     "present": 14,
+     "off": 14,
+     "possible": 14
+    },
+    "the first SCN1A result for 1 year": {
+     "present": 13,
+     "off": 13,
+     "possible": 13
+    },
+    "the 3rd seizure for 12 months": {
+     "present": 23,
+     "off": 22,
+     "possible": 23
+    }
+   }
+  }
+ },
+ "mismatches": 0,
+ "truth_free": {
+  "compared": 19008,
+  "differing": 0,
+  "perturbed": {
+   "records_shuffled": 0,
+   "record_ids_permuted": 0
+  },
+  "met": true
+ },
+ "defects": {
+  "tau30": {
+   "mismatches": 362,
+   "caught": true,
+   "ruled": true
+  },
+  "truth": {
+   "moved_by_removing_truth": 69,
+   "caught": true,
+   "ruled": true
+  },
+  "reach400": {
+   "mismatches": 66,
+   "caught": true,
+   "ruled": true
+  },
+  "stop_ignored": {
+   "mismatches": 123,
+   "caught": true,
+   "ruled": true
+  },
+  "diary_any": {
+   "mismatches": 3,
+   "caught": true,
+   "ruled": false
+  },
+  "tie_last": {
+   "mismatches": 3,
+   "caught": true,
+   "ruled": false
+  },
+  "no_precision": {
+   "mismatches": 21,
+   "caught": true,
+   "ruled": true
+  },
+  "mention_head": {
+   "mismatches": 22,
+   "caught": true,
+   "ruled": false
+  },
+  "gene_any": {
+   "mismatches": 0,
+   "caught": false,
+   "ruled": false
+  },
+  "join_whole_range": {
+   "mismatches": 3,
+   "caught": true,
+   "ruled": false
+  }
+ },
+ "ruled_defects": [
+  "truth",
+  "tau30",
+  "reach400",
+  "stop_ignored",
+  "no_precision"
+ ],
+ "met": {
+  "reference": true,
+  "truth_free": true,
+  "defects": true
+ },
+ "artifacts": {
+  "demos/mockups/d46_windows.cjs": "c95bb7de44410d8fde95da9ed6ae2e02d75bf78f6947eceb626be126802e1672",
+  "demos/mockups/index_reference.py": "b370a45486bcae2e155027ecf242e0cf6e5f0a89235afb67fc84cc52275d3489",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
+  "demos/mockups/trajectory/app.js": "014c8557666f690e73d5f432e38a2c3e0422c34b3f4fe9f2a5587e7548561066",
+  "demos/mockups/shared/core.js": "293d799a7039c717dd0f45494bbbfec5895616199778a326eb9f912badff6533",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false,
+ "synthetic_patient_ids": "generator ids only, in first_mismatches"
+}

@@ -1,0 +1,3933 @@
+{
+ "profile": "d46-window-census-1.0",
+ "rule": "D46 rule 4: on the page's cohort, each patient's window under main's page (grouped by truth) and this tree's (rule reconcile_v1), for the seven period rules under stated findings and coded only, each moved window classified by the anchors that place it; the store's results for the page templates and every answered option-sweep definition under both windows, each changed result classified by its window's class and its transition. Met only if every changed result has a moved window (unexplained 0). Rule 8, reported: the store's results with every event anchor at the latest time its most precise record allows",
+ "base": "28a3cbf",
+ "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+ "patients": 48,
+ "windows": {
+  "the first seizure for 24 months (the page's default)": {
+   "present": {
+    "counts": {
+     "placed_both": 39,
+     "unplaced_both": 8,
+     "unchanged": 36,
+     "moved": 3,
+     "placed_only_on_main": 0,
+     "placed_only_here": 1
+    },
+    "classes": {
+     "start: another happening: another occurrence ranks": 1,
+     "start: a mention-only happening anchors here": 2,
+     "start: the same happening, other records: mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 3,
+     "min": -261.56458333333336,
+     "median": -48,
+     "max": 26
+    },
+    "patients": {
+     "C004": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 374400,
+       "end": 1426406
+      },
+      "here": {
+       "start": 305280,
+       "end": 1357286
+      },
+      "shift": {
+       "start_days": -48,
+       "end_days": -48
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 374400,
+         "times": [
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0004:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0175#1",
+          "C004-R0178#7",
+          "C004-R0182#4",
+          "C004-R0186#4",
+          "C004-R0190#4",
+          "C004-R0194#4",
+          "C004-R0198#4"
+         ]
+        },
+        "here": {
+         "at": 305280,
+         "times": [
+          305280,
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0002:condition",
+          "C004-R0003:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0174#0",
+          "C004-R0178#6",
+          "C004-R0182#3",
+          "C004-R0186#3",
+          "C004-R0190#3",
+          "C004-R0194#3",
+          "C004-R0198#3"
+         ]
+        }
+       }
+      }
+     },
+     "C014": {
+      "change": "placed_only_here",
+      "class": "start: a mention-only happening anchors here",
+      "main": {
+       "reason": "not followed to the end of the window (last contact at 5 y 5 mo)"
+      },
+      "here": {
+       "start": 1513440,
+       "end": 2565446
+      },
+      "shift": null,
+      "bounds": {
+       "start": {
+        "class": "a mention-only happening anchors here",
+        "main": {
+         "at": 2077920,
+         "times": [
+          2077920
+         ],
+         "from_end": false,
+         "records": [
+          "C014-R0006:registry_entry"
+         ],
+         "mentions": [
+          "C014-R0065#0"
+         ]
+        },
+        "here": {
+         "at": 1513440,
+         "times": [
+          1513440,
+          2077920
+         ],
+         "from_end": false,
+         "records": [],
+         "mentions": [
+          "C014-R0065#0"
+         ]
+        }
+       }
+      }
+     },
+     "C029": {
+      "change": "moved",
+      "class": "start: the same happening, other records: mention (timed differently)",
+      "main": {
+       "start": 308160,
+       "end": 1360166
+      },
+      "here": {
+       "start": 345600,
+       "end": 1397606
+      },
+      "shift": {
+       "start_days": 26,
+       "end_days": 26
+      },
+      "bounds": {
+       "start": {
+        "class": "the same happening, other records: mention (timed differently)",
+        "main": {
+         "at": 308160,
+         "times": [
+          308160,
+          385920,
+          470880,
+          553924,
+          652320,
+          825120
+         ],
+         "from_end": false,
+         "records": [],
+         "mentions": [
+          "C029-R0246#0",
+          "C029-R0250#3",
+          "C029-R0254#5",
+          "C029-R0258#3",
+          "C029-R0262#4",
+          "C029-R0266#4",
+          "C029-R0270#4"
+         ]
+        },
+        "here": {
+         "at": 345600,
+         "times": [
+          345600,
+          385920,
+          470880,
+          553924,
+          652320,
+          825120,
+          1139040
+         ],
+         "from_end": false,
+         "records": [],
+         "mentions": [
+          "C029-R0246#0"
+         ]
+        }
+       }
+      }
+     },
+     "C033": {
+      "change": "moved",
+      "class": "start: a mention-only happening anchors here",
+      "main": {
+       "start": 1364493,
+       "end": 2416499
+      },
+      "here": {
+       "start": 987840,
+       "end": 2039846
+      },
+      "shift": {
+       "start_days": -261.56458333333336,
+       "end_days": -261.56458333333336
+      },
+      "bounds": {
+       "start": {
+        "class": "a mention-only happening anchors here",
+        "main": {
+         "at": 1364493,
+         "times": [
+          1364493,
+          1557650,
+          1704960,
+          1887840,
+          2079360,
+          2318010,
+          2480518,
+          2667957,
+          2885200,
+          3165120,
+          3398400,
+          3710064
+         ],
+         "from_end": false,
+         "records": [
+          "C033-R0001:condition"
+         ],
+         "mentions": [
+          "C033-R0105#0",
+          "C033-R0109#3",
+          "C033-R0113#3",
+          "C033-R0117#2",
+          "C033-R0121#3"
+         ]
+        },
+        "here": {
+         "at": 987840,
+         "times": [
+          987840,
+          1364493,
+          1557650,
+          1704960,
+          1887840,
+          2079360,
+          2318010,
+          2480518,
+          2667957,
+          2885200,
+          3165120,
+          3398400,
+          3710064
+         ],
+         "from_end": false,
+         "records": [],
+         "mentions": [
+          "C033-R0109#4",
+          "C033-R0113#4",
+          "C033-R0117#3",
+          "C033-R0121#4"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "off": {
+    "counts": {
+     "placed_both": 38,
+     "unplaced_both": 10,
+     "unchanged": 37,
+     "moved": 1,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: another happening: another occurrence ranks": 1
+    },
+    "shift_days": {
+     "n": 1,
+     "min": -48,
+     "median": -48,
+     "max": -48
+    },
+    "patients": {
+     "C004": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 374400,
+       "end": 1426406
+      },
+      "here": {
+       "start": 305280,
+       "end": 1357286
+      },
+      "shift": {
+       "start_days": -48,
+       "end_days": -48
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 374400,
+         "times": [
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0004:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0175#1",
+          "C004-R0178#7",
+          "C004-R0182#4",
+          "C004-R0186#4",
+          "C004-R0190#4",
+          "C004-R0194#4",
+          "C004-R0198#4"
+         ]
+        },
+        "here": {
+         "at": 305280,
+         "times": [
+          305280,
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0002:condition",
+          "C004-R0003:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0174#0",
+          "C004-R0178#6",
+          "C004-R0182#3",
+          "C004-R0186#3",
+          "C004-R0190#3",
+          "C004-R0194#3",
+          "C004-R0198#3"
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "birth to 6 years": {
+   "present": {
+    "counts": {
+     "placed_both": 28,
+     "unplaced_both": 20,
+     "unchanged": 28,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 28,
+     "unplaced_both": 20,
+     "unchanged": 28,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "from 2020-01-01 for 3 years": {
+   "present": {
+    "counts": {
+     "placed_both": 45,
+     "unplaced_both": 3,
+     "unchanged": 45,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 45,
+     "unplaced_both": 3,
+     "unchanged": 45,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "12 months up to the last seizure": {
+   "present": {
+    "counts": {
+     "placed_both": 42,
+     "unplaced_both": 6,
+     "unchanged": 38,
+     "moved": 4,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "end: a mention-only happening anchors here": 3,
+     "end: the same happening, other records: condition, mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 4,
+     "min": -59,
+     "median": -5,
+     "max": 218
+    },
+    "patients": {
+     "C017": {
+      "change": "moved",
+      "class": "end: a mention-only happening anchors here",
+      "main": {
+       "start": 519437,
+       "end": 1045440
+      },
+      "here": {
+       "start": 506477,
+       "end": 1032480
+      },
+      "shift": {
+       "start_days": -9,
+       "end_days": -9
+      },
+      "bounds": {
+       "end": {
+        "class": "a mention-only happening anchors here",
+        "main": {
+         "at": 1045440,
+         "times": [
+          263520,
+          380160,
+          398101,
+          531360,
+          1045440
+         ],
+         "from_end": true,
+         "records": [
+          "C017-R0005:diary_entry"
+         ],
+         "mentions": [
+          "C017-R0259#0"
+         ]
+        },
+        "here": {
+         "at": 1032480,
+         "times": [
+          263520,
+          380160,
+          398101,
+          531360,
+          1032480
+         ],
+         "from_end": true,
+         "records": [],
+         "mentions": [
+          "C017-R0259#0"
+         ]
+        }
+       }
+      }
+     },
+     "C023": {
+      "change": "moved",
+      "class": "end: a mention-only happening anchors here",
+      "main": {
+       "start": 633197,
+       "end": 1159200
+      },
+      "here": {
+       "start": 548237,
+       "end": 1074240
+      },
+      "shift": {
+       "start_days": -59,
+       "end_days": -59
+      },
+      "bounds": {
+       "end": {
+        "class": "a mention-only happening anchors here",
+        "main": {
+         "at": 1159200,
+         "times": [
+          308160,
+          427680,
+          576000,
+          591115,
+          1159200
+         ],
+         "from_end": true,
+         "records": [
+          "C023-R0007:diary_entry"
+         ],
+         "mentions": [
+          "C023-R0192#1"
+         ]
+        },
+        "here": {
+         "at": 1074240,
+         "times": [
+          308160,
+          427680,
+          591115,
+          1074240
+         ],
+         "from_end": true,
+         "records": [],
+         "mentions": [
+          "C023-R0192#1"
+         ]
+        }
+       }
+      }
+     },
+     "C028": {
+      "change": "moved",
+      "class": "end: the same happening, other records: condition, mention (timed differently)",
+      "main": {
+       "start": 1271117,
+       "end": 1797120
+      },
+      "here": {
+       "start": 1263917,
+       "end": 1789920
+      },
+      "shift": {
+       "start_days": -5,
+       "end_days": -5
+      },
+      "bounds": {
+       "end": {
+        "class": "the same happening, other records: condition, mention (timed differently)",
+        "main": {
+         "at": 1797120,
+         "times": [
+          1277280,
+          1789920,
+          1797120
+         ],
+         "from_end": true,
+         "records": [
+          "C028-R0002:condition"
+         ],
+         "mentions": [
+          "C028-R0039#1",
+          "C028-R0042#1",
+          "C028-R0046#1"
+         ]
+        },
+        "here": {
+         "at": 1789920,
+         "times": [
+          1277280,
+          1789920
+         ],
+         "from_end": true,
+         "records": [
+          "C028-R0003:condition",
+          "C028-R0002:condition"
+         ],
+         "mentions": [
+          "C028-R0039#0",
+          "C028-R0039#1",
+          "C028-R0042#1",
+          "C028-R0046#1"
+         ]
+        }
+       }
+      }
+     },
+     "C029": {
+      "change": "moved",
+      "class": "end: a mention-only happening anchors here",
+      "main": {
+       "start": 299117,
+       "end": 825120
+      },
+      "here": {
+       "start": 613037,
+       "end": 1139040
+      },
+      "shift": {
+       "start_days": 218,
+       "end_days": 218
+      },
+      "bounds": {
+       "end": {
+        "class": "a mention-only happening anchors here",
+        "main": {
+         "at": 825120,
+         "times": [
+          308160,
+          385920,
+          470880,
+          553924,
+          652320,
+          825120
+         ],
+         "from_end": true,
+         "records": [
+          "C029-R0008:condition",
+          "C029-R0009:diary_entry"
+         ],
+         "mentions": [
+          "C029-R0250#0"
+         ]
+        },
+        "here": {
+         "at": 1139040,
+         "times": [
+          345600,
+          385920,
+          470880,
+          553924,
+          652320,
+          825120,
+          1139040
+         ],
+         "from_end": true,
+         "records": [],
+         "mentions": [
+          "C029-R0272#0"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "off": {
+    "counts": {
+     "placed_both": 41,
+     "unplaced_both": 7,
+     "unchanged": 40,
+     "moved": 1,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "end: the same happening, other records: condition, mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 1,
+     "min": -5,
+     "median": -5,
+     "max": -5
+    },
+    "patients": {
+     "C028": {
+      "change": "moved",
+      "class": "end: the same happening, other records: condition, mention (timed differently)",
+      "main": {
+       "start": 1271117,
+       "end": 1797120
+      },
+      "here": {
+       "start": 1263917,
+       "end": 1789920
+      },
+      "shift": {
+       "start_days": -5,
+       "end_days": -5
+      },
+      "bounds": {
+       "end": {
+        "class": "the same happening, other records: condition, mention (timed differently)",
+        "main": {
+         "at": 1797120,
+         "times": [
+          1277280,
+          1789920,
+          1797120
+         ],
+         "from_end": true,
+         "records": [
+          "C028-R0002:condition"
+         ],
+         "mentions": [
+          "C028-R0039#1",
+          "C028-R0042#1",
+          "C028-R0046#1"
+         ]
+        },
+        "here": {
+         "at": 1789920,
+         "times": [
+          1277280,
+          1789920
+         ],
+         "from_end": true,
+         "records": [
+          "C028-R0003:condition",
+          "C028-R0002:condition"
+         ],
+         "mentions": [
+          "C028-R0039#0",
+          "C028-R0039#1",
+          "C028-R0042#1",
+          "C028-R0046#1"
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "a month before the 2nd-to-last febrile seizure to 10 years": {
+   "present": {
+    "counts": {
+     "placed_both": 2,
+     "unplaced_both": 46,
+     "unchanged": 2,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 2,
+     "unplaced_both": 46,
+     "unchanged": 2,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "the first diagnosis for 2 years": {
+   "present": {
+    "counts": {
+     "placed_both": 44,
+     "unplaced_both": 4,
+     "unchanged": 44,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 43,
+     "unplaced_both": 5,
+     "unchanged": 43,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "the first genetic result for 2 years": {
+   "present": {
+    "counts": {
+     "placed_both": 38,
+     "unplaced_both": 10,
+     "unchanged": 38,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 38,
+     "unplaced_both": 10,
+     "unchanged": 38,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "the 2nd antiseizure start for 12 months": {
+   "present": {
+    "counts": {
+     "placed_both": 21,
+     "unplaced_both": 27,
+     "unchanged": 21,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 21,
+     "unplaced_both": 27,
+     "unchanged": 21,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "the last valproate start, 6 months before it to it": {
+   "present": {
+    "counts": {
+     "placed_both": 17,
+     "unplaced_both": 31,
+     "unchanged": 16,
+     "moved": 1,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: the same happening, other records: dispensing, medication_order, mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 1,
+     "min": 1321,
+     "median": 1321,
+     "max": 1321
+    },
+    "patients": {
+     "C001": {
+      "change": "moved",
+      "class": "start: the same happening, other records: dispensing, medication_order, mention (timed differently)",
+      "main": {
+       "start": 154598,
+       "end": 417600
+      },
+      "here": {
+       "start": 2056838,
+       "end": 2319840
+      },
+      "shift": {
+       "start_days": 1321,
+       "end_days": 1321
+      },
+      "bounds": {
+       "start": {
+        "class": "the same happening, other records: dispensing, medication_order, mention (timed differently)",
+        "main": {
+         "at": 417600,
+         "times": [
+          417600
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0017:medication_order",
+          "C001-R0018:dispensing",
+          "C001-R0019:dispensing",
+          "C001-R0020:dispensing",
+          "C001-R0021:dispensing",
+          "C001-R0022:dispensing",
+          "C001-R0023:dispensing",
+          "C001-R0024:dispensing",
+          "C001-R0025:dispensing",
+          "C001-R0026:dispensing",
+          "C001-R0027:dispensing",
+          "C001-R0028:dispensing",
+          "C001-R0029:dispensing",
+          "C001-R0030:dispensing",
+          "C001-R0031:dispensing",
+          "C001-R0032:dispensing",
+          "C001-R0034:dispensing",
+          "C001-R0033:dispensing",
+          "C001-R0035:dispensing",
+          "C001-R0036:dispensing",
+          "C001-R0037:dispensing",
+          "C001-R0038:dispensing",
+          "C001-R0039:dispensing",
+          "C001-R0040:dispensing",
+          "C001-R0041:dispensing",
+          "C001-R0042:dispensing",
+          "C001-R0043:dispensing",
+          "C001-R0044:dispensing",
+          "C001-R0045:dispensing"
+         ],
+         "mentions": [
+          "C001-R0262#1",
+          "C001-R0262#2",
+          "C001-R0263#4",
+          "C001-R0264#4",
+          "C001-R0265#1",
+          "C001-R0266#0",
+          "C001-R0267#2",
+          "C001-R0268#0",
+          "C001-R0269#0",
+          "C001-R0270#1",
+          "C001-R0271#0",
+          "C001-R0272#1",
+          "C001-R0273#0",
+          "C001-R0274#0",
+          "C001-R0275#0",
+          "C001-R0276#0",
+          "C001-R0277#0",
+          "C001-R0278#0",
+          "C001-R0279#0",
+          "C001-R0280#0",
+          "C001-R0281#0",
+          "C001-R0282#0",
+          "C001-R0283#0"
+         ]
+        },
+        "here": {
+         "at": 2319840,
+         "times": [
+          417600,
+          2319840
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0034:dispensing",
+          "C001-R0033:dispensing",
+          "C001-R0035:dispensing",
+          "C001-R0036:dispensing",
+          "C001-R0037:dispensing",
+          "C001-R0038:dispensing",
+          "C001-R0039:dispensing",
+          "C001-R0040:dispensing",
+          "C001-R0041:dispensing",
+          "C001-R0042:dispensing",
+          "C001-R0043:dispensing",
+          "C001-R0044:dispensing",
+          "C001-R0045:dispensing"
+         ],
+         "mentions": [
+          "C001-R0274#0",
+          "C001-R0275#0",
+          "C001-R0276#0",
+          "C001-R0277#0",
+          "C001-R0278#0",
+          "C001-R0279#0",
+          "C001-R0280#0",
+          "C001-R0281#0",
+          "C001-R0282#0",
+          "C001-R0283#0"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "off": {
+    "counts": {
+     "placed_both": 17,
+     "unplaced_both": 31,
+     "unchanged": 16,
+     "moved": 1,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: the same happening, other records: dispensing, medication_order, mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 1,
+     "min": 1321,
+     "median": 1321,
+     "max": 1321
+    },
+    "patients": {
+     "C001": {
+      "change": "moved",
+      "class": "start: the same happening, other records: dispensing, medication_order, mention (timed differently)",
+      "main": {
+       "start": 154598,
+       "end": 417600
+      },
+      "here": {
+       "start": 2056838,
+       "end": 2319840
+      },
+      "shift": {
+       "start_days": 1321,
+       "end_days": 1321
+      },
+      "bounds": {
+       "start": {
+        "class": "the same happening, other records: dispensing, medication_order, mention (timed differently)",
+        "main": {
+         "at": 417600,
+         "times": [
+          417600
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0017:medication_order",
+          "C001-R0018:dispensing",
+          "C001-R0019:dispensing",
+          "C001-R0020:dispensing",
+          "C001-R0021:dispensing",
+          "C001-R0022:dispensing",
+          "C001-R0023:dispensing",
+          "C001-R0024:dispensing",
+          "C001-R0025:dispensing",
+          "C001-R0026:dispensing",
+          "C001-R0027:dispensing",
+          "C001-R0028:dispensing",
+          "C001-R0029:dispensing",
+          "C001-R0030:dispensing",
+          "C001-R0031:dispensing",
+          "C001-R0032:dispensing",
+          "C001-R0034:dispensing",
+          "C001-R0033:dispensing",
+          "C001-R0035:dispensing",
+          "C001-R0036:dispensing",
+          "C001-R0037:dispensing",
+          "C001-R0038:dispensing",
+          "C001-R0039:dispensing",
+          "C001-R0040:dispensing",
+          "C001-R0041:dispensing",
+          "C001-R0042:dispensing",
+          "C001-R0043:dispensing",
+          "C001-R0044:dispensing",
+          "C001-R0045:dispensing"
+         ],
+         "mentions": [
+          "C001-R0262#1",
+          "C001-R0262#2",
+          "C001-R0263#4",
+          "C001-R0264#4",
+          "C001-R0265#1",
+          "C001-R0266#0",
+          "C001-R0267#2",
+          "C001-R0268#0",
+          "C001-R0269#0",
+          "C001-R0270#1",
+          "C001-R0271#0",
+          "C001-R0272#1",
+          "C001-R0273#0",
+          "C001-R0274#0",
+          "C001-R0275#0",
+          "C001-R0276#0",
+          "C001-R0277#0",
+          "C001-R0278#0",
+          "C001-R0279#0",
+          "C001-R0280#0",
+          "C001-R0281#0",
+          "C001-R0282#0",
+          "C001-R0283#0"
+         ]
+        },
+        "here": {
+         "at": 2319840,
+         "times": [
+          417600,
+          2319840
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0034:dispensing",
+          "C001-R0033:dispensing",
+          "C001-R0035:dispensing",
+          "C001-R0036:dispensing",
+          "C001-R0037:dispensing",
+          "C001-R0038:dispensing",
+          "C001-R0039:dispensing",
+          "C001-R0040:dispensing",
+          "C001-R0041:dispensing",
+          "C001-R0042:dispensing",
+          "C001-R0043:dispensing",
+          "C001-R0044:dispensing",
+          "C001-R0045:dispensing"
+         ],
+         "mentions": [
+          "C001-R0274#0",
+          "C001-R0275#0",
+          "C001-R0276#0",
+          "C001-R0277#0",
+          "C001-R0278#0",
+          "C001-R0279#0",
+          "C001-R0280#0",
+          "C001-R0281#0",
+          "C001-R0282#0",
+          "C001-R0283#0"
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "the 3rd-from-last antiseizure start for 6 months": {
+   "present": {
+    "counts": {
+     "placed_both": 15,
+     "unplaced_both": 33,
+     "unchanged": 11,
+     "moved": 4,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: another happening: another occurrence ranks": 2,
+     "start: another happening: main's anchor is split here": 1,
+     "start: the same happening, other records: dispensing, medication_order, mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 4,
+     "min": 18,
+     "median": 87,
+     "max": 120
+    },
+    "patients": {
+     "C001": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 691200,
+       "end": 954202
+      },
+      "here": {
+       "start": 864000,
+       "end": 1127002
+      },
+      "shift": {
+       "start_days": 120,
+       "end_days": 120
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 691200,
+         "times": [
+          417600,
+          577440,
+          691200,
+          864000,
+          1872000
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0049:medication_order",
+          "C001-R0050:dispensing",
+          "C001-R0051:dispensing",
+          "C001-R0052:dispensing",
+          "C001-R0053:dispensing",
+          "C001-R0054:dispensing",
+          "C001-R0055:dispensing",
+          "C001-R0056:dispensing",
+          "C001-R0057:dispensing",
+          "C001-R0058:dispensing",
+          "C001-R0059:dispensing",
+          "C001-R0060:dispensing",
+          "C001-R0061:dispensing",
+          "C001-R0062:dispensing",
+          "C001-R0063:dispensing",
+          "C001-R0064:dispensing",
+          "C001-R0065:dispensing",
+          "C001-R0066:dispensing",
+          "C001-R0067:dispensing",
+          "C001-R0068:dispensing",
+          "C001-R0069:dispensing",
+          "C001-R0070:dispensing",
+          "C001-R0071:dispensing",
+          "C001-R0072:dispensing",
+          "C001-R0073:dispensing",
+          "C001-R0074:dispensing",
+          "C001-R0075:dispensing"
+         ],
+         "mentions": [
+          "C001-R0264#0",
+          "C001-R0264#5",
+          "C001-R0265#2",
+          "C001-R0266#1",
+          "C001-R0267#3",
+          "C001-R0268#1",
+          "C001-R0269#1",
+          "C001-R0270#2",
+          "C001-R0271#1",
+          "C001-R0272#2",
+          "C001-R0273#1",
+          "C001-R0274#1",
+          "C001-R0275#1",
+          "C001-R0276#1",
+          "C001-R0277#1",
+          "C001-R0278#1",
+          "C001-R0279#1",
+          "C001-R0280#1",
+          "C001-R0281#1",
+          "C001-R0282#1",
+          "C001-R0283#1"
+         ]
+        },
+        "here": {
+         "at": 864000,
+         "times": [
+          417600,
+          577440,
+          620640,
+          691200,
+          864000,
+          1872000,
+          2319840
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0079:medication_order",
+          "C001-R0080:dispensing",
+          "C001-R0081:dispensing",
+          "C001-R0082:dispensing",
+          "C001-R0083:dispensing",
+          "C001-R0084:dispensing",
+          "C001-R0085:dispensing",
+          "C001-R0086:dispensing",
+          "C001-R0087:dispensing",
+          "C001-R0088:dispensing",
+          "C001-R0089:dispensing",
+          "C001-R0090:dispensing",
+          "C001-R0091:dispensing",
+          "C001-R0092:dispensing",
+          "C001-R0093:dispensing",
+          "C001-R0094:dispensing",
+          "C001-R0095:dispensing",
+          "C001-R0096:dispensing",
+          "C001-R0097:dispensing",
+          "C001-R0098:dispensing",
+          "C001-R0099:dispensing",
+          "C001-R0100:dispensing",
+          "C001-R0101:dispensing",
+          "C001-R0102:dispensing",
+          "C001-R0103:dispensing"
+         ],
+         "mentions": [
+          "C001-R0265#0",
+          "C001-R0265#3",
+          "C001-R0266#2",
+          "C001-R0267#4",
+          "C001-R0268#2",
+          "C001-R0269#2",
+          "C001-R0270#3",
+          "C001-R0271#2",
+          "C001-R0272#3",
+          "C001-R0273#2",
+          "C001-R0274#2",
+          "C001-R0275#2",
+          "C001-R0276#2",
+          "C001-R0277#2",
+          "C001-R0278#2",
+          "C001-R0279#2",
+          "C001-R0280#2",
+          "C001-R0281#2",
+          "C001-R0282#2",
+          "C001-R0283#2"
+         ]
+        }
+       }
+      }
+     },
+     "C004": {
+      "change": "moved",
+      "class": "start: another happening: main's anchor is split here",
+      "main": {
+       "start": 488160,
+       "end": 751162
+      },
+      "here": {
+       "start": 514080,
+       "end": 777082
+      },
+      "shift": {
+       "start_days": 18,
+       "end_days": 18
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: main's anchor is split here",
+        "main": {
+         "at": 488160,
+         "times": [
+          396000,
+          488160,
+          514080,
+          914400
+         ],
+         "from_end": true,
+         "records": [
+          "C004-R0041:medication_order",
+          "C004-R0042:dispensing",
+          "C004-R0044:medication_order",
+          "C004-R0043:dispensing"
+         ],
+         "mentions": [
+          "C004-R0176#0",
+          "C004-R0176#3"
+         ]
+        },
+        "here": {
+         "at": 514080,
+         "times": [
+          396000,
+          488160,
+          514080,
+          531360,
+          914400
+         ],
+         "from_end": true,
+         "records": [
+          "C004-R0045:medication_order",
+          "C004-R0046:dispensing",
+          "C004-R0047:dispensing",
+          "C004-R0048:dispensing",
+          "C004-R0049:dispensing",
+          "C004-R0050:dispensing",
+          "C004-R0051:dispensing",
+          "C004-R0052:dispensing",
+          "C004-R0053:dispensing",
+          "C004-R0054:dispensing",
+          "C004-R0055:dispensing",
+          "C004-R0056:dispensing",
+          "C004-R0057:dispensing",
+          "C004-R0058:dispensing",
+          "C004-R0059:dispensing",
+          "C004-R0060:dispensing",
+          "C004-R0061:dispensing",
+          "C004-R0062:dispensing",
+          "C004-R0063:dispensing",
+          "C004-R0064:dispensing",
+          "C004-R0065:dispensing",
+          "C004-R0066:dispensing",
+          "C004-R0067:dispensing",
+          "C004-R0068:dispensing",
+          "C004-R0069:dispensing",
+          "C004-R0070:dispensing",
+          "C004-R0071:dispensing",
+          "C004-R0072:dispensing",
+          "C004-R0073:dispensing",
+          "C004-R0074:dispensing",
+          "C004-R0075:dispensing"
+         ],
+         "mentions": [
+          "C004-R0176#2",
+          "C004-R0176#5",
+          "C004-R0177#1",
+          "C004-R0178#4",
+          "C004-R0179#2",
+          "C004-R0180#1",
+          "C004-R0181#2",
+          "C004-R0182#1",
+          "C004-R0183#1",
+          "C004-R0184#1",
+          "C004-R0185#1",
+          "C004-R0186#1",
+          "C004-R0187#1",
+          "C004-R0188#1",
+          "C004-R0189#1",
+          "C004-R0190#1",
+          "C004-R0191#1",
+          "C004-R0192#1",
+          "C004-R0193#1",
+          "C004-R0194#1",
+          "C004-R0195#1",
+          "C004-R0196#1",
+          "C004-R0197#1",
+          "C004-R0198#1",
+          "C004-R0199#1",
+          "C004-R0200#1"
+         ]
+        }
+       }
+      }
+     },
+     "C021": {
+      "change": "moved",
+      "class": "start: the same happening, other records: dispensing, medication_order, mention (timed differently)",
+      "main": {
+       "start": 466560,
+       "end": 729562
+      },
+      "here": {
+       "start": 509760,
+       "end": 772762
+      },
+      "shift": {
+       "start_days": 30,
+       "end_days": 30
+      },
+      "bounds": {
+       "start": {
+        "class": "the same happening, other records: dispensing, medication_order, mention (timed differently)",
+        "main": {
+         "at": 466560,
+         "times": [
+          319680,
+          466560,
+          538560,
+          606240
+         ],
+         "from_end": true,
+         "records": [
+          "C021-R0031:medication_order",
+          "C021-R0032:dispensing",
+          "C021-R0034:medication_order",
+          "C021-R0033:dispensing"
+         ],
+         "mentions": [
+          "C021-R0135#0",
+          "C021-R0135#4"
+         ]
+        },
+        "here": {
+         "at": 509760,
+         "times": [
+          319680,
+          466560,
+          509760,
+          538560,
+          606240
+         ],
+         "from_end": true,
+         "records": [
+          "C021-R0033:dispensing"
+         ],
+         "mentions": []
+        }
+       }
+      }
+     },
+     "C044": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 658080,
+       "end": 921082
+      },
+      "here": {
+       "start": 783360,
+       "end": 1046362
+      },
+      "shift": {
+       "start_days": 87,
+       "end_days": 87
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 658080,
+         "times": [
+          480960,
+          658080,
+          783360,
+          897120
+         ],
+         "from_end": true,
+         "records": [
+          "C044-R0027:medication_order",
+          "C044-R0028:dispensing",
+          "C044-R0029:dispensing",
+          "C044-R0030:dispensing",
+          "C044-R0031:dispensing",
+          "C044-R0032:dispensing",
+          "C044-R0033:dispensing",
+          "C044-R0034:dispensing",
+          "C044-R0035:dispensing"
+         ],
+         "mentions": [
+          "C044-R0075#1",
+          "C044-R0075#3",
+          "C044-R0076#5",
+          "C044-R0077#4",
+          "C044-R0078#2",
+          "C044-R0079#1",
+          "C044-R0080#1"
+         ]
+        },
+        "here": {
+         "at": 783360,
+         "times": [
+          480960,
+          658080,
+          783360,
+          829440,
+          897120
+         ],
+         "from_end": true,
+         "records": [
+          "C044-R0023:medication_order",
+          "C044-R0024:dispensing",
+          "C044-R0026:medication_order"
+         ],
+         "mentions": [
+          "C044-R0076#1",
+          "C044-R0076#4"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "off": {
+    "counts": {
+     "placed_both": 15,
+     "unplaced_both": 33,
+     "unchanged": 11,
+     "moved": 4,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: another happening: another occurrence ranks": 2,
+     "start: another happening: main's anchor is split here": 1,
+     "start: the same happening, other records: dispensing, medication_order, mention (timed differently)": 1
+    },
+    "shift_days": {
+     "n": 4,
+     "min": 18,
+     "median": 87,
+     "max": 120
+    },
+    "patients": {
+     "C001": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 691200,
+       "end": 954202
+      },
+      "here": {
+       "start": 864000,
+       "end": 1127002
+      },
+      "shift": {
+       "start_days": 120,
+       "end_days": 120
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 691200,
+         "times": [
+          417600,
+          577440,
+          691200,
+          864000,
+          1872000
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0049:medication_order",
+          "C001-R0050:dispensing",
+          "C001-R0051:dispensing",
+          "C001-R0052:dispensing",
+          "C001-R0053:dispensing",
+          "C001-R0054:dispensing",
+          "C001-R0055:dispensing",
+          "C001-R0056:dispensing",
+          "C001-R0057:dispensing",
+          "C001-R0058:dispensing",
+          "C001-R0059:dispensing",
+          "C001-R0060:dispensing",
+          "C001-R0061:dispensing",
+          "C001-R0062:dispensing",
+          "C001-R0063:dispensing",
+          "C001-R0064:dispensing",
+          "C001-R0065:dispensing",
+          "C001-R0066:dispensing",
+          "C001-R0067:dispensing",
+          "C001-R0068:dispensing",
+          "C001-R0069:dispensing",
+          "C001-R0070:dispensing",
+          "C001-R0071:dispensing",
+          "C001-R0072:dispensing",
+          "C001-R0073:dispensing",
+          "C001-R0074:dispensing",
+          "C001-R0075:dispensing"
+         ],
+         "mentions": [
+          "C001-R0264#0",
+          "C001-R0264#5",
+          "C001-R0265#2",
+          "C001-R0266#1",
+          "C001-R0267#3",
+          "C001-R0268#1",
+          "C001-R0269#1",
+          "C001-R0270#2",
+          "C001-R0271#1",
+          "C001-R0272#2",
+          "C001-R0273#1",
+          "C001-R0274#1",
+          "C001-R0275#1",
+          "C001-R0276#1",
+          "C001-R0277#1",
+          "C001-R0278#1",
+          "C001-R0279#1",
+          "C001-R0280#1",
+          "C001-R0281#1",
+          "C001-R0282#1",
+          "C001-R0283#1"
+         ]
+        },
+        "here": {
+         "at": 864000,
+         "times": [
+          417600,
+          577440,
+          620640,
+          691200,
+          864000,
+          1872000,
+          2319840
+         ],
+         "from_end": true,
+         "records": [
+          "C001-R0079:medication_order",
+          "C001-R0080:dispensing",
+          "C001-R0081:dispensing",
+          "C001-R0082:dispensing",
+          "C001-R0083:dispensing",
+          "C001-R0084:dispensing",
+          "C001-R0085:dispensing",
+          "C001-R0086:dispensing",
+          "C001-R0087:dispensing",
+          "C001-R0088:dispensing",
+          "C001-R0089:dispensing",
+          "C001-R0090:dispensing",
+          "C001-R0091:dispensing",
+          "C001-R0092:dispensing",
+          "C001-R0093:dispensing",
+          "C001-R0094:dispensing",
+          "C001-R0095:dispensing",
+          "C001-R0096:dispensing",
+          "C001-R0097:dispensing",
+          "C001-R0098:dispensing",
+          "C001-R0099:dispensing",
+          "C001-R0100:dispensing",
+          "C001-R0101:dispensing",
+          "C001-R0102:dispensing",
+          "C001-R0103:dispensing"
+         ],
+         "mentions": [
+          "C001-R0265#0",
+          "C001-R0265#3",
+          "C001-R0266#2",
+          "C001-R0267#4",
+          "C001-R0268#2",
+          "C001-R0269#2",
+          "C001-R0270#3",
+          "C001-R0271#2",
+          "C001-R0272#3",
+          "C001-R0273#2",
+          "C001-R0274#2",
+          "C001-R0275#2",
+          "C001-R0276#2",
+          "C001-R0277#2",
+          "C001-R0278#2",
+          "C001-R0279#2",
+          "C001-R0280#2",
+          "C001-R0281#2",
+          "C001-R0282#2",
+          "C001-R0283#2"
+         ]
+        }
+       }
+      }
+     },
+     "C004": {
+      "change": "moved",
+      "class": "start: another happening: main's anchor is split here",
+      "main": {
+       "start": 488160,
+       "end": 751162
+      },
+      "here": {
+       "start": 514080,
+       "end": 777082
+      },
+      "shift": {
+       "start_days": 18,
+       "end_days": 18
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: main's anchor is split here",
+        "main": {
+         "at": 488160,
+         "times": [
+          396000,
+          488160,
+          514080,
+          914400
+         ],
+         "from_end": true,
+         "records": [
+          "C004-R0041:medication_order",
+          "C004-R0042:dispensing",
+          "C004-R0044:medication_order",
+          "C004-R0043:dispensing"
+         ],
+         "mentions": [
+          "C004-R0176#0",
+          "C004-R0176#3"
+         ]
+        },
+        "here": {
+         "at": 514080,
+         "times": [
+          396000,
+          488160,
+          514080,
+          531360,
+          914400
+         ],
+         "from_end": true,
+         "records": [
+          "C004-R0045:medication_order",
+          "C004-R0046:dispensing",
+          "C004-R0047:dispensing",
+          "C004-R0048:dispensing",
+          "C004-R0049:dispensing",
+          "C004-R0050:dispensing",
+          "C004-R0051:dispensing",
+          "C004-R0052:dispensing",
+          "C004-R0053:dispensing",
+          "C004-R0054:dispensing",
+          "C004-R0055:dispensing",
+          "C004-R0056:dispensing",
+          "C004-R0057:dispensing",
+          "C004-R0058:dispensing",
+          "C004-R0059:dispensing",
+          "C004-R0060:dispensing",
+          "C004-R0061:dispensing",
+          "C004-R0062:dispensing",
+          "C004-R0063:dispensing",
+          "C004-R0064:dispensing",
+          "C004-R0065:dispensing",
+          "C004-R0066:dispensing",
+          "C004-R0067:dispensing",
+          "C004-R0068:dispensing",
+          "C004-R0069:dispensing",
+          "C004-R0070:dispensing",
+          "C004-R0071:dispensing",
+          "C004-R0072:dispensing",
+          "C004-R0073:dispensing",
+          "C004-R0074:dispensing",
+          "C004-R0075:dispensing"
+         ],
+         "mentions": [
+          "C004-R0176#2",
+          "C004-R0176#5",
+          "C004-R0177#1",
+          "C004-R0178#4",
+          "C004-R0179#2",
+          "C004-R0180#1",
+          "C004-R0181#2",
+          "C004-R0182#1",
+          "C004-R0183#1",
+          "C004-R0184#1",
+          "C004-R0185#1",
+          "C004-R0186#1",
+          "C004-R0187#1",
+          "C004-R0188#1",
+          "C004-R0189#1",
+          "C004-R0190#1",
+          "C004-R0191#1",
+          "C004-R0192#1",
+          "C004-R0193#1",
+          "C004-R0194#1",
+          "C004-R0195#1",
+          "C004-R0196#1",
+          "C004-R0197#1",
+          "C004-R0198#1",
+          "C004-R0199#1",
+          "C004-R0200#1"
+         ]
+        }
+       }
+      }
+     },
+     "C021": {
+      "change": "moved",
+      "class": "start: the same happening, other records: dispensing, medication_order, mention (timed differently)",
+      "main": {
+       "start": 466560,
+       "end": 729562
+      },
+      "here": {
+       "start": 509760,
+       "end": 772762
+      },
+      "shift": {
+       "start_days": 30,
+       "end_days": 30
+      },
+      "bounds": {
+       "start": {
+        "class": "the same happening, other records: dispensing, medication_order, mention (timed differently)",
+        "main": {
+         "at": 466560,
+         "times": [
+          319680,
+          466560,
+          538560,
+          606240
+         ],
+         "from_end": true,
+         "records": [
+          "C021-R0031:medication_order",
+          "C021-R0032:dispensing",
+          "C021-R0034:medication_order",
+          "C021-R0033:dispensing"
+         ],
+         "mentions": [
+          "C021-R0135#0",
+          "C021-R0135#4"
+         ]
+        },
+        "here": {
+         "at": 509760,
+         "times": [
+          319680,
+          466560,
+          509760,
+          538560,
+          606240
+         ],
+         "from_end": true,
+         "records": [
+          "C021-R0033:dispensing"
+         ],
+         "mentions": []
+        }
+       }
+      }
+     },
+     "C044": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 658080,
+       "end": 921082
+      },
+      "here": {
+       "start": 783360,
+       "end": 1046362
+      },
+      "shift": {
+       "start_days": 87,
+       "end_days": 87
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 658080,
+         "times": [
+          480960,
+          658080,
+          783360,
+          897120
+         ],
+         "from_end": true,
+         "records": [
+          "C044-R0027:medication_order",
+          "C044-R0028:dispensing",
+          "C044-R0029:dispensing",
+          "C044-R0030:dispensing",
+          "C044-R0031:dispensing",
+          "C044-R0032:dispensing",
+          "C044-R0033:dispensing",
+          "C044-R0034:dispensing",
+          "C044-R0035:dispensing"
+         ],
+         "mentions": [
+          "C044-R0075#1",
+          "C044-R0075#3",
+          "C044-R0076#5",
+          "C044-R0077#4",
+          "C044-R0078#2",
+          "C044-R0079#1",
+          "C044-R0080#1"
+         ]
+        },
+        "here": {
+         "at": 783360,
+         "times": [
+          480960,
+          658080,
+          783360,
+          829440,
+          897120
+         ],
+         "from_end": true,
+         "records": [
+          "C044-R0023:medication_order",
+          "C044-R0024:dispensing",
+          "C044-R0026:medication_order"
+         ],
+         "mentions": [
+          "C044-R0076#1",
+          "C044-R0076#4"
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "the first SCN1A result for 1 year": {
+   "present": {
+    "counts": {
+     "placed_both": 15,
+     "unplaced_both": 33,
+     "unchanged": 15,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   },
+   "off": {
+    "counts": {
+     "placed_both": 15,
+     "unplaced_both": 33,
+     "unchanged": 15,
+     "moved": 0,
+     "placed_only_on_main": 0,
+     "placed_only_here": 0
+    },
+    "classes": {},
+    "shift_days": null,
+    "patients": {}
+   }
+  },
+  "the 3rd seizure for 12 months": {
+   "present": {
+    "counts": {
+     "placed_both": 24,
+     "unplaced_both": 23,
+     "unchanged": 21,
+     "moved": 3,
+     "placed_only_on_main": 1,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: another happening: another occurrence ranks": 2,
+     "start: the same happening, other records: condition, diary_entry, mention (timed differently)": 1,
+     "start: anchored only on main": 1
+    },
+    "shift_days": {
+     "n": 3,
+     "min": -366,
+     "median": -102.29861111111111,
+     "max": 10.496527777777779
+    },
+    "patients": {
+     "C004": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 989280,
+       "end": 1515283
+      },
+      "here": {
+       "start": 462240,
+       "end": 988243
+      },
+      "shift": {
+       "start_days": -366,
+       "end_days": -366
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 989280,
+         "times": [
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0006:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0179#0"
+         ]
+        },
+        "here": {
+         "at": 462240,
+         "times": [
+          305280,
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0005:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0176#1"
+         ]
+        }
+       }
+      }
+     },
+     "C023": {
+      "change": "moved",
+      "class": "start: the same happening, other records: condition, diary_entry, mention (timed differently)",
+      "main": {
+       "start": 576000,
+       "end": 1102003
+      },
+      "here": {
+       "start": 591115,
+       "end": 1117118
+      },
+      "shift": {
+       "start_days": 10.496527777777779,
+       "end_days": 10.496527777777779
+      },
+      "bounds": {
+       "start": {
+        "class": "the same happening, other records: condition, diary_entry, mention (timed differently)",
+        "main": {
+         "at": 576000,
+         "times": [
+          308160,
+          427680,
+          576000,
+          591115,
+          1159200
+         ],
+         "from_end": false,
+         "records": [
+          "C023-R0005:condition",
+          "C023-R0006:diary_entry"
+         ],
+         "mentions": [
+          "C023-R0188#0"
+         ]
+        },
+        "here": {
+         "at": 591115,
+         "times": [
+          308160,
+          427680,
+          591115,
+          1074240
+         ],
+         "from_end": false,
+         "records": [
+          "C023-R0003:condition",
+          "C023-R0005:condition",
+          "C023-R0004:diary_entry"
+         ],
+         "mentions": [
+          "C023-R0188#2",
+          "C023-R0188#0"
+         ]
+        }
+       }
+      }
+     },
+     "C028": {
+      "change": "placed_only_on_main",
+      "class": "start: anchored only on main",
+      "main": {
+       "start": 1797120,
+       "end": 2323123
+      },
+      "here": {
+       "reason": "no 3rd seizure recorded, so the window cannot start"
+      },
+      "shift": null,
+      "bounds": {
+       "start": {
+        "class": "anchored only on main",
+        "main": {
+         "at": 1797120,
+         "times": [
+          1277280,
+          1789920,
+          1797120
+         ],
+         "from_end": false,
+         "records": [
+          "C028-R0002:condition"
+         ],
+         "mentions": [
+          "C028-R0039#1",
+          "C028-R0042#1",
+          "C028-R0046#1"
+         ]
+        },
+        "here": null
+       }
+      }
+     },
+     "C033": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 1704960,
+       "end": 2230963
+      },
+      "here": {
+       "start": 1557650,
+       "end": 2083653
+      },
+      "shift": {
+       "start_days": -102.29861111111111,
+       "end_days": -102.29861111111111
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 1704960,
+         "times": [
+          1364493,
+          1557650,
+          1704960,
+          1887840,
+          2079360,
+          2318010,
+          2480518,
+          2667957,
+          2885200,
+          3165120,
+          3398400,
+          3710064
+         ],
+         "from_end": false,
+         "records": [
+          "C033-R0049:condition"
+         ],
+         "mentions": [
+          "C033-R0109#0"
+         ]
+        },
+        "here": {
+         "at": 1557650,
+         "times": [
+          987840,
+          1364493,
+          1557650,
+          1704960,
+          1887840,
+          2079360,
+          2318010,
+          2480518,
+          2667957,
+          2885200,
+          3165120,
+          3398400,
+          3710064
+         ],
+         "from_end": false,
+         "records": [
+          "C033-R0048:condition"
+         ],
+         "mentions": [
+          "C033-R0107#0"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "off": {
+    "counts": {
+     "placed_both": 23,
+     "unplaced_both": 23,
+     "unchanged": 22,
+     "moved": 1,
+     "placed_only_on_main": 2,
+     "placed_only_here": 0
+    },
+    "classes": {
+     "start: another happening: another occurrence ranks": 1,
+     "start: anchored only on main": 2
+    },
+    "shift_days": {
+     "n": 1,
+     "min": -366,
+     "median": -366,
+     "max": -366
+    },
+    "patients": {
+     "C004": {
+      "change": "moved",
+      "class": "start: another happening: another occurrence ranks",
+      "main": {
+       "start": 989280,
+       "end": 1515283
+      },
+      "here": {
+       "start": 462240,
+       "end": 988243
+      },
+      "shift": {
+       "start_days": -366,
+       "end_days": -366
+      },
+      "bounds": {
+       "start": {
+        "class": "another happening: another occurrence ranks",
+        "main": {
+         "at": 989280,
+         "times": [
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0006:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0179#0"
+         ]
+        },
+        "here": {
+         "at": 462240,
+         "times": [
+          305280,
+          374400,
+          462240,
+          989280,
+          38175435
+         ],
+         "from_end": false,
+         "records": [
+          "C004-R0005:registry_entry"
+         ],
+         "mentions": [
+          "C004-R0176#1"
+         ]
+        }
+       }
+      }
+     },
+     "C023": {
+      "change": "placed_only_on_main",
+      "class": "start: anchored only on main",
+      "main": {
+       "start": 591115,
+       "end": 1117118
+      },
+      "here": {
+       "reason": "no 3rd seizure recorded, so the window cannot start"
+      },
+      "shift": null,
+      "bounds": {
+       "start": {
+        "class": "anchored only on main",
+        "main": {
+         "at": 591115,
+         "times": [
+          427680,
+          576000,
+          591115
+         ],
+         "from_end": false,
+         "records": [
+          "C023-R0004:diary_entry",
+          "C023-R0003:condition"
+         ],
+         "mentions": [
+          "C023-R0188#2"
+         ]
+        },
+        "here": null
+       }
+      }
+     },
+     "C028": {
+      "change": "placed_only_on_main",
+      "class": "start: anchored only on main",
+      "main": {
+       "start": 1797120,
+       "end": 2323123
+      },
+      "here": {
+       "reason": "no 3rd seizure recorded, so the window cannot start"
+      },
+      "shift": null,
+      "bounds": {
+       "start": {
+        "class": "anchored only on main",
+        "main": {
+         "at": 1797120,
+         "times": [
+          1277280,
+          1789920,
+          1797120
+         ],
+         "from_end": false,
+         "records": [
+          "C028-R0002:condition"
+         ],
+         "mentions": [
+          "C028-R0039#1",
+          "C028-R0042#1",
+          "C028-R0046#1"
+         ]
+        },
+        "here": null
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "results": {
+  "cases": 312,
+  "refused": {
+   "template: event frequency, stated findings": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: any seizure / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd seizure / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd seizure / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd seizure / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd seizure / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1 seizure within a month / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1 seizure within a month / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1 seizure within a month / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 1 seizure within a month / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 1 seizure within a month / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first febrile seizure / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / and a seizure while taking it, or 30 days after / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any blocker start / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / and a seizure while taking it, or 30 days after / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first blocker start / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / and a seizure while taking it, or 30 days after / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: last blocker start / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd blocker start / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd blocker start / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd blocker start / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd blocker start / and a seizure while taking it, or 30 days after / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / and a seizure while taking it, or 30 days after / off": "NTH_STEP_HAS_NO_END",
+   "sweep: 2nd blocker start / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd blocker start / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / alone / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / and a seizure while taking it, or 30 days after / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / within 6 months of the period start / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / within a year either side of the period end / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: first carbamazepine start / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / alone / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / then a febrile seizure within 12 months / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / then a febrile seizure at least a day later / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / and a febrile seizure up to 2 years either side / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / and a seizure while taking it, or 30 days after / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / and a seizure while taking it, or 30 days after / off": "NTH_STEP_HAS_NO_END",
+   "sweep: 2nd-to-last valproate start / within 6 months of the period start / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / within a year either side of the period end / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / after the first blocker, within 60 days / present": "FREE_TEXT_COUNT_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / alone / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / then a febrile seizure within 12 months / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / then a febrile seizure at least a day later / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / and a febrile seizure up to 2 years either side / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / within 6 months of the period start / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / within a year either side of the period end / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: SCN1A result / after the first blocker, within 60 days / off": "GENE_WITH_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x2 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x2 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x2 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x2 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary falls /2 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary falls /2 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary falls /2 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary falls /2 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1.2 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1.2 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1.2 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary rises x1.2 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at least 8 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at least 8 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at least 8 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at least 8 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at most 2 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at most 2 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at most 2 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: diary at most 2 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 10 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 10 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 10 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 10 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most 9 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most 9 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most 9 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most 9 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: height at least 80 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: height at least 80 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: height at least 80 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: height at least 80 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: head circumference at most 40 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: head circumference at most 40 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: head circumference at most 40 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: head circumference at most 40 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most -1 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most -1 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most -1 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at most -1 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 0 / then a febrile seizure within 12 months / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 0 / then a febrile seizure at least a day later / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 0 / and a febrile seizure up to 2 years either side / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: weight at least 0 / after the first blocker, within 60 days / off": "FREE_TEXT_CODED_ONLY_UNSUPPORTED",
+   "sweep: any seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: first seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: last seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 1st seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 2nd seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 1st-to-last seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 2nd-to-last seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 1 seizure within a month / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 3 seizures within 6 months / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 2 febrile seizures in the period / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: first febrile seizure / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: first Dravet diagnosis / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: any blocker start / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: first blocker start / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: last blocker start / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 2nd blocker start / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: first carbamazepine start / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: 2nd-to-last valproate start / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: SCN1A result / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary rises x2 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary falls /2 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary rises x1 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary rises x1.2 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary at least 8 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary at most 2 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: weight at least 10 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: weight at most 9 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: height at least 80 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: head circumference at most 40 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: weight at most -1 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: weight at least 0 / alone / possible": "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "sweep: diary rises x1 / alone / present": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / alone / off": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / then a febrile seizure within 12 months / present": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / then a febrile seizure at least a day later / present": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / and a febrile seizure up to 2 years either side / present": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / within 6 months of the period start / present": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / within 6 months of the period start / off": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / within a year either side of the period end / present": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / within a year either side of the period end / off": "store: INVALID_FACTOR",
+   "sweep: diary rises x1 / after the first blocker, within 60 days / present": "store: INVALID_FACTOR",
+   "sweep: weight at most -1 / alone / present": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / alone / off": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / then a febrile seizure within 12 months / present": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / then a febrile seizure at least a day later / present": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / and a febrile seizure up to 2 years either side / present": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / within 6 months of the period start / present": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / within 6 months of the period start / off": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / within a year either side of the period end / present": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / within a year either side of the period end / off": "store: VALUE_RELAXATION_MUST_WIDEN",
+   "sweep: weight at most -1 / after the first blocker, within 60 days / present": "store: VALUE_RELAXATION_MUST_WIDEN"
+  },
+  "compared": 14976,
+  "changed": 225,
+  "by_class": {
+   "start: a mention-only happening anchors here | excluded -> not_comparable": 49,
+   "start: another happening: another occurrence ranks | none -> possible": 23,
+   "start: a mention-only happening anchors here | excluded -> possible": 8,
+   "start: a mention-only happening anchors here | excluded -> exact": 15,
+   "start: a mention-only happening anchors here | excluded -> relaxed/exact": 14,
+   "start: a mention-only happening anchors here | excluded -> relaxed/possible": 17,
+   "start: a mention-only happening anchors here | exact -> possible": 1,
+   "start: a mention-only happening anchors here | excluded -> none": 67,
+   "start: another happening: another occurrence ranks | none -> exact": 3,
+   "start: another happening: another occurrence ranks | relaxed/exact -> possible": 5,
+   "start: a mention-only happening anchors here | none -> relaxed/possible": 1,
+   "start: another happening: another occurrence ranks | exact -> possible": 1,
+   "start: the same happening, other records: mention (timed differently) | possible -> exact": 1,
+   "start: the same happening, other records: mention (timed differently) | relaxed/possible -> relaxed/exact": 1,
+   "start: another happening: another occurrence ranks | relaxed/exact -> relaxed/exact": 4,
+   "start: a mention-only happening anchors here | exact -> none": 3,
+   "start: another happening: another occurrence ranks | possible -> exact": 2,
+   "start: another happening: another occurrence ranks | relaxed/possible -> relaxed/exact": 1,
+   "end: a mention-only happening anchors here | possible -> none": 2,
+   "end: a mention-only happening anchors here | none -> possible": 2,
+   "start: the same happening, other records: dispensing, medication_order, mention (timed differently) | possible -> none": 1,
+   "start: the same happening, other records: dispensing, medication_order, mention (timed differently) | exact -> none": 1,
+   "start: anchored only on main | none -> excluded": 3
+  },
+  "by_case": {
+   "template: sequence, stated findings": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "template: tree, stated findings": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "template: graph, stated findings": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "template: blank, stated findings": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "template: blank, coded only (1.3)": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1
+    }
+   },
+   "sweep: any seizure / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: any seizure / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: any seizure / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: any seizure / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: any seizure / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> possible": 1,
+     "start: a mention-only happening anchors here | exact -> possible": 1
+    }
+   },
+   "sweep: any seizure / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: any seizure / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first seizure / alone / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "sweep: first seizure / then a febrile seizure within 12 months / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first seizure / then a febrile seizure at least a day later / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first seizure / and a febrile seizure up to 2 years either side / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first seizure / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "sweep: first seizure / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "sweep: first seizure / after the first blocker, within 60 days / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last seizure / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: last seizure / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: last seizure / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last seizure / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: last seizure / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last seizure / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: last seizure / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: 1st seizure / alone / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "sweep: 1st seizure / then a febrile seizure within 12 months / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: 1st seizure / then a febrile seizure at least a day later / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: 1st seizure / and a febrile seizure up to 2 years either side / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: 1st seizure / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "sweep: 1st seizure / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> possible": 1
+    }
+   },
+   "sweep: 1st seizure / after the first blocker, within 60 days / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: 2nd seizure / alone / off": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> exact": 1
+    }
+   },
+   "sweep: 2nd seizure / within 6 months of the period start / off": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> exact": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: 1st-to-last seizure / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: 2 febrile seizures in the period / alone / off": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> possible": 1
+    }
+   },
+   "sweep: 2 febrile seizures in the period / within 6 months of the period start / off": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> possible": 1
+    }
+   },
+   "sweep: first febrile seizure / alone / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first febrile seizure / then a febrile seizure within 12 months / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first febrile seizure / then a febrile seizure at least a day later / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first febrile seizure / and a febrile seizure up to 2 years either side / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first febrile seizure / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first febrile seizure / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first febrile seizure / after the first blocker, within 60 days / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / within a year either side of the period end / present": {
+    "changed": 3,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1,
+     "start: a mention-only happening anchors here | none -> relaxed/possible": 1
+    }
+   },
+   "sweep: first Dravet diagnosis / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / and a seizure while taking it, or 30 days after / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: any blocker start / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / and a seizure while taking it, or 30 days after / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first blocker start / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / and a seizure while taking it, or 30 days after / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | exact -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: last blocker start / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / and a seizure while taking it, or 30 days after / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first carbamazepine start / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: SCN1A result / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: SCN1A result / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: SCN1A result / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: SCN1A result / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: SCN1A result / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: SCN1A result / within a year either side of the period end / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> exact": 1,
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: SCN1A result / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x2 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x2 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x2 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x2 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x2 / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x2 / within a year either side of the period end / present": {
+    "changed": 2,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1,
+     "start: the same happening, other records: mention (timed differently) | possible -> exact": 1
+    }
+   },
+   "sweep: diary rises x2 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary falls /2 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary falls /2 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary falls /2 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary falls /2 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary falls /2 / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1,
+     "start: the same happening, other records: mention (timed differently) | relaxed/possible -> relaxed/exact": 1
+    }
+   },
+   "sweep: diary falls /2 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary falls /2 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary rises x1.2 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at least 8 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: diary at most 2 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: weight at least 10 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: weight at least 10 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 10 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 10 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 10 / within 6 months of the period start / present": {
+    "changed": 3,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> relaxed/exact": 1,
+     "start: a mention-only happening anchors here | excluded -> exact": 1,
+     "start: a mention-only happening anchors here | exact -> none": 1
+    }
+   },
+   "sweep: weight at least 10 / within 6 months of the period start / off": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 10 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: weight at least 10 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / then a febrile seizure within 12 months / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | possible -> exact": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at most 9 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: height at least 80 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: height at least 80 / then a febrile seizure within 12 months / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: height at least 80 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: height at least 80 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: height at least 80 / within 6 months of the period start / present": {
+    "changed": 3,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> relaxed/exact": 1,
+     "start: a mention-only happening anchors here | excluded -> exact": 1,
+     "start: a mention-only happening anchors here | exact -> none": 1
+    }
+   },
+   "sweep: height at least 80 / within 6 months of the period start / off": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> relaxed/exact": 1
+    }
+   },
+   "sweep: height at least 80 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: height at least 80 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / then a febrile seizure within 12 months / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/possible -> relaxed/exact": 1,
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / within 6 months of the period start / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: head circumference at most 40 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: weight at least 0 / alone / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: weight at least 0 / then a febrile seizure within 12 months / present": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | possible -> exact": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 0 / then a febrile seizure at least a day later / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 0 / and a febrile seizure up to 2 years either side / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: weight at least 0 / within 6 months of the period start / present": {
+    "changed": 2,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1,
+     "start: a mention-only happening anchors here | exact -> none": 1
+    }
+   },
+   "sweep: weight at least 0 / within a year either side of the period end / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> exact": 1
+    }
+   },
+   "sweep: weight at least 0 / after the first blocker, within 60 days / present": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: first seizure then a febrile seizure / any / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> relaxed/exact": 1
+    }
+   },
+   "sweep: first seizure then a febrile seizure / from_start / the first seizure for 24 months": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first seizure then a febrile seizure / from_start / 12 months up to the last seizure": {
+    "changed": 1,
+    "by_class": {
+     "end: a mention-only happening anchors here | possible -> none": 1
+    }
+   },
+   "sweep: first seizure then a febrile seizure / within / the first seizure for 24 months": {
+    "changed": 2,
+    "by_class": {
+     "start: another happening: another occurrence ranks | none -> possible": 1,
+     "start: a mention-only happening anchors here | excluded -> relaxed/possible": 1
+    }
+   },
+   "sweep: first seizure then a febrile seizure / within / 12 months up to the last seizure": {
+    "changed": 1,
+    "by_class": {
+     "end: a mention-only happening anchors here | possible -> none": 1
+    }
+   },
+   "sweep: first seizure then a febrile seizure / after / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> none": 1
+    }
+   },
+   "sweep: a blocker then the diary rising / any / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: a blocker then the diary rising / from_start / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: a blocker then the diary rising / from_start / 12 months up to the last seizure": {
+    "changed": 1,
+    "by_class": {
+     "end: a mention-only happening anchors here | none -> possible": 1
+    }
+   },
+   "sweep: a blocker then the diary rising / within / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: a blocker then the diary rising / within / 12 months up to the last seizure": {
+    "changed": 1,
+    "by_class": {
+     "end: a mention-only happening anchors here | none -> possible": 1
+    }
+   },
+   "sweep: a blocker then the diary rising / after / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: a mention-only happening anchors here | excluded -> not_comparable": 1
+    }
+   },
+   "sweep: 2 febrile seizures in the period / any / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> possible": 1
+    }
+   },
+   "sweep: 2 febrile seizures in the period / from_start / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> possible": 1
+    }
+   },
+   "sweep: 2 febrile seizures in the period / within / the first seizure for 24 months": {
+    "changed": 1,
+    "by_class": {
+     "start: another happening: another occurrence ranks | relaxed/exact -> possible": 1
+    }
+   },
+   "blank, the last valproate start, 6 months before it to it, stated findings": {
+    "changed": 1,
+    "by_class": {
+     "start: the same happening, other records: dispensing, medication_order, mention (timed differently) | possible -> none": 1
+    }
+   },
+   "blank, the last valproate start, 6 months before it to it, coded only (1.3)": {
+    "changed": 1,
+    "by_class": {
+     "start: the same happening, other records: dispensing, medication_order, mention (timed differently) | exact -> none": 1
+    }
+   },
+   "blank, the 3rd seizure for 12 months, stated findings": {
+    "changed": 1,
+    "by_class": {
+     "start: anchored only on main | none -> excluded": 1
+    }
+   },
+   "blank, the 3rd seizure for 12 months, coded only (1.3)": {
+    "changed": 2,
+    "by_class": {
+     "start: anchored only on main | none -> excluded": 2
+    }
+   }
+  },
+  "unexplained": 0,
+  "first_unexplained": []
+ },
+ "view_cost": {
+  "rule": "reported, not ruled (D46 rule 7): node, one process, after the census",
+  "index_view_here": {
+   "repeats": 21,
+   "median_ms_all_patients": 23.536791999998968,
+   "patients": 48
+  },
+  "evidence_view_on_main": {
+   "repeats": 21,
+   "median_ms_all_patients": 16.09833300000173,
+   "patients": 48
+  }
+ },
+ "uncertainty": {
+  "rule": "reported, not ruled (D46 rule 8)",
+  "cases": 308,
+  "this_tree": {
+   "compared": 13824,
+   "changed": 397,
+   "transitions": {
+    "exact -> possible": 107,
+    "possible -> none": 77,
+    "exact -> none": 3,
+    "relaxed/exact -> relaxed/possible": 52,
+    "relaxed/possible -> none": 33,
+    "possible -> exact": 25,
+    "relaxed/possible -> possible": 2,
+    "relaxed/exact -> possible": 4,
+    "relaxed/possible -> relaxed/possible": 15,
+    "none -> relaxed/exact": 9,
+    "relaxed/exact -> exact": 1,
+    "relaxed/exact -> relaxed/exact": 2,
+    "unresolved -> unresolved": 1,
+    "exact -> relaxed/exact": 20,
+    "exact -> relaxed/possible": 4,
+    "unresolved -> not_comparable": 13,
+    "possible -> relaxed/possible": 1,
+    "not_comparable -> unresolved": 2,
+    "relaxed/exact -> none": 5,
+    "relaxed/possible -> relaxed/exact": 21
+   }
+  },
+  "main": {
+   "compared": 13824,
+   "changed": 429,
+   "transitions": {
+    "exact -> possible": 113,
+    "possible -> none": 91,
+    "exact -> none": 3,
+    "relaxed/exact -> relaxed/possible": 58,
+    "relaxed/possible -> none": 31,
+    "possible -> exact": 25,
+    "relaxed/possible -> possible": 2,
+    "relaxed/exact -> possible": 4,
+    "relaxed/possible -> relaxed/possible": 15,
+    "none -> relaxed/exact": 6,
+    "relaxed/exact -> exact": 1,
+    "relaxed/possible -> relaxed/exact": 22,
+    "relaxed/exact -> relaxed/exact": 2,
+    "unresolved -> unresolved": 1,
+    "exact -> relaxed/exact": 20,
+    "exact -> unresolved": 5,
+    "exact -> relaxed/possible": 4,
+    "unresolved -> not_comparable": 13,
+    "possible -> relaxed/possible": 1,
+    "not_comparable -> unresolved": 2,
+    "relaxed/exact -> none": 10
+   }
+  }
+ },
+ "moved_windows_unexplained": [],
+ "met": true,
+ "artifacts": {
+  "demos/mockups/d46_windows.cjs": "c95bb7de44410d8fde95da9ed6ae2e02d75bf78f6947eceb626be126802e1672",
+  "demos/mockups/index_reference.py": "b370a45486bcae2e155027ecf242e0cf6e5f0a89235afb67fc84cc52275d3489",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
+  "demos/mockups/trajectory/app.js": "014c8557666f690e73d5f432e38a2c3e0422c34b3f4fe9f2a5587e7548561066",
+  "demos/mockups/shared/core.js": "293d799a7039c717dd0f45494bbbfec5895616199778a326eb9f912badff6533",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false,
+ "synthetic_patient_ids": "generator ids only (as the parity test pins them)"
+}
