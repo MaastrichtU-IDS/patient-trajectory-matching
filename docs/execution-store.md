@@ -496,7 +496,7 @@ A gene step has occurrence `any`, carries no other condition and no relaxation n
 
 ## Coded records only, by request (D39)
 
-**Status.** Built and sound on every check. Not made the page's default: the usefulness bar was missed on the Event frequency template, under the strict reading by distinct child types (decision log, D39). The translator writes it only when asked (`codedOnly: 'store'`); by default it still refuses "coded records only" where letter mentions would be read (`FREE_TEXT_CODED_ONLY_UNSUPPORTED`). The code is in [`patterns/store_conditions_coded.py`](../patterns/store_conditions_coded.py), which no build loads. Callers reach it through [`patterns/store_conditions.py`](../patterns/store_conditions.py), which routes profile 1.3 there and hands everything else on unchanged.
+**Status.** Built and sound on every check. Not made the page's default: the usefulness bar was missed on the Event frequency template, under the strict reading by distinct child types (decision log, D39). D43c fixed that miss. D45 measured the flip and found it **ready**: every rule met, for this profile and for the joint profile with it (below and decision log, D45). The default stays off until the owner decides. The translator writes it only when asked (`codedOnly: 'store'`); by default it still refuses "coded records only" where letter mentions would be read (`FREE_TEXT_CODED_ONLY_UNSUPPORTED`). The code is in [`patterns/store_conditions_coded.py`](../patterns/store_conditions_coded.py), which no build loads. Callers reach it through [`patterns/store_conditions.py`](../patterns/store_conditions.py), which routes profile 1.3 there and hands everything else on unchanged.
 
 **The request** (profile `execution-store-conditions-1.3`: the 1.2 language plus `exclude_kinds`, which it requires):
 
@@ -542,7 +542,7 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 
 ## Gene steps under coded only: the joint profile (D42)
 
-**Status.** Built, sound on every check, and every rule met (decision log, D42). The translator writes it only when asked (`codedOnly: 'store'` with `geneCodedOnly: true`); `STORE_GENE_CODED_ONLY` and `STORE_CODED_ONLY` stay false (the coordinator's instruction), so the page's default requests do not change. No build loads the modules involved.
+**Status.** Built, sound on every check, and every rule met (decision log, D42). The translator writes it only when asked (`codedOnly: 'store'` with `geneCodedOnly: true`); `STORE_GENE_CODED_ONLY` and `STORE_CODED_ONLY` stay false (the coordinator's instruction), so the page's default requests do not change. No build loads the modules involved. D45 found both ready to turn on together (decision log, D45).
 
 **The request.** Profile `execution-store-conditions-gene-coded-1.0`: the gene profile (D38) plus a required `exclude_kinds` (only `"mention"`), with at least one gene step (`GENE_STEP_REQUIRED`; a coded-only request without one is 1.3). A snapshot whose `gene_report_kinds` lists a kind the request leaves out is refused (`GENE_REPORT_KIND_EXCLUDED`).
 
@@ -556,6 +556,17 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 - *No change:* 337 parity and sweep requests and 660 usefulness requests (D36, D38, D39; seeds 1001 to 1030) answer through this tree's dispatcher as through main's (f99e4f9), 0 differences.
 - *Usefulness* (`verification/d42-gene-coded-usefulness-report.json`): Tree and Graph under coded only 0 of 7 child types unresolved (0 of 122 candidates).
 - *Latency* (`verification/d42-paired-verdict.json`, D41's budget policy): 14-worker paired p95 ratios 1.005, 0.997, 1.004, 1.018, p95 9.49 s; requests that are not joint only.
+
+
+## Coded only by default: the readiness verdict (D45)
+
+**Status.** Measured; ready. `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay false: flipping them is the owner's decision (decision log, D45).
+
+- *Soundness through the page's path* (`tools/d45_measure.py`): D39's and D42's small-case generators through `store_conditions.match` with the count post-pass on. 80,000 cases: 0 worlds violations, 0 reference mismatches; the post-pass moves only STEP_CONDITION_UNCERTAIN results; pruning and the snapshot without mentions agree. A planted wrong post-pass is caught.
+- *Usefulness* (`verification/d45-coded-default-usefulness-report.json`, seeds 4501 to 4530): every template under "coded only" has 0 unresolved child types and 0 unresolved candidates.
+- *The page* (`verification/d45-coded-default-page-report.json`): the flip changes only "coded only", into the requests the parity test pins. The option sweep answers 442 (coded) or 449 (joint) of 561 definitions, every other one refused by name.
+- *Latency* (`verification/d45-coded-default-latency-verdict.json`, `tools/benchmark_coded_default.py`). Arms of requests in one tree: each coded-only request against the same request without `exclude_kinds`, control-normalised. The store's cost of leaving mentions out is 1.10 to 1.85 times at 300,000 (p95 at most 7.47 s, peak memory 7.18 GB against 3.98 GB at 14 workers) and 1.14 to 1.52 times at the page's size (p95 at most 79 ms). Most of the added time is the per-chunk query of left-out events.
+- *Recommendation:* flip both constants together. Flipping `STORE_CODED_ONLY` alone needs a page message for `GENE_WITH_CODED_ONLY_UNSUPPORTED` first.
 
 ## Match output
 
@@ -1197,7 +1208,7 @@ Most `none` results become `not_comparable`, and most relaxed ones `unresolved`.
   - bucket-level roots so that an append rebuilds and rehashes only the buckets it touches (the per-bucket derive of D23, which lets 1,000,000 patients build, is done: [Scaling](#1000000-patients-before-and-after-d23));
   - matching, the next wall per D19 step 3.
 - **`chartevents`**: done in D27 by route (b), with a census on the demo ([Chartevents](#chartevents-d27)). Value conditions in the match request (stage 2) are done in D28 ([Value conditions](#value-conditions-d28)). Next for it: textual and unitless measurements, unit equivalence and reviewed item mappings (stage 3).
-- **The mockups on the store** (D29). Stage 1 is done: a mockup page queries a locally built demo store with aggregate counts only, serving it only if it holds the open demo's own patients, and the synthetic cohort in a store is compared with the trajectory page (`demos/mockups/README.md`). Stage 2 is done (D37): the trajectory page matches in a store of the synthetic cohort by default, through its own translator; what the store cannot express (gene steps, hedged text, counts over stated text, "coded only" where letter mentions would still be read) is refused by name and matched in the browser, labelled. D39 built "coded only" for every step (profile 1.3); the translator writes it when asked, and by default still refuses it, since D39 missed its usefulness bar on the Event frequency template. D42 added gene steps under "coded only" (a joint profile, sound and useful), likewise written only when asked. Stage 3 waits for the hosting decision.
+- **The mockups on the store** (D29). Stage 1 is done: a mockup page queries a locally built demo store with aggregate counts only, serving it only if it holds the open demo's own patients, and the synthetic cohort in a store is compared with the trajectory page (`demos/mockups/README.md`). Stage 2 is done (D37): the trajectory page matches in a store of the synthetic cohort by default, through its own translator; what the store cannot express (gene steps, hedged text, counts over stated text, "coded only" where letter mentions would still be read) is refused by name and matched in the browser, labelled. D39 built "coded only" for every step (profile 1.3); the translator writes it when asked, and by default still refuses it, since D39 missed its usefulness bar on the Event frequency template. D42 added gene steps under "coded only" (a joint profile, sound and useful), likewise written only when asked. D45 measured turning both on by default and found them ready; the flip is the owner's decision. Stage 3 waits for the hosting decision.
 - **A Merkle input digest** (`patterns/merkle_patients.py`, built and tested, D27): wired in only when incremental appends exist; until then the flat D20 digest stays the identity.
 - **Time pruning** on the posting summaries: done in D25, with a differential of pruning on against off, and on end summaries for a `during` relation's grace in D26 ([Time pruning](#time-pruning-d25-d26)).
 - **Per-bucket joins.** The candidate patient and event lookups are `IN` lists over the candidate set today. At full scale they become joins against a candidate table, one bucket partition at a time.
