@@ -53,6 +53,9 @@ const run = (args, input) => {
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex');
 const shaText = text => crypto.createHash('sha256').update(text).digest('hex');
+// A smoke run to check the tool runs (CODED_DEFAULT_SMOKE=1): the first 10 sweep definitions, one undeclared seed (99);
+// never written into verification/.
+const SMOKE = process.env.CODED_DEFAULT_SMOKE === '1';
 
 // The flip (decision log, D45): each constant's one declaration, false today, turned on.
 const MODES = {main: {}, coded: {STORE_CODED_ONLY: true}, joint: {STORE_CODED_ONLY: true, STORE_GENE_CODED_ONLY: true}};
@@ -109,7 +112,7 @@ const DEFINITIONS = `
 
 function pageContext(cohortText, mode) {
   const stub = {addEventListener() {}, querySelector() { return null; }, querySelectorAll() { return []; }};
-  const context = vm.createContext({document: stub, addEventListener() {}, console, structuredClone, DATA: cohortText,
+  const context = vm.createContext({document: stub, addEventListener() {}, console, structuredClone, performance, DATA: cohortText,
                                     POST: () => { throw new Error('D45 never calls the page engine'); }});
   const page = fs.readFileSync(path.join(here, 'trajectory/app.js'), 'utf8').replace(/\nmain\(\);\s*$/, '\n');
   vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n' + page + '\n' + translatorText(mode) + `
@@ -163,7 +166,7 @@ const write = (output, report) => {
    refusal; and with stated or hedged findings it equals the page translator's with no options (nothing else moves). */
 function equivalence(contexts) {
   const defs = {...inContext(contexts.main, 'TEMPLATE_DEFS'), ...inContext(contexts.main, 'CONTINUITY_DEFS')};
-  for (const {name, def} of inContext(contexts.main, 'optionSweepDefinitions()')) defs['sweep: ' + name] = def;
+  for (const {name, def} of inContext(contexts.main, 'optionSweepDefinitions()').slice(0, SMOKE ? 10 : undefined)) defs['sweep: ' + name] = def;
   const out = {definitions: Object.keys(defs).length, free_text: ['off', 'present', 'possible'], modes: {}};
   for (const mode of ['coded', 'joint']) {
     const row = out.modes[mode] = {compared: 0, equal_to_explicit_option: 0, unchanged_outside_coded_only: 0,
@@ -198,7 +201,7 @@ function equivalence(contexts) {
 function sweeps(contexts, snapshot, patients) {
   const out = {};
   for (const mode of ['main', 'coded', 'joint']) {
-    const cases = inContext(contexts[mode], 'optionSweepCases()');
+    const cases = inContext(contexts[mode], 'optionSweepCases()').slice(0, SMOKE ? 10 : undefined);
     const answered = cases.filter(c => !c.refused);
     const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'sweep', snapshot], JSON.stringify({cohort: COHORT, cases: answered})));
     const tally = {answered: 0, translator: {}, store: {}}, unnamed = [], incomplete = [];
@@ -283,7 +286,7 @@ function page(output) {
       translators: Object.fromEntries(Object.keys(MODES).map(m => [m, {constants_on: Object.keys(MODES[m]), sha256: shaText(translatorText(m))}])),
       rule_3_1: eq, rule_3_2: sweep, messages: messages(contexts, sweep), translator_time: translatorTimes(contexts),
       met: {rule_3_1: eq.met, rule_3_2: Object.values(sweep).every(s => s.met)},
-      artifacts: artifacts(), contains_patient_level_data: false,
+      artifacts: artifacts(), contains_patient_level_data: false, ...(SMOKE ? {smoke: true} : {}),
     };
     write(output, report);
     console.error(`rule 3.1 ${eq.met ? 'met' : 'MISSED'}; rule 3.2 ${report.met.rule_3_2 ? 'met' : 'MISSED'}; `
@@ -327,7 +330,8 @@ function seedCases(cohortText) {
   }
   // A template both flipped translators answer alike is matched once (the joint flip changes only gene steps).
   const byName = Object.fromEntries(cases.map(c => [c.name, c]));
-  for (const name of RULED.coded) assert.ok(same(byName[`${name}, coded only (coded)`], byName[`${name}, coded only (joint)`]),
+  const body = c => { const {name: _, ...rest} = c; return rest; };
+  for (const name of RULED.coded) assert.ok(same(body(byName[`${name}, coded only (coded)`]), body(byName[`${name}, coded only (joint)`])),
                                             `${name}: the two flipped translators differ`);
   return {cases: cases.filter(c => !(c.name.endsWith('(joint)') && RULED.coded.some(n => c.name.startsWith(n + ',')))), refusals};
 }
@@ -369,9 +373,9 @@ function usefulness(output) {
       used.push(seed);
       console.error(`seed ${seed}: ` + RULED_NAMES.map(n => `${n} ${perSeed[seed].templates[n].unresolved}/${perSeed[seed].templates[n].candidates}`).join('; '));
     };
-    for (const seed of SEEDS) measure(seed);
+    for (const seed of SMOKE ? [99] : SEEDS) measure(seed);
     const pooledCandidates = n => used.reduce((k, s) => k + perSeed[s].templates[n].candidates, 0);
-    for (const seed of EXTEND) { if (!RULED_NAMES.some(n => pooledCandidates(n) < MINIMUM)) break; measure(seed); }
+    for (const seed of SMOKE ? [] : EXTEND) { if (!RULED_NAMES.some(n => pooledCandidates(n) < MINIMUM)) break; measure(seed); }
     const names = Object.keys(perSeed[used[0]].templates);
     const pooled = {}, byKey = {}, readings = {};
     for (const name of names) {
@@ -431,7 +435,7 @@ function usefulness(output) {
       per_seed: Object.fromEntries(used.map(s => [s, {children: perSeed[s].children, cohort_sha256: perSeed[s].cohort_sha256,
         snapshot_id: perSeed[s].snapshot_id, templates: Object.fromEntries(names.map(n => [n, Object.fromEntries(
           Object.entries(perSeed[s].templates[n]).filter(([k]) => !k.endsWith('_ids')))]))}])),
-      artifacts: artifacts(), contains_patient_level_data: false,
+      artifacts: artifacts(), contains_patient_level_data: false, ...(SMOKE ? {smoke: true} : {}),
     };
     write(output, report);
     console.error('bar: ' + RULED_NAMES.map(n => `${n} ${bar[n].types_unresolved}/${bar[n].types} types, ${bar[n].unresolved}/${bar[n].candidates} candidates (${bar[n].met ? 'met' : 'missed'})`).join('; ')
@@ -483,6 +487,9 @@ module.exports = {translatorText, withoutExclusion, MODES, SEEDS, EXTEND, RULED}
 
 if (require.main === module) {
   const what = process.argv[2], output = arg('--output', null);
+  if (SMOKE && output && path.resolve(output).startsWith(path.join(root, 'verification'))) {
+    console.error('a smoke run is never written into verification/'); process.exit(2);
+  }
   if (what === 'page') page(output);
   else if (what === 'usefulness') usefulness(output);
   else if (what === 'requests') requests(output);
