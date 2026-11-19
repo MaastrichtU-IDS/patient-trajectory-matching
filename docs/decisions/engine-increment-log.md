@@ -59,6 +59,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D43c | D43b retried: a witness search pruned to the candidates that can be feasible, output-identical (answers byte-identical to 0253f87's), with D43b's latency rule 4.1 reused unchanged, under rules fixed before measuring; the strided cut withdrawn before measuring | Decided; **shipped**. Every rule met. Count requests at 300,000 through the dispatcher: 14-worker ratios 1.15 to 1.21 (1.3 Event frequency, p95 7.48 s), 1.22 to 1.26 (1.1 Event frequency), 1.46 to 1.53 and 1.66 to 1.74 (Nth and count), all against 2.0; requests without counts 1.004 and 1.005. Answers byte-identical to D43b's retry base on 140,000 small cases (and at cut-offs 1, 2, 3), 1,040 snapshot answers and the four 300,000 requests. 0 violations in 140,000 small cases; 0 mismatches on 520 snapshot requests; every planted defect caught; pruning sound by enumeration (4,355 dropped) and brute force (80,693 dropped). Event frequency under coded only 0 of 16 child types unresolved. `STORE_CODED_ONLY` stays false |
 | D44 | The match beside `unresolved` says when excluded or undetermined records may make it exact (D18's gap; D32's, D36's and D42's follow-ups; D40's on reading such matches): the mark, the reference, the post-pass comparison, the worlds checker's reading and the whole source in the checks; D42's and D38's carve-outs removed, under rules fixed before measuring | Built and sound, **not shipped**: rule 6.2 missed as written (14-worker count-request ratios up to 1.060 against 1.05, with a no-change control rising in the same pairs). Every other rule met: 0 worlds violations in 140,000 cases with no carve-out (about 6% of marks needed over the whole source), 0 mismatches on 1,460 snapshot requests, both planted defects caught, nothing moved but the mark, MIMIC unchanged, 0 calls of changed code on the matcher path, the excluded-records path 0.99 to 1.00 of main's time. Reverted; kept at 4218110. The lesson: per-pair bars must be control-normalised. D44b queued |
 | D44b | D44 retried: the same code (recovered from 4218110), with rule 6.2 control-normalised (each count request's per-pair ratio over the geometric mean of two no-change controls' ratios in the same processes), a micro-measured bound on the changed code's cost and a check that the controls run no changed code, under rules fixed before measuring | Decided; **shipped**. Every rule met: 0 worlds violations in 140,000 cases with no carve-out (about 5% of marks needed over the whole source), 0 mismatches on 1,460 snapshot requests, both planted defects caught, nothing moved but the mark, MIMIC unchanged; 6.1a 0 calls of changed code on the matcher path; count requests normalised 0.98 to 1.033 (raw up to 1.046), `unmarked` at most 0.43% of a request, controls 0 calls; the excluded-records path 0.99 to 1.00 of main's. Builds reused (1,932 s). The rule is `excluded_records_scope_v2` |
+| D45 | Is "coded only" ready to be the trajectory page's default? A measured readiness verdict on flipping `STORE_CODED_ONLY` (D39), and with it `STORE_GENE_CODED_ONLY` (D42), under rules fixed before measuring; the flip is the owner's decision, and D45 keeps both false | Rules committed; measurement pending |
 
 ## D1 Package with hatchling, in place
 
@@ -3660,3 +3661,115 @@ D44 built the mark for a `possible` match beside `unresolved` (D18's gap) and me
 - Tighten the mark with an exact whole-source test, if a cheap one exists.
 - The engine's relaxed match beside `unresolved` does not say when its set's exact search stopped (D40's follow-up; needs `trajectory_graph.py`).
 - `unverified_match` is judged by the references only, not by the worlds checker.
+
+## D45 Is "coded only" ready to be the trajectory page's default? A readiness verdict on the flip, under rules fixed before measuring
+
+*Status:* rules committed; measurement pending.
+
+**The question.** The trajectory page offers three free-text settings; "coded records only" is one. Since D39 the store can answer it for every step (profile 1.3, `exclude_kinds: ["mention"]`), and since D42 with a gene step too (the joint profile). The page's translator writes those requests only when a caller asks: by default `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` are false (`demos/mockups/trajectory/store_request.js`), so under "coded only" the translator refuses by name and the page searches in the browser. D39 kept the default off because two of its rules missed: Event frequency's usefulness (11 of 16 child types unresolved, every one from D32's count rule) and the latency rule (one paired ratio 1.051, on a path that ran no D39 code). D43c fixed the first (0 of 16); D44 showed the second was noise and changed the protocol. D43c and D42 each said a flip would need D39's rules re-met. D45 re-meets them, on the current main and protocol, with fresh seeds, and gives the owner a measured verdict and a recommendation. **The flip is the owner's decision: D45 changes neither constant.** No file a build loads, no file under `patterns/` and no page file changes.
+
+**What "the flip" is, for these rules.** Two profiles, judged separately:
+- *coded*: `STORE_CODED_ONLY = true`. Sequence, Event frequency and Blank under "coded only" become 1.3 requests. Tree and Graph keep their named refusal (`GENE_WITH_CODED_ONLY_UNSUPPORTED`) and the browser search.
+- *joint*: both constants true. Tree and Graph under "coded only" become joint requests too.
+
+The tools load the translator as it would be flipped: they substitute each constant's one declaration (`const … = false;`) in the file's text before evaluating it beside the page's own code, and fail unless each declaration occurs exactly once. The page passes no options, so neither do the tools for a flipped translator.
+
+**The tools** (new; no report binds the files they touch).
+- `demos/mockups/option_sweep.js`: D37's option-sweep grid, moved out of `test_store_parity.cjs` unchanged so that both tools sweep the same grid. Checked before these rules: the moved grid translates to the same 561 cases, byte for byte (the JSON of every case), and the parity test passes unchanged.
+- `demos/mockups/coded_default.cjs`, three subcommands:
+  - `page`: rules 3.1 and 3.2, and two things reported (the refusal codes the flipped page can show without a message; the translator's own time per template). Output: `verification/d45-coded-default-page-report.json`.
+  - `usefulness`: rule 2. Output: `verification/d45-coded-default-usefulness-report.json`.
+  - `requests`: the page's requests for rule 4, written outside the repository (synthetic patient ids and windows).
+- `tools/d45_measure.py worlds`: rule 1.1, D39's and D42's small-case generators through the dispatcher with the count post-pass on, and rule 1.3's planted defects (`--defect`).
+- `tools/benchmark_coded_default.py`: rule 4. Output: `verification/d45-coded-default-latency-verdict.json`.
+- Tests: `tools/test_d45_tools.py` (the verdict logic, the structural check and its failures, the build check, the counters on a real store, the dispatcher harness on small snapshots; store tests skip without DuckDB).
+
+**Pre-committed rules** (committed with this entry, before any measurement of D45; "main" is 86da1fb).
+
+1. **Soundness and reference, on fresh seeds, through the dispatcher** (the page's server calls `store_conditions.match` with the count post-pass on).
+   1. *Small cases through the page's path.* `tools/d45_measure.py worlds --first 50000 --snapshots 20`: D39's generators (coded-plain, coded-derived) and D42's (gene-coded-plain, gene-coded-derived), each 20 snapshots of 40 tiny patients and 25 requests (**20,000 cases per generator**). Every answer is `store_conditions.match`'s with the post-pass on. It is met only if, on every generator:
+      - **0 worlds violations**: each result against every choice of times of the patient's kept events, and, for a coded-only patient with excluded records, the whole source (D44's reading);
+      - **0 reference mismatches**: the post-pass-off answer (the routed module's) against D39's or D42's independent reference;
+      - **the post-pass moves only results it may**: a result differs from the post-pass-off one only where that one is `unresolved` with STEP_CONDITION_UNCERTAIN (D43's rule);
+      - **pruning on and off byte-identical**;
+      - **the meaning by removal holds through the post-pass**: on the snapshot built without letter mentions, the same request without `exclude_kinds` gets the same results.
+   2. *Reference through the dispatcher, every profile.* `tools/d44_measure.py reference --first 50000 --requests 40 --main 86da1fb`. It is met only if every profile (1.0, 1.1, 1.2, 1.3, gene, joint, and counts on D43c's plan against D43's oracle) has **0 mismatching results and 0 variant differences** (2 workers, `decided`, pruning off), with `skipped_mismatch` 0. Its movement shadow compares the excluded-records rule with main's, which is this tree's: 0 calls other than equal.
+   3. *The harness of 1.1 catches a wrong post-pass.* `tools/d45_measure.py worlds --first 51000 --snapshots 4 --generators coded-derived gene-coded-derived --defect D`, for D43's planted defects `certainty_from_two` and `coupling_ignored` (`store_conditions_counts._D43_DEFECT`; every run at one worker). Each must give **at least one worlds violation** over the two generators.
+2. **Usefulness of every page template under "coded only"** (`coded_default.cjs usefulness`).
+   - *Cohorts:* fresh seeds, declared here: **4501 to 4530**, then 4531, 4532, … in order while some ruled template has fewer than 30 candidates pooled. The stop reads candidate counts only.
+   - *Requests:* each template as the page has it (its window, from the second seizure for 24 months, and scope, `from_start`), translated by the flipped translator with no options, built by `store_parity.py build` (the converter emitting series, through the gene wrapper) and matched through the dispatcher.
+   - *Candidates:* patients with a store candidate and an index window.
+   - *Ruled templates:*
+     - coded: Sequence, Event frequency, Blank;
+     - joint: Tree and Graph, whole.
+   - *The bar, per ruled template* (the owner's counting rule, 2026-11-16): at least 30 candidates pooled, and **at most 30% of the distinct child types unresolved**. A child type is a generator `PLAN` key (C001 is `reference`). A type counts as a candidate when any of its children is one in some seed, and as unresolved when any of its candidates is.
+   - *Coverage:* under the coded translator the whole Tree and Graph are refused by `GENE_WITH_CODED_ONLY_UNSUPPORTED` and nothing else is refused; under the joint translator none of the five is refused.
+   - *Reported, not ruled:* every candidate and the count without C001; status mixes and reasons, per seed and pooled; D39's two shapes without the gene step; the five templates under stated findings (the page's default setting), whose store answers the page gives today.
+3. **Page parity** (`coded_default.cjs page`, on the page's cohort).
+   1. *The flip changes only "coded only", and into the request the tools measure.* Every page template, D39's two shapes and every option-sweep definition (568 definitions), each under all three free-text settings, is checked for both flipped translators:
+      - with no options, the flipped translator equals the page translator with the explicit option the tools and the parity test pass (`codedOnly: 'store'`, `geneCodedOnly` false for coded and true for joint), request for request or refusal for refusal;
+      - with stated or hedged findings, it equals the page translator with no options (nothing else moves).
+
+      So the parity test's coded-only trajectories (eight under 1.3, two joint, since D39 and D42) are the flipped page's requests.
+   2. *The option sweep under each flipped translator* (D37's rule 1), run in the store on the page's cohort: every definition is answered, with a result for every patient, or refused by a named code. None may fail without a code. The tallies are reported beside main's.
+   3. `demos/mockups/test_store_parity.cjs` passes: every store–page difference has a declared cause, there is no `UNEXPLAINED`, and the replay holds.
+   - *Reported:* the refusal codes each flipped page can show for which the page's `STORE_REFUSAL` has no message (it then says only "the translator could not answer").
+4. **Latency of the page's coded-only requests, control-normalised** (`tools/benchmark_coded_default.py`).
+   - *Why these arms.* The flip changes a default, not code: the store and engine run the same bytes either way. What changes is the request the page sends under "coded only": today a refusal and the browser's search; flipped, a coded-only request that runs D39's exclusion work. A paired run against main's code would time identical code (D39's rule 5, D44's lesson). So, in this one tree, the two arms of D31's paired interleaved protocol are two request sets:
+     - the *candidate* arm sends each template's coded-only request, as the flipped translator writes it;
+     - the *reference* arm sends the same request without the exclusion. The query and windows are identical; `exclude_kinds` is dropped, and the profile becomes the one the store uses without it (1.3 to 1.2 with a rise, 1.1 with another step condition, none without; joint to gene). The tool checks that this is what the page translator writes today for the template: with D37's derived reading for the non-gene templates (Event frequency is refused under stated findings), and with stated findings for Tree and Graph (query and conditions; their windows are the candidate's).
+
+     Each pair's candidate-over-reference ratio is therefore the cost of leaving letter mentions out, at equal work otherwise. Arms run in fresh processes, back to back, the order alternating across repeats (ABBA). Both arms run the same two **controls**, requests that leave nothing out. Each pair's ratio is divided by the geometric mean of the controls' ratios in the same processes (D44b's normalisation).
+   - *The bar's level.* 2.0 is D43b's and D43c's bar for new work a page request runs against the path it replaces. Coded only does more per request by design (a query of the left-out events per chunk, the candidate refinement, the coverage scan). What the owner needs is that this stays within the bounds the protocol already accepts for new work on the page's path, and within the D21 target. *Disclosed:* D44b's verdict timed a 1.3 and a 1.1 Event frequency request at 300,000 patients (14-worker medians 6.15 and 5.06 s in its candidate arm; 1.3 p95 7.57 s). Those requests resemble, but are not, the page's.
+   1. *At the page's size* (the page's cohort, 48 children; the store built once by the server's builder, `store_parity.build`, outside the timed runs). Each arm opens it with the server's own class (`store_trajectory.TrajectoryStore`) and answers with its `match`: the server's checks, conversion and `store_conditions.match`, at one worker and `full` detail. The protocol: 4 repeats, each request run once untimed (recorded: the first request after the server starts fills caches), then 20 timed runs. Controls: two parity trajectories under stated findings, "febrile seizure, then a sodium-channel blocker" (no conditions) and "a blocker, then at least 8 seizures a month within 60 days" (a 1.1 value condition). Templates:
+      - coded: Sequence, Event frequency, Blank;
+      - joint: Tree and Graph, whole.
+
+      Met for a template only if:
+      - its **normalised ratio is at most 2.0 in every pair**;
+      - the **candidate's p95 is at most 2 s** over its 80 timed runs (an interactive bound, a fifth of the D21 target);
+      - its answer is one digest per arm over every run.
+   2. *At 300,000 patients* (the kept D44 build, `~/ptm-local/scaling-d44/size-300000`). `store_conditions.match` with `decided` detail at 14 and 8 workers, 4 repeats, 3 runs per request, windows from each patient's second coded seizure for 730 days (D43b's; the page's window over coded records). The build holds no series and no gene label, so:
+      - Event frequency and Blank run as the page writes them;
+      - Sequence runs without its rise, and Tree and Graph without their gene and rise steps;
+      - the joint profile cannot be timed here and is judged at the page's size only.
+
+      Controls: D43b's `1.1 sequence`, and the same sequence with no conditions. Met for a request only if, at 14 workers:
+      - its **normalised ratio is at most 2.0 in every pair**;
+      - the **candidate's p95 is at most 10 s** (the D21 target);
+      - its answer is one digest per arm over every run and both worker counts.
+
+      8 workers and the raw ratios are reported.
+   - *Protocol (both sizes):* the ruled worker count run, repeats at least 4 and even, the runs above, every request and both controls run in every arm, and each control's answer the same in both arms. Without it, no verdict is met.
+   3. *Structural: the normalisers and the references run no exclusion work* (D44b's F1). Every function of `store_conditions_coded` gets a call counter. A function given a `kinds` argument, or a `request` with `exclude`, counts only when that is non-empty: the gene profile calls D42's shared hooks with none. Every other function counts every call, except the profile predicate `is_coded_request`. Each control and each reference runs once with the counters, at the page's size and at 300,000 at 1 and 14 workers. Met only if:
+      - every control and reference reads **0**;
+      - every candidate reads **more than 0** (the counters work);
+      - no module of `patterns/` imports a function of the module by name;
+      - no pool-unit entry point the references and controls reach at scale (`execution_store`'s, `store_conditions_relative`'s, `store_conditions_counts`'s) reaches into the module in its own body (on the AST).
+
+      At one worker every unit runs in the counted process.
+   4. *A micro bound: not applicable as a ruled bound; reported.* D44's micro bound bounds changed code that runs inside a timed path whose ratio sits near 1, where noise could hide it. D45 has no such code: the flip changes none on any timed path. The store code it routes to (D39's exclusion work) is what the candidate arm times end to end, against a reference that rule 4.3 shows runs none of it, under a bar far above the noise floor. Reported, as attribution:
+      - the time inside the exclusion work's four disjoint entry points (`_left_out`, `refined`, `_comparability` with kinds, `_as_excluded`) per candidate: at the page's size, and at 300,000 at one worker in one process, beside the candidate's 14-worker median;
+      - the translator's own time per template.
+5. **No change.**
+   - `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay false: the tools fail if either declaration is not `= false` exactly once, and the parity test's pinned sweep tally (157 coded-only refusals) stands.
+   - No file under `patterns/`, `demos/mockups/trajectory/`, `demos/mockups/shared/`, `demos/mockups/synthetic/`, nor `store_parity.py` or `store_trajectory.py`, changes.
+   - The 300 recorded digests are unchanged (the suites).
+   - Every committed report stays current; the new D45 reports are the only additions.
+6. **Builds.** Rule 4.2 runs on the kept D44 build. Its runtime record (`build.json`'s `record`) and its manifest's builder digest must equal this tree's files (`build_check`); otherwise the run stops and the refusal is reported. No file the build loads changes.
+7. **The verdict and the recommendation.**
+   - **"Coded only" (the coded profile) is ready** if rules 1, 2 (coded), 3 (both translators' 3.1, the coded sweep, the parity test), 4.1 (coded templates), 4.2, 4.3, 5 and 6 all hold.
+   - **The joint profile is ready with it** if, in addition, rule 2 (joint), the joint sweep and rule 4.1 (Tree and Graph) hold.
+   - Otherwise the verdict is "not ready, because …", naming each missed rule with its numbers.
+   - Either way the constants stay false, and the recommendation to the owner is written here. A failure is reported, never tuned away, and no bar is changed after measuring.
+8. **Regeneration.** Only what goes stale: the D45 changes bind no committed report, so none is expected. Any report found stale is listed for sign-off before it is frozen or regenerated. One heavy job, under the bench lock.
+
+**Disclosed: development runs before these rules** (none ruled; none on a ruled seed). They were run to check that the tools run.
+- `d45_measure.py worlds` on seed 990, one snapshot per generator: 4,000 cases, 0 failures of any kind.
+- The two planted defects on seeds 980 and 981 (coded-derived, gene-coded-derived):
+  - `certainty_from_two`: 46 and 9 worlds violations;
+  - `coupling_ignored`: 3 and 0.
+  - Two other defects, `any_witness` and `whole_range`, gave none at that size, so they are not ruled.
+- `coded_default.cjs` in its smoke mode (`CODED_DEFAULT_SMOKE=1`: the first 10 sweep definitions; one undeclared seed, 99). Rule 3.1's checks held on those definitions; the 10 swept definitions were all answered under both flipped translators. Seed 99 found the coded translator refusing Tree and Graph by the expected code, and every ruled template had 0 unresolved among its few candidates.
+- `benchmark_coded_default.py` on the kept 1,000-patient build, at one worker, 2 repeats and 2 page runs, to check it runs. The structural check then read 0 for every reference and control and 9 to 22 calls for every candidate; its times are not evidence.
+- Seen, not measured: the page shows `GENE_WITH_CODED_ONLY_UNSUPPORTED` without a message today (it is not in `STORE_REFUSAL`), so under the coded profile alone Tree and Graph would say "the translator could not answer". `page` reports this; changing `app.js` is outside D45.
