@@ -5225,3 +5225,13 @@ E0's 5001 to 5100 are not reused. The rules:
 - *Between pairs:* over the 8 pairs, the standard deviation of the natural log of each ratio (the count request raw, each control, their geometric mean, normalised), and the correlation of the count request's log ratio with the controls' log geometric mean. This shows how much of the count request's movement from process to process the normalisation tracks.
 
 **Process.** One job under the bench lock, taken by a background job that waits and then runs. Nothing else heavy runs while it holds the lock. Outputs go to `~/ptm-local/d51/`. Gates: provenance 0 stale, test counts, `check_manifest`, and `ci-local.sh` (a tool and a CI line are added).
+
+**Amendment after a failed first attempt, before the ruled run** (disclosed; the design and the decision rule are unchanged).
+- *What failed.* The first attempt (on a84d73f, under the lock, 20:26 to 20:40) ran all 8 pairs, the micro measure and the control check, then crashed in the count tool's verdict step: `verdict_of` reads D44b's absolute request (1.3 Event frequency, the p95 bar) whatever the requests, and that request is not in D51's subset. The tool writes its report only at the end, and removes its scratch, so the report was lost.
+- *What was seen.* The job log keeps each process's median per request. Those were not analysed before the ruled run. They are reported afterwards as a disclosed, unruled first attempt.
+- *The fix, in D51's tool only.* The count tool is left unchanged, because D44b's verdict binds its digest.
+  - `run` now calls the count tool's `main` in its own process (`run_tool`), with `verdict_of` wrapped (`subset_verdict`). When the absolute request is not among the requests, the wrapper marks that bar not applicable (a 1e9 s bar on D51's request, with a note).
+  - Everything else passes through. The tool's own verdict still reads not met: its protocol check wants all six requests, and it is not D51's rule.
+  - Tests: `SubsetVerdictTests` (3; 15 in all). The tool's `verdict_of` raises on the subset, and the wrapper does not; a run that includes the absolute request is left alone; `run_tool` puts the tool's function back.
+- *A smoke run first, in the same job.* The same command runs on the kept 1,000-patient build (`size-1000`) with its output to scratch, so that every step through the report is exercised before the 300,000 run. It is not ruled; the job stops if it fails.
+- *The defect in the count tool* (a `--requests` subset under any `--rules` crashes in the verdict step) is queued as a follow-up. Fixing it would rebind D44b's verdict.

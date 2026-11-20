@@ -36,7 +36,6 @@ import json
 import math
 from pathlib import Path
 import statistics
-import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,6 +165,31 @@ def write(report, output, command=None):
     return out
 
 
+def subset_verdict(real):
+    """D51's wrapper of the count tool's `verdict_of`. With D44b's absolute request (1.3 Event frequency) not among the
+    requests, the tool's verdict step fails on a missing key after every timed run, and its report is lost (D51's
+    first attempt). Here that bar is marked not applicable: a bar of 1e9 s on D51's request, which cannot bind (JSON has
+    no infinity), with a note. Every other argument passes through, and the tool's own verdict still reads not met (its
+    protocol check wants all six requests)."""
+    def verdict_of(stats, requests, *args, **kwargs):
+        if bcr.ABSOLUTE_BAR['request'] not in requests:
+            note = f"D51: {bcr.ABSOLUTE_BAR['request']} not run; D44b's absolute bar not applied"
+            kwargs['absolute'] = {'request': REQUEST, 'p95_seconds': 1e9, 'note': note}
+        return real(stats, requests, *args, **kwargs)
+    return verdict_of
+
+
+def run_tool(argv):
+    """The count tool's `main` in this process, its file unchanged, with `subset_verdict` in place of its `verdict_of`
+    (its timed runs are its own subprocesses, as ever)."""
+    real = bcr.verdict_of
+    bcr.verdict_of = subset_verdict(real)
+    try:
+        return bcr.main(argv)
+    finally:
+        bcr.verdict_of = real
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     sub = parser.add_subparsers(dest='command', required=True)
@@ -191,7 +215,7 @@ def main(argv=None):
             command += ['--changed-set-label', args.changed_set_label]
         if args.bounded_set:
             command += ['--bounded-set', *args.bounded_set]
-        subprocess.run(command, cwd=ROOT, check=True)
+        run_tool(command[2:])  # in this process (`run_tool`), so the command shown names the tool's file
     shown = [str(c).replace(str(ROOT), '.').replace(str(Path.home()), '~') for c in command] if command else None
     out = write(json.loads(Path(args.raw).read_text()), args.output, command=shown)
     print(json.dumps(out['analysis']['decision']))
