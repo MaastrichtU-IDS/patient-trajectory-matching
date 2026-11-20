@@ -4998,6 +4998,11 @@ the lows it found are fixed too.
 
     A failure is reported, never tuned away; no bar changes after measuring.
 
+**At the checkpoint** (the coordinator, as the owner's delegate, on da2267e; before any measurement):
+- Rule 10 is accepted as proposed. `normalised_v1` stays an option, off by default; making it the page's default would be its own increment, with E0's measurements as evidence.
+- Leaving a genetic "result:" and "reclassified" out of the cue list stands, disclosed as above.
+- An independent review of da2267e runs before the job starts.
+
 **Regeneration.** None expected: no committed report binds a file E0 changes. The three E0 reports are new (soundness, defects, arms), produced in one job under the bench lock after the checkpoint.
 
 **Follow-ups** (named now).
