@@ -1,0 +1,621 @@
+{
+ "cohorts": [
+  "committed",
+  "5001",
+  "5002",
+  "5003",
+  "5004",
+  "5005",
+  "5006",
+  "5007",
+  "5008",
+  "5009",
+  "5010",
+  "5011",
+  "5012",
+  "5013",
+  "5014",
+  "5015",
+  "5016",
+  "5017",
+  "5018",
+  "5019",
+  "5020",
+  "5021",
+  "5022",
+  "5023",
+  "5024",
+  "5025",
+  "5026",
+  "5027",
+  "5028",
+  "5029",
+  "5030",
+  "5031",
+  "5032",
+  "5033",
+  "5034",
+  "5035",
+  "5036",
+  "5037",
+  "5038",
+  "5039",
+  "5040",
+  "5041",
+  "5042",
+  "5043",
+  "5044",
+  "5045",
+  "5046",
+  "5047",
+  "5048",
+  "5049",
+  "5050",
+  "5051",
+  "5052",
+  "5053",
+  "5054",
+  "5055",
+  "5056",
+  "5057",
+  "5058",
+  "5059",
+  "5060",
+  "5061",
+  "5062",
+  "5063",
+  "5064",
+  "5065",
+  "5066",
+  "5067",
+  "5068",
+  "5069",
+  "5070",
+  "5071",
+  "5072",
+  "5073",
+  "5074",
+  "5075",
+  "5076",
+  "5077",
+  "5078",
+  "5079",
+  "5080",
+  "5081",
+  "5082",
+  "5083",
+  "5084",
+  "5085",
+  "5086",
+  "5087",
+  "5088",
+  "5089",
+  "5090",
+  "5091",
+  "5092",
+  "5093",
+  "5094",
+  "5095",
+  "5096",
+  "5097",
+  "5098",
+  "5099",
+  "5100"
+ ],
+ "defect": null,
+ "pooled": {
+  "mentions": 244813,
+  "narrowed": 84755,
+  "annotated_time_expressions": 71473,
+  "annotated_verbatim_in_clause": 71473,
+  "annotated_read_by_normaliser": 71473,
+  "misses": 4
+ },
+ "narrowed_share": 0.3462030202644467,
+ "narrowed_by_rule": {
+  "age_days": 6151,
+  "age_months": 33321,
+  "age_years": 972,
+  "age_years_months": 10191,
+  "date": 303,
+  "since_previous_letter": 13080,
+  "this_week": 851,
+  "weeks_ago": 19886
+ },
+ "wrapper_counts": {
+  "fallback_no_expression": 157647,
+  "fallback_no_previous_letter": 1145,
+  "fallback_stop_cue": 1266,
+  "normalised_age_days": 6151,
+  "normalised_age_months": 33321,
+  "normalised_age_years": 972,
+  "normalised_age_years_months": 10191,
+  "normalised_date": 303,
+  "normalised_since_previous_letter": 13080,
+  "normalised_this_week": 851,
+  "normalised_weeks_ago": 19886
+ },
+ "widths": {
+  "d30": {
+   "median_days": 1438.0,
+   "p90_days": 2700.0,
+   "n": 244813
+  },
+  "normalised": {
+   "median_days": 896.0,
+   "p90_days": 2537.0,
+   "n": 244813
+  },
+  "d30_of_narrowed": {
+   "median_days": 1176.0,
+   "p90_days": 2527.0,
+   "n": 84755
+  },
+  "narrowed": {
+   "median_days": 33.0,
+   "p90_days": 101.0,
+   "n": 84755
+  }
+ },
+ "misses": [
+  {
+   "cohort": "5005",
+   "event_id": "letters/C030-R0033#m1",
+   "rule": "since_previous_letter",
+   "expression": "This confirms",
+   "days_outside": 72.0
+  },
+  {
+   "cohort": "5024",
+   "event_id": "letters/C040-R0101#m0",
+   "rule": "since_previous_letter",
+   "expression": "This confirms",
+   "days_outside": 90.0
+  },
+  {
+   "cohort": "5033",
+   "event_id": "letters/C039-R0040#m0",
+   "rule": "since_previous_letter",
+   "expression": "This confirms",
+   "days_outside": 343.0
+  },
+  {
+   "cohort": "5043",
+   "event_id": "letters/C019-R0096#m0",
+   "rule": "since_previous_letter",
+   "expression": "This confirms",
+   "days_outside": 111.0
+  }
+ ],
+ "misses_total": 4,
+ "met": false,
+ "per_cohort": {
+  "committed": {
+   "mentions": 2444,
+   "narrowed": 849
+  },
+  "5001": {
+   "mentions": 2362,
+   "narrowed": 828
+  },
+  "5002": {
+   "mentions": 2354,
+   "narrowed": 842
+  },
+  "5003": {
+   "mentions": 2621,
+   "narrowed": 870
+  },
+  "5004": {
+   "mentions": 2395,
+   "narrowed": 833
+  },
+  "5005": {
+   "mentions": 2451,
+   "narrowed": 831,
+   "misses": 1
+  },
+  "5006": {
+   "mentions": 2379,
+   "narrowed": 831
+  },
+  "5007": {
+   "mentions": 2385,
+   "narrowed": 821
+  },
+  "5008": {
+   "mentions": 2440,
+   "narrowed": 845
+  },
+  "5009": {
+   "mentions": 2435,
+   "narrowed": 835
+  },
+  "5010": {
+   "mentions": 2299,
+   "narrowed": 803
+  },
+  "5011": {
+   "mentions": 2429,
+   "narrowed": 856
+  },
+  "5012": {
+   "mentions": 2388,
+   "narrowed": 834
+  },
+  "5013": {
+   "mentions": 2379,
+   "narrowed": 834
+  },
+  "5014": {
+   "mentions": 2414,
+   "narrowed": 837
+  },
+  "5015": {
+   "mentions": 2536,
+   "narrowed": 853
+  },
+  "5016": {
+   "mentions": 2287,
+   "narrowed": 819
+  },
+  "5017": {
+   "mentions": 2477,
+   "narrowed": 836
+  },
+  "5018": {
+   "mentions": 2474,
+   "narrowed": 844
+  },
+  "5019": {
+   "mentions": 2382,
+   "narrowed": 834
+  },
+  "5020": {
+   "mentions": 2494,
+   "narrowed": 846
+  },
+  "5021": {
+   "mentions": 2352,
+   "narrowed": 824
+  },
+  "5022": {
+   "mentions": 2428,
+   "narrowed": 844
+  },
+  "5023": {
+   "mentions": 2352,
+   "narrowed": 828
+  },
+  "5024": {
+   "mentions": 2427,
+   "narrowed": 834,
+   "misses": 1
+  },
+  "5025": {
+   "mentions": 2401,
+   "narrowed": 827
+  },
+  "5026": {
+   "mentions": 2446,
+   "narrowed": 858
+  },
+  "5027": {
+   "mentions": 2478,
+   "narrowed": 836
+  },
+  "5028": {
+   "mentions": 2393,
+   "narrowed": 855
+  },
+  "5029": {
+   "mentions": 2352,
+   "narrowed": 827
+  },
+  "5030": {
+   "mentions": 2343,
+   "narrowed": 826
+  },
+  "5031": {
+   "mentions": 2428,
+   "narrowed": 834
+  },
+  "5032": {
+   "mentions": 2373,
+   "narrowed": 838
+  },
+  "5033": {
+   "mentions": 2292,
+   "narrowed": 816,
+   "misses": 1
+  },
+  "5034": {
+   "mentions": 2394,
+   "narrowed": 832
+  },
+  "5035": {
+   "mentions": 2461,
+   "narrowed": 869
+  },
+  "5036": {
+   "mentions": 2484,
+   "narrowed": 843
+  },
+  "5037": {
+   "mentions": 2407,
+   "narrowed": 848
+  },
+  "5038": {
+   "mentions": 2385,
+   "narrowed": 837
+  },
+  "5039": {
+   "mentions": 2375,
+   "narrowed": 830
+  },
+  "5040": {
+   "mentions": 2364,
+   "narrowed": 823
+  },
+  "5041": {
+   "mentions": 2464,
+   "narrowed": 852
+  },
+  "5042": {
+   "mentions": 2413,
+   "narrowed": 835
+  },
+  "5043": {
+   "mentions": 2447,
+   "narrowed": 851,
+   "misses": 1
+  },
+  "5044": {
+   "mentions": 2409,
+   "narrowed": 836
+  },
+  "5045": {
+   "mentions": 2524,
+   "narrowed": 866
+  },
+  "5046": {
+   "mentions": 2378,
+   "narrowed": 817
+  },
+  "5047": {
+   "mentions": 2321,
+   "narrowed": 810
+  },
+  "5048": {
+   "mentions": 2415,
+   "narrowed": 817
+  },
+  "5049": {
+   "mentions": 2402,
+   "narrowed": 837
+  },
+  "5050": {
+   "mentions": 2517,
+   "narrowed": 861
+  },
+  "5051": {
+   "mentions": 2406,
+   "narrowed": 848
+  },
+  "5052": {
+   "mentions": 2476,
+   "narrowed": 832
+  },
+  "5053": {
+   "mentions": 2349,
+   "narrowed": 822
+  },
+  "5054": {
+   "mentions": 2450,
+   "narrowed": 858
+  },
+  "5055": {
+   "mentions": 2398,
+   "narrowed": 838
+  },
+  "5056": {
+   "mentions": 2351,
+   "narrowed": 837
+  },
+  "5057": {
+   "mentions": 2461,
+   "narrowed": 843
+  },
+  "5058": {
+   "mentions": 2461,
+   "narrowed": 833
+  },
+  "5059": {
+   "mentions": 2476,
+   "narrowed": 866
+  },
+  "5060": {
+   "mentions": 2504,
+   "narrowed": 857
+  },
+  "5061": {
+   "mentions": 2392,
+   "narrowed": 831
+  },
+  "5062": {
+   "mentions": 2330,
+   "narrowed": 813
+  },
+  "5063": {
+   "mentions": 2467,
+   "narrowed": 835
+  },
+  "5064": {
+   "mentions": 2502,
+   "narrowed": 855
+  },
+  "5065": {
+   "mentions": 2530,
+   "narrowed": 850
+  },
+  "5066": {
+   "mentions": 2484,
+   "narrowed": 849
+  },
+  "5067": {
+   "mentions": 2507,
+   "narrowed": 841
+  },
+  "5068": {
+   "mentions": 2326,
+   "narrowed": 818
+  },
+  "5069": {
+   "mentions": 2408,
+   "narrowed": 850
+  },
+  "5070": {
+   "mentions": 2503,
+   "narrowed": 838
+  },
+  "5071": {
+   "mentions": 2401,
+   "narrowed": 835
+  },
+  "5072": {
+   "mentions": 2592,
+   "narrowed": 857
+  },
+  "5073": {
+   "mentions": 2430,
+   "narrowed": 849
+  },
+  "5074": {
+   "mentions": 2439,
+   "narrowed": 854
+  },
+  "5075": {
+   "mentions": 2420,
+   "narrowed": 846
+  },
+  "5076": {
+   "mentions": 2395,
+   "narrowed": 831
+  },
+  "5077": {
+   "mentions": 2525,
+   "narrowed": 853
+  },
+  "5078": {
+   "mentions": 2451,
+   "narrowed": 853
+  },
+  "5079": {
+   "mentions": 2314,
+   "narrowed": 832
+  },
+  "5080": {
+   "mentions": 2379,
+   "narrowed": 833
+  },
+  "5081": {
+   "mentions": 2398,
+   "narrowed": 819
+  },
+  "5082": {
+   "mentions": 2591,
+   "narrowed": 857
+  },
+  "5083": {
+   "mentions": 2318,
+   "narrowed": 794
+  },
+  "5084": {
+   "mentions": 2476,
+   "narrowed": 833
+  },
+  "5085": {
+   "mentions": 2432,
+   "narrowed": 855
+  },
+  "5086": {
+   "mentions": 2513,
+   "narrowed": 872
+  },
+  "5087": {
+   "mentions": 2482,
+   "narrowed": 842
+  },
+  "5088": {
+   "mentions": 2198,
+   "narrowed": 798
+  },
+  "5089": {
+   "mentions": 2468,
+   "narrowed": 847
+  },
+  "5090": {
+   "mentions": 2492,
+   "narrowed": 839
+  },
+  "5091": {
+   "mentions": 2376,
+   "narrowed": 854
+  },
+  "5092": {
+   "mentions": 2400,
+   "narrowed": 832
+  },
+  "5093": {
+   "mentions": 2467,
+   "narrowed": 834
+  },
+  "5094": {
+   "mentions": 2479,
+   "narrowed": 850
+  },
+  "5095": {
+   "mentions": 2386,
+   "narrowed": 848
+  },
+  "5096": {
+   "mentions": 2511,
+   "narrowed": 856
+  },
+  "5097": {
+   "mentions": 2412,
+   "narrowed": 853
+  },
+  "5098": {
+   "mentions": 2491,
+   "narrowed": 864
+  },
+  "5099": {
+   "mentions": 2340,
+   "narrowed": 830
+  },
+  "5100": {
+   "mentions": 2406,
+   "narrowed": 829
+  }
+ },
+ "profile": "e0-mention-time-soundness-1.0",
+ "rule": "E0 rules 1 and 2: every present letter mention about the patient converted under normalised_v1 (patterns/synthetic_mentions.py); a narrowed range that does not meet its truth event's day is a miss (rule 1: 0 misses); the share narrowed, the days each range covers (median, 90th percentile) beside D30's, and the annotated time expressions found verbatim in the clause and read by the normaliser are reported (rule 2)",
+ "artifacts": {
+  "tools/e0_measure.py": "e8abed31711e6676b306cb33f00e80026db30ec504d8f20158ed32c44827ba5e",
+  "demos/mockups/e0_requests.cjs": "0e6bd32361af5b502af7ca1236e6136b4a383a03b533384ac67ff1341332585f",
+  "patterns/mention_time.py": "bb779fdf0559560fed0fd33113fada4bdb52d495520c011986b2c3932cc9c982",
+  "patterns/synthetic_mentions.py": "6231d82f9992367b1846b0a17ce81330cc6b3f2a7272fbeb78319a8b9c4f844e",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
+  "demos/mockups/trajectory/app.js": "c5138d9d3062d3c859f38cc56db6b348412cb92ecba1343a6f1e1bdb4cedee9b",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182"
+ },
+ "contains_patient_level_data": false
+}
