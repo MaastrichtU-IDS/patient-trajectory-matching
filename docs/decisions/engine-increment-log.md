@@ -4655,3 +4655,89 @@ The 161 requests the store already answered by D32's reading change only where a
 *Follow-ups.*
 - The page's own search: under "Coded records only", time a medicine with only a stopped order from no note (`core.js`, `makeItem`). It moves the page's own search, so it needs its own increment with D46's and D47's reports.
 - From D45, still open: a cheaper exclusion of left-out events at scale, and joint requests timed on a 300,000 build with series and gene labels.
+
+## D50 Hosting on the ids3 cluster, with per-dataset access control: synthetic data only on dev
+
+The owner decided between 2026-11-17 and 2026-11-20, and the coordinator, as delegate, settled the details at the
+design checkpoint. This replaces the Cloud Run plan of the held PR #153. The plan is
+[docs/hosting-plan.md](../hosting-plan.md), and the draft manifests are in `deploy/ids3/ptm/dev/`, laid out for a
+later PR to `maastrichtu-ids/services`. Nothing is deployed or published.
+
+**Decisions.**
+- **Target:** ids3 (k3s, ArgoCD GitOps), project/env `ptm/dev`, namespace `ptm-dev`, host
+  `ptm.k8s.semanticscience.org`.
+  - One stateless pod runs `demos/mockups/server.py` behind Traefik, with cert-manager `letsencrypt` TLS.
+  - The namespace is egress-locked by `restrict-egress`; one added policy opens the in-cluster JWKS fetch from
+    Keycloak.
+  - Traefik applies a per-client rate limit and a 2 MiB body limit.
+  - The image is pinned by version and digest, never `latest`.
+  - Vault and VSO are wired but not listed: dev has no secret.
+- **Data on dev: synthetic only.** The design serves several datasets, each with its own policy.
+- **Observability: logs only.** One JSON line per API request, with no body, token, header or address. Tracing is
+  deferred; the plan says how to turn it on (OpenTelemetry has no zero-code path for `http.server`).
+- **Accounts: one shared, open Keycloak realm, `ids-apps`,** for the owner's user-facing apps, separate from the
+  infrastructure realm `ids3`.
+  - Self-registration by email, or through ORCID, GitHub or Google; users link several providers to one account.
+  - A new account holds no role until the owner adds it to group `approved`. Admins must use OTP.
+  - **The owner is emailed at each registration** by an event-listener provider in the platform Keycloak, using the
+    realm's SMTP settings (the MU relay). That is a platform change for the platform admin, specified in
+    `KEYCLOAK-REALM.md`. A poller is the documented fallback.
+- **Dataset tiers:**
+  - small synthetic: public, no login;
+  - MIMIC-IV demo: login plus `approved`, aggregate counts only;
+  - full MIMIC-IV: login plus `approved` plus `dataset:mimic-iv:read`. The owner grants that role after verifying
+    and recording the user's own PhysioNet credentialing.
+- **Full MIMIC-IV is hosted only after a storage and backup access review.** Credentialed users may then see
+  per-patient results. Until then no credentialed data goes on hosting, and the server refuses the `mimic-iv` kind
+  outright. The aggregate-only endpoint is not disclosure control (D29).
+
+**As built (server side).**
+- `datasets.py`: a registry in which each dataset has a kind, a policy and a results rule.
+  - Each kind has a floor policy that configuration may raise but never lower: synthetic is public, the MIMIC demo
+    `approved`, full MIMIC-IV the role.
+  - `results` must be what the backend produces.
+  - The content gates are unchanged: the open demo's 100 patients, and the generator's cohort.
+- `access.py`: bearer tokens checked locally with PyJWT 2.15.1 and cryptography 50.0.2, pinned in
+  `demos/mockups/requirements-hosting.lock.txt` and imported only when a realm is configured.
+  - The token must be RS256 only, with `iss`, `aud`, `exp` and `iat`, and `typ: Bearer`.
+  - Keys come from a JWKS URI configured separately from the issuer (the sulo-schema-builder pattern). They are
+    cached for 10 minutes and refetched for an unknown key at most every 30 s; held keys outlive an outage.
+- New endpoints: `GET /api/datasets` (the caller's datasets only), `GET /api/auth-config`, `GET /api/ready`, and
+  `/api/datasets/<id>/...`. The old store routes stay as aliases.
+  - Without a realm, a loopback bind keeps today's behaviour: the operator is the owner, and a local MIMIC demo
+    store still works.
+  - On any other address, a non-public dataset without a realm means the server does not start.
+- Also added: `PTM_MAX_BODY`, `PTM_MATCH_CONCURRENCY` and security headers.
+- The pages sign in with PKCE in `shared/auth.js`: the access token in memory, the refresh token in the tab's
+  `sessionStorage`, so page changes work. The pages list only the caller's datasets and say when an account awaits
+  approval.
+
+**Found on the way.**
+- `/api/health` did not answer during the store build, despite the Cloud Run plan's assumption: `main()` printed
+  the build's status before serving. The status lines now come from a background thread.
+- The standard library's `server_bind` spent 35 s in a reverse-DNS lookup on this machine before the socket
+  answered; the server now skips it.
+- There never was an owner-secret path in `server.py`. That secret belongs to the research workspace's Cloud Run
+  deployment.
+
+**Tests** (no network; the keys are generated in the test):
+- `test_access.py` (20 tests);
+- `test_datasets.py` (7), which also parses the dev registry in the draft ConfigMap;
+- `test_server_access.py` (11), with the realm's keys served on loopback;
+- `test_auth_page.cjs`, in CI.
+
+*Alternatives declined:*
+- A hand-rolled RS256 check: no dependency, but crypto code to review.
+- An owner Basic credential for local MIMIC use: it would have changed local use for no gain on a loopback bind.
+- Baking the synthetic store into the image: it would save about a second, add a second artefact to keep in step,
+  and skip the per-start content check.
+
+*Deferred:*
+- tracing;
+- full MIMIC-IV (the access review);
+- the backup realm admin (for the owner to name);
+- the registration-notice provider (platform admin);
+- the first real image build, since the local Docker daemon could not reach a registry, so the image's layout was
+  checked from a scratch copy instead;
+- a Content-Security-Policy;
+- a delivery route for a MIMIC-IV demo store, if it is to be hosted at all.

@@ -1,8 +1,9 @@
 # The store-backed mockups for the ids3 cluster (docs/hosting-plan.md): demos/mockups/server.py with the synthetic
-# cohort's execution store, and nothing else. DRAFT: built locally to check it, never pushed by anyone yet.
+# cohort's execution store, and nothing else. DRAFT: not yet built (no registry access here) and never pushed.
 #
-# Build from the repository root, which is the context. BuildKit reads the allow-list beside this file
-# (mockups.Dockerfile.dockerignore) instead of the root .dockerignore, so only the paths listed there reach the build:
+# Build from the repository root, which is the context. BuildKit (buildx) reads the allow-list beside this file
+# (mockups.Dockerfile.dockerignore) instead of the root .dockerignore, so only the paths listed there reach the build
+# (the legacy builder would apply the root .dockerignore instead; the explicit COPY lists below still copy nothing else):
 #   docker build -f deploy/ids3/mockups.Dockerfile -t ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:<version> .
 # Publish by a version tag and deploy by digest, never `latest` (hosting plan, "The image").
 #

@@ -235,12 +235,61 @@ Terminology codes are illustrative and were written from memory to make coding v
 - With the trajectory page on the store (D37), the answer shown is the store's, over every record and letter mention as recorded; the shortcuts above (records grouped by the page's rule, timed mentions, inferred courses) apply to the page's own search, to its fallback and to the index periods it places and sends.
 - Layout is three columns at 1280 px and wider, stacked below. The narrow-screen tab layout, measured accessibility checks and browser testing beyond Chromium are not done.
 
+## Datasets and access (D50)
+
+`server.py` serves its stores as datasets from a registry (`datasets.py`), each with an access policy and a rule on
+what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/hosting-plan.md).
+
+| Tier | Who may use it | Answers | Dataset |
+|---|---|---|---|
+| public | anyone, no sign-in | per patient (synthetic data only) | `synthetic-paediatric-rare`, the trajectory page's cohort |
+| approved | signed in to the realm, and approved by the owner (group `approved`) | aggregate counts only | `mimic-iv-demo`, the store query page, when a store is configured |
+| role | approved, and holding a role such as `dataset:mimic-iv:read`, granted after the owner checks and records the user's own PhysioNet credentialing | per patient | full MIMIC-IV: **refused by the server** until a storage and backup access review |
+
+- **Floors.** Each kind of dataset has a minimum policy a registry cannot lower: the MIMIC-IV demo can never be
+  public, and full MIMIC-IV (`kind: mimic-iv`) is refused outright for now. A registry may raise a policy. The
+  `results` field must match what the backend produces. The content gates are unchanged: the MIMIC endpoints serve
+  only the open demo's 100 patients, and the trajectory store only the generator's cohort. Counts-only is still not
+  disclosure control (above).
+- **Who is calling** (`access.py`). With `PTM_OIDC_ISSUER`, `PTM_OIDC_JWKS_URI` and `PTM_OIDC_AUDIENCE` set, an
+  `Authorization: Bearer` access token from the realm, checked locally against the realm's public keys: RS256 only,
+  issuer, audience, expiry, and `typ: Bearer`. Roles come from `realm_access.roles`. A present but invalid token gets
+  `401 TOKEN_INVALID`; a caller without the access a dataset needs gets `401 LOGIN_REQUIRED`, `403 NOT_APPROVED` or
+  `403 ROLE_REQUIRED`. The keys come from `PTM_OIDC_JWKS_URI`, which is configured separately from the issuer
+  (in-cluster on ids3).
+- **Local use is unchanged.** With no realm configured and the server on a loopback address, the person at the
+  machine is the owner and is served every configured dataset: `--mimic-store` works as before. On any other
+  address, a non-public dataset without a realm means the server refuses to start.
+- **Endpoints.** `GET /api/datasets` lists the datasets the caller may use, and whether they are signed in and
+  approved. `GET /api/auth-config` tells the page how to sign in. `/api/datasets/<id>/status`, `.../catalogue`
+  (aggregate kinds only) and `.../match` address each dataset; `/api/trajectory-store/*` and `/api/store/*` stay as
+  aliases of the first dataset of each kind. `GET /api/ready` answers 200 once every dataset is ready; `/api/health`
+  answers from the start. `--datasets FILE` (or `PTM_DATASETS`) names a registry; without one the flags build it.
+- **Limits and logs.** `PTM_MAX_BODY` (default 20 MiB) and `PTM_MATCH_CONCURRENCY` (default unlimited; extra matches
+  wait 5 s, then get `503 BUSY`). With `PTM_LOG_FORMAT=json`, one JSON line per API request: route, status, duration,
+  dataset, kind of caller and the token's subject; never a body, a token, a header or an address. Every response
+  carries `X-Content-Type-Options`, `Referrer-Policy` and `X-Frame-Options`.
+- **Sign-in on the pages** (`shared/auth.js`): PKCE against the realm's public client, with no library vendored. The
+  access token is kept in memory, the refresh token in the tab's `sessionStorage`, so the next page gets a new access
+  token without signing in again. The index lists only the datasets the caller may use, and says when an account
+  awaits approval. Without a realm none of this appears.
+- **Dependencies.** The token check needs `requirements-hosting.lock.txt` (the store lock plus PyJWT and
+  cryptography); it is imported only when a realm is configured.
+- **Tests.** `test_access.py` covers the token check against keys generated in the test: expired, wrong-issuer,
+  wrong-audience, tampered, re-signed, `none`/HS256/RS512 tokens, ID tokens, key rotation and an unreachable realm,
+  plus each tier for each kind of caller. `test_datasets.py` covers the registry rules. `test_server_access.py` runs
+  the server against a realm whose keys are served on loopback by the test: an anonymous caller reaches only public
+  datasets, each token reaches its tier, bad tokens are refused everywhere, the log holds no token. It also covers
+  local use, the non-loopback refusal, health during the build, and the body and concurrency limits.
+  `test_auth_page.cjs` runs the sign-in in Node. None needs the network.
+
 ## Deployment
 
-The `Dockerfile` serves these pages with nginx and regenerates the dataset during the build, so the generated file is never uploaded. No hosted copy is currently running; the Cloud Run service `ptm-mockups` was removed on 4 November 2026. To host it again behind IAP:
+The target is the ids3 cluster, at `ptm.k8s.semanticscience.org`, with the synthetic cohort only on dev
+([docs/hosting-plan.md](../../docs/hosting-plan.md); the draft manifests are in
+[`deploy/ids3/ptm/dev/`](../../deploy/ids3/ptm/dev/)). Nothing is deployed yet.
 
-```sh
-gcloud run deploy ptm-mockups --source demos/mockups --region us-central1 --project dumontier-charm --iap --no-allow-unauthenticated
-```
-
-Then grant `roles/iap.httpsResourceAccessor` to the people who should see it.
+The `Dockerfile` here serves the pages with nginx and regenerates the dataset during the build, so the generated
+file is never uploaded. It has no server, so the store, the engine endpoint and the dataset endpoints are absent; the
+pages fall back to the browser. No hosted copy of it is running; the Cloud Run service `ptm-mockups` was removed on
+4 November 2026.

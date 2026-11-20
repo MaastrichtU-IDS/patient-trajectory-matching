@@ -21,8 +21,7 @@ any volume.
   HTTP server; DuckDB for the store; PyJWT and cryptography for the token check. The synthetic store is built at
   start (about 1.3 s) into an `emptyDir`, and the root filesystem is read-only.
 - No database, no PVC, no migration, no sidecar.
-- **Keycloak** — not deployed here: the shared user realm on the platform Keycloak (working name `semanticscience`,
-  to confirm), set up by `KEYCLOAK-REALM.md`.
+- **Keycloak** — not deployed here: the shared user realm `ids-apps` on the platform Keycloak, set up by `KEYCLOAK-REALM.md`.
 
 ## Auth wiring
 
@@ -48,9 +47,9 @@ the page the issuer and client id (public facts).
 
 **None.** The browser client is public (PKCE), the token check uses public keys, and synthetic data need no
 credential, so there is nothing to put in Vault today. `vault.yaml` is ready but not listed in the kustomization; the
-Vault steps below are for the first secret (likely candidates: a client secret for a registration-notice poller, if
-option (b) of `KEYCLOAK-REALM.md` section 6 is chosen, or a read credential for a MIMIC-IV demo store, if one is ever
-delivered from object storage).
+Vault steps below are for the first secret (likely candidates: a read credential for a MIMIC-IV demo store, if one is
+ever delivered from object storage, or a client secret for the fallback registration-notice poller of
+`KEYCLOAK-REALM.md` section 6, if the platform provider is not built).
 
 ## Logs and tracing
 
@@ -64,8 +63,7 @@ hosting plan, section 5.
 
 ## Owner checklist (project owner)
 
-- [ ] Confirm the realm name (`semanticscience` is a working name) and name the backup realm admin.
-- [ ] Choose the registration-notice route (`KEYCLOAK-REALM.md`, section 6).
+- [ ] Name the backup realm admin for `ids-apps`.
 - [ ] Register the OAuth apps at ORCID, GitHub and Google (redirect URIs in `KEYCLOAK-REALM.md`, section 4) and hand
       their client ids and secrets to the realm admin out of band; they go into Keycloak, not Vault, not git.
 - [ ] Publish the image: push a tag `mockups-vX.Y.Z` in the app repo (the image workflow, hosting plan section 2),
@@ -90,7 +88,10 @@ hosting plan, section 5.
 ### Keycloak
 
 - [ ] Everything in `KEYCLOAK-REALM.md`, sections 1 to 5 (realm, roles and the `approved` group, client
-      `ptm-mockups` with the `ptm-api` audience mapper, identity providers, admin OTP), and section 6 once chosen.
+      `ptm-mockups` with the `ptm-api` audience mapper, identity providers, admin OTP).
+- [ ] **Platform change (platform admin):** the registration-notice event-listener provider in the platform
+      Keycloak, `KEYCLOAK-REALM.md` section 6. Not needed for the first deploy; until it exists the owner checks
+      new accounts in the admin console.
 
 ### Vault (only when the first secret arrives; nothing to do for the first deploy)
 

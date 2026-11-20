@@ -3,7 +3,7 @@
 A plan for the owner and the cluster admin. Nothing here has been deployed or published. The manifests are drafts in
 [`deploy/ids3/ptm/dev/`](../deploy/ids3/ptm/dev/), laid out as `ids3/projects/ptm/dev/` in the
 `maastrichtu-ids/services` repo, ready to copy into a services-repo PR. This replaces the Cloud Run plan of the held
-PR #153: the target is now ids3 (owner decisions of 2026-11-17 to 2026-11-20, recorded as D49 in the
+PR #153: the target is now ids3 (owner decisions of 2026-11-17 to 2026-11-20, recorded as D50 in the
 [decision log](decisions/engine-increment-log.md)).
 
 ## Owner decisions this plan implements
@@ -53,8 +53,15 @@ browser ──TLS──> keycloak.k8s.semanticscience.org (sign-in: PKCE; ORCID,
 
 - **Build file:** [`deploy/ids3/mockups.Dockerfile`](../deploy/ids3/mockups.Dockerfile), from the repository root.
   Its allow-list, `mockups.Dockerfile.dockerignore`, replaces the root `.dockerignore` for this build (a BuildKit
-  feature), so the context holds only the engine, its contracts, the server modules, the pages and the generator.
-  `data/`, `verification/` and any local store cannot reach the build, whatever is in the working tree.
+  feature; the image workflow builds with buildx), so the context holds only the engine, its contracts, the server
+  modules, the pages and the generator. `data/`, `verification/` and any local store cannot reach the build,
+  whatever is in the working tree. With the legacy builder the root `.dockerignore` applies instead (it also
+  excludes `data/local-mimic` and `verification/`), and the explicit COPY lists still copy nothing else.
+- **Not yet built.** The local Docker daemon here has no route to Docker Hub or PyPI, so the image has not been
+  built. Instead the image's layout (its COPY lists) was reproduced in a scratch directory and the server started
+  from it with `python -I`: the store built in 1.2 s, `/api/health`, `/api/ready`, `/api/datasets` and the pages
+  answered, `/api/store/status` said no store is configured, and SIGTERM removed the store's build. The image
+  workflow's checks are the first real build.
 - **Pinned base:** `python:3.12-slim-bookworm@sha256:935c3c5b…` (resolved 2026-11-20). Python packages from
   `demos/mockups/requirements-hosting.lock.txt` (the store lock plus the token check's pins), binary wheels only.
 - **Cohort:** regenerated at build from the committed generator and checked by a second run, as the static image and
@@ -74,7 +81,7 @@ browser ──TLS──> keycloak.k8s.semanticscience.org (sign-in: PKCE; ORCID,
 ### The realm
 
 Set up by hand from [`KEYCLOAK-REALM.md`](../deploy/ids3/ptm/dev/KEYCLOAK-REALM.md) (by hand, not by realm import,
-so that no provider secret is ever in a file). Working name `semanticscience`, **to confirm**. In short:
+so that no provider secret is ever in a file). Realm **`ids-apps`**. In short:
 
 - Registration on, verify email on, login with email, no duplicate emails, brute-force detection, a password policy.
 - Default roles stripped to the account console's `view-profile` and `manage-account`, so a new account holds no
@@ -89,21 +96,21 @@ so that no provider secret is ever in a file). Working name `semanticscience`, *
   backup admin (**to be named by the owner**) administer the realm from its own admin console, without `master`.
 - Events: user events (90 days) and admin events (one year) saved, so registrations, approvals and dataset-role
   grants are recorded. A credentialing check is recorded as admin-only user attributes before the role is granted.
-- **Registration notice:** two designs, the choice open. (a) A small Java event-listener provider in the platform
-  Keycloak that mails the owner on `REGISTER` through the realm's own SMTP settings (the MU relay): no secret and no
-  delay, but a platform change the admin owns. (b) A poller in an app namespace reading the admin events API with a
-  service-account client: no platform change, but a client secret in Vault, a delay, and state across restarts.
-  **Recommended: (a).** Either way the platform Keycloak must reach `smtp.maastrichtuniversity.nl:25`, which the
-  admin confirms (verification emails need it anyway).
+- **Registration notice: (a), decided.** A small Java event-listener provider in the platform Keycloak mails the
+  owner on `REGISTER` through the realm's own SMTP settings (the MU relay): no secret, no delay. It is a **platform
+  change that needs the platform admin**; `KEYCLOAK-REALM.md` section 6 is its specification. The documented
+  fallback, (b), is a poller in an app namespace reading the events API with a service-account client (a client
+  secret in Vault, a delay, state across restarts). Either way the platform Keycloak must reach
+  `smtp.maastrichtuniversity.nl:25`, which the admin confirms (verification emails need it anyway).
 
 ### The token check (server side)
 
 - `Authorization: Bearer <access token>` on any API request. No header: an anonymous caller.
 - Verified locally with PyJWT: signature with a key from the realm's JWKS, **RS256 only** (no `none`, no HMAC, so no
-  algorithm confusion); `iss` equal to `PTM_OIDC_ISSUER`; `aud` containing `PTM_OIDC_AUDIENCE`; `exp` required,
-  `nbf` and `iat` checked when present, 30 s leeway; `typ` claim `Bearer`, so an ID token cannot stand in.
+  algorithm confusion); `iss` equal to `PTM_OIDC_ISSUER`; `aud` containing `PTM_OIDC_AUDIENCE`; `exp` and `iat` required,
+  `nbf` checked when present, 30 s leeway; `typ` claim `Bearer`, so an ID token cannot stand in.
 - **JWKS from `PTM_OIDC_JWKS_URI`**, the in-cluster Keycloak Service, configured separately from the issuer (the
-  browser-facing URL); deriving one from the other is the failure sulo-schema-builder documents. Fetched with a
+  browser-facing URL); deriving one from the other is the failure sulo-schema-builder documents. Fetched without following redirects, with a
   5 s timeout and a 64 KiB cap, cached 10 minutes, re-fetched at most once every 30 s when a token names an unknown
   `kid` (key rotation). `allow-keycloak-egress.yaml` opens exactly that destination.
 - A present but invalid token gets `401 TOKEN_INVALID` (with `WWW-Authenticate: Bearer error="invalid_token"`), never a
@@ -146,19 +153,33 @@ A dataset has an **id**, a **kind** (which backend serves it), an **access** pol
 
 ### Without Keycloak: local development and the owner
 
-- With no `PTM_OIDC_*` configured, **only public datasets are served** to callers without credentials. A bearer token
-  then gets `401 AUTH_NOT_CONFIGURED`.
-- **The owner's local path** replaces the follow-up "owner-secret launcher" of the Cloud Run plan. `server.py
-  --owner-auth-file FILE` takes the research workspace's private `owner:<secret>` file (`app/access_control.py`,
-  which refuses a file that is not private, owner-held and well formed) and accepts HTTP Basic with it **only on a
-  loopback bind**, as the research workspace does. The owner caller passes every policy, so a locally built MIMIC-IV
-  demo store is reachable with it. The secret is never printed or logged.
-  This changes local use: today `--mimic-store` serves the demo store to anyone who reaches the port. After it, the
-  store page needs the owner credential (the browser asks once) or a configured realm.
-- **On ids3 there is no owner secret.** The owner signs in like any user and holds `approved`, the dataset roles and
-  realm admin. Nothing is mounted, so nothing can leak from the pod.
-- **Fail-loud guard:** the server refuses to start on a non-loopback address with a non-public dataset configured
-  and no OIDC, and refuses `--owner-auth-file` on a non-loopback address.
+- **There was no owner-secret path in `server.py`.** The owner secret of the earlier plans (`ptm-demo-owner`) belongs
+  to the Cloud Run deployment of the research workspace (`app/access_control.py`, `deploy/cloud_run.py`); the
+  mockup server never had one. The Cloud Run plan's follow-up "an owner-secret launcher for `server.py`" is
+  superseded: on ids3 the owner signs in to the realm like anyone else, and locally nothing changes.
+- **Local use is unchanged.** On a loopback bind with no realm configured, the person at the machine is the owner
+  (a loopback port is reachable only from that machine), and is served every configured dataset, as before D50: a
+  locally built MIMIC-IV demo store named by `--mimic-store` keeps working without any credential, and stays
+  content-gated to the open demo's 100 patients (D29). A bearer token then gets `401 AUTH_NOT_CONFIGURED`.
+- **With a realm configured**, the loopback owner is off and tokens decide, on loopback too (that is how the tests
+  exercise the realm).
+- **Fail-loud guard:** on any non-loopback bind, a non-public dataset without a realm means the server does not
+  start (`NON_PUBLIC_DATASET_NEEDS_OIDC_ON_A_NON_LOOPBACK_BIND`). An incomplete realm configuration (one or two of
+  the three `PTM_OIDC_*` variables) is refused too, never ignored.
+- **On ids3 there is no owner secret.** The owner holds `approved`, the dataset roles and realm admin in `ids-apps`.
+  Nothing is mounted, so nothing can leak from the pod. No `--owner-auth-file` was added: nothing needs it.
+
+### The pages' sign-in
+
+`shared/auth.js` (no library vendored): the authorization-code flow with PKCE S256 against the public client named
+by `/api/auth-config`. **The access token is kept in memory only; the refresh token in `sessionStorage`.** Memory
+alone breaks every page change, since each mockup page is a separate document, and would send the user back through
+Keycloak each time; `sessionStorage` is per tab and cleared when the tab closes, and holds only the refresh token,
+from which each page load gets a fresh access token. The `state` is checked before a code is exchanged, and the
+verifier never leaves the tab. The index page lists only the datasets the caller may use (the store query card is
+hidden unless a MIMIC-IV demo dataset is in the caller's list) and says when an account awaits approval; the store
+query page explains a refusal (sign in, awaiting approval, role needed). Without a realm all of it is inert.
+`test_auth_page.cjs` runs it in Node with the browser stubbed.
 
 ## 4. Kubernetes manifests (`deploy/ids3/ptm/dev/`)
 
@@ -218,8 +239,11 @@ examples:
   image stays free of a generated database; and the root filesystem can be read-only. Baking becomes worth it only
   for a store too large to build in seconds, which a MIMIC-IV demo store is (about two minutes, from files the image
   must not contain); that one would be delivered as a prepared snapshot, not built in the pod (section 7).
-- **Health during the build (follow-up 4 of the Cloud Run plan, checked).** The socket is bound before the build
-  starts and `/api/health` answers during it; a test holds the build open and checks this. `/api/ready` answers 200
+- **Health during the build (follow-up 4 of the Cloud Run plan, checked, and fixed).** The socket is bound before
+  the build starts and the build runs on its own thread, but `main()` used to wait for the build's status line
+  before entering `serve_forever`, so requests queued until the build ended (about a second). The status lines now
+  come from a background thread, and `/api/health` answers during the build; a test holds the build open and checks
+  it. `/api/ready` answers 200
   only once every configured dataset is ready, else 503 with the dataset's state. Probes: startup and liveness on
   `/api/health`, readiness on `/api/ready`. A pod whose store fails its content check never takes traffic, and with
   `maxUnavailable: 0` the old pod keeps serving. Found while measuring: on a machine whose reverse DNS is slow, the
@@ -247,7 +271,7 @@ examples:
 
 ## 8. Deploying
 
-1. Owner: confirm the realm name, name the backup admin, choose the registration notice, register the OAuth apps.
+1. Owner: name the backup admin, register the OAuth apps. Platform admin: the registration-notice provider.
 2. Realm admin: `KEYCLOAK-REALM.md`.
 3. Owner: move the image workflow into `.github/workflows/`, push `mockups-v0.1.0`, take the digest.
 4. Services-repo PR: copy `deploy/ids3/ptm/dev/` to `ids3/projects/ptm/dev/`, put the digest into `app.yaml`, complete
@@ -256,19 +280,21 @@ examples:
 
 ## 9. Open questions
 
-1. The shared realm's name (`semanticscience` is a working name used in `configmap.yaml`).
-2. The backup realm admin (owner to name).
-3. The registration notice: event-listener provider in the platform Keycloak (recommended) or a poller.
-4. Whether the platform Keycloak can already reach the SMTP relay (verification emails need it).
-5. Publishing: may the image workflow move into `.github/workflows/`, and should the GHCR package be public?
-6. Whether the MIMIC-IV demo should be hosted at all on dev, and by which delivery route (section 7).
+1. The backup realm admin (owner to name).
+2. Whether the platform admin takes on the registration-notice provider (specification in `KEYCLOAK-REALM.md`).
+3. Whether the platform Keycloak can already reach the SMTP relay (verification emails need it).
+4. Publishing: may the image workflow move into `.github/workflows/`, and should the GHCR package be public?
+5. Whether the MIMIC-IV demo should be hosted at all on dev, and by which delivery route (section 7).
 
 ## Follow-ups (not done)
 
 1. Measure memory and CPU on the cluster after the first deploy and adjust `resources`.
-2. The registration-notice component, once chosen.
+2. The registration-notice provider (platform admin, from its specification).
 3. Tracing, when wanted (section 5).
 4. For the MIMIC-IV demo, if hosted: the delivery route, the attribution footer, the not-disclosure-control note.
 5. The storage and backup access review, before any full MIMIC-IV hosting.
-6. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
+6. A Content-Security-Policy header: the pages use inline styles and one inline script, so a policy needs hashes
+   or a move to files first.
+7. The first real image build and its checks (the image workflow), since none could run here.
+8. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
    fallback the static image and an unreachable server still need.

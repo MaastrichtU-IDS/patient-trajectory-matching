@@ -211,6 +211,11 @@ function relaxationText(def, id) {
 
 function renderStore() {
   const s = state.status, box = $('#store');
+  if (state.denied) {
+    const why = PtmAuth.refusal(state.denied) || 'This dataset is not available to you.';
+    box.innerHTML = `<div class="note"><b>Not available to you.</b> ${esc(why)} <span class="muted">(${esc(state.denied)})</span></div>`;
+    return;
+  }
   if (!s) {
     box.innerHTML = `<div class="bad"><b>No server is answering.</b> Open this page through <code>demos/mockups/server.py</code>, not as a file or from static hosting: the query runs in the execution store on the server. ${state.error ? `(${esc(state.error)})` : ''}</div>`;
     return;
@@ -435,7 +440,7 @@ async function run() {
   state.pending = true; state.error = null;
   renderReading(); renderResults();
   try {
-    const response = await fetch(API + 'match', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(request(def))});
+    const response = await PtmAuth.fetch(API + 'match', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(request(def))});
     const value = await response.json();
     if (!response.ok) throw new Error(value.error || `HTTP ${response.status}`);
     state.result = value; state.ran = JSON.parse(JSON.stringify(def));
@@ -495,8 +500,13 @@ function wire() {
 
 async function main() {
   wire();
+  PtmAuth.bar($('#auth'));
   try {
-    const response = await fetch(API + 'status');
+    const response = await PtmAuth.fetch(API + 'status');
+    if (response.status === 401 || response.status === 403) {  // D50: the dataset needs sign-in, approval or a role
+      state.denied = (await response.json()).error;
+      return render();
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     state.status = await response.json();
   } catch (error) {
@@ -505,7 +515,7 @@ async function main() {
   }
   if (state.status.available) {
     try {
-      const response = await fetch(API + 'catalogue');
+      const response = await PtmAuth.fetch(API + 'catalogue');
       const value = await response.json();
       if (!response.ok) throw new Error(value.error || `HTTP ${response.status}`);
       state.catalogue = value;

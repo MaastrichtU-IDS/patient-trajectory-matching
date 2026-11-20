@@ -9,21 +9,21 @@ Owner decisions (2026-11-17 to 2026-11-20) this implements: self-registration by
 Google; several providers linkable to one account; no roles for a new account until the owner adds it to the
 `approved` group; the owner emailed on each registration; dataset roles granted by hand.
 
-Values to settle before starting:
+The realm is **`ids-apps`** (decided 2026-11-20); its name is load-bearing, since it is in every issuer URL. Values to
+settle before starting:
 
 | Placeholder | Meaning | Working value |
 |---|---|---|
-| `REALM` | the realm's name, which appears in every issuer URL | `semanticscience` (**to confirm**; `configmap.yaml` uses it) |
 | `OWNER_EMAIL` | the owner's address, for realm admin and registration notices | to confirm |
 | `BACKUP_ADMIN` | a second realm admin | **owner to name** (not yet decided) |
 | `MAIL_FROM` | sender for verification and notice emails | `info-ids@maastrichtuniversity.nl` (as ontoexplorer) |
 
-Switch the realm selector (top left) to `REALM` before every step after the first. Work done in `master` or `ids3`
+Switch the realm selector (top left) to `ids-apps` before every step after the first. Work done in `master` or `ids3`
 has no effect here.
 
 ## 1. Realm
 
-- [ ] Create realm `REALM` (Realm name is load-bearing: it is in `PTM_OIDC_ISSUER` and `PTM_OIDC_JWKS_URI`).
+- [ ] Create realm `ids-apps` (Realm name is load-bearing: it is in `PTM_OIDC_ISSUER` and `PTM_OIDC_JWKS_URI`).
 - [ ] **Realm settings → General:** Display name "Semantic Science apps" (or the owner's choice); Unmanaged
       attributes off.
 - [ ] **Realm settings → Login:** User registration **on**; Forgot password **on**; Remember me on; Email as username
@@ -47,7 +47,7 @@ has no effect here.
 
 ## 2. Roles and groups: new accounts get nothing
 
-- [ ] **Realm settings → User registration → Default roles** (`default-roles-REALM`): remove `offline_access` and
+- [ ] **Realm settings → User registration → Default roles** (`default-roles-ids-apps`): remove `offline_access` and
       `uma_authorization`. Keep only the `account` client's `view-profile` and `manage-account` (users need them to
       open the account console and link providers). A new account therefore holds no app role.
 - [ ] **Realm roles → Create role** `approved` ("approved by the owner; required by every non-public dataset").
@@ -79,13 +79,16 @@ has no effect here.
 - [ ] **Realm roles in the access token:** the default `roles` client scope must stay assigned to the client (it
       puts `realm_access.roles` in the access token, which is where the server reads `approved` and dataset roles).
       Check with Client scopes → Evaluate → a test user → Generated access token.
+- [ ] Keep the default `basic` client scope on the client (it puts `sub` in the access token, which the request log
+      records) and do not enable "lightweight access tokens": the server requires the access token's `typ` claim
+      (`Bearer`), `iat`, `exp`, `iss` and `aud`.
 - [ ] Full scope allowed may stay on for now (the realm's realm roles are all app-facing). When a second app joins
       and has roles ptm should not see, turn it off and add `approved` and the dataset roles to the client's scope.
 
 ## 4. Identity providers (brokering) and account linking
 
 Each provider needs an OAuth app registered with the provider by the owner, using the redirect URI
-`https://keycloak.k8s.semanticscience.org/realms/REALM/broker/<alias>/endpoint`. Client secrets go into Keycloak's
+`https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/<alias>/endpoint`. Client secrets go into Keycloak's
 identity-provider form (its database), never into git or this repo. Keycloak's outbound calls to the providers
 already go through the egress-proxy (`KC_SPI_CONNECTIONS_HTTP_CLIENT_DEFAULT_PROXY_MAPPINGS` in `keycloak.yaml`).
 
@@ -101,14 +104,14 @@ already go through the egress-proxy (`KC_SPI_CONNECTIONS_HTTP_CLIENT_DEFAULT_PRO
       re-authentication. Never auto-link by email: with Trust email off, an attacker controlling an unverified
       address at a provider must not inherit an account.
 - [ ] **Linking more providers to one account:** users do it themselves in the account console
-      (`https://keycloak.k8s.semanticscience.org/realms/REALM/account` → Account security → Linked accounts). Nothing
+      (`https://keycloak.k8s.semanticscience.org/realms/ids-apps/account` → Account security → Linked accounts). Nothing
       to configure beyond keeping `manage-account` in the default roles.
 
 ## 5. MFA for admins
 
 - [ ] Give the owner (`OWNER_EMAIL`) and `BACKUP_ADMIN` realm administration: Users → user → Role mapping → assign
       client role `realm-management` → `realm-admin`. They administer at
-      `https://keycloak.k8s.semanticscience.org/admin/REALM/console/`, with no `master` realm access.
+      `https://keycloak.k8s.semanticscience.org/admin/ids-apps/console/`, with no `master` realm access.
 - [ ] **Authentication → Flows → duplicate `browser`** as `browser with admin OTP`. In its conditional OTP subflow,
       add "Condition - user role" with role `realm-management.realm-admin`, and set the OTP form **Required** under
       that condition. Bind it as the browser flow. Admins must then enrol an authenticator (Required action
@@ -117,26 +120,58 @@ already go through the egress-proxy (`KC_SPI_CONNECTIONS_HTTP_CLIENT_DEFAULT_PRO
 - [ ] Required actions enabled: Verify Email, Configure OTP, Update Password, Terms and Conditions (enable when the
       owner provides the text; default off).
 
-## 6. Registration notice to the owner
+## 6. Registration notice to the owner: an event-listener provider (PLATFORM CHANGE, needs the platform admin)
 
-The owner is emailed at every new registration, to approve or ignore it. Two ways to build it; **the choice is
-open** (hosting plan, section 3):
+Decided 2026-11-20: option (a). The owner is emailed at every new registration, to approve or ignore it. This is a
+**specification for the platform admin**: it changes the platform Keycloak's Deployment (`ids3/platform/keycloak/`),
+which every realm, including `ids3`, depends on, so only the platform admin builds, reviews and deploys it. Nothing in
+this repository implements it.
 
-- **(a) An event-listener provider in the platform Keycloak (recommended).** A small Java `EventListenerProvider`
-  (about 80 lines, its own repository) that, on `EventType.REGISTER` in a realm where it is enabled, sends one email
-  to a configured address through Keycloak's own `EmailSenderProvider`, so it uses the realm's SMTP settings above
-  and holds no secret. Body: username, email, identity provider if any, time, and a link to the user in the admin
-  console; never a token. Deployed as a jar in `/opt/keycloak/providers` (an initContainer copying it from a pinned
-  image into an emptyDir, so the Keycloak image stays upstream), configured by
-  `KC_SPI_EVENTS_LISTENER_REGISTRATION_NOTICE_RECIPIENT=OWNER_EMAIL`, enabled per realm under Realm settings →
-  Events → Event listeners. This changes the platform Keycloak's Deployment, so the platform admin owns it, and it
-  must pass `kc.sh update-compatibility check` like any Keycloak change.
-- **(b) A poller in an app namespace.** A stdlib Python loop that reads `GET /admin/realms/REALM/events?type=REGISTER`
-  every few minutes with a confidential service-account client holding `realm-management` → `view-events` and
-  `view-users`, and mails through the relay (an SMTP egress policy). No platform change, but it adds a client
-  secret (Vault), a polling delay, and state to avoid repeating or missing a notice across restarts.
+**What it does.** On a user event of type `REGISTER` in a realm where the listener is enabled, send one plain-text
+email to a configured recipient. Nothing else: no other event type, no admin events, no outbound call except mail.
 
-Until either exists, the owner finds new accounts in Users, sorted by creation, or in Events filtered by `REGISTER`.
+**Implementation (a small Java provider in its own repository, e.g. `maastrichtu-ids/keycloak-registration-notice`):**
+- `RegistrationNoticeProviderFactory implements EventListenerProviderFactory`, id `registration-notice`; reads its
+  configuration in `init(Config.Scope)`: `recipient` (required; an email address) and `admin-console-base`
+  (default `https://keycloak.k8s.semanticscience.org/admin/master/console/`). A missing or malformed recipient
+  disables the listener with one warning in the log, never a startup failure.
+- `RegistrationNoticeProvider implements EventListenerProvider`: in `onEvent(Event)`, return unless
+  `event.getType() == EventType.REGISTER`. Look up the user (`session.users().getUserById(realm, event.getUserId())`);
+  build the message from: realm name, username, email (or "none given"), identity provider (`event.getDetails()`
+  key `identity_provider`, or "email registration"), time (UTC), and the link
+  `<admin-console-base>#/<realm>/users/<user id>/settings`. Never include a token, a code, a password, an IP
+  address or the event's other details.
+- Send with Keycloak's own `EmailSenderProvider` (`session.getProvider(EmailSenderProvider.class).send(
+  realm.getSmtpConfig(), recipient, subject, text, null)`), so the realm's SMTP settings (section 1, the MU relay)
+  apply and the provider holds no credential. Send after the transaction commits
+  (`session.getTransactionManager().enlistAfterCompletion(...)`), so a failed registration sends nothing.
+- A send failure is logged at WARN (realm, user id, exception class) and swallowed: registration must never fail
+  because mail did.
+- `onEvent(AdminEvent, boolean)`: no-op. Unit tests with a mocked session for: REGISTER sends exactly one message to
+  the recipient with the fields above; LOGIN and other types send nothing; no recipient means no send; an SMTP
+  exception does not propagate.
+- Build against the same Keycloak version as the platform (26.8.x), Java 21; publish the jar in a small image
+  pinned by digest (for example `ghcr.io/maastrichtu-ids/keycloak-registration-notice:<version>@sha256:...`).
+
+**Deployment (platform admin):**
+- In `ids3/platform/keycloak/keycloak.yaml`: an initContainer from that image copies the jar into an `emptyDir`
+  mounted at `/opt/keycloak/providers` (the Keycloak image stays upstream). `start` without `--optimized` rebuilds
+  with the provider at startup.
+- Environment: `KC_SPI_EVENTS_LISTENER_REGISTRATION_NOTICE_RECIPIENT=<OWNER_EMAIL>`.
+- Before rolling it out: `kc.sh update-compatibility check` as for any Keycloak change (`keycloak.yaml` header).
+- In realm `ids-apps` only: Realm settings → Events → Event listeners → add `registration-notice` (keep
+  `jboss-logging`). No other realm is affected unless its admin adds the listener.
+- The `platform` namespace must reach `137.120.1.21:25` (section 1).
+- Verify: register a test account; the owner receives one email with the link; a login sends nothing.
+
+**Fallback, documented only: (b) a poller in an app namespace.** If the platform change is not wanted, a stdlib
+Python loop that reads `GET /admin/realms/ids-apps/events?type=REGISTER` every few minutes with a confidential
+service-account client holding `realm-management` → `view-events` and `view-users`, and mails through the relay
+(an SMTP egress policy like ontoexplorer's). No platform change, but it adds a client secret (Vault, so `vault.yaml`
+in that namespace), a polling delay, and state to avoid repeating or missing a notice across restarts.
+
+Until the listener exists, the owner finds new accounts in Users, sorted by creation, or in Events filtered by
+`REGISTER`.
 
 ## 7. Verify
 
