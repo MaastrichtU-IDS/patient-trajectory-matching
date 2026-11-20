@@ -260,10 +260,11 @@ class FixedChangedSetTests(unittest.TestCase):
 
     def test_the_set_recorded_in_d44bs_verdict_is_read_and_every_function_still_exists(self):
         import importlib
+        # Since D48b's rebind the committed verdict records D44b's 23 functions and D48's `_hull_refutes`.
         targets, bypass = bc.fixed_targets(ROOT / 'verification/d44b-count-latency-verdict.json')
-        self.assertEqual(sum(len(v) for v in targets.values()), 23)
+        self.assertEqual(sum(len(v) for v in targets.values()), 24)
         self.assertIn('unmarked', targets['patterns.store_conditions_counts'])
-        self.assertNotIn('patterns.trajectory_graph', targets)
+        self.assertEqual(targets['patterns.trajectory_graph'], ['_hull_refutes'])
         self.assertEqual(bypass, {})
         for module, names in targets.items():
             m = importlib.import_module(module)
