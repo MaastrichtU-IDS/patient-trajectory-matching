@@ -1836,9 +1836,12 @@ def oracle_check(rng, refute=None, max_work=60_000):
     refuted = (refute or tg._hull_refutes)(step_ids, domains, constraints, facts, times)
     if not refuted:
         return True, False, False
-    _, all_worlds = worlds.worlds(p, worlds._horizon(q, p))
-    if math.prod(len(d) for d in domains.values()) * len(all_worlds) > max_work:
+    # The size guard comes before the worlds are enumerated (D48 review, S3): `count_worlds` is the product of the
+    # variables' range widths, an upper bound on their number, computed without building them.
+    horizon = worlds._horizon(q, p)
+    if math.prod(len(d) for d in domains.values()) * worlds.count_worlds(p, horizon) > max_work:
         return False, False, False
+    _, all_worlds = worlds.worlds(p, horizon)
     return True, True, satisfiable(step_ids, domains, constraints, facts, p, all_worlds)
 
 
@@ -1871,6 +1874,47 @@ def cycle_case(n=(5, 10, 12, 30), budget=10_000):
                {'id': 'AD', 'kind': 'after', 'from': 'A', 'to': 'D', 'min': -100, 'max': 100}],
               search_budget=budget)
     return q, patient(events, (0, 1000))
+
+
+def during_cycle_case(n=(4, 9, 11, 25), budget=40_000):
+    """D48 review, S2: seed 44's shape with `during`. A is a point (so its exposure ends where it starts); B starts
+    during A, C during A with 2 days' grace, and C at least 10 after B: C is within A + 2 and at least A + 10, whichever
+    events are bound. Each pair is plausible alone over wide ranges; D, related to A only, is searched before C."""
+    events = []
+    for step, count in zip('ADBC', n):
+        events += [event(f'{step.lower()}{i}', step.lower(), (i, i + 60)) for i in range(count)]
+    q = query([{'id': s, 'concept': s.lower()} for s in 'ABCD'],
+              [{'id': 'AB', 'kind': 'during', 'from': 'A', 'to': 'B'},
+               {'id': 'AC', 'kind': 'during', 'from': 'A', 'to': 'C', 'grace': 2},
+               {'id': 'BC', 'kind': 'after', 'from': 'B', 'to': 'C', 'min': 10},
+               {'id': 'AD', 'kind': 'after', 'from': 'A', 'to': 'D', 'min': -100, 'max': 100}],
+              search_budget=budget)
+    return q, patient(events, (0, 1000))
+
+
+def linked_cycle_case(budget=40_000):
+    """D48 review, S2: `cycle_case` with linked variables: each of the first five B events names an A event's start
+    variable (one time for both), and two C events share a variable with each other, so the search meets linked records
+    (the hull network leaves those links out, which only widens it)."""
+    q, p = cycle_case(budget=budget)
+    for e in p['events']:
+        if e['id'][0] == 'b' and int(e['id'][1:]) < 5:
+            k = int(e['id'][1:])
+            e['start_var'], e['start'] = f'a{k}.s', [k, k + 60]
+        if e['id'] in ('c0', 'c1'):
+            e['start_var'], e['start'] = 'cshared', [0, 60]
+    return q, p
+
+
+def mid_tree_cases():
+    """The constructed cases that refute mid-tree, each with a satisfiable variant (one relation relaxed so the cycle
+    no longer has a negative length, the search still running)."""
+    plain, during, linked = cycle_case(budget=40_000), during_cycle_case(), linked_cycle_case()
+    loosen = lambda case, rid, **change: ({**case[0], 'relations': [{**r, **change} if r['id'] == rid else r
+                                                                     for r in case[0]['relations']]}, case[1])
+    return {'cycle': (plain, loosen(plain, 'BC', min=-100)),
+            'during': (during, loosen(during, 'BC', min=-100)),
+            'linked': (linked, loosen(linked, 'BC', min=-100))}
 
 
 class HullCheckTests(unittest.TestCase):
@@ -1931,6 +1975,40 @@ class HullCheckTests(unittest.TestCase):
         self.assertEqual(calls, [False])
         self.assertEqual(on['possible']['method'], 'bounded_backtracking')
         self.assertEqual(on, off)
+
+    def test_a_refutation_mid_tree_unwinds_complete_at_every_depth_and_shape(self):
+        # D48 review, S2: the check fires at step HULL_AFTER with a partial binding on the stack (thresholds from the
+        # first descent down to deep in the tree), and the search unwinds level by level to a complete, empty phase.
+        for name, (refuted, satisfied) in mid_tree_cases().items():
+            q, p = refuted
+            times, plan = tg.patient_times(p), tg._Plan(q, ())
+            large = unhulled({**q, 'search_budget': 1_000_000}, p)
+            self.assertEqual((large['status'], large['complete']), ('none', True), name)
+            for after in (2, 3, 4, 5, 9, 17, 60, 333, 999):
+                with self.subTest(shape=name, after=after):
+                    new, ran, hits = hull_runs(q, p, after=after)
+                    self.assertEqual((new, ran, hits), (large, 1, 1))
+                    with hull_switch(True, after):
+                        phase = tg.decide(q, times, (), q['search_budget'], plan)['possible']
+                    self.assertEqual(phase, {'found': False, 'complete': True, 'method': 'bounded_backtracking',
+                                             'search_steps': after, 'hull_refuted': True})
+            q, p = satisfied
+            times, plan = tg.patient_times(p), tg._Plan(q, ())
+            with hull_switch(False):
+                off = tg.decide(q, times, (), q['search_budget'], plan)
+            for after in (1, 2, 3, 5):
+                with self.subTest(shape=name, satisfiable=True, after=after):
+                    with hull_switch(True, after):
+                        self.assertEqual(tg.decide(q, times, (), q['search_budget'], plan), off)
+                    self.assertEqual(hull_runs(q, p, after=after)[0], unhulled(q, p))
+
+    def test_budgeted_cases_hold_with_the_check_mid_search(self):
+        # D48 review, S2: the generators at HULL_AFTER 2 and 3, where the check fires after a first descent.
+        for after in (2, 3):
+            seen = Counter()
+            for i, (q, p) in enumerate(self.cases):
+                self.assertEqual(d48_check(q, p, seen, after=after), [], f'after {after}, case {i}: {q} {p}')
+            self.assertGreater(seen['checks'], 0, seen)
 
     def test_budgeted_cases_are_sound_decided_like_the_truth_and_move_only_from_undecided(self):
         seen = Counter()

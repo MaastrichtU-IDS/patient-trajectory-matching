@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """D48's ruled measurements: the hull check of a joint search (decision log, D48).
 
-    python tools/d48_measure.py worlds --cases 50000 --seed d48-rule
+    python tools/d48_measure.py worlds --cases 50000 --mid-cases 20000 --seed d48-rule
     python tools/d48_measure.py oracle --refuted 20000 --seed d48-oracle-rule
     python tools/d48_measure.py defects --cases 5000 --networks 20000 --seed d48-defects-rule
     python tools/d48_measure.py identity --main REF --snapshot 1000=DIR --snapshot 10000=DIR --queries 50
@@ -9,9 +9,10 @@
         --workers 14 8 --output verification/d48-search-latency-verdict.json
     (each with --output FILE; the first four print their summary as JSON)
 
-- `worlds` (rule 1): D40's four budget-stressing generators (`patterns/test_trajectory_graph.BUDGET_GENERATORS`), new
-  seeds, every case through `d48_check` with HULL_AFTER = 1 (every search with a budget above 1 is checked before its
-  first step): the worlds check, the truth by enumeration and the reference on every decided result, the switch off's
+- `worlds` (rules 1.1 and 1.3): D40's four budget-stressing generators (`patterns/test_trajectory_graph.BUDGET_GENERATORS`),
+  new seeds, every case through `d48_check` with HULL_AFTER = 1 (every search with a budget above 1 is checked before its
+  first step), and again at HULL_AFTER 2 and 3 (`--mid-after`: the check fires after a first descent, with a partial
+  binding on the stack, as at 1,000 in production): the worlds check, the truth by enumeration and the reference on every decided result, the switch off's
   result (a changed result must have been undecided; a decided one must not change in any field), and the same case at
   a search budget of 40,000, where no search stops, equal to the switch off's in every field.
 - `oracle` (rule 1): random small networks (`oracle_check`: a budgeted case, one of its relaxation sets, each step's
@@ -105,7 +106,7 @@ def classify(failure):
 
 # Rule 1: the worlds check, and the oracle.
 
-def worlds_run(cases, seed, refute=None):
+def worlds_run(cases, seed, refute=None, after=1):
     from patterns import test_trajectory_graph as t
     from patterns import trajectory_graph as tg
     out = {}
@@ -118,7 +119,7 @@ def worlds_run(cases, seed, refute=None):
             seen, failed = Counter(), Counter()
             for _ in range(cases):
                 q, p = make(rng)
-                failures = t.d48_check(q, p, seen)
+                failures = t.d48_check(q, p, seen, after=after)
                 for f in failures:
                     failed[classify(f)] += 1
                 failed['cases_failing'] += bool(failures)
@@ -144,12 +145,22 @@ def oracle_run(refuted, seed, refute=None, networks=None):
 
 
 def worlds_cmd(args):
+    """Rule 1.1 at HULL_AFTER = 1 (`--cases` per generator, at least one refutation each), and rule 1.3 at each of
+    `--mid-after` (`--mid-cases` per generator; the check fires after a first descent, D48 review S2): 0 failures."""
     from patterns import trajectory_graph as tg
-    report = {'rule': 'D48 rule 1 (worlds)', 'hull_after': 1, 'default_hull_after': tg.HULL_AFTER,
-              'generators': worlds_run(args.cases, args.seed)}
-    report['violations'] = sum(g['failures'].get('worlds_violation', 0) for g in report['generators'].values())
-    report['met'] = all(not g['failures'].get('cases_failing') for g in report['generators'].values()) and \
-        all(g['refuted'] > 0 for g in report['generators'].values())
+    report = {'rule': 'D48 rules 1.1 and 1.3 (worlds)', 'default_hull_after': tg.HULL_AFTER, 'by_hull_after': {}}
+    met = True
+    for after, cases, seed in [(1, args.cases, args.seed)] + [(a, args.mid_cases, f'{args.seed}-after-{a}')
+                                                             for a in args.mid_after]:
+        generators = worlds_run(cases, seed, after=after)
+        failing = sum(g['failures'].get('cases_failing', 0) for g in generators.values())
+        entry = {'cases_per_generator': cases, 'seed': seed, 'generators': generators, 'cases_failing': failing,
+                 'violations': sum(g['failures'].get('worlds_violation', 0) for g in generators.values()),
+                 'refuted': sum(g['refuted'] for g in generators.values())}
+        entry['met'] = failing == 0 and (after != 1 or all(g['refuted'] > 0 for g in generators.values()))
+        report['by_hull_after'][str(after)] = entry
+        met = met and entry['met']
+    report['met'] = met
     return report
 
 
@@ -572,6 +583,13 @@ def latency_cmd(args):
                                                  for p in ARTIFACTS if p.startswith('patterns/') and (main_root / p).is_file()]},
                   'candidate': 'this tree', 'budget_policy': 'engine-default', 'structural': structural, 'timing': timing,
                   'micro': micro, 'protocol_check': protocol, 'verdict': verdict,
+                  'notes': ['The hull check never fires in this timed workload: no search of the 30 queries reaches '
+                            'HULL_AFTER steps (structural.hull_checks_on is empty). What is timed is the meter on the '
+                            "searching queries' path; the check's own cost appears only in seed 44's times in the "
+                            'scaling report, which are reported, not ruled.',
+                            'The counters cover one process: the count runs at one worker, where every unit runs in the '
+                            'counted process; the pool path rests on that run and on the AST check of the two sites, '
+                            'not on counters in pool processes.'],
                   'seconds': time.monotonic() - started,
                   'artifacts': {p: digest(p) for p in ARTIFACTS}}
         return report
@@ -585,6 +603,8 @@ def main(argv=None):
     w = sub.add_parser('worlds')
     w.add_argument('--cases', type=int, default=50_000)
     w.add_argument('--seed', default='d48-rule')
+    w.add_argument('--mid-after', type=int, nargs='*', default=[2, 3])
+    w.add_argument('--mid-cases', type=int, default=20_000)
     o = sub.add_parser('oracle')
     o.add_argument('--refuted', type=int, default=20_000)
     o.add_argument('--seed', default='d48-oracle-rule')

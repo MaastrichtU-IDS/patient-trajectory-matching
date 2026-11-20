@@ -52,10 +52,12 @@ the worker's store), so those counters cover the pool path; at 14 workers the di
 fails if a pool unit's entry point is itself changed or names a changed function in its body, or if a module imports a
 changed function by name (on the AST), which would bypass a counter.
 
-`--changed-set FILE` (D48's amendment, for rebinding D44b's verdict on a later tree) fixes the set the control-structural
-check counts: a count-latency verdict's recorded `changed_functions`, or a {module: [names]} map, instead of the AST
-against `--reference`, which on a later tree would also sweep in that tree's own changes. The report names its source
-(`changed_set_source`).
+`--changed-set FILE...` (D48's amendment, for rebinding D44b's verdict on a later tree) fixes the set the
+control-structural check counts: the union of count-latency verdicts' recorded `changed_functions` and {module: [names]}
+maps, instead of the AST against `--reference`. The report names its source (`changed_set_source`). `--bounded-set
+FILE...` names functions the controls do run (a later increment's change on their path): each is timed call by call in
+the control worker, and each control's time in them at one worker must be at most 1% of its candidate median at 14
+workers (`bounded_check`, joined to the verdict).
 """
 from __future__ import annotations
 
@@ -359,15 +361,38 @@ def by_name_imports(targets):
     return bypass
 
 
-def fixed_targets(path):
+def fixed_targets(paths):
     """D48's amendment for rebinding D44b's verdict: the changed functions to count, fixed rather than recomputed by the
     AST against `--reference` (which would also sweep in a later increment's changes): a JSON file that is either a
     count-latency verdict, whose `verdict.control_structural.changed_functions` is taken, or a {module: [names]} map."""
-    data = json.loads(Path(path).read_text())
-    targets = data['verdict']['control_structural']['changed_functions'] if 'verdict' in data else data
-    if not targets or not all(isinstance(v, list) and v for v in targets.values()):
-        raise SystemExit(f'{path}: no changed functions to count')
-    return {m: list(v) for m, v in targets.items()}, by_name_imports(targets)
+    merged = {}
+    for path in [paths] if isinstance(paths, (str, Path)) else paths:
+        data = json.loads(Path(path).read_text())
+        targets = data['verdict']['control_structural']['changed_functions'] if 'verdict' in data else data
+        if not targets or not all(isinstance(v, list) and v for v in targets.values()):
+            raise SystemExit(f'{path}: no changed functions to count')
+        for m, names in targets.items():
+            merged.setdefault(m, [])
+            merged[m] += [n for n in names if n not in merged[m]]
+    return merged, by_name_imports(merged)
+
+
+def bounded_check(control, stats, ruled=RULED_WORKERS, share=MICRO_SHARE):
+    """D48's amendment: the functions a later increment changed that the controls do run (`--bounded-set`), timed call by
+    call at one worker in one process (every unit runs there), at most `share` of each control's candidate median at
+    `ruled` workers (a one-process total against a 14-worker median, which overstates it)."""
+    at = stats[str(ruled)]['requests']
+    rows = {}
+    for name in NO_COUNT_REQUESTS:
+        timed = (control or {}).get('bounded', {}).get(f'{name} at 1')
+        if timed is None:
+            rows[name] = {'met': False, 'ran': False}
+            continue
+        seconds = sum(v['seconds'] for v in timed.values())
+        median = at[name]['candidate']['p50_seconds']
+        rows[name] = {'functions': timed, 'seconds': seconds, 'control_median_seconds': median,
+                      'share': seconds / median, 'met': seconds <= share * median}
+    return {'share_bar': share, 'controls': rows, 'met': bool(rows) and all(r['met'] for r in rows.values())}
 
 
 def control_worker(args):
@@ -375,7 +400,25 @@ def control_worker(args):
     14, with a call counter on every changed function (`control_targets`)."""
     import importlib
     targets = json.loads(args.targets)
+    bounded_targets = json.loads(args.bounded) if args.bounded else {}
     calls = {}
+    clock = {}  # D48: each bounded function's calls and seconds, timed call by call (the timer's overhead counted)
+    for module, names in bounded_targets.items():
+        m = importlib.import_module(module)
+        for name in names:
+            owner, attr = (getattr(m, name.split('.')[0]), name.split('.')[1]) if '.' in name else (m, name)
+            real = getattr(owner, attr)
+            key = f'{module}:{name}'
+            clock[key] = [0, 0.0]
+
+            def timed(*a, _real=real, _key=key, **k):
+                t = time.perf_counter()
+                try:
+                    return _real(*a, **k)
+                finally:
+                    clock[_key][0] += 1
+                    clock[_key][1] += time.perf_counter() - t
+            setattr(owner, attr, timed)
     for module, names in targets.items():
         m = importlib.import_module(module)
         for name in names:
@@ -391,14 +434,18 @@ def control_worker(args):
     from patterns import execution_store as es
     from patterns import store_conditions as sc
     store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
-    runs = {}
+    runs, bounded = {}, {}
     try:
         windows = windows_of(store)
         for name in NO_COUNT_REQUESTS:
             query, conditions = REQUESTS[name]
             for workers in (1, RULED_WORKERS):
+                for v in clock.values():
+                    v[0], v[1] = 0, 0.0
                 answer = sc.match(store, query, windows, detail='decided', workers=workers, conditions=conditions)
                 runs[f'{name} at {workers}'] = len(answer['results'])
+                if clock:
+                    bounded[f'{name} at {workers}'] = {k: {'calls': n, 'seconds': t} for k, (n, t) in clock.items()}
                 del answer
     finally:
         es.close_pools()
@@ -406,13 +453,14 @@ def control_worker(args):
     loaded = sorted(m for m in sys.modules if m.startswith('patterns.'))
     routed = sorted({sc._module(REQUESTS[name][1]).__name__.split('.')[-1] for name in NO_COUNT_REQUESTS})
     return {'calls': calls, 'runs': runs, 'loaded_changed_modules': sorted(m for m in targets if m in loaded),
-            'routed': routed}
+            'routed': routed, 'bounded': bounded}
 
 
-def run_control(args, targets):
+def run_control(args, targets, bounded=None):
     out = Path(tempfile.mkdtemp(prefix='count-latency-control-')) / 'out.json'
     subprocess.run([sys.executable, str(Path(__file__).resolve()), '--control-worker', '--snapshot', args.snapshot_path,
-                    '--memory-limit', args.memory_limit, '--worker-output', str(out), '--targets', json.dumps(targets)],
+                    '--memory-limit', args.memory_limit, '--worker-output', str(out), '--targets', json.dumps(targets)]
+                   + (['--bounded', json.dumps(bounded)] if bounded else []),
                    cwd=ROOT, check=True, timeout=args.budget_seconds)
     result = json.loads(out.read_text())
     shutil.rmtree(out.parent, ignore_errors=True)
@@ -761,7 +809,10 @@ def paired(args):
             micro = run_micro(args)
             print('control-structural check (D44b, F1) ...', file=sys.stderr, flush=True)
             targets, bypass = fixed_targets(args.changed_set) if args.changed_set else control_targets(args.reference)
-            control = control_check(run_control(args, targets), targets, bypass)
+            bounded = fixed_targets(args.bounded_set)[0] if args.bounded_set else None
+            control = control_check(run_control(args, targets, bounded), targets, bypass)
+            if bounded:
+                control['bounded_set'] = bounded
             control['changed_set_source'] = (f'fixed: {args.changed_set_label or args.changed_set}' if args.changed_set
                                              else f'the AST against {args.reference}')
     finally:
@@ -773,6 +824,9 @@ def paired(args):
                          answers=identity['check'],
                          identity=identity.get('with_identity_ref') if rules['identity_ref'] else 'not ruled',
                          normalised=rules.get('normalised', False), micro=micro, control=control)
+    if args.bounded_set:  # D48's amendment: the bound joins the verdict
+        verdict['control_bounded'] = bounded_check(control, stats, ruled)
+        verdict['met'] = verdict['met'] and verdict['control_bounded']['met']
     verdict['rules'] = args.rules
     verdict['rule_4_2a'] = {'met': structural['met'], 'files': len(structural['files']),
                             'ruled': rules['structural_ruled'],
@@ -819,7 +873,9 @@ def main(argv=None):
     parser.add_argument('--output', type=Path, help='default: verification/d43b-count-latency-verdict.json under '
                         '--rules d43c, verification/d44-count-latency-verdict.json under --rules d44')
     parser.add_argument('--rules', choices=sorted(RULES), default='d43c', help="the bars and checks: D43b/D43c's, or D44's")
-    parser.add_argument('--changed-set', help="D48: the changed functions the control-structural check counts, fixed (a "
+    parser.add_argument('--bounded-set', nargs='+', help="D48: functions the controls may run, each control's time in "
+                        'them at one worker bounded by 1% of its median at 14 workers ({module: [names]} JSON files)')
+    parser.add_argument('--changed-set', nargs='+', help="D48: the changed functions the control-structural check counts, fixed (a "
                         "count-latency verdict's recorded set, or a {module: [names]} JSON file) instead of the AST "
                         'against --reference')
     parser.add_argument('--changed-set-label', help='how the report names the fixed set (default: its path)')
@@ -827,6 +883,7 @@ def main(argv=None):
     parser.add_argument('--micro-worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--control-worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--targets', help=argparse.SUPPRESS)
+    parser.add_argument('--bounded', help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--code-root', help=argparse.SUPPRESS)
     parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)

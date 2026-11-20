@@ -283,16 +283,40 @@ class FixedChangedSetTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 bc.fixed_targets(path)
 
+    def test_several_sets_are_merged(self):
+        with tempfile.TemporaryDirectory() as d:
+            a, b = Path(d) / 'a.json', Path(d) / 'b.json'
+            a.write_text(json.dumps({'patterns.execution_store': ['apply_exclusions']}))
+            b.write_text(json.dumps({'patterns.execution_store': ['apply_exclusions', '_with_note'],
+                                     'patterns.trajectory_graph': ['_hull_refutes']}))
+            targets, _ = bc.fixed_targets([ROOT / 'verification/d44b-count-latency-verdict.json', a, b])
+            self.assertEqual(targets['patterns.trajectory_graph'], ['_hull_refutes'])
+            self.assertEqual(targets['patterns.execution_store'].count('apply_exclusions'), 1)
+            self.assertEqual(sum(len(v) for v in targets.values()), 24)
+
+    def test_the_bounded_functions_are_held_to_one_percent_of_each_controls_median(self):
+        stats = {'14': {'requests': {n: {'candidate': {'p50_seconds': 2.0}} for n in bc.NO_COUNT_REQUESTS}}}
+        timed = lambda seconds: {'bounded': {f'{n} at 1': {'patterns.trajectory_graph:_meter': {'calls': 9, 'seconds': seconds}}
+                                             for n in bc.NO_COUNT_REQUESTS}}
+        self.assertTrue(bc.bounded_check(timed(0.019), stats)['met'])
+        self.assertFalse(bc.bounded_check(timed(0.021), stats)['met'])
+        self.assertFalse(bc.bounded_check({'bounded': {}}, stats)['met'])  # not run: not met
+        self.assertFalse(bc.bounded_check(None, stats)['met'])
+
     def test_the_option_reaches_the_run(self):
         from unittest.mock import patch
         seen = []
         with patch.object(bc, 'paired', seen.append):
             bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b', '--changed-set', 'v.json',
                      '--changed-set-label', 'D44b'])
-        self.assertEqual((seen[0].changed_set, seen[0].changed_set_label), ('v.json', 'D44b'))
+        self.assertEqual((seen[0].changed_set, seen[0].changed_set_label), (['v.json'], 'D44b'))
         with patch.object(bc, 'paired', seen.append):
             bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b'])
         self.assertIsNone(seen[1].changed_set)  # without it, the AST against --reference, as before
+        self.assertIsNone(seen[1].bounded_set)
+        with patch.object(bc, 'paired', seen.append):
+            bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b', '--bounded-set', 'b.json'])
+        self.assertEqual(seen[2].bounded_set, ['b.json'])
 
 
 class MovementTests(unittest.TestCase):
