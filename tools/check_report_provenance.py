@@ -109,7 +109,7 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # D49 turns both constants of `trajectory/store_request.js` on (the owner's decision on D45's verdict). D45's
               # page report assessed that flip by loading the translator with the constants substituted from `= false`, a
               # file its tool (`coded_default.cjs`) refuses once they are true; it records D45's assessment of the
-              # pre-flip page, as last regenerated on main at b575ba8, superseded for the current tree by
+              # pre-flip page, as last regenerated on main at 0a17003 (D48b), superseded for the current tree by
               # `verification/d49-flip-census-report.json` (coordinator's sign-off as delegate, D49's checkpoint).
               'verification/d45-coded-default-page-report.json'}
 

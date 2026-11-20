@@ -4,7 +4,7 @@
    on D45's verdict ("ready" for both) and the owner's decision (2026-11-20). The store, the engine and the converter do
    not change; what changes is the request the page sends under "Coded records only". This tool loads the page's own code
    (shared/core.js, trajectory/app.js, trajectory/store_request.js) into node:vm contexts, as the parity and usefulness
-   tools do, for this tree and for main's page (all three read from git at --base, default b575ba8), whose constants
+   tools do, for this tree and for main's page (all three read from git at --base, default 0a17003), whose constants
    are false.
 
      node demos/mockups/d49_flip.cjs census [--output REPORT.json] [--cohort FILE]
@@ -48,7 +48,7 @@ const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i
 const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex');
 const shaText = text => crypto.createHash('sha256').update(text).digest('hex');
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const BASE = arg('--base', 'b575ba8');
+const BASE = arg('--base', '0a17003');  // the main after D48b (D49 review, M1)
 // A smoke run (D49_SMOKE=1): the first 10 sweep definitions, one undeclared seed (4901), never into verification/.
 const SMOKE = process.env.D49_SMOKE === '1';
 
