@@ -178,97 +178,97 @@
  "translator_time": {
   "sequence (coded)": {
    "coded_only": {
-    "median_ms": 1.1188330000004498,
-    "max_ms": 1.4202080000031856,
+    "median_ms": 1.143833000001905,
+    "max_ms": 1.5872919999965234,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.1859580000018468,
-    "max_ms": 1.4894169999970472,
+    "median_ms": 1.2380409999968833,
+    "max_ms": 1.4854160000031698,
     "calls": 200
    }
   },
   "event frequency (coded)": {
    "coded_only": {
-    "median_ms": 0.43208299999969313,
-    "max_ms": 0.6953750000029686,
+    "median_ms": 0.4468330000017886,
+    "max_ms": 0.6575420000008307,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.0076249999983701855,
-    "max_ms": 0.010167000000365078,
+    "median_ms": 0.007665999997698236,
+    "max_ms": 0.00920899999618996,
     "calls": 200
    }
   },
   "blank (coded)": {
    "coded_only": {
-    "median_ms": 0.21204199999920093,
-    "max_ms": 0.34662500000558794,
+    "median_ms": 0.22133300000132294,
+    "max_ms": 0.3964590000032331,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.22929199999634875,
-    "max_ms": 0.5099590000027092,
+    "median_ms": 0.23399999999674037,
+    "max_ms": 0.5774579999997513,
     "calls": 200
    }
   },
   "sequence (joint)": {
    "coded_only": {
-    "median_ms": 1.1639999999970314,
-    "max_ms": 1.849000000001979,
+    "median_ms": 1.1531659999964177,
+    "max_ms": 1.4077500000057626,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.1908340000009048,
-    "max_ms": 6.390124999998079,
+    "median_ms": 1.1942909999997937,
+    "max_ms": 5.996792000005371,
     "calls": 200
    }
   },
   "tree (joint)": {
    "coded_only": {
-    "median_ms": 1.1258750000051805,
-    "max_ms": 1.4225420000002487,
+    "median_ms": 1.151624999998603,
+    "max_ms": 1.416917000002286,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.1623749999998836,
-    "max_ms": 1.404832999993232,
+    "median_ms": 1.1674999999959255,
+    "max_ms": 1.3652910000018892,
     "calls": 200
    }
   },
   "graph (joint)": {
    "coded_only": {
-    "median_ms": 1.164582999997947,
-    "max_ms": 1.3129170000029262,
+    "median_ms": 1.196208999994269,
+    "max_ms": 1.3822500000023865,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 1.2186660000006668,
-    "max_ms": 1.39208299999882,
+    "median_ms": 1.2299580000035348,
+    "max_ms": 1.3985830000019632,
     "calls": 200
    }
   },
   "event frequency (joint)": {
    "coded_only": {
-    "median_ms": 0.44608400000288384,
-    "max_ms": 0.7304579999981797,
+    "median_ms": 0.44512500000564614,
+    "max_ms": 0.7098750000004657,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.0077089999977033585,
-    "max_ms": 0.00858400000288384,
+    "median_ms": 0.007749999997031409,
+    "max_ms": 0.08525000000372529,
     "calls": 200
    }
   },
   "blank (joint)": {
    "coded_only": {
-    "median_ms": 0.22095899999840185,
-    "max_ms": 0.3375000000014552,
+    "median_ms": 0.21945799999957671,
+    "max_ms": 0.35199999999895226,
     "calls": 200
    },
    "stated_findings_today": {
-    "median_ms": 0.2255829999994603,
-    "max_ms": 0.4046249999955762,
+    "median_ms": 0.23049999999784632,
+    "max_ms": 0.36095799999748124,
     "calls": 200
    }
   }
@@ -278,7 +278,7 @@
   "rule_3_2": true
  },
  "artifacts": {
-  "demos/mockups/coded_default.cjs": "3c9bbafd1406ec3a7217b397d450111e087c5f8c1ea463e97e263db0d71e1921",
+  "demos/mockups/coded_default.cjs": "e9f17692e5c0425f78d117de280956e10b59f014dab29c35c219fd0e8bb7e625",
   "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
   "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
@@ -292,7 +292,7 @@
   "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
   "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
   "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
-  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182",
   "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
   "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
  },
