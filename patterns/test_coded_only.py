@@ -251,12 +251,18 @@ class WholeSourceTests(unittest.TestCase):
         query = {'profile': tg.PROFILE_ID, 'scope': 'any', 'steps': [{'id': 'A', 'concept': 'x'}, {'id': 'B', 'concept': 'y'}],
                  'relations': [{'id': 'R', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 0, 'max': 1}],
                  'relaxations': [{'id': 'w', 'kind': 'extend_max', 'relation': 'R', 'max': 5, 'cost': '1'}], 'budget': '1'}
-        wrong = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED', 'complete': False,
+        # D48b: beside an order-uncertain `unresolved`, since beside SEARCH_BUDGET_EXHAUSTED a relaxed match no longer claims
+        # that no binding is exact (its own exact search may have stopped, and nothing says so).
+        wrong = {'patient_id': 'P', 'status': 'unresolved', 'reason': 'OCCURRENCE_ORDER_UNCERTAIN', 'uncertain_steps': ['A'],
+                 'complete': False,
                  'relaxed_match': {'relaxations': ['w'], 'cost': '1', 'certainty': 'possible', 'binding': {'A': 'a', 'B': 'b'},
                                    'method': 'x', 'note': es.MAY_MAKE_EXACT}}
         self.assertEqual(tw.check(wrong, query, patient, whole=False),
                          ['the relaxed match beside unresolved does not reach its certainty'])
         self.assertEqual(tw.check(wrong, query, patient, whole=True), [])
+        stopped = {**wrong, 'reason': 'SEARCH_BUDGET_EXHAUSTED'}
+        del stopped['uncertain_steps']
+        self.assertEqual(tw.check(stopped, query, patient, whole=False), [])  # D48b's reading
         # the over-marking count reads the unmarked copy
         self.assertNotIn('note', co.unmarked_copy(wrong)['relaxed_match'])
 

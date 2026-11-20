@@ -254,6 +254,89 @@ class ControlStructuralTests(unittest.TestCase):
         self.assertEqual(len(bc.entry_references(targets)), 1)  # the post-pass's unit, which only counts submit
 
 
+class FixedChangedSetTests(unittest.TestCase):
+    """D48's amendment: the control-structural check of a rebind counts a fixed set of changed functions (a verdict's
+    recorded set, or a map), not one recomputed against the reference, which would sweep in a later increment's code."""
+
+    def test_the_set_recorded_in_d44bs_verdict_is_read_and_every_function_still_exists(self):
+        import importlib
+        targets, bypass = bc.fixed_targets(ROOT / 'verification/d44b-count-latency-verdict.json')
+        self.assertEqual(sum(len(v) for v in targets.values()), 23)
+        self.assertIn('unmarked', targets['patterns.store_conditions_counts'])
+        self.assertNotIn('patterns.trajectory_graph', targets)
+        self.assertEqual(bypass, {})
+        for module, names in targets.items():
+            m = importlib.import_module(module)
+            for name in names:
+                owner = getattr(m, name.split('.')[0])
+                self.assertTrue(callable(getattr(owner, name.split('.')[1]) if '.' in name else owner), f'{module}:{name}')
+
+    def test_a_map_is_read_as_it_is_and_an_empty_set_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / 'set.json'
+            path.write_text(json.dumps({'patterns.execution_store': ['apply_exclusions']}))
+            self.assertEqual(bc.fixed_targets(path), ({'patterns.execution_store': ['apply_exclusions']}, {}))
+            path.write_text(json.dumps({}))
+            with self.assertRaises(SystemExit):
+                bc.fixed_targets(path)
+            path.write_text(json.dumps({'verdict': {'control_structural': {'changed_functions': {'patterns.x': []}}}}))
+            with self.assertRaises(SystemExit):
+                bc.fixed_targets(path)
+
+    def test_several_sets_are_merged(self):
+        with tempfile.TemporaryDirectory() as d:
+            a, b = Path(d) / 'a.json', Path(d) / 'b.json'
+            a.write_text(json.dumps({'patterns.execution_store': ['apply_exclusions']}))
+            b.write_text(json.dumps({'patterns.execution_store': ['apply_exclusions', '_with_note'],
+                                     'patterns.trajectory_graph': ['_hull_refutes']}))
+            targets, _ = bc.fixed_targets([ROOT / 'verification/d44b-count-latency-verdict.json', a, b])
+            self.assertEqual(targets['patterns.trajectory_graph'], ['_hull_refutes'])
+            self.assertEqual(targets['patterns.execution_store'].count('apply_exclusions'), 1)
+            self.assertEqual(sum(len(v) for v in targets.values()), 24)
+
+    def test_the_bounded_functions_are_held_to_one_percent_of_each_controls_median(self):
+        stats = {'14': {'requests': {n: {'candidate': {'p50_seconds': 2.0}} for n in bc.NO_COUNT_REQUESTS}}}
+        timed = lambda seconds: {'bounded': {f'{n} at 1': {'patterns.trajectory_graph:_meter': {'calls': 9, 'seconds': seconds}}
+                                             for n in bc.NO_COUNT_REQUESTS}}
+        self.assertTrue(bc.bounded_check(timed(0.019), stats)['met'])
+        self.assertFalse(bc.bounded_check(timed(0.021), stats)['met'])
+        self.assertFalse(bc.bounded_check({'bounded': {}}, stats)['met'])  # not run: not met
+        self.assertFalse(bc.bounded_check(None, stats)['met'])
+
+    def test_the_control_workers_timings_reach_the_bound_through_the_control_check(self):
+        # D48b: D48's rebind lost them in `control_check`; here the worker's output goes through both, as `paired` runs.
+        stats = {'14': {'requests': {n: {'candidate': {'p50_seconds': 2.0}} for n in bc.NO_COUNT_REQUESTS}}}
+        targets = {'patterns.execution_store': ['apply_exclusions']}
+        worker = {'calls': {'patterns.execution_store:apply_exclusions': 0},
+                  'runs': {f'{n} at {w}': 1 for n in bc.NO_COUNT_REQUESTS for w in (1, 14)},
+                  'loaded_changed_modules': ['patterns.execution_store'], 'routed': ['execution_store'],
+                  'bounded': {f'{n} at {w}': {'patterns.trajectory_graph:_meter': {'calls': 40, 'seconds': 0.001}}
+                              for n in bc.NO_COUNT_REQUESTS for w in (1, 14)}}
+        control = bc.control_check(worker, targets, {})
+        self.assertTrue(control['met'])
+        bound = bc.bounded_check(control, stats)
+        self.assertTrue(bound['met'])
+        self.assertTrue(all(r['share'] == 0.001 / 2.0 for r in bound['controls'].values()))
+        slow = {**worker, 'bounded': {k: {'patterns.trajectory_graph:_meter': {'calls': 40, 'seconds': 0.03}}
+                                      for k in worker['bounded']}}
+        self.assertFalse(bc.bounded_check(bc.control_check(slow, targets, {}), stats)['met'])
+
+    def test_the_option_reaches_the_run(self):
+        from unittest.mock import patch
+        seen = []
+        with patch.object(bc, 'paired', seen.append):
+            bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b', '--changed-set', 'v.json',
+                     '--changed-set-label', 'D44b'])
+        self.assertEqual((seen[0].changed_set, seen[0].changed_set_label), (['v.json'], 'D44b'))
+        with patch.object(bc, 'paired', seen.append):
+            bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b'])
+        self.assertIsNone(seen[1].changed_set)  # without it, the AST against --reference, as before
+        self.assertIsNone(seen[1].bounded_set)
+        with patch.object(bc, 'paired', seen.append):
+            bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b', '--bounded-set', 'b.json'])
+        self.assertEqual(seen[2].bounded_set, ['b.json'])
+
+
 class MovementTests(unittest.TestCase):
     def test_only_uncertain_results_may_move(self):
         uncertain = {'patient_id': 'b', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN'}
