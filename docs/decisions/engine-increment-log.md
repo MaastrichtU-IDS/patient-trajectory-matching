@@ -5434,3 +5434,8 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 - Rule 4 asks D46's census to be figure-equal although `d46_windows.cjs` changed. Its change keeps rule 8's late windows under "off" computed from shifted items: without it, the late copy of a mixed item would carry its coded form unshifted. So D46's late windows can differ from the committed ones only where a coded form differs in a searched field (a noted item). On the page's cohort no rule anchors on one, so equality is expected, and a move is traced like any other (rule 4). Consistent.
 - Rule 6 expects no parity row to move. If one does, rule 3 must already show a changed own-search result under "off" on the page's cohort, and rule 6 re-pins it with its cause. Consistent.
 - Rule 5's seeds 5301 to 5400 appear nowhere earlier in this log (E0b used 5201 to 5300).
+
+**At the checkpoint** (the coordinator, as the owner's delegate, on 884ca9f; before any measurement):
+- *The design is approved:* under "Coded records only" a course with no coded start is not usable, done generically through each item's coded form (`item.coded`, `codedOf`, `searchable`).
+- An independent review of 884ca9f runs before the job. The job waits for the review's fixes.
+- *Queued as a follow-up:* the grouping of C026's stop differs between the page and the store, under every setting. The page's rule reconcile_v1 (step 3) orders the approximate stop, whose earliest time is 1 January 2021, before the active order of 2 January, so the stop stands alone. The store closes that order with the stop, because it matches a stop by its latest bound. D53 does not change it. A fix would change D47's grouping rule, and with it the page's view under every setting.
