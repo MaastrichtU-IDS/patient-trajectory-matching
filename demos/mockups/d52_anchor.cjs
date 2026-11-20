@@ -90,6 +90,16 @@ const DEFINITIONS = `
     'from birth to the first antiseizure start': {start: {kind: 'birth'}, end: ev('antiseizure', 'first', 1, 0)},
     'from 1 year of age to the last seizure': {start: {kind: 'age', amount: 1, unit: 'year'}, end: ev('seizure', 'last', 1, 0)},
   };
+  // D52 review, S1: the rewritten shapes crossed with the four scopes and the relations from START (with a maximum, so
+  // with its extend_max relaxation) and from END, so the translator's every branch meets the reference.
+  var CROSS_RULES = ['from the first seizure to the first antiseizure start', 'from the first seizure to the 3rd seizure',
+    'from birth to the first antiseizure start', 'from 1 year of age to the last seizure', '12 months up to the last seizure',
+    'a month before the 2nd-to-last febrile seizure to 10 years', 'the last valproate start, 6 months before it to it'];
+  var CROSS_PROBES = {'alone': [], 'within 6 months of the period start': [{from: 'START', to: 'A', rel: 'after', min: 0, max: 6, unit: 'month'}],
+    'within a year either side of the period end': [{from: 'END', to: 'A', rel: 'after', min: -12, max: 12, unit: 'month'}]};
+  var CROSS_DEFS = {};
+  for (const rule of CROSS_RULES) for (const scope of Object.keys(SCOPES)) for (const [probe, edges] of Object.entries(CROSS_PROBES))
+    CROSS_DEFS[[rule, scope, probe].join(' / ')] = {scope, window: clone(PERIOD_RULES[rule]), nodes: [{id: 'A', concept: 'seizure', occ: 'any'}], edges: clone(edges)};
   var BLANK_DEFS = Object.fromEntries(Object.entries(PERIOD_RULES).map(([k, w]) => [k, {scope: 'from_start', window: clone(w), nodes: clone(BLANK.nodes), edges: []}]));
   var translateOne = (def, freeText, options) => {
     const before = state.freeText;
@@ -338,6 +348,8 @@ function definitionsOf(context, limit) {
     out.push({group: 'template', name: `${name}, ${label}`, def, freeText: f});
   for (const [name, def] of Object.entries(inContext(context, 'BLANK_DEFS'))) for (const [label, f] of SETTINGS)
     out.push({group: 'blank', name: `blank, ${name}, ${label}`, def, freeText: f});
+  for (const [name, def] of Object.entries(inContext(context, 'CROSS_DEFS'))) for (const [label, f] of SETTINGS)
+    out.push({group: 'cross', name: `cross: ${name}, ${label}`, def, freeText: f});
   const sweep = inContext(context, 'optionSweepDefinitions()');
   for (const d of sweep.slice(0, limit)) out.push({group: 'sweep', name: `sweep: ${d.name}`, def: d.def, freeText: d.freeText});
   return out;
@@ -393,8 +405,8 @@ function reference(output) {
 /* Rule 3: the movement census, on the page's cohort. */
 const D52_CODES = ['INDEX_ANCHOR_ANY_UNSUPPORTED', 'INDEX_ANCHOR_GENE_UNSUPPORTED', 'INDEX_PERIOD_COUNT_UNSUPPORTED',
                    'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED', 'FREE_TEXT_COUNT_UNSUPPORTED', 'FREE_TEXT_CODED_ONLY_UNSUPPORTED'];
-// Whether a D52 refusal code fits the definition's shape (the change list's §3).
-function refusalFits(code, def, freeText, concepts) {
+// Whether a point-window reason fits the definition's shape (the translator's indexPointReason; D52 review, S2).
+function pointFits(code, def, freeText, concepts) {
   const w = def.window, events = [w.start, w.end].filter(b => b.kind === 'event');
   const derived = b => (b.which === 'nth' || b.which === 'nth_last') && Math.max(1, +b.n || 1) > 1;
   switch (code) {
@@ -403,66 +415,99 @@ function refusalFits(code, def, freeText, concepts) {
     case 'FREE_TEXT_COUNT_UNSUPPORTED': return freeText !== 'off' && events.some(derived);
     case 'INDEX_PERIOD_COUNT_UNSUPPORTED': return def.nodes.some(n => n.occ === 'count' && n.within === 'period');
     case 'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED': return w.end.kind === 'event' && (w.start.kind === 'date' || w.start.kind === 'age');
+    case 'FREE_TEXT_CODED_ONLY_UNSUPPORTED': return freeText === 'off' && events.some(b => !derived(b));
     default: return false;
   }
 }
 const COUPLED = ['OCCURRENCE_TIME_COUPLED', 'OCCURRENCE_ORDER_UNCERTAIN', 'STEP_CONDITION_UNCERTAIN'];
+const COVERAGE_REASONS = ['NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT'];
+const ADMISSION = 'ADMISSION_EXCLUDED_RECORDS';
 const resultKey = r => r ? JSON.stringify({status: r.status, certainty: r.certainty, relaxations: r.relaxations, reason: r.reason}) : 'none';
 const statusText = r => r ? (r.certainty ? `${r.status}/${r.certainty}` : r.status) : '-';
 
-/* The classes of one changed result, each verified on the facts it names (the decision log, D52 rule 3). */
+/* The pinned request (D52 review, M2): main's request with only its scope written as D52 writes it (scope `any`, the
+   scope as relations from START and to or from END), over main's point windows (the page's anchor). It differs from main
+   only where D44's admission scope reads the scope; from D52's request only in the anchor (the page's point against the
+   hidden step in every world) and the window-reading rules (the point window against the hull). */
+function pinned(main, def) {
+  const scope = main.query.scope, relations = [...main.query.relations];
+  for (const n of def.nodes) {
+    if (scope === 'from_start' || scope === 'within') relations.push({id: `index:scope:${n.id}`, kind: 'after', from: 'START', to: n.id, min: 0});
+    if (scope === 'within') relations.push({id: `index:scope-end:${n.id}`, kind: 'after', from: n.id, to: 'END', min: 0});
+    if (scope === 'after') relations.push({id: `index:scope-end:${n.id}`, kind: 'after', from: 'END', to: n.id, min: 0});
+  }
+  return {query: {...main.query, scope: 'any', relations}, conditions: main.conditions, windows: main.windows};
+}
+
+/* The classes of one changed result (main M against D52's H), through the pinned request P (D52 review, M2). M to P
+   needs `admission_scope` (the excluded records main's scope admits over the point window differ from those `any`
+   admits); P to H needs classes verified on their facts: the patient's eligibility, the window-reading rules over the
+   point window against the hull (coverage, where both sides are `none` before the coverage rule; admission, where the
+   excluded records each admits differ), the clamp of a relation from the period's start, a coupled hidden step, a stopped
+   search; and only where the change is not the coverage rule's alone and neither side is excluded, the anchor itself: `anchor_moved`
+   (the page's point outside the store's range) or `anchor_uncertain` (the range wider than a point), with
+   `eligibility_partial` beside when some worlds end the period after the last contact. Each step that changed needs a
+   class, or the result is unexplained. */
 function classesOf(c) {
-  const {m, h, page, ir, index, query, pid, hasStartMax, facts} = c;
-  const out = [];
+  const {m, p, h, page, ir, index, pid, hasStartMax, facts} = c;
+  const out = [], unexplained = [];
   const range = step => (ir.ranges[step] || {})[pid] || [0, null, null];
   const bound = step => step === '@index_start' ? 'start' : 'end';
-  if (m.status === 'excluded' && h.status !== 'excluded') {
-    if (page.reason && /^no /.test(page.reason)) out.push('no_anchor_on_page');
-    else if (page.reason && ir.windows[pid]) out.push('eligibility_gained');
+  const F = facts || {};
+  const differ = (a, b, k) => F[a] && F[b] && !same(F[a][k], F[b][k]);
+  if (resultKey(m) !== resultKey(p)) {
+    if (differ('main', 'pinned', 'admitted') && [m.reason, p.reason].includes(ADMISSION)) out.push('admission_scope');
+    else if (m.reason === 'SEARCH_BUDGET_EXHAUSTED' || p.reason === 'SEARCH_BUDGET_EXHAUSTED') out.push('search');
+    else unexplained.push('main -> pinned');
   }
-  if (h.status === 'excluded' && m.status !== 'excluded') {
-    const why = ir.reasons[pid];
-    const sides = ['start', 'end'].filter(x => index[x]);
-    if (why === 'INDEX_ANCHOR_NOT_RECORDED' && sides.some(x => range(index[x].step)[1] === null)) out.push('excluded_here');
-    if (why === 'INDEX_NO_POSSIBLE_PERIOD') {
-      const base = ir.base_windows[pid];
-      const s0 = index.start ? Math.max(base.start, range(index.start.step)[1] + index.start.offset) : base.start;
-      const e0 = index.end ? Math.min(base.end, range(index.end.step)[2] + index.end.offset) : base.end;
-      if (s0 > e0) out.push('excluded_here');
+  if (resultKey(p) !== resultKey(h)) {
+    const mine = [];
+    if (p.status === 'excluded' && h.status !== 'excluded') {
+      if (page.reason && /^no /.test(page.reason)) mine.push('no_anchor_on_page');
+      else if (page.reason && ir.windows[pid]) mine.push('eligibility_gained');
     }
-  }
-  // The anchors: the page's point against the store's possible range, for each hidden step.
-  const steps = [...new Set(['start', 'end'].filter(x => index[x]).map(x => index[x].step))];
-  for (const step of steps) {
-    const [, lo, hi] = range(step), at = page.anchors[bound(step)];
-    if (lo === null) continue;
-    if (at === null || at === undefined || at < lo || at > hi) out.push('anchor_moved');
-    else if (hi > lo) out.push('anchor_uncertain');
-  }
-  // Eligibility in some worlds only.
-  if (h.status !== 'excluded' && ir.windows[pid]) {
-    const base = ir.base_windows[pid];
-    const sideRange = (x, constant) => index[x] ? (([, lo, hi]) => lo === null ? null : [lo + index[x].offset, hi + index[x].offset])(range(index[x].step)) : [constant, constant];
-    const S = sideRange('start', base.start), E = sideRange('end', base.end);
-    if (S && E) {
-      const sameStep = index.start && index.end && index.start.step === index.end.step;
-      const partial = (index.end && (E[1] > page.last || E[0] < 0)) || (!sameStep && S[1] >= E[0]);
-      if (partial) out.push('eligibility_partial');
+    if (h.status === 'excluded' && p.status !== 'excluded') {
+      const why = ir.reasons[pid], sides = ['start', 'end'].filter(x => index[x]);
+      if (why === 'INDEX_ANCHOR_NOT_RECORDED' && sides.some(x => range(index[x].step)[1] === null)) mine.push('excluded_here');
+      if (why === 'INDEX_NO_POSSIBLE_PERIOD') {
+        const base = ir.base_windows[pid];
+        const s0 = index.start ? Math.max(base.start, range(index.start.step)[1] + index.start.offset) : base.start;
+        const e0 = index.end ? Math.min(base.end, range(index.end.step)[2] + index.end.offset) : base.end;
+        if (s0 > e0) mine.push('excluded_here');
+      }
     }
+    // Coverage: a `not_comparable` for coverage is the store's `none` turned by its coverage rule (D18), so where both
+    // sides are `none` before that rule, the change is the rule's verdict over the point window against the hull alone.
+    const preNone = r => r.status === 'none' || (r.status === 'not_comparable' && COVERAGE_REASONS.includes(r.reason));
+    const coverageOnly = preNone(p) && preNone(h);
+    if (coverageOnly) mine.push('coverage_hull');
+    if (differ('pinned', 'hull', 'admitted') && [p.reason, h.reason].includes(ADMISSION)) mine.push('admission_hull');
+    if (hasStartMax && index.start) {
+      const [, lo] = range(index.start.step), at = page.anchors[bound(index.start.step)];
+      if ((lo !== null && lo + index.start.offset < 0) || (at !== null && at !== undefined && at + index.start.offset < 0)) mine.push('clamp');
+    }
+    if (h.status === 'unresolved' && COUPLED.includes(h.reason) && c.related) mine.push('coupled');
+    if (p.reason === 'SEARCH_BUDGET_EXHAUSTED' || h.reason === 'SEARCH_BUDGET_EXHAUSTED') mine.push('search');
+    if (!coverageOnly && h.status !== 'excluded' && p.status !== 'excluded') {
+      const steps = [...new Set(['start', 'end'].filter(x => index[x]).map(x => index[x].step))];
+      for (const step of steps) {
+        const [, lo, hi] = range(step), at = page.anchors[bound(step)];
+        if (lo === null) continue;
+        if (at === null || at === undefined || at < lo || at > hi) mine.push('anchor_moved');
+        else if (hi > lo) mine.push('anchor_uncertain');
+      }
+      if (mine.some(x => x.startsWith('anchor_')) && ir.windows[pid]) {
+        const base = ir.base_windows[pid];
+        const side = (x, k) => index[x] ? (([, lo, hi]) => lo === null ? null : [lo + index[x].offset, hi + index[x].offset])(range(index[x].step)) : [k, k];
+        const S = side('start', base.start), E = side('end', base.end);
+        const one = index.start && index.end && index.start.step === index.end.step;
+        if (S && E && ((index.end && (E[1] > page.last || E[0] < 0)) || (!one && S[1] >= E[0]))) mine.push('eligibility_partial');
+      }
+    }
+    if (!mine.filter(x => x !== 'eligibility_partial').length) unexplained.push('pinned -> D52');
+    out.push(...mine);
   }
-  if (facts && facts.a && facts.b) {
-    if (!same(facts.a.uncovered, facts.b.uncovered)) out.push('coverage_hull');
-    if (!same(facts.a.admitted, facts.b.admitted)) out.push('admission_hull');
-  }
-  if (hasStartMax && index.start) {
-    const [, lo] = range(index.start.step), at = page.anchors[bound(index.start.step)];
-    if ((lo !== null && lo + index.start.offset < 0) || (at !== null && at !== undefined && at + index.start.offset < 0)) out.push('clamp');
-  }
-  if (m.reason === 'SEARCH_BUDGET_EXHAUSTED' || h.reason === 'SEARCH_BUDGET_EXHAUSTED') out.push('search');
-  // A hidden step whose events a user step can bind, or the reverse (their concepts equal, or one an ancestor of the
-  // other), leaving the store undecided by name: the engine's coupled-target rules (D30, D31, D32's derived points).
-  if (h.status === 'unresolved' && COUPLED.includes(h.reason) && c.related) out.push('coupled');
-  return [...new Set(out)].sort();
+  return {classes: [...new Set(out)].sort(), unexplained};
 }
 
 // Each step's concepts as the coverage rule reads them: its own, and those its relaxations widen it to.
@@ -484,8 +529,9 @@ function census(output) {
   assert.ok(same(defs.map(d => d.name), definitionsOf(ctx.main, SMOKE ? 10 : undefined).map(d => d.name)), 'the definitions differ from main\'s');
   const rows = [];
   const structural = {pin_differs_from_main: [], no_event_bound_changed: [], no_event_bound_rewrite_calls: 0,
-                      refused_here_not_fitting: [], answered_on_main_refused_otherwise: [], refused_on_main_changed: [],
-                      perturbed_differs: [], perturbations_checked: 0};
+                      refused_here_answered_on_main: [], refused_on_main_changed: [], point_not_main_request: [],
+                      point_reason_not_fitting: [], perturbed_differs: [], perturbations_checked: 0};
+  const point = {definitions: 0, sweep_definitions: 0, by_reason: {}, by_group: {}};
   for (const d of defs) {
     const main = translate(ctx.main, d.def, d.freeText);
     const pin = translate(ctx.here, d.def, d.freeText, {indexAnchor: false});
@@ -498,9 +544,16 @@ function census(output) {
       structural.no_event_bound_rewrite_calls += calls;
     }
     if (main.refused && !same(mine, main)) structural.refused_on_main_changed.push(d.name);
-    if (!main.refused && mine.refused && !(D52_CODES.includes(mine.refused) && hasEvent(d.def) && refusalFits(mine.refused, d.def, d.freeText, concepts)))
-      (D52_CODES.includes(mine.refused) ? structural.refused_here_not_fitting : structural.answered_on_main_refused_otherwise).push(`${d.name}: ${mine.refused}`);
-    if (hasEvent(d.def) && !mine.refused) {
+    if (!main.refused && mine.refused) structural.refused_here_answered_on_main.push(`${d.name}: ${mine.refused}`);
+    if (mine.index_anchor) {
+      // D52 review, S2: a point period is D49's request, unchanged, with a reason that fits its shape.
+      const {index_anchor: marker, ...request} = mine;
+      if (!same(request, main)) structural.point_not_main_request.push(d.name);
+      if (!(D52_CODES.includes(marker.reason) && pointFits(marker.reason, d.def, d.freeText, concepts))) structural.point_reason_not_fitting.push(`${d.name}: ${marker.reason}`);
+      point.definitions += 1; bump(point.by_reason, marker.reason); bump(point.by_group, d.group);
+      if (d.group === 'sweep') point.sweep_definitions += 1;
+    }
+    if (mine.index) {
       structural.perturbations_checked += 1;
       for (const how of ['late', 'empty'])
         if (!same(inContext(ctx.here, `translatePerturbed(${JSON.stringify(d.def)}, ${JSON.stringify(d.freeText)}, ${JSON.stringify(how)})`), mine))
@@ -508,42 +561,43 @@ function census(output) {
     }
     rows.push({...d, main, mine});
   }
-  structural.met = ['pin_differs_from_main', 'no_event_bound_changed', 'refused_here_not_fitting', 'answered_on_main_refused_otherwise',
-                    'refused_on_main_changed', 'perturbed_differs'].every(k => !structural[k].length) && structural.no_event_bound_rewrite_calls === 0
-                   && structural.perturbations_checked > 0;
+  structural.met = ['pin_differs_from_main', 'no_event_bound_changed', 'refused_here_answered_on_main', 'refused_on_main_changed',
+                    'point_not_main_request', 'point_reason_not_fitting', 'perturbed_differs'].every(k => !structural[k].length)
+                   && structural.no_event_bound_rewrite_calls === 0 && structural.perturbations_checked > 0;
 
   const work = fs.mkdtempSync(path.join(os.tmpdir(), 'd52-census-'));
   try {
     const snapshot = build(cohortPath, path.join(work, 'store'));
     const requests = new Map();
     const nameOf = req => {
-      const key = JSON.stringify(req);
+      const {index_anchor: _, ...body} = req;
+      const key = JSON.stringify(body);
       if (!requests.has(key)) requests.set(key, `q${requests.size}`);
       return requests.get(key);
     };
-    for (const r of rows) for (const side of ['main', 'mine']) if (!r[side].refused) r[side + 'Name'] = nameOf(r[side]);
+    for (const r of rows) {
+      for (const side of ['main', 'mine']) if (!r[side].refused) r[side + 'Name'] = nameOf(r[side]);
+      if (r.mine.index && !r.main.refused) r.pinnedName = nameOf(pinned(r.main, r.def));
+    }
     const cases = [...requests.entries()].map(([key, name]) => ({name, ...JSON.parse(key)}));
     const a = answer(snapshot, cohortPath, cases);
     const unnamed = Object.entries(a.swept).filter(([, x]) => x.error === 'UNNAMED').map(([n, x]) => `${n}: ${x.message}`);
     const pids = cohort.patients.map(p => p.patient_id);
-    const resultOf = (name, pid) => a.swept[name].error ? {error: a.swept[name].error} : a.results[name][pid];
     const facts = new Map();  // window+setting -> page facts (main's page)
     const pageOf = (def, freeText) => {
       const key = JSON.stringify([def.window, freeText]);
       if (!facts.has(key)) facts.set(key, inContext(ctx.main, `pageFacts(${JSON.stringify(def.window)}, ${JSON.stringify(freeText)})`));
       return facts.get(key);
     };
-    // The changed results of event-anchored definitions answered on both sides.
+    // The changed results of rewritten definitions answered on both sides (a point period's request is main's).
     const changed = [];
     let compared = 0, eventCases = 0, refusedAlike = 0;
-    const transitions = {}, refusals = {};
     for (const r of rows) {
-      if (!hasEvent(r.def)) continue;
-      if (r.mine.refused && !r.main.refused) { bump(refusals, r.mine.refused); continue; }
-      if (r.main.refused || r.mine.refused) continue;
-      if (a.swept[r.mainName].error || a.swept[r.mineName].error) {
-        if (a.swept[r.mainName].error === a.swept[r.mineName].error) refusedAlike += 1;
-        else changed.push({row: r, pid: null, store_refusal: [a.swept[r.mainName].error || null, a.swept[r.mineName].error || null]});
+      if (!r.mine.index || r.main.refused) continue;
+      const errs = [r.mainName, r.mineName, r.pinnedName].map(n => a.swept[n].error || null);
+      if (errs.some(Boolean)) {
+        if (errs.every(e => e === errs[0])) refusedAlike += 1;
+        else changed.push({row: r, pid: null, store_refusal: errs});
         continue;
       }
       eventCases += 1;
@@ -554,17 +608,18 @@ function census(output) {
       const related = inContext(ctx.here, `${JSON.stringify(hidden)}.some(h => ${JSON.stringify(users)}.some(u => related(u, h)))`);
       for (const pid of pids) {
         compared += 1;
-        const m = a.results[r.mainName][pid], h = a.results[r.mineName][pid];
+        const m = a.results[r.mainName][pid], h = a.results[r.mineName][pid], p = a.results[r.pinnedName][pid];
         if (resultKey(m) === resultKey(h)) continue;
-        changed.push({row: r, pid, m, h, page: page[pid], ir, index: r.mine.index, hasStartMax, related});
+        changed.push({row: r, pid, m, p, h, page: page[pid], ir, index: r.mine.index, hasStartMax, related});
       }
     }
-    // Coverage and admission over the two windows, for the changed results (tools/d52_measure.py facts).
-    const items = changed.filter(c => c.pid).map((c, i) => ({key: String(i), patient_id: c.pid, steps: stepConcepts(c.row.mine),
-      a: {scope: c.row.main.query.scope, window: c.row.main.windows[c.pid]}, b: {scope: c.row.mine.query.scope, window: c.ir.windows[c.pid]}}));
+    // Admission for the changed results (tools/d52_measure.py facts): main's scope over the point window, `any` over the
+    // point window (the pinned request), `any` over the hull (D52).
+    const items = changed.filter(c => c.pid).map((c, i) => ({key: String(i), patient_id: c.pid, steps: stepConcepts(c.row.mine), sides: {
+      main: {scope: c.row.main.query.scope, window: c.row.main.windows[c.pid]}, pinned: {scope: 'any', window: c.row.main.windows[c.pid]},
+      hull: {scope: c.row.mine.query.scope, window: c.ir.windows[c.pid]}}}));
     const factsOf = items.length ? JSON.parse(run(['tools/d52_measure.py', 'facts', snapshot], JSON.stringify({cohort: cohortPath, items}))) : {};
-    // The option sweep as the page offers it (each definition under its own setting), tallied as the parity test tallies
-    // it, on both sides (rule 5's pin is taken from here).
+    // The option sweep as the page offers it, tallied as the parity test tallies it (rule 5's pin is taken from here).
     const sweepAsOffered = {};
     for (const side of ['main', 'mine']) {
       const t = sweepAsOffered[side === 'mine' ? 'here' : 'main'] = {answered: 0, translator: {}, store: {}};
@@ -574,42 +629,48 @@ function census(output) {
         if (error) bump(t.store, error); else t.answered += 1;
       }
     }
-    const byClass = {}, byTransition = {}, bySetting = {}, unexplained = [];
+    const byClass = {}, byTransition = {}, bySetting = {}, byStep = {}, unexplained = [];
     let k = 0;
     for (const c of changed) {
       if (!c.pid) { unexplained.push({definition: c.row.name, store_refusal: c.store_refusal}); continue; }
-      const classes = classesOf({...c, facts: factsOf[String(k++)], query: c.row.mine.query});
-      const t = `${statusText(c.m)} -> ${statusText(c.h)}`;
-      bump(byTransition, t);
+      const f = factsOf[String(k++)];
+      const {classes, unexplained: gaps} = classesOf({...c, facts: f});
+      bump(byTransition, `${statusText(c.m)} -> ${statusText(c.h)}`);
       bump(bySetting, c.row.freeText);
-      // Identity: a result with no verified class must not have changed.
-      if (!classes.length) unexplained.push({definition: c.row.name, patient_id: c.pid, main: c.m, here: c.h});
-      bump(byClass, classes.join(' + ') || 'unexplained');
+      bump(byStep, resultKey(c.m) === resultKey(c.p) ? 'pinned equals main' : resultKey(c.p) === resultKey(c.h) ? 'pinned equals D52' : 'differs from both');
+      // Identity: a step of the chain that changed with no verified class is unexplained.
+      if (gaps.length) unexplained.push({definition: c.row.name, patient_id: c.pid, steps: gaps, classes, main: c.m, pinned: c.p, here: c.h, facts: f,
+                                         windows: {main: c.row.main.windows[c.pid], hull: c.ir.windows[c.pid]}});
+      bump(byClass, classes.join(' + ') || 'none');
     }
     const report = {
       profile: 'd52-anchor-census-1.0',
-      rule: ('D52 rule 3 on the page\'s cohort: the templates and the Blank template under D46\'s twelve period rules and D52\'s '
-             + 'four added shapes (both settings) and every option-sweep definition (its own setting), main\'s translator (from git '
-             + 'at the base) against this tree\'s. Structural: indexAnchor false reproduces main\'s request; a definition with no '
-             + 'event bound has a byte-identical request and 0 rewrite calls; every new refusal is a D52 code fitting its shape; '
-             + 'nothing refused on main changes; the rewritten request is byte-identical with the page\'s anchors at their latest '
-             + 'and with the index view emptied. Every changed result (status, certainty, relaxations, reason) of an '
-             + 'event-anchored definition answered on both sides has a verified class; a result with no class must be unchanged'),
+      rule: ('D52 rule 3 on the page\'s cohort (as amended after the review): the templates and the Blank template under D46\'s '
+             + 'twelve period rules and D52\'s four added shapes, the cross grid of the added shapes with the probes (both settings), '
+             + 'and every option-sweep definition (its own setting); main\'s translator (from git at the base) against this '
+             + 'tree\'s. Structural: indexAnchor false reproduces main\'s request; a definition with no event bound has a '
+             + 'byte-identical request and 0 rewrite calls; nothing answered on main is refused, nothing refused on main changes; '
+             + 'a point period is main\'s request with a reason fitting its shape; the rewritten request is byte-identical with '
+             + 'the page\'s anchors at their latest and with the index view emptied. Every changed result of a rewritten '
+             + 'definition answered on both sides is explained through the pinned request (main\'s request with D52\'s scope '
+             + 'writing, over main\'s point windows): each step of main -> pinned -> D52 that changed needs a class verified on '
+             + 'its facts, or the result is unexplained'),
       base: BASE, cohort: {children: pids.length, sha256: shaText(cohortText), page_cohort: cohortPath === COHORT},
-      definitions: rows.length, event_anchored_answered_on_both: eventCases, results_compared: compared,
+      definitions: rows.length, rewritten_answered_on_both: eventCases, results_compared: compared,
       results_changed: changed.filter(c => c.pid).length, store_refused_alike: refusedAlike,
-      structural, newly_refused: refusals, sweep_as_offered: sweepAsOffered, changed_by_class: byClass, changed_by_transition: byTransition, changed_by_setting: bySetting,
+      structural, point_window: point, sweep_as_offered: sweepAsOffered,
+      changed_by_class: byClass, changed_by_transition: byTransition, changed_by_setting: bySetting, changed_by_chain: byStep,
       unexplained: unexplained.slice(0, 50), unexplained_count: unexplained.length,
       p2_comparison: {d46_uncertainty_census: '397 of 13,824 event-anchored results changed with each anchor at its latest',
-                      here: `${changed.filter(c => c.pid).length} of ${compared} event-anchored results changed against main's point windows`},
+                      here: `${changed.filter(c => c.pid).length} of ${compared} results of rewritten definitions changed against main's point windows`},
       unnamed: unnamed.slice(0, 20),
       met: structural.met && !unexplained.length && !unnamed.length,
       seconds: Math.round((Date.now() - t0) / 1000),
       artifacts: artifacts(), contains_patient_level_data: false, ...(SMOKE ? {smoke: true} : {}),
     };
     write(output, report);
-    console.error(`census: ${report.results_changed} of ${compared} changed; unexplained ${unexplained.length}; `
-                  + `structural ${structural.met ? 'met' : 'MISSED'}; classes ${JSON.stringify(byClass)}`);
+    console.error(`census: ${report.results_changed} of ${compared} changed; unexplained ${unexplained.length}; point periods ${point.definitions} `
+                  + `(${point.sweep_definitions} in the sweep); structural ${structural.met ? 'met' : 'MISSED'}; chain ${JSON.stringify(byStep)}; classes ${JSON.stringify(byClass)}`);
   } finally {
     fs.rmSync(work, {recursive: true, force: true});
   }
@@ -653,7 +714,7 @@ function requests(output) {
 }
 
 module.exports = {SEEDS, EXTEND, REFERENCE_SEEDS, DEV_SEED, answer, definitionsOf, pageContext, inContext, translate,
-                  classesOf, refusalFits, stepConcepts, D52_CODES};
+                  classesOf, pointFits, pinned, stepConcepts, D52_CODES};
 
 if (require.main === module) {
   const command = process.argv[2];

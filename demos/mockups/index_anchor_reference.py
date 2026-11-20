@@ -7,7 +7,8 @@ It shares no code with `trajectory/store_request.js` or `index_hull.py`:
   definition's window, and writes D52's request: hidden steps, relations, conditions, base windows and the `index` block;
   it mirrors the translator step by step (`indexSides`, `indexBaseWindow`, `indexRewrite`), with JavaScript's rounding
   (`Math.round`) and its float arithmetic in the same order;
-- `refusal(window, nodes, free_text, coded_mode, concepts)` gives the D52 refusal code, or None;
+- `point_reason(window, nodes, free_text, coded_mode, concepts)` gives the reason a shape keeps D49's point window (the
+  translator's `indexPointReason`), or None;
 - `anchor_range(events, concept, ancestors, occurrence, derived, exclude_kinds)` computes a hidden step's possible
   range over a converted patient's events with dictionaries and loops (no SQL): the order-statistic bound of
   `index_hull_v1`; `narrow(...)` narrows a base window with it.
@@ -125,8 +126,9 @@ def base_window(start, end, patient):
     return {'start': to_grid(constant_day(start['constant'], patient)) if 'constant' in start else 0, 'end': to_grid(last)}
 
 
-def refusal(window, nodes, free_text, coded_mode, concepts):
-    """The D52 refusal code for a definition the base translation answers, or None."""
+def point_reason(window, nodes, free_text, coded_mode, concepts):
+    """Why a definition the base translation answers keeps D49's point window (D52 review, S2), or None when the rewrite
+    writes it."""
     bounds = [b for b in (window['start'], window['end']) if b['kind'] == 'event']
     if not bounds:
         return None

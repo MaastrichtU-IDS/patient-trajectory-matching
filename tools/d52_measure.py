@@ -1,5 +1,5 @@
 """D52's measurements on the Python side (decision log, D52): the worlds harness (rule 1), its planted defects, the
-reference check (rule 2) and the census's coverage and admission facts (rule 3).
+reference check (rule 2) and the census's admission facts (rule 3).
 
     python tools/d52_measure.py worlds [--cases N] [--seed LABEL] [--output REPORT.json]
     python tools/d52_measure.py defects [--cases N] [--seed LABEL] [--output REPORT.json]
@@ -443,18 +443,21 @@ def reference_check(snapshot, rows_file):
     ancestors = si.synthetic_header(cohort)['closure']['ancestors']
     births = store_parity.birth_micros(cohort)
     MINUTE = hull.MINUTE
-    out = {'requests': 0, 'request_mismatches': 0, 'refused_alike': 0, 'windows': 0, 'window_mismatches': 0, 'examples': []}
+    out = {'requests': 0, 'request_mismatches': 0, 'point_alike': 0, 'windows': 0, 'window_mismatches': 0, 'examples': []}
     with es.open_store(Path(snapshot)) as store:
         for row in data['rows']:
             out['requests'] += 1
-            code = ref.refusal(row['window'], row['nodes'], row['free_text'], row['coded_mode'], concepts)
+            code = ref.point_reason(row['window'], row['nodes'], row['free_text'], row['coded_mode'], concepts)
             here = row['here']
-            if code or here.get('refused'):
-                if code == here.get('refused'):
-                    out['refused_alike'] += 1
+            if code or here.get('index_anchor') or here.get('refused'):
+                # A point period (D52 review, S2): D49's request, unchanged, with the reason.
+                theirs = {k: here[k] for k in ('query', 'conditions', 'windows') if k in here}
+                if not here.get('refused') and code == (here.get('index_anchor') or {}).get('reason') \
+                        and json.dumps(theirs, sort_keys=True) == json.dumps(row['base'], sort_keys=True) and 'index' not in here:
+                    out['point_alike'] += 1
                 else:
                     out['request_mismatches'] += 1
-                    out['examples'].append({'name': row['name'], 'reference': code, 'here': here.get('refused', 'answered')})
+                    out['examples'].append({'name': row['name'], 'reference': code, 'here': here.get('refused') or here.get('index_anchor') or 'rewritten'})
                 continue
             mine = ref.rewrite(row['base'], row['window'], row['nodes'], patients)
             theirs = {k: here[k] for k in ('query', 'conditions', 'windows', 'index')}
@@ -490,9 +493,9 @@ def reference_check(snapshot, rows_file):
 # Rule 3: the census's facts (coverage and admission over two windows).
 
 def facts(snapshot, items):
-    """For each item {key, patient_id, steps: {step: [concepts]}, a: {scope, window}, b: {scope, window}} (windows in
-    minutes from birth, or None): the steps no covering source meets under each window (the coverage rule's test,
-    `window_overlap_source_concepts_v1`), and the excluded records each window's scope admits (`admits_start`)."""
+    """For each item {key, patient_id, steps: {step: [concepts]}, sides: {name: {scope, window}}} (windows in minutes from
+    birth, or None): the excluded records of each step's concepts that each side's scope and window admit
+    (`execution_store.admits_start`, D44's admission scope)."""
     import store_parity
     from patterns import execution_store as es
     cohort = json.loads(Path(items['cohort']).read_text())
@@ -501,12 +504,6 @@ def facts(snapshot, items):
     out = {}
     with es.open_store(Path(snapshot)) as store:
         idx_of = dict((pid, idx) for idx, pid in store.query('SELECT patient_idx, patient_id FROM patients'))
-        sources = {}
-        for source, concept in store.query('SELECT source, concept FROM source_concepts'):
-            sources.setdefault(concept, set()).add(source)
-        coverage = {}
-        for idx, source, lo, hi in store.query('SELECT patient_idx, source, lo, hi FROM coverage'):
-            coverage.setdefault(idx, []).append((source, lo, hi))
         excluded = {}
         for idx, ancestor, lo, hi in store.query('''SELECT x.patient_idx, cc.ancestor, x.start_lo, x.start_hi FROM excluded_records x
                                                     JOIN concept_closure cc ON cc.concept = x.concept'''):
@@ -515,20 +512,15 @@ def facts(snapshot, items):
             pid = item['patient_id']
             idx = idx_of[pid]
             res = {}
-            for side in ('a', 'b'):
-                w = item[side]['window']
+            for side in sorted(item['sides']):
+                w = item['sides'][side]['window']
                 if w is None:
                     res[side] = None
                     continue
                 win = {'start': births[pid] + w['start'] * MINUTE, 'end': births[pid] + w['end'] * MINUTE}
-                uncovered = []
-                for step, cs in sorted(item['steps'].items()):
-                    able = set().union(*(sources.get(c, set()) for c in cs))
-                    if not any(s in able and lo <= win['end'] and hi >= win['start'] for s, lo, hi in coverage.get(idx, [])):
-                        uncovered.append(step)
                 admitted = sorted({(step, lo, hi) for step, cs in item['steps'].items() for c, lo, hi in excluded.get(idx, [])
-                                   if c in cs and es.admits_start(item[side]['scope'], win, lo, hi)})
-                res[side] = {'uncovered': uncovered, 'admitted': [list(x) for x in admitted]}
+                                   if c in cs and es.admits_start(item['sides'][side]['scope'], win, lo, hi)})
+                res[side] = {'admitted': [list(x) for x in admitted]}
             out[item['key']] = res
     return out
 
@@ -541,7 +533,7 @@ def main(argv=None):
     w.add_argument('--seed', default='d52-rule')
     w.add_argument('--output')
     d = sub.add_parser('defects')
-    d.add_argument('--cases', type=int, default=6_000)
+    d.add_argument('--cases', type=int, default=12_000)
     d.add_argument('--seed', default='d52-defects-rule')
     d.add_argument('--output')
     r = sub.add_parser('reference-check')

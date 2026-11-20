@@ -412,27 +412,51 @@ try {
   assert.deepEqual(page[0].win, {start: 1, end: 800});
   assert.equal(page[1].status, 'excluded');
   assert.ok(/holds no record of the period's event/.test(page[1].reason));
-  // The census's classes, on constructed results.
+  // The census's classes through the pinned request (D52 review, M2), on constructed results.
   const ir = {ranges: {'@index_start': {P: [2, 100, 100], Q: [2, 100, 160]}}, windows: {P: {start: 100, end: 900}, Q: {start: 100, end: 960}},
               base_windows: {P: {start: 0, end: 2000}, Q: {start: 0, end: 2000}}, reasons: {}};
   const index = {start: {step: '@index_start', offset: 0}, end: {step: '@index_start', offset: 800}};
-  const one = (pid, m, h, at, extra = {}) => d52.classesOf({m, h, pid, ir, index, page: {reason: null, anchors: {start: at}, last: 2000}, hasStartMax: false, ...extra});
-  assert.deepEqual(one('P', {status: 'possible'}, {status: 'exact'}, 100), []);  // a certain anchor at the page's point: no class
-  assert.deepEqual(one('Q', {status: 'possible'}, {status: 'exact'}, 100), ['anchor_uncertain']);
-  assert.deepEqual(one('P', {status: 'possible'}, {status: 'exact'}, 90), ['anchor_moved']);
-  assert.deepEqual(one('Q', {status: 'exact'}, {status: 'unresolved', reason: 'OCCURRENCE_ORDER_UNCERTAIN'}, 100, {related: true}), ['anchor_uncertain', 'coupled']);
-  assert.deepEqual(d52.classesOf({m: {status: 'excluded'}, h: {status: 'possible'}, pid: 'P', ir, index, hasStartMax: false,
-    page: {reason: 'not followed to the end of the window (last contact at 2y)', anchors: {start: 100}, last: 2000}}), ['eligibility_gained']);
-  assert.deepEqual(one('P', {status: 'none'}, {status: 'not_comparable'}, 100, {facts: {a: {uncovered: [], admitted: []}, b: {uncovered: ['A'], admitted: []}}}), ['coverage_hull']);
-  assert.deepEqual(d52.classesOf({m: {status: 'exact'}, h: {status: 'possible'}, pid: 'P', ir, index, hasStartMax: false,
-    page: {reason: null, anchors: {start: 100}, last: 850}}), ['eligibility_partial']);
-  // D52's refusals fit their shapes only.
+  const same3 = {main: {admitted: []}, pinned: {admitted: []}, hull: {admitted: []}};
+  const one = (pid, m, p, h, at, extra = {}) => d52.classesOf({m, p, h, pid, ir, index, facts: same3,
+    page: {reason: null, anchors: {start: at}, last: 2000}, hasStartMax: false, ...extra});
+  const E = {status: 'exact'}, P = {status: 'possible'};
+  // A certain anchor at the page's point explains nothing: the change is unexplained.
+  assert.deepEqual(one('P', P, P, E, 100), {classes: [], unexplained: ['pinned -> D52']});
+  assert.deepEqual(one('Q', P, P, E, 100), {classes: ['anchor_uncertain'], unexplained: []});
+  assert.deepEqual(one('P', P, P, E, 90), {classes: ['anchor_moved'], unexplained: []});
+  // Both sides `none` before the coverage rule: the change is that rule's verdict over the point window against the hull,
+  // never the anchor; a change of the engine's own answer is the anchor's.
+  const NC = {status: 'not_comparable', reason: 'NO_SOURCE_COVERAGE'};
+  assert.deepEqual(one('Q', {status: 'none'}, {status: 'none'}, NC, 100), {classes: ['coverage_hull'], unexplained: []});
+  assert.deepEqual(one('P', NC, NC, {status: 'none', reason: 'FILTERED'}, 100), {classes: ['coverage_hull'], unexplained: []});
+  assert.deepEqual(one('Q', NC, NC, P, 100), {classes: ['anchor_uncertain'], unexplained: []});
+  // Main to the pinned request: only D44's admission scope, verified on its facts.
+  const ADM = {status: 'not_comparable', reason: 'ADMISSION_EXCLUDED_RECORDS'};
+  assert.deepEqual(one('Q', P, ADM, ADM, 100), {classes: [], unexplained: ['main -> pinned']});
+  assert.deepEqual(one('Q', P, ADM, ADM, 100, {facts: {...same3, pinned: {admitted: [['A', 1, 2]]}, hull: {admitted: [['A', 1, 2]]}}}),
+                   {classes: ['admission_scope'], unexplained: []});
+  assert.deepEqual(one('Q', E, E, {status: 'unresolved', reason: 'OCCURRENCE_ORDER_UNCERTAIN'}, 100, {related: true}),
+                   {classes: ['anchor_uncertain', 'coupled'], unexplained: []});
+  assert.deepEqual(d52.classesOf({m: {status: 'excluded'}, p: {status: 'excluded'}, h: P, pid: 'P', ir, index, hasStartMax: false, facts: same3,
+    page: {reason: 'not followed to the end of the window (last contact at 2y)', anchors: {start: 100}, last: 2000}}), {classes: ['eligibility_gained'], unexplained: []});
+  assert.deepEqual(one('Q', E, E, P, 100, {page: {reason: null, anchors: {start: 100}, last: 850}}),
+                   {classes: ['anchor_uncertain', 'eligibility_partial'], unexplained: []});
+  // The pinned request: main's, its scope written as relations, the same windows.
+  const pin = d52.pinned({query: {scope: 'within', relations: [{id: 'edge:0'}], steps: []}, conditions: null, windows: {P: {start: 1, end: 2}}}, {nodes: [{id: 'A'}]});
+  assert.deepEqual(pin.query.relations.map(x => [x.id, x.from, x.to]), [['edge:0', undefined, undefined], ['index:scope:A', 'START', 'A'], ['index:scope-end:A', 'A', 'END']]);
+  assert.equal(pin.query.scope, 'any');
+  // D52's point reasons fit their shapes only (review, S2), and a point period is D49's request, marked.
   const w = (start, end) => ({window: {start, end}, nodes: []});
   const ev = (event, which = 'first', n = 1) => ({kind: 'event', event, which, n, offset: 0, unit: 'month'});
-  assert.ok(d52.refusalFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('@any_diagnosis'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
-  assert.ok(!d52.refusalFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('seizure'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
-  assert.ok(d52.refusalFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'present', {}));
-  assert.ok(!d52.refusalFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(d52.pointFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('@any_diagnosis'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(!d52.pointFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('seizure'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(d52.pointFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'present', {}));
+  assert.ok(!d52.pointFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  const pt = read(`(() => { state.freeText = 'off'; const def = {...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}}};
+    const mine = storeRequest(def, 'off', [...state.patients.keys()]), pin = storeRequest(def, 'off', [...state.patients.keys()], {indexAnchor: false});
+    const {index_anchor, ...rest} = mine; return {index_anchor, same: JSON.stringify(rest) === JSON.stringify(pin)}; })()`);
+  assert.deepEqual(pt, {index_anchor: {mode: 'point', reason: 'INDEX_ANCHOR_ANY_UNSUPPORTED'}, same: true});
   console.log('D52: the rewrite of the default period (one hidden step, scope any, eligibility from the step), D49\'s request on '
-              + 'request, a constant period untouched; the page\'s reading of an indexed answer; the census\'s classes and refusal shapes.');
+              + 'request, a constant period untouched, a point period marked; the page\'s reading of an indexed answer; the census\'s '
+              + 'classes through the pinned request and the point reasons\' shapes.');
 }

@@ -100,19 +100,19 @@ class RewriteTests(unittest.TestCase):
         self.assertEqual(out['query']['steps'][-1]['occurrence'], 'any')
         self.assertEqual(out['conditions'], {'profile': 'execution-store-conditions-1.1', 'steps': {'@index_start': {'occurrence': {'nth': 3}}}})
 
-    def test_the_refusals_in_their_order(self):
+    def test_the_point_reasons_in_their_order(self):
         concepts = {'gene:SCN1A': {'kind': 'gene'}}
         span = SPAN(12)
-        self.assertEqual(ref.refusal({'start': ev('@any_diagnosis'), 'end': span}, [], 'off', 'store', concepts), 'INDEX_ANCHOR_ANY_UNSUPPORTED')
-        self.assertEqual(ref.refusal({'start': ev('gene:SCN1A'), 'end': span}, [], 'off', 'store', concepts), 'INDEX_ANCHOR_GENE_UNSUPPORTED')
-        self.assertEqual(ref.refusal({'start': ev('seizure', 'nth', 2), 'end': span}, [], 'present', 'store', concepts), 'FREE_TEXT_COUNT_UNSUPPORTED')
-        self.assertIsNone(ref.refusal({'start': ev('seizure', 'nth', 2), 'end': span}, [], 'off', 'store', concepts))
+        self.assertEqual(ref.point_reason({'start': ev('@any_diagnosis'), 'end': span}, [], 'off', 'store', concepts), 'INDEX_ANCHOR_ANY_UNSUPPORTED')
+        self.assertEqual(ref.point_reason({'start': ev('gene:SCN1A'), 'end': span}, [], 'off', 'store', concepts), 'INDEX_ANCHOR_GENE_UNSUPPORTED')
+        self.assertEqual(ref.point_reason({'start': ev('seizure', 'nth', 2), 'end': span}, [], 'present', 'store', concepts), 'FREE_TEXT_COUNT_UNSUPPORTED')
+        self.assertIsNone(ref.point_reason({'start': ev('seizure', 'nth', 2), 'end': span}, [], 'off', 'store', concepts))
         count = [{'id': 'A', 'occ': 'count', 'within': 'period'}]
-        self.assertEqual(ref.refusal({'start': ev('seizure'), 'end': span}, count, 'off', 'store', concepts), 'INDEX_PERIOD_COUNT_UNSUPPORTED')
-        self.assertEqual(ref.refusal({'start': {'kind': 'date', 'date': '2020-01-01'}, 'end': ev('seizure')}, [], 'off', 'store', concepts),
+        self.assertEqual(ref.point_reason({'start': ev('seizure'), 'end': span}, count, 'off', 'store', concepts), 'INDEX_PERIOD_COUNT_UNSUPPORTED')
+        self.assertEqual(ref.point_reason({'start': {'kind': 'date', 'date': '2020-01-01'}, 'end': ev('seizure')}, [], 'off', 'store', concepts),
                          'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED')
-        self.assertEqual(ref.refusal({'start': ev('seizure'), 'end': span}, [], 'off', None, concepts), 'FREE_TEXT_CODED_ONLY_UNSUPPORTED')
-        self.assertIsNone(ref.refusal({'start': {'kind': 'birth'}, 'end': {'kind': 'age', 'amount': 6, 'unit': 'year'}}, count, 'off', None, concepts))
+        self.assertEqual(ref.point_reason({'start': ev('seizure'), 'end': span}, [], 'off', None, concepts), 'FREE_TEXT_CODED_ONLY_UNSUPPORTED')
+        self.assertIsNone(ref.point_reason({'start': {'kind': 'birth'}, 'end': {'kind': 'age', 'amount': 6, 'unit': 'year'}}, count, 'off', None, concepts))
 
     def test_the_narrowing_without_sql(self):
         events = [{'kind': 'condition', 'concepts': ['x'], 'start': [5, 7]}, {'kind': 'mention', 'concepts': ['x'], 'start': [0, 9]},
@@ -141,6 +141,14 @@ class RequestCheckTests(unittest.TestCase):
                             ({'rule': 'index_anchor_v1', 'start': None, 'end': None}, 'INDEX_SIDE_MUST_NAME_A_STEP')]:
             with self.assertRaises(st.RequestError) as caught:
                 st.check_request({**good, 'index': index}, {})
+            self.assertEqual(str(caught.exception), code)
+        # A point period (D52 review, S2): its reason, alone.
+        point = {'query': q, 'windows': {}, 'index_anchor': {'mode': 'point', 'reason': 'INDEX_ANCHOR_ANY_UNSUPPORTED'}}
+        st.check_request(point, {})
+        for spec, code in [({**point, 'index_anchor': {'mode': 'hull', 'reason': 'X'}}, 'INDEX_ANCHOR_MUST_BE_A_POINT_AND_A_REASON'),
+                           ({**point, 'index': good['index']}, 'INDEX_ANCHOR_AND_INDEX_TOGETHER')]:
+            with self.assertRaises(st.RequestError) as caught:
+                st.check_request(spec, {})
             self.assertEqual(str(caught.exception), code)
 
 

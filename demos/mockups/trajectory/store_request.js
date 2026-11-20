@@ -31,8 +31,9 @@
      verdict); `options.codedOnly: false` (or null) asks for the named refusal;
    - VALUE_NOT_A_PLAIN_DECIMAL (D37): a threshold or factor that does not print as a plain decimal (such as 1e+21);
    - since D52, an index period placed by an event is written as a hidden step of the query (STORE_INDEX_ANCHOR; the
-     block at the end of this file), with its own refusals: INDEX_ANCHOR_ANY_UNSUPPORTED, INDEX_ANCHOR_GENE_UNSUPPORTED,
-     INDEX_PERIOD_COUNT_UNSUPPORTED, INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED, and the codes above for its step.
+     block at the end of this file); a shape it cannot write keeps D49's point window, marked with its reason
+     (INDEX_ANCHOR_ANY_UNSUPPORTED, INDEX_ANCHOR_GENE_UNSUPPORTED, INDEX_PERIOD_COUNT_UNSUPPORTED,
+     INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED, FREE_TEXT_COUNT_UNSUPPORTED, FREE_TEXT_CODED_ONLY_UNSUPPORTED).
    Everything else is translated:
    - an Nth occurrence with N = 1 is the engine's first (Nth from last: last); with N > 1, the store's
      `occurrence: {nth | nth_last: N}`;
@@ -117,7 +118,9 @@ function storeRefusals(def, freeText, options = {}) {
 function storeRequest(def, freeText, pids, options = {}) {
   storeRefusals(def, freeText, options);
   if (indexAnchorOn(options) && hasEventBound(def.window)) {
-    indexRefusals(def, freeText, options);
+    // D52 review, S2: a shape the rewrite cannot write keeps D49's point window, marked, so the store still answers it.
+    const point = indexPointReason(def, freeText, options);
+    if (point) return {...baseRequest(def, freeText, pids, options), index_anchor: {mode: 'point', reason: point}};
     INDEX_REWRITES.calls += 1;
     return indexRewrite(baseRequest(def, freeText, pids, options), def, pids, options);
   }
@@ -216,7 +219,9 @@ function baseRequest(def, freeText, pids, options) {
    - a relation START -> X [lo, hi] becomes anchor(start) -> X [kP + lo, kP + hi], with its id and its relaxation's
      maximum shifted alike: measured from the anchor plus its offset, *not clamped at birth* (the clamp limits where steps
      fall, through the scope, but not relations from the period's start; D52, Q2); END -> X shifts by kQ.
-   Refused by name (after the refusals above):
+   Written with D49's point window instead, marked `index_anchor: {mode: 'point', reason}` (the store's answer holds for
+   the window sent, D46's P2; the page says so), when the rewrite cannot write the shape (D52 review, S2; the reason
+   codes):
    - INDEX_ANCHOR_ANY_UNSUPPORTED: "any diagnosis" or "any genetic result" as the event (no store concept holds them);
    - INDEX_ANCHOR_GENE_UNSUPPORTED: a gene as the event (the page's anchor is its first report of any class, by its
      recording, which the store holds as no event);
@@ -226,8 +231,8 @@ function baseRequest(def, freeText, pids, options) {
      constant);
    - INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED: a date start (or an age below 0) with an event end (a start that may
      precede birth would need a bound per patient);
-   - FREE_TEXT_CODED_ONLY_UNSUPPORTED (detail the hidden step): "coded only" refused on request (`codedOnly: null` or
-     false) with a hidden step that is not derived, as for any step.
+   - FREE_TEXT_CODED_ONLY_UNSUPPORTED: "coded only" refused on request (`codedOnly: null` or false) with a hidden step
+     that is not derived, which would read letter mentions.
    `options.indexAnchor: false` writes D49's request (the page's point windows) exactly. */
 const STORE_INDEX_ANCHOR = true;
 const INDEX_RULE = 'index_anchor_v1';
@@ -244,18 +249,19 @@ function anchorOccurrence(b) {
 }
 const anchorKey = b => JSON.stringify([b.event, anchorOccurrence(b)]);
 
-function indexRefusals(def, freeText, options) {
+// The reason a period placed by an event keeps D49's point window, or null when the rewrite can write it.
+function indexPointReason(def, freeText, options) {
   const w = def.window, bounds = [w.start, w.end].filter(b => b.kind === 'event');
-  for (const b of bounds) if (b.event === '@any_diagnosis' || b.event === '@any_genetic') throw new StoreRefusal('INDEX_ANCHOR_ANY_UNSUPPORTED', b.event);
-  for (const b of bounds) if (state.concepts[b.event]?.kind === 'gene') throw new StoreRefusal('INDEX_ANCHOR_GENE_UNSUPPORTED', b.event);
+  if (bounds.some(b => b.event === '@any_diagnosis' || b.event === '@any_genetic')) return 'INDEX_ANCHOR_ANY_UNSUPPORTED';
+  if (bounds.some(b => state.concepts[b.event]?.kind === 'gene')) return 'INDEX_ANCHOR_GENE_UNSUPPORTED';
   const steps = indexSteps(w);
-  for (const s of steps) if (s.derived && freeText !== 'off') throw new StoreRefusal('FREE_TEXT_COUNT_UNSUPPORTED', s.id);
-  for (const n of def.nodes) if (n.occ === 'count' && n.within === 'period') throw new StoreRefusal('INDEX_PERIOD_COUNT_UNSUPPORTED', n.id);
+  if (steps.some(s => s.derived) && freeText !== 'off') return 'FREE_TEXT_COUNT_UNSUPPORTED';
+  if (def.nodes.some(n => n.occ === 'count' && n.within === 'period')) return 'INDEX_PERIOD_COUNT_UNSUPPORTED';
   if (w.end.kind === 'event' && (w.start.kind === 'date' || (w.start.kind === 'age' && toDays(w.start.amount, w.start.unit) < 0)))
-    throw new StoreRefusal('INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED');
+    return 'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED';
   const mode = codedOnlyMode(options);
-  if (freeText === 'off' && mode !== 'derived' && mode !== 'store')
-    for (const s of steps) if (!s.derived) throw new StoreRefusal('FREE_TEXT_CODED_ONLY_UNSUPPORTED', s.id);
+  if (freeText === 'off' && mode !== 'derived' && mode !== 'store' && steps.some(s => !s.derived)) return 'FREE_TEXT_CODED_ONLY_UNSUPPORTED';
+  return null;
 }
 
 // The hidden steps of a window: one per distinct event bound (the same event, occurrence and N share one).

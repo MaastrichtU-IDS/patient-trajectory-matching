@@ -106,11 +106,8 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
-    // D52: a count "in the index period" needs a fixed period (INDEX_PERIOD_COUNT_UNSUPPORTED with the page's default
-    // period, which the store now places from its own records; the refusal table below), so this trajectory counts in
-    // the period from birth to 6 years.
-    'at least 2 febrile seizures in the index period': {scope: 'within', freeText: 'off',
-      window: {start: {kind: 'birth'}, end: {kind: 'age', amount: 6, unit: 'year'}},
+    // D52: a count "in the index period" keeps D49's point window (INDEX_PERIOD_COUNT_UNSUPPORTED, the point table below).
+    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
     // D33: the page's three rise templates, with the page's own window, scope and free-text setting. The tree and graph
     // templates carry a gene step, which the store refuses by name (asserted below), so they run here without that step
@@ -170,6 +167,11 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       }
       return {name, query, conditions, windows, ...(index ? {index} : {}), candidates: wanted};
     });
+  };
+  // D52 (review, S2): why a period placed by an event keeps D49's point window, or null when it is rewritten.
+  var pointOf = function (def, freeText, options) {
+    const r = storeRequest(def, freeText, [...state.patients.keys()].slice(0, 1), options);
+    return r.index_anchor ? r.index_anchor.reason : r.index ? 'rewritten' : 'the D49 request';
   };
   var refusalOf = function (def, freeText, options) {
     try { storeRequest(def, freeText, [...state.patients.keys()].slice(0, 1), options); return null; } catch (e) { if (e.code) return e.code; throw e; }
@@ -283,8 +285,12 @@ function indexAnchorDiffers(name, pid, storeResult, ir, index) {
   }
   const base = ir.base_windows[pid], side = (x, c) => index[x] ? [range(index[x].step)[1] + index[x].offset, range(index[x].step)[2] + index[x].offset] : [c, c];
   const S = side('start', base.start), E = side('end', base.end);
-  if ((index.end && (E[1] > page.last || E[0] < 0)) || (!(index.start && index.end && index.start.step === index.end.step) && S[1] >= E[0])) return true;
-  return !!index.start && S[0] < 0;
+  // Eligibility in some worlds only: the period may end after the last contact or before birth, or before it starts.
+  const partial = (index.end && (E[1] > page.last || E[0] < 0)) || (!(index.start && index.end && index.start.step === index.end.step) && S[1] >= E[0]);
+  // The clamp (D52, Q2): the period's start may fall before birth, where a gap from it is measured from the event plus
+  // its offset (the store) and from birth (the page).
+  const clamp = !!index.start && S[0] < 0;
+  return partial || clamp;
 }
 function causes(name, pid, pageStatus, storeResult, storeCands, pageReason, ir, index) {
   const anchor = indexAnchorDiffers(name, pid, storeResult, ir, index);
@@ -885,16 +891,6 @@ const REFUSALS = vm.runInContext(`(() => {
     'blank template, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {codedOnly: null}),
     'gene step (tree template), coded only, the store option refused on request (D49)': refusalOf(d('tree'), 'off', {codedOnly: false}),
     'a count alone, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {codedOnly: null}),
-    // D52: the index period as a hidden step; the shapes the store cannot place, and D49's point windows on request.
-    'a period from the first diagnosis (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}}}, 'off'),
-    'a period from the first SCN1A result (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'gene:SCN1A', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 1, unit: 'year'}}}, 'off'),
-    'a period from the 3rd seizure, stated findings (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'present'),
-    'a period from the 3rd seizure, coded only (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'off'),
-    'a period from a date to the first seizure (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'date', date: '2020-01-01'}, end: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
-    'a period from 1 year of age to the last seizure (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'age', amount: 1, unit: 'year'}, end: {kind: 'event', event: 'seizure', which: 'last', n: 1, offset: 0, unit: 'month'}}}, 'off'),
-    'a period from the first seizure to the first antiseizure start (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'event', event: 'antiseizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
-    'a count alone, coded only, point windows on request (D52)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {indexAnchor: false}),
-    'the blank template, coded only, point windows on request (D52)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {indexAnchor: false}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
@@ -915,7 +911,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'while taking the 2nd blocker': 'NTH_STEP_HAS_NO_END',
   'frequency template, coded only': null,  // D49 (FREE_TEXT_CODED_ONLY_UNSUPPORTED before)
   'frequency template, coded only for the count (D32)': null,
-  'a count alone, coded only': 'INDEX_PERIOD_COUNT_UNSUPPORTED',  // D52: in a period the store places from the first seizure (null before)
+  'a count alone, coded only': null,
   // D39: the store leaves letter mentions out of every step (profile 1.3); a caller may still ask for the refusal.
   'frequency template, coded only in the store (D39)': null,
   'rise (sequence template), coded only in the store (D39)': null,
@@ -937,16 +933,38 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'gene step (tree template), coded only, joint asked for (D42)': null,  // D49: the store's coded only is the default
   'blank template, coded only, the store option refused on request (D49)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'gene step (tree template), coded only, the store option refused on request (D49)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
-  'a count alone, coded only, the store option refused on request (D49)': 'INDEX_PERIOD_COUNT_UNSUPPORTED',  // D52 (null before: D32's reading)
+  'a count alone, coded only, the store option refused on request (D49)': null,  // D32's reading: a count is coded only
+});
+/* D52: the index period as a hidden step (rewritten), or, for a shape the rewrite cannot write, D49's point window with
+   its reason (review, S2; the page then says the anchor's uncertainty is not accounted for). */
+const POINTS = vm.runInContext(`(() => {
+  const d = name => ({...defaultDef(), ...clone(TEMPLATES[name])});
+  return {
+    'a period from the first diagnosis (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}}}, 'off'),
+    'a period from the first SCN1A result (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'gene:SCN1A', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 1, unit: 'year'}}}, 'off'),
+    'a period from the 3rd seizure, stated findings (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'present'),
+    'a period from the 3rd seizure, coded only (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'off'),
+    'a period from a date to the first seizure (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'date', date: '2020-01-01'}, end: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a period from 1 year of age to the last seizure (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'age', amount: 1, unit: 'year'}, end: {kind: 'event', event: 'seizure', which: 'last', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a period from the first seizure to the first antiseizure start (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'event', event: 'antiseizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a count alone, coded only, point windows on request (D52)': pointOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {indexAnchor: false}),
+    'the blank template, coded only, point windows on request (D52)': pointOf({...defaultDef(), ...clone(BLANK)}, 'off', {indexAnchor: false}),
+    'a count in the index period, coded only (D52)': pointOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off'),
+    'a count within 6 months, coded only, the store option refused on request (D52)': pointOf({...defaultDef(), nodes: [{id: 'A', concept: 'seizure', occ: 'count', n: 3, within: {amount: 6, unit: 'month'}}], edges: []}, 'off', {codedOnly: null}),
+  };
+})()`, context);
+assert.deepEqual(JSON.parse(JSON.stringify(POINTS)), {
   'a period from the first diagnosis (D52)': 'INDEX_ANCHOR_ANY_UNSUPPORTED',
   'a period from the first SCN1A result (D52)': 'INDEX_ANCHOR_GENE_UNSUPPORTED',
   'a period from the 3rd seizure, stated findings (D52)': 'FREE_TEXT_COUNT_UNSUPPORTED',
-  'a period from the 3rd seizure, coded only (D52)': null,
+  'a period from the 3rd seizure, coded only (D52)': 'rewritten',
   'a period from a date to the first seizure (D52)': 'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED',
-  'a period from 1 year of age to the last seizure (D52)': null,
-  'a period from the first seizure to the first antiseizure start (D52)': null,
-  'a count alone, coded only, point windows on request (D52)': null,
-  'the blank template, coded only, point windows on request (D52)': null,
+  'a period from 1 year of age to the last seizure (D52)': 'rewritten',
+  'a period from the first seizure to the first antiseizure start (D52)': 'rewritten',
+  'a count alone, coded only, point windows on request (D52)': 'the D49 request',
+  'the blank template, coded only, point windows on request (D52)': 'the D49 request',
+  'a count in the index period, coded only (D52)': 'INDEX_PERIOD_COUNT_UNSUPPORTED',
+  'a count within 6 months, coded only, the store option refused on request (D52)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.

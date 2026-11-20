@@ -596,11 +596,15 @@ const STORE_REFUSAL = {
   // The server's own checks, before the store sees the query.
   TIME_OUT_OF_RANGE: 'a time or gap lies beyond what the server accepts (about 1,900 years)',
   TIME_MUST_BE_WHOLE_MINUTES: 'the server takes times in whole minutes',
-  // D52: index periods the store cannot place from its own records.
-  INDEX_ANCHOR_ANY_UNSUPPORTED: 'the store cannot place a period from "any diagnosis" or "any genetic result" (no concept in the store holds them all)',
-  INDEX_ANCHOR_GENE_UNSUPPORTED: 'the store cannot place a period from a gene\'s first result of any class, which it holds as no event',
-  INDEX_PERIOD_COUNT_UNSUPPORTED: 'the store counts "in the index period" over a fixed period, and this period is placed by an event whose time the records leave uncertain',
-  INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED: 'the store cannot place a period from a date (or an age before birth) to an event',
+};
+// D52 (review, S2): why a period placed by an event was sent as this page's point window, not as a hidden step.
+const STORE_POINT_REASON = {
+  INDEX_ANCHOR_ANY_UNSUPPORTED: 'the store holds no single event for "any diagnosis" or "any genetic result"',
+  INDEX_ANCHOR_GENE_UNSUPPORTED: 'the store holds no event for a gene\'s first result of any class',
+  INDEX_PERIOD_COUNT_UNSUPPORTED: 'the store counts "in the index period" over a fixed period',
+  INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED: 'a period from a date (or an age before birth) to an event',
+  FREE_TEXT_COUNT_UNSUPPORTED: 'the store ranks coded records only, and this setting reads clinical notes',
+  FREE_TEXT_CODED_ONLY_UNSUPPORTED: 'the period\'s event would read clinical notes under "Coded records only"',
 };
 // Why the store is not offered here (the server's status), shown so the fallback to the engine is not silent.
 const STORE_UNAVAILABLE = {
@@ -625,7 +629,7 @@ const STORE_REASON = {
   SEARCH_BUDGET_EXHAUSTED: 'the search stopped at its budget before deciding',
   // D52: the server places the period from the store's records (index_hull_v1); a patient it cannot place is excluded.
   INDEX_ANCHOR_NOT_RECORDED: 'the store holds no record of the period\'s event',
-  INDEX_NO_POSSIBLE_PERIOD: 'every period the store\'s records allow ends before birth, before it starts, or after the last contact',
+  INDEX_NO_POSSIBLE_PERIOD: 'no period the store\'s records allow both starts before it ends and ends between birth and the last contact',
 };
 // D49: FILTERED under "Coded records only": the patient holds no coded record for some step (D39's candidate refinement).
 const CODED_ONLY_PROFILES = ['execution-store-conditions-1.3', 'execution-store-conditions-gene-coded-1.0'];
@@ -660,7 +664,7 @@ function runStore(token) {
     if (token !== runToken) return;
     state.results = sortResults(fromStore(answer, def));
     state.storeMeta = {snapshot: answer.snapshot_id, context: answer.context_id, conditions: answer.conditions_profile,
-                       store: answer.store_profile, ms: answer.elapsed_ms, index: !!answer.index};
+                       store: answer.store_profile, ms: answer.elapsed_ms, index: !!answer.index, point: answer.index_anchor || null};
     state.pending = false;
     render();
   }).catch(error => {
@@ -1000,7 +1004,7 @@ function backendBanner() {
     const s = state.storeMeta;
     return `<div class="backend store" role="status"><strong>Answered by the execution store</strong>
       <span>snapshot <code title="${esc(s.snapshot)}">${esc(s.snapshot.slice(0, 12))}…</code> · ${esc(s.store)}${s.conditions ? ` · ${esc(s.conditions.replace('execution-store-', ''))}` : ''} · ${s.ms} ms</span>
-      <span class="hint">${state.freeText === 'off' ? 'Under "Coded records only" the store reads no clinical note: it reads every coded record as its own event' : 'The store reads every record and letter mention as its own event'}, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records by a stated rule that reads no synthetic truth (same concept, overlapping times; D47), builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). ${s.index ? 'The index period is placed by the store from its own records of the period\'s event, over every time those records allow (D52): a patient is matched only over the periods that end by the last contact, and listed as having no index period only when the store holds no such event or no possible period ends by then. A gap measured from the period\'s start is measured from the event plus its offset, even where that falls before birth; steps still fall no earlier than birth.' : 'Index periods are placed by this page over the same grouping, and sent to the store as exact times: the store\'s answer holds for that period, though the event that places it may be known only within a range.'}</span></div>`;
+      <span class="hint">${state.freeText === 'off' ? 'Under "Coded records only" the store reads no clinical note: it reads every coded record as its own event' : 'The store reads every record and letter mention as its own event'}, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records by a stated rule that reads no synthetic truth (same concept, overlapping times; D47), builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). ${s.point ? `Index period placed at the anchor's recorded time; uncertainty in the anchor's time is not accounted for (${STORE_POINT_REASON[s.point.reason] || s.point.reason}; ${s.point.reason}): the store's answer holds for that period.` : s.index ? 'The index period is placed by the store from its own records of the period\'s event, over every time those records allow (D52): a patient is matched only over the periods that end by the last contact, and listed as having no index period only when the store holds no such event or no possible period ends by then. A gap measured from the period\'s start is measured from the event plus its offset, even where that falls before birth; steps still fall no earlier than birth.' : 'Index periods are placed by this page over the same grouping, and sent to the store as exact times: the store\'s answer holds for that period, though the event that places it may be known only within a range.'}</span></div>`;
   }
   return `<div class="backend page" role="status"><strong>Matched by ${esc(state.matcher === 'browser' ? 'this page\'s own search' : pageBy)}</strong></div>`;
 }
@@ -1053,8 +1057,10 @@ function renderDetail() {
     if (c.measure) { const e = c.at ?? c.e, l = c.at ?? c.l; if (Number.isFinite(e)) markers.push({e, l, tag: id}); } else highlight.set(c.item.id, id);
   }
   const width = $('#detail-body').clientWidth || drawer.clientWidth - 36;
-  const out = [timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.indexed ? r.period : r.win && !r.win.reason ? r.win : null,
-                                   lens: state.lens, highlight, markers, title: `Timeline for ${r.pid}`})];
+  const svg = timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.indexed ? r.period : r.win && !r.win.reason ? r.win : null,
+                                  lens: state.lens, highlight, markers, title: `Timeline for ${r.pid}`});
+  // D52: the store's period is one possible period (the witness's), not the period.
+  const out = [r.indexed ? svg.replace(/>window (start|end) · /g, '>one possible period, $1 · ') : svg];
   out.push(`<p>${chip(r.status, r.cost)} ${r.status === 'relaxed' ? esc(`by ${r.relaxations.join('; ')}${r.certainty === 'possible' ? '; times still uncertain' : ''}`) : esc(r.backend === 'store' ? '' : r.reason || '')}</p>`);
   if (r.backend === 'store') out.push(storeDetail(r));
   else if (r.best) {
@@ -1095,7 +1101,9 @@ function storeDetail(r) {
   if (r.indexed) {
     // D52: the period the store placed.
     const rows = r.anchor && r.anchor.size ? [...r.anchor].map(([id, c]) => `<tr><td>${id === '@index_end' ? 'The period\'s end event' : 'The period\'s event'}</td><td>${esc(c.what || '—')}</td><td>${c.derived ? '— (no record holds this point)' : timeText(c)}</td><td>${c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`).join('') : '';
-    out.push(`<p class="hint">Index period, placed by the store: the periods its records allow run between ${esc(spanText(r.win))}${r.period ? `; in the witness's choice of times, ${esc(spanText(r.period))}` : ''}.</p>`
+    const records = [state.def.window.start, state.def.window.end].some(b => b.kind === 'event' && ['medication', 'drug_class'].includes(state.concepts[b.event]?.kind)
+      && !(b.which === 'first' || (b.which === 'nth' && Math.max(1, +b.n || 1) === 1)));
+    out.push(`<p class="hint">Index period, placed by the store: the periods its records allow run between ${esc(spanText(r.win))}${r.period ? `; one possible period, in the witness's choice of times, ${esc(spanText(r.period))}` : ''}.${records ? ' For a medicine, the store counts its records: the last (or Nth) start is the last (or Nth) order or dispensing, often a refill, not the start of a course.' : ''}</p>`
       + (rows ? `<table class="tj-table"><thead><tr><th>Index</th><th>Store record</th><th>Recorded</th><th>Witness</th></tr></thead><tbody>${rows}</tbody></table>` : ''));
   }
   const page = pageAnswerFor(r.pid);
