@@ -65,6 +65,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D48 | The last stopped search at scale (seed 44's patient at 10,000) decided within the default budget: a network over the steps' hulls checked once a joint search has spent 1,000 steps (`_hull_refutes`), output-identical wherever the search decided, under rules fixed before measuring | Built and sound on every check it reached, **not shipped**: rule 1 (the worlds check) missed as written, 26 violations in 360,000 small cases, every one main's identical result (a known gap in the checker's reading of a stopped relaxed search's claim); the d44b count rebind not met on a tool bug. Seed 44's patient decided (`none`, main's answer at 1,000,000), nothing else moved; oracle 0 wrong in 20,000; five planted defects caught; reference 0 mismatches. Reverted; kept at ed142d9. D48b queued: the checker's reading and the tool fixed, fresh seeds |
 | D48b | D48 retried: the same code (ed142d9), with the worlds checker's reading of a stopped relaxed search's claim fixed (test tooling) and the count rebind tool's defect fixed, on fresh seeds, under rules fixed before measuring | Decided; **shipped**. The last stopped search at scale is decided: seed 44's patient becomes a complete `none` (main's answer at 1,000,000), nothing else moves anywhere; 0 failing cases in 360,000 small cases, the oracle 0 wrong in 20,000, five planted defects caught, reference and MIMIC 0 mismatches; searching queries at most 1.018 of main control-normalised. Two clauses (5(a), 2.4) read as met under the new rule on conflicting provisions, after independent verification. The d44b count rebind recorded as measured, not met (1.078 on one request in one pair that runs no D48 code); D44b not reverted, an investigation queued |
 | E0 | Letter mentions timed from their letter's text: a deterministic normaliser (`patterns/mention_time.py`) and the synthetic converter's option `normalised_v1` in a wrapper no build loads (`patterns/synthetic_mentions.py`), the generator's gold mentions otherwise kept, under rules fixed before measuring | **Not shipped** (record only; retry base e53ac3b; E0b queued). Rule 1 missed as written: 4 of 84,755 narrowed ranges miss the true day the scorer reads, each a truth id the generator reuses, resolved to a measurement while the confirmed diagnosis lies inside. Every other rule met: 0 contradictions, 0 results less decided and 146 more (Blank `exact` 2 to 133 of 1,101; the truth oracle 231), coded only identical, four planted defects caught; narrowed mentions median 33 days against 1,176. As written not shipped; the coordinator decides |
+| E0b | E0 retried: the same normaliser and wrapper (e53ac3b), the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id (refusals by name, listed and left out, at most 0.1%), E0's rules as amended on fresh seeds 5201 to 5300, under rules fixed before measuring | **Shipped as an option**, off by default. Every rule met on seeds 5201 to 5300: 0 misses and 0 refusals in 84,781 narrowed mentions (median 33 days against 1,172); 0 contradictions; 171 results more decided and none less (Blank `exact` 1 to 168 of 1,102, the truth oracle 256; Sequence, Tree and Graph none); coded only identical; four planted defects caught. A held-out wording test is required before any default |
 
 ## D1 Package with hatchling, in place
 
@@ -5085,3 +5086,96 @@ the lows it found are fixed too.
 - The page's store under `normalised_v1` (above), if the coordinator or the owner wants it, after the held-out wording test (rule 1's precondition).
 - A mention layer and an extractor (the study's E1), for which this normaliser is the timing stage.
 - Linking letter mentions to coded records (the study's E3). It would time the "Current medication" restatements, the bulk of the untimed mentions.
+
+## E0b E0 retried: the same normaliser and wrapper, the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id, on fresh seeds, under rules fixed before measuring
+
+*Status:* **shipped as an option**, off by default. Every rule met on fresh seeds: 0 misses and 0 refusals in 84,781 narrowed mentions; 0 contradictions; 171 results toward decided, none away; coded only unchanged. Queued by the coordinator, as the owner's delegate, at E0's decision (option (a)).
+
+*At the checkpoint* (the coordinator, as delegate): the scorer change was reviewed inline and approved. That covers `truth_event` (the single event when the id names one, else the one carrying the concept, refused by name on none or several), the gene case, and the choice of refusals reported and excluded, at most 0.1%, each listed.
+
+**The problem.** E0's rule 1 missed as written, with four misses. In each, the mention's truth id named two truth events, because the generator reuses ids (about line 1235 of `generate.py`). The scorer read the truth by id alone and took a measurement, while the diagnosis the letter confirms lay inside the narrowed range. The oracle T read the truth the same way.
+
+**What is the same.** E0's retry base, e53ac3b (09a6900 before the rebase onto 9da7240):
+- the normaliser and the wrapper, byte for byte (`patterns/mention_time.py`, `patterns/synthetic_mentions.py`);
+- the request helper (`demos/mockups/e0_requests.cjs`);
+- the arms, and every rule as amended at E0's review.
+
+`normalised_v1` is still an option, off by default; `synthetic_ingest.py` and the generator are unchanged.
+
+**The fix: the scorer and the oracle T** (`tools/e0_measure.py`; diff against e53ac3b).
+- *`truth_event`.* An id that names one truth event names that event, whatever its concept. An id that names several (the generator's reuse) names the one that **carries the mention's concept** (`carries`): its concept is the mention's or one of its ancestors, or, for a gene concept `gene:G`, it is a genetic test of gene G. The generator's genetic truth events have concept `genetic_test` with the gene as an attribute; `genetic_test` is no ancestor of `gene:G`.
+- *Refusals, by name:*
+  - `TRUTH_EVENT_MISSING`: no event has the id;
+  - `TRUTH_EVENT_CONCEPT_NONE`: several do and none carries the concept;
+  - `TRUTH_EVENT_AMBIGUOUS`: several carry it.
+- *Rules 1 and 4 use it.* In rule 1, a refused mention is counted by reason; if narrowed, it is listed and left out of the check, with whether its range meets each candidate's day. In the oracle T, a refused mention keeps GT's range, counted by reason.
+- *How refusals are ruled (chosen before measuring):* **reported and excluded explicitly, at most 0.1% of the narrowed mentions**, rather than required to be 0. A refusal is a property of the generator's id reuse, a separate defect queued below, not of the normaliser. Ruling it to 0 would make E0b's verdict depend on that defect again, which is E0's failure mode. Each refused narrowed mention is listed with its candidates, so none is hidden. The bound stops the exclusion from carrying weight: 0.1% is about 85 of the roughly 85,000 narrowed mentions over 101 cohorts, against 18 mentions on a reused id in E0's whole run.
+- *The pattern suite's helper* (`score` in `patterns/test_synthetic_mentions.py`) read the truth by id too. It now names the event the same way and requires exactly one.
+
+**Tests.**
+- `tools/test_e0_measure.py` (15; was 10). Two of E0's four misses are rebuilt from the generator's letters and truth events, cut down: seed 5005's C030 and seed 5024's C040. Each confirmed diagnosis is named by its concept and lies inside. C030's gene mention is named by its gene, and E0's reading took the measurements. There are tests of:
+  - each refusal by name;
+  - an id naming one event;
+  - ancestors;
+  - a refused narrowed mention listed and left out;
+  - the oracle's refusal;
+  - the fresh seed lists, disjoint from E0's.
+- `patterns/test_synthetic_mentions.py` (21, unchanged in number).
+
+**Disclosed: development runs before these rules** (none on E0b's seeds). They ran on the page's cohort, seed 4601 and E0's seeds 5001 to 5100, now spent for E0b and used as development data.
+- *A first version of the fix* applied the concept test to every mention. It refused 23 mentions, one per cohort with a French letter: the discharge letter's "état de mal épileptique fébrile" (concept `status_epilepticus`) links to a febrile seizure's truth event whose id names only that event. The fix was narrowed to ids that name several events.
+- *With the fix:*
+  - `soundness` over those 103 cohorts: 247,349 mentions, 85,622 narrowed, **0 misses, 0 refusals**, D30 fallbacks 0 misses;
+  - `arms` on seed 4601: 0 contradictions, 0 oracle refusals, the negative control identical;
+  - `defects` on seed 4601: misses 1, 436, 25 and 14.
+
+**Pre-committed rules** (committed with this entry, before any measurement of E0b; "main" is 9da7240, with E0's record, e3aca0a, on it). E0's rules 1 to 9, as amended at E0's review, on **fresh seeds**:
+- **5201 to 5300** for soundness;
+- **5201 to 5230** for the arms, extended in order to 5300 while a stated template has fewer than 30 candidates pooled;
+- **5201 to 5230** for the defects.
+
+E0's 5001 to 5100 are not reused. The rules:
+1. **Temporal soundness.** `tools/e0_measure.py soundness --committed --seeds 5201-5300`. **0 narrowed ranges that do not meet the true day** of the mention's truth event (`truth_event`). Narrowed mentions the scorer refuses are listed with their reasons and left out, **at most 0.1% of the narrowed mentions**. Refusals over all mentions are reported by reason, and D30's fallback ranges must hold their truth. As in E0 (S4), 0 misses means soundness on the generator's wording only; the real-letter hazards and the held-out wording precondition stand.
+2. **Coverage and tightening** (reported): as E0's.
+3. **Usefulness:** as E0's, amended (S2). From G to GT, **0 results move away from decided** (every case, every patient) and **at least one moves toward decided** (stated findings). The owner's bar and every transition are reported.
+4. **Wrong answers:** **0 contradictions** from G to GT and from GT to T, and **each type of claim checked above 0** for each pair (S3). T names truth events as the scorer does; its refusals are reported.
+5. **Negative control:** coded-only results and candidate lists of GT and T equal G's.
+6. **Planted defects:** `defects --committed --seeds 5201-5230`. Each of `naive_years`, `month_off_by_one`, `result_cue` and `stop_ignored` gives at least one miss.
+7. **Build reuse and defaults.**
+   - The diff against 9da7240 (main with D50; E0's record changes no code) changes no existing file under `patterns/`, nor the build worker, `store_parity.py`, `store_trajectory.py`, a page file or the generator.
+   - The wrapper's default is the converter's byte for byte, with the same snapshot identity.
+   - The 300 digests are unchanged.
+   - Provenance 0 stale. None regenerated or frozen except the test-count report.
+8. **Latency** (structural, ruled): as E0's. Arms' match times are reported.
+9. **Gates:** as E0's.
+10. **Ship rule:** as E0's, accepted at E0's checkpoint. If rules 1 and 3 to 9 hold (2 reported), `normalised_v1` ships as an option, off by default. A failure is reported, never tuned away.
+
+**Measurement** (one job under the bench lock, 2026-11-20, 19:38 to 19:42, on 366b304, rebased on E0's record e3aca0a over 9da7240; the job script and its log are in `~/ptm-local/e0b-job.sh` and `~/ptm-local/e0b/`). The full gates passed on 366b304 before the job (rule 9). The three reports are `verification/e0b-mention-time-soundness-report.json`, `-defects-report.json` and `-arms-report.json`.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 Temporal soundness | The page's cohort and seeds 5201 to 5300 (101 cohorts): 243,786 present mentions about the patient, 84,781 narrowed. **0 misses.** Refusals: **0** (none of the three reasons), so **0 narrowed mentions left out** (bound 84). D30's fallback ranges: 0 misses | met |
+| 2 Coverage and tightening (reported) | 34.8% of mentions narrowed. By rule: ages in months 33,521, in years and months 9,859, in days 6,201, in years 1,004; weeks ago 19,887; this week 941; since the previous letter 13,065; dates 303. Fallbacks: no expression 156,672, stop cue 1,258, no previous letter 1,075. Days covered by a narrowed range: **median 33, 90th percentile 101**, against 1,172 and 2,525 under D30 for the same mentions. Over every mention: median 1,436 to 895. Annotated time expressions: 71,514, every one verbatim in its clause and read exactly | reported |
+| 3 Usefulness | Seeds 5201 to 5230, no extension needed. From G to GT: **0 results away from decided**; **171 toward decided** under stated findings (Sequence 1, Tree 1, Graph 1, Blank 168). The owner's bar (reported): 0 child types unresolved on every stated template (Sequence 0 of 16, 208 candidates; Tree and Graph 0 of 7, 137; Blank 0 of 44, 1,102; without C001 178, 107, 107 and 1,072). `exact` among candidates under stated findings, G / GT / T: **Blank 1 / 168 / 256**; Sequence 0 / 0 / 11; Tree 0 / 0 / 11; Graph 0 / 0 / 0. Blank's candidates G to GT: possible to exact 167, possible to none 1. Sequence, Tree and Graph: possible to none 1 each. Coverage: only Event frequency under stated findings refused | met |
+| 4 Wrong answers | **0 contradictions** from G to GT and from GT to T. Claims checked, G to GT: `exact` 797, complete `none` 2,766, `relaxed` 231. GT to T: 964, 2,770 and 231. The oracle's refusals: 0 | met |
+| 5 Negative control | Under coded only, all five templates: GT's and T's results (sha256 of every per-patient result) and candidate lists equal G's on every seed | met |
+| 6 Planted defects | The page's cohort and seeds 5201 to 5230. Misses: `naive_years` 89, `month_off_by_one` 12,687, `result_cue` 662, `stop_ignored` 379 | met |
+| 7 Build reuse and defaults | The diff against 9da7240 adds E0b's files and changes only the CI workflow, the log, `docs/execution-store.md`, the test counts (`check_test_counts.py`, `docs/status.md`, the report) and, through E0's record, the provenance gate's frozen list. No existing file under `patterns/` changes, nor the build worker, `store_parity.py`, `store_trajectory.py`, a page file or the generator. The normaliser, the wrapper and the request helper are E0's retry base's byte for byte. The wrapper's default is the converter's (suite, with DuckDB). The 300 digests are unchanged. Provenance 0 stale; only the test-count report was rewritten | met |
+| 8 Latency (structural) | No timed module imports E0b's code; no timed file changed. Reported, match time pooled over 30 seeds, G / GT: Sequence 1.60 / 1.57 s, Tree 1.74 / 1.73 s, Graph 1.97 / 1.92 s, Blank 0.37 / 0.35 s | met |
+| 9 Gates | On 366b304, before the job: every suite (run as one process, `test_build_record` gives 1 failure and 2 errors from matching code that earlier suites loaded in the same process; alone, as CI runs it, it passes: 23 tests), both parity tests (849 of 1,248), `ci-local.sh` (100 steps, 0 failures), provenance 0 stale, test counts consistent (1,454), `check_manifest`, `results/build.py --check` | met |
+
+**Decision: E0b ships `normalised_v1` as an option, off by default** (rule 10, accepted at E0's checkpoint). Every rule holds. The store's default for synthetic ingest stays D30's, and the page is unchanged.
+
+*What it shows, in proportion.*
+- **Sound on the generator's wording.** 0 misses in 84,781 narrowed mentions over 101 fresh cohorts, with every mention's truth event named (0 refusals). This is one writer's templates, not real letters (rule 1's hazards). The held-out wording test remains a precondition for any default.
+- **Much tighter where it reads anything.** About 35% of mentions are narrowed, each about 35 times tighter (median 33 days against 1,172).
+- **Useful mainly for Blank.** On the page's templates under stated findings, 171 results move toward decided and none away. Blank's `exact` rises from 1 to 168 of 1,102, against 256 for the truth oracle. Sequence, Tree and Graph gain no `exact` result; with every mention at its true day they would gain 11, 11 and 0. The untimed two-thirds of mentions, mostly "Current medication" restatements, limit the rest. Linking (the study's E3) would address them.
+- **No wrong answer, no change under coded only, no change to any default build.**
+
+*Regeneration.* None. The three E0b reports are new; E0's three stay frozen. The test-count report was rewritten.
+
+**Regeneration.** None expected. The three E0b reports are new (`verification/e0b-mention-time-{soundness,defects,arms}-report.json`), produced in one job under the bench lock after the review. E0's three frozen reports stay as they are.
+
+**Follow-ups** (named now).
+- **The generator reuses truth event ids** (`generate.py`, about line 1235: events after the snapshot are dropped from `child.truth`, and later events are numbered `len(child.truth) + 1`). Over E0's 101 cohorts, 231 ids are duplicated; the page's cohort holds 2. Fixing it changes every cohort and rebinds every report that binds `generate.py`, so it needs its own increment. *D30's own test* (`test_execution_store`, "a mention ranges from birth to its letter and holds its true time") resolves the truth by id the same way, so it passes only by luck: on the page's cohort none of the 2,444 mentions it checks links to a reused id (checked in development), and on another seed it could read the wrong event.
+- E0's follow-ups: the page's store under `normalised_v1` (after the held-out wording test), the study's E1 and E3.

@@ -1,0 +1,169 @@
+{
+ "profile": "e0b-mention-time-defects-1.0",
+ "cohorts": [
+  "committed",
+  "5201",
+  "5202",
+  "5203",
+  "5204",
+  "5205",
+  "5206",
+  "5207",
+  "5208",
+  "5209",
+  "5210",
+  "5211",
+  "5212",
+  "5213",
+  "5214",
+  "5215",
+  "5216",
+  "5217",
+  "5218",
+  "5219",
+  "5220",
+  "5221",
+  "5222",
+  "5223",
+  "5224",
+  "5225",
+  "5226",
+  "5227",
+  "5228",
+  "5229",
+  "5230"
+ ],
+ "rule": "E0b rule 6: each ruled planted defect gives at least one miss of rule 1",
+ "defects": {
+  "naive_years": {
+   "misses": 89,
+   "caught": true,
+   "ruled": true,
+   "example": [
+    {
+     "cohort": "committed",
+     "event_id": "letters/C014-R0065#m0",
+     "rule": "age_years",
+     "expression": "at around 3 years",
+     "days_outside": 343.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C033-R0109#m4",
+     "rule": "age_years",
+     "expression": "at 2 years",
+     "days_outside": 333.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C033-R0113#m4",
+     "rule": "age_years",
+     "expression": "at 2 years",
+     "days_outside": 333.0
+    }
+   ]
+  },
+  "month_off_by_one": {
+   "misses": 12687,
+   "caught": true,
+   "ruled": true,
+   "example": [
+    {
+     "cohort": "committed",
+     "event_id": "letters/C001-R0263#m0",
+     "rule": "age_months",
+     "expression": "at around 12 months",
+     "days_outside": 19.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C001-R0264#m6",
+     "rule": "age_months",
+     "expression": "at 6 months",
+     "days_outside": 6.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C001-R0264#m7",
+     "rule": "age_months",
+     "expression": "at 8 months",
+     "days_outside": 27.0
+    }
+   ]
+  },
+  "result_cue": {
+   "misses": 662,
+   "caught": true,
+   "ruled": true,
+   "example": [
+    {
+     "cohort": "committed",
+     "event_id": "letters/C001-R0263#m3",
+     "rule": "since_previous_letter",
+     "expression": "result:",
+     "days_outside": 17.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C001-R0267#m1",
+     "rule": "since_previous_letter",
+     "expression": "reclassified the",
+     "days_outside": 399.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C004-R0178#m2",
+     "rule": "since_previous_letter",
+     "expression": "result:",
+     "days_outside": 43.0
+    }
+   ]
+  },
+  "stop_ignored": {
+   "misses": 379,
+   "caught": true,
+   "ruled": true,
+   "example": [
+    {
+     "cohort": "committed",
+     "event_id": "letters/C001-R0264#m2",
+     "rule": "age_months",
+     "expression": "at around 15 months",
+     "days_outside": 40.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C004-R0176#m3",
+     "rule": "weeks_ago",
+     "expression": "about 9 weeks ago",
+     "days_outside": 33.0
+    },
+    {
+     "cohort": "committed",
+     "event_id": "letters/C008-R0117#m3",
+     "rule": "weeks_ago",
+     "expression": "about 9 weeks ago",
+     "days_outside": 22.0
+    }
+   ]
+  }
+ },
+ "met": true,
+ "artifacts": {
+  "tools/e0_measure.py": "c1cd6a6db1643fe5e75cdd534b0cdee341defd58a609391fb728c5bd6f345966",
+  "demos/mockups/e0_requests.cjs": "0e6bd32361af5b502af7ca1236e6136b4a383a03b533384ac67ff1341332585f",
+  "patterns/mention_time.py": "bb779fdf0559560fed0fd33113fada4bdb52d495520c011986b2c3932cc9c982",
+  "patterns/synthetic_mentions.py": "6231d82f9992367b1846b0a17ce81330cc6b3f2a7272fbeb78319a8b9c4f844e",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
+  "demos/mockups/trajectory/app.js": "c5138d9d3062d3c859f38cc56db6b348412cb92ecba1343a6f1e1bdb4cedee9b",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182"
+ },
+ "contains_patient_level_data": false
+}
