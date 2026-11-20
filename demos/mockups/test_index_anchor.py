@@ -169,6 +169,34 @@ class StoreTests(unittest.TestCase):
                     self.assertEqual((got[p['patient_id']], reasons.get(p['patient_id'])),
                                      ref.narrow(windows[p['patient_id']], index, {'@index_start': rng_}), (occ, derived, p['patient_id']))
 
+    def test_an_nth_event_never_ranks_a_letter_mention_in_the_narrowing(self):
+        # The review's repro (D52 review, M1): from the first x to the 3rd x, profile 1.1 with no exclusion (codedOnly
+        # 'derived'). The 3rd coded x is at 30; a mention of x (0 to 5) must not make the narrowing's 3rd x 20.
+        import d52_measure as m
+        import index_hull as hull
+        from patterns import execution_store as es
+        from patterns import store_conditions as sc
+        ev = lambda eid, kind, source, concept, lo, hi: {'event_id': eid, 'kind': kind, 'source': source, 'concepts': [concept],
+                                                         'start': [lo, hi], 'evidence': {}}
+        p = {'patient_id': 'P1', 'clock_id': 'clock_P1', 'coverage': [{'source': s, 'lo': 0, 'hi': 60, 'basis': 'declared'} for s in ('ehr', 'letters')],
+             'events': [ev('e1', 'condition', 'ehr', 'x', 10, 10), ev('e2', 'condition', 'ehr', 'x', 20, 20), ev('e3', 'condition', 'ehr', 'x', 30, 30),
+                        ev('m1', 'mention', 'letters', 'x', 0, 5), ev('f1', 'condition', 'ehr', 'y', 25, 25)]}
+        ingest = {'profile': es.INGEST_PROFILE, 'dataset_id': 'd52-m1', 'closure': {'version': 'm1', 'ancestors': m.ANCESTORS}, 'patients': [p]}
+        steps = [{'id': '@index_start', 'bound': {'event': 'x'}, 'occurrence': 'first', 'derived': None, 'concept': 'x'},
+                 {'id': '@index_end', 'bound': {'event': 'x'}, 'occurrence': 'any', 'derived': {'nth': 3}, 'concept': 'x'}]
+        query = {'profile': 'trajectory-graph-1.0', 'scope': 'within', 'steps': [{'id': 'A', 'concept': 'y', 'occurrence': 'any'}],
+                 'relations': [], 'relaxations': [], 'budget': 0, 'search_budget': 40000}
+        bases = {'P1': {'start': 0, 'end': 50}}
+        out = ref.rewrite_sides({'query': query, 'conditions': {'profile': 'execution-store-conditions-1.1', 'steps': {}}, 'windows': bases},
+                                {'step': '@index_start', 'offset': 0}, {'step': '@index_end', 'offset': 0}, steps, [{'id': 'A'}], bases)
+        with tempfile.TemporaryDirectory() as tmp, es.open_store(es.build(ingest, Path(tmp) / 's')) as store:
+            h1 = sc.match(store, out['query'], out['windows'], conditions=out['conditions'])['results'][0]
+            narrowed, reasons, _ = hull.narrow(store, out['query'], out['conditions'], out['index'], out['windows'])
+            self.assertEqual(narrowed['P1'], {'start': 0, 'end': 30})  # the first x may be the mention; the 3rd never is
+            h3 = sc.match(store, out['query'], narrowed, conditions=out['conditions'])['results'][0]
+        self.assertEqual((h1['status'], h3['status']), ('exact', 'exact'))
+        self.assertEqual(ref.anchor_range(p['events'], 'x', m.ANCESTORS, 'any', {'nth': 3}), (30, 30, 3))
+
     def test_the_server_narrows_an_indexed_request_and_leaves_any_other_alone(self):
         import json
         import index_hull as hull

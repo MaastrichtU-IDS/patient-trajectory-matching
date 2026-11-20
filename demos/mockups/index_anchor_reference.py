@@ -252,7 +252,9 @@ def anchor_range(events, concept, ancestors, occurrence, derived=None, exclude_k
     """(lo, hi, count) of a hidden step's possible time over one converted patient's events (`synthetic_ingest`'s
     output: {event_id, kind, concepts, start}), or (None, None, count) when there are too few: the order-statistic bound
     over the candidates' recorded start ranges."""
-    family = [e for e in events if e['kind'] not in exclude_kinds
+    # A derived occurrence ranks coded records only (D32): never a letter mention (D52 review, M1).
+    skip = set(exclude_kinds) | ({'mention'} if derived else set())
+    family = [e for e in events if e['kind'] not in skip
               and any(concept in closure(ancestors, c) for c in e['concepts'])]
     los = sorted(e['start'][0] for e in family)
     his = sorted(e['start'][1] for e in family)

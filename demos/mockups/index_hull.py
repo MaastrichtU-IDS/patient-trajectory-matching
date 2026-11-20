@@ -8,7 +8,8 @@ request's `index` block names, for each side of the period placed by an event, t
 for each patient and each hidden step, the step's candidates in the store (the events whose concept closure holds the
 step's concept, none of a kind the request's `exclude_kinds` leaves out) give its possible range:
 - `first`: [least start_lo, least start_hi]; `last`: [greatest start_lo, greatest start_hi] (D30's envelopes);
-- an Nth occurrence: [Nth smallest start_lo, Nth smallest start_hi]; Nth from last: from the greatest.
+- an Nth occurrence: [Nth smallest start_lo, Nth smallest start_hi]; Nth from last: from the greatest. As D32's derived
+  occurrence, it ranks coded records only: a letter mention is never its candidate, whatever `exclude_kinds` says.
 In every world each event lies in its recorded range, and the engine's domains only narrow it, so the step's time in
 any world lies in this range (an order-statistic bound; it contains D32's envelope). The window is then
 - start: max(base start, lo + start offset), when the start is placed by an event;
@@ -38,8 +39,9 @@ sys.path.insert(0, str(HERE.parents[1]))
 
 RULE = 'index_hull_v1'
 MINUTE = 60_000_000
+MENTION = 'mention'  # the converter's letter-mention kind (patterns/execution_store.py, MENTION_KIND)
 CALLS = {'narrow': 0}  # D52 rule 6: 0 for every request without an `index` block
-_DEFECT = None  # a planted defect (tools/d52_measure.py defects only): 'hull_from_hi' or 'nth_off_by_one'
+_DEFECT = None  # a planted defect (tools/d52_measure.py defects only): 'hull_from_hi', 'nth_off_by_one', 'nth_counts_mentions'
 
 RANGE_SQL = """
     WITH f AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo, e.start_hi FROM events e
@@ -84,10 +86,14 @@ def ranges(store, query, conditions, index, threads=None):
             return ranges(store, query, conditions, index)
         finally:
             store.db.execute(f'SET threads = {int(before)}')
-    kinds = list((conditions or {}).get('exclude_kinds', ()))
-    kind_sql = (f"AND e.kind NOT IN ({', '.join('?' for _ in kinds)})") if kinds else ''
+    excluded = list((conditions or {}).get('exclude_kinds', ()))
     out = {}
     for sid, (concept, k, from_end) in hidden_steps(query, conditions, index).items():
+        # D52 review, M1: a derived occurrence (an Nth, N > 1) ranks coded records only (D32), whatever `exclude_kinds`
+        # says, so its candidates never include a letter mention.
+        derived = sid in ((conditions or {}).get('steps') or {})
+        kinds = sorted(set(excluded) | ({MENTION} if derived and _DEFECT != 'nth_counts_mentions' else set()))
+        kind_sql = (f"AND e.kind NOT IN ({', '.join('?' for _ in kinds)})") if kinds else ''
         if _DEFECT == 'nth_off_by_one' and k > 1:
             k -= 1
         order = 'DESC' if from_end else 'ASC'

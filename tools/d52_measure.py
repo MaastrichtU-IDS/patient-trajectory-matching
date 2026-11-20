@@ -14,7 +14,7 @@ definition: one or two user steps (any, first or last) with a relation, relation
 maximum, their relaxations, the four scopes, coded only or not; and an index period of every supported shape (an event
 start with a span, a span with an event end, two events with one or two hidden steps, an event start with a constant
 end, a constant start with an event end), the event's occurrence first, last, Nth or Nth from last (N up to 3; an Nth
-forces coded only, as the translator refuses it over stated text), offsets from -3 to 3.
+ranks coded events only, as D32's derived occurrence, with or without coded only), offsets from -3 to 3.
 
 Each request is rewritten by `index_anchor_reference.rewrite_sides` (the translator's mirror, tied to it byte for byte
 by rule 2) and answered by `store_conditions.match` twice: over the base windows (H1) and over the windows
@@ -28,8 +28,8 @@ against the unclamped start (D52, Q2), from END against the end. Exact, possible
 with a period. 0 failing cases is the bar; H1 and H3 must also give equal results wherever both are decided (not
 `unresolved`, not excluded) and neither by a window-reading rule (coverage, admission).
 
-**Planted defects** (`defects`): each of `index_anchor_reference.DEFECTS` and `index_hull`'s two must fail at least one
-case.
+**Planted defects** (`defects`): each of `index_anchor_reference.DEFECTS` and `index_hull`'s three (`HULL_DEFECTS`, among
+them `nth_counts_mentions`, the review's M1) must fail at least one case.
 
 Synthetic data only.
 """
@@ -57,6 +57,7 @@ CODED = 'execution-store-conditions-1.3'
 WINDOW_RULES = ('NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT', 'ADMISSION_EXCLUDED_RECORDS')
 SHAPES = ('event+span', 'span+event', 'two events', 'one event twice', 'event+constant', 'constant+event')
 MAX_WORLDS = 4000
+HULL_DEFECTS = ('hull_from_hi', 'nth_off_by_one', 'nth_counts_mentions')  # index_hull's planted defects
 
 
 def closure(concepts):
@@ -211,12 +212,14 @@ def anchored_question():
     from patterns import trajectory_graph_worlds as tw
 
     class Anchored(tw._Question):
-        def __init__(self, query, chosen, events, all_worlds, spec, statics):
+        def __init__(self, query, chosen, events, all_worlds, spec, statics, mentions=frozenset()):
             super().__init__(query, chosen, events, all_worlds, None)
             self.start_side, self.end_side, steps = spec
             self.statics = statics
             self.hidden = {st['id']: st for st in steps}
-            self.hfamily = {sid: [e for e in events if st['concept'] in e['concepts']] for sid, st in self.hidden.items()}
+            # An Nth event ranks coded events only (D32): never a letter mention, whatever the request leaves out.
+            self.hfamily = {sid: [e for e in events if st['concept'] in e['concepts'] and not (st['derived'] and e['id'] in mentions)]
+                            for sid, st in self.hidden.items()}
 
         def anchor(self, sid, t):
             st, fam = self.hidden[sid], self.hfamily[sid]
@@ -275,13 +278,13 @@ def anchored_question():
     return Anchored
 
 
-def check(result, query, patient, spec, statics, Anchored, horizon):
+def check(result, query, patient, spec, statics, Anchored, horizon, mentions=frozenset()):
     """The claims of a store result that are false under the per-world period (as `trajectory_graph_worlds.check`)."""
     from patterns import trajectory_graph_worlds as tw
     events, all_worlds = tw.worlds(patient, horizon)
     by_id = {e['id']: e for e in events}
     sets = tw._sets(query)
-    ask = lambda chosen: Anchored(query, chosen, events, all_worlds, spec, statics)
+    ask = lambda chosen: Anchored(query, chosen, events, all_worlds, spec, statics, mentions)
     unrelaxed = ask(())
     if result['status'] == 'excluded':
         return ['excluded, but some world places a period'] if any(unrelaxed.period(t) for t in all_worlds) else []
@@ -338,12 +341,14 @@ def run_snapshot(root, label, k, patients=30, requests=20, defect=None):
     by_id = {p['patient_id']: p for p in ingest['patients']}
     fails, mismatches, mix, shapes, cases = [], [], Counter(), Counter(), 0
     ref_defect = defect if defect in ref.DEFECTS else None
-    hull_defect = defect if defect in ('hull_from_hi', 'nth_off_by_one') else None
+    hull_defect = defect if defect in HULL_DEFECTS else None
     with es.open_store(es.build(ingest, root / f's{k}')) as store, patch.object(ref, '_DEFECT', ref_defect), \
             patch.object(hull, '_DEFECT', hull_defect):
         for j in range(requests):
             shape, start, end, steps = tiny_spec(rng)
-            coded = any(st['derived'] for st in steps) or rng.random() < 0.5
+            # An Nth event over every record but mentions (D32's reading, the translator's codedOnly 'derived') as well as
+            # under coded only (D52 review, M1).
+            coded = rng.random() < 0.5
             query, conditions = tiny_base(rng, coded)
             bases = {pid: base_window(start, end, statics[pid]) for pid in by_id}
             out = ref.rewrite_sides({'query': query, 'conditions': conditions, 'windows': bases}, start, end, steps,
@@ -361,10 +366,11 @@ def run_snapshot(root, label, k, patients=30, requests=20, defect=None):
             for pid, p in by_id.items():
                 cases += 1
                 patient = engine_patient(p, coded)
+                mentions = frozenset(e['event_id'] for e in p['events'] if e['kind'] in KINDS)
                 hz = horizon_of(patient, statics[pid])
                 for form, r in (('H1', r1[pid]), ('H3', r3[pid])):
                     mix[(form, r['status'])] += 1
-                    wrong = check(r, query, patient, spec, statics[pid], Anchored, hz)
+                    wrong = check(r, query, patient, spec, statics[pid], Anchored, hz, mentions)
                     if wrong:
                         fails.append({'snapshot': k, 'request': j, 'patient': pid, 'form': form, 'shape': shape, 'wrong': wrong})
                 a, b = r1[pid], r3[pid]
@@ -382,7 +388,7 @@ def run_snapshot(root, label, k, patients=30, requests=20, defect=None):
 def steps_uncertain(store, p, steps, coded):
     """Whether some hidden step's candidates leave its time uncertain (more than one possible time)."""
     for st in steps:
-        fam = [e for e in p['events'] if not (coded and e['kind'] in KINDS) and st['concept'] in closure(e['concepts'])]
+        fam = [e for e in p['events'] if not ((coded or st['derived']) and e['kind'] in KINDS) and st['concept'] in closure(e['concepts'])]
         if len(fam) > 1 or any(e['start'][0] < e['start'][1] for e in fam):
             return True
     return False
@@ -563,7 +569,7 @@ def main(argv=None):
     else:
         import index_anchor_reference as ref
         runs = {}
-        for defect in ref.DEFECTS + ('hull_from_hi', 'nth_off_by_one'):
+        for defect in ref.DEFECTS + HULL_DEFECTS:
             res = worlds(args.cases, f'{args.seed}/{defect}', defect=defect, quiet=True)
             runs[defect] = {'cases': res['cases'], 'failing_cases': res['failing_cases'], 'h1_h3_mismatches': res['h1_h3_mismatches'],
                             'example': res['examples'][:1]}
