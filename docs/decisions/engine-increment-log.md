@@ -5321,7 +5321,7 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 
 ## D53 "Coded records only" reads no clinical note in the page's own search either: a course with only a stop has no start there, under rules fixed before measuring
 
-*Status:* **at the code checkpoint**. Rules committed; nothing ruled has been measured.
+*Status:* **measured; ship pending one ruling.** Under "Coded records only" the page's own search, its index periods and the patient-first comparison read no note. On the page's cohort nothing searched or sent moved; the other settings are byte-identical; 4 windows under one period rule moved over 70 fresh cohorts, each traced. Every rule holds but one field: D49's census rule 2.1, which E0b's added `patterns/` files make false on any later tree, is for the coordinator.
 
 **The problem** (D49's follow-up). D49 made "Coded records only" the trajectory page's default, with help text saying that setting reads no clinical note for any step. Writing a test for that, D49 found one exception in the page's **own** search (its fallback, `shared/core.js`, `makeItem`): C026's prednisolone course has only a stopped order, so `makeItem` dates the course's start from a letter mention (`textSpan(ms[0])`), and `usable` and `candidates` read that start under every setting. The store does not do this. D49 pinned the case in `test_engine_parity.cjs` and queued the fix.
 
@@ -5461,3 +5461,45 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 - *Nits.*
   - *What each figure of the D53 test block covers.* The 740 anchored windows anchor on every concept an item holds, at its first and last occurrence only. The 341 steps' candidates are one step per concept, with occurrence `any` and no relaxation. Nth occurrences, counts and relaxations are covered through the 9,840 own-search results (the templates and the first 200 sweep definitions), and in rule 3's census through every sweep definition.
   - *Under the queued C026 grouping follow-up:* because the stop stands alone, the 2 January course of prednisolone (the active order and its dispensing of 4 January) does not end at the stop. The nit as sent said it stays open to last contact. Checked on the page's cohort, it does not: having a dispensing, it ends by the page's run-out rule ("supply ran out", day 246 to 291 of age, start day 214). The store ends it at the stop (from 2 January to 28 February 2021). It is the same course under every setting, the coded form included. The difference is in its end, and it belongs to the same grouping difference.
+
+**Measurement** (after the rules and the review's amendments; one job under the bench lock, 2026-11-20, 22:47 to 23:02, on d1b55ac; the script and its log are in `~/ptm-local/d53/`; the page's cohort checked against the committed seed). Every step ran once. The lock was released at the end of the job.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 Structural | `git diff 34af272` names no file under `patterns/`, nor `store_parity.py`, `store_trajectory.py`, `store_request.js`, `option_sweep.js`, the generator or the worker. Under stated and hedged findings `searchable` is the former filter | met |
+| 2 Truth-free | `test_engine_parity.cjs` passes (D46's and D47's blocks; the D53 block; the patient-first check). D47's reference regenerated: met (reference, truth-free, completeness, defects). D46's reference regenerated: met (0 mismatches, truth-free, defects) | met |
+| 3 Census (`verification/d53-coded-start-census-report.json`) | 927 cases, the five templates and every sweep definition under each setting, 48 patients, 3,048 mentions removed. 3.1: under stated and hedged findings (618 cases), **0** results, windows or store requests differ. 3.2: under "Coded records only" (309 cases), **0 of 14,832** results and **0 of 14,832** windows unlike removal. 3.3: **0 results, 0 windows and 0 store requests changed**, so nothing to trace. 3.4: **1 noted item**, C026's prednisolone course (`time`, `med`); its probes: "first prednisolone" under "off" moves from main's day 210 (the letter's range) to day 214 (the 2 January order), equal to removal, and under stated findings equals main's; "last prednisolone" is day 214 on both. 149 items differ only in the label or the recorded or available days | met |
+| 4 Store requests and windows | Identical under every setting (3.1, 3.3). Regenerated: D46's census and D47's census **every figure equal**. D49's census: every figure equal **but its own rule 2.1**, see below | met, but for one D49 check, for the coordinator |
+| 5 Usefulness (`verification/d53-coded-start-usefulness-report.json`) | Seeds 5301 to 5330, no extension. Ruled: under stated and hedged findings **0** results differ from main's; under "Coded records only" **0** unlike removal; 0 coded-only results changed (34 noted items over the 30 seeds, none moving a template result). Owner's rule under "Coded records only", here (= main): Sequence 0 of 7 child types unresolved, 138 candidates, 111 without C001; Tree 0 of 7, 118, 91; Graph 0 of 7, 118, 91; Event frequency 0 of 7, 187, 157; Blank 0 of 44, 1,056, 1,026. Every bar holds under all three settings. D47's usefulness (met), D46's usefulness and D49's usefulness: every figure equal | met |
+| 6 Page parity | `test_store_parity.cjs` passes with its pins: **849 of 1,248**, no row moved (count timing 16, coverage 237, letter mentions 113, measurement records 4, medication records 64, occurrence envelope 7, record reconciliation 124); sweep tally 449; no `UNEXPLAINED`; the replay and D38's differential hold. `test_engine_parity.cjs` passes | met |
+| 7 Regeneration (as amended) | The 11 stale reports regenerated with their own tools. Every figure equal to the committed one, but timings and digests, in all except D49's census (rule 4). D47's usefulness and D46's reference, which S2 allowed to move, did not. The trace (`verification/d53-coded-start-trace-report.json`, seeds 4611 to 4620 and 4721 to 4750): under stated and hedged findings 0 differ; under "off" 0 unlike removal; **4 windows moved, all traced**, each under "the 3rd-from-last antiseizure start for 6 months", each on a patient whose stop-only course no longer anchors it (oxcarbazepine on 4615 C041, 4616 C008, 4738 C026, 4746 C005), each equal to removal. D46's reference counts placed windows, so a window that moves but stays placed leaves its figures equal. No freeze. `results/build.py` wrote an unchanged `results.json` | met |
+| 8 Latency | No store path changed. The page's view from a cold cache, all 48 patients, median of 21: **39.7 ms** here against 31.1 ms in the committed D47 census report (one process each, not paired); D47's main 18.1 ms. Building each mixed item's coded form costs about 9 ms over the cohort | reported |
+| 9 Gates | Below | met |
+
+**D49's census, rule 2.1: a check this change cannot meet, for the coordinator.**
+- *What it is.* D49's rule 2.1 holds only if `git diff 0a17003` names no file under `patterns/`, `store_parity.py`, `store_trajectory.py` or `synthetic/`. The regenerated report says `false` and names `patterns/mention_time.py`, `patterns/synthetic_mentions.py` and `patterns/test_synthetic_mentions.py`.
+- *The cause is E0b, not D53.* E0b (366b304, merged after D49) added those three files: added, not changed, an option off by default. The store's build and matching do not import them (`store_parity.py`, `synthetic_ingest.py`, `store_conditions*.py` and `execution_store.py` name neither). D53 changes no file under `patterns/`. D49's report was not regenerated after E0b because no file it binds changed then; any regeneration on a tree after E0b gives this.
+- *Everything else in that report is equal.* That includes rule 2.1's byte-identity part (430 requests identical, 0 other) and every store result. So D49's premise, the same request to the same code, still holds.
+- *As written, rule 4 is missed on this one field* (a difference not traced to a noted item). The regenerated report is committed as produced, so provenance is at 0 stale with no freeze. *Options for the coordinator:*
+  - (a) accept the regenerated report, with this note as the record;
+  - (b) restore the committed report and freeze it as `HISTORICAL` (sign-off needed), as D49's record of its own tree against 0a17003.
+- The ship decision waits on this ruling. Every other rule holds.
+
+*Gates* (on the final tree):
+- all suites (`~/.claude-pcx/ci-local.sh`, every CI Python step and the package check; the mockups' 114 tests and `test_index_reference.py`'s 14);
+- provenance at 0 stale (58 reports with D53's three);
+- `check_test_counts --write`, then the check (consistent; `docs/status.md` unchanged);
+- `check_manifest` (0 problems);
+- both `.cjs` parity tests (in the job, and again on the final tree);
+- `results/build.py --check`.
+
+*Evidence in proportion.*
+- The census and the parity test run on one 48-child cohort, and the usefulness and trace cohorts are redraws of the same plan.
+- The removal check compares this tree with main's page on a cohort without mentions. It shows that coded only reads nothing a mention carries; it is not an independent reference. `index_reference.py` restates the change for periods, and D46's reference over its seeds is met.
+- *What moved.* On the page's cohort nothing that is searched or sent moved. Over 70 fresh cohorts, 4 windows under one period rule moved, and no template result. The fix makes the help text true. It changes few answers today because stop-only courses with a letter are rare in the generator's data (1 on the page's cohort, 34 over the 30 usefulness seeds).
+
+**Decision:** pending the coordinator's ruling on D49's rule 2.1 (above); every other rule holds.
+
+*Follow-ups.*
+- The C026 grouping difference between the page and the store (queued at the checkpoint).
+- The patient-first page's display under "Coded records only": its inspector and the hovered item's own time still show the item as every record and mention make it. Only the other patient's times in the tooltip follow the coded form (S3).

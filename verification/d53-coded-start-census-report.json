@@ -1,0 +1,134 @@
+{
+ "profile": "d53-coded-start-census-1.0",
+ "rule": "D53 rules 2 and 3: on the page's cohort, the page's own search (matchPatient: status, certainty, relaxations, cost), the index periods and the store requests (no options), for the five templates and every option-sweep definition under each of the three settings, main's page against this tree's. Under stated and hedged findings, all byte-identical. Under coded only, every result and window equals main's on the cohort with every letter mention removed, and every difference from main's (a result, a window, a store request's windows) is on a patient with an item whose main form takes a field a search reads from a note, a result traced through its step candidates. At least one such item exists, and windows anchored on each one move as removal says",
+ "base": "34af272",
+ "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+ "mentions_removed": 3048,
+ "patients": 48,
+ "cases": 927,
+ "tallies": {
+  "other": {
+   "cases": 618,
+   "results": 0,
+   "windows": 0,
+   "requests": 0
+  },
+  "off": {
+   "cases": 309,
+   "results_compared": 14832,
+   "results_changed": 0,
+   "results_unlike_removal": 0,
+   "untraced_results": 0,
+   "windows_compared": 14832,
+   "windows_changed": 0,
+   "windows_unlike_removal": 0,
+   "untraced_windows": 0,
+   "requests_changed": 0,
+   "requests_not_windows_only": 0,
+   "request_windows_untraced": 0
+  },
+  "noted_items": 1
+ },
+ "noted_items": [
+  {
+   "patient_id": "C026",
+   "sig": [
+    "C026-R0058",
+    "C026-R0126#0",
+    "C026-R0126#2"
+   ],
+   "kind": "medication",
+   "concept": "prednisolone",
+   "fields": [
+    "time",
+    "med"
+   ],
+   "records": [
+    "medication_order:stopped"
+   ]
+  }
+ ],
+ "label_or_days_only_items": 149,
+ "changes": [],
+ "first_misses": [],
+ "probes": [
+  {
+   "patient_id": "C026",
+   "anchor": "first prednisolone",
+   "main": {
+    "start": 302400,
+    "end": 565402
+   },
+   "here": {
+    "start": 308160,
+    "end": 571162
+   },
+   "main_bare": {
+    "start": 308160,
+    "end": 571162
+   },
+   "here_bare": {
+    "start": 308160,
+    "end": 571162
+   },
+   "present_here": {
+    "start": 302400,
+    "end": 565402
+   },
+   "present_main": {
+    "start": 302400,
+    "end": 565402
+   }
+  },
+  {
+   "patient_id": "C026",
+   "anchor": "last prednisolone",
+   "main": {
+    "start": 308160,
+    "end": 571162
+   },
+   "here": {
+    "start": 308160,
+    "end": 571162
+   },
+   "main_bare": {
+    "start": 308160,
+    "end": 571162
+   },
+   "here_bare": {
+    "start": 308160,
+    "end": 571162
+   },
+   "present_here": {
+    "start": 308160,
+    "end": 571162
+   },
+   "present_main": {
+    "start": 308160,
+    "end": 571162
+   }
+  }
+ ],
+ "elapsed_s": 8.888,
+ "met": {
+  "other_settings_identical": true,
+  "removal": true,
+  "traced": true,
+  "not_vacuous": true,
+  "probes": true
+ },
+ "all_met": true,
+ "artifacts": {
+  "demos/mockups/d53_coded_start.cjs": "9d8aac06707b94cde1b26baaefea58b1f4ba99099423bfc8bbf08f01b8fbfbb0",
+  "demos/mockups/d47_page.cjs": "abfe5b50cc2f6abe918e05440a3c7b65c3fd153561293346e9c98527b5483eef",
+  "demos/mockups/d49_flip.cjs": "5fc7dfbd914e9a583c30ce9c5e425044527135975ee27f2a19a42b37a0b13a42",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "demos/mockups/trajectory/app.js": "2348c1ff8970ca905970ec8f721b3a8ab85423925791c4a67aea0b255478b9da",
+  "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/d46_windows.cjs": "87d31fa9a857a3bcdfdb9ea6f6fefe857011c0896d1699e1262aa194d99715ff"
+ },
+ "contains_patient_level_data": false,
+ "synthetic_patient_ids": "generator ids only (as the parity test pins them)"
+}

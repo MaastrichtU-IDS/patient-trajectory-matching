@@ -97,14 +97,18 @@
   "other": 0,
   "store_refused_alike": 30,
   "results_of_identical_requests": 19200,
-  "answering_code_changed_since_base": [],
+  "answering_code_changed_since_base": [
+   "patterns/mention_time.py",
+   "patterns/synthetic_mentions.py",
+   "patterns/test_synthetic_mentions.py"
+  ],
   "answering_code": [
    "patterns",
    "demos/mockups/store_parity.py",
    "demos/mockups/store_trajectory.py",
    "demos/mockups/synthetic"
   ],
-  "met": true
+  "met": false
  },
  "rule_2_2": {
   "definitions": 161,
@@ -461,20 +465,20 @@
  },
  "met": {
   "rule_1_1": true,
-  "rule_2_1": true,
+  "rule_2_1": false,
   "rule_2_2": true,
   "rule_2_3": true,
   "named": true,
   "messages": true
  },
- "seconds": 76,
+ "seconds": 74,
  "artifacts": {
   "demos/mockups/d49_flip.cjs": "5fc7dfbd914e9a583c30ce9c5e425044527135975ee27f2a19a42b37a0b13a42",
   "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
   "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
-  "demos/mockups/trajectory/app.js": "c5138d9d3062d3c859f38cc56db6b348412cb92ecba1343a6f1e1bdb4cedee9b",
-  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
+  "demos/mockups/trajectory/app.js": "2348c1ff8970ca905970ec8f721b3a8ab85423925791c4a67aea0b255478b9da",
+  "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
