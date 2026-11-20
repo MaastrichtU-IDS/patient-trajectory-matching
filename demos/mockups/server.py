@@ -91,7 +91,7 @@ MAX_STEPS = 12           # in any match request's query
 MAX_RELATIONS = 40       # relations, and separately relaxations, in any match request's query
 # Hosted bounds (security re-check of D50, M1), measured on the synthetic store at one worker (docs/hosting-plan.md,
 # "The security review"): the page's own requests use at most 5 steps, 4 relations, 4 relaxations, a relaxation
-# cost budget of 1 and a search budget of 40,000, and none of their 317 answers changes at a search budget of 500.
+# cost budget of 1 and a search budget of 40,000, and none of their 486 answers (D49's defaults) changes at 1,000.
 HOSTED_MAX_STEPS = 6
 HOSTED_MAX_RELATIONS = 8
 HOSTED_MAX_RELAXATIONS = 6

@@ -290,6 +290,9 @@ found one medium and nine low issues, all fixed:
       template), a relaxation cost budget of 1 and a search budget of 40,000. Requests counted: all 313 option-sweep
       cases plus the 4 answered templates; the worst costs 0.07 s.
     - Clamping their search budget to 1,000 or to 500 changes **none** of their 317 answers.
+    - Re-measured after rebasing onto D49 (coded records only by default): 486 requests (477 option-sweep cases,
+      9 answered templates), with the same maxima. At the hosted clamp of 1,000 **none** of their answers changes,
+      and the worst costs 0.09 s.
     - Adversarial shapes under the caps chosen below (6 steps, 8 relations, 6 relaxations, cost budget 1):
       - a chain of `any` steps with 1 to 2-day `after` windows: 0.15 s without relaxations;
       - the same chain with 4 tiny-cost relaxations (all 16 sets tried): 1.6 s at a budget of 1,000, 3.7 s at 5,000
