@@ -1,0 +1,491 @@
+{
+ "profile": "d49-flip-census-1.0",
+ "rule": "D49 rules 1 and 2 on the page's cohort, main's page (constants false) read from git at the base against this tree's (both true), every page template, D39's two shapes and every option-sweep definition under each free-text setting, translated with no options as the page does. 1.1: nothing moves outside \"Coded records only\", and under it this tree's request equals main's translator with the explicit option (codedOnly store, geneCodedOnly true); 1.2 reported: the transitions. 2.1: every request main answers outside the profile moves is byte-identical here, and no answering code differs from the base; 2.2: every profile move is main's request plus the exclusion only, and every changed result equals the old request's on the snapshot without letter mentions; 2.3: every coded-only request this tree sends answers as the request without the exclusion on that snapshot; 2.4 reported: the newly answered requests",
+ "base": "0a17003",
+ "cohort": {
+  "children": 48,
+  "sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+  "page_cohort": true
+ },
+ "translators": {
+  "main": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
+  "here": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21"
+ },
+ "rule_1_1": {
+  "compared": 1704,
+  "unchanged_outside_coded_only": 1136,
+  "equal_to_explicit_option": 568,
+  "changed_under_coded_only": 564,
+  "transitions": {
+   "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 386,
+   "refused GENE_WITH_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-gene-coded-1.0": 17,
+   "profile execution-store-conditions-1.1 -> profile execution-store-conditions-1.3": 133,
+   "profile execution-store-conditions-1.2 -> profile execution-store-conditions-1.3": 28
+  },
+  "by_group": {
+   "template": {
+    "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 3,
+    "refused GENE_WITH_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-gene-coded-1.0": 2
+   },
+   "continuity": {
+    "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 2
+   },
+   "sweep": {
+    "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 381,
+    "profile execution-store-conditions-1.1 -> profile execution-store-conditions-1.3": 133,
+    "refused GENE_WITH_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-gene-coded-1.0": 15,
+    "profile execution-store-conditions-1.2 -> profile execution-store-conditions-1.3": 28
+   }
+  },
+  "failures": [],
+  "definitions": 568,
+  "met": true
+ },
+ "sweep_as_offered": {
+  "definitions": 561,
+  "main": {
+   "answered": 293,
+   "translator": {
+    "FREE_TEXT_CODED_ONLY_UNSUPPORTED": 157,
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "GENE_WITH_CODED_ONLY_UNSUPPORTED": 7,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 10,
+    "VALUE_RELAXATION_MUST_WIDEN": 10
+   },
+   "profiles": {
+    "none": 109,
+    "execution-store-conditions-1.1": 119,
+    "execution-store-conditions-gene-1.0": 7,
+    "execution-store-conditions-1.2": 58
+   }
+  },
+  "here": {
+   "answered": 449,
+   "translator": {
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 14,
+    "VALUE_RELAXATION_MUST_WIDEN": 14
+   },
+   "profiles": {
+    "none": 109,
+    "execution-store-conditions-1.3": 228,
+    "execution-store-conditions-gene-1.0": 7,
+    "execution-store-conditions-gene-coded-1.0": 7,
+    "execution-store-conditions-1.2": 49,
+    "execution-store-conditions-1.1": 49
+   }
+  },
+  "changed": {
+   "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 157,
+   "profile execution-store-conditions-1.1 -> profile execution-store-conditions-1.3": 73,
+   "refused GENE_WITH_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-gene-coded-1.0": 7,
+   "profile execution-store-conditions-1.2 -> profile execution-store-conditions-1.3": 12
+  }
+ },
+ "rule_2_1": {
+  "main_answered": 591,
+  "identical_here": 430,
+  "profile_moves": 161,
+  "other": 0,
+  "store_refused_alike": 30,
+  "results_of_identical_requests": 19200,
+  "answering_code_changed_since_base": [],
+  "answering_code": [
+   "patterns",
+   "demos/mockups/store_parity.py",
+   "demos/mockups/store_trajectory.py",
+   "demos/mockups/synthetic"
+  ],
+  "met": true
+ },
+ "rule_2_2": {
+  "definitions": 161,
+  "by_group": {
+   "sweep": 161
+  },
+  "by_transition": {
+   "profile execution-store-conditions-1.1 -> profile execution-store-conditions-1.3": 133,
+   "profile execution-store-conditions-1.2 -> profile execution-store-conditions-1.3": 28
+  },
+  "not_exclusion_only": [],
+  "results_compared": 7056,
+  "results_changed": 75,
+  "changed_by_class": {
+   "filtered": 75
+  },
+  "changed_by_transition": {
+   "none -> none": 75
+  },
+  "changed_not_explained_by_removal": 0,
+  "definitions_with_a_change": 33,
+  "examples": [
+   {
+    "definition": "2nd seizure / alone / present",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / alone / present",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / alone / present",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / alone / off",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / alone / off",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / alone / off",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / within 6 months of the period start / present",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / within 6 months of the period start / present",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / within 6 months of the period start / present",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   },
+   {
+    "definition": "2nd seizure / within 6 months of the period start / off",
+    "before": {
+     "status": "none"
+    },
+    "after": {
+     "status": "none",
+     "reason": "FILTERED"
+    }
+   }
+  ],
+  "store_refused": {
+   "INVALID_FACTOR -> INVALID_FACTOR": 7,
+   "VALUE_RELAXATION_MUST_WIDEN -> VALUE_RELAXATION_MUST_WIDEN": 7
+  },
+  "names": [
+   "sweep: 2nd seizure / alone / present",
+   "sweep: 2nd seizure / alone / off",
+   "sweep: 2nd seizure / within 6 months of the period start / present",
+   "sweep: 2nd seizure / within 6 months of the period start / off",
+   "sweep: 2nd seizure / within a year either side of the period end / present",
+   "sweep: 2nd seizure / within a year either side of the period end / off",
+   "sweep: 2nd-to-last seizure / alone / present",
+   "sweep: 2nd-to-last seizure / alone / off",
+   "sweep: 2nd-to-last seizure / within 6 months of the period start / present",
+   "sweep: 2nd-to-last seizure / within 6 months of the period start / off",
+   "sweep: 2nd-to-last seizure / within a year either side of the period end / present",
+   "sweep: 2nd-to-last seizure / within a year either side of the period end / off",
+   "sweep: 1 seizure within a month / alone / present",
+   "sweep: 1 seizure within a month / alone / off",
+   "sweep: 1 seizure within a month / within 6 months of the period start / present",
+   "sweep: 1 seizure within a month / within 6 months of the period start / off",
+   "sweep: 1 seizure within a month / within a year either side of the period end / present",
+   "sweep: 1 seizure within a month / within a year either side of the period end / off",
+   "sweep: 3 seizures within 6 months / alone / present",
+   "sweep: 3 seizures within 6 months / alone / off",
+   "sweep: 3 seizures within 6 months / within 6 months of the period start / present",
+   "sweep: 3 seizures within 6 months / within 6 months of the period start / off",
+   "sweep: 3 seizures within 6 months / within a year either side of the period end / present",
+   "sweep: 3 seizures within 6 months / within a year either side of the period end / off",
+   "sweep: 2 febrile seizures in the period / alone / present",
+   "sweep: 2 febrile seizures in the period / alone / off",
+   "sweep: 2 febrile seizures in the period / within 6 months of the period start / present",
+   "sweep: 2 febrile seizures in the period / within 6 months of the period start / off",
+   "sweep: 2 febrile seizures in the period / within a year either side of the period end / present",
+   "sweep: 2 febrile seizures in the period / within a year either side of the period end / off",
+   "sweep: 2nd blocker start / alone / present",
+   "sweep: 2nd blocker start / alone / off",
+   "sweep: 2nd blocker start / within 6 months of the period start / present",
+   "sweep: 2nd blocker start / within 6 months of the period start / off",
+   "sweep: 2nd blocker start / within a year either side of the period end / present",
+   "sweep: 2nd blocker start / within a year either side of the period end / off",
+   "sweep: 2nd-to-last valproate start / alone / present",
+   "sweep: 2nd-to-last valproate start / alone / off",
+   "sweep: 2nd-to-last valproate start / within 6 months of the period start / present",
+   "sweep: 2nd-to-last valproate start / within 6 months of the period start / off",
+   "sweep: 2nd-to-last valproate start / within a year either side of the period end / present",
+   "sweep: 2nd-to-last valproate start / within a year either side of the period end / off",
+   "sweep: diary rises x2 / alone / present",
+   "sweep: diary rises x2 / alone / off",
+   "sweep: diary rises x2 / within 6 months of the period start / present",
+   "sweep: diary rises x2 / within 6 months of the period start / off",
+   "sweep: diary rises x2 / within a year either side of the period end / present",
+   "sweep: diary rises x2 / within a year either side of the period end / off",
+   "sweep: diary falls /2 / alone / present",
+   "sweep: diary falls /2 / alone / off",
+   "sweep: diary falls /2 / within 6 months of the period start / present",
+   "sweep: diary falls /2 / within 6 months of the period start / off",
+   "sweep: diary falls /2 / within a year either side of the period end / present",
+   "sweep: diary falls /2 / within a year either side of the period end / off",
+   "sweep: diary rises x1 / alone / present",
+   "sweep: diary rises x1 / alone / off",
+   "sweep: diary rises x1 / within 6 months of the period start / present",
+   "sweep: diary rises x1 / within 6 months of the period start / off",
+   "sweep: diary rises x1 / within a year either side of the period end / present",
+   "sweep: diary rises x1 / within a year either side of the period end / off",
+   "sweep: diary rises x1.2 / alone / present",
+   "sweep: diary rises x1.2 / alone / off",
+   "sweep: diary rises x1.2 / within 6 months of the period start / present",
+   "sweep: diary rises x1.2 / within 6 months of the period start / off",
+   "sweep: diary rises x1.2 / within a year either side of the period end / present",
+   "sweep: diary rises x1.2 / within a year either side of the period end / off",
+   "sweep: diary at least 8 / alone / present",
+   "sweep: diary at least 8 / alone / off",
+   "sweep: diary at least 8 / within 6 months of the period start / present",
+   "sweep: diary at least 8 / within 6 months of the period start / off",
+   "sweep: diary at least 8 / within a year either side of the period end / present",
+   "sweep: diary at least 8 / within a year either side of the period end / off",
+   "sweep: diary at most 2 / alone / present",
+   "sweep: diary at most 2 / alone / off",
+   "sweep: diary at most 2 / within 6 months of the period start / present",
+   "sweep: diary at most 2 / within 6 months of the period start / off",
+   "sweep: diary at most 2 / within a year either side of the period end / present",
+   "sweep: diary at most 2 / within a year either side of the period end / off",
+   "sweep: weight at least 10 / alone / present",
+   "sweep: weight at least 10 / alone / off",
+   "sweep: weight at least 10 / within 6 months of the period start / present",
+   "sweep: weight at least 10 / within 6 months of the period start / off",
+   "sweep: weight at least 10 / within a year either side of the period end / present",
+   "sweep: weight at least 10 / within a year either side of the period end / off",
+   "sweep: weight at most 9 / alone / present",
+   "sweep: weight at most 9 / alone / off",
+   "sweep: weight at most 9 / within 6 months of the period start / present",
+   "sweep: weight at most 9 / within 6 months of the period start / off",
+   "sweep: weight at most 9 / within a year either side of the period end / present",
+   "sweep: weight at most 9 / within a year either side of the period end / off",
+   "sweep: height at least 80 / alone / present",
+   "sweep: height at least 80 / alone / off",
+   "sweep: height at least 80 / within 6 months of the period start / present",
+   "sweep: height at least 80 / within 6 months of the period start / off",
+   "sweep: height at least 80 / within a year either side of the period end / present",
+   "sweep: height at least 80 / within a year either side of the period end / off",
+   "sweep: head circumference at most 40 / alone / present",
+   "sweep: head circumference at most 40 / alone / off",
+   "sweep: head circumference at most 40 / within 6 months of the period start / present",
+   "sweep: head circumference at most 40 / within 6 months of the period start / off",
+   "sweep: head circumference at most 40 / within a year either side of the period end / present",
+   "sweep: head circumference at most 40 / within a year either side of the period end / off",
+   "sweep: weight at most -1 / alone / present",
+   "sweep: weight at most -1 / alone / off",
+   "sweep: weight at most -1 / within 6 months of the period start / present",
+   "sweep: weight at most -1 / within 6 months of the period start / off",
+   "sweep: weight at most -1 / within a year either side of the period end / present",
+   "sweep: weight at most -1 / within a year either side of the period end / off",
+   "sweep: weight at least 0 / alone / present",
+   "sweep: weight at least 0 / alone / off",
+   "sweep: weight at least 0 / within 6 months of the period start / present",
+   "sweep: weight at least 0 / within 6 months of the period start / off",
+   "sweep: weight at least 0 / within a year either side of the period end / present",
+   "sweep: weight at least 0 / within a year either side of the period end / off",
+   "sweep: 2nd seizure / alone / possible",
+   "sweep: 2nd-to-last seizure / alone / possible",
+   "sweep: 1 seizure within a month / alone / possible",
+   "sweep: 3 seizures within 6 months / alone / possible",
+   "sweep: 2 febrile seizures in the period / alone / possible",
+   "sweep: 2nd blocker start / alone / possible",
+   "sweep: 2nd-to-last valproate start / alone / possible",
+   "sweep: diary rises x2 / alone / possible",
+   "sweep: diary falls /2 / alone / possible",
+   "sweep: diary rises x1 / alone / possible",
+   "sweep: diary rises x1.2 / alone / possible",
+   "sweep: diary at least 8 / alone / possible",
+   "sweep: diary at most 2 / alone / possible",
+   "sweep: weight at least 10 / alone / possible",
+   "sweep: weight at most 9 / alone / possible",
+   "sweep: height at least 80 / alone / possible",
+   "sweep: head circumference at most 40 / alone / possible",
+   "sweep: weight at most -1 / alone / possible",
+   "sweep: weight at least 0 / alone / possible",
+   "sweep: 2 febrile seizures in the period / any / the first seizure for 24 months",
+   "sweep: 2 febrile seizures in the period / any / birth to 6 years",
+   "sweep: 2 febrile seizures in the period / any / from 2020-01-01 for 3 years",
+   "sweep: 2 febrile seizures in the period / any / 12 months up to the last seizure",
+   "sweep: 2 febrile seizures in the period / any / a month before the 2nd-to-last febrile seizure to 10 years",
+   "sweep: 2 febrile seizures in the period / any / the first diagnosis for 2 years",
+   "sweep: 2 febrile seizures in the period / any / the first genetic result for 2 years",
+   "sweep: 2 febrile seizures in the period / from_start / the first seizure for 24 months",
+   "sweep: 2 febrile seizures in the period / from_start / birth to 6 years",
+   "sweep: 2 febrile seizures in the period / from_start / from 2020-01-01 for 3 years",
+   "sweep: 2 febrile seizures in the period / from_start / 12 months up to the last seizure",
+   "sweep: 2 febrile seizures in the period / from_start / a month before the 2nd-to-last febrile seizure to 10 years",
+   "sweep: 2 febrile seizures in the period / from_start / the first diagnosis for 2 years",
+   "sweep: 2 febrile seizures in the period / from_start / the first genetic result for 2 years",
+   "sweep: 2 febrile seizures in the period / within / the first seizure for 24 months",
+   "sweep: 2 febrile seizures in the period / within / birth to 6 years",
+   "sweep: 2 febrile seizures in the period / within / from 2020-01-01 for 3 years",
+   "sweep: 2 febrile seizures in the period / within / 12 months up to the last seizure",
+   "sweep: 2 febrile seizures in the period / within / a month before the 2nd-to-last febrile seizure to 10 years",
+   "sweep: 2 febrile seizures in the period / within / the first diagnosis for 2 years",
+   "sweep: 2 febrile seizures in the period / within / the first genetic result for 2 years",
+   "sweep: 2 febrile seizures in the period / after / the first seizure for 24 months",
+   "sweep: 2 febrile seizures in the period / after / birth to 6 years",
+   "sweep: 2 febrile seizures in the period / after / from 2020-01-01 for 3 years",
+   "sweep: 2 febrile seizures in the period / after / 12 months up to the last seizure",
+   "sweep: 2 febrile seizures in the period / after / a month before the 2nd-to-last febrile seizure to 10 years",
+   "sweep: 2 febrile seizures in the period / after / the first diagnosis for 2 years",
+   "sweep: 2 febrile seizures in the period / after / the first genetic result for 2 years"
+  ],
+  "d45_count": 161,
+  "equal_to_d45_count": true,
+  "met": true
+ },
+ "rule_2_3": {
+  "requests": 294,
+  "results_compared": 13440,
+  "results_differing": 0,
+  "refused_alike": 14,
+  "refused_differently": 0,
+  "letter_mentions_removed": 3048,
+  "profiles": {
+   "execution-store-conditions-1.3": 285,
+   "execution-store-conditions-gene-coded-1.0": 9
+  },
+  "examples": [],
+  "met": true
+ },
+ "rule_2_4": {
+  "definitions": 403,
+  "by_transition": {
+   "refused FREE_TEXT_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-1.3": 386,
+   "refused GENE_WITH_CODED_ONLY_UNSUPPORTED -> profile execution-store-conditions-gene-coded-1.0": 17
+  },
+  "store_refused": {
+   "INVALID_FACTOR": 8,
+   "VALUE_RELAXATION_MUST_WIDEN": 8
+  },
+  "statuses": {
+   "possible": 656,
+   "not_comparable": 1941,
+   "excluded": 4118,
+   "exact": 2834,
+   "none": 6547,
+   "relaxed": 2282,
+   "unresolved": 198
+  },
+  "reasons": {
+   "NO_SOURCE_COVERAGE": 1807,
+   "NO_INDEX_WINDOW": 4118,
+   "FILTERED": 4352,
+   "OCCURRENCE_TIME_COUPLED": 64,
+   "STEP_CONDITION_UNCERTAIN": 62,
+   "ADMISSION_EXCLUDED_RECORDS": 206
+  },
+  "results": 18576
+ },
+ "distinct_requests": 595,
+ "store_refusals": {
+  "INVALID_FACTOR": 17,
+  "VALUE_RELAXATION_MUST_WIDEN": 17
+ },
+ "unnamed": [],
+ "incomplete": [],
+ "messages": {
+  "codes": [
+   "FREE_TEXT_COUNT_UNSUPPORTED",
+   "FREE_TEXT_HEDGED_UNSUPPORTED",
+   "INVALID_FACTOR",
+   "NTH_STEP_HAS_NO_END",
+   "VALUE_RELAXATION_MUST_WIDEN"
+  ],
+  "without_a_message": []
+ },
+ "met": {
+  "rule_1_1": true,
+  "rule_2_1": true,
+  "rule_2_2": true,
+  "rule_2_3": true,
+  "named": true,
+  "messages": true
+ },
+ "seconds": 76,
+ "artifacts": {
+  "demos/mockups/d49_flip.cjs": "5fc7dfbd914e9a583c30ce9c5e425044527135975ee27f2a19a42b37a0b13a42",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "demos/mockups/trajectory/app.js": "c5138d9d3062d3c859f38cc56db6b348412cb92ecba1343a6f1e1bdb4cedee9b",
+  "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false
+}

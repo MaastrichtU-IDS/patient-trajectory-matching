@@ -831,9 +831,9 @@ const REFUSALS = vm.runInContext(`(() => {
     'gene step (tree template), coded only in the store, joint refused on request (D42)': refusalOf(d('tree'), 'off', {codedOnly: 'store', geneCodedOnly: false}),
     'gene step (tree template), coded only, joint asked for (D42)': refusalOf(d('tree'), 'off', {geneCodedOnly: true}),
     // D49: the named refusals stay reachable for a caller that asks for them (the page never does).
-    'blank template, coded only, the store\'s coded only refused on request (D49)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {codedOnly: null}),
-    'gene step (tree template), coded only, the store\'s coded only refused on request (D49)': refusalOf(d('tree'), 'off', {codedOnly: false}),
-    'a count alone, coded only, the store\'s coded only refused on request (D49)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {codedOnly: null}),
+    'blank template, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {codedOnly: null}),
+    'gene step (tree template), coded only, the store option refused on request (D49)': refusalOf(d('tree'), 'off', {codedOnly: false}),
+    'a count alone, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {codedOnly: null}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
@@ -874,9 +874,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'gene step (tree template), coded only for the count, joint asked for (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'gene step (tree template), coded only in the store, joint refused on request (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'gene step (tree template), coded only, joint asked for (D42)': null,  // D49: the store's coded only is the default
-  'blank template, coded only, the store\'s coded only refused on request (D49)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
-  'gene step (tree template), coded only, the store\'s coded only refused on request (D49)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
-  'a count alone, coded only, the store\'s coded only refused on request (D49)': null,  // D32's reading: a count is coded only
+  'blank template, coded only, the store option refused on request (D49)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'gene step (tree template), coded only, the store option refused on request (D49)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'a count alone, coded only, the store option refused on request (D49)': null,  // D32's reading: a count is coded only
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.

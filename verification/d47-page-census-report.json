@@ -4088,17 +4088,17 @@
  "store_requests_differing": 0,
  "unexplained": 0,
  "first_unexplained": [],
- "elapsed_s": 9.561,
+ "elapsed_s": 10.665,
  "view_cost": {
   "rule": "reported, not ruled (D47 rule 7): node, one process, after the census",
   "here": {
    "repeats": 21,
-   "median_ms_all_patients": 30.033167000001413,
+   "median_ms_all_patients": 31.073582999999417,
    "patients": 48
   },
   "main": {
    "repeats": 21,
-   "median_ms_all_patients": 16.528292000000874,
+   "median_ms_all_patients": 17.57562500000131,
    "patients": 48
   }
  },
@@ -4107,8 +4107,8 @@
   "demos/mockups/d47_page.cjs": "b37894fbdb788e292e7157f9a91c1e28ad35eee7c33fd3db86ddae576a7f620d",
   "demos/mockups/index_reference.py": "d26a724c4ffaada612dc18c3b81999c408401b82bfae278ff47b21f309db522e",
   "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
-  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
-  "demos/mockups/trajectory/app.js": "bb64343679f444476ceefbd0f6f79c4a4ffa40e3c800879d5bd6fa3f80f96b86",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "demos/mockups/trajectory/app.js": "c5138d9d3062d3c859f38cc56db6b348412cb92ecba1343a6f1e1bdb4cedee9b",
   "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c"
  },
