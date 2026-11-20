@@ -5,8 +5,9 @@
    Loads the page's own code (shared/core.js, trajectory/app.js, trajectory/store_request.js) into a node:vm context, as
    D46's and D47's tools do, and prints {cases: [{name, query, conditions, windows}], refusals: {name: code}}: each
    template (Sequence, Tree, Graph, Event frequency, Blank) with the page's own window and scope, under stated findings
-   (the page's default: no options) and under coded only (the parity test's options: profile 1.3, the joint profile for
-   Tree and Graph). Times are the page's minutes from birth, as store_parity.py reads them. The request does not depend
+   ("Coded records + findings stated in clinical notes", `present`, with no options; since D49 not the page's default)
+   and under coded only (`off`, with the parity test's explicit options: profile 1.3, the joint profile for Tree and
+   Graph), so that no request reads the translator's defaults. Times are the page's minutes from birth, as store_parity.py reads them. The request does not depend
    on how letter mentions are timed in the store: the windows are the page's (reconcile_v1), the same for every arm.
    Synthetic data only. */
 const fs = require('node:fs');

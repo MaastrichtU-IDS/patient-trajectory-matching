@@ -4956,7 +4956,7 @@ the lows it found are fixed too.
   So on that seed even the truth oracle leaves most stated-findings results `possible`. The likely cause is the untimed two-thirds of mentions, which stay four years wide; that is not measured.
 - The suites, including the page's cohort's counts pinned in `CohortTests` (849 narrowed of 2,444, 0 misses).
 
-**Pre-committed rules** (committed with this entry, before any measurement of E0 beyond the runs above; "main" is b575ba8, to be replaced by the main E0 is rebased onto before measuring, below; the rules are as amended after the review, below, the first version is in da2267e). Seeds: **5001 to 5100** for soundness; **5001 to 5030** for the arms, extended in order to 5100 while a ruled template has fewer than 30 candidates pooled. The extension reads candidate counts only.
+**Pre-committed rules** (committed with this entry, before any measurement of E0 beyond the runs above; "main" was b575ba8 and is **7fcd439** since the rebase onto the main where D48b and D49 have landed (below); the rules are as amended after the review, below, the first version is in da2267e). Seeds: **5001 to 5100** for soundness; **5001 to 5030** for the arms, extended in order to 5100 while a ruled template has fewer than 30 candidates pooled. The extension reads candidate counts only.
 1. **Temporal soundness.** `tools/e0_measure.py soundness --committed --seeds 5001-5100` covers the page's cohort and 100 fresh cohorts. Every present mention about the patient is converted under `normalised_v1` and checked against its truth event's day, the time D30's test uses (`test_execution_store`: the truth is a day). **0 narrowed ranges that do not meet the true day.** Fallbacks keep D30's ranges, which must also hold their truth (reported: `d30_misses` 0).
    - *What 0 misses means* (amended, S4): soundness on the generator's wording only, one writer's templates. It says nothing about real letters. The hazards there:
      - month-first dates (an ambiguous `03/04/2019` is read day first);
@@ -4968,6 +4968,7 @@ the lows it found are fixed too.
    - the days covered (median and 90th percentile), over narrowed mentions and over all mentions, beside D30's;
    - the annotated time expressions found verbatim in their clause, and those the normaliser read exactly.
 3. **Usefulness** (`arms`, report `verification/e0-mention-time-arms-report.json`). The page's templates, matched through `store_conditions.match`, the page server's entry point.
+   - *Stated findings* means the page's setting "Coded records + findings stated in clinical notes" (`freeText: 'present'`, no options), passed explicitly; since D49 it is no longer the page's default.
    - *Ruled* (amended, S2: the owner's bar cannot fail meaningfully here, since `unresolved` comes only from stopped searches). A result is *decided* when it is `exact`, a complete `none`, or a complete `relaxed` match with certainty `exact` (`decided`). From G to GT:
      - **0 results move away from decided**, over every patient of every case, both settings (a decided G result whose GT result is not the same decided claim). Rule 4 implies it; it is stated and counted;
      - **at least one result moves toward decided**, over every patient of the four stated-findings templates, pooled over the seeds used.
@@ -4985,7 +4986,7 @@ the lows it found are fixed too.
 5. **Negative control.** Under coded only (Sequence, Event frequency and Blank under profile 1.3; Tree and Graph joint), GT's and T's results and candidate lists are **identical to G's**, for every patient and every seed.
 6. **Planted defects.** `tools/e0_measure.py defects --committed --seeds 5001-5030`. Each of `naive_years` ("at N years" read as about N years), `month_off_by_one` (N months read as N + 1), `result_cue` (a genetic result or a reclassification read as since the previous letter) and `stop_ignored` (the clause's time applied to a mention followed by "was stopped") must give **at least one miss** of rule 1.
 7. **Build reuse and defaults.**
-   - The diff against main (b575ba8; after the rebase, the main E0 is rebased onto) changes no existing file under `patterns/`, and changes neither the build worker, `store_parity.py`, `store_trajectory.py`, any page file nor the generator. The new and changed files are listed under Tools.
+   - The diff against main (7fcd439, after the rebase) changes no existing file under `patterns/`, and changes neither the build worker, `store_parity.py`, `store_trajectory.py`, any page file nor the generator. The new and changed files are listed under Tools.
    - The wrapper's default output equals the converter's byte for byte (and the gene wrapper's), and a default build through it has the converter's snapshot identity (the suite; the store test runs with DuckDB).
    - The 300 recorded digests are unchanged (the suites).
    - No committed report goes stale (`check_report_provenance`: 0 stale); none is regenerated or frozen except the test-count report (`verification/test-count-report.json`, written by `check_test_counts --write`).
@@ -5029,6 +5030,11 @@ the lows it found are fixed too.
   - the age reader is English only ("at N months"). Dutch and French ages ("6 maanden", "9 mois") are not read; those letters' dates are.
 - *Tool changes* (`tools/e0_measure.py`): `decided`, `claim_type`, the counts in `compare` (claims checked, toward and away from decided, every transition) and the verdict. Tests in `tools/test_e0_measure.py` (10).
 - *Disclosed: a tool check on development seed 4601 only.* `arms` there: toward decided 3, away 0; claims checked from G to GT: `exact` 34, complete `none` 83, `relaxed` 9; from GT to T: 37, 83 and 9.
+
+**Rebased before measuring** (the coordinator's signal, 2026-11-20: D48b and D49 have landed; main is 7fcd439).
+- E0's three commits were rebased onto 7fcd439. The log, the CI workflow, `docs/status.md` and the test-count report conflicted only where both sides appended; each kept both. The test counts were rewritten.
+- "Main" and rule 7's diff base are now 7fcd439.
+- D49 renamed the page's evidence options but kept their internal values (`present`, `off`, `possible`), and made coded only the page's default. `e0_requests.cjs` passes the setting explicitly (`present` with no options; `off` with `codedOnly: 'store'` and, for Tree and Graph, `geneCodedOnly: true`), so its requests do not read the new defaults. Its docstring and rule 3 no longer call stated findings the page's default.
 
 **Regeneration.** None expected: no committed report binds a file E0 changes. The three E0 reports are new (soundness, defects, arms), produced in one job under the bench lock, after the rebase onto the main where D48b and D49 have landed.
 
