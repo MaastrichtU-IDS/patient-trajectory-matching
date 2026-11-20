@@ -5686,7 +5686,7 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 8. **Regeneration: only what goes stale.**
    - D46's three reports, D47's three, `d49-flip-usefulness-report.json` and E0b's three are regenerated with their own tools, pinned to `indexAnchor: false`. **Every figure must be equal** apart from timings and artifact digests; a figure that differs is reported, not frozen away.
    - `verification/d45-coded-default-latency-verdict.json` is frozen as `HISTORICAL` (signed off, Q8), superseded by D52's latency verdict, whose reference arm is the request it timed.
-   - `verification/d49-flip-census-report.json`: **proposed for `HISTORICAL`, for sign-off at the code checkpoint** (the consistency read, below).
+   - `verification/d49-flip-census-report.json`: frozen as `HISTORICAL` by D53, which lands first (the coordinator's ruling: its rule 2.1 is a point-in-time claim against 0a17003). After the rebase D52 checks that it is frozen, and adds to its `HISTORICAL` comment that D52's census supersedes it for the current tree (the consistency read, below).
    - `results/build.py` runs if its inputs move.
    - One job under the bench lock covers rules 1 to 6 and the regeneration.
 9. **Gates:**
@@ -5705,7 +5705,7 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 
 **Consistency read** (the rules against the change list and against what the committed reports run; D48b's protocol rule).
 - *Rule 7 against the change list.* No `patterns/` file changes, so it can hold. `store_trajectory.py` changes, which is the server, not the store; rule 7 does not name it, and rule 6's structural check covers its unchanged path.
-- *D49's census (`d49_flip.cjs census`) cannot regenerate as met.* Its rule 2.1 runs `git diff 0a17003 -- patterns store_parity.py store_trajectory.py synthetic`, and D52 changes `store_trajectory.py`, so 2.1 would read not met by construction. The requests it times are unchanged: the pin, and rule 3's structural check that `indexAnchor: false` reproduces main's request. Hence the proposed freeze in rule 8, superseded for the current tree by D52's census. D49's usefulness report runs no such check, and is regenerated.
+- *D49's census (`d49_flip.cjs census`) cannot regenerate as met.* Its rule 2.1 runs `git diff 0a17003 -- patterns store_parity.py store_trajectory.py synthetic`, and D52 changes `store_trajectory.py`, so 2.1 would read not met by construction. The requests it times are unchanged: the pin, and rule 3's structural check that `indexAnchor: false` reproduces main's request. It is frozen by D53 (rule 8), and D52's census supersedes it for the current tree. D49's usefulness report runs no such check, and is regenerated.
 - *D46's census* sends its sweep with `codedOnly: null`, merged with the pin. D47's rule 1 (store requests equal a4d2010's) holds through the pin. E0b's tools read the translator through `e0_requests.cjs`, which is pinned too.
 - *`option_sweep.js` changes* only by keeping a case's `index` block, so the pinned tools, whose requests carry none, write identical cases.
 - *`test_store_parity.cjs` changes a parity trajectory's period* (the period count), which rule 5 names, and grows its closed list by one cause with a per-patient predicate. Its D38 no-change differential now takes the narrowed cases.
