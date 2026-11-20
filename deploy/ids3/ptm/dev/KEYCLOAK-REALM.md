@@ -36,7 +36,13 @@ has no effect here.
 - [ ] **Realm settings → Security defenses → Brute force detection:** on (lockout temporary, defaults).
 - [ ] **Authentication → Policies → Password policy:** minimum length 12, not username, not email, password history 3.
 - [ ] **Realm settings → Sessions / Tokens:** access token lifespan 5 min (default); SSO session idle 30 min, max
-      10 h; offline sessions not used (see default roles below).
+      10 h; offline sessions not used (see default roles below). **Revoke Refresh Token: on, Refresh Token Max
+      Reuse: 0** (rotation: each refresh token works once, so a stolen one is useless after the page's next refresh,
+      and its replay ends the session). The page keeps its refresh token in the tab's `sessionStorage`; rotation is
+      what bounds that exposure.
+- [ ] *Option, not required:* DPoP-bound tokens for `ptm-mockups` (client → Advanced → "Require DPoP bound tokens",
+      supported in Keycloak 26). It would bind tokens to a key held by the tab; it needs page and server support
+      that are not built.
 - [ ] **Realm settings → User profile:** first and last name optional; email required for email registrations
       (ORCID often returns no email; see section 4).
 - [ ] **Realm settings → Events → User events settings:** save events **on**, expiration 90 days, include at least
@@ -69,9 +75,13 @@ has no effect here.
 - [ ] **Clients → Create client** `ptm-mockups` (must equal `PTM_OIDC_CLIENT_ID`):
   - Client authentication **off** (public browser client, PKCE); Standard flow **on**; Direct access grants
     **off**; Implicit **off**; Service accounts **off**; OAuth 2.0 Device flow off.
-  - Root URL `https://ptm.k8s.semanticscience.org`; Valid redirect URIs `https://ptm.k8s.semanticscience.org/*`;
-    Valid post logout redirect URIs `https://ptm.k8s.semanticscience.org/*`; Web origins
-    `https://ptm.k8s.semanticscience.org` (exact origin, no trailing slash).
+  - Root URL `https://ptm.k8s.semanticscience.org`.
+  - Valid redirect URIs, **exactly these two, no wildcard** (the pages that sign in; `shared/auth.js` sends the page's
+    canonical address): `https://ptm.k8s.semanticscience.org/` and
+    `https://ptm.k8s.semanticscience.org/store-query/`.
+  - Valid post logout redirect URIs: the same two.
+  - Web origins `https://ptm.k8s.semanticscience.org` (exact origin, no trailing slash).
+  - A page that starts signing in must be added to both lists, or Keycloak refuses with `invalid_redirect_uri`.
   - Advanced → Proof Key for Code Exchange Code Challenge Method **S256**.
 - [ ] **Audience mapper:** `ptm-mockups` → Client scopes → `ptm-mockups-dedicated` → Add mapper → By configuration
       → Audience: name `ptm-api-audience`, Included Custom Audience `ptm-api` (must equal `PTM_OIDC_AUDIENCE`), add

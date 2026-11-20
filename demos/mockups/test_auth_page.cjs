@@ -111,6 +111,34 @@ const tokenOf = (calls, i) => Object.fromEntries(new URLSearchParams(calls.filte
     console.log('ok: a mismatched state is never exchanged');
   }
 
+  // 6. The redirect URI is the page's canonical address (no wildcard needed): /index.html signs in as /.
+  {
+    const {win, auth} = browser({href: `${SITE}/index.html`, session: storage()});
+    await auth.ready;
+    await auth.signIn();
+    assert.strictEqual(new URL(win.assigned).searchParams.get('redirect_uri'), `${SITE}/`);
+    console.log('ok: the redirect URI is canonical');
+  }
+
+  // 7. Sign-out revokes the refresh token at the realm, then ends the session with the ID token as hint.
+  {
+    const session = storage({'ptm.refresh': 'RT1'});
+    const {win, calls, auth} = browser({href: `${SITE}/store-query/`, session,
+      tokenResponses: [{access_token: 'AT', expires_in: 300, refresh_token: 'RT2', id_token: 'IDT'}]});
+    await auth.ready;
+    await auth.signOut();
+    const revoke = calls.find(c => c.url === `${ISSUER}/protocol/openid-connect/revoke`);
+    assert.ok(revoke, 'the refresh token is revoked');
+    const sent = Object.fromEntries(new URLSearchParams(revoke.options.body));
+    assert.deepStrictEqual([sent.token, sent.token_type_hint, sent.client_id], ['RT2', 'refresh_token', 'ptm-mockups']);
+    assert.ok(!('ptm.refresh' in session.data));
+    const logout = new URL(win.assigned);
+    assert.strictEqual(logout.origin + logout.pathname, `${ISSUER}/protocol/openid-connect/logout`);
+    assert.deepStrictEqual([logout.searchParams.get('id_token_hint'), logout.searchParams.get('client_id'),
+                            logout.searchParams.get('post_logout_redirect_uri')], ['IDT', 'ptm-mockups', `${SITE}/store-query/`]);
+    console.log('ok: sign-out revokes the refresh token and ends the realm session');
+  }
+
   // 5. A refused refresh signs out locally; without a realm everything is plain fetch.
   {
     const session = storage({'ptm.refresh': 'stale'});

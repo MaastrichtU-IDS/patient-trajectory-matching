@@ -253,25 +253,36 @@ what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/h
   disclosure control (above).
 - **Who is calling** (`access.py`). With `PTM_OIDC_ISSUER`, `PTM_OIDC_JWKS_URI` and `PTM_OIDC_AUDIENCE` set, an
   `Authorization: Bearer` access token from the realm, checked locally against the realm's public keys: RS256 only,
-  issuer, audience, expiry, and `typ: Bearer`. Roles come from `realm_access.roles`. A present but invalid token gets
-  `401 TOKEN_INVALID`; a caller without the access a dataset needs gets `401 LOGIN_REQUIRED`, `403 NOT_APPROVED` or
-  `403 ROLE_REQUIRED`. The keys come from `PTM_OIDC_JWKS_URI`, which is configured separately from the issuer
-  (in-cluster on ids3).
+  issuer, audience, expiry, `sub`, `azp` (the configured client) and `typ: Bearer`. Roles come from
+  `realm_access.roles`. A present but invalid token gets `401 TOKEN_INVALID`. A dataset the caller may not use is a
+  `404 DATASET_NOT_FOUND`, like one that does not exist, and the old routes answer as if no such store were
+  configured; the page reads why from `/api/datasets`. The keys come from `PTM_OIDC_JWKS_URI`, which is configured
+  separately from the issuer (in-cluster on ids3); keys not refreshed for an hour are dropped.
 - **Local use is unchanged.** With no realm configured and the server on a loopback address, the person at the
-  machine is the owner and is served every configured dataset: `--mimic-store` works as before. On any other
-  address, a non-public dataset without a realm means the server refuses to start.
+  machine is the owner and is served every configured dataset: `--mimic-store` works as before. Only a request
+  addressed to `localhost`, `127.0.0.1` or `[::1]` is the owner, so DNS rebinding or a tunnel to the port gets
+  public datasets only. On any other address, a non-public dataset without a realm means the server refuses to start.
+- **Hosted** (any non-loopback bind): the anonymous engine route is off (the page uses the store, and falls back to
+  the browser if the engine is chosen), only page asset types are served with no directory listings, and MIMIC
+  stores open at startup.
 - **Endpoints.** `GET /api/datasets` lists the datasets the caller may use, and whether they are signed in and
   approved. `GET /api/auth-config` tells the page how to sign in. `/api/datasets/<id>/status`, `.../catalogue`
   (aggregate kinds only) and `.../match` address each dataset; `/api/trajectory-store/*` and `/api/store/*` stay as
-  aliases of the first dataset of each kind. `GET /api/ready` answers 200 once every dataset is ready; `/api/health`
-  answers from the start. `--datasets FILE` (or `PTM_DATASETS`) names a registry; without one the flags build it.
-- **Limits and logs.** `PTM_MAX_BODY` (default 20 MiB) and `PTM_MATCH_CONCURRENCY` (default unlimited; extra matches
-  wait 5 s, then get `503 BUSY`). With `PTM_LOG_FORMAT=json`, one JSON line per API request: route, status, duration,
+  aliases of the first dataset of each kind the caller may use. `GET /api/ready` answers `{"ready": ...}`, 200 once
+  every started dataset is ready (counts for the owner only; it never opens a store); `/api/health` answers from the
+  start. `--datasets FILE` (or `PTM_DATASETS`) names a registry; without one the flags build it.
+- **Limits and logs.** `PTM_MAX_BODY` (default 20 MiB), `PTM_MATCH_CONCURRENCY` (default unlimited locally, 4
+  hosted; the slot is taken before a body is read; extra matches wait 5 s, then get `503 BUSY`), `PTM_MAX_THREADS`
+  (requests in flight, default 64; beyond, `503 BUSY` at once), a 30 s socket timeout, and caps on steps (12),
+  relations and relaxations (40 each), and the engine route's patients (500) and events (50,000). With `PTM_LOG_FORMAT=json`, one JSON line per API request: route, status, duration,
   dataset, kind of caller and the token's subject; never a body, a token, a header or an address. Every response
-  carries `X-Content-Type-Options`, `Referrer-Policy` and `X-Frame-Options`.
+  carries a Content-Security-Policy (scripts from this origin plus the hashes of the pages' inline scripts, computed
+  at startup; `connect-src` self and the realm), `X-Content-Type-Options`, `Referrer-Policy` and `X-Frame-Options`,
+  and a `Server` header without versions.
 - **Sign-in on the pages** (`shared/auth.js`): PKCE against the realm's public client, with no library vendored. The
-  access token is kept in memory, the refresh token in the tab's `sessionStorage`, so the next page gets a new access
-  token without signing in again. The index lists only the datasets the caller may use, and says when an account
+  access token is kept in memory, the refresh token in the tab's `sessionStorage` (the realm rotates it), so the next
+  page gets a new access token without signing in again. Sign-out revokes the refresh token and ends the realm
+  session. The index lists only the datasets the caller may use, and says when an account
   awaits approval. Without a realm none of this appears.
 - **Dependencies.** The token check needs `requirements-hosting.lock.txt` (the store lock plus PyJWT and
   cryptography); it is imported only when a realm is configured.
@@ -280,8 +291,11 @@ what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/h
   plus each tier for each kind of caller. `test_datasets.py` covers the registry rules. `test_server_access.py` runs
   the server against a realm whose keys are served on loopback by the test: an anonymous caller reaches only public
   datasets, each token reaches its tier, bad tokens are refused everywhere, the log holds no token. It also covers
-  local use, the non-loopback refusal, health during the build, and the body and concurrency limits.
-  `test_auth_page.cjs` runs the sign-in in Node. None needs the network.
+  local use, the non-loopback refusal, health during the build, and the body and concurrency limits, plus the
+  security review's findings: the flood scaled down (bodies read only inside a match slot), the caps, the thread
+  cap, the hosted surface, a malformed request line, the owner's Host check, readiness that opens nothing, and the
+  Content-Security-Policy against every page. `test_auth_page.cjs` runs the sign-in and sign-out in Node. None needs
+  the network.
 
 ## Deployment
 

@@ -4669,7 +4669,8 @@ later PR to `maastrichtu-ids/services`. Nothing is deployed or published.
   - One stateless pod runs `demos/mockups/server.py` behind Traefik, with cert-manager `letsencrypt` TLS.
   - The namespace is egress-locked by `restrict-egress`; one added policy opens the in-cluster JWKS fetch from
     Keycloak.
-  - Traefik applies a per-client rate limit and a 2 MiB body limit.
+  - Traefik applies a per-client rate limit and a body limit (2 MiB as first built, 256 KiB after the security
+    review below).
   - The image is pinned by version and digest, never `latest`.
   - Vault and VSO are wired but not listed: dev has no secret.
 - **Data on dev: synthetic only.** The design serves several datasets, each with its own policy.
@@ -4721,9 +4722,9 @@ later PR to `maastrichtu-ids/services`. Nothing is deployed or published.
   deployment.
 
 **Tests** (no network; the keys are generated in the test):
-- `test_access.py` (20 tests);
+- `test_access.py` (20 tests; 23 after the security review);
 - `test_datasets.py` (7), which also parses the dev registry in the draft ConfigMap;
-- `test_server_access.py` (11), with the realm's keys served on loopback;
+- `test_server_access.py` (11; 19 after the security review), with the realm's keys served on loopback;
 - `test_auth_page.cjs`, in CI.
 
 *Alternatives declined:*
@@ -4741,3 +4742,50 @@ later PR to `maastrichtu-ids/services`. Nothing is deployed or published.
   checked from a scratch copy instead;
 - a Content-Security-Policy;
 - a delivery route for a MIMIC-IV demo store, if it is to be hosted at all.
+
+**Security review** (an independent reviewer, of `1af36d7`, arranged by the coordinator; the probes are kept outside
+the repository). There was **no critical or high finding**: the token check, routing and authorization held under
+every probe, and the loopback owner could not be reached remotely. One medium and nine lows were found, all fixed
+in a follow-up commit.
+
+- **M1, anonymous CPU and memory exhaustion.**
+  - *Finding:* the anonymous engine route and the public store match read and parsed the body before the
+    concurrency gate, on unbounded threads with no socket timeout. A valid 2 MiB engine request cost 0.44 s of CPU,
+    so 3 to 5 requests a second within the Traefik limit saturate a CPU, and queued parsed bodies could exhaust a
+    768 Mi pod.
+  - *Fix:* the match slot is taken before the body is read. Hosted, the anonymous engine route is off.
+  - *Fix:* caps on steps (12), relations and relaxations (40), and the engine route's patients (500) and events
+    (50,000).
+  - *Fix:* `PTM_MAX_THREADS` (64; beyond it, 503 at once, without a thread), a 30 s socket timeout, a hosted gate
+    default of 4 and a 256 KiB body limit.
+  - *Fix:* a second Ingress puts the match routes under a 1/s, burst-5 Traefik rate limit.
+  - *Verified:* a test reproduces the flood, scaled down: 14 valid requests against 2 slots and 6 threads read at
+    most 2 bodies at once, and the server keeps answering. The reviewer's full-size request is now refused by the
+    patient cap before any work.
+- **L1:** `azp` must equal the configured client.
+- **L2:** held keys expire after an hour without a successful refresh, and the fetch runs outside the lock, one at a
+  time. The in-cluster plain-HTTP fetch is kept, since the platform Keycloak offers no TLS in-cluster. It is
+  documented with its mitigations, and with the alternative of the public https URL through the egress-proxy, which
+  `urllib` supports.
+- **L3:** logging tolerates an unparsed request line, and unexpected failures are logged as their exception class
+  only, never with the client's address.
+- **L4:** an ingress NetworkPolicy admits only Traefik, using the front-door addresses from `minio-data`.
+- **L5:**
+  - A Content-Security-Policy: scripts from this origin plus the hashes of the pages' inline scripts, computed at
+    startup; inline styles allowed; `connect-src` self and the realm; `frame-ancestors 'none'`. It was checked
+    statically against every page; no browser was available here.
+  - Refresh-token rotation is required in the realm checklist, with DPoP noted as an option.
+  - Sign-out revokes the refresh token and passes `id_token_hint`.
+- **L6:** exact redirect and post-logout URIs, and the page sends its canonical address.
+- **L7:** in the image workflow, the tag passes only through `env:` and is validated; actions are pinned by SHA; only
+  the publish job may write packages, and it pushes the image the check job tested.
+- **L8:**
+  - `/api/ready` returns `{"ready"}` only, with counts for the owner, and never opens a store. Hosted, MIMIC stores
+    open at startup.
+  - A dataset the caller may not use is a 404, and the old routes answer as if no store of that kind existed.
+- **L9:** `sub` is required.
+- **Owner mode:** only a `Host` of localhost, 127.0.0.1 or [::1] makes the owner, against DNS rebinding and
+  tunnels.
+- **Informational, fixed:** hosted, no directory listings and page asset types only; no version in `Server`; HSTS
+  through Traefik.
+- **Queued:** `--require-hashes` for the lock files.

@@ -159,20 +159,22 @@ class RealmTests(unittest.TestCase):
         self.assertEqual(body['caller'], {'signed_in': False, 'approved': False, 'owner': False})
         self.assertEqual(self.call('/api/datasets/synthetic-paediatric-rare/status')[0], 200)
         self.assertEqual(self.call('/api/trajectory-store/status')[0], 200)  # the alias: the first synthetic dataset
+        # A dataset the caller may not use is a 404, exactly like one that does not exist.
         for path in ('/api/datasets/synthetic-approved/status', '/api/datasets/synthetic-credentialed/status',
                      '/api/datasets/mimic-iv-demo/status', '/api/datasets/mimic-iv-demo/catalogue',
-                     '/api/store/status', '/api/store/catalogue'):
-            status, body, headers = self.call(path)
-            self.assertEqual((status, body), (401, {'error': 'LOGIN_REQUIRED'}), path)
-            self.assertEqual(headers['WWW-Authenticate'], 'Bearer realm="ptm"')
-        for path in ('/api/datasets/synthetic-approved/match', '/api/datasets/synthetic-credentialed/match',
-                     '/api/datasets/mimic-iv-demo/match', '/api/store/match'):
-            self.assertEqual(self.call(path, body=mimic_query())[:2], (401, {'error': 'LOGIN_REQUIRED'}), path)
+                     '/api/datasets/synthetic-approved/match', '/api/datasets/mimic-iv-demo/match'):
+            body = mimic_query() if path.endswith('match') else None
+            self.assertEqual(self.call(path, body=body)[:2], (404, {'error': 'DATASET_NOT_FOUND'}), path)
+        # The old MIMIC routes answer as if no store were configured: they say nothing about a hidden dataset.
+        status, body, _ = self.call('/api/store/status')
+        self.assertEqual((status, body['configured'], body['error']), (200, False, 'STORE_NOT_CONFIGURED'))
+        self.assertEqual(self.call('/api/store/catalogue')[:2], (503, {'error': 'STORE_NOT_CONFIGURED'}))
+        self.assertEqual(self.call('/api/store/match', body=mimic_query())[:2], (503, {'error': 'STORE_NOT_CONFIGURED'}))
 
     def test_each_tier_by_token(self):
         expected = {  # (public, approved, role, mimic demo)
-            'signed_in': (200, 403, 403, 403),
-            'approved': (200, 200, 403, 200),
+            'signed_in': (200, 404, 404, 404),
+            'approved': (200, 200, 404, 200),
             'credentialed': (200, 200, 200, 200),
         }
         paths = ('/api/datasets/synthetic-paediatric-rare/status', '/api/datasets/synthetic-approved/status',
@@ -180,8 +182,8 @@ class RealmTests(unittest.TestCase):
         for who, statuses in expected.items():
             got = tuple(self.call(p, self.tokens[who])[0] for p in paths)
             self.assertEqual(got, statuses, who)
-        self.assertEqual(self.call(paths[1], self.tokens['signed_in'])[1], {'error': 'NOT_APPROVED'})
-        self.assertEqual(self.call(paths[2], self.tokens['approved'])[1], {'error': 'ROLE_REQUIRED'})
+        self.assertEqual(self.call(paths[1], self.tokens['signed_in'])[1], {'error': 'DATASET_NOT_FOUND'})
+        self.assertEqual(self.call(paths[2], self.tokens['approved'])[1], {'error': 'DATASET_NOT_FOUND'})
         listed = {who: [d['id'] for d in self.call('/api/datasets', token)[1]['datasets']]
                   for who, token in self.tokens.items()}
         self.assertEqual(listed, {
@@ -195,7 +197,7 @@ class RealmTests(unittest.TestCase):
     def test_a_match_reaches_the_store_only_for_a_permitted_caller(self):
         # The role dataset's store sees the request only with the role: an empty body is its own named 400.
         path = '/api/datasets/synthetic-credentialed/match'
-        self.assertEqual(self.call(path, self.tokens['approved'], body={})[:2], (403, {'error': 'ROLE_REQUIRED'}))
+        self.assertEqual(self.call(path, self.tokens['approved'], body={})[:2], (404, {'error': 'DATASET_NOT_FOUND'}))
         status, body, _ = self.call(path, self.tokens['credentialed'], body={})
         self.assertEqual((status, body['by']), (400, 'server'))
         # The MIMIC demo kind answers an approved caller with aggregate counts, through both routes.
@@ -231,8 +233,7 @@ class RealmTests(unittest.TestCase):
         self.assertEqual(self.call('/api/datasets/synthetic-paediatric-rare/catalogue')[0], 404)
         self.assertEqual(self.call('/api/auth-config')[1],
                          {'enabled': True, 'issuer': ISSUER, 'client_id': 'ptm-mockups', 'audience': AUDIENCE})
-        status, body, _ = self.call('/api/ready')
-        self.assertEqual((status, body), (200, {'ready': True, 'datasets': {'ready': 4, 'pending': 0, 'failed': 0}}))
+        self.assertEqual(self.call('/api/ready')[:2], (200, {'ready': True}))  # no detail for anyone but the owner
 
     def test_security_headers(self):
         for path in ('/api/health', '/index.html'):
@@ -255,10 +256,9 @@ class RealmTests(unittest.TestCase):
         text = out.getvalue()
         lines = [json.loads(line) for line in text.splitlines()]
         self.assertEqual([(l['route'], l['status'], l['auth']) for l in lines], [
-            ('/api/datasets/{id}/status', 200, 'bearer'), ('/api/datasets/{id}/status', 403, 'bearer'),
+            ('/api/datasets/{id}/status', 200, 'bearer'), ('/api/datasets/{id}/status', 404, 'bearer'),
             ('/api/datasets/{id}/match', 200, 'bearer'), ('/api/datasets', 401, 'refused')])
         self.assertEqual(lines[0]['user'], 'f3c1e8a0-user')
-        self.assertEqual(lines[1]['dataset'], 'synthetic-credentialed')
         for secret in (token, token.split('.')[2], 'Bearer', 'Authorization', '127.0.0.1', '910001', 'x.y.z'):
             self.assertNotIn(secret, text)
 
@@ -310,8 +310,8 @@ class WithoutRealmTests(unittest.TestCase):
                 started = time.time()
                 self.assertEqual(client.call('/api/health')[:2], (200, {'profile': 'trajectory-graph-1.0'}))
                 self.assertLess(time.time() - started, 5)
-                self.assertEqual(client.call('/api/ready')[:2],
-                                 (503, {'ready': False, 'datasets': {'ready': 0, 'pending': 1, 'failed': 0}}))
+                self.assertEqual(client.call('/api/ready')[:2],  # the owner (loopback) also gets the counts
+                                 (503, {'ready': False, 'datasets': {'ready': 0, 'pending': 1, 'failed': 0, 'idle': 0}}))
                 release.set()
                 wait_ready(client)
             finally:
@@ -341,6 +341,201 @@ class WithoutRealmTests(unittest.TestCase):
         finally:
             release.set()
             client.close()
+
+
+class HardeningTests(unittest.TestCase):
+    """The security review's findings (D50): bounded work per request, the hosted surface, malformed requests, the
+    owner's Host check, readiness that opens nothing, and the Content-Security-Policy."""
+
+    def engine_body(self, copies):
+        query = json.loads((ROOT / 'examples/trajectory-graph/query.json').read_text())
+        patients = json.loads((ROOT / 'examples/trajectory-graph/patients.json').read_text())
+        many = []
+        for i in range(copies):
+            for p in patients:
+                q = json.loads(json.dumps(p))
+                q['patient_id'] = f"{p['patient_id']}x{i}"
+                many.append(q)
+        return {'query': query, 'patients': many}
+
+    def test_the_reviewers_flood_scaled_down_is_bounded(self):
+        # The review: valid engine requests near the body cap, many at once, each read and parsed before any gate,
+        # on unbounded threads. Scaled down: 14 at once against 2 match slots and 6 request threads.
+        client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, match_concurrency=2, max_threads=6))
+        body = json.dumps(self.engine_body(60)).encode()   # 300 patients: valid, under MAX_PATIENTS
+        lock, release = threading.Lock(), threading.Event()
+        parsed, peak, codes = [0], [0], []
+        real_read = server.Handler.read_json
+
+        def counting_read(handler):
+            result = real_read(handler)
+            with lock:
+                parsed[0] += 1
+                peak[0] = max(peak[0], parsed[0])
+            return result
+
+        def blocked(query, patients):
+            release.wait(20)
+            with lock:
+                parsed[0] -= 1
+            return {'profile': 'trajectory-graph-1.0', 'results': []}
+
+        def post():
+            try:
+                with urlopen(Request(client.url + '/api/trajectory-graph/match', data=body,
+                                     headers={'Content-Type': 'application/json'}), timeout=30) as response:
+                    codes.append(response.status)
+            except HTTPError as error:
+                codes.append(error.code)
+            except OSError:
+                codes.append('dropped')
+        try:
+            with mock.patch.object(server.Handler, 'read_json', counting_read), \
+                    mock.patch.object(server.engine, 'run', blocked), mock.patch.object(server, 'GATE_WAIT', 0.5):
+                threads = [threading.Thread(target=post) for _ in range(14)]
+                for t in threads:
+                    t.start()
+                time.sleep(1.5)  # the gate's waiters have given up; two matches still hold their slots
+                self.assertEqual(client.call('/api/health')[0], 200, 'the server answers during the flood')
+                self.assertEqual(peak[0], 2, 'bodies are read only inside a match slot')
+                release.set()
+                for t in threads:
+                    t.join(30)
+            self.assertEqual(sorted(codes, key=str), [200, 200] + [503] * 12)
+            self.assertEqual(peak[0], 2)
+        finally:
+            release.set()
+            client.close()
+
+    def test_requests_above_the_caps_are_refused_before_any_work(self):
+        client = Client(server.serve('127.0.0.1', 0))
+        try:
+            too_many = self.engine_body(server.MAX_PATIENTS // 5 + 1)
+            self.assertEqual(client.call('/api/trajectory-graph/match', body=too_many)[:2],
+                             (400, {'error': 'TOO_MANY_PATIENTS'}))
+            body = self.engine_body(1)
+            body['patients'] = body['patients'][:1]
+            body['patients'][0]['events'] = [{'id': f'e{i}'} for i in range(server.MAX_EVENTS + 1)]
+            self.assertEqual(client.call('/api/trajectory-graph/match', body=body)[:2],
+                             (400, {'error': 'TOO_MANY_EVENTS'}))
+            wide = {'query': {'steps': [{}] * (server.MAX_STEPS + 1)}, 'windows': {}}
+            self.assertEqual(client.call('/api/trajectory-store/match', body=wide)[:2],
+                             (400, {'error': 'TOO_MANY_STEPS', 'by': 'server'}))
+            many = {'query': {'steps': [], 'relations': [{}] * (server.MAX_RELATIONS + 1)}, 'windows': {}}
+            self.assertEqual(client.call('/api/trajectory-store/match', body=many)[:2],
+                             (400, {'error': 'TOO_MANY_RELATIONS', 'by': 'server'}))
+        finally:
+            client.close()
+
+    def test_the_request_thread_cap_answers_busy_without_a_thread(self):
+        client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, max_threads=1))
+        import socket
+        idle = socket.create_connection(('127.0.0.1', client.httpd.server_port))  # holds the only slot
+        try:
+            time.sleep(0.2)
+            status, body, headers = client.call('/api/health')
+            self.assertEqual((status, body, headers['Retry-After']), (503, {'error': 'BUSY'}, '2'))
+        finally:
+            idle.close()
+        deadline = time.time() + 5
+        while client.call('/api/health')[0] != 200 and time.time() < deadline:
+            time.sleep(0.1)
+        self.assertEqual(client.call('/api/health')[0], 200)
+        self.assertEqual(server.Handler.timeout, 30)  # an idle connection holds its slot for 30 s at most
+        client.close()
+
+    def test_the_hosted_surface(self):
+        client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True))
+        try:
+            for path in ('/server.py', '/access.py', '/README.md', '/shared/', '/test_access.py', '/results/build.py'):
+                with self.assertRaises(HTTPError, msg=path) as caught:
+                    urlopen(client.url + path, timeout=10)
+                self.assertEqual(caught.exception.code, 404, path)
+            for path in ('/', '/index.html', '/trajectory/', '/shared/core.js', '/shared/auth.js'):
+                with urlopen(client.url + path, timeout=10) as response:
+                    self.assertEqual(response.status, 200, path)
+                    self.assertEqual(response.headers['Server'], 'ptm')
+            self.assertEqual(client.call('/api/trajectory-graph/match', body=self.engine_body(1))[:2],
+                             (404, {'error': 'NOT_FOUND'}))  # the anonymous engine route is off when hosted
+            self.assertFalse(client.call('/api/datasets')[1]['caller']['owner'])  # no loopback owner when hosted
+        finally:
+            client.close()
+
+    def test_a_malformed_request_line_logs_no_address_or_traceback(self):
+        import socket
+        for log_format in ('text', 'json'):
+            client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, log_format=log_format))
+            err, out = io.StringIO(), io.StringIO()
+            try:
+                with mock.patch.object(sys, 'stderr', err), mock.patch.object(sys, 'stdout', out):
+                    for raw in (b'GET / HTTP/9.9.9\r\n\r\n', b'GET /api/health HTTP/1.1 extra\r\n\r\n'):
+                        with socket.create_connection(('127.0.0.1', client.httpd.server_port), timeout=5) as sock:
+                            sock.sendall(raw)
+                            reply = sock.recv(1024)
+                        self.assertTrue(reply, raw)  # an error page (HTTP/0.9 style for a bad version), not a hang
+                    time.sleep(0.2)
+                logged = err.getvalue() + out.getvalue()
+                self.assertNotIn('Traceback', logged)
+                self.assertNotIn('127.0.0.1', logged) if log_format == 'json' else None
+                self.assertEqual(client.call('/api/health')[0], 200)
+            finally:
+                client.close()
+
+    def test_the_owner_is_only_a_request_addressed_to_localhost(self):
+        client = Client(server.serve('127.0.0.1', 0, trajectory_store=False))
+        try:
+            self.assertTrue(client.call('/api/datasets')[1]['caller']['owner'])  # Host: 127.0.0.1:<port>
+            for host in ('rebind.attacker.example', f'rebind.attacker.example:{client.httpd.server_port}',
+                         'tunnel.example.org'):
+                caller = client.call('/api/datasets', headers={'Host': host})[1]['caller']
+                self.assertFalse(caller['owner'], host)
+        finally:
+            client.close()
+
+    def test_readiness_opens_nothing_and_details_only_for_the_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, mimic_store=tmp))
+            try:
+                anonymous = {'Host': 'elsewhere.example'}
+                self.assertEqual(client.call('/api/ready', headers=anonymous)[:2], (200, {'ready': True}))
+                self.assertEqual(client.call('/api/ready')[1],
+                                 {'ready': True, 'datasets': {'ready': 0, 'pending': 0, 'failed': 0, 'idle': 1}})
+                self.assertFalse(client.httpd.store.opened, 'a readiness probe never opens a store')
+            finally:
+                client.close()
+
+    def test_the_content_security_policy_covers_every_page(self):
+        realm = access.OidcVerifier(ISSUER, 'http://127.0.0.1:9/certs', AUDIENCE)
+        client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, verifier=realm))
+        try:
+            with urlopen(client.url + '/index.html', timeout=10) as response:
+                csp = response.headers['Content-Security-Policy']
+        finally:
+            client.close()
+        directives = dict(d.strip().split(' ', 1) for d in csp.split(';'))
+        self.assertEqual(directives['default-src'], "'self'")
+        self.assertEqual(directives['frame-ancestors'], "'none'")
+        self.assertEqual(directives['connect-src'], "'self' https://keycloak.example.test")
+        self.assertNotIn('unsafe-inline', directives['script-src'])
+        self.assertNotIn('unsafe-eval', directives['script-src'])
+        import base64
+        import hashlib
+        import re
+        pages = sorted(HERE.glob('**/*.html'))
+        self.assertGreaterEqual(len(pages), 6)
+        for page in pages:
+            text = page.read_text(encoding='utf-8')
+            for script in re.findall(r'<script>(.*?)</script>', text, re.S):
+                digest = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+                self.assertIn(f"'sha256-{digest}'", directives['script-src'], page)
+            self.assertIsNone(re.search(r'<[^>]+\son[a-z]+\s*=', text), f'inline event handler in {page}')
+            self.assertNotIn('javascript:', text, page)
+            self.assertIsNone(re.search(r'<(script|link|img)[^>]+(src|href)="(https?:)?//', text), f'external resource in {page}')
+        for script in sorted(HERE.glob('**/*.js')):
+            text = script.read_text(encoding='utf-8')
+            self.assertIsNone(re.search(r'\son[a-z]+=\\?["\']', text), f'inline handler in markup built by {script}')
+            self.assertNotIn('eval(', text, script)
+            self.assertNotIn('new Function', text, script)
 
 
 if __name__ == '__main__':

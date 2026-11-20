@@ -27,9 +27,9 @@ PR #153: the target is now ids3 (owner decisions of 2026-11-17 to 2026-11-20, re
 
 ```
 browser ──TLS──> Traefik (front door, cert-manager letsencrypt)
-                   │  Middlewares: per-client rate limit, 2 MiB body limit
+                   │  Middlewares: HSTS, per-client rate limits (match routes: ~1/s), 256 KiB body limit
                    v
-            Service ptm-mockups:8080 ──> Pod ptm-mockups (namespace ptm-dev, egress-locked)
+            Service ptm-mockups:8080 ──> Pod ptm-mockups (namespace ptm-dev; egress-locked; ingress: Traefik only)
                                           server.py: static pages, engine, dataset registry,
                                           bearer-token check, per-dataset policy
                                           synthetic store built at start into an emptyDir
@@ -112,7 +112,19 @@ so that no provider secret is ever in a file). Realm **`ids-apps`**. In short:
 - **JWKS from `PTM_OIDC_JWKS_URI`**, the in-cluster Keycloak Service, configured separately from the issuer (the
   browser-facing URL); deriving one from the other is the failure sulo-schema-builder documents. Fetched without following redirects, with a
   5 s timeout and a 64 KiB cap, cached 10 minutes, re-fetched at most once every 30 s when a token names an unknown
-  `kid` (key rotation). `allow-keycloak-egress.yaml` opens exactly that destination.
+  `kid` (key rotation); one fetch at a time, outside the lock. Keys not refreshed for an hour are no longer trusted
+  (503 `AUTH_UNAVAILABLE`). `allow-keycloak-egress.yaml` opens exactly that destination.
+- **The in-cluster key fetch is plain HTTP.** The platform Keycloak's Service offers only HTTP on :8080 in-cluster
+  (`KC_HTTP_ENABLED`, TLS ends at the front door; `ids3/platform/keycloak/keycloak.yaml`), as sulo-schema-builder
+  also uses. Risk: whoever can rewrite pod-to-pod traffic could substitute keys and forge tokens. Mitigations: the
+  egress policy admits only Keycloak's pod on :8080; the cluster is a single node, so the traffic does not leave
+  it; redirects are refused; only RSA signing keys are taken; held keys expire after an hour. **Stronger option, one
+  configmap line:** set `PTM_OIDC_JWKS_URI` to the public `https://keycloak.k8s.semanticscience.org/realms/ids-apps/
+  protocol/openid-connect/certs`. Python's `urllib` honours `HTTPS_PROXY`, so the fetch goes through the egress-proxy
+  with TLS checked end to end, and `allow-keycloak-egress.yaml` becomes unnecessary (unlike sulo-schema-builder,
+  whose `jose` ignores the proxy). The cost is a dependency on the front door and squid for key refreshes.
+- `azp` must equal `PTM_OIDC_CLIENT_ID` when configured (a token issued to another client of the shared realm is
+  refused), and `sub` is required.
 - A present but invalid token gets `401 TOKEN_INVALID` (with `WWW-Authenticate: Bearer error="invalid_token"`), never a
   silent downgrade to anonymous. Keys unreachable: `503 AUTH_UNAVAILABLE` for that request; public datasets keep
   working for anonymous callers.
@@ -138,14 +150,16 @@ A dataset has an **id**, a **kind** (which backend serves it), an **access** pol
 - **The content gates stay** and are independent of the policy: the MIMIC demo service serves only a snapshot whose
   patients hash to the open demo's 100 subjects, and the trajectory store only the generator's cohort, checked
   against the file served.
-- **Per request:** the caller (anonymous, a verified token, or the local owner) against the dataset's policy.
-  Anonymous on a non-public dataset: `401 LOGIN_REQUIRED`; signed in without `approved`: `403 NOT_APPROVED`; approved
-  without the role: `403 ROLE_REQUIRED`. Unknown id: `404 DATASET_NOT_FOUND`.
+- **Per request:** the caller (anonymous, a verified token, or the local owner) against the dataset's policy. A
+  dataset the caller may not use is `404 DATASET_NOT_FOUND`, exactly like one that does not exist, and the old routes
+  answer as if no store of that kind were configured, so no response reveals a hidden dataset. The page learns why
+  (sign in, awaiting approval) from the caller summary in `/api/datasets`. An invalid token is still
+  `401 TOKEN_INVALID`.
 - **Endpoints.** `GET /api/datasets` lists only the datasets the caller may use (id, title, kind, results, its
   endpoints, availability) and whether the caller is signed in and approved, so the page can say "awaiting
   approval". `GET /api/auth-config` gives the page the issuer and client id. Each dataset is reachable at
   `/api/datasets/<id>/status`, `.../catalogue` (aggregate kinds) and `.../match`. The existing routes stay as aliases
-  of the first dataset of each kind: `/api/trajectory-store/*` (synthetic) and `/api/store/*` (MIMIC demo), so the
+  of the first dataset of each kind the caller may use: `/api/trajectory-store/*` (synthetic) and `/api/store/*` (MIMIC demo), so the
   pages and tests keep working.
 - **Configuration:** a JSON file named by `PTM_DATASETS` (on ids3, a ConfigMap mounted at `/etc/ptm/datasets.json`).
   Without one, the registry is built from the existing flags, as today: the synthetic cohort unless
@@ -192,8 +206,10 @@ examples:
 | `configmap.yaml` | `ptm-mockups-config`: the OIDC issuer, JWKS URI, audience, client id and approved role; limits; log format; proxy variables; tracing variables commented out. `ptm-mockups-datasets`: the registry file, synthetic only. |
 | `app.yaml` | Deployment and Service `ptm-mockups`: pinned image, non-root, read-only root, all capabilities dropped, no service-account token, an `emptyDir` for the store, probes and resources (section 6). |
 | `ingress.yaml` | Traefik Ingress for `ptm.k8s.semanticscience.org`, `cert-manager.io/cluster-issuer: letsencrypt` with a `tls:` section, and the two Middlewares. No `router.entrypoints` annotation. |
-| `middleware.yaml` | Traefik `rateLimit` (20 requests/s per client address, burst 60) and `buffering` (`maxRequestBodyBytes` 2 MiB). |
+| `middleware.yaml` | Traefik `rateLimit` (20 requests/s per client address, burst 60), a match `rateLimit` (1/s, burst 5), `buffering` (`maxRequestBodyBytes` 256 KiB) and HSTS (one year, no subdomains). |
+| `ingress-match.yaml` | A second Ingress with Exact paths for the match routes (the two aliases and one per dataset), adding the match rate limit; it reuses the main Ingress's certificate. |
 | `allow-keycloak-egress.yaml` | Egress to `platform/keycloak:8080` for the JWKS fetch only. |
+| `allow-traefik-ingress.yaml` | Ingress to the pod from Traefik only (the front-door node addresses `minio-data/netpol.yaml` uses, and `kube-system`). |
 | `vault.yaml` | VaultAuth and VaultStaticSecret for `secret/ptm/dev`, **ready but not listed**: ptm-dev has no secret today. |
 | `README.md` | The owner and admin checklists, including the Vault policy, role and kv steps for the first secret. |
 | `KEYCLOAK-REALM.md` | The realm checklist (section 3). It belongs beside `ids3/platform/keycloak/` once the realm is shared. |
@@ -204,12 +220,66 @@ examples:
   skill's Vault and VSO wiring is ready for the first secret (README, "Vault").
 - **Rate limiting and body limits** (follow-ups 2 and 3 of the Cloud Run plan). At the front door: Traefik's
   per-client rate limit and body limit, so abuse is refused before the pod. Behind it, in the server: `PTM_MAX_BODY`
-  (2 MiB on ids3; the local default stays 20 MiB) and `PTM_MATCH_CONCURRENCY` (4 matches at once per pod; one more
+  (256 KiB on ids3; the local default stays 20 MiB) and `PTM_MATCH_CONCURRENCY` (4 matches at once per pod; one more
   waits briefly, then gets `503 BUSY`), which bounds CPU whatever the client address. The admin confirms Traefik's
   `kubernetescrd` provider is on (first Middleware in the services repo) and that Traefik sees client addresses
   directly.
-- **Security headers** added by the server on every response: `X-Content-Type-Options: nosniff`,
-  `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`; `Cache-Control: no-store` on API answers as today.
+- **Security headers** added by the server on every response: a Content-Security-Policy (below),
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, a `Server` header
+  without versions; `Cache-Control: no-store` on API answers as today. HSTS comes from Traefik (`ptm-hsts`).
+
+### The security review (2026-11-20) and what changed
+
+An independent security review of the first implementation (`1af36d7`) found no critical or high issue: the token
+check, routing and authorization held under every probe, and the loopback owner could not be reached remotely. It
+found one medium and nine low issues, all fixed:
+
+- **M1, anonymous CPU and memory exhaustion.** The anonymous engine route and the public store match read and
+  parsed the body before the concurrency gate, on unbounded threads with no socket timeout: a valid 2 MiB engine
+  request cost 0.44 s of CPU, so a few requests a second within the Traefik limit would saturate a CPU, and queued
+  parsed bodies could exhaust the pod's memory. Now:
+  - the match slot is taken **before** the body is read;
+  - hosted, the anonymous engine route is off (404), since the page matches in the store and falls back to the
+    browser;
+  - every match route caps steps (12), relations and relaxations (40 each), and the engine route patients (500)
+    and events (50,000);
+  - requests in flight are capped at 64 (`PTM_MAX_THREADS`, 503 `BUSY` at once beyond, without a thread);
+  - sockets time out after 30 s;
+  - hosted, the gate defaults to 4 and the body cap is 256 KiB;
+  - a second Ingress puts the match routes under a 1/s, burst-5 rate limit.
+  A test reproduces the flood, scaled down: 14 concurrent valid requests against 2 match slots and 6 threads read
+  at most 2 bodies at once and leave the server answering.
+- **L1:** `azp` must match the client id. **L9:** `sub` is required.
+- **L2:** held keys expire after an hour without a successful refresh; one fetch at a time, outside the lock; the
+  plain-HTTP in-cluster fetch is documented with its mitigations and the https alternative (above).
+- **L3:** the logging paths tolerate a request with no parsed path (for example `GET / HTTP/9.9.9`), and the server
+  logs an unexpected failure as its exception class only, never with the client's address or a traceback.
+- **L4:** an ingress NetworkPolicy admits only Traefik.
+- **L5:** a Content-Security-Policy on every response:
+  - `default-src 'self'`;
+  - scripts from this origin plus the hashes of the pages' inline scripts, computed at startup;
+  - styles may be inline (the pages use `<style>` blocks and style attributes);
+  - `connect-src` limited to self and the realm's origin;
+  - `frame-ancestors 'none'`, `base-uri 'none'`, `object-src 'none'`.
+  A test checks every page against it: each inline script's hash is present, and no inline event handler,
+  `javascript:` URL, `eval` or external resource appears. No browser was available here to load the pages under
+  it. Refresh-token rotation is required in the realm checklist, with DPoP noted as an option. Sign-out revokes the
+  refresh token and passes `id_token_hint` (or the client id) to the logout endpoint.
+- **L6:** exact redirect and post-logout URIs instead of `/*`. The page sends its canonical address, so
+  `/index.html` signs in as `/`.
+- **L7:** the image workflow takes the tag only through `env:` and checks it against `^[0-9]+\.[0-9]+\.[0-9]+$`. Its
+  actions are pinned by commit SHA, and `packages: write` is held only by the publish job, which pushes the very
+  image the check job tested.
+- **L8:** `/api/ready` returns `{"ready": ...}` only, with counts for the owner. It never opens a store: hosted,
+  MIMIC stores open at startup; locally, an unused one is "idle" and does not hold readiness back. A dataset the
+  caller may not use is a 404.
+- **Owner mode:** only a request whose `Host` is `localhost`, `127.0.0.1` or `[::1]` (with any port) is the owner,
+  so DNS rebinding and same-host tunnels get anonymous access.
+- **Also fixed:**
+  - hosted, no directory listings, and only page asset types are served (no `.py` sources or READMEs);
+  - the `Server` header carries no version;
+  - HSTS is sent through a Traefik headers middleware.
+- **Queued:** `--require-hashes` for the lock files.
 
 ## 5. Logs, and tracing later
 
@@ -243,8 +313,9 @@ examples:
   the build starts and the build runs on its own thread, but `main()` used to wait for the build's status line
   before entering `serve_forever`, so requests queued until the build ended (about a second). The status lines now
   come from a background thread, and `/api/health` answers during the build; a test holds the build open and checks
-  it. `/api/ready` answers 200
-  only once every configured dataset is ready, else 503 with the dataset's state. Probes: startup and liveness on
+  it. `/api/ready` answers `{"ready": true}` (200)
+  only once every started dataset is ready, else 503; only the owner also gets the counts, and the probe never
+  opens a store. Probes: startup and liveness on
   `/api/health`, readiness on `/api/ready`. A pod whose store fails its content check never takes traffic, and with
   `maxUnavailable: 0` the old pod keeps serving. Found while measuring: on a machine whose reverse DNS is slow, the
   standard library's `server_bind` spent 35 s in `getfqdn()` before the socket answered; the server now skips it.
@@ -296,5 +367,7 @@ examples:
 6. A Content-Security-Policy header: the pages use inline styles and one inline script, so a policy needs hashes
    or a move to files first.
 7. The first real image build and its checks (the image workflow), since none could run here.
-8. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
+8. `--require-hashes` for the lock files (hosting lock, store lock, base lock), from the security review.
+9. Load every page in a browser under the Content-Security-Policy once hosted (checked statically here).
+10. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
    fallback the static image and an unreachable server still need.

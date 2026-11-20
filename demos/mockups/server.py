@@ -29,20 +29,28 @@ page then matches as before.
 **Datasets and access (D50, docs/hosting-plan.md).** Those stores are datasets in a registry (`datasets.py`), each
 with an access policy (public; approved; or a role) and what it may return. The registry comes from `--datasets`
 or `PTM_DATASETS`, else from the flags above (the synthetic cohort public, the MIMIC demo `approved`). Each dataset
-answers at `/api/datasets/<id>/status`, `.../catalogue` (aggregate kinds) and `.../match`; the routes above are
-aliases of the first dataset of each kind. `GET /api/datasets` lists the datasets the caller may use, and
-`GET /api/auth-config` tells the page how to sign in. The caller (`access.py`) is a verified realm bearer token
-when PTM_OIDC_ISSUER, PTM_OIDC_JWKS_URI and PTM_OIDC_AUDIENCE are set; otherwise, on a loopback bind, the person
-at the machine, who is the owner and is served every configured dataset as before; otherwise anonymous, served
-public datasets only. On a non-loopback bind the server refuses to start with a non-public dataset and no realm.
+answers at `/api/datasets/<id>/status`, `.../catalogue` (aggregate kinds) and `.../match`, and is a 404 to a caller
+who may not use it; the routes above are aliases of the first dataset of each kind the caller may use.
+`GET /api/datasets` lists the datasets the caller may use, and `GET /api/auth-config` tells the page how to sign
+in. The caller (`access.py`) is a verified realm bearer token when PTM_OIDC_ISSUER, PTM_OIDC_JWKS_URI and
+PTM_OIDC_AUDIENCE are set; otherwise, on a loopback bind and for a request addressed to localhost, the person at
+the machine, who is the owner and is served every configured dataset as before; otherwise anonymous, served public
+datasets only. On a non-loopback bind the server refuses to start with a non-public dataset and no realm.
 
-`GET /api/ready` answers 200 once every dataset is ready (503 before), while `/api/health` answers from the moment
-the socket is bound. PTM_MAX_BODY caps request bodies (default 20 MiB) and PTM_MATCH_CONCURRENCY the matches run at
-once (default unlimited). PTM_LOG_FORMAT=json writes one JSON line per API request to stdout: never a body, a token,
-a header or an address.
+**Hosted** (any non-loopback bind): the anonymous engine route is off (the page uses the store), static files are
+limited to page asset types with no directory listings, and MIMIC stores open at startup rather than at first use.
+Everywhere: `GET /api/ready` answers `{"ready": ...}` (200 once every started dataset is ready, else 503; the owner
+also gets the counts), while `/api/health` answers from the moment the socket is bound. Requests are bounded:
+PTM_MAX_BODY (default 20 MiB), PTM_MATCH_CONCURRENCY (matches at once, taken before a body is read; default
+unlimited locally, 4 hosted), PTM_MAX_THREADS (requests in flight, default 64; beyond it, 503 BUSY at once), a
+30 s socket timeout, and caps on patients, events, steps and relations in a match. PTM_LOG_FORMAT=json writes one
+JSON line per API request to stdout: never a body, a token, a header or an address. Every response carries a
+Content-Security-Policy (with the hashes of the pages' inline scripts) and the usual hardening headers.
 """
 import argparse
+import base64
 from functools import partial
+import hashlib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -53,6 +61,7 @@ import socketserver
 import sys
 import threading
 import time
+from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
@@ -64,11 +73,42 @@ import store_query  # noqa: E402
 import store_trajectory  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024
-GATE_WAIT = 5  # seconds a match waits for a free slot under PTM_MATCH_CONCURRENCY before 503 BUSY
+GATE_WAIT = 5            # seconds a match waits for a free slot under PTM_MATCH_CONCURRENCY before 503 BUSY
+HOSTED_MATCH_CONCURRENCY = 4
+MAX_THREADS = 64         # requests in flight; one more gets 503 BUSY without a thread
+REQUEST_TIMEOUT = 30     # seconds a connection may sit idle mid-request
+MAX_PATIENTS = 500       # in an engine request (the page sends the 48-patient cohort's candidates)
+MAX_EVENTS = 50_000      # in an engine request, summed over its patients
+MAX_STEPS = 12           # in any match request's query
+MAX_RELATIONS = 40       # relations, and separately relaxations, in any match request's query
 SECURITY_HEADERS = (('X-Content-Type-Options', 'nosniff'), ('Referrer-Policy', 'no-referrer'),
                     ('X-Frame-Options', 'DENY'))
+STATIC_TYPES = frozenset({'.html', '.js', '.css', '.json', '.svg', '.png', '.ico', '.txt', '.woff2'})
 DATASET_ROUTE = re.compile(r'/api/datasets/([^/]+)/(status|catalogue|match)')
+INLINE_SCRIPT = re.compile(r'<script>(.*?)</script>', re.S)
 LOG_LOCK = threading.Lock()
+
+
+def inline_script_hashes(root=HERE):
+    """CSP hashes of every inline <script> in the pages served from `root` (computed at startup, so a page edit
+    needs no second list to keep in step)."""
+    hashes = set()
+    for page in root.glob('**/*.html'):
+        for script in INLINE_SCRIPT.findall(page.read_text(encoding='utf-8')):
+            hashes.add("'sha256-" + base64.b64encode(hashlib.sha256(script.encode('utf-8')).digest()).decode() + "'")
+    return sorted(hashes)
+
+
+def content_security_policy(issuer=None, root=HERE):
+    connect = "'self'"
+    if issuer:
+        parts = urlsplit(issuer)
+        connect += f' {parts.scheme}://{parts.netloc}'  # the realm's token, refresh and revocation endpoints
+    scripts = ' '.join(["'self'"] + inline_script_hashes(root))
+    # Styles stay 'unsafe-inline': the pages use <style> blocks and style attributes in rendered markup; scripts,
+    # the dangerous half, are limited to files from this origin and the hashed inline scripts.
+    return (f"default-src 'self'; script-src {scripts}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+            f"connect-src {connect}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'")
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -78,12 +118,20 @@ class Handler(SimpleHTTPRequestHandler):
     max_body = MAX_BODY
     match_gate = None
     log_json = False
+    hosted = False
+    csp = content_security_policy()
+    timeout = REQUEST_TIMEOUT
+    server_version = 'ptm'
+
+    def version_string(self):
+        return self.server_version  # no Python or library version in the Server header
 
     # ------------------------------------------------------------ responses and logs
 
     def end_headers(self):
         for name, value in SECURITY_HEADERS:
             self.send_header(name, value)
+        self.send_header('Content-Security-Policy', self.csp)
         super().end_headers()
 
     def send_json(self, status, value, headers=()):
@@ -99,7 +147,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def refuse(self, error):
         """An AuthError as its status and code; a 401 says how to authenticate. The log keeps the caller's kind when it
-        is known (a policy refusal) and says `refused` when it is not (an invalid token)."""
+        is known and says `refused` when it is not (an invalid token)."""
         if getattr(self, 'log_caller', None) is None:
             self.log_caller = 'refused'
         headers = ()
@@ -108,12 +156,18 @@ class Handler(SimpleHTTPRequestHandler):
             headers = (('WWW-Authenticate', challenge),)
         return self.send_json(error.status, {'error': error.code}, headers)
 
+    def not_found(self, code='NOT_FOUND'):
+        return self.send_json(404, {'error': code})
+
     def begin(self, route):
         self.started = time.perf_counter()
         self.route, self.log_dataset, self.log_caller, self.log_subject = route, None, None, None
 
+    def is_api(self):
+        return getattr(self, 'path', '').startswith('/api/')
+
     def log_request(self, code='-', size='-'):
-        if not self.path.startswith('/api/'):
+        if not self.is_api():
             return
         if not self.log_json:
             return super().log_request(code, size)
@@ -142,7 +196,7 @@ class Handler(SimpleHTTPRequestHandler):
             sys.stdout.flush()
 
     def log_message(self, format, *args):
-        if self.path.startswith('/api/') and not self.log_json:
+        if self.is_api() and not self.log_json:
             super().log_message(format, *args)
 
     # ------------------------------------------------------------ who is calling
@@ -153,11 +207,36 @@ class Handler(SimpleHTTPRequestHandler):
         self.log_caller, self.log_subject = principal.kind, principal.subject
         return principal
 
+    # ------------------------------------------------------------ static files
+
+    def list_directory(self, path):
+        if self.hosted:  # no directory listings on hosting
+            self.send_error(404)
+            return None
+        return super().list_directory(path)
+
+    def static_allowed(self):
+        """Hosted: page asset types only (no .py sources, READMEs or anything else in the directory)."""
+        if not self.hosted:
+            return True
+        target = Path(self.translate_path(self.path))
+        if target.is_dir():
+            target = target / 'index.html'
+        return target.suffix.lower() in STATIC_TYPES
+
+    def do_HEAD(self):
+        if self.is_api() or not self.static_allowed():
+            self.send_error(404)
+            return
+        super().do_HEAD()
+
     # ------------------------------------------------------------ GET
 
     def do_GET(self):
         path = self.path
         if not path.startswith('/api/'):
+            if not self.static_allowed():
+                return self.send_error(404)
             return super().do_GET()
         found = DATASET_ROUTE.fullmatch(path)
         self.begin('/api/datasets/{id}/' + found.group(2) if found else path if path in GET_ROUTES else 'unknown')
@@ -170,26 +249,25 @@ class Handler(SimpleHTTPRequestHandler):
         if path == '/api/datasets':
             return self.dataset_list()
         if path in ('/api/store/status', '/api/store/catalogue'):
-            dataset = self.registry.first('mimic-demo-aggregate')
-            if dataset is None:
-                service = self.unconfigured_store
-                return self.store_answer(service.status if path.endswith('status') else service.catalogue)
-            return self.dataset_request(dataset, path.rsplit('/', 1)[1])
+            return self.alias('mimic-demo-aggregate', path.rsplit('/', 1)[1])
         if path == '/api/trajectory-store/status':
-            dataset = self.registry.first('synthetic-trajectory')
-            if dataset is None:
-                return self.send_json(200, {'profile': store_trajectory.PROFILE, 'available': False,
-                                            'error': 'STORE_NOT_CONFIGURED'})
-            return self.dataset_request(dataset, 'status')
+            return self.alias('synthetic-trajectory', 'status')
         if found and found.group(2) != 'match':
             return self.dataset_route(found)
-        return self.send_json(404, {'error': 'NOT_FOUND'})
+        return self.not_found()
 
     def ready(self):
-        states = [d.warm() for d in self.registry.datasets]
-        summary = {state: states.count(state) for state in ('ready', 'pending', 'failed')}
-        ready = summary['ready'] == len(states)
-        return self.send_json(200 if ready else 503, {'ready': ready, 'datasets': summary})
+        """{"ready": bool}: 200 once every started dataset is ready. Never opens a store (hosted, MIMIC stores open at
+        startup; locally one not yet used is idle and does not hold readiness back). The owner also gets the counts."""
+        states = [d.state() for d in self.registry.datasets]
+        ready = all(state in ('ready', 'idle') for state in states)
+        value = {'ready': ready}
+        try:
+            if self.caller().kind == 'owner':
+                value['datasets'] = {state: states.count(state) for state in ('ready', 'pending', 'failed', 'idle')}
+        except access.AuthError:
+            pass
+        return self.send_json(200 if ready else 503, value)
 
     def dataset_list(self):
         try:
@@ -202,28 +280,46 @@ class Handler(SimpleHTTPRequestHandler):
                        'owner': principal.kind == 'owner'},
             'datasets': [d.describe() for d in self.registry.visible(principal)]})
 
-    def dataset_route(self, found):
-        dataset = self.registry.get(found.group(1))
-        if dataset is None:
-            return self.send_json(404, {'error': 'DATASET_NOT_FOUND'})
-        if found.group(2) == 'catalogue' and dataset.kind != 'mimic-demo-aggregate':
-            return self.send_json(404, {'error': 'NOT_FOUND'})
-        return self.dataset_request(dataset, found.group(2))
-
-    def dataset_request(self, dataset, operation):
-        """A dataset's status, catalogue or match, after the caller is checked against its policy."""
-        self.log_dataset = dataset.id
+    def alias(self, kind, operation):
+        """An old route: the first dataset of `kind` the caller may use, else the answer of no such store, so the
+        route says nothing about datasets the caller cannot see."""
         try:
-            dataset.policy.check(self.caller())
+            principal = self.caller()
         except access.AuthError as error:
             return self.refuse(error)
+        dataset = next((d for d in self.registry.visible(principal) if d.kind == kind), None)
+        if dataset is not None:
+            return self.dataset_operation(dataset, operation)
+        if kind == 'synthetic-trajectory':
+            if operation == 'match':
+                return self.send_json(503, {'error': 'STORE_NOT_CONFIGURED'})
+            return self.send_json(200, {'profile': store_trajectory.PROFILE, 'available': False,
+                                        'error': 'STORE_NOT_CONFIGURED'})
+        service = self.unconfigured_store
+        if operation == 'match':
+            return self.store_answer(lambda: service.match({}))
+        return self.store_answer(service.status if operation == 'status' else service.catalogue)
+
+    def dataset_route(self, found):
+        """/api/datasets/<id>/<operation>: a 404 for an unknown dataset and for one the caller may not use alike."""
+        try:
+            principal = self.caller()
+        except access.AuthError as error:
+            return self.refuse(error)
+        dataset = self.registry.get(found.group(1))
+        if dataset is None or not dataset.policy.permits(principal):
+            return self.not_found('DATASET_NOT_FOUND')
+        if found.group(2) == 'catalogue' and dataset.kind != 'mimic-demo-aggregate':
+            return self.not_found()
+        return self.dataset_operation(dataset, found.group(2))
+
+    def dataset_operation(self, dataset, operation):
+        """A permitted dataset's status, catalogue or match."""
+        self.log_dataset = dataset.id
         service = dataset.service
         if operation == 'match':
-            data, refused = self.read_json()
-            if refused:
-                return self.send_json(refused[0], {'error': refused[1]})
             answer = self.trajectory_answer if dataset.kind == 'synthetic-trajectory' else self.store_answer
-            return self.gated(lambda: answer(lambda: service.match(data)))
+            return self.gated_body(lambda data: answer(lambda: service.match(check_size(data))))
         if dataset.kind == 'synthetic-trajectory':
             return self.trajectory_answer(service.status)
         return self.store_answer(service.status if operation == 'status' else service.catalogue)
@@ -245,44 +341,48 @@ class Handler(SimpleHTTPRequestHandler):
         except (ValueError, RecursionError):
             return None, (400, 'MALFORMED_REQUEST')
 
+    def gated_body(self, run):
+        """`run(body)` with a match slot held from before the body is read until the answer is sent, so at most
+        PTM_MATCH_CONCURRENCY bodies are read, parsed and matched at once."""
+        def read_then_run():
+            data, refused = self.read_json()
+            if refused:
+                return self.send_json(refused[0], {'error': refused[1]})
+            return run(data)
+        return self.gated(read_then_run)
+
     def do_POST(self):
         path = self.path
         found = DATASET_ROUTE.fullmatch(path)
         self.begin('/api/datasets/{id}/match' if found else path if path in POST_ROUTES else 'unknown')
         if path == '/api/store/match':
-            dataset = self.registry.first('mimic-demo-aggregate')
-            if dataset is None:
-                data, refused = self.read_json()
-                if refused:
-                    return self.send_json(refused[0], {'error': refused[1]})
-                return self.store_answer(lambda: self.unconfigured_store.match(data))
-            return self.dataset_request(dataset, 'match')
+            return self.alias('mimic-demo-aggregate', 'match')
         if path == '/api/trajectory-store/match':
-            dataset = self.registry.first('synthetic-trajectory')
-            if dataset is None:
-                data, refused = self.read_json()
-                if refused:
-                    return self.send_json(refused[0], {'error': refused[1]})
-                return self.send_json(503, {'error': 'STORE_NOT_CONFIGURED'})
-            return self.dataset_request(dataset, 'match')
+            return self.alias('synthetic-trajectory', 'match')
         if found and found.group(2) == 'match':
             return self.dataset_route(found)
-        if path != '/api/trajectory-graph/match':
-            return self.send_json(404, {'error': 'NOT_FOUND'})
-        data, refused = self.read_json()
-        if refused:
-            return self.send_json(refused[0], {'error': refused[1]})
-        return self.gated(lambda: self.engine_match(data))
+        if path != '/api/trajectory-graph/match' or self.hosted:
+            # Hosted, the engine on caller-sent patients is off: it costs CPU per byte for anyone, and the page
+            # matches in the store (it falls back to the browser if the engine is chosen).
+            return self.not_found()
+        return self.gated_body(self.engine_match)
 
     def engine_match(self, data):
         """The engine on the patients the page sent: no stored data, so no dataset and no policy."""
         try:
             if not isinstance(data, dict) or set(data) != {'query', 'patients'} or not isinstance(data['patients'], list):
                 raise engine.TrajectoryError('REQUEST_FIELDS_MUST_BE_QUERY_AND_PATIENTS')
-            return self.send_json(200, engine.run(data['query'], data['patients']))
+            check_size(data)
+            patients = data['patients']
+            if len(patients) > MAX_PATIENTS:
+                raise engine.TrajectoryError('TOO_MANY_PATIENTS')
+            events = sum(len(p['events']) for p in patients if isinstance(p, dict) and isinstance(p.get('events'), list))
+            if events > MAX_EVENTS:
+                raise engine.TrajectoryError('TOO_MANY_EVENTS')
+            return self.send_json(200, engine.run(data['query'], patients))
         except (ValueError, TypeError, KeyError) as error:
             # TrajectoryError is a ValueError.
-            code = str(error) if isinstance(error, engine.TrajectoryError) else 'MALFORMED_REQUEST'
+            code = str(error) if isinstance(error, (engine.TrajectoryError, SizeError)) else 'MALFORMED_REQUEST'
             return self.send_json(400, {'error': code})
 
     def gated(self, run):
@@ -301,6 +401,8 @@ class Handler(SimpleHTTPRequestHandler):
         """A store endpoint's answer, or a named error; never a traceback or a dropped connection."""
         try:
             return self.send_json(200, answer())
+        except SizeError as error:
+            return self.send_json(400, {'error': str(error)})
         except store_query.QueryError as error:
             return self.send_json(400, {'error': str(error)})
         except store_query.Unavailable as error:
@@ -315,6 +417,8 @@ class Handler(SimpleHTTPRequestHandler):
         """The trajectory store's answer (D37), or a named error; never a traceback."""
         try:
             return self.send_json(200, answer())
+        except SizeError as error:
+            return self.send_json(400, {'error': str(error), 'by': 'server'})
         except store_trajectory.RequestError as error:  # `by`: the server's own check, or the store's refusal
             return self.send_json(400, {'error': str(error), 'by': error.by})
         except store_trajectory.Unavailable as error:
@@ -323,15 +427,34 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(500, {'error': 'INTERNAL_ERROR'})
 
 
+class SizeError(ValueError):
+    """A match request above the server's caps on steps, relations or relaxations (400, before any work)."""
+
+
+def check_size(data):
+    """`data`, after checking that a match request's query is within MAX_STEPS and MAX_RELATIONS. The stores and the
+    engine check shape; this bounds the work any one request can ask for."""
+    query = data.get('query') if isinstance(data, dict) else None
+    if isinstance(query, dict):
+        if isinstance(query.get('steps'), list) and len(query['steps']) > MAX_STEPS:
+            raise SizeError('TOO_MANY_STEPS')
+        for key in ('relations', 'relaxations'):
+            if isinstance(query.get(key), list) and len(query[key]) > MAX_RELATIONS:
+                raise SizeError('TOO_MANY_' + key.upper())
+    return data
+
+
 GET_ROUTES = frozenset({'/api/health', '/api/ready', '/api/auth-config', '/api/datasets', '/api/store/status',
                         '/api/store/catalogue', '/api/trajectory-store/status'})
 POST_ROUTES = frozenset({'/api/trajectory-graph/match', '/api/store/match', '/api/trajectory-store/match'})
+BUSY = b'{"error": "BUSY"}'
 
 
 class Server(ThreadingHTTPServer):
     registry = datasets.Registry([])
     store = None
     trajectory_store = None
+    max_threads = MAX_THREADS
 
     def server_bind(self):
         # http.server's own server_bind also calls socket.getfqdn() for a name nothing here uses; on a machine
@@ -339,6 +462,37 @@ class Server(ThreadingHTTPServer):
         socketserver.TCPServer.server_bind(self)
         host, port = self.server_address[:2]
         self.server_name, self.server_port = host, port
+
+    def process_request(self, request, client_address):
+        """A thread per request, at most `max_threads` at once; beyond that, 503 BUSY without a thread or a read."""
+        slots = self.__dict__.setdefault('_slots', threading.BoundedSemaphore(self.max_threads))
+        if not slots.acquire(blocking=False):
+            try:
+                request.sendall(b'HTTP/1.0 503 Service Unavailable\r\nContent-Type: application/json\r\n'
+                                b'Retry-After: 2\r\nConnection: close\r\nContent-Length: '
+                                + str(len(BUSY)).encode() + b'\r\n\r\n' + BUSY)
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
+
+    def handle_error(self, request, client_address):
+        """An unexpected failure in a request: its exception class only, never the client's address or a traceback."""
+        with LOG_LOCK:
+            sys.stderr.write(json.dumps({'ts': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'event': 'server_error',
+                                         'error': type(sys.exc_info()[1]).__name__}) + '\n')
+            sys.stderr.flush()
 
     def server_close(self):
         super().server_close()
@@ -359,21 +513,23 @@ def _int_env(name, default):
 
 def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None,
           trajectory_store=True, trajectory_store_root=None, trajectory_cohort=None, *, datasets_file=None,
-          verifier=None, max_body=None, match_concurrency=None, log_format=None):
+          verifier=None, max_body=None, match_concurrency=None, log_format=None, max_threads=None, hosted=False):
     """The server. Datasets come from `datasets_file` or PTM_DATASETS, else from the flags: the synthetic cohort
     (`trajectory_cohort`, by default the page's) unless `trajectory_store` is false, built on a background thread
     under `trajectory_store_root` or PTM_TRAJECTORY_STORE_ROOT (else a temporary directory; `server_close()` removes
     it), and the MIMIC demo store from `mimic_store` or PTM_MIMIC_STORE (labels from `mimic_d_items` or
     PTM_MIMIC_D_ITEMS). `demo_pin` replaces the open demo's (patient count, subject digest) for tests on the
     synthetic fixture only. `verifier` (an access.OidcVerifier) or the PTM_OIDC_* variables configure the realm.
-    Refuses (ValueError) a non-public dataset on a non-loopback bind without a realm."""
+    Refuses (ValueError) a non-public dataset on a non-loopback bind without a realm. Any non-loopback bind is hosted;
+    `hosted=True` applies the hosted rules on loopback too (tests, or a local reverse proxy). It can only add them."""
     mimic_store = mimic_store or os.environ.get('PTM_MIMIC_STORE') or None
     mimic_d_items = mimic_d_items or os.environ.get('PTM_MIMIC_D_ITEMS') or None
     root = trajectory_store_root or os.environ.get('PTM_TRAJECTORY_STORE_ROOT')
     datasets_file = datasets_file or os.environ.get('PTM_DATASETS') or None
     entries = datasets.load(datasets_file) if datasets_file else datasets.from_flags(trajectory_store, mimic_store)
     verifier = verifier if verifier is not None else access.verifier_from_env(os.environ)
-    if not access.is_loopback(host) and verifier is None and any(e.policy.access != 'public' for e in entries):
+    hosted = bool(hosted) or not access.is_loopback(host)
+    if hosted and verifier is None and any(e.policy.access != 'public' for e in entries):
         raise ValueError('NON_PUBLIC_DATASET_NEEDS_OIDC_ON_A_NON_LOOPBACK_BIND')
     pin = {'pin': demo_pin} if demo_pin else {}
     built = []
@@ -387,23 +543,29 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
                                                **pin)
         built.append(datasets.Dataset(entry, service))
     registry = datasets.Registry(built)
-    gate_size = match_concurrency if match_concurrency is not None else _int_env('PTM_MATCH_CONCURRENCY', 0)
+    default_gate = HOSTED_MATCH_CONCURRENCY if hosted else 0
+    gate_size = match_concurrency if match_concurrency is not None else _int_env('PTM_MATCH_CONCURRENCY', default_gate)
     log_format = log_format or os.environ.get('PTM_LOG_FORMAT') or 'text'
     handler = type('ConfiguredHandler', (Handler,), {
         'registry': registry,
-        'auth': access.Auth(verifier, local_owner=access.is_loopback(host)),
+        'auth': access.Auth(verifier, local_owner=not hosted),
         'unconfigured_store': store_query.StoreService(),
         'max_body': max_body if max_body is not None else _int_env('PTM_MAX_BODY', MAX_BODY),
         'match_gate': threading.BoundedSemaphore(gate_size) if gate_size else None,
-        'log_json': log_format == 'json'})
+        'log_json': log_format == 'json',
+        'hosted': hosted,
+        'csp': content_security_policy(verifier.issuer if verifier else None)})
     httpd = Server((host, port), partial(handler, directory=str(HERE)))
+    httpd.max_threads = max_threads if max_threads is not None else _int_env('PTM_MAX_THREADS', MAX_THREADS)
     httpd.registry, httpd.auth = registry, handler.auth
     first_mimic = registry.first('mimic-demo-aggregate')
     first_synthetic = registry.first('synthetic-trajectory')
     httpd.store = first_mimic.service if first_mimic else handler.unconfigured_store
-    for dataset in registry.datasets:  # the synthetic builds start now; a MIMIC store opens at its first use or probe
+    for dataset in registry.datasets:
         if dataset.kind == 'synthetic-trajectory':
-            dataset.service.start()
+            dataset.service.start()      # built now, on its own thread
+        elif hosted:
+            dataset.open_in_background()  # hosted: opened now, so readiness covers it; locally at first use
     httpd.trajectory_store = first_synthetic.service if first_synthetic else None
     return httpd
 

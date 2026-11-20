@@ -503,12 +503,21 @@ async function main() {
   PtmAuth.bar($('#auth'));
   try {
     const response = await PtmAuth.fetch(API + 'status');
-    if (response.status === 401 || response.status === 403) {  // D50: the dataset needs sign-in, approval or a role
+    if (response.status === 401) {  // D50: an expired or refused sign-in
       state.denied = (await response.json()).error;
       return render();
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     state.status = await response.json();
+    // D50: with a realm, a dataset the caller may not use is answered as "no store"; say why instead.
+    if (!state.status.available && state.status.error === 'STORE_NOT_CONFIGURED' && await PtmAuth.enabled()) {
+      const listing = await PtmAuth.datasets();
+      if (!listing.datasets.some(d => d.page === 'store-query/')) {
+        const c = listing.caller;
+        state.denied = !c.signed_in ? 'LOGIN_REQUIRED' : (!c.approved ? 'NOT_APPROVED' : 'NOT_AVAILABLE');
+        return render();
+      }
+    }
   } catch (error) {
     state.error = error.message;
     return render();

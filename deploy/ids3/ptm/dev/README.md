@@ -40,8 +40,15 @@ Access per dataset (`configmap.yaml`, `ptm-mockups-datasets`):
 | approved | signed in, in group `approved` | aggregate counts only | not configured |
 | role | approved and holding e.g. `dataset:mimic-iv:read` | per patient | refused by the server until the access review |
 
-`GET /api/datasets` lists the datasets the caller may use; the pages show only those. `GET /api/auth-config` gives
-the page the issuer and client id (public facts).
+`GET /api/datasets` lists the datasets the caller may use; the pages show only those. A dataset the caller may not
+use is a 404, like one that does not exist. `GET /api/auth-config` gives the page the issuer and client id (public
+facts).
+
+Bounds (security review of D50): Traefik rate limits (general, and about 1/s for the match routes through
+`ingress-match.yaml`), a 256 KiB body limit and HSTS; in the pod, `PTM_MATCH_CONCURRENCY` (a slot is taken before
+a body is read), `PTM_MAX_THREADS`, a 30 s socket timeout, and caps on patients, events, steps and relations.
+Hosted, the anonymous engine route is off, only page asset types are served, and every response carries a
+Content-Security-Policy. `allow-traefik-ingress.yaml` admits only Traefik to the pod.
 
 ## Secrets
 
@@ -78,8 +85,12 @@ hosting plan, section 5.
 
 ### Cluster
 
-- [ ] Traefik's `kubernetescrd` provider is on, so the two Middlewares in `middleware.yaml` load (first use in this
+- [ ] Traefik's `kubernetescrd` provider is on, so the four Middlewares in `middleware.yaml` load (first use in this
       repo). `kubectl -n ptm-dev get middlewares.traefik.io` after sync.
+- [ ] `allow-traefik-ingress.yaml`: its front-door addresses are copied from `ids3/platform/minio-data/netpol.yaml`;
+      confirm they are current, and that the kubelet's probes still pass after it lands (see its header).
+- [ ] `ingress-match.yaml` reuses `ptm-mockups-tls` without a second cert-manager annotation; confirm Traefik serves
+      the certificate on the match paths (`curl -sI -X POST https://ptm.k8s.semanticscience.org/api/store/match`).
 - [ ] Traefik sees the client's own address (it is the front door since 2026-09-24), so the rate limit is per client.
 - [ ] GHCR: the package `patient-trajectory-matching/mockups` is pulled through the Harbor `ghcr.io` mirror; making
       it public removes the dependency on the mirror's credentials. No `imagePullSecrets` configured.
@@ -135,7 +146,9 @@ vault kv put secret/ptm/dev <KEY>=<value from the owner>
 kubectl -n ptm-dev get pods,svc,ingress,certificate,middlewares.traefik.io
 kubectl -n ptm-dev logs deploy/ptm-mockups | head          # startup lines, then one JSON line per API request
 curl -s https://ptm.k8s.semanticscience.org/api/health      # {"profile": "trajectory-graph-1.0"}
-curl -s https://ptm.k8s.semanticscience.org/api/ready       # {"ready": true, ...}
+curl -s https://ptm.k8s.semanticscience.org/api/ready       # {"ready": true}
+curl -sI https://ptm.k8s.semanticscience.org/ | grep -i -E 'strict-transport|content-security'   # both present
+curl -s -o /dev/null -w '%{http_code}\n' https://ptm.k8s.semanticscience.org/server.py              # 404
 curl -s https://ptm.k8s.semanticscience.org/api/datasets    # the synthetic dataset only, caller anonymous
 curl -s https://ptm.k8s.semanticscience.org/api/store/status   # no MIMIC store configured
 curl -s https://ptm.k8s.semanticscience.org/api/auth-config # issuer and client id
@@ -145,7 +158,10 @@ curl -s https://ptm.k8s.semanticscience.org/api/auth-config # issuer and client 
 |---|---|
 | Every bearer request answers `503 AUTH_UNAVAILABLE`, public pages work | `allow-keycloak-egress.yaml` missing, or the JWKS URI names the wrong realm |
 | Signed in, but every request `401 TOKEN_INVALID` | issuer mismatch (`PTM_OIDC_ISSUER` vs the token's `iss`), or the `ptm-api` audience mapper missing or not on the access token |
-| Signed in and approved, but `403 NOT_APPROVED` | `approved` group lacks the `approved` realm role mapping, or the `roles` scope is not on the client |
+| Signed in and approved, but the page says "awaiting approval" and approved datasets are 404 | `approved` group lacks the `approved` realm role mapping, or the `roles` scope is not on the client |
+| Every bearer request `401 TOKEN_INVALID`, though issuer and audience are right | `azp` is not `ptm-mockups` (token from another client), or `sub` missing (the `basic` scope removed) |
+| Many `503 BUSY` | `PTM_MATCH_CONCURRENCY` or `PTM_MAX_THREADS` too low for real use, or a flood the rate limits let through |
+| Probes fail after `allow-traefik-ingress.yaml` | the pod runs on a node whose cni0 address is not listed (see the file's header) |
 | `invalid_redirect_uri` at Keycloak | client redirect URIs or web origins do not match `https://ptm.k8s.semanticscience.org` exactly |
 | Pod never Ready, `/api/ready` 503 | the synthetic store failed its build or content check; see the pod's log |
 | Router missing in Traefik, 404 at the host | the Middlewares did not load (kubernetescrd provider off, or a name typo in the annotation) |

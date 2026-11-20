@@ -16,12 +16,14 @@
   const FLOW_KEY = 'ptm.flow';
   let config = null;         // /api/auth-config, once read
   let access = null;         // {token, expires} in memory
+  let idToken = null;        // in memory, only as the logout hint
   let ready = null;          // the promise of init()
 
   const b64url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const random = n => b64url(crypto.getRandomValues(new Uint8Array(n)));
   const endpoint = name => `${config.issuer}/protocol/openid-connect/${name}`;
-  const here = () => location.origin + location.pathname;
+  // The page's canonical address, the redirect URI Keycloak knows exactly (no wildcard): /index.html becomes /.
+  const here = () => location.origin + location.pathname.replace(/index\.html$/, '');
 
   async function token(params) {
     const response = await fetch(endpoint('token'), {
@@ -30,6 +32,8 @@
     if (!response.ok) throw new Error('TOKEN_REQUEST_REFUSED');
     const value = await response.json();
     access = {token: value.access_token, expires: Date.now() + (value.expires_in - 20) * 1000};
+    if (value.id_token) idToken = value.id_token;
+    // The realm rotates refresh tokens (each works once), so the newest replaces the last.
     if (value.refresh_token) sessionStorage.setItem(REFRESH_KEY, value.refresh_token);
   }
 
@@ -82,11 +86,20 @@
       code_challenge: challenge, code_challenge_method: 'S256'}));
   }
 
-  function signOut() {
+  /* Sign out: revoke the refresh token at the realm, forget both tokens, then end the realm session through its
+     logout endpoint (with the ID token as hint when held, else the client id) and come back here. */
+  async function signOut() {
     const saved = sessionStorage.getItem(REFRESH_KEY);
     sessionStorage.removeItem(REFRESH_KEY); access = null;
+    if (saved) {
+      try {
+        await fetch(endpoint('revoke'), {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: new URLSearchParams({client_id: config.client_id, token: saved, token_type_hint: 'refresh_token'})});
+      } catch (error) { /* the logout below still ends the session */ }
+    }
     const params = {client_id: config.client_id, post_logout_redirect_uri: here()};
-    if (!saved) return location.reload();
+    if (idToken) params.id_token_hint = idToken;
+    idToken = null;
     location.assign(endpoint('logout') + '?' + new URLSearchParams(params));
   }
 
@@ -114,6 +127,7 @@
     LOGIN_REQUIRED: 'This dataset needs a signed-in account that the owner has approved.',
     NOT_APPROVED: 'Your account is awaiting approval by the owner. You will be able to use this dataset once it is approved.',
     ROLE_REQUIRED: 'This dataset needs a credentialed-access role, granted by the owner after checking your own credentialing.',
+    NOT_AVAILABLE: 'No dataset for this page is available to your account.',
     TOKEN_INVALID: 'Your sign-in has expired. Sign in again.',
     AUTH_UNAVAILABLE: 'The sign-in service is not reachable right now. Try again shortly.',
   };

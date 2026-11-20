@@ -136,7 +136,7 @@ class Dataset:
     def __init__(self, entry, service):
         self.entry = entry
         self.service = service
-        self._warming = False
+        self._opening = False
 
     id = property(lambda self: self.entry.id)
     kind = property(lambda self: self.entry.kind)
@@ -154,23 +154,24 @@ class Dataset:
                 'ready': self.state() == 'ready'}
 
     def state(self):
-        """'ready', 'pending' or 'failed', without waiting: for /api/ready and the dataset list."""
+        """'ready', 'pending', 'failed', or 'idle' (a MIMIC store not yet asked for, which opens at first use
+        locally), without waiting and without opening anything."""
+        service = self.service
         if self.kind == 'synthetic-trajectory':
             # Read from TrajectoryStore's build state directly: store_trajectory.py is bound by digest in the D45
             # latency verdict, so it is left unchanged rather than given a method of its own.
-            service = self.service
             if not service._ready.is_set():
                 return 'pending'
             return 'ready' if service._store is not None else 'failed'
-        return self.service.state()
+        if not service.opened and not self._opening:
+            return 'idle'
+        return service.state()
 
-    def warm(self):
-        """The state, after starting the backend's opening if nothing has yet (the readiness probe's call): a
-        MIMIC store otherwise opens lazily at its first request, as before D50."""
-        if self.kind == 'mimic-demo-aggregate' and not self.service.opened and not self._warming:
-            self._warming = True
+    def open_in_background(self):
+        """Open a MIMIC store now, on its own thread (hosted: so that readiness covers it)."""
+        if self.kind == 'mimic-demo-aggregate' and not self._opening:
+            self._opening = True
             threading.Thread(target=self.service.status, name=f'open-{self.id}', daemon=True).start()
-        return self.state()
 
 
 class Registry:

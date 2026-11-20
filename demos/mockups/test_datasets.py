@@ -94,6 +94,10 @@ class RegistryTests(unittest.TestCase):
         document = json.loads(textwrap.dedent('\n'.join(lines)))
         parsed = datasets.parse(document)
         self.assertEqual([(e.id, e.policy.access) for e in parsed], [('synthetic-paediatric-rare', 'public')])
+        # Each dataset's match route sits under the tighter match rate limit (ingress-match.yaml, review M1).
+        match_ingress = (HERE.parents[1] / 'deploy/ids3/ptm/dev/ingress-match.yaml').read_text()
+        for e in parsed:
+            self.assertIn(f'path: /api/datasets/{e.id}/match', match_ingress, e.id)
 
 
 if __name__ == '__main__':

@@ -180,6 +180,48 @@ class TokenTests(unittest.TestCase):
         self.verifier.principal(self.realm.token())
         self.assertEqual(self.realm.fetches, 3)
 
+    def test_the_client_and_the_subject_are_required(self):
+        self.refused(self.realm.token(azp='another-app'))   # issued to another client of the realm
+        self.refused(self.realm.token(azp=None))
+        self.refused(self.realm.token(sub=None))
+        self.refused(self.realm.token(sub=''))
+        lenient = access.OidcVerifier(ISSUER, JWKS_URI, AUDIENCE, fetch=self.realm.fetch)  # no client id configured
+        self.assertTrue(lenient.principal(self.realm.token(azp='another-app')).approved)
+
+    def test_held_keys_expire_after_an_hour_without_a_successful_fetch(self):
+        self.verifier.principal(self.realm.token())
+        self.realm.down = True
+        self.clock[0] += access.JWKS_MAX_AGE - 60
+        self.verifier.principal(self.realm.token())          # still inside the hour: held keys serve
+        self.clock[0] += 120
+        self.refused(self.realm.token(), 503, 'AUTH_UNAVAILABLE')
+        self.realm.down = False
+        self.clock[0] += access.JWKS_MIN_REFRESH + 1
+        self.verifier.principal(self.realm.token())          # a fetch succeeds again
+
+    def test_one_fetch_at_a_time_outside_the_lock(self):
+        release, started = threading.Event(), threading.Event()
+        realm = self.realm
+
+        def slow(uri):
+            started.set()
+            release.wait(5)
+            return realm.fetch(uri)
+        verifier = access.OidcVerifier(ISSUER, JWKS_URI, AUDIENCE, client_id='ptm-mockups', fetch=slow)
+        token = realm.token()
+        results = []
+        workers = [threading.Thread(target=lambda: results.append(verifier.principal(token).approved))
+                   for _ in range(8)]
+        workers[0].start()
+        self.assertTrue(started.wait(5))
+        for w in workers[1:]:
+            w.start()  # these wait for the first key set instead of starting their own fetch
+        time.sleep(0.2)
+        release.set()
+        for w in workers:
+            w.join(10)
+        self.assertEqual((results.count(True), realm.fetches), (8, 1))
+
     def test_an_unreachable_realm_is_named_and_held_keys_stay_in_use(self):
         self.realm.down = True
         self.refused(self.realm.token(), 503, 'AUTH_UNAVAILABLE')
@@ -262,8 +304,10 @@ class FetchTests(unittest.TestCase):
 
 
 class CallerTests(unittest.TestCase):
-    def headers(self, *values):
+    def headers(self, *values, host='localhost:8090'):
         message = Message()
+        if host is not None:
+            message['Host'] = host
         for value in values:
             message['Authorization'] = value
         return message
@@ -283,7 +327,12 @@ class CallerTests(unittest.TestCase):
             with_realm.principal(self.headers('Bearer ' + realm.token(), 'Bearer ' + realm.token()))
 
         owner = access.Auth(None, local_owner=True)
-        self.assertIs(owner.principal(self.headers()), access.LOCAL_OWNER)
+        for host in ('localhost', 'localhost:8090', '127.0.0.1:8090', '[::1]:8090', '127.0.0.1'):
+            self.assertIs(owner.principal(self.headers(host=host)), access.LOCAL_OWNER, host)
+        # DNS rebinding (a page on another name resolving to 127.0.0.1), a tunnel, or no Host: never the owner.
+        for host in ('rebind.attacker.example', 'rebind.attacker.example:8090', 'localhost.attacker.example',
+                     '127.0.0.1.nip.io', 'abc.ngrok.io', '127.0.0.2:8090', '0.0.0.0:8090', '', 'localhost:8090 x', None):
+            self.assertIs(owner.principal(self.headers(host=host)), access.ANONYMOUS, host)
         anonymous = access.Auth(None, local_owner=False)
         self.assertIs(anonymous.principal(self.headers()), access.ANONYMOUS)
         with self.assertRaises(access.AuthError) as caught:
