@@ -183,8 +183,10 @@ function evidenceFor(pid) {
    mentions, its kind, concept, label, times, course and gene from records only (`codedOf`). An item with no coded record
    is not searched under it. A medicine course whose only medication record is a stop has no coded start, so under
    "Coded records only" it is not usable for any step or index period (the store skips such a stop and counts it,
-   patterns/synthetic_ingest.py). The item keeps its mentions as the evidence it holds; the timeline and the inspector
-   still show the item as every record and mention make it. */
+   patterns/synthetic_ingest.py). Readers: `usable` (so index periods and the patient-first page's features), the
+   trajectory page's `candidates`, and the patient-first page's similarity weights (`icTable`) and comparison tooltip. The
+   item keeps its mentions as the evidence it holds; the timeline and the inspectors still show the item as every record
+   and mention make it. */
 const CODED_FIELDS = ['kind', 'concept', 'textConcept', 'display', 'time', 'med', 'gene', 'procedure', 'freeTextOnly', 'possibleOnly',
                       'recordedDay', 'availableDay'];
 function makeItem(p, id, recs, ms, cases, day, lastContact) {

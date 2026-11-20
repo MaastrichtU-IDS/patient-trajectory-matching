@@ -327,3 +327,43 @@ try {
               + `${Object.keys(placed.windows).length} period rules, ${Object.keys(anchoredFull).length} anchored windows, ${Object.keys(candsFull).length} steps' candidates and ${compared} `
               + `own-search results under coded only are the same without them; under stated findings ${stated.length} anchored windows read one.`);
 }
+
+/* D53 review (S1): the patient-first page under "Coded records only" reads no note either, its similarity weights
+   (icTable) included. Its comparison (evaluate), for references C001 and C026, each similarity measure and "known by the
+   end of the window" on and off, gives the same rows (scores, per-feature similarities, coverage, feature values) and
+   exclusions on the cohort and on the cohort without letter mentions. Not vacuous: under stated findings some row differs. */
+{
+  const d49 = require('./d49_flip.cjs');
+  const bareText = JSON.stringify(d49.withoutMentions(JSON.parse(cohortText)).cohort);
+  const pfApp = fs.readFileSync(path.join(here, 'patient-first/app.js'), 'utf8').replace(/\nmain\(\);\s*$/, '\n');
+  const pfRun = (text, freeText) => {
+    const ctx = vm.createContext({document: stub, addEventListener() {}, console, structuredClone, DATA: text});
+    vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n' + pfApp + `
+      state.data = JSON.parse(DATA); state.concepts = state.data.concepts;
+      for (const [cid, c] of Object.entries(state.concepts)) for (const coding of c.codings) state.codeIndex.set(coding.system + '|' + coding.code, cid);
+      for (const p of state.data.patients) state.patients.set(p.patient_id, p);`, ctx);
+    return JSON.parse(vm.runInContext(`JSON.stringify((() => {
+      const out = {};
+      for (const ref of ['C001', 'C026']) for (const m of Object.keys(MEASURES)) for (const k of [true, false]) {
+        state.referenceId = ref;
+        const q = {...defaultQuery(), freeText: '${freeText}', knownByIndex: k, conceptMeasure: m}, r = evaluate(q);
+        const shown = values => Object.fromEntries(FEATURES.map(f => [f.key, values[f.key] ? f.show(values[f.key].value) : null]));
+        out[ref + ' ' + m + (k ? ' known' : '')] = {ref: shown(r.ref.values), excluded: r.excluded,
+          rows: r.rows.map(x => ({pid: x.pid, score: x.score, coverage: x.coverage, sims: x.sims, values: shown(x.values)}))};
+      }
+      return out;
+    })())`, ctx));
+  };
+  const offFull = pfRun(cohortText, 'off'), offBare = pfRun(bareText, 'off');
+  let rows = 0;
+  for (const k of Object.keys(offFull)) {
+    rows += offFull[k].rows.length;
+    assert.deepEqual(offBare[k], offFull[k], `patient-first, ${k}: the comparison under coded only reads a note`);
+  }
+  assert.ok(rows > 0);
+  const statedFull = pfRun(cohortText, 'present'), statedBare = pfRun(bareText, 'present');
+  const statedDiffer = Object.keys(statedFull).filter(k => JSON.stringify(statedFull[k]) !== JSON.stringify(statedBare[k])).length;
+  assert.ok(statedDiffer > 0, 'under stated findings no patient-first comparison reads a note: the check would be vacuous');
+  console.log(`D53 patient-first under coded only reads no note: ${Object.keys(offFull).length} comparisons (${rows} rows; 3 measures, 2 references) `
+              + `the same without letter mentions; under stated findings ${statedDiffer} differ.`);
+}

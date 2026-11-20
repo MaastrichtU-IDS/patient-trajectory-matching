@@ -16,6 +16,9 @@
      node demos/mockups/d53_coded_start.cjs usefulness [--output REPORT.json]
        Rule 5: the five templates' own search over fresh cohorts (seeds 5301-5330, extended in order to 5400), the
        owner's counting rule, here and main; the same identity and removal checks per seed.
+     node demos/mockups/d53_coded_start.cjs trace [--seeds 4611-4620,4721-4750] [--output REPORT.json]
+       Rule 7 as amended (review S2): on the seeds of D46's reference and D47's usefulness, the templates' own search and
+       D46's period rules, main against this tree; what moves under coded only, each checked by removal.
 
    Synthetic data only (generator patient ids, as the parity test pins them). Needs git for main's page. */
 const assert = require('node:assert/strict');
@@ -333,9 +336,69 @@ function usefulness(output) {
   }
 }
 
+/* The trace (rule 7 as amended after the review, S2): on the seeds of the regenerated reports that run fresh cohorts
+   through the changed paths (D46's reference, 4611-4620; D47's usefulness, its seeds used), what moves under coded only
+   and why. Per seed: the five templates' own search and D46's twelve period rules, under each setting, main against this
+   tree. Ruled: under stated and hedged findings, identical; under coded only, every result and window equals main's on the
+   seed's cohort without letter mentions, and every one that moves is on a patient holding a noted item. */
+const parseSeeds = text => text.split(',').flatMap(part => {
+  const [a, b] = part.split('-').map(Number);
+  return Array.from({length: (b || a) - a + 1}, (_, i) => a + i);
+});
+function trace(output, seeds) {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'd53-trace-'));
+  const d46 = require('./d46_windows.cjs');
+  const perSeed = {}, totals = {other_differing: 0, off_unlike_removal: 0, off_moved: 0, off_moved_untraced: 0};
+  try {
+    for (const seed of seeds) {
+      const cohortPath = path.join(work, `cohort-${seed}.json`);
+      run(['demos/mockups/synthetic/generate.py', '--seed', String(seed), '--output', cohortPath]);
+      const text = fs.readFileSync(cohortPath, 'utf8');
+      const ctx = {main: pageContext(text, 'main'), here: pageContext(text, 'this'), main_bare: pageContext(bareText(text), 'main')};
+      const q = (which, code) => inContext(ctx[which], code);
+      const noted = q('here', 'notedItems()').search, notedPids = new Set(noted.map(n => n.patient_id));
+      const pids = q('here', '[...state.patients.keys()]');
+      const moved = [];
+      const compare = (what, get) => {
+        for (const f of FREE_TEXT) {
+          const h = get('here', f), m = get('main', f);
+          if (f !== 'off') { totals.other_differing += pids.filter(pid => !same(h[pid], m[pid])).length; continue; }
+          const b = get('main_bare', f);
+          totals.off_unlike_removal += pids.filter(pid => !same(h[pid], b[pid])).length;
+          for (const pid of pids.filter(pid => !same(h[pid], m[pid]))) {
+            const ok = notedPids.has(pid) && same(h[pid], b[pid]);
+            totals.off_moved += 1; if (!ok) totals.off_moved_untraced += 1;
+            moved.push({what, patient_id: pid, main: m[pid], here: h[pid], traced: ok});
+          }
+        }
+      };
+      for (const [name, def] of Object.entries(q('here', 'TEMPLATE_DEFS')))
+        compare(`template: ${name}`, (w, f) => q(w, `ownResults(${J(def)}, ${J(f)})`));
+      for (const [name, window] of Object.entries(d46.windowsOf(text).rules))
+        compare(`period rule: ${name}`, (w, f) => q(w, `Object.fromEntries([...state.patients.keys()].map(pid => [pid, windowAt(pid, ${J(window)}, ${J(f)})]))`));
+      perSeed[seed] = {cohort_sha256: shaText(text), noted_items: noted.map(n => ({patient_id: n.patient_id, kind: n.kind, concept: n.concept, fields: n.fields, records: n.records})),
+                       moved};
+      console.error(`seed ${seed}: ${noted.length} noted items, ${moved.length} moved under coded only`);
+    }
+    const met = {other_settings_identical: totals.other_differing === 0, removal: totals.off_unlike_removal === 0, traced: totals.off_moved_untraced === 0};
+    write(output, {
+      profile: 'd53-coded-start-trace-1.0',
+      rule: ('D53 rule 7 as amended after the review (S2): on the seeds of the regenerated reports that run fresh cohorts through '
+             + 'the changed paths, the five templates\' own search and D46\'s twelve period rules under each setting, main\'s page '
+             + 'against this tree\'s. Under stated and hedged findings identical; under coded only every result and window equals '
+             + 'main\'s on the seed\'s cohort without letter mentions, and every one that moves is on a patient holding a noted item'),
+      base: BASE, seeds, totals, met, all_met: Object.values(met).every(Boolean), per_seed: perSeed,
+      artifacts: artifacts(), contains_patient_level_data: false, synthetic_patient_ids: 'generator ids only',
+    });
+    console.error(`trace: ${Object.entries(met).map(([k, v]) => `${k} ${v ? 'met' : 'MISSED'}`).join(', ')}; ${totals.off_moved} moved under coded only`);
+  } finally {
+    fs.rmSync(work, {recursive: true, force: true});
+  }
+}
+
 const ARTIFACTS = ['demos/mockups/d53_coded_start.cjs', 'demos/mockups/d47_page.cjs', 'demos/mockups/d49_flip.cjs',
   'demos/mockups/option_sweep.js', 'demos/mockups/trajectory/store_request.js', 'demos/mockups/trajectory/app.js',
-  'demos/mockups/shared/core.js', 'demos/mockups/synthetic/generate.py'];
+  'demos/mockups/shared/core.js', 'demos/mockups/synthetic/generate.py', 'demos/mockups/d46_windows.cjs'];
 const artifacts = () => Object.fromEntries(ARTIFACTS.map(f => [f, sha(f)]));
 const write = (output, report) => {
   if (SMOKE && output && path.resolve(output).startsWith(path.join(root, 'verification'))) throw new Error('a smoke run is never written into verification/');
@@ -349,5 +412,6 @@ if (require.main === module) {
   const what = process.argv[2], output = arg('--output', null);
   if (what === 'census') census(output);
   else if (what === 'usefulness') usefulness(output);
-  else { console.error('usage: node demos/mockups/d53_coded_start.cjs census|usefulness [--output FILE]'); process.exit(2); }
+  else if (what === 'trace') trace(output, parseSeeds(arg('--seeds', '4611-4620,4721-4750')));
+  else { console.error('usage: node demos/mockups/d53_coded_start.cjs census|usefulness|trace [--seeds A-B,C-D] [--output FILE]'); process.exit(2); }
 }
