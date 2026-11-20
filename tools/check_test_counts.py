@@ -86,7 +86,6 @@ LABELS = {
     'test_coded_only': 'Execution-store coded-only (letter mentions left out by request) tests',
     'test_gene_coded': 'Execution-store gene steps under coded only (joint profile) tests',
     'test_count_narrowing': 'Execution-store counts decided by the narrowed pass (D43, D43b, D43c) tests',
-    'test_synthetic_mentions': 'Synthetic letter mentions timed from their letter\'s text (E0, normalised_v1) tests',
 }
 
 

@@ -111,7 +111,13 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # file its tool (`coded_default.cjs`) refuses once they are true; it records D45's assessment of the
               # pre-flip page, as last regenerated on main at 0a17003 (D48b), superseded for the current tree by
               # `verification/d49-flip-census-report.json` (coordinator's sign-off as delegate, D49's checkpoint).
-              'verification/d45-coded-default-page-report.json'}
+              'verification/d45-coded-default-page-report.json',
+              # E0 did not ship (its rule 1 missed as written: four misses, each a truth id the generator reuses, which the
+              # scorer resolved to the wrong event), so its code is not in the tree; its three reports are kept as frozen
+              # records of that measurement, as at the retry base 09a6900 (coordinator's sign-off as delegate, option (a)).
+              # Each binds `tools/e0_measure.py`, `patterns/mention_time.py` and `patterns/synthetic_mentions.py` as there.
+              'verification/e0-mention-time-soundness-report.json', 'verification/e0-mention-time-defects-report.json',
+              'verification/e0-mention-time-arms-report.json'}
 
 
 def digests(path):
