@@ -85,10 +85,29 @@ class CountingTests(unittest.TestCase):
         self.assertEqual(t['without_C001'], {'candidates': 2, 'unresolved': 1})
         self.assertEqual(t['statuses'], {'exact': 1, 'possible': 1, 'unresolved': 1})
 
+    def test_decided_claims_and_their_types(self):
+        self.assertEqual(em.decided(r('exact')), ('exact',))
+        self.assertEqual(em.decided(r('none', complete=True)), ('none',))
+        self.assertIsNone(em.decided(r('none', complete=False)))
+        self.assertEqual(em.decided(r('relaxed', certainty='exact', relaxations=['a'], complete=True)), ('relaxed', ('a',)))
+        self.assertIsNone(em.decided(r('relaxed', certainty='possible', relaxations=['a'], complete=True)))
+        for status in ('possible', 'unresolved', 'not_comparable', 'excluded'):
+            self.assertIsNone(em.decided(r(status)))
+        self.assertEqual([em.claim_type(x) for x in (r('exact'), r('none', complete=True), r('none', complete=False),
+                                                     r('relaxed', certainty='possible'), r('possible'))],
+                         ['exact', 'complete_none', None, 'relaxed', None])
+
     def test_movement_and_contradictions(self):
         runs = self.runs()
         m = em.compare(runs, 'x', 'G', 'GT')
         self.assertEqual((m['contradictions'], m['became_exact_among_candidates']), (0, 1))
+        self.assertEqual((m['toward_decided'], m['away_from_decided']), (1, 0))
+        self.assertEqual(m['claims_checked'], {'complete_none': 1})
+        self.assertEqual(m['all_transitions']['none -> none'], 1)
+        # From GT to T, C003 moves from possible to a complete none (toward decided); C001 stays exact.
+        self.assertEqual(em.compare(runs, 'x', 'GT', 'T')['claims_checked'], {'complete_none': 1, 'exact': 1})
+        away = {1: {**runs[1], 'arms': {'G': runs[1]['arms']['GT'], 'GT': runs[1]['arms']['G']}}}
+        self.assertEqual(em.compare(away, 'x', 'G', 'GT')['away_from_decided'], 1)
         self.assertEqual(m['candidate_transitions'], {'possible -> exact': 1, 'possible -> possible': 1,
                                                       'unresolved -> unresolved': 1})
         m = em.compare(runs, 'x', 'GT', 'T')

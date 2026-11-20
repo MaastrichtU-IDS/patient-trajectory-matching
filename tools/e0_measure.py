@@ -25,8 +25,10 @@ and the wrapper (`patterns/synthetic_mentions.py`) never do.
   arm, under the owner's counting rule: candidates (a store candidate and an index window), distinct child types (PLAN
   keys; C001 is `reference`) unresolved, all candidates and the count without C001, status mixes, `exact` results, and
   G's statuses against GT's. Checked: G's worlds contain GT's, which contain T's, so every decided claim of a larger arm
-  must hold in a smaller one (`transition_ok`); and under coded only every arm's results are identical (the sha256 of
-  each case's full per-patient results, bindings and witnesses included, and its candidate list).
+  must hold in a smaller one (`transition_ok`), with the claims checked counted by type; no result moves away from
+  decided from G to GT and at least one moves toward it (`decided`); and under coded only every arm's results are
+  identical (the sha256 of each case's full per-patient results, bindings and witnesses included, and its candidate
+  list).
 
 Synthetic data only; the reports hold counts and, for a miss or a contradiction, record and patient identifiers of
 generated cohorts (no patient data).
@@ -75,6 +77,7 @@ CODED = ('sequence, coded only (1.3)', 'tree, coded only (joint)', 'graph, coded
          'event frequency, coded only (1.3)', 'blank, coded only (1.3)')
 EXPECTED_REFUSALS = {'event frequency, stated findings': 'FREE_TEXT_COUNT_UNSUPPORTED'}
 NO_CLAIM = ('unresolved', 'not_comparable')
+CLAIM_TYPES = ('exact', 'complete_none', 'relaxed')
 ARTIFACTS = ('tools/e0_measure.py', 'demos/mockups/e0_requests.cjs', 'patterns/mention_time.py',
              'patterns/synthetic_mentions.py', 'patterns/synthetic_ingest.py', 'patterns/store_conditions_gene.py',
              'demos/mockups/store_parity.py', 'demos/mockups/synthetic/generate.py', 'demos/mockups/shared/core.js',
@@ -386,22 +389,54 @@ def tally(seed_runs, name, arm):
     return t
 
 
+def decided(r):
+    """A result's decided claim, or None: `exact`, a complete `none`, or a complete `relaxed` match whose certainty is
+    `exact` (with its relaxations). `possible`, `unresolved`, `not_comparable`, an incomplete `none` or relaxed result,
+    and a `possible` relaxed match decide less."""
+    if r['status'] == 'exact' or (r['status'] == 'none' and r.get('complete', True)):
+        return (r['status'],)
+    if r['status'] == 'relaxed' and r.get('certainty') == 'exact' and r.get('complete', True):
+        return ('relaxed', tuple(r.get('relaxations') or ()))
+    return None
+
+
+def claim_type(r):
+    """The kind of claim `transition_ok` checks in a larger arm's result (rule 4's count, S3), or None."""
+    if r['status'] == 'exact':
+        return 'exact'
+    if r['status'] == 'none' and r.get('complete', True):
+        return 'complete_none'
+    if r['status'] == 'relaxed':
+        return 'relaxed'
+    return None
+
+
 def compare(seed_runs, name, big, small):
-    """Transitions from arm `big` to arm `small` over every patient of a case: the status matrix among candidates, the
-    contradictions (`transition_ok`) and, among candidates, results that become `exact`."""
-    matrix, wrong, became_exact = Counter(), [], 0
+    """Transitions from arm `big` to arm `small` over every patient of a case: the status matrix (every patient and
+    among candidates), the contradictions (`transition_ok`), the claims checked by type, the results that move toward or
+    away from decided (`decided`), and, among candidates, the results that become `exact`."""
+    matrix, every, wrong, became_exact = Counter(), Counter(), [], 0
+    claims, toward, away = Counter(), 0, 0
     for seed, run in seed_runs.items():
         a, b = run['arms'][big][name], run['arms'][small][name]
         cand = set(a['with_candidate'])
         for pid, r in a['results'].items():
             s = b['results'][pid]
+            kind = claim_type(r)
+            if kind:
+                claims[kind] += 1
             if not transition_ok(r, s):
                 wrong.append({'seed': seed, 'patient_id': pid, big: r, small: s})
+            x, y = decided(r), decided(s)
+            toward += x is None and y is not None
+            away += x is not None and y != x
+            every[f'{status_of(r)} -> {status_of(s)}'] += 1
             if pid in cand:
                 matrix[f'{status_of(r)} -> {status_of(s)}'] += 1
                 became_exact += r['status'] != 'exact' and s['status'] == 'exact'
-    return {'contradictions': len(wrong), 'examples': wrong[:20], 'became_exact_among_candidates': became_exact,
-            'candidate_transitions': dict(sorted(matrix.items()))}
+    return {'contradictions': len(wrong), 'examples': wrong[:20], 'claims_checked': dict(sorted(claims.items())),
+            'toward_decided': toward, 'away_from_decided': away, 'became_exact_among_candidates': became_exact,
+            'candidate_transitions': dict(sorted(matrix.items())), 'all_transitions': dict(sorted(every.items()))}
 
 
 def arms(args):
@@ -434,10 +469,18 @@ def arms(args):
         d = gt['distinct_child_types']
         bar[n] = {**d, 'candidates': gt['candidates'], 'unresolved': gt['unresolved'],
                   'enough_candidates': gt['candidates'] >= MINIMUM,
-                  'met': gt['candidates'] >= MINIMUM and d['types'] > 0 and d['types_unresolved'] <= SHARE * d['types']}
+                  'within_owners_bar': gt['candidates'] >= MINIMUM and d['types'] > 0
+                  and d['types_unresolved'] <= SHARE * d['types']}
     movement = {n: {'G->GT': compare(seed_runs, n, 'G', 'GT'), 'GT->T': compare(seed_runs, n, 'GT', 'T'),
                     'G->T': compare(seed_runs, n, 'G', 'T')} for n in names}
     wrong = sum(movement[n][k]['contradictions'] for n in names for k in ('G->GT', 'GT->T'))
+    claims = {k: dict(sum((Counter(movement[n][k]['claims_checked']) for n in names), Counter()))
+              for k in ('G->GT', 'GT->T')}
+    claims_met = all(claims[k].get(t, 0) > 0 for k in claims for t in CLAIM_TYPES)
+    away = sum(movement[n]['G->GT']['away_from_decided'] for n in names)
+    toward = sum(movement[n]['G->GT']['toward_decided'] for n in STATED)
+    decidedness = {'away_from_decided_G_to_GT': away, 'toward_decided_G_to_GT_stated': toward,
+                   'met': away == 0 and toward >= 1}
     control = {}
     for n in CODED:
         same = {arm: all(seed_runs[s]['arms'][arm][n]['digest'] == seed_runs[s]['arms']['G'][n]['digest']
@@ -451,16 +494,18 @@ def arms(args):
                 seed_runs[s]['arms'][arm][n].pop('with_candidate')
     report = {
         'profile': 'e0-mention-time-arms-1.0',
-        'rule': ('E0 rules 3 to 5: the page\'s templates (e0_requests.cjs) matched through store_conditions.match in '
-                 'three stores per cohort (G: store_parity.build, D30 timing; GT: the same through synthetic_mentions '
-                 'with normalised_v1; T: GT with each mention at its truth event\'s day). Rule 3: under stated findings, '
-                 'GT has at least 30 candidates per template and at most 30% of distinct child types unresolved. Rule 4: '
-                 'no G result is contradicted by GT, nor GT by T (transition_ok). Rule 5: under coded only, GT\'s and T\'s '
-                 'results equal G\'s'),
+        'rule': ('E0 rules 3 to 5 (as amended after the review, S2 and S3): the page\'s templates (e0_requests.cjs) '
+                 'matched through store_conditions.match in three stores per cohort (G: store_parity.build, D30 timing; '
+                 'GT: the same through synthetic_mentions with normalised_v1; T: GT with each mention at its truth '
+                 'event\'s day). Rule 3: from G to GT, 0 results move away from decided (every case, every patient) and '
+                 'at least one moves toward decided (stated findings); the owner\'s bar reported. Rule 4: no G result is '
+                 'contradicted by GT, nor GT by T (transition_ok), and the claims checked of each type (exact, complete '
+                 'none, relaxed) number more than 0 for each pair. Rule 5: under coded only, GT\'s and T\'s results '
+                 'equal G\'s'),
         'declared_seeds': list(declared), 'extension_seeds': list(extension), 'seeds_used': used,
         'coverage': coverage,
-        'usefulness': {'bar': bar, 'met': all(b['met'] for b in bar.values())},
-        'wrong_answers': {'contradictions': wrong, 'met': wrong == 0},
+        'usefulness': {'decidedness': decidedness, 'owners_bar_reported': bar, 'met': decidedness['met']},
+        'wrong_answers': {'contradictions': wrong, 'claims_checked': claims, 'met': wrong == 0 and claims_met},
         'negative_control': {'identical': control, 'met': all(all(v.values()) for v in control.values())},
         'templates': templates, 'movement': movement,
         'per_seed': {s: {'cohort_sha256': r['cohort_sha256'], 'snapshots': r['snapshots'], 'arms': r['arms']}
@@ -472,7 +517,8 @@ def arms(args):
     write(args.output, report)
     print('usefulness: ' + '; '.join(f"{n.split(',')[0]} {bar[n]['types_unresolved']}/{bar[n]['types']} types, exact G "
                                      f"{templates[n]['G']['exact']} GT {templates[n]['GT']['exact']}" for n in STATED)
-          + f'; contradictions {wrong}; control {"met" if report["negative_control"]["met"] else "missed"}',
+          + f'; toward {toward}, away {away}; contradictions {wrong}, claims {claims}; '
+          + f'control {"met" if report["negative_control"]["met"] else "missed"}',
           file=sys.stderr)
 
 

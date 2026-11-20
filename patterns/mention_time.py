@@ -31,8 +31,12 @@ or fixed: 365-day years and 30.44-day months), never to the reader's assumption 
 None, with a reason, when: the clause holds expressions of more than one range (`several_expressions`); the mention is
 followed by `was stopped` (`stop_cue`: the clause's time is the stop, not the finding, and a medicine's mention is timed
 by its start); there is no expression and no cue (`no_expression`); a date is not a calendar date (`invalid_date`).
-A genetic result ("... result: pathogenic SCN1A variant") and a reclassification are not cues: the store times a genetic
-result by its sample, which may precede the previous letter.
+The age reader is English only ("at N months"); a Dutch or French age ("6 maanden", "9 mois") is not read, though
+those letters' dates are. On generator letters the `Gestart met` cue is never reached: its clause always carries a date,
+which wins.
+
+A genetic result ("... result: pathogenic SCN1A variant") and a reclassification are not cues: the store times a
+genetic result by its sample, which may precede the previous letter.
 """
 from __future__ import annotations
 

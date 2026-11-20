@@ -4956,29 +4956,39 @@ the lows it found are fixed too.
   So on that seed even the truth oracle leaves most stated-findings results `possible`. The likely cause is the untimed two-thirds of mentions, which stay four years wide; that is not measured.
 - The suites, including the page's cohort's counts pinned in `CohortTests` (849 narrowed of 2,444, 0 misses).
 
-**Pre-committed rules** (committed with this entry, before any measurement of E0 beyond the runs above; "main" is b575ba8). Seeds: **5001 to 5100** for soundness; **5001 to 5030** for the arms, extended in order to 5100 while a ruled template has fewer than 30 candidates pooled. The extension reads candidate counts only.
+**Pre-committed rules** (committed with this entry, before any measurement of E0 beyond the runs above; "main" is b575ba8, to be replaced by the main E0 is rebased onto before measuring, below; the rules are as amended after the review, below, the first version is in da2267e). Seeds: **5001 to 5100** for soundness; **5001 to 5030** for the arms, extended in order to 5100 while a ruled template has fewer than 30 candidates pooled. The extension reads candidate counts only.
 1. **Temporal soundness.** `tools/e0_measure.py soundness --committed --seeds 5001-5100` covers the page's cohort and 100 fresh cohorts. Every present mention about the patient is converted under `normalised_v1` and checked against its truth event's day, the time D30's test uses (`test_execution_store`: the truth is a day). **0 narrowed ranges that do not meet the true day.** Fallbacks keep D30's ranges, which must also hold their truth (reported: `d30_misses` 0).
+   - *What 0 misses means* (amended, S4): soundness on the generator's wording only, one writer's templates. It says nothing about real letters. The hazards there:
+     - month-first dates (an ambiguous `03/04/2019` is read day first);
+     - truncated ages ("8 completed months" read as the nearest month, so too narrow);
+     - phrases outside the templates (the reader falls back to D30 on what it cannot parse, but a phrase it half-parses could mislead it).
+   - *Named precondition:* `normalised_v1` may never become a default, for any source, without a **held-out wording test**: letters not written from the generator's templates, annotated with true times, on which the same soundness rule is met.
 2. **Coverage and tightening (reported).** From the same run:
    - the share of mentions narrowed, by rule, and the fallbacks by reason;
    - the days covered (median and 90th percentile), over narrowed mentions and over all mentions, beside D30's;
    - the annotated time expressions found verbatim in their clause, and those the normaliser read exactly.
 3. **Usefulness** (`arms`, report `verification/e0-mention-time-arms-report.json`). The page's templates, matched through `store_conditions.match`, the page server's entry point.
-   - *Ruled,* for arm GT under stated findings (the page's default, no options), for Sequence, Tree, Graph and Blank: at least 30 candidates pooled (a store candidate and an index window), and at most 30% of distinct child types unresolved (the owner's counting rule: `PLAN` keys, C001 as `reference`).
+   - *Ruled* (amended, S2: the owner's bar cannot fail meaningfully here, since `unresolved` comes only from stopped searches). A result is *decided* when it is `exact`, a complete `none`, or a complete `relaxed` match with certainty `exact` (`decided`). From G to GT:
+     - **0 results move away from decided**, over every patient of every case, both settings (a decided G result whose GT result is not the same decided claim). Rule 4 implies it; it is stated and counted;
+     - **at least one result moves toward decided**, over every patient of the four stated-findings templates, pooled over the seeds used.
+   - *Reported:* the owner's bar for arm GT under stated findings (Sequence, Tree, Graph, Blank): at least 30 candidates pooled (a store candidate and an index window), and at most 30% of distinct child types unresolved (`PLAN` keys, C001 as `reference`). The seed extension still reads candidate counts only.
    - *Coverage:* only Event frequency under stated findings is refused (`FREE_TEXT_COUNT_UNSUPPORTED`).
    - *Reported,* per template and arm (G, GT, T):
      - all candidates and the count without C001;
      - status mixes;
      - **the `exact` results, and how many candidates become `exact` from G to GT**;
-     - the status transitions G to GT among candidates;
+     - every status transition, G to GT, GT to T and G to T, over every patient and among candidates;
+     - the results moving toward and away from decided, per template and pair;
      - T's figures as the ceiling that perfect mention timing would reach.
 4. **Wrong answers.** G's worlds contain GT's (each GT start lies within G's), which contain T's, so every decided claim of a larger arm must hold in a smaller one. An `exact` stays `exact`. A complete `none` stays `none`. A `relaxed` result's unrelaxed query stays impossible, and a complete `exact` relaxed match stays the same match. A smaller arm's `unresolved` or `not_comparable` decides nothing, and windows are the same (`transition_ok`). **0 contradictions from G to GT and from GT to T**, over every patient of every case (both settings, every seed). A GT result that T contradicts is a wrong answer against the mentions' true times. G to T is reported.
+   - *The check checked something* (amended, S3): the larger arm's claims `transition_ok` tests are counted by type (`exact`, complete `none`, `relaxed`), pooled over every case, for G to GT and for GT to T. **Each type's total is above 0 for each pair**, or the rule is missed.
 5. **Negative control.** Under coded only (Sequence, Event frequency and Blank under profile 1.3; Tree and Graph joint), GT's and T's results and candidate lists are **identical to G's**, for every patient and every seed.
 6. **Planted defects.** `tools/e0_measure.py defects --committed --seeds 5001-5030`. Each of `naive_years` ("at N years" read as about N years), `month_off_by_one` (N months read as N + 1), `result_cue` (a genetic result or a reclassification read as since the previous letter) and `stop_ignored` (the clause's time applied to a mention followed by "was stopped") must give **at least one miss** of rule 1.
 7. **Build reuse and defaults.**
-   - The diff against b575ba8 changes no existing file under `patterns/`, and changes neither the build worker, `store_parity.py`, `store_trajectory.py`, any page file nor the generator. The new and changed files are listed under Tools.
+   - The diff against main (b575ba8; after the rebase, the main E0 is rebased onto) changes no existing file under `patterns/`, and changes neither the build worker, `store_parity.py`, `store_trajectory.py`, any page file nor the generator. The new and changed files are listed under Tools.
    - The wrapper's default output equals the converter's byte for byte (and the gene wrapper's), and a default build through it has the converter's snapshot identity (the suite; the store test runs with DuckDB).
    - The 300 recorded digests are unchanged (the suites).
-   - No committed report goes stale (`check_report_provenance`: 0 stale); none is regenerated or frozen.
+   - No committed report goes stale (`check_report_provenance`: 0 stale); none is regenerated or frozen except the test-count report (`verification/test-count-report.json`, written by `check_test_counts --write`).
 8. **Latency: structural, ruled.** No timed path changes. No module a build, a benchmark or the page server runs imports either new module (the suite's import check), and rule 7's diff leaves every existing timed file byte-identical, so every timed path makes 0 calls into E0's code and no paired ratio is ruled. *Reported:* each arm's match time in the arms run. Narrower mentions change the data GT's matching sees, not the code (D30 put the cost of wide mentions at about 10%).
 9. **Gates:**
    - all suites;
@@ -5003,9 +5013,26 @@ the lows it found are fixed too.
 - Leaving a genetic "result:" and "reclassified" out of the cue list stands, disclosed as above.
 - An independent review of da2267e runs before the job starts.
 
-**Regeneration.** None expected: no committed report binds a file E0 changes. The three E0 reports are new (soundness, defects, arms), produced in one job under the bench lock after the checkpoint.
+**Independent review of da2267e, and amendments before any measurement** (the coordinator's fixes, as delegate; the rules above are as amended). The reviewer's brute-force script is `/tmp/e0-review/brute.py`.
+- *Verdict: no must-fix.* The normaliser is truth-free and sound on every wording the generator prints (2,890,800 brute-force checks, 0 misses). The arms tool and `transition_ok` are sound.
+- **S1, the order of the jobs.** `tools/e0_measure.py`'s `ARTIFACTS` binds files the other two tracks change: `patterns/trajectory_graph.py` (D48b), and `trajectory/store_request.js` and `trajectory/app.js` (D49). So **E0 measures after both D48b and D49 have landed**. E0 is then rebased onto that main, "main" and rule 7's diff base become that commit, and the job runs.
+  - *Why the figures should not depend on either.* Every rule compares arms on the same requests, built from the same code, in one tree.
+    - D48b changes only searches that pass 1,000 steps, moving a stopped search to a decided one and leaving every decided result as it was.
+    - D49 changes the page's translator defaults. Under stated findings the tool passes no options, as the page does. Under coded only it passes explicit options (`codedOnly: 'store'`, `geneCodedOnly` for Tree and Graph), so it does not read the coded-only defaults.
+    - Any change either makes to a request or a search applies to G, GT and T alike.
+- **S2, rule 3's bar.** Made reported. Ruled instead: 0 results away from decided from G to GT, and at least one toward decided (rule 3). Every transition reported.
+- **S3, rule 4's count of claims.** The checkable claims are counted by type for G to GT and GT to T, and each total must be above 0 (rule 4).
+- **S4, one writer.** Rule 1 states that 0 misses means soundness on the generator's wording only, lists the real-letter hazards, and records the held-out wording test as a named precondition for any default.
+- *Nits:*
+  - rule 7 names the one report written, the test-count report;
+  - the Dutch "Gestart met" cue is never reached on generator letters: its clause always carries a date ("Gestart met … op dd-mm-yyyy"), which wins. It is tested on a constructed letter only;
+  - the age reader is English only ("at N months"). Dutch and French ages ("6 maanden", "9 mois") are not read; those letters' dates are.
+- *Tool changes* (`tools/e0_measure.py`): `decided`, `claim_type`, the counts in `compare` (claims checked, toward and away from decided, every transition) and the verdict. Tests in `tools/test_e0_measure.py` (10).
+- *Disclosed: a tool check on development seed 4601 only.* `arms` there: toward decided 3, away 0; claims checked from G to GT: `exact` 34, complete `none` 83, `relaxed` 9; from GT to T: 37, 83 and 9.
+
+**Regeneration.** None expected: no committed report binds a file E0 changes. The three E0 reports are new (soundness, defects, arms), produced in one job under the bench lock, after the rebase onto the main where D48b and D49 have landed.
 
 **Follow-ups** (named now).
-- The page's store under `normalised_v1` (above), if the coordinator or the owner wants it.
+- The page's store under `normalised_v1` (above), if the coordinator or the owner wants it, after the held-out wording test (rule 1's precondition).
 - A mention layer and an extractor (the study's E1), for which this normaliser is the timing stage.
 - Linking letter mentions to coded records (the study's E3). It would time the "Current medication" restatements, the bulk of the untimed mentions.
