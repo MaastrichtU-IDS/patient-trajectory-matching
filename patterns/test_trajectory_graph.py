@@ -1,10 +1,12 @@
 """Trajectory-graph profile: semantics, decision methods, budgets and the exhaustive reference."""
 from collections import Counter
+import contextlib
 from copy import deepcopy
 from dataclasses import replace
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 import random
 import sys
@@ -1586,6 +1588,382 @@ class PreparedQueryTests(unittest.TestCase):
                          {**event('b', 'blocker', (200, 210)), 'start_var': 'v'}])
         with self.assertRaisesRegex(tg.TrajectoryError, 'EMPTY_SHARED_VARIABLE'):
             tg.match_prepared(pq, clash, trusted=True)
+
+
+# D48: the hull check of a joint search that has spent HULL_AFTER steps. D40's budgeted generators (263eb5d, reverted
+# with D40's settling and restored here) make searches stop; the checks run with HULL_AFTER = 1 so that every search
+# with a budget above 1 is checked before its first step.
+
+def budget_case(rng, make):
+    """D40: a case from `make` (`tiny_case`, `ordered_case` or `during_case`) whose bounded searches stop: a search
+    budget of 1 to 12, and two to five more events at exact times (an exact event adds no choice of times, so the worlds
+    stay as few), and steps made `any` steps now and then, so that steps often have more candidates than the budget
+    lets a search try."""
+    while True:
+        q, p = make(rng)
+        p = deepcopy(p)
+        for i in range(rng.randint(2, 5)):
+            t = rng.randint(0, 8)
+            e = {'id': f'z{i}', 'concepts': [*rng.choice([['x'], ['y'], ['x', 'y']]), 'any'], 'start': [t, t]}
+            if rng.random() < 0.3:
+                e['end'] = [t + rng.randint(0, 3)] * 2
+            p['events'].append(e)
+        q = {**q, 'search_budget': rng.choice([1, 1, 2, 3, 5, 12])}
+        # An `any` step tries every candidate, so its search stops more often: one step made `any` half the time,
+        # every step a quarter of the time.
+        k, every = rng.randrange(len(q['steps'])), rng.random() < 0.25
+        if every or rng.random() < 0.5:
+            q['steps'] = [{**s, 'occurrence': 'any'} if every or i == k else s for i, s in enumerate(q['steps'])]
+        try:
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        return q, p
+
+
+def search_case(rng):
+    """D40: a case built to make bounded searches stop: three or four steps, mostly `any`, on concepts x and y whose
+    families overlap, related by a tree of relations and one or two more (so there is a cycle), on five to eight events,
+    three of them with narrow uncertain ranges (some exposures, some sharing a variable) on a short grid, with a search
+    budget of 1 to 12. Sometimes a `first` or `last` step, a widening or a longer bound."""
+    while True:
+        events = []
+        for i in range(rng.randint(5, 8)):
+            lo = rng.randint(0, 8)
+            e = {'id': f'e{i}', 'concepts': rng.choice([['x'], ['y'], ['x', 'y'], ['x'], ['y']]),
+                 'start': [lo, lo + (rng.choice([0, 0, 1, 2]) if i < 3 else 0)]}
+            if rng.random() < 0.25:
+                end = e['start'][1] + rng.randint(0, 3)
+                e['end'] = [end, end + (rng.choice([0, 1]) if i < 3 else 0)]
+            events.append(e)
+        if rng.random() < 0.1:
+            a, b = rng.sample(events[:3], 2)
+            b['start_var'], b['start'] = a.get('start_var', a['id'] + '.s'), list(a['start'])
+            if 'end' in b:
+                b['end'] = [max(b['end'][0], b['start'][1] + 1), max(b['end'][1], b['start'][1] + 1)]
+        k = rng.choice([3, 3, 4])
+        names = 'ABCD'[:k]
+        steps = [{'id': s, 'concept': rng.choice('xy'),
+                  'occurrence': rng.choice(['any', 'any', 'any', 'any', 'first', 'last'])} for s in names]
+        def relation(rid, a, b):
+            if rng.random() < 0.15:
+                return {'id': rid, 'kind': 'during', 'from': a, 'to': b, 'grace': rng.choice([0, 1])}
+            lo = rng.choice([-4, -2, -1, 0, 0, 1, None])
+            hi = None if lo is None and rng.random() < 0.5 else rng.choice([1, 3, 5]) if lo is None else lo + rng.choice([1, 3, 5, 8])
+            return {'id': rid, 'kind': 'after', 'from': a, 'to': b,
+                    **({} if lo is None else {'min': lo}), **({} if hi is None else {'max': hi})}
+        relations = [relation(f'r{j}', names[rng.randrange(j)], names[j]) for j in range(1, k)]
+        for j in range(rng.randint(1, 2)):
+            a, b = rng.sample(names, 2)
+            relations.append(relation(f'c{j}', a, b))
+        if rng.random() < 0.3:
+            relations.append({'id': 'w', 'kind': 'after', 'from': 'START', 'to': rng.choice(names),
+                              'min': rng.choice([0, 1, 2])})
+        relaxations = []
+        if rng.random() < 0.3:
+            relaxations.append({'id': 'wd', 'kind': 'widen_concept', 'cost': '0.5', 'step': rng.choice(names),
+                                'concept': rng.choice('xy')})
+        bounded = [r for r in relations if r['kind'] == 'after' and r.get('max') is not None]
+        if bounded and rng.random() < 0.3:
+            r = rng.choice(bounded)
+            relaxations.append({'id': 'longer', 'kind': 'extend_max', 'cost': '0.25', 'relation': r['id'],
+                                'max': r['max'] + 2})
+        q = query(steps, relations, scope=rng.choice(['any', 'any', 'from_start']), relaxations=relaxations, budget=1,
+                  search_budget=rng.choice([1, 1, 2, 3, 5, 12]))
+        p = patient(events, (0, 12), 'P')
+        try:
+            tg.validate_query(q)
+            tg.validate_patient(p)
+        except tg.TrajectoryError:
+            continue
+        if worlds.count_worlds(p, 20) <= 3000:
+            return q, p
+
+
+BUDGET_GENERATORS = (('tiny', lambda rng: budget_case(rng, tiny_case)),
+                     ('ordered', lambda rng: budget_case(rng, ordered_case)),
+                     ('during', lambda rng: budget_case(rng, during_case)),
+                     ('search', search_case))
+
+
+def budget_cases(each=300, seed='d48'):
+    """`each` cases of every budgeted generator."""
+    cases = []
+    for name, make in BUDGET_GENERATORS:
+        rng = random.Random(f'{seed}-{name}')
+        cases += [make(rng) for _ in range(each)]
+    return cases
+
+
+@contextlib.contextmanager
+def hull_switch(on=True, after=None):
+    """D48's switch and threshold for the duration of a block."""
+    saved = tg._HULL, tg.HULL_AFTER
+    tg._HULL = on
+    if after is not None:
+        tg.HULL_AFTER = after
+    try:
+        yield
+    finally:
+        tg._HULL, tg.HULL_AFTER = saved
+
+
+def hull_runs(q, p, after=1):
+    """The engine's result with the hull check on (from `after` steps), and how many checks ran and refuted."""
+    calls, inner = [], tg._hull_refutes
+    def spy(*a):
+        out = inner(*a)
+        calls.append(out)
+        return out
+    tg._hull_refutes = spy
+    try:
+        with hull_switch(True, after):
+            r = tg.match(q, p)
+    finally:
+        tg._hull_refutes = inner
+    return r, len(calls), sum(calls)
+
+
+def unhulled(q, p):
+    """The engine's result with the hull check off: main's engine."""
+    with hull_switch(False):
+        return tg.match(q, p)
+
+
+def decided_view(r):
+    """What a decided engine result and the reference both say: status, and the relaxation set and certainty."""
+    return r['status'], r.get('relaxations'), r.get('certainty')
+
+
+def d48_check(q, p, seen, after=1):
+    """D48's checks on one case; returns the failures (empty when every check passes) and counts what moved:
+    - the worlds check finds nothing wrong in the result (`trajectory_graph_worlds.check`);
+    - a decided result (not `unresolved`, and `complete`) equals the truth by enumeration and the reference's result;
+    - against the switch off, a changed result was undecided (`engine_undecided`), and every field of a result the
+      switch off decided is unchanged;
+    - with the query's search budget raised to 40,000 (no search stops), the result equals the switch off's in every
+      field."""
+    new, ran, refuted = hull_runs(q, p, after)
+    old = unhulled(q, p)
+    out = [f'worlds: {w}' for w in worlds.check(new, q, p)]
+    if not engine_undecided(new):
+        truth = worlds.truth(q, p)
+        if worlds.result_key(new) != truth:
+            out.append(f'decided {worlds.result_key(new)} but the truth is {truth}')
+        reference = ref.match(q, p)
+        if reference.get('passed') or reference['status'] == 'unresolved' or decided_view(new) != decided_view(reference):
+            out.append(f'decided {decided_view(new)} but the reference says {reference}')
+    if new != old:
+        if not engine_undecided(old):
+            out.append(f'a decided result changed: {old} -> {new}')
+        seen['to a decision' if not engine_undecided(new) else 'within undecided'] += 1
+    large = {**q, 'search_budget': 40_000}
+    big, big_ran, big_refuted = hull_runs(large, p, after)
+    if big != unhulled(large, p):
+        out.append('at a budget of 40,000 the result differs from the switch off\'s')
+    seen['checks'] += ran + big_ran
+    seen['refuted'] += refuted + big_refuted
+    seen['undecided before'] += engine_undecided(old)
+    return out
+
+
+def oracle_facts(rng, step_ids, events):
+    """Zero to two random order facts between two steps, as the envelope search and the target split make them: an
+    `OrderFact` with or without a concept, or a `TargetFact` on a random set of event ids."""
+    facts = []
+    for _ in range(rng.choice([0, 1, 1, 2]) if len(step_ids) > 1 else 0):
+        a, b = rng.sample(step_ids, 2)
+        lo = rng.choice([-tg.INF, -2, 0, 0, 1])
+        hi = rng.choice([tg.INF, tg.INF, 0, 2, 4]) if lo == -tg.INF else lo + rng.choice([0, 1, 3, tg.INF])
+        if rng.random() < 0.3:
+            ids = frozenset(e.id for e in events if rng.random() < 0.5)
+            facts.append(tg.TargetFact((a, 's'), (b, 's'), lo, hi, 'order', None, ids))
+        else:
+            facts.append(tg.OrderFact((a, 's'), (b, 's'), lo, hi, 'order', rng.choice([None, 'x', 'y'])))
+    return facts
+
+
+def satisfiable(step_ids, domains, constraints, facts, patient_, all_worlds):
+    """The brute-force oracle: whether some binding of the domains and some world satisfy every constraint and every
+    fact that applies to the binding, each read directly in the world (no network)."""
+    anchor = {'START': patient_['window']['start'], 'END': patient_['window']['end']}
+    from itertools import product
+    for chosen in product(*[domains[s] for s in step_ids]):
+        b = dict(zip(step_ids, chosen))
+        live = list(constraints) + [c for c in facts if c.applies(b, TIMES_STUB)]
+        def value(t, term):
+            if term[0] in anchor:
+                return anchor[term[0]]
+            e = b[term[0]]
+            return t[e.sv if term[1] == 's' else e.fv]
+        for t in all_worlds:
+            if all(c.lo <= value(t, c.y) - value(t, c.x) <= c.hi for c in live):
+                return True
+    return False
+
+
+class _NoSynthetic:
+    """A stand-in for `Times` when a fact's condition is read on a patient's own events: none of them is a point
+    `_Occurrence` adds."""
+    synthetic = frozenset()
+
+
+TIMES_STUB = _NoSynthetic()
+
+
+def oracle_case(rng):
+    """One random small network for the oracle: a budgeted case's query and patient, one of its relaxation sets, each
+    step's candidates as its domain (no filtering, so the check meets every event), random order facts. None when a
+    domain is empty or the brute force would be too large."""
+    q, p = rng.choice(BUDGET_GENERATORS)[1](rng)
+    times = tg.patient_times(p)
+    sets = [()] + [chosen for _, chosen in tg.relaxation_sets(q)]
+    plan = tg._Plan(q, rng.choice(sets))
+    step_ids = [s['id'] for s in q['steps']]
+    domains = {s: [r[tg._EVENT] for r in plan.candidates(s, times)] for s in step_ids}
+    if not all(domains.values()):
+        return None
+    facts = oracle_facts(rng, step_ids, [e for d in domains.values() for e in d])
+    return q, p, times, step_ids, domains, plan.constraints, facts
+
+
+def oracle_check(rng, refute=None, max_work=60_000):
+    """One oracle case: (ran, refuted, wrong), wrong meaning the check refuted a network some binding satisfies."""
+    case = oracle_case(rng)
+    if case is None:
+        return False, False, False
+    q, p, times, step_ids, domains, constraints, facts = case
+    refuted = (refute or tg._hull_refutes)(step_ids, domains, constraints, facts, times)
+    if not refuted:
+        return True, False, False
+    _, all_worlds = worlds.worlds(p, worlds._horizon(q, p))
+    if math.prod(len(d) for d in domains.values()) * len(all_worlds) > max_work:
+        return False, False, False
+    return True, True, satisfiable(step_ids, domains, constraints, facts, p, all_worlds)
+
+
+def planted_hull_defects():
+    """D48's planted defects, each a replacement for `_hull_refutes` built on the real one."""
+    real = tg._hull_refutes
+    unconditional = lambda facts: [tg.OrderFact(c.x, c.y, c.lo, c.hi, c.source, None) for c in facts]
+    tighter = lambda cs: [replace(c, lo=c.lo + 1) if c.lo != -tg.INF else c for c in cs]
+    return {
+        'refutes always': lambda ids, d, cs, fs, t: True,
+        'the refutation inverted': lambda ids, d, cs, fs, t: not real(ids, d, cs, fs, t),
+        "each step's hull from its first event only": lambda ids, d, cs, fs, t: real(ids, {s: d[s][:1] for s in d}, cs, fs, t),
+        'every fact applied whatever its condition': lambda ids, d, cs, fs, t: real(ids, d, cs, unconditional(fs), t),
+        'a lower bound off by one': lambda ids, d, cs, fs, t: real(ids, d, tighter(cs), fs, t),
+    }
+
+
+def cycle_case(n=(5, 10, 12, 30), budget=10_000):
+    """D48: a set no binding satisfies that pairwise tests cannot see, with a search tree larger than its budget. A, B
+    and C form a cycle with negative total length whichever events are bound (C at least B, B at least A + 10, C at most
+    A + 2), each pair plausible alone over wide ranges; D, related to A only, is searched before C (fewer events) and
+    multiplies the dead ends, as S3 does in seed 44's patient."""
+    events = []
+    for step, count in zip('ADBC', n):
+        events += [event(f'{step.lower()}{i}', step.lower(), (i, i + 60)) for i in range(count)]
+    q = query([{'id': s, 'concept': s.lower()} for s in 'ABCD'],
+              [{'id': 'AB', 'kind': 'after', 'from': 'A', 'to': 'B', 'min': 10},
+               {'id': 'AC', 'kind': 'after', 'from': 'A', 'to': 'C', 'max': 2},
+               {'id': 'BC', 'kind': 'after', 'from': 'B', 'to': 'C', 'min': 0},
+               {'id': 'AD', 'kind': 'after', 'from': 'A', 'to': 'D', 'min': -100, 'max': 100}],
+              search_budget=budget)
+    return q, patient(events, (0, 1000))
+
+
+class HullCheckTests(unittest.TestCase):
+    """D48: a joint search that reaches HULL_AFTER steps checks once whether its steps' hulls admit any choice of times
+    (`_hull_refutes`); no solution ends the search complete and empty. The check never refutes a satisfiable network
+    (a brute-force oracle), results stay sound and equal to the truth and the reference, a decided result never changes,
+    and the planted defects are caught."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = budget_cases()
+
+    def test_the_cycle_case_moves_from_stopped_to_none_as_a_large_budget_decides_it(self):
+        q, p = cycle_case()
+        old = unhulled(q, p)
+        self.assertEqual((old['status'], old['reason']), ('unresolved', 'SEARCH_BUDGET_EXHAUSTED'))
+        new, ran, refuted = hull_runs(q, p, after=tg.HULL_AFTER)
+        self.assertEqual(new, {'patient_id': 'P1', 'status': 'none', 'complete': True})
+        self.assertEqual((ran, refuted), (1, 1))
+        self.assertEqual(unhulled({**q, 'search_budget': 1_000_000}, p), new)
+        # The phase is reported complete, with the steps spent and the mark, under its own method.
+        times, plan = tg.patient_times(p), tg._Plan(q, ())
+        phase = tg.decide(q, times, (), q['search_budget'], plan)['possible']
+        self.assertEqual(phase, {'found': False, 'complete': True, 'method': 'bounded_backtracking',
+                                 'search_steps': tg.HULL_AFTER, 'hull_refuted': True})
+        with hull_switch(False):
+            phase = tg.decide(q, times, (), q['search_budget'], plan)['possible']
+        self.assertEqual((phase['complete'], phase['search_steps'], 'hull_refuted' in phase), (False, 10_001, False))
+
+    def test_a_search_within_the_threshold_or_with_a_small_budget_never_checks(self):
+        q, p = cycle_case(budget=tg.HULL_AFTER)
+        new, ran, _ = hull_runs(q, p, after=tg.HULL_AFTER)
+        self.assertEqual((ran, new['reason']), (0, 'SEARCH_BUDGET_EXHAUSTED'))
+        self.assertIsInstance(tg._meter(tg.HULL_AFTER, None), tg.Budget)
+        self.assertNotIsInstance(tg._meter(tg.HULL_AFTER, None), tg._HullBudget)
+        self.assertIsInstance(tg._meter(tg.HULL_AFTER + 1, None), tg._HullBudget)
+        with hull_switch(False):
+            self.assertNotIsInstance(tg._meter(40_000, None), tg._HullBudget)
+        # The budgeted cases (budgets 1 to 12) at the default threshold: no check, and main's result.
+        for q, p in self.cases[::10]:
+            new, ran, _ = hull_runs(q, p, after=tg.HULL_AFTER)
+            self.assertEqual((ran, new), (0, unhulled(q, p)))
+
+    def test_a_search_the_check_does_not_refute_takes_exactly_the_steps_it_took(self):
+        q, p = cycle_case()
+        # C at least B - 100: the cycle stays (so the search runs) but its length is no longer negative.
+        q = {**q, 'relations': [{**r, 'min': -100} if r['id'] == 'BC' else r for r in q['relations']]}
+        times, plan = tg.patient_times(p), tg._Plan(q, ())
+        calls, inner = [], tg._hull_refutes
+        tg._hull_refutes = lambda *a: calls.append(inner(*a)) or calls[-1]
+        try:
+            with hull_switch(True, 1):
+                on = tg.decide(q, times, (), 40_000, plan)
+        finally:
+            tg._hull_refutes = inner
+        with hull_switch(False):
+            off = tg.decide(q, times, (), 40_000, plan)
+        self.assertEqual(calls, [False])
+        self.assertEqual(on['possible']['method'], 'bounded_backtracking')
+        self.assertEqual(on, off)
+
+    def test_budgeted_cases_are_sound_decided_like_the_truth_and_move_only_from_undecided(self):
+        seen = Counter()
+        for i, (q, p) in enumerate(self.cases):
+            failures = d48_check(q, p, seen)
+            self.assertEqual(failures, [], f'case {i}: {q} {p}')
+        # The check ran and refuted, and moved stopped searches, so the comparison means something (a search with a
+        # budget of 1 is never checked: its limit does not exceed HULL_AFTER).
+        self.assertGreater(seen['refuted'], 40, seen)
+        self.assertGreater(seen['to a decision'], 4, seen)
+
+    def test_the_check_never_refutes_a_network_some_binding_satisfies(self):
+        rng = random.Random('d48-oracle')
+        counted = Counter()
+        while counted['refuted'] < 300:
+            ran, refuted, wrong = oracle_check(rng)
+            counted['ran'] += ran
+            counted['refuted'] += refuted
+            self.assertFalse(wrong)
+        self.assertGreater(counted['ran'], counted['refuted'])
+
+    def test_planted_defects_are_caught(self):
+        for name, planted in planted_hull_defects().items():
+            with self.subTest(defect=name):
+                saved = tg._hull_refutes
+                tg._hull_refutes = planted
+                try:
+                    caught = sum(bool(d48_check(q, p, Counter())) for q, p in self.cases[:600])
+                finally:
+                    tg._hull_refutes = saved
+                rng = random.Random(f'd48-oracle-{name}')
+                wrong = sum(oracle_check(rng, planted)[2] for _ in range(400))
+                self.assertGreater(caught + wrong, 0)
 
 
 if __name__ == '__main__':
