@@ -1,0 +1,27 @@
+# Allow-list for deploy/ids3/mockups.Dockerfile. BuildKit uses this file instead of the root .dockerignore when it
+# builds that Dockerfile, so the context holds only these paths. Nothing under data/, verification/ or any local
+# store can reach the build, whatever lies in the working tree.
+*
+!patterns/
+!schemas/
+!ontology/
+!demos/mockups/synthetic/generate.py
+!demos/mockups/requirements-hosting.lock.txt
+!demos/mockups/server.py
+!demos/mockups/access.py
+!demos/mockups/datasets.py
+!demos/mockups/store_query.py
+!demos/mockups/store_trajectory.py
+!demos/mockups/store_parity.py
+!demos/mockups/index.html
+!demos/mockups/shared/
+!demos/mockups/patient-first/
+!demos/mockups/trajectory/
+!demos/mockups/store-query/
+!demos/mockups/roadmap/
+!demos/mockups/results/index.html
+!demos/mockups/results/results.json
+**/__pycache__
+**/*.py[cod]
+patterns/test_*.py
+patterns/fixtures/

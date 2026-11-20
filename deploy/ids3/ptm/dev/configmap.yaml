@@ -1,0 +1,81 @@
+# ids3/projects/ptm/dev/configmap.yaml
+# Non-secret configuration only. ptm-dev has no secret (README, "Secrets"); every value below is a public fact the
+# browser receives anyway or a deployment setting.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ptm-mockups-config
+data:
+  # The dataset registry: the file from ConfigMap ptm-mockups-datasets (below), mounted by app.yaml.
+  PTM_DATASETS: /etc/ptm/datasets.json
+
+  # ── Authentication (platform Keycloak, shared user realm) ────────────────
+  # REALM NAME TO CONFIRM: "semanticscience" is the working name of the owner's shared, open realm for user-facing
+  # apps (KEYCLOAK-REALM.md). It is NOT the infrastructure realm ids3.
+  # PTM_OIDC_ISSUER is the browser-facing URL and must equal the `iss` Keycloak stamps into tokens.
+  # PTM_OIDC_JWKS_URI is the server-side key fetch, in-cluster, deliberately a different address (the
+  # sulo-schema-builder pattern); allow-keycloak-egress.yaml opens it. Deriving one from the other 401s everything.
+  PTM_OIDC_ISSUER: https://keycloak.k8s.semanticscience.org/realms/semanticscience
+  PTM_OIDC_JWKS_URI: http://keycloak.platform.svc.cluster.local:8080/realms/semanticscience/protocol/openid-connect/certs
+  # Every access token must name this audience (an "Included Custom Audience" mapper on the ptm-mockups client).
+  PTM_OIDC_AUDIENCE: ptm-api
+  # The public browser client (PKCE, no secret); served to the page by GET /api/auth-config.
+  PTM_OIDC_CLIENT_ID: ptm-mockups
+  # The realm role the `approved` group grants. Datasets above "public" need it; role-gated datasets need it too.
+  PTM_APPROVED_ROLE: approved
+
+  # ── Limits ───────────────────────────────────────────────────────────────
+  # Largest request body the server reads, in bytes (local default 20 MiB). The pages' requests are far smaller;
+  # Traefik's buffering middleware (middleware.yaml) refuses larger bodies first.
+  PTM_MAX_BODY: "2097152"
+  # Matches running at once in this pod; one more waits up to a few seconds, then gets 503 BUSY.
+  PTM_MATCH_CONCURRENCY: "4"
+
+  # ── Logs ─────────────────────────────────────────────────────────────────
+  # One JSON line per API request on stdout (route, status, duration, dataset, auth kind, token subject); never a
+  # body, a token or a header. The k8s-infra daemonset ships stdout to SigNoz; service.name comes from the pod label.
+  PTM_LOG_FORMAT: json
+
+  # ── Tracing: deferred (owner, 2026-11-20). How to turn it on: hosting plan, section 5. ──────────────────────
+  # OTEL_SDK_DISABLED: "true"
+  # OTEL_SERVICE_NAME: ptm-mockups
+  # OTEL_RESOURCE_ATTRIBUTES: service.name=ptm-mockups,deployment.environment=dev
+  # OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz-otel-collector.platform.svc.cluster.local:4318
+  # OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  # OTEL_TRACES_EXPORTER: otlp
+  # OTEL_LOGS_EXPORTER: none
+  # OTEL_METRICS_EXPORTER: none
+
+  # ── Egress ───────────────────────────────────────────────────────────────
+  # The namespace is egress-locked and the server makes no external call today; the JWKS fetch is in-cluster and
+  # matches NO_PROXY. Set so that any later outbound call goes through the egress-proxy without a manifest change.
+  HTTP_PROXY: http://egress-proxy.platform.svc.cluster.local:3128
+  HTTPS_PROXY: http://egress-proxy.platform.svc.cluster.local:3128
+  http_proxy: http://egress-proxy.platform.svc.cluster.local:3128
+  https_proxy: http://egress-proxy.platform.svc.cluster.local:3128
+  NO_PROXY: 127.0.0.1,localhost,10.42.0.0/16,10.43.0.0/16,.svc,.svc.cluster.local,.cluster.local
+  no_proxy: 127.0.0.1,localhost,10.42.0.0/16,10.43.0.0/16,.svc,.svc.cluster.local,.cluster.local
+---
+# The dataset registry (demos/mockups/datasets.py), mounted at /etc/ptm/datasets.json. A separate ConfigMap, so its
+# file key is never offered to envFrom as a variable name.
+# On dev: the synthetic cohort only, public, per-patient answers. The MIMIC-IV demo (login + approved, aggregates
+# only) and full MIMIC-IV (login + approved + dataset:mimic-iv:read) are NOT configured here: the first waits for a
+# delivery route for its store, the second for the storage and backup access review (hosting plan, section 7). The
+# server refuses an entry that loosens a dataset kind's minimum policy, and refuses full MIMIC-IV outright.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ptm-mockups-datasets
+data:
+  datasets.json: |
+    {
+      "datasets": [
+        {
+          "id": "synthetic-paediatric-rare",
+          "kind": "synthetic-trajectory",
+          "title": "Synthetic paediatric rare-disease cohort (48 invented patients)",
+          "access": "public",
+          "results": "per_patient"
+        }
+      ]
+    }

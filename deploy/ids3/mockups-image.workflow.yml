@@ -1,0 +1,53 @@
+# DRAFT GitHub Actions workflow, NOT active: it lives outside .github/workflows/ on purpose. Move it to
+# .github/workflows/mockups-image.yml when the owner approves publishing the image (hosting plan, section 2).
+#
+# Builds deploy/ids3/mockups.Dockerfile and publishes it to GHCR only for a tag `mockups-vX.Y.Z`, as `X.Y.Z` (never
+# `latest`), after starting the image and checking it: health during the build, readiness, the anonymous dataset
+# list, and no MIMIC data or variable in the image. The digest is printed for the services-repo PR.
+name: mockups image
+
+on:
+  push:
+    tags: ['mockups-v*']
+  workflow_dispatch:   # builds and checks without publishing
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Version from the tag
+        id: version
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then echo "tag=${GITHUB_REF_NAME#mockups-v}" >> "$GITHUB_OUTPUT"; else echo "tag=check" >> "$GITHUB_OUTPUT"; fi
+      - name: Build (loaded locally, not pushed yet)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/ids3/mockups.Dockerfile
+          load: true
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.tag }}
+      - name: Start it read-only and check it
+        run: |
+          ref="$IMAGE:${{ steps.version.outputs.tag }}"
+          docker run -d --name m --read-only --tmpfs /tmp:size=256m -p 8080:8080 "$ref"
+          for i in $(seq 1 30); do curl -fsS localhost:8080/api/health && break; sleep 1; done
+          for i in $(seq 1 60); do curl -fsS localhost:8080/api/ready && break; sleep 1; done
+          curl -fsS localhost:8080/api/datasets | python3 -c "import json,sys; d=json.load(sys.stdin); assert [x['id'] for x in d['datasets']]==['synthetic-paediatric-rare'], d"
+          curl -fsS localhost:8080/api/store/status | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['available'] is False, d"
+          test -z "$(docker exec m sh -c 'find / -xdev \( -iname "*mimic*" -a \( -name "*.duckdb" -o -name "*.parquet" -o -name "*.csv.gz" \) \) 2>/dev/null')"
+          test -z "$(docker exec m env | grep -i '^PTM_MIMIC' || true)"
+          docker rm -f m
+      - name: Publish (tags only)
+        if: github.ref_type == 'tag'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "$IMAGE:${{ steps.version.outputs.tag }}"
+          docker buildx imagetools inspect "$IMAGE:${{ steps.version.outputs.tag }}" --format '{{json .Manifest.Digest}}'

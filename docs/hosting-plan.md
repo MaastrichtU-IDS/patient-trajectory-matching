@@ -1,0 +1,274 @@
+# Hosting plan for the store-backed mockups, on the ids3 cluster
+
+A plan for the owner and the cluster admin. Nothing here has been deployed or published. The manifests are drafts in
+[`deploy/ids3/ptm/dev/`](../deploy/ids3/ptm/dev/), laid out as `ids3/projects/ptm/dev/` in the
+`maastrichtu-ids/services` repo, ready to copy into a services-repo PR. This replaces the Cloud Run plan of the held
+PR #153: the target is now ids3 (owner decisions of 2026-11-17 to 2026-11-20, recorded as D49 in the
+[decision log](decisions/engine-increment-log.md)).
+
+## Owner decisions this plan implements
+
+- **Target:** ids3 (k3s, ArgoCD GitOps from `maastrichtu-ids/services`), project/env `ptm/dev`, namespace `ptm-dev`,
+  host `ptm.k8s.semanticscience.org`.
+- **Data on dev:** synthetic only. The design allows several datasets, each with its own access policy.
+- **Observability:** logs only. Tracing is deferred; section 5 says how to turn it on.
+- **Accounts:** one shared, open Keycloak realm for the owner's user-facing apps, separate from the infrastructure
+  realm `ids3`. Self-registration by email or via ORCID, GitHub and Google; several providers per account; no roles
+  until the owner adds the account to group `approved`; the owner emailed at each registration; a backup realm admin
+  still to be named.
+- **Dataset tiers:** small synthetic, public without login; MIMIC-IV demo, login plus `approved`; full MIMIC-IV, login
+  plus `approved` plus a role such as `dataset:mimic-iv:read`, granted by the owner after verifying and recording the
+  user's own PhysioNet credentialing.
+- **Full MIMIC-IV** is hosted only after a storage and backup access review. Credentialed users may then see
+  per-patient results. Until then no credentialed data on hosting, and the aggregate-only endpoint is not disclosure
+  control.
+
+## 1. Architecture
+
+```
+browser ──TLS──> Traefik (front door, cert-manager letsencrypt)
+                   │  Middlewares: per-client rate limit, 2 MiB body limit
+                   v
+            Service ptm-mockups:8080 ──> Pod ptm-mockups (namespace ptm-dev, egress-locked)
+                                          server.py: static pages, engine, dataset registry,
+                                          bearer-token check, per-dataset policy
+                                          synthetic store built at start into an emptyDir
+                                          │ JWKS (public keys), in-cluster, allow-keycloak-egress
+                                          v
+                                     platform/keycloak:8080, shared user realm
+browser ──TLS──> keycloak.k8s.semanticscience.org (sign-in: PKCE; ORCID, GitHub, Google brokered)
+```
+
+- **One Deployment, one container**, the standard-library HTTP server in `demos/mockups/server.py`. It serves the
+  pages, the trajectory-graph engine endpoint, and the dataset endpoints. No database, no PVC, no sidecar.
+- **Stateless.** Every pod builds the same synthetic store from the cohort baked into the image; the page keeps its
+  session in the browser. One replica on dev; more need no other change.
+- **Sign-in happens in the browser.** The page uses the public client `ptm-mockups` (authorization code with PKCE,
+  no secret) and sends the access token as a bearer token. The server verifies it itself, offline, against the
+  realm's public keys (section 3). There is no server-side session, cookie or client secret.
+- **Datasets are a registry** (`demos/mockups/datasets.py`, section 3): each has a store, a kind, an access policy and
+  a results rule. On dev the registry holds the synthetic cohort only.
+
+## 2. The image
+
+- **Build file:** [`deploy/ids3/mockups.Dockerfile`](../deploy/ids3/mockups.Dockerfile), from the repository root.
+  Its allow-list, `mockups.Dockerfile.dockerignore`, replaces the root `.dockerignore` for this build (a BuildKit
+  feature), so the context holds only the engine, its contracts, the server modules, the pages and the generator.
+  `data/`, `verification/` and any local store cannot reach the build, whatever is in the working tree.
+- **Pinned base:** `python:3.12-slim-bookworm@sha256:935c3c5b…` (resolved 2026-11-20). Python packages from
+  `demos/mockups/requirements-hosting.lock.txt` (the store lock plus the token check's pins), binary wheels only.
+- **Cohort:** regenerated at build from the committed generator and checked by a second run, as the static image and
+  CI do. Never copied from a working tree.
+- **Non-root** (uid 10001), read-only root filesystem in the pod, exec-form `CMD` so Python is PID 1 and receives
+  SIGTERM (which removes the store's build).
+- **Tags: never `latest`.** The image is published as `ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:X.Y.Z`
+  by a workflow triggered by a tag `mockups-vX.Y.Z`, and deployed by `X.Y.Z@sha256:<digest>` in `app.yaml`. A
+  deploy is then a one-line, reviewable, revertable services-repo PR. The workflow is a draft
+  ([`deploy/ids3/mockups-image.workflow.yml`](../deploy/ids3/mockups-image.workflow.yml)), outside
+  `.github/workflows/` so that nothing publishes until the owner moves it in. Before publishing, it starts the image
+  read-only and checks health, readiness, the anonymous dataset list, that no MIMIC store is configured, and that no
+  MIMIC file or variable is in the image.
+
+## 3. Accounts and access
+
+### The realm
+
+Set up by hand from [`KEYCLOAK-REALM.md`](../deploy/ids3/ptm/dev/KEYCLOAK-REALM.md) (by hand, not by realm import,
+so that no provider secret is ever in a file). Working name `semanticscience`, **to confirm**. In short:
+
+- Registration on, verify email on, login with email, no duplicate emails, brute-force detection, a password policy.
+- Default roles stripped to the account console's `view-profile` and `manage-account`, so a new account holds no
+  app role but can link providers. Realm role `approved`, granted only through group `approved`. Realm role
+  `dataset:mimic-iv:read`, created and assigned to nobody.
+- Identity providers: GitHub and ORCID with trust-email off, Google with trust-email allowed; the built-in first
+  broker login flow, which links to an existing account only after email verification or re-authentication. Users
+  link more providers themselves in the account console.
+- Client `ptm-mockups`: public, PKCE S256, exact redirect URIs and web origin, an audience mapper adding `ptm-api` to
+  the access token.
+- MFA for admins: a browser flow that requires OTP for holders of `realm-management/realm-admin`. The owner and a
+  backup admin (**to be named by the owner**) administer the realm from its own admin console, without `master`.
+- Events: user events (90 days) and admin events (one year) saved, so registrations, approvals and dataset-role
+  grants are recorded. A credentialing check is recorded as admin-only user attributes before the role is granted.
+- **Registration notice:** two designs, the choice open. (a) A small Java event-listener provider in the platform
+  Keycloak that mails the owner on `REGISTER` through the realm's own SMTP settings (the MU relay): no secret and no
+  delay, but a platform change the admin owns. (b) A poller in an app namespace reading the admin events API with a
+  service-account client: no platform change, but a client secret in Vault, a delay, and state across restarts.
+  **Recommended: (a).** Either way the platform Keycloak must reach `smtp.maastrichtuniversity.nl:25`, which the
+  admin confirms (verification emails need it anyway).
+
+### The token check (server side)
+
+- `Authorization: Bearer <access token>` on any API request. No header: an anonymous caller.
+- Verified locally with PyJWT: signature with a key from the realm's JWKS, **RS256 only** (no `none`, no HMAC, so no
+  algorithm confusion); `iss` equal to `PTM_OIDC_ISSUER`; `aud` containing `PTM_OIDC_AUDIENCE`; `exp` required,
+  `nbf` and `iat` checked when present, 30 s leeway; `typ` claim `Bearer`, so an ID token cannot stand in.
+- **JWKS from `PTM_OIDC_JWKS_URI`**, the in-cluster Keycloak Service, configured separately from the issuer (the
+  browser-facing URL); deriving one from the other is the failure sulo-schema-builder documents. Fetched with a
+  5 s timeout and a 64 KiB cap, cached 10 minutes, re-fetched at most once every 30 s when a token names an unknown
+  `kid` (key rotation). `allow-keycloak-egress.yaml` opens exactly that destination.
+- A present but invalid token gets `401 TOKEN_INVALID` (with `WWW-Authenticate: Bearer error="invalid_token"`), never a
+  silent downgrade to anonymous. Keys unreachable: `503 AUTH_UNAVAILABLE` for that request; public datasets keep
+  working for anonymous callers.
+- Roles from `realm_access.roles`. `approved` is the realm role the group grants (`PTM_APPROVED_ROLE`).
+
+### The dataset registry and the policy check
+
+A dataset has an **id**, a **kind** (which backend serves it), an **access** policy and a **results** rule:
+
+| Field | Values |
+|---|---|
+| `kind` | `synthetic-trajectory` (the trajectory store, D37), `mimic-demo-aggregate` (the store query service, D29), `mimic-iv` (reserved; refused) |
+| `access` | `public`; `approved`; `{"role": "dataset:<id>:read"}` (a role also requires `approved`) |
+| `results` | `per_patient` or `aggregate` |
+
+- **Each kind has a floor the configuration cannot lower:** synthetic is at least public and answers per patient;
+  the MIMIC-IV demo is at least `approved` and answers aggregates only; full MIMIC-IV is at least
+  `{"role": "dataset:mimic-iv:read"}`. A registry entry may raise a policy (for instance a synthetic dataset behind a
+  role, which the tests use), never lower it. An entry whose `results` differs from what its backend can produce is
+  refused, since the field describes the backend and does not change it.
+- **`mimic-iv` is refused outright** (`DATASET_KIND_NOT_HOSTABLE`) until the access review and a backend exist; the
+  tier is reserved so the policy model and the realm role are in place.
+- **The content gates stay** and are independent of the policy: the MIMIC demo service serves only a snapshot whose
+  patients hash to the open demo's 100 subjects, and the trajectory store only the generator's cohort, checked
+  against the file served.
+- **Per request:** the caller (anonymous, a verified token, or the local owner) against the dataset's policy.
+  Anonymous on a non-public dataset: `401 LOGIN_REQUIRED`; signed in without `approved`: `403 NOT_APPROVED`; approved
+  without the role: `403 ROLE_REQUIRED`. Unknown id: `404 DATASET_NOT_FOUND`.
+- **Endpoints.** `GET /api/datasets` lists only the datasets the caller may use (id, title, kind, results, its
+  endpoints, availability) and whether the caller is signed in and approved, so the page can say "awaiting
+  approval". `GET /api/auth-config` gives the page the issuer and client id. Each dataset is reachable at
+  `/api/datasets/<id>/status`, `.../catalogue` (aggregate kinds) and `.../match`. The existing routes stay as aliases
+  of the first dataset of each kind: `/api/trajectory-store/*` (synthetic) and `/api/store/*` (MIMIC demo), so the
+  pages and tests keep working.
+- **Configuration:** a JSON file named by `PTM_DATASETS` (on ids3, a ConfigMap mounted at `/etc/ptm/datasets.json`).
+  Without one, the registry is built from the existing flags, as today: the synthetic cohort unless
+  `--no-trajectory-store`, and the MIMIC demo if `--mimic-store` names one, at its floor `approved`.
+
+### Without Keycloak: local development and the owner
+
+- With no `PTM_OIDC_*` configured, **only public datasets are served** to callers without credentials. A bearer token
+  then gets `401 AUTH_NOT_CONFIGURED`.
+- **The owner's local path** replaces the follow-up "owner-secret launcher" of the Cloud Run plan. `server.py
+  --owner-auth-file FILE` takes the research workspace's private `owner:<secret>` file (`app/access_control.py`,
+  which refuses a file that is not private, owner-held and well formed) and accepts HTTP Basic with it **only on a
+  loopback bind**, as the research workspace does. The owner caller passes every policy, so a locally built MIMIC-IV
+  demo store is reachable with it. The secret is never printed or logged.
+  This changes local use: today `--mimic-store` serves the demo store to anyone who reaches the port. After it, the
+  store page needs the owner credential (the browser asks once) or a configured realm.
+- **On ids3 there is no owner secret.** The owner signs in like any user and holds `approved`, the dataset roles and
+  realm admin. Nothing is mounted, so nothing can leak from the pod.
+- **Fail-loud guard:** the server refuses to start on a non-loopback address with a non-public dataset configured
+  and no OIDC, and refuses `--owner-auth-file` on a non-loopback address.
+
+## 4. Kubernetes manifests (`deploy/ids3/ptm/dev/`)
+
+Following the services repo's skill (`converting-compose-to-ids3`) and its ontoexplorer and sulo-schema-builder
+examples:
+
+| File | What |
+|---|---|
+| `kustomization.yaml` | `../../_base` (the `restrict-egress` NetworkPolicy), then the files below. The namespace `ptm-dev` comes from the projects ApplicationSet. |
+| `configmap.yaml` | `ptm-mockups-config`: the OIDC issuer, JWKS URI, audience, client id and approved role; limits; log format; proxy variables; tracing variables commented out. `ptm-mockups-datasets`: the registry file, synthetic only. |
+| `app.yaml` | Deployment and Service `ptm-mockups`: pinned image, non-root, read-only root, all capabilities dropped, no service-account token, an `emptyDir` for the store, probes and resources (section 6). |
+| `ingress.yaml` | Traefik Ingress for `ptm.k8s.semanticscience.org`, `cert-manager.io/cluster-issuer: letsencrypt` with a `tls:` section, and the two Middlewares. No `router.entrypoints` annotation. |
+| `middleware.yaml` | Traefik `rateLimit` (20 requests/s per client address, burst 60) and `buffering` (`maxRequestBodyBytes` 2 MiB). |
+| `allow-keycloak-egress.yaml` | Egress to `platform/keycloak:8080` for the JWKS fetch only. |
+| `vault.yaml` | VaultAuth and VaultStaticSecret for `secret/ptm/dev`, **ready but not listed**: ptm-dev has no secret today. |
+| `README.md` | The owner and admin checklists, including the Vault policy, role and kv steps for the first secret. |
+| `KEYCLOAK-REALM.md` | The realm checklist (section 3). It belongs beside `ids3/platform/keycloak/` once the realm is shared. |
+
+- **Egress.** The namespace is egress-locked; the server makes no external call. The proxy variables are set for any
+  later one, and `NO_PROXY` keeps the in-cluster JWKS fetch direct.
+- **Secrets.** None today: the browser client is public, keys are public, synthetic data need no credential. The
+  skill's Vault and VSO wiring is ready for the first secret (README, "Vault").
+- **Rate limiting and body limits** (follow-ups 2 and 3 of the Cloud Run plan). At the front door: Traefik's
+  per-client rate limit and body limit, so abuse is refused before the pod. Behind it, in the server: `PTM_MAX_BODY`
+  (2 MiB on ids3; the local default stays 20 MiB) and `PTM_MATCH_CONCURRENCY` (4 matches at once per pod; one more
+  waits briefly, then gets `503 BUSY`), which bounds CPU whatever the client address. The admin confirms Traefik's
+  `kubernetescrd` provider is on (first Middleware in the services repo) and that Traefik sees client addresses
+  directly.
+- **Security headers** added by the server on every response: `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`; `Cache-Control: no-store` on API answers as today.
+
+## 5. Logs, and tracing later
+
+- **Logs (now).** With `PTM_LOG_FORMAT=json`, one JSON line per API request on stdout: time, method, route, status,
+  duration, dataset, auth kind, and the token's `sub` for a signed-in caller (pseudonymous; it lets access to
+  non-public datasets be audited). Never a body, a token, an `Authorization` header, a query value or an IP
+  address. Static files are not logged, as today. The k8s-infra daemonset ships stdout to SigNoz; the pod label
+  `app.kubernetes.io/name: ptm-mockups` becomes `service.name`. Retention is SigNoz's; the `sub` makes these lines
+  personal data, which the retention setting should reflect.
+- **Tracing (deferred).** There is no zero-code path for this server: OpenTelemetry's Python auto-instrumentation
+  covers WSGI/ASGI frameworks and client libraries, not `http.server`. To turn it on:
+  1. Add `opentelemetry-sdk` and `opentelemetry-exporter-otlp-proto-http` (pinned) to the hosting lock.
+  2. Add a small `tracing.py`: when `OTEL_SDK_DISABLED` is not `true`, configure a `TracerProvider` with an OTLP/HTTP
+     exporter from the standard `OTEL_*` variables; the handler opens one span per API request with the route,
+     dataset, status and duration as attributes (never the `sub`, a body or a token). When disabled, or when the
+     packages are absent, it does nothing, and an unreachable collector never fails a request.
+  3. Uncomment the `OTEL_*` block in `configmap.yaml` and set `OTEL_SDK_DISABLED: "false"`. The endpoint is the
+     central collector, `http://signoz-otel-collector.platform.svc.cluster.local:4318`, already allowed by
+     `restrict-egress`. No collector sidecar, and no browser tracing (it would need a public ingest endpoint).
+
+## 6. Store, health and resources
+
+- **The synthetic store is built at startup, not at image build.** It takes about 1.3 s for the 48-patient cohort,
+  on a background thread, into an `emptyDir` (`PTM_TRAJECTORY_STORE_ROOT=/tmp/ptm-store`). Reasons: every start
+  re-runs the content check against the cohort the pod serves, so a stale or mismatched snapshot cannot be served;
+  the build is deterministic, so baking would save about a second and add a second artefact to keep in step; the
+  image stays free of a generated database; and the root filesystem can be read-only. Baking becomes worth it only
+  for a store too large to build in seconds, which a MIMIC-IV demo store is (about two minutes, from files the image
+  must not contain); that one would be delivered as a prepared snapshot, not built in the pod (section 7).
+- **Health during the build (follow-up 4 of the Cloud Run plan, checked).** The socket is bound before the build
+  starts and `/api/health` answers during it; a test holds the build open and checks this. `/api/ready` answers 200
+  only once every configured dataset is ready, else 503 with the dataset's state. Probes: startup and liveness on
+  `/api/health`, readiness on `/api/ready`. A pod whose store fails its content check never takes traffic, and with
+  `maxUnavailable: 0` the old pod keeps serving. Found while measuring: on a machine whose reverse DNS is slow, the
+  standard library's `server_bind` spent 35 s in `getfqdn()` before the socket answered; the server now skips it.
+- **Resources.** Measured locally (M4 Pro, Python 3.12): about 180 MB peak resident memory with the store built and
+  matches served. Requests `100m` CPU and `256Mi`; limits `1` CPU and `768Mi`; `emptyDir` capped at `256Mi`.
+  Re-measure on the cluster after the first deploy (follow-up below).
+
+## 7. What may be hosted
+
+- **Dev: the synthetic cohort only.** No MIMIC data of any kind in the image, the ConfigMaps or a volume. The image
+  workflow checks this before publishing.
+- **The MIMIC-IV demo** (open data, ODbL; tier `approved`, aggregates only) is allowed by policy but not configured:
+  it needs a delivery route for a prepared store (a read-only volume populated by the admin, or object storage with
+  a credential in Vault), the attribution and citation footer the Cloud Run plan listed, and the page's note that
+  counts-only is not disclosure control. Its content gate admits only the open demo's 100 patients.
+- **Full MIMIC-IV** only after the storage and backup access review: where the store lives, who can read the volume
+  and its backups (cluster admins can read any Secret and any hostpath volume), encryption at rest, and retention.
+  Then a backend, the `mimic-iv` kind enabled with role `dataset:mimic-iv:read`, per-patient results for credentialed
+  users, and each grant backed by a recorded PhysioNet check. Until then the server refuses the kind, and nothing
+  credentialed goes near hosting.
+- **The aggregate-only endpoint is not disclosure control** (D29: differencing isolated one patient's value in 17
+  queries). It is acceptable for the open demo only; the role tier exists because credentialed data need credentialed
+  users, not because counts protect anyone.
+
+## 8. Deploying
+
+1. Owner: confirm the realm name, name the backup admin, choose the registration notice, register the OAuth apps.
+2. Realm admin: `KEYCLOAK-REALM.md`.
+3. Owner: move the image workflow into `.github/workflows/`, push `mockups-v0.1.0`, take the digest.
+4. Services-repo PR: copy `deploy/ids3/ptm/dev/` to `ids3/projects/ptm/dev/`, put the digest into `app.yaml`, complete
+   the README checklists, merge (ArgoCD syncs at once; with no secret there is nothing to wait for in Vault).
+5. Verify (README, "Verify after deploy"). Roll back by reverting the image line; remove by deleting the directory.
+
+## 9. Open questions
+
+1. The shared realm's name (`semanticscience` is a working name used in `configmap.yaml`).
+2. The backup realm admin (owner to name).
+3. The registration notice: event-listener provider in the platform Keycloak (recommended) or a poller.
+4. Whether the platform Keycloak can already reach the SMTP relay (verification emails need it).
+5. Publishing: may the image workflow move into `.github/workflows/`, and should the GHCR package be public?
+6. Whether the MIMIC-IV demo should be hosted at all on dev, and by which delivery route (section 7).
+
+## Follow-ups (not done)
+
+1. Measure memory and CPU on the cluster after the first deploy and adjust `resources`.
+2. The registration-notice component, once chosen.
+3. Tracing, when wanted (section 5).
+4. For the MIMIC-IV demo, if hosted: the delivery route, the attribution footer, the not-disclosure-control note.
+5. The storage and backup access review, before any full MIMIC-IV hosting.
+6. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
+   fallback the static image and an unreachable server still need.

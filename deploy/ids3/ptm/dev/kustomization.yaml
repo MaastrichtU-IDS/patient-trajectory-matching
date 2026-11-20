@@ -1,0 +1,17 @@
+# ids3/projects/ptm/dev/kustomization.yaml (DRAFT in patient-trajectory-matching: deploy/ids3/ptm/dev/)
+# project=ptm env=dev -> namespace ptm-dev (created by the projects ApplicationSet).
+# _base adds the restrict-egress NetworkPolicy; allow-keycloak-egress.yaml unions the one cross-namespace exception
+# this app needs (JWKS from platform/keycloak). middleware.yaml holds the Traefik rate and body limits the Ingress
+# names. No PVC, no database, no migration.
+#
+# vault.yaml is deliberately NOT listed: ptm-dev has no secret today (README, "Secrets"). Add it here, with the
+# Vault steps in README.md, when the first secret arrives.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../_base
+  - allow-keycloak-egress.yaml
+  - configmap.yaml
+  - app.yaml
+  - middleware.yaml
+  - ingress.yaml

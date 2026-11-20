@@ -1,0 +1,95 @@
+# ids3/projects/ptm/dev/app.yaml
+# The store-backed mockups: demos/mockups/server.py, one container, stateless. The synthetic store is built at start
+# into an emptyDir (about 1.3 s, background thread); nothing survives the pod and nothing needs to.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ptm-mockups
+  labels:
+    app.kubernetes.io/name: ptm-mockups
+spec:
+  # Stateless: every pod builds the same synthetic store, and the page keeps its session in the browser. One is
+  # enough for dev; more need no other change.
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # the old pod serves until the new one is ready
+  selector:
+    matchLabels:
+      app: ptm-mockups
+  template:
+    metadata:
+      labels:
+        app: ptm-mockups
+        app.kubernetes.io/name: ptm-mockups      # -> service.name in SigNoz
+    spec:
+      # The pod never calls the Kubernetes API. (VSO, if vault.yaml is ever added, authenticates with the namespace's
+      # default service account by itself; it does not need the token mounted here.)
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      # imagePullSecrets:                        # not needed while the node mirrors ghcr.io through Harbor
+      #   - name: ghcr-pull
+      containers:
+        - name: server
+          # PINNED: a version tag AND its digest, never `latest`. Deploy a new build by a reviewed one-line change
+          # here (hosting plan, "The image"). REPLACE both parts at the first publish.
+          image: ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:0.1.0@sha256:REPLACE_WITH_THE_PUBLISHED_DIGEST
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8080, name: http }
+          envFrom:
+            - configMapRef: { name: ptm-mockups-config }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }                      # the synthetic store's build (PTM_TRAJECTORY_STORE_ROOT)
+            - { name: datasets, mountPath: /etc/ptm, readOnly: true }
+          # /api/health answers as soon as the socket is bound, during the store build too (checked by a test).
+          # /api/ready answers 200 only once every configured dataset is ready, so a pod whose synthetic store fails
+          # its content check never receives traffic, and a rollout stops there with the old pod still serving.
+          startupProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /api/ready, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Measured locally: about 180 MB peak RSS with the store built and a match served (hosting plan, section 6).
+          # Re-measure on the cluster after the first deploy and adjust.
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 256Mi }
+        - name: datasets
+          configMap: { name: ptm-mockups-datasets }
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ptm-mockups
+  labels:
+    app.kubernetes.io/name: ptm-mockups
+spec:
+  selector:
+    app: ptm-mockups
+  ports:
+    - { name: http, port: 8080, targetPort: http }

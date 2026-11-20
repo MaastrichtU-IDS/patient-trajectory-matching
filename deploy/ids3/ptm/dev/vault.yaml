@@ -1,0 +1,36 @@
+# ids3/projects/ptm/dev/vault.yaml -- READY BUT NOT LISTED in kustomization.yaml.
+# ptm-dev has no secret today (README, "Secrets"). When the first one arrives:
+#   1. the admin does the Vault steps in README.md (policy, role, kv at secret/ptm/dev);
+#   2. add `- vault.yaml` to kustomization.yaml, and to app.yaml's container:
+#        envFrom:
+#          - secretRef: { name: ptm-mockups-secrets }
+#   3. merge only after the VaultStaticSecret can sync (SYNCED=True), or the pod waits on a missing Secret.
+#
+# VSO: authenticate with the namespace's default service account (Vault role ptm-dev), read KV secret/ptm/dev, sync
+# it into the k8s Secret ptm-mockups-secrets, and restart the Deployment on rotation.
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: ptm-mockups
+spec:
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: ptm-dev
+    serviceAccount: default
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: ptm-mockups-secrets
+spec:
+  type: kv-v2
+  mount: secret
+  path: ptm/dev                       # -> secret/data/ptm/dev
+  vaultAuthRef: ptm-mockups
+  refreshAfter: 1h
+  destination:
+    name: ptm-mockups-secrets         # the k8s Secret app.yaml would envFrom
+    create: true
+  rolloutRestartTargets:
+    - { kind: Deployment, name: ptm-mockups }
