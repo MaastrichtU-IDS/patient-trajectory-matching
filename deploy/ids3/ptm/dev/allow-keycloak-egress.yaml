@@ -1,0 +1,28 @@
+# ids3/projects/ptm/dev/allow-keycloak-egress.yaml
+# ../../_base/restrict-egress.yaml allows CoreDNS, this namespace, the egress-proxy, the SigNoz collector and the
+# kube-apiserver only, so the server's JWKS fetch (PTM_OIDC_JWKS_URI -> keycloak.platform.svc:8080) is blocked by
+# default. Without this every bearer token is refused as AUTH_UNAVAILABLE (503), while public datasets keep working.
+#
+# Same pattern as sulo-schema-builder-dev. The public issuer URL through the egress-proxy is not used for keys: the
+# in-cluster address is shorter, needs no hairpin through the front door, and is listed in NO_PROXY anyway.
+# NetworkPolicies are additive; this UNIONs exactly one destination.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-keycloak-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: ptm-mockups
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: platform
+          podSelector:
+            matchLabels:
+              app: keycloak
+      ports:
+        - { protocol: TCP, port: 8080 }

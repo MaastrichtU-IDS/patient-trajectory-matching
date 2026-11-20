@@ -1,0 +1,77 @@
+# ids3/projects/ptm/dev/middleware.yaml
+# Traefik Middlewares named by ingress.yaml and ingress-match.yaml: per-client rate limits, a request body limit and
+# HSTS, at the front door, before a request reaches the pod. The server keeps its own bounds behind them
+# (PTM_MAX_BODY, PTM_MATCH_CONCURRENCY, PTM_MAX_THREADS in configmap.yaml, a 30 s socket timeout, caps on patients,
+# events, steps and relations), so a request that slips past the front door is still bounded.
+#
+# The client is the connection's source address: Traefik is the front door on the host network since 2026-09-24,
+# so there is no proxy in front whose X-Forwarded-For would have to be trusted. The admin confirms this
+# (hosting plan, section 4); if a proxy is ever put in front, set sourceCriterion.ipStrategy.depth.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ptm-ratelimit
+spec:
+  rateLimit:
+    # A page load fetches about 20 static files and the 6 MB synthetic cohort. These numbers leave a person
+    # browsing untouched and stop a loop. 429 beyond them.
+    average: 20
+    period: 1s
+    burst: 60
+---
+# The match routes only (ingress-match.yaml): each match is real CPU work, so a client gets about one a second,
+# with a burst of five for a person trying a few queries in a row (security review of D50, M1). Per IPv4 address:
+# the front door listens on IPv4 only (ids3/platform/traefik-config.yaml, hostIP 0.0.0.0), so no ipv6Subnet is
+# needed; add `sourceCriterion: {ipStrategy: {ipv6Subnet: 64}}` if it ever serves IPv6.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ptm-match-ratelimit
+spec:
+  rateLimit:
+    # About one match per 3 s per client (final check of D50: a costly match holds the worker for up to the 2 s time
+    # limit). The page sends one match per edit, without debouncing, so the burst of 6 lets a person make a run of
+    # quick edits; beyond it a match gets 429 and the page matches that query in the browser.
+    average: 1
+    period: 3s
+    burst: 6
+---
+# One match in flight per client address (final check of D50): a client cannot queue costly matches behind each
+# other, so the one match worker is held by at most one of its requests at a time, and a legitimate match waits at
+# most one time limit. The source is the connection's address (`ipStrategy: {}`); inFlightReq's own default would be
+# the request's Host, which is the same for everyone. CAVEAT: people behind one NAT address share this allowance;
+# if that bites (a whole department on one address), raise `amount`.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ptm-match-inflight
+spec:
+  inFlightReq:
+    amount: 1
+    sourceCriterion:
+      ipStrategy: {}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ptm-body-limit
+spec:
+  buffering:
+    # Matches PTM_MAX_BODY. Hosted, the only bodies are the pages' store requests: a query and a window per patient,
+    # a few kilobytes. Larger bodies get 413 from Traefik without reaching the pod. Responses are not size-limited
+    # (0 = no maximum): the cohort file the pages download is 6 MB.
+    maxRequestBodyBytes: 262144
+    memRequestBodyBytes: 262144
+    maxResponseBodyBytes: 0
+---
+# HSTS: browsers that have seen the site over HTTPS refuse plain HTTP to it for a year. Not includeSubDomains or
+# preload: the wildcard domain holds other projects' hosts, which this project does not decide for.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ptm-hsts
+spec:
+  headers:
+    stsSeconds: 31536000
+    stsIncludeSubdomains: false
+    stsPreload: false

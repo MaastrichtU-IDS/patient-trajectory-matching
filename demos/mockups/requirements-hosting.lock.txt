@@ -1,0 +1,8 @@
+# The mockup server as hosted (docs/hosting-plan.md), tested with CPython 3.12: the store lock (base lock plus duckdb)
+# and the bearer-token check's pinned dependencies. server.py imports PyJWT only when OIDC is configured, so local use
+# without a realm needs only the store lock.
+-r ../../patterns/requirements-store.lock.txt
+PyJWT==2.15.1
+cryptography==50.0.2
+cffi==2.1.1
+pycparser==3.12

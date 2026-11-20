@@ -4655,3 +4655,243 @@ The 161 requests the store already answered by D32's reading change only where a
 *Follow-ups.*
 - The page's own search: under "Coded records only", time a medicine with only a stopped order from no note (`core.js`, `makeItem`). It moves the page's own search, so it needs its own increment with D46's and D47's reports.
 - From D45, still open: a cheaper exclusion of left-out events at scale, and joint requests timed on a 300,000 build with series and gene labels.
+
+## D50 Hosting on the ids3 cluster, with per-dataset access control: synthetic data only on dev
+
+The owner decided between 2026-11-17 and 2026-11-20, and the coordinator, as delegate, settled the details at the
+design checkpoint. This replaces the Cloud Run plan of the held PR #153. The plan is
+[docs/hosting-plan.md](../hosting-plan.md), and the draft manifests are in `deploy/ids3/ptm/dev/`, laid out for a
+later PR to `maastrichtu-ids/services`. Nothing is deployed or published.
+
+**Decisions.**
+- **Target:** ids3 (k3s, ArgoCD GitOps), project/env `ptm/dev`, namespace `ptm-dev`, host
+  `ptm.k8s.semanticscience.org`.
+  - One stateless pod runs `demos/mockups/server.py` behind Traefik, with cert-manager `letsencrypt` TLS.
+  - The namespace is egress-locked by `restrict-egress`; one added policy opens the in-cluster JWKS fetch from
+    Keycloak.
+  - Traefik applies a per-client rate limit and a body limit (2 MiB as first built, 256 KiB after the security
+    review below).
+  - The image is pinned by version and digest, never `latest`.
+  - Vault and VSO are wired but not listed: dev has no secret.
+- **Data on dev: synthetic only.** The design serves several datasets, each with its own policy.
+- **Observability: logs only.** One JSON line per API request, with no body, token, header or address. Tracing is
+  deferred; the plan says how to turn it on (OpenTelemetry has no zero-code path for `http.server`).
+- **Accounts: one shared, open Keycloak realm, `ids-apps`,** for the owner's user-facing apps, separate from the
+  infrastructure realm `ids3`.
+  - Self-registration by email, or through ORCID, GitHub or Google; users link several providers to one account.
+  - A new account holds no role until the owner adds it to group `approved`. Admins must use OTP.
+  - **The owner is emailed at each registration** by an event-listener provider in the platform Keycloak, using the
+    realm's SMTP settings (the MU relay). That is a platform change for the platform admin, specified in
+    `KEYCLOAK-REALM.md`. A poller is the documented fallback.
+- **Dataset tiers:**
+  - small synthetic: public, no login;
+  - MIMIC-IV demo: login plus `approved`, aggregate counts only;
+  - full MIMIC-IV: login plus `approved` plus `dataset:mimic-iv:read`. The owner grants that role after verifying
+    and recording the user's own PhysioNet credentialing.
+- **Full MIMIC-IV is hosted only after a storage and backup access review.** Credentialed users may then see
+  per-patient results. Until then no credentialed data goes on hosting, and the server refuses the `mimic-iv` kind
+  outright. The aggregate-only endpoint is not disclosure control (D29).
+
+**As built (server side).**
+- `datasets.py`: a registry in which each dataset has a kind, a policy and a results rule.
+  - Each kind has a floor policy that configuration may raise but never lower: synthetic is public, the MIMIC demo
+    `approved`, full MIMIC-IV the role.
+  - `results` must be what the backend produces.
+  - The content gates are unchanged: the open demo's 100 patients, and the generator's cohort.
+- `access.py`: bearer tokens checked locally with PyJWT 2.15.1 and cryptography 50.0.2, pinned in
+  `demos/mockups/requirements-hosting.lock.txt` and imported only when a realm is configured.
+  - The token must be RS256 only, with `iss`, `aud`, `exp` and `iat`, and `typ: Bearer`.
+  - Keys come from a JWKS URI configured separately from the issuer (the sulo-schema-builder pattern). They are
+    cached for 10 minutes and refetched for an unknown key at most every 30 s; held keys outlive an outage.
+- New endpoints: `GET /api/datasets` (the caller's datasets only), `GET /api/auth-config`, `GET /api/ready`, and
+  `/api/datasets/<id>/...`. The old store routes stay as aliases.
+  - Without a realm, a loopback bind keeps today's behaviour: the operator is the owner, and a local MIMIC demo
+    store still works.
+  - On any other address, a non-public dataset without a realm means the server does not start.
+- Also added: `PTM_MAX_BODY`, `PTM_MATCH_CONCURRENCY` and security headers.
+- The pages sign in with PKCE in `shared/auth.js`: the access token in memory, the refresh token in the tab's
+  `sessionStorage`, so page changes work. The pages list only the caller's datasets and say when an account awaits
+  approval.
+
+**Found on the way.**
+- `/api/health` did not answer during the store build, despite the Cloud Run plan's assumption: `main()` printed
+  the build's status before serving. The status lines now come from a background thread.
+- The standard library's `server_bind` spent 35 s in a reverse-DNS lookup on this machine before the socket
+  answered; the server now skips it.
+- There never was an owner-secret path in `server.py`. That secret belongs to the research workspace's Cloud Run
+  deployment.
+
+**Tests** (no network; the keys are generated in the test):
+- `test_access.py` (20 tests; 23 after the security review);
+- `test_datasets.py` (7), which also parses the dev registry in the draft ConfigMap;
+- `test_server_access.py` (11; 19 after the security review, 24 after the re-check, 28 after the final check), with the realm's keys served on loopback;
+- `test_auth_page.cjs`, in CI.
+
+*Alternatives declined:*
+- A hand-rolled RS256 check: no dependency, but crypto code to review.
+- An owner Basic credential for local MIMIC use: it would have changed local use for no gain on a loopback bind.
+- Baking the synthetic store into the image: it would save about a second, add a second artefact to keep in step,
+  and skip the per-start content check.
+
+*Deferred:*
+- tracing;
+- full MIMIC-IV (the access review);
+- the backup realm admin (for the owner to name);
+- the registration-notice provider (platform admin);
+- the first real image build, since the local Docker daemon could not reach a registry, so the image's layout was
+  checked from a scratch copy instead;
+- a Content-Security-Policy;
+- a delivery route for a MIMIC-IV demo store, if it is to be hosted at all.
+
+**Security review** (an independent reviewer, of `1af36d7`, arranged by the coordinator; the probes are kept outside
+the repository). There was **no critical or high finding**: the token check, routing and authorization held under
+every probe, and the loopback owner could not be reached remotely. One medium and nine lows were found, all fixed
+in a follow-up commit.
+
+- **M1, anonymous CPU and memory exhaustion.**
+  - *Finding:* the anonymous engine route and the public store match read and parsed the body before the
+    concurrency gate, on unbounded threads with no socket timeout. A valid 2 MiB engine request cost 0.44 s of CPU,
+    so 3 to 5 requests a second within the Traefik limit saturate a CPU, and queued parsed bodies could exhaust a
+    768 Mi pod.
+  - *Fix:* the match slot is taken before the body is read. Hosted, the anonymous engine route is off.
+  - *Fix:* caps on steps (12), relations and relaxations (40), and the engine route's patients (500) and events
+    (50,000).
+  - *Fix:* `PTM_MAX_THREADS` (64; beyond it, 503 at once, without a thread), a 30 s socket timeout, a hosted gate
+    default of 4 and a 256 KiB body limit.
+  - *Fix:* a second Ingress puts the match routes under a 1/s, burst-5 Traefik rate limit.
+  - *Verified:* a test reproduces the flood, scaled down: 14 valid requests against 2 slots and 6 threads read at
+    most 2 bodies at once, and the server keeps answering. The reviewer's full-size request is now refused by the
+    patient cap before any work.
+- **L1:** `azp` must equal the configured client.
+- **L2:** held keys expire after an hour without a successful refresh, and the fetch runs outside the lock, one at a
+  time. The in-cluster plain-HTTP fetch is kept, since the platform Keycloak offers no TLS in-cluster. It is
+  documented with its mitigations, and with the alternative of the public https URL through the egress-proxy, which
+  `urllib` supports.
+- **L3:** logging tolerates an unparsed request line, and unexpected failures are logged as their exception class
+  only, never with the client's address.
+- **L4:** an ingress NetworkPolicy admits only Traefik, using the front-door addresses from `minio-data`.
+- **L5:**
+  - A Content-Security-Policy: scripts from this origin plus the hashes of the pages' inline scripts, computed at
+    startup; inline styles allowed; `connect-src` self and the realm; `frame-ancestors 'none'`. It was checked
+    statically against every page; no browser was available here.
+  - Refresh-token rotation is required in the realm checklist, with DPoP noted as an option.
+  - Sign-out revokes the refresh token and passes `id_token_hint`.
+- **L6:** exact redirect and post-logout URIs, and the page sends its canonical address.
+- **L7:** in the image workflow, the tag passes only through `env:` and is validated; actions are pinned by SHA; only
+  the publish job may write packages, and it pushes the image the check job tested.
+- **L8:**
+  - `/api/ready` returns `{"ready"}` only, with counts for the owner, and never opens a store. Hosted, MIMIC stores
+    open at startup.
+  - A dataset the caller may not use is a 404, and the old routes answer as if no store of that kind existed.
+- **L9:** `sub` is required.
+- **Owner mode:** only a `Host` of localhost, 127.0.0.1 or [::1] makes the owner, against DNS rebinding and
+  tunnels.
+- **Informational, fixed:** hosted, no directory listings and page asset types only; no version in `Server`; HSTS
+  through Traefik.
+- **Queued:** `--require-hashes` for the lock files.
+
+**Security re-check** (the same reviewer, of `42a3c6e`): every fix was confirmed except one M1 residual, now fixed;
+the lows it found are fixed too.
+- **The re-check (of `42a3c6e`), M1 residual: one small request could hold the synthetic store.**
+  - *Finding:* an anonymous 3.7 KB request with 12 chained `seizure` steps took 28.7 s under the store's lock at the
+    default search budget, and minutes at 1,000,000. The engine accepts budgets up to 10,000,000, and the step cap
+    bounded the steps, not the work.
+  - *Measured, at one worker on the 48-patient synthetic store (M4 Pro; probes in `/tmp/ptm-m1/`, outside the
+    repository):*
+    - The page's own requests use at most 5 steps, 4 relations, 4 relaxations (16 relaxation sets, the graph
+      template), a relaxation cost budget of 1 and a search budget of 40,000. Requests counted: all 313 option-sweep
+      cases plus the 4 answered templates; the worst costs 0.07 s.
+    - Clamping their search budget to 1,000 or to 500 changes **none** of their 317 answers.
+    - Re-measured after rebasing onto D49 (coded records only by default): 486 requests (477 option-sweep cases,
+      9 answered templates), with the same maxima. At the hosted clamp of 1,000 **none** of their answers changes,
+      and the worst costs 0.09 s.
+    - Adversarial shapes under the caps chosen below (6 steps, 8 relations, 6 relaxations, cost budget 1):
+      - a chain of `any` steps with 1 to 2-day `after` windows: 0.15 s without relaxations;
+      - the same chain with 4 tiny-cost relaxations (all 16 sets tried): 1.6 s at a budget of 1,000, 3.7 s at 5,000
+        and above;
+      - `during` and `after` with grace relaxations: 2.1 s;
+      - counts on every step: 0.06 s;
+      - 4 concept widenings: 0.8 s;
+      - **first, last and any occurrences in a chain with 4 relaxations: 6.5 s even at a budget of 500.** This one
+        is not bounded by the search budget: each relaxation set does occurrence and order checks the budget does
+        not count.
+    - The page's graph template has that same structure and costs 0.07 s only because its concepts are sparse. No
+      cap on structure separates the two.
+  - *Fix (server only; the engine is unchanged):*
+    - When hosted, each synthetic-store match runs in a child process (`match_worker.py`: the same
+      `TrajectoryStore`, its own copy of the store) and is killed at `PTM_MATCH_TIME_LIMIT` (2 s), answering
+      `503 MATCH_TIME_LIMIT`. The page then matches in the browser, as it does for any refusal.
+    - Restarting the child costs a 1.3 s rebuild.
+    - The search budget is clamped to 1,000, so a long search ends as the engine's own `unresolved`
+      (`SEARCH_BUDGET_EXHAUSTED`).
+    - Hosted caps: 6 steps, 8 relations, 6 relaxations, and a relaxation cost budget of at most 1 (400 above it).
+    - The trajectory page says so on a hosted copy (`/api/limits`, `shared/limits.js`).
+  - **Measured bound: no hosted request holds the store for more than the 2 s limit.** The page's own requests take
+    under 0.1 s, with answers identical to the in-process store's at 40,000.
+  - *Tests:* the costliest shape, at a 1 s limit, is cut with 503 and the store answers the next request; the
+    page-shaped requests answered through the child equal the in-process answers; the caps and the clamp; the
+    reviewer's 6-step chain now answers in 0.15 s, and its 12-step chain gets 400.
+- **The final check (of `f4bf811`).** It confirmed the per-request bound: no request held the store for more than
+  about 2.2 s, plus a 1.1 s restart. It found no injection and no leak. It raised one medium-low and two lows, now
+  fixed.
+  - *Medium-low: one client kept the worker's queue full.*
+    - *Finding:* a costly match cost about 3.2 s (the kill plus the restart), and the rate limit allowed one a
+      second, so legitimate matches waited 12 to 16 s.
+    - *Fix, in the pod:*
+      - a spare worker is kept built, so after a kill the next match goes to it and the rebuild runs off the request
+        path;
+      - readiness waits for the spare;
+      - a match waits at most `GATE_WAIT` (now 3 s) **in all**, for a match slot and then for the worker, before
+        `503 BUSY`. A legitimate match is therefore answered or refused within 3 s plus one time limit;
+      - each kill is logged as `match_killed` (reason only).
+    - *Fix, at the front door:* `ptm-match-inflight` allows one match in flight per client address, and the match
+      rate limit is about one per 3 s with a burst of 6. The page sends one match per edit, without debouncing, and
+      the burst covers a run of quick edits. Clients behind one NAT address share this allowance, which is noted
+      for the admin.
+    - *Measured* in a Linux container (python 3.11, one CPU, the same wheels), running the reviewer's 30 s storm:
+      - with only the pod's bounds (an attacker sending a costly match every second), every legitimate match is
+        answered or refused BUSY within 3.04 s, never 12 to 16;
+      - with the front door's bounds as well (one costly match in flight, one per 3 s), all 10 legitimate matches
+        are answered, the slowest in 2.04 s.
+    - *Tests (scaled down):* the in-pod flood keeps legitimate matches within the bound and logs the kills;
+      one client within the front door's bounds cannot starve others.
+  - *Low: `PTM_MATCH_TIME_LIMIT` was not validated.* When hosted it must be a finite number with
+    0 < x <= 30, or the server refuses to start (tested: `inf`, `nan`, 0, -1, 31 and text). After the write, any
+    exception kills the worker. A crash, an EOF or a line that is not an answer is `503 MATCH_WORKER_FAILED`, not
+    `MATCH_TIME_LIMIT` (tested).
+  - *Low and informational:*
+    - The worker's protocol runs on a duplicate of its original stdout. Its fd 1 and `sys.stdout` point at the
+      discarded stderr, so nothing printed (a DuckDB progress bar, say) can corrupt an answer.
+    - The worker limits its own address space (RLIMIT_AS, `PTM_MATCH_WORKER_MAX_MIB`, 400 MiB, on Linux) and caps
+      malloc arenas at 2.
+    - *Measured at first:* DuckDB 2.0 starts `async_threads`, 4 per CPU it sees (by the cgroup limit, else every
+      CPU), on top of the store's `threads=1`. A worker therefore used 305 MiB of address space at one CPU but 484 MiB
+      at six, which a 400 MiB limit refuses. That is what failed the PR's CI run: the GitHub runner has several CPUs
+      and no cgroup limit, the worker could not start, and readiness waited for it.
+    - *Fixed:* the worker opens every DuckDB database with `threads=1` and `async_threads=1`, by defaulting the
+      connection config in the worker process only (`confine_duckdb`; the engine and the store are unchanged, and the
+      answers do not depend on it). Measured in a Linux container, a worker now holds 2 threads, about 145 MiB
+      resident and 268 MiB of address space, the same at one CPU, at four (cgroup-limited) and at six (no limit).
+      400 MiB holds on any host.
+    - A worker that cannot start leaves the pod unready and logs `match_worker_start_failed` with its reason (the
+      worker's own error, or the class of the exception it died of). The tests print that reason instead of a bare
+      "not ready".
+    - *The next CI run* then failed only the scaled-down flood test's timing (2.74 s against 2.5). On the slower
+      runner a flood had used the spare before its replacement was built, and the next match built a worker on its
+      own path. Now no build ever runs on a request's path: with no worker built, a match is refused at once
+      (503 BUSY), so the bound (the wait plus one time limit) holds on any machine. Passed 3 runs out of 3 in a
+      1.5-CPU Linux container.
+    - The pod's memory limit is raised to 1 GiB: the server, the active worker and its spare.
+- **The re-check's lows, fixed:**
+  - *Probes:* 4 threads beyond `PTM_MAX_THREADS` serve only `/api/health` and `/api/ready`, and liveness is a TCP
+    probe.
+  - *IPv6:* the front door listens on IPv4 only (`traefik-config.yaml`), so no `ipv6Subnet` is needed; this is
+    noted.
+  - *Ingress policy:* the `kube-system` rule is narrowed to Traefik's chart label, and the Deployment is pinned to
+    front-door nodes (`ids.maastrichtu/front-door=true`), so probes come from listed addresses.
+  - *Realm:* when hosted, a realm requires `PTM_OIDC_CLIENT_ID`, so `azp` is always checked.
+  - *Paths:* a path holding a NUL byte is a 404.
+  - *Sign-in:* `auth.js` refreshes once at a time and adopts a refresh token rotated by another refresh, instead of
+    signing out.
+  - *Workflow:* before activating the image workflow, the pinned action SHAs and the releases named beside them are
+    to be checked; this is a first-deploy step.

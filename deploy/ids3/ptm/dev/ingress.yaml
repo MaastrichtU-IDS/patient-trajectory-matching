@@ -1,0 +1,32 @@
+# ids3/projects/ptm/dev/ingress.yaml
+# TLS terminates at Traefik. cert-manager issues and renews the Let's Encrypt certificate from the annotation and the
+# `tls:` section (HTTP-01; *.k8s.semanticscience.org already resolves through the DNS wildcard). No
+# `router.entrypoints` annotation: routers default to :443.
+#
+# router.middlewares names Traefik Middlewares in middleware.yaml, as <namespace>-<name>@kubernetescrd. The match
+# routes have their own Ingress (ingress-match.yaml) with a tighter rate limit.
+# FIRST USE of Traefik Middlewares in the services repo: the admin confirms the kubernetescrd provider is on (it is
+# by default in k3s's Traefik). If it were not, Traefik would refuse this router rather than serve it unlimited.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ptm-mockups
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    traefik.ingress.kubernetes.io/router.middlewares: ptm-dev-ptm-hsts@kubernetescrd,ptm-dev-ptm-ratelimit@kubernetescrd,ptm-dev-ptm-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [ptm.k8s.semanticscience.org]
+      secretName: ptm-mockups-tls
+  rules:
+    - host: ptm.k8s.semanticscience.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ptm-mockups
+                port:
+                  number: 8080

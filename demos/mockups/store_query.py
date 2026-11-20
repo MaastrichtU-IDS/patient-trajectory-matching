@@ -286,6 +286,13 @@ class StoreService:
 
     # ---------------------------------------------------------------- endpoints
 
+    def state(self):
+        """'pending', 'ready' or 'failed', without waiting (the server's readiness check): pending until the first
+        open has finished, which the server starts at startup."""
+        if not self.opened or self.lock.locked():
+            return 'pending'
+        return 'ready' if self.store is not None else 'failed'
+
     def status(self):
         with self.lock:
             self._open()

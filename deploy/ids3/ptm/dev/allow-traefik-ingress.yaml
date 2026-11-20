@@ -1,0 +1,35 @@
+# ids3/projects/ptm/dev/allow-traefik-ingress.yaml
+# Only Traefik may open connections to the server (security review of D50, L4). Without an ingress policy any pod in
+# any namespace that has no egress policy of its own (default, kube-system, everything outside ids3/projects/*) could
+# call the pod directly, past the front door's TLS, rate limits, body limit and HSTS.
+#
+# Traefik is the front door on the host network since 2026-09-24, so its connections arrive from each front-door
+# node's flannel.1 (cross-node) and cni0 (same-node) addresses, not from a pod in kube-system. The ipBlocks are the
+# ones ids3/platform/minio-data/netpol.yaml uses for the same purpose; the kube-system namespace selector is kept for a
+# Traefik that ever runs as an ordinary pod again. Copy any change to those addresses from that file.
+#
+# The kubelet's probes come from the pod's own node. app.yaml pins the pod to a front-door node
+# (ids.maastrichtu/front-door=true), whose cni0 address is listed below, so the probes are admitted. ADMIN, confirm
+# on first sync that the probes pass; a front-door node added later needs its flannel.1 and cni0 /32s here.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: ptm-mockups
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:          # a Traefik pod on the pod network, if it ever leaves the host network
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:                # the k3s Traefik chart's label (ids3/platform/traefik-config.yaml)
+            matchLabels: { app.kubernetes.io/name: traefik }
+        - ipBlock: { cidr: 10.42.0.0/32 }   # as in minio-data/netpol.yaml (flannel.1)
+        - ipBlock: { cidr: 10.42.0.1/32 }   # as in minio-data/netpol.yaml (cni0)
+        - ipBlock: { cidr: 10.42.1.0/32 }   # fsesrv-node000001 flannel.1 (front door)
+        - ipBlock: { cidr: 10.42.1.1/32 }   # fsesrv-node000001 cni0
+      ports:
+        - { protocol: TCP, port: 8080 }

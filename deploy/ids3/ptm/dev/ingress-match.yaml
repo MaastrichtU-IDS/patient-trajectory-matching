@@ -1,0 +1,38 @@
+# ids3/projects/ptm/dev/ingress-match.yaml
+# The match routes, on their own Ingress so they get a tighter per-client rate limit (ptm-match-ratelimit: about one
+# per 3 s, burst six) and at most one match in flight per client (ptm-match-inflight), on top of the general limit
+# (security review of D50, M1, and its final check). These paths take only POST; every
+# match is real work, while page loads are cheap.
+#
+# Exact paths, one per match route the server answers when hosted: the two old aliases and one per dataset in the
+# registry (configmap.yaml, ptm-mockups-datasets). ADD A PATH HERE when a dataset is added there; until then its
+# matches fall under the general limit only (still bounded in the pod by PTM_MATCH_CONCURRENCY). The anonymous engine
+# route /api/trajectory-graph/match is off when hosted (404), so it is not listed.
+#
+# Traefik ranks routers by rule length, so these Exact paths win over ingress.yaml's Prefix "/". The TLS section
+# reuses the certificate ingress.yaml requests; this Ingress carries no cert-manager annotation, so there is one
+# Certificate for the host, not two writing the same Secret.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ptm-mockups-match
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: ptm-dev-ptm-hsts@kubernetescrd,ptm-dev-ptm-ratelimit@kubernetescrd,ptm-dev-ptm-match-ratelimit@kubernetescrd,ptm-dev-ptm-match-inflight@kubernetescrd,ptm-dev-ptm-body-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [ptm.k8s.semanticscience.org]
+      secretName: ptm-mockups-tls
+  rules:
+    - host: ptm.k8s.semanticscience.org
+      http:
+        paths:
+          - path: /api/trajectory-store/match
+            pathType: Exact
+            backend: { service: { name: ptm-mockups, port: { number: 8080 } } }
+          - path: /api/store/match
+            pathType: Exact
+            backend: { service: { name: ptm-mockups, port: { number: 8080 } } }
+          - path: /api/datasets/synthetic-paediatric-rare/match
+            pathType: Exact
+            backend: { service: { name: ptm-mockups, port: { number: 8080 } } }

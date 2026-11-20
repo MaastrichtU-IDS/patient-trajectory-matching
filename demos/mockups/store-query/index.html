@@ -72,6 +72,7 @@
 <body>
 <main>
   <div class="eyebrow">PATIENT TRAJECTORY MATCHING · STORE QUERY · STAGE 1</div>
+  <div class="card" id="auth" hidden></div>
   <h1>Query the MIMIC-IV demo store</h1>
   <p class="note">This page runs trajectory queries in the <b>execution store</b> on the server, against a store built on this machine from the <b>open MIMIC-IV demo</b> (100 patients). It shows <b>aggregate counts only</b>: no patient identifiers, times, values or per-patient rows leave the server. Counts alone are not disclosure control: there is no small-cell suppression, and a run of queries that differ slightly can isolate one patient's value. That is acceptable only because the demo is open data; the server refuses any store that does not hold the open demo's patients. Steps are <b>source item classes</b> (rows of the MIMIC <code>d_items</code> dictionary, labelled with its public terms) and their dictionary categories. They are not clinical concepts and have not been reviewed by a clinician. Nothing here is a clinical claim.</p>
   <p><a href="../">← all mockups</a> · <a href="../trajectory/">Define a trajectory</a> (synthetic cohort, matched in this browser and the engine) · <a href="../roadmap/">roadmap</a> · design: decision D29 in <code>docs/decisions/engine-increment-log.md</code></p>
@@ -165,6 +166,7 @@
     </ul>
   </section>
 </main>
+<script src="../shared/auth.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
