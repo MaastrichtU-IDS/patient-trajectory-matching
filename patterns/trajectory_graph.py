@@ -25,9 +25,7 @@ The decision procedure (docs/trajectory-graph-profile.md):
   independent, so a binding whose steps share a variable is checked against the joint
   network, and searched for instead if that check fails.
 - Otherwise: backtracking over arc-consistent domains with an explicit step budget. An
-  exhausted budget is reported as unresolved, never as a non-match. A joint search that
-  reaches `HULL_AFTER` steps checks once a network over its steps' hulls (D48,
-  `_hull_refutes`); no solution there means no binding, and the search ends complete.
+  exhausted budget is reported as unresolved, never as a non-match.
 - Relaxation: a cost-ordered search over declared relaxation sets, stopping at the first
   that matches.
 - `first` and `last` (D30): the earliest event by start range, and the latest by latest
@@ -418,91 +416,6 @@ class Budget:
     def spend(self):
         self.steps += 1
         return self.steps <= self.limit
-
-
-# D48: a joint search that has spent `HULL_AFTER` steps without deciding checks once whether its steps' hulls admit any
-# choice of times (`_hull_refutes`). A switch, for the tests that show what it moves; as the others here, module
-# globals that worker processes never see changed. Searches with a budget of at most `HULL_AFTER` never check.
-_HULL = True
-HULL_AFTER = 1_000
-
-
-def _hull_refutes(step_ids, domains, constraints, facts, times):
-    """D48 (D40's bounds network, as a refutation): whether the network over each step's hull has no solution. Each step
-    has a start and an end variable over the union hull of its events' ranges (`Times.dom`), its end minus its start
-    within the least and greatest its events allow; with every constraint between the steps and anchors, and every
-    order fact whose condition each event of its conditioned step meets. Floyd–Warshall over 1 + 2n nodes, node 0 time
-    zero, d[i][j] bounding value(j) - value(i); an anchor is a constant.
-
-    Why True means no binding: a binding's times lie in its steps' hulls and meet each step's end-minus-start bound,
-    every constraint holds, and an included fact holds whichever event of its step is bound; leaving out the patient's
-    links between the events of different steps (shared variables) only widens the network. So every binding's times
-    solve it, and with no solution there is no binding."""
-    dom = times.dom
-    node = {}
-    for k, s in enumerate(step_ids):
-        node[(s, 's')], node[(s, 'f')] = 1 + 2 * k, 2 + 2 * k
-    n = 1 + 2 * len(step_ids)
-    d = [[0 if i == j else INF for j in range(n)] for i in range(n)]
-    for s in step_ids:
-        es, ef = node[(s, 's')], node[(s, 'f')]
-        events = domains[s]
-        d[0][es] = max(dom[e.sv][1] for e in events)
-        d[es][0] = -min(dom[e.sv][0] for e in events)
-        d[0][ef] = max(dom[e.fv][1] for e in events)
-        d[ef][0] = -min(dom[e.fv][0] for e in events)
-        d[es][ef] = max(times.gap(e.sv, e.fv) for e in events)
-        d[ef][es] = max(times.gap(e.fv, e.sv) for e in events)
-
-    def term(t):
-        return (0, dom[('anchor', t[0])][0]) if t[0] in ANCHORS else (node[t], 0)
-    for c in list(constraints) + [c for c in facts if all(c.applies_to(e, times) for e in domains[c.y[0]])]:
-        (x, ox), (y, oy) = term(c.x), term(c.y)
-        # value(y) - value(x) in [lo, hi], with value = node + offset
-        if c.hi != INF:
-            d[x][y] = min(d[x][y], c.hi - oy + ox)
-        if c.lo != -INF:
-            d[y][x] = min(d[y][x], -c.lo + oy - ox)
-    for k in range(n):
-        dk = d[k]
-        for i in range(n):
-            dik = d[i][k]
-            if dik == INF:
-                continue
-            di = d[i]
-            for j in range(n):
-                w = dik + dk[j]
-                if w < di[j]:
-                    di[j] = w
-        if any(d[i][i] < 0 for i in range(n)):
-            return True
-    return False
-
-
-class _HullBudget(Budget):
-    """D48: a search budget that, when the search reaches `HULL_AFTER` steps, asks `refute` (a `_hull_refutes` of the
-    search's model) once. If it refutes, every later `spend` fails without counting, so `_backtrack` unwinds with no
-    binding and `steps` stays at `HULL_AFTER`, within the limit: the caller reads a search that completed empty.
-    `_backtrack` is unchanged, so before and without a refutation the search takes exactly the steps it took."""
-
-    def __init__(self, limit, refute):
-        super().__init__(limit)
-        self.refute, self.refuted = refute, False
-
-    def spend(self):
-        if self.refuted:
-            return False
-        self.steps += 1
-        if self.steps == HULL_AFTER and self.refute():
-            self.refuted = True
-            return False
-        return self.steps <= self.limit
-
-
-def _meter(limit, refute):
-    """The budget of a joint search (D48): `_HullBudget` when the switch is on and the limit exceeds `HULL_AFTER`, so that
-    the check can come before the search stops; otherwise the plain `Budget`."""
-    return _HullBudget(limit, refute) if _HULL and limit > HULL_AFTER else Budget(limit)
 
 
 def _components(step_ids, pairs):
@@ -1186,13 +1099,11 @@ def decide(query, times, relaxations, budget, plan=None, override=None, exact=Tr
             result['possible'] = {'found': True, 'complete': True, 'method': 'point_forest_intervals_checked',
                                   'binding': binding, 'witness': {s: witness[_node(e.sv)] for s, e in binding.items()}}
             return result
-    meter = _meter(budget, lambda: _hull_refutes(step_ids, domains, constraints, facts, times))
+    meter = Budget(budget)
     order = sorted(step_ids, key=lambda s: len(domains[s]))
     found = _backtrack(order, domains, lambda b: feasible(b, joint(b), times).feasible, meter)
     result['possible'] = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
                           'method': 'bounded_backtracking', 'search_steps': meter.steps}
-    if getattr(meter, 'refuted', False):
-        result['possible']['hull_refuted'] = True
     if found is not None:
         witness = feasible(found, joint(found), times).witness()
         result['possible'].update(binding=found, witness={s: witness[_node(e.sv)] for s, e in found.items()})
@@ -1398,13 +1309,11 @@ def _exact_with_facts(times, plan, base, facts, budget, step_ids):
         if not feasible(b, constraints + _applying(facts, b, times), times).feasible:
             return False
         return len(b) < n or _certain_jointly(b, constraints, facts, times)
-    meter = _meter(budget, lambda: _hull_refutes(step_ids, domains, constraints, facts, times))
+    meter = Budget(budget)
     order = sorted(step_ids, key=lambda s: len(domains[s]))
     found = _backtrack(order, domains, accept, meter)
     out = {'found': found is not None, 'complete': found is not None or meter.steps <= meter.limit,
            'method': 'bounded_backtracking_with_order_facts', 'search_steps': meter.steps}
-    if getattr(meter, 'refuted', False):
-        out['hull_refuted'] = True
     if found is not None:
         out['binding'] = found
     return out

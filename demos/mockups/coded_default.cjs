@@ -421,7 +421,7 @@ function usefulness(output) {
              + 'step only; joint translator: tree and graph. All candidates and the count without C001, D39\'s two shapes '
              + 'without the gene step and the templates under stated findings reported'),
       declared_seeds: SEEDS, extension_seeds: EXTEND, seeds_used: used,
-      setting: {window: 'from the first seizure, 24 months (the page\'s own)', scope: 'from_start',
+      setting: {window: 'from the second seizure, 24 months (the page\'s own)', scope: 'from_start',
                 free_text: 'off (coded records only); reported beside it: present (stated findings, the page\'s default)',
                 translator: 'trajectory/store_request.js with STORE_CODED_ONLY (coded) or both it and STORE_GENE_CODED_ONLY (joint) on, no options',
                 store: 'store_parity.py build (the converter emitting series, through the gene wrapper) and match (store_conditions.match, the count post-pass on)'},
