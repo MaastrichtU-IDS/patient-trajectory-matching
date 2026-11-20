@@ -66,6 +66,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D48b | D48 retried: the same code (ed142d9), with the worlds checker's reading of a stopped relaxed search's claim fixed (test tooling) and the count rebind tool's defect fixed, on fresh seeds, under rules fixed before measuring | Decided; **shipped**. The last stopped search at scale is decided: seed 44's patient becomes a complete `none` (main's answer at 1,000,000), nothing else moves anywhere; 0 failing cases in 360,000 small cases, the oracle 0 wrong in 20,000, five planted defects caught, reference and MIMIC 0 mismatches; searching queries at most 1.018 of main control-normalised. Two clauses (5(a), 2.4) read as met under the new rule on conflicting provisions, after independent verification. The d44b count rebind recorded as measured, not met (1.078 on one request in one pair that runs no D48 code); D44b not reverted, an investigation queued |
 | E0 | Letter mentions timed from their letter's text: a deterministic normaliser (`patterns/mention_time.py`) and the synthetic converter's option `normalised_v1` in a wrapper no build loads (`patterns/synthetic_mentions.py`), the generator's gold mentions otherwise kept, under rules fixed before measuring | **Not shipped** (record only; retry base e53ac3b; E0b queued). Rule 1 missed as written: 4 of 84,755 narrowed ranges miss the true day the scorer reads, each a truth id the generator reuses, resolved to a measurement while the confirmed diagnosis lies inside. Every other rule met: 0 contradictions, 0 results less decided and 146 more (Blank `exact` 2 to 133 of 1,101; the truth oracle 231), coded only identical, four planted defects caught; narrowed mentions median 33 days against 1,176. As written not shipped; the coordinator decides |
 | E0b | E0 retried: the same normaliser and wrapper (e53ac3b), the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id (refusals by name, listed and left out, at most 0.1%), E0's rules as amended on fresh seeds 5201 to 5300, under rules fixed before measuring | **Shipped as an option**, off by default. Every rule met on seeds 5201 to 5300: 0 misses and 0 refusals in 84,781 narrowed mentions (median 33 days against 1,172); 0 contradictions; 171 results more decided and none less (Blank `exact` 1 to 168 of 1,102, the truth oracle 256; Sequence, Tree and Graph none); coded only identical; four planted defects caught. A held-out wording test is required before any default |
+| D51 | Is 1.1 Nth and count slower since f9e087e (D48b's d44b count rebind missed at 1.078 in one pair)? That request alone beside the two controls, main against f9e087e at 300,000 and 14 workers, 8 ABBA pairs, under a decision rule fixed before measuring | **Pre-registered**; not yet measured |
 
 ## D1 Package with hatchling, in place
 
@@ -5179,3 +5180,48 @@ E0's 5001 to 5100 are not reused. The rules:
 **Follow-ups** (named now).
 - **The generator reuses truth event ids** (`generate.py`, about line 1235: events after the snapshot are dropped from `child.truth`, and later events are numbered `len(child.truth) + 1`). Over E0's 101 cohorts, 231 ids are duplicated; the page's cohort holds 2. Fixing it changes every cohort and rebinds every report that binds `generate.py`, so it needs its own increment. *D30's own test* (`test_execution_store`, "a mention ranges from birth to its letter and holds its true time") resolves the truth by id the same way, so it passes only by luck: on the page's cohort none of the 2,444 mentions it checks links to a reused id (checked in development), and on another seed it could read the wrong event.
 - E0's follow-ups: the page's store under `normalised_v1` (after the held-out wording test), the study's E1 and E3.
+
+## D51 Is 1.1 Nth and count slower since f9e087e? A targeted paired run, under a decision rule fixed before measuring
+
+*Status:* **pre-registered**; nothing measured yet.
+
+**The question.** In D48b's rebind of D44b's count verdict (against D44b's own reference f9e087e, 300,000 patients, 14 workers), 1.1 Nth and count read **1.078** control-normalised in pair 3 of 4 (raw 1.101, the controls' geometric mean 1.021; the same request 0.999 at 8 workers in that pair). That request runs no D48 code (call counters at 300,000, D48b). D44b's run of it gave 0.988 to 1.020, and D48's 1.000 to 1.008. The verdict is committed as measured (`met: false`), and D44b was not reverted. D51 settles whether 1.1 Nth and count has really slowed since f9e087e, or whether count requests in the post-pass pool are noisier than the controls normalise (the coordinator's plan, as delegate).
+
+*Since f9e087e*, three merges on main touch `patterns/` outside tests and fixtures: D44b (86da1fb: `execution_store.py`, `store_conditions_counts.py`, the reference, the harnesses and the worlds checker), D48b (0a17003: `trajectory_graph.py` and the worlds checker) and E0b (1fd7204: `mention_time.py` and `synthetic_mentions.py`, both new and off by default). D45, D46, D47, D49, D50 and E0 change no file under `patterns/` outside tests.
+
+**The tooling: a new analysis tool; the count-latency tool is unchanged** (disclosed).
+- `tools/d51_count_investigation.py`:
+  - `run` calls `tools/benchmark_count_requests.py` as committed. It uses its existing `--requests` subset option, so no option is added. The tool writes its own report to a scratch path, and `run` then analyses it into `verification/d51-count-investigation.json`, with the tool's report embedded.
+  - `analyse` does the same analysis on a report the tool has already written.
+  - The count-latency tool is not edited: its digest is bound by D44b's and the frozen count verdicts.
+- Tests: `tools/test_d51_count_investigation.py` (12: the three outcomes and their edges; normalisation pair by pair from a report the tool's own `statistics_of` builds; no decision without the protocol or the answers; the two spread measures). A CI line is added.
+- *Disclosed: a smoke run of the analysis* on the committed D48b-era verdict `verification/d44b-count-latency-verdict.json` (prior data, not D51's), to see that it reads the tool's report. It reproduces the normalised ratios 0.989, 1.004, 1.078 and 1.024, and gives no decision there (4 pairs, 6 requests).
+
+**Design** (fixed now).
+- **Run:** `tools/d51_count_investigation.py run --snapshot 300000=~/ptm-local/scaling-d44/size-300000/store/da8cc219… --reference f9e087e --raw ~/ptm-local/d51/count-latency-raw.json --changed-set ~/ptm-local/d51/d44b-count-latency-verdict-at-1fd7204.json --changed-set-label "D44b's recorded set and D48's _hull_refutes (verification/d44b-count-latency-verdict.json at 1fd7204)" --bounded-set ~/ptm-local/d51/bounded.json`.
+- **What it runs:** `benchmark_count_requests.py --rules d44b` on **1.1 Nth and count, 1.1 sequence and 1.3 coded only** only, at **14 workers**, in **8 ABBA pairs** (reference first in even pairs) of **3 runs** each. The candidate is this tree (main at 1fd7204 plus D51's tooling); the reference is f9e087e.
+- **Build reuse, checked before measuring:** the kept 300,000 build's runtime record (`build.json`, `runtime_record_v1`) lists 10 files, and every one equals this tree (`patterns/execution_store.py` sha256 `f0d4f571…`, as at D44b). The build is reused as is; nothing is rebuilt.
+- **The changed set and the bounded set, as in D48b's rebind (reported, not ruled):**
+  - The changed set is the committed verdict's 24 functions, copied before the run (sha256 `830e2c55…`).
+  - The bounded set is `{"patterns.trajectory_graph": ["_meter", "_HullBudget.spend"]}`.
+  - The tool's other D44b sub-checks are reported too: the answers equal the reference's with its tally, and the micro bound on `unmarked`.
+  - The tool's own `verdict` is D44b's rule, which wants all six requests, so it reads not met by construction. It is not D51's rule.
+- **Reported per pair:** the count request's control-normalised ratio (its raw ratio over the geometric mean of the two controls' ratios in the same pair, as `normalised_of` computes it), its raw ratio, each control's ratio, their geometric mean, the order, and the medians.
+
+**Decision rule** (fixed now, on the 8 normalised ratios; the median of 8 is the mean of the middle two).
+- **(i) No slowdown:** the median is at most **1.02**, and at most **1 of 8** pairs is above **1.05**.
+  - The d44b miss is then attributed to variance, and recorded in D44b's dated note.
+  - The committed verdict stays as it stands, as the historical measurement.
+- **(ii) A real slowdown:** the median is above **1.05**. It is then attributed by bisecting on this request.
+  - *Steps:* the merges that touch `patterns/`, in order: 86da1fb (D44b alone), then 0a17003 (D44b and D48b); 1fd7204 is the main just measured.
+  - *How each step runs:* the merge is checked out detached, with this tree's two tools overlaid; the tools are not on the request's path. It runs the same three requests against f9e087e, in **4 ABBA pairs** of 3 runs at 14 workers.
+  - *Reading a step:* a median normalised ratio above 1.05 is slow, and one at most 1.02 is not. A step in between is extended to 8 pairs and read by this rule.
+  - The first slow step names the change.
+- **(iii) Otherwise:** the result is reported as inconclusive, with a proposed next step.
+- *No decision* unless the protocol was followed (8 pairs, 3 runs, 14 workers, the three requests, the reference resolved) and each request's answers are one digest per side, equal to the reference's, nothing moved. If those fail, the run is reported as failed.
+
+**Variance diagnosis** (reported, not ruled).
+- *Within each process:* each request's run-to-run spread over its 3 runs, as the relative range (max − min) / median and the coefficient of variation. These are given per request as the median and the maximum over the 16 processes (8 pairs × 2 sides), and by side. This answers whether, run to run, the count request is noisier in the pool than the controls.
+- *Between pairs:* over the 8 pairs, the standard deviation of the natural log of each ratio (the count request raw, each control, their geometric mean, normalised), and the correlation of the count request's log ratio with the controls' log geometric mean. This shows how much of the count request's movement from process to process the normalisation tracks.
+
+**Process.** One job under the bench lock, taken by a background job that waits and then runs. Nothing else heavy runs while it holds the lock. Outputs go to `~/ptm-local/d51/`. Gates: provenance 0 stale, test counts, `check_manifest`, and `ci-local.sh` (a tool and a CI line are added).
