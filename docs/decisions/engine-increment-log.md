@@ -64,6 +64,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | D47 | The trajectory page's whole view without the generator's truth: `evidenceFor` over D46's rule (`reconcile_v1`), data-quality cases attached per record, the provisional split restated over the rule's grouping, the truth lens the one reader of the truth, under rules fixed before measuring | Decided; **shipped**. Every rule met. The page's whole view matches the reference on 11 cohorts (5,844 events) and is unchanged with the truth removed, records shuffled or ids permuted; 896,544 own-search results are unchanged on stripped cohorts; every record is held once. On the page's cohort 602 of 53,088 own-search results changed, each by a verified regrouping, with windows and store requests identical. Parity 849 of 1,248. The label fixes are deferred |
 | D48 | The last stopped search at scale (seed 44's patient at 10,000) decided within the default budget: a network over the steps' hulls checked once a joint search has spent 1,000 steps (`_hull_refutes`), output-identical wherever the search decided, under rules fixed before measuring | Built and sound on every check it reached, **not shipped**: rule 1 (the worlds check) missed as written, 26 violations in 360,000 small cases, every one main's identical result (a known gap in the checker's reading of a stopped relaxed search's claim); the d44b count rebind not met on a tool bug. Seed 44's patient decided (`none`, main's answer at 1,000,000), nothing else moved; oracle 0 wrong in 20,000; five planted defects caught; reference 0 mismatches. Reverted; kept at ed142d9. D48b queued: the checker's reading and the tool fixed, fresh seeds |
 | D48b | D48 retried: the same code (ed142d9), with the worlds checker's reading of a stopped relaxed search's claim fixed (test tooling) and the count rebind tool's defect fixed, on fresh seeds, under rules fixed before measuring | Decided; **shipped**. The last stopped search at scale is decided: seed 44's patient becomes a complete `none` (main's answer at 1,000,000), nothing else moves anywhere; 0 failing cases in 360,000 small cases, the oracle 0 wrong in 20,000, five planted defects caught, reference and MIMIC 0 mismatches; searching queries at most 1.018 of main control-normalised. Two clauses (5(a), 2.4) read as met under the new rule on conflicting provisions, after independent verification. The d44b count rebind recorded as measured, not met (1.078 on one request in one pair that runs no D48 code); D44b not reverted, an investigation queued |
+| E0 | Letter mentions timed from their letter's text: a deterministic normaliser (`patterns/mention_time.py`) and the synthetic converter's option `normalised_v1` in a wrapper no build loads (`patterns/synthetic_mentions.py`), the generator's gold mentions otherwise kept, under rules fixed before measuring | Rules, code and tests committed; not measured (checkpoint) |
 
 ## D1 Package with hatchling, in place
 
@@ -4895,3 +4896,111 @@ the lows it found are fixed too.
     signing out.
   - *Workflow:* before activating the image workflow, the pinned action SHAs and the releases named beside them are
     to be checked; this is a first-deploy step.
+
+## E0 Letter mentions timed from their letter's text: a deterministic normaliser and the converter's option `normalised_v1`, under rules fixed before measuring
+
+*Status:* rules, code and tests committed; **not measured** (the checkpoint). The owner approved "the date normaliser first"; the coordinator briefed E0 as the owner's delegate.
+
+**The problem.** Since D30 the store times every letter mention from birth (or an earlier record) to its letter, because a letter says a finding happened at or before it, not when. That is sound (2,444 of 2,444 true times inside), but wide: about four years at the median. D45 showed the cost: under stated findings almost no result is `exact` (Blank 2 of 1,103, against 581 of 1,084 under coded only). The design study (`~/ptm-local/design/extraction/study.md`, 2026-11-19, design only) found that a conservative reading of each mention's time expression bounds every timed mention correctly with a median of about a month, and that "since the last review" cues bound more.
+
+**Scope.** E0 is the study's normaliser piece only (§1.3), not its E1. The generator's pre-annotated mentions are kept (concept, assertion, experiencer, span); only the **time** comes from the letter's text. No extractor, no model, no linking, no page change.
+
+**Is the generator's `time_expression` text in the letter?** Checked on the development cohorts (below): for every present mention about the patient, the annotation is a verbatim substring of the mention's clause (718 of 718 on the page's cohort, 735 of 735 on seed 4601). It is still the generator's pairing of an expression with its mention, and elsewhere it is not text at all: the 5 hedged mentions' and 9 family mentions' annotations on the page's cohort appear nowhere in their letters. **So the normaliser never reads the field.** It parses the mention's clause, and the scoring tool reports how often it read exactly the annotated expression (development: 1,453 of 1,453).
+
+**The normaliser** (`patterns/mention_time.py`; its docstring and `RULES` are the statement). Input: the letter's text, the mention's span, the letter's `occurred`, the birth date and the `occurred` of the same source's previous letter. Output: a day range with its rule, anchor and the text read, or a reason for none.
+- *Where it reads:* the mention's clause, from the last `.`, `;` or `:` followed by white space before the span to the first after it. So "Background: a febrile seizure at 8 months; myoclonic jerks at 1 years 3 months." gives each mention its own age, and the Dutch referral's date ("werd op 19-10-2019 gezien … met een koortsstuip") reaches its mention.
+- *The rules,* each widened to the writer's rounding under either reading of a month or year (calendar, or fixed: 365-day years, 30.44-day months), as the study asks:
+  - an explicit date, day first or ISO: that day;
+  - "this week": the letter and the 6 days before;
+  - "about a week ago", "about N weeks ago": 7N days before, ±4;
+  - "at [around] N days": day N, ±1;
+  - "at [around] N months", "N years M months": the nearest-month reading, ±½ month by either convention;
+  - "at [around] N years": **the whole year of age**, N to N + 1 (the `age_text` quirk, `generate.py:217`: a writer who rounds months prints "N years" up to N years 11.5 months);
+  - with no expression, the mention followed by "was started" or preceded by "This confirms" or "Gestart met": from the start of the same source's previous letter to the letter.
+- *None,* by reason: more than one range in the clause (`several_expressions`); the mention followed by "was stopped" (`stop_cue`: the clause's time is the stop, and a medicine's mention is timed by its start); no expression and no cue (`no_expression`); a cue with no previous letter (`no_previous_letter`); a date that is not a calendar date (`invalid_date`).
+- *Departures from the study, disclosed:*
+  - A genetic "result:" and "reclassified" are **not** cues. The study scored them against the report day. The store's truth time for a mention is its truth event's `day` (D30's test), which for a genetic result is the sample, and the sample can precede the previous letter. The reported defect `result_cue` shows it (46 misses in development).
+  - Ages are read under both conventions (the hull), "this week" is 7 days, and "about a week ago" uses the same ±4 as N weeks. Each is a few days wider than the study's reading.
+
+**The wrapper, `patterns/synthetic_mentions.py`** (D38's precedent, `store_conditions_gene.py`). With `mention_time='normalised_v1'` it calls `base.convert_patient` (the converter's own, or the gene wrapper's) with D30's timing, and narrows each `#m<i>` event's start to [max(floor, earliest), min(letter's latest, latest)]. With no range, or one that does not meet D30's range, the mention keeps D30's range, counted (`fallback_<reason>`, `fallback_outside_d30`). So no mention is timed wider than under D30, nor after its letter. A narrowed mention's evidence gains `mention_time` (rule, anchor, text read). With any other timing the wrapper returns its base's output unchanged. `synthetic_ingest.py` and `generate.py` stay byte-identical. The rule is an option, **off by default**.
+- *Truth-free.* Neither module names `truth`, `truth_event_id`, `quality`, `time_expression` or `mentions` (an AST test). The wrapper reads the span from the converter's mention evidence. Its output is the same with the truth, the cases, every truth link and every time-expression annotation removed (a test).
+- *How the store records it.* The ingest's provenance gets `mention_time` (the rule's text, in place of D30's) and `mention_normaliser`: both modules' sha256, and the counts by rule and by fallback reason. Provenance is in the input digest, so a normalised snapshot's identity differs from a default one's and moves with either module.
+- *D34 build reuse.* No build, benchmark or page module imports either module (a test over `patterns/`, `tools/` and `demos/mockups/`), and no file in the runtime record changes (`execution_store.py`, `synthetic_ingest.py`, `trajectory_times.py`, `series_values.py`, `build_record.py`, the package files, the build worker, `generate.py`, the manifest schema). So **default builds are unchanged and the kept builds stay reusable**. The scaling build worker does not take the option in E0. A build that did would load both modules, so its runtime record would list them by digest, and it would have to name the timing in its recorded settings.
+
+**Tools** (new; no committed report binds a file E0 changes).
+- `tools/e0_measure.py`, the only E0 code that reads the truth, to score:
+  - `soundness`: rules 1 and 2;
+  - `defects`: rule 6;
+  - `arms`: rules 3 to 5, with three stores per cohort:
+    - **G**: `store_parity.build` itself, the page's store (D30's timing);
+    - **GT**: the same build through the wrapper with `normalised_v1` (`base` the gene wrapper, series on);
+    - **T**, a mention-truth oracle: GT with each mention's start set to its truth event's day, within GT's range. It is built only in this tool, from the truth; no page or build loads it.
+- `demos/mockups/e0_requests.cjs`: the page's requests for its five templates under stated findings (no options) and under coded only (the parity test's options), with the page's own windows. It runs the page's own code in a `node:vm` context, as D46's and D47's tools do. The windows are the same in every arm.
+- Tests: `patterns/test_synthetic_mentions.py` (21: the rules on constructed letters; every age and relative time `age_text` and `when_text` print, for days 0 to 7,299 and four birth dates including 29 February, holds its day, and both planted age defects miss there; truth-free; default unchanged; the page's cohort; a store build, skipped without DuckDB) and `tools/test_e0_measure.py` (9).
+- Also changed: CI (`execution-store.yml` runs both suites), `tools/check_test_counts.py` (the new suite's label) and `docs/status.md`, `docs/execution-store.md` (the option, under "Synthetic converter").
+
+**Disclosed: development runs before these rules** (none on a ruled seed). They ran on the page's cohort (the generator's default seed, already measured by the study) and on seed 4601 (the shared development seed).
+- `soundness`: 4,980 mentions, 1,716 narrowed, **0 misses**. On the page's cohort: 849 of 2,444 narrowed:
+  - ages: months 311, years and months 118, days 62, years 19;
+  - relative to the letter: weeks 201, this week 6;
+  - since the previous letter: 129;
+  - dates: 3;
+  - fallbacks: no expression 1,565 (mostly "Current medication" restatements), no previous letter 17, stop cue 13.
+
+  Days covered by a narrowed range: median 33, 90th percentile 105, against 1,191 and 2,535 under D30 for the same mentions. Over every mention, the median goes from 1,458.5 to 894 days.
+- `defects` on both cohorts: misses `naive_years` 7, `month_off_by_one` 852, `result_cue` 46, `stop_ignored` 27. All four are caught, so all four are ruled.
+- `arms` on seed 4601 alone, to check that the tool runs:
+  - 0 contradictions; the negative control identical;
+  - under stated findings, `exact` among candidates for G, GT and T: Blank 0, 3 and 7 of 37; Sequence 0, 0 and 2 of 10; Tree 0, 0 and 2 of 6; Graph 0, 0 and 0 of 6; no candidate unresolved.
+
+  So on that seed even the truth oracle leaves most stated-findings results `possible`. The likely cause is the untimed two-thirds of mentions, which stay four years wide; that is not measured.
+- The suites, including the page's cohort's counts pinned in `CohortTests` (849 narrowed of 2,444, 0 misses).
+
+**Pre-committed rules** (committed with this entry, before any measurement of E0 beyond the runs above; "main" is b575ba8). Seeds: **5001 to 5100** for soundness; **5001 to 5030** for the arms, extended in order to 5100 while a ruled template has fewer than 30 candidates pooled. The extension reads candidate counts only.
+1. **Temporal soundness.** `tools/e0_measure.py soundness --committed --seeds 5001-5100` covers the page's cohort and 100 fresh cohorts. Every present mention about the patient is converted under `normalised_v1` and checked against its truth event's day, the time D30's test uses (`test_execution_store`: the truth is a day). **0 narrowed ranges that do not meet the true day.** Fallbacks keep D30's ranges, which must also hold their truth (reported: `d30_misses` 0).
+2. **Coverage and tightening (reported).** From the same run:
+   - the share of mentions narrowed, by rule, and the fallbacks by reason;
+   - the days covered (median and 90th percentile), over narrowed mentions and over all mentions, beside D30's;
+   - the annotated time expressions found verbatim in their clause, and those the normaliser read exactly.
+3. **Usefulness** (`arms`, report `verification/e0-mention-time-arms-report.json`). The page's templates, matched through `store_conditions.match`, the page server's entry point.
+   - *Ruled,* for arm GT under stated findings (the page's default, no options), for Sequence, Tree, Graph and Blank: at least 30 candidates pooled (a store candidate and an index window), and at most 30% of distinct child types unresolved (the owner's counting rule: `PLAN` keys, C001 as `reference`).
+   - *Coverage:* only Event frequency under stated findings is refused (`FREE_TEXT_COUNT_UNSUPPORTED`).
+   - *Reported,* per template and arm (G, GT, T):
+     - all candidates and the count without C001;
+     - status mixes;
+     - **the `exact` results, and how many candidates become `exact` from G to GT**;
+     - the status transitions G to GT among candidates;
+     - T's figures as the ceiling that perfect mention timing would reach.
+4. **Wrong answers.** G's worlds contain GT's (each GT start lies within G's), which contain T's, so every decided claim of a larger arm must hold in a smaller one. An `exact` stays `exact`. A complete `none` stays `none`. A `relaxed` result's unrelaxed query stays impossible, and a complete `exact` relaxed match stays the same match. A smaller arm's `unresolved` or `not_comparable` decides nothing, and windows are the same (`transition_ok`). **0 contradictions from G to GT and from GT to T**, over every patient of every case (both settings, every seed). A GT result that T contradicts is a wrong answer against the mentions' true times. G to T is reported.
+5. **Negative control.** Under coded only (Sequence, Event frequency and Blank under profile 1.3; Tree and Graph joint), GT's and T's results and candidate lists are **identical to G's**, for every patient and every seed.
+6. **Planted defects.** `tools/e0_measure.py defects --committed --seeds 5001-5030`. Each of `naive_years` ("at N years" read as about N years), `month_off_by_one` (N months read as N + 1), `result_cue` (a genetic result or a reclassification read as since the previous letter) and `stop_ignored` (the clause's time applied to a mention followed by "was stopped") must give **at least one miss** of rule 1.
+7. **Build reuse and defaults.**
+   - The diff against b575ba8 changes no existing file under `patterns/`, and changes neither the build worker, `store_parity.py`, `store_trajectory.py`, any page file nor the generator. The new and changed files are listed under Tools.
+   - The wrapper's default output equals the converter's byte for byte (and the gene wrapper's), and a default build through it has the converter's snapshot identity (the suite; the store test runs with DuckDB).
+   - The 300 recorded digests are unchanged (the suites).
+   - No committed report goes stale (`check_report_provenance`: 0 stale); none is regenerated or frozen.
+8. **Latency: structural, ruled.** No timed path changes. No module a build, a benchmark or the page server runs imports either new module (the suite's import check), and rule 7's diff leaves every existing timed file byte-identical, so every timed path makes 0 calls into E0's code and no paired ratio is ruled. *Reported:* each arm's match time in the arms run. Narrower mentions change the data GT's matching sees, not the code (D30 put the cost of wide mentions at about 10%).
+9. **Gates:**
+   - all suites;
+   - `tools/check_report_provenance.py` at 0 stale;
+   - `check_test_counts --write`, then the check;
+   - `check_manifest`;
+   - both `.cjs` parity tests;
+   - `~/.claude-pcx/ci-local.sh`;
+   - `demos/mockups/results/build.py --check`.
+
+   Tests that build a store skip without DuckDB.
+10. **Ship rule (proposed, for the coordinator's decision at the checkpoint).** If rules 1 and 3 to 9 hold (2 reported), `normalised_v1` ships as an **option**, off by default: the store's default for synthetic ingest stays D30's. The reasons:
+    - Making it the page store's default changes `store_parity.build` and the page's answers under stated findings. That needs the page-parity rule and re-pinning, and a rebind or freeze of the five live reports that bind `store_parity.py` (D45's page report and latency verdict, D46's three). It is a separate increment, with this one's measurements as its evidence.
+    - Folding the option into `synthetic_ingest.py` moves the converter's digest: 19 committed reports bind it (7 live, the scaling report among them, whose kept builds would no longer be reusable), and the recorded synthetic input digests move.
+    - The normaliser has met one writer, the generator's templates. Its soundness on that writer is what rule 1 measures, not soundness on real letters. Real letters often truncate ages (8 completed months), write dates month first, or use phrases this reader does not parse. It falls back to D30 on whatever it cannot read, but it would read a truncated age too narrowly.
+    - The development run suggests a modest gain on the page's templates: most mentions stay untimed, and only linking (the study's E3) would bound them.
+
+    A failure is reported, never tuned away; no bar changes after measuring.
+
+**Regeneration.** None expected: no committed report binds a file E0 changes. The three E0 reports are new (soundness, defects, arms), produced in one job under the bench lock after the checkpoint.
+
+**Follow-ups** (named now).
+- The page's store under `normalised_v1` (above), if the coordinator or the owner wants it.
+- A mention layer and an extractor (the study's E1), for which this normaliser is the timing stage.
+- Linking letter mentions to coded records (the study's E3). It would time the "Current medication" restatements, the bulk of the untimed mentions.
