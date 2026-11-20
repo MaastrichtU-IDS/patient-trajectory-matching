@@ -5,8 +5,9 @@ D43 timed a path it never ran: the matcher benchmark's queries carry no count an
 directly, so the cost D43 added, its post-pass on count requests, went unmeasured (decision log, D43: "a latency rule
 must time the path the change executes"). This tool times that path: fixed count requests (`REQUESTS`: Event
 frequency and an Nth step beside a count, each at profiles 1.1 and 1.3) through `store_conditions.match`, the one entry
-point the page and the tools call, on one snapshot (the kept D34 build of 300,000 patients), with the page's windows
-(each patient's second coded seizure for 730 days; patients without one have no window) and `detail='decided'` (the
+point the page and the tools call, on one snapshot (the kept D34 build of 300,000 patients), with D43b's windows
+(each patient's second coded seizure for 730 days, the benchmark's choice; the page's period starts at the first
+seizure; patients without one have no window) and `detail='decided'` (the
 page's store query server's). The reference code (a git ref, extracted to a scratch directory as the matcher
 benchmark extracts its arms) and the candidate (this tree) run back to back in fresh processes with a warm pool, for
 each repeat and worker count, the order alternating across repeats (ABBA): D31's paired interleaved protocol
@@ -50,6 +51,11 @@ module's `_worker_unit` calls `_load_events` and `match_prepared`, or `_match_de
 the worker's store), so those counters cover the pool path; at 14 workers the dispatcher's own part is counted. The check
 fails if a pool unit's entry point is itself changed or names a changed function in its body, or if a module imports a
 changed function by name (on the AST), which would bypass a counter.
+
+`--changed-set FILE` (D48's amendment, for rebinding D44b's verdict on a later tree) fixes the set the control-structural
+check counts: a count-latency verdict's recorded `changed_functions`, or a {module: [names]} map, instead of the AST
+against `--reference`, which on a later tree would also sweep in that tree's own changes. The report names its source
+(`changed_set_source`).
 """
 from __future__ import annotations
 
@@ -167,7 +173,8 @@ WINDOWS_SQL = """
 
 
 def windows_of(store):
-    """The page's windows: from each patient's second coded seizure, 730 days; none for a patient without one."""
+    """D43b's windows (not the page's): from each patient's second coded seizure, 730 days; none for a patient without
+    one."""
     return {pid: {'start': second, 'end': second + WINDOW_DAYS * DAY}
             for pid, second in store.query(WINDOWS_SQL) if second is not None}
 
@@ -322,7 +329,6 @@ def control_targets(reference):
     """{module: [changed or added function or Class.method]} over the `patterns/` modules (tests aside) that differ
     from `reference`, by the AST (`tools/d44_measure.changed_definitions`), and the by-name imports of those names
     anywhere in `patterns/` ({module: [names]}, which would bypass a counter)."""
-    import ast
     sys.path.insert(0, str(ROOT / 'tools'))
     import d44_measure
     changed = subprocess.run(['git', 'diff', '--name-only', reference, '--', 'patterns'], cwd=ROOT, check=True,
@@ -335,6 +341,13 @@ def control_targets(reference):
         functions, _, _, _ = d44_measure.changed_definitions(path, reference)
         if functions:
             targets[path[:-3].replace('/', '.')] = functions
+    return targets, by_name_imports(targets)
+
+
+def by_name_imports(targets):
+    """The by-name imports anywhere in `patterns/` of the functions in `targets` ({module: [names]}), which would bypass
+    a counter."""
+    import ast
     bypass = {}
     for path in sorted((ROOT / 'patterns').glob('*.py')):
         for node in ast.walk(ast.parse(path.read_text())):
@@ -343,7 +356,18 @@ def control_targets(reference):
                 hit = sorted({a.name for a in node.names} & {f.split('.')[0] for f in targets.get(module, ())})
                 if hit:
                     bypass.setdefault(str(path.relative_to(ROOT)), []).extend(hit)
-    return targets, bypass
+    return bypass
+
+
+def fixed_targets(path):
+    """D48's amendment for rebinding D44b's verdict: the changed functions to count, fixed rather than recomputed by the
+    AST against `--reference` (which would also sweep in a later increment's changes): a JSON file that is either a
+    count-latency verdict, whose `verdict.control_structural.changed_functions` is taken, or a {module: [names]} map."""
+    data = json.loads(Path(path).read_text())
+    targets = data['verdict']['control_structural']['changed_functions'] if 'verdict' in data else data
+    if not targets or not all(isinstance(v, list) and v for v in targets.values()):
+        raise SystemExit(f'{path}: no changed functions to count')
+    return {m: list(v) for m, v in targets.items()}, by_name_imports(targets)
 
 
 def control_worker(args):
@@ -736,8 +760,10 @@ def paired(args):
             print('micro-measure of unmarked (D44b) ...', file=sys.stderr, flush=True)
             micro = run_micro(args)
             print('control-structural check (D44b, F1) ...', file=sys.stderr, flush=True)
-            targets, bypass = control_targets(args.reference)
+            targets, bypass = fixed_targets(args.changed_set) if args.changed_set else control_targets(args.reference)
             control = control_check(run_control(args, targets), targets, bypass)
+            control['changed_set_source'] = (f'fixed: {args.changed_set_label or args.changed_set}' if args.changed_set
+                                             else f'the AST against {args.reference}')
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     rules = RULES[args.rules]
@@ -793,6 +819,10 @@ def main(argv=None):
     parser.add_argument('--output', type=Path, help='default: verification/d43b-count-latency-verdict.json under '
                         '--rules d43c, verification/d44-count-latency-verdict.json under --rules d44')
     parser.add_argument('--rules', choices=sorted(RULES), default='d43c', help="the bars and checks: D43b/D43c's, or D44's")
+    parser.add_argument('--changed-set', help="D48: the changed functions the control-structural check counts, fixed (a "
+                        "count-latency verdict's recorded set, or a {module: [names]} JSON file) instead of the AST "
+                        'against --reference')
+    parser.add_argument('--changed-set-label', help='how the report names the fixed set (default: its path)')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--micro-worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--control-worker', action='store_true', help=argparse.SUPPRESS)

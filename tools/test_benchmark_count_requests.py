@@ -254,6 +254,47 @@ class ControlStructuralTests(unittest.TestCase):
         self.assertEqual(len(bc.entry_references(targets)), 1)  # the post-pass's unit, which only counts submit
 
 
+class FixedChangedSetTests(unittest.TestCase):
+    """D48's amendment: the control-structural check of a rebind counts a fixed set of changed functions (a verdict's
+    recorded set, or a map), not one recomputed against the reference, which would sweep in a later increment's code."""
+
+    def test_the_set_recorded_in_d44bs_verdict_is_read_and_every_function_still_exists(self):
+        import importlib
+        targets, bypass = bc.fixed_targets(ROOT / 'verification/d44b-count-latency-verdict.json')
+        self.assertEqual(sum(len(v) for v in targets.values()), 23)
+        self.assertIn('unmarked', targets['patterns.store_conditions_counts'])
+        self.assertNotIn('patterns.trajectory_graph', targets)
+        self.assertEqual(bypass, {})
+        for module, names in targets.items():
+            m = importlib.import_module(module)
+            for name in names:
+                owner = getattr(m, name.split('.')[0])
+                self.assertTrue(callable(getattr(owner, name.split('.')[1]) if '.' in name else owner), f'{module}:{name}')
+
+    def test_a_map_is_read_as_it_is_and_an_empty_set_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / 'set.json'
+            path.write_text(json.dumps({'patterns.execution_store': ['apply_exclusions']}))
+            self.assertEqual(bc.fixed_targets(path), ({'patterns.execution_store': ['apply_exclusions']}, {}))
+            path.write_text(json.dumps({}))
+            with self.assertRaises(SystemExit):
+                bc.fixed_targets(path)
+            path.write_text(json.dumps({'verdict': {'control_structural': {'changed_functions': {'patterns.x': []}}}}))
+            with self.assertRaises(SystemExit):
+                bc.fixed_targets(path)
+
+    def test_the_option_reaches_the_run(self):
+        from unittest.mock import patch
+        seen = []
+        with patch.object(bc, 'paired', seen.append):
+            bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b', '--changed-set', 'v.json',
+                     '--changed-set-label', 'D44b'])
+        self.assertEqual((seen[0].changed_set, seen[0].changed_set_label), ('v.json', 'D44b'))
+        with patch.object(bc, 'paired', seen.append):
+            bc.main(['--snapshot', '1=x', '--reference', 'main', '--rules', 'd44b'])
+        self.assertIsNone(seen[1].changed_set)  # without it, the AST against --reference, as before
+
+
 class MovementTests(unittest.TestCase):
     def test_only_uncertain_results_may_move(self):
         uncertain = {'patient_id': 'b', 'status': 'unresolved', 'reason': 'STEP_CONDITION_UNCERTAIN'}
