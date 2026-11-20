@@ -178,7 +178,30 @@ function evidenceFor(pid) {
   return view;
 }
 
+/* An item, and (D53) the item as "Coded records only" searches it. A search under that setting reads no clinical note
+   for any step, so it reads each item as its coded records alone make it: `buildItem` without the item's letter
+   mentions, its kind, concept, label, times, course and gene from records only (`codedOf`). An item with no coded record
+   is not searched under it. A medicine course whose only medication record is a stop has no coded start, so under
+   "Coded records only" it is not usable for any step or index period (the store skips such a stop and counts it,
+   patterns/synthetic_ingest.py). The item keeps its mentions as the evidence it holds; the timeline and the inspector
+   still show the item as every record and mention make it. */
+const CODED_FIELDS = ['kind', 'concept', 'textConcept', 'display', 'time', 'med', 'gene', 'procedure', 'freeTextOnly', 'possibleOnly',
+                      'recordedDay', 'availableDay'];
 function makeItem(p, id, recs, ms, cases, day, lastContact) {
+  const item = buildItem(p, id, recs, ms, cases, day, lastContact);
+  if (item && !item.freeTextOnly && ms.length) {
+    const alone = buildItem(p, id, recs, [], cases, day, lastContact);
+    item.coded = alone && {...item, ...Object.fromEntries(CODED_FIELDS.map(k => [k, alone[k]]))};
+  }
+  return item;
+}
+// The item a search reads under "Coded records only" (D53): null for an item with no coded record; the item itself when
+// it holds no mention.
+const codedOf = item => item.freeTextOnly ? null : item.mentions.length ? item.coded : item;
+// The items a search reads under a free-text setting (D53): under "Coded records only" each as its coded records make it.
+const searchable = (view, q) => q.freeText === 'off' ? view.items.map(codedOf).filter(Boolean) : view.items.filter(i => admissible(i, q));
+
+function buildItem(p, id, recs, ms, cases, day, lastContact) {
   const kinds = new Set(recs.map(r => r.kind));
   const structured = recs.filter(r => r.coding);
   const coded = uniq(structured.map(r => conceptOf(r.coding)).filter(Boolean));
@@ -421,8 +444,8 @@ function knownResult(item, end, q) {
    results are states, so they count if established by its end; medicines count if taken
    at any time during it. With knownByIndex, nothing counts that was not available by the end. */
 function usable(view, q, win) {
-  return view.items.filter(i => {
-    if (!i.concept || !admissible(i, q)) return false;
+  return searchable(view, q).filter(i => {
+    if (!i.concept) return false;
     if (i.kind === 'genetic') return !!knownResult(i, win.end, q);
     if (q.knownByIndex && i.availableDay > win.end) return false;
     if (i.kind === 'medication') {

@@ -299,7 +299,7 @@ function compareTip(pid, id) {
   const nearAll = same.length ? [] : oview.items.filter(o => relation(key, compareKey(o, q)) && (o.kind === 'medication' ? o.med.start : o.time.best));
   const near = nearAll.filter(o => !hiddenItem(o));
   const nearHidden = nearAll.length - near.length;
-  const used = win.end != null && usable(view, q, win).includes(it);
+  const used = win.end != null && usable(view, q, win).some(u => u.id === it.id);  // by id: under coded only, usable reads each item's coded form (D53)
   const lines = [`<strong>${esc(it.display)}</strong> · ${esc(pid)} at ${esc(when(it, win))}`];
   if (same.length) {
     lines.push(`<span class="tip-shared">■ Shared exactly</span> — ${esc(other)} has it at ${esc(same.slice(0, 4).map(o => when(o, owin)).join(', '))}${same.length > 4 ? ` and ${same.length - 4} more` : ''}`);

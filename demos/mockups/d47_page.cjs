@@ -596,7 +596,9 @@ function usefulness(output) {
 }
 
 module.exports = {DEFECTS, RULED_DEFECTS, TRUTH_DEFECTS, COMPLETENESS_DEFECTS, pageContext, inContext, REFERENCE_SEEDS, SEEDS, EXTEND, viewsOf, stripped, perturbed, mapBack,
-                  differingPatients, classify};
+                  differingPatients, classify,
+                  // Shared with D53's tool (d53_coded_start.cjs): the page-side definitions and the owner's counting rule.
+                  DEFINITIONS, pooledReadings, planKeys, MINIMUM, SHARE, SETTINGS};
 
 if (require.main === module) {
   const what = process.argv[2], output = arg('--output', null);
