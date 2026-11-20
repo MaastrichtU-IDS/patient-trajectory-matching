@@ -367,3 +367,72 @@ try {
   console.log(`D53 patient-first under coded only reads no note: ${Object.keys(offFull).length} comparisons (${rows} rows; 3 measures, 2 references) `
               + `the same without letter mentions; under stated findings ${statedDiffer} differ.`);
 }
+
+/* D52: the index anchor as a hidden step. The translator's rewrite on the page's cohort, the page's reading of an
+   indexed answer, and the census's pure parts (d52_anchor.cjs), on constructed results. */
+{
+  const d52 = require('./d52_anchor.cjs');
+  const ctx = d52.pageContext(cohortText, 'here');
+  const read = code => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, ctx));
+  // The page's default period (the first seizure, 24 months), Blank, coded only: one hidden step, the scope `any` with
+  // its relations, eligibility from the hidden step; D49's request on request; a constant period is not rewritten.
+  const r = read(`(() => { state.freeText = 'off'; const before = INDEX_REWRITES.calls;
+    const mine = storeRequest({...defaultDef(), ...clone(BLANK)}, 'off', [...state.patients.keys()]);
+    const pin = storeRequest({...defaultDef(), ...clone(BLANK)}, 'off', [...state.patients.keys()], {indexAnchor: false});
+    const constant = {...defaultDef(), ...clone(BLANK), window: {start: {kind: 'birth'}, end: {kind: 'age', amount: 6, unit: 'year'}}};
+    const mid = INDEX_REWRITES.calls;
+    const c1 = storeRequest(constant, 'off', [...state.patients.keys()]), c2 = storeRequest(constant, 'off', [...state.patients.keys()], {indexAnchor: false});
+    return {mine, pin, calls: [mid - before, INDEX_REWRITES.calls - mid], constantSame: JSON.stringify(c1) === JSON.stringify(c2)}; })()`);
+  assert.deepEqual(r.calls, [1, 0]);
+  assert.ok(r.constantSame);
+  assert.deepEqual(r.mine.query.steps.map(s => s.id), ['A', '@index_start']);
+  assert.equal(r.mine.query.scope, 'any');
+  assert.deepEqual(r.mine.index, {rule: 'index_anchor_v1', start: {step: '@index_start', offset: 0}, end: {step: '@index_start', offset: 1052006}});
+  assert.deepEqual(r.mine.query.relations.map(x => [x.id, x.from, x.to, x.min, x.max]),
+    [['index:scope:A', 'START', 'A', 0, undefined], ['index:scope-start:A', '@index_start', 'A', 0, undefined],
+     ['index:followed', '@index_start', 'END', 1052006, undefined], ['index:born', 'START', '@index_start', -1052006, undefined]].map(a => a.map(v => v === undefined ? undefined : v)));
+  assert.equal(r.pin.index, undefined);
+  assert.equal(r.pin.query.scope, 'from_start');
+  // Every base window starts at birth and ends at last contact; the page's anchor plays no part.
+  const C001 = read(`state.patients.get('C001').follow_up.last_contact`);
+  assert.deepEqual(r.mine.windows.C001, {start: 0, end: read(`toGrid(dayOf(state.patients.get('C001'), ${JSON.stringify(C001)}))`)});
+  // The page reads an indexed answer: the hidden step is kept out of the steps, the period placed from its witness.
+  const page = read(`(() => {
+    state.def = {...defaultDef(), ...clone(BLANK)};
+    const answer = {conditions_profile: 'execution-store-conditions-1.3', index: {rule: 'index_hull_v1', reasons: {C002: 'INDEX_ANCHOR_NOT_RECORDED'},
+      windows: {C001: [1440, 1440 * 800], C002: null}}, results: [
+      {patient_id: 'C001', status: 'exact', binding: {A: {kind: 'condition', start: [14400, 14400]}, '@index_start': {kind: 'condition', start: [14400, 14400]}},
+       witness: {A: 14400, '@index_start': 14400}},
+      {patient_id: 'C002', status: 'excluded', reason: 'NO_INDEX_WINDOW'}]};
+    return fromStore(answer, state.def).map(x => ({status: x.status, win: x.win, period: x.period, steps: x.best ? [...x.best.bind.keys()] : null,
+                                                   anchor: x.anchor ? [...x.anchor.keys()] : null, reason: x.reason})); })()`);
+  assert.deepEqual(page[0].steps, ['A']);
+  assert.deepEqual(page[0].anchor, ['@index_start']);
+  assert.deepEqual(page[0].period, {start: 10, end: 10 + 1052006 / 1440});
+  assert.deepEqual(page[0].win, {start: 1, end: 800});
+  assert.equal(page[1].status, 'excluded');
+  assert.ok(/holds no record of the period's event/.test(page[1].reason));
+  // The census's classes, on constructed results.
+  const ir = {ranges: {'@index_start': {P: [2, 100, 100], Q: [2, 100, 160]}}, windows: {P: {start: 100, end: 900}, Q: {start: 100, end: 960}},
+              base_windows: {P: {start: 0, end: 2000}, Q: {start: 0, end: 2000}}, reasons: {}};
+  const index = {start: {step: '@index_start', offset: 0}, end: {step: '@index_start', offset: 800}};
+  const one = (pid, m, h, at, extra = {}) => d52.classesOf({m, h, pid, ir, index, page: {reason: null, anchors: {start: at}, last: 2000}, hasStartMax: false, ...extra});
+  assert.deepEqual(one('P', {status: 'possible'}, {status: 'exact'}, 100), []);  // a certain anchor at the page's point: no class
+  assert.deepEqual(one('Q', {status: 'possible'}, {status: 'exact'}, 100), ['anchor_uncertain']);
+  assert.deepEqual(one('P', {status: 'possible'}, {status: 'exact'}, 90), ['anchor_moved']);
+  assert.deepEqual(one('Q', {status: 'exact'}, {status: 'unresolved', reason: 'OCCURRENCE_ORDER_UNCERTAIN'}, 100, {related: true}), ['anchor_uncertain', 'coupled']);
+  assert.deepEqual(d52.classesOf({m: {status: 'excluded'}, h: {status: 'possible'}, pid: 'P', ir, index, hasStartMax: false,
+    page: {reason: 'not followed to the end of the window (last contact at 2y)', anchors: {start: 100}, last: 2000}}), ['eligibility_gained']);
+  assert.deepEqual(one('P', {status: 'none'}, {status: 'not_comparable'}, 100, {facts: {a: {uncovered: [], admitted: []}, b: {uncovered: ['A'], admitted: []}}}), ['coverage_hull']);
+  assert.deepEqual(d52.classesOf({m: {status: 'exact'}, h: {status: 'possible'}, pid: 'P', ir, index, hasStartMax: false,
+    page: {reason: null, anchors: {start: 100}, last: 850}}), ['eligibility_partial']);
+  // D52's refusals fit their shapes only.
+  const w = (start, end) => ({window: {start, end}, nodes: []});
+  const ev = (event, which = 'first', n = 1) => ({kind: 'event', event, which, n, offset: 0, unit: 'month'});
+  assert.ok(d52.refusalFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('@any_diagnosis'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(!d52.refusalFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('seizure'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(d52.refusalFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'present', {}));
+  assert.ok(!d52.refusalFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  console.log('D52: the rewrite of the default period (one hidden step, scope any, eligibility from the step), D49\'s request on '
+              + 'request, a constant period untouched; the page\'s reading of an indexed answer; the census\'s classes and refusal shapes.');
+}

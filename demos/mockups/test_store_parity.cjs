@@ -25,7 +25,10 @@ const {execFileSync} = require('node:child_process');
 
 const here = __dirname, root = path.resolve(here, '../..');
 const python = process.env.PYTHON || 'python';
-const cohort = path.join(here, 'data/synthetic-paediatric-rare.json');
+// A development cohort (STORE_PARITY_COHORT, diagnostics only, D52): every rule runs, but the tables pinned to the
+// committed cohort (the differences, the sweep tally) are printed instead of compared.
+const DEV_COHORT = process.env.STORE_PARITY_COHORT;
+const cohort = DEV_COHORT ? path.resolve(DEV_COHORT) : path.join(here, 'data/synthetic-paediatric-rare.json');
 // D44: the child's stdin is a regular file holding `input` (empty without one), never a pipe. Once, the `sweep` child sat
 // in its read of stdin for about 30 minutes and passed on a rerun. A read of a regular file ends at the file's end
 // whatever any other process holds open, so no read can wait on a writer; and a call that still hangs fails after
@@ -103,7 +106,11 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
-    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
+    // D52: a count "in the index period" needs a fixed period (INDEX_PERIOD_COUNT_UNSUPPORTED with the page's default
+    // period, which the store now places from its own records; the refusal table below), so this trajectory counts in
+    // the period from birth to 6 years.
+    'at least 2 febrile seizures in the index period': {scope: 'within', freeText: 'off',
+      window: {start: {kind: 'birth'}, end: {kind: 'age', amount: 6, unit: 'year'}},
       nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
     // D33: the page's three rise templates, with the page's own window, scope and free-text setting. The tree and graph
     // templates carry a gene step, which the store refuses by name (asserted below), so they run here without that step
@@ -148,18 +155,20 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       const pids = [...state.patients.keys()], byId = nodeById(def);
       // The page's own call (D49): no options. Rises (D36), gene steps (D38), "coded only" as the store's profile 1.3
       // (D39) and gene steps under it as the joint profile (D42) are all the translator's defaults since D49.
-      const {query, conditions, windows} = storeRequest(def, state.freeText, pids);
+      const {query, conditions, windows, index} = storeRequest(def, state.freeText, pids);
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
       for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
         ...(own[n.id] && own[n.id].relative ? {relative: own[n.id].relative} : {}), ...(own[n.id] && own[n.id].gene ? {gene: true} : {})};
+      // D52: the hidden steps that place an event's period (the replay binds them as the store does).
+      for (const st of query.steps) if (st.id.startsWith('@index_')) wanted['step:' + st.id] = {concept: st.concept};
       for (const x of query.relaxations) if (x.kind === 'widen_concept') wanted[x.id] = {concept: x.concept};
       for (const x of (conditions || {}).relaxations || []) {
         if (x.kind === 'widen_value') wanted[x.id] = {concept: byId[x.step].concept, condition: x.condition};
         else if (x.kind === 'widen_factor') wanted[x.id] = {concept: byId[x.step].concept, relative: {...own[x.step].relative, factor: x.factor}};
         else if (x.concept) wanted[x.id] = {concept: x.concept};
       }
-      return {name, query, conditions, windows, candidates: wanted};
+      return {name, query, conditions, windows, ...(index ? {index} : {}), candidates: wanted};
     });
   };
   var refusalOf = function (def, freeText, options) {
@@ -184,6 +193,20 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     for (const n of def.nodes) add('step:' + n.id, plain(n), new Set());
     for (const o of relaxOptions(def)) if (o.key.startsWith('node:')) add(o.key, plain(byId[o.key.slice(5)]), new Set([o.key]));
     return out;
+  }); };
+  // D52: the page's own placement for a patient (its reason, its anchors and last contact, in grid minutes), for the
+  // declared cause "index anchor".
+  var pageIndex = function (name, pid) { return withFreeText(name, () => {
+    const def = {...defaultDef(), ...CASES[name]}, q = {freeText: state.freeText, knownByIndex: false};
+    const w = windowFor(evidenceFor(pid), {...q, window: def.window}), anchors = {};
+    for (const side of ['start', 'end']) {
+      const b = def.window[side];
+      if (b.kind !== 'event') continue;
+      const d = eventDay(indexViewFor(pid), q, b.event, b.which, b.n);
+      anchors[side] = d == null ? null : toGrid(d);
+    }
+    const p = state.patients.get(pid);
+    return {reason: w.reason || null, anchors, last: toGrid(dayOf(p, p.follow_up.last_contact))};
   }); };
   var occurrenceOf = function (name, key) {
     const def = {...defaultDef(), ...CASES[name]}, n = nodeById(def)[key.split(':')[1]];
@@ -242,8 +265,30 @@ function storeList(events, occ) {
   const picked = occ === 'first' ? sorted.slice(0, 1) : occ === 'last' ? latest.slice(-1) : sorted;
   return picked.map(e => ({t: t(e), kind: e[5], id: e[4]}));
 }
-function causes(name, pid, pageStatus, storeResult, storeCands, pageReason) {
-  if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return ['coverage'];
+/* D52: the store places an event's period from its own records (a hidden step), the page at one time. Declared for a
+   patient only when that can differ: the page or the store (and not both) cannot place the period; a hidden step's
+   possible range is not exactly the page's point; some worlds end the period after the last contact (or before birth,
+   or before it starts); or the period's start may fall before birth (a gap from the start is measured from the event
+   plus its offset, unclamped; D52, Q2). */
+function indexAnchorDiffers(name, pid, storeResult, ir, index) {
+  if (!ir) return false;
+  const page = vm.runInContext(`pageIndex(${JSON.stringify(name)}, ${JSON.stringify(pid)})`, context);
+  if (!!page.reason !== (storeResult.status === 'excluded')) return true;
+  if (storeResult.status === 'excluded') return false;
+  const range = step => (ir.ranges[step] || {})[pid] || [0, null, null];
+  const bound = step => step === '@index_start' ? 'start' : 'end';
+  for (const step of new Set(['start', 'end'].filter(x => index[x]).map(x => index[x].step))) {
+    const [, lo, hi] = range(step), at = page.anchors[bound(step)];
+    if (lo === null || at === null || at === undefined || lo !== hi || at !== lo) return true;
+  }
+  const base = ir.base_windows[pid], side = (x, c) => index[x] ? [range(index[x].step)[1] + index[x].offset, range(index[x].step)[2] + index[x].offset] : [c, c];
+  const S = side('start', base.start), E = side('end', base.end);
+  if ((index.end && (E[1] > page.last || E[0] < 0)) || (!(index.start && index.end && index.start.step === index.end.step) && S[1] >= E[0])) return true;
+  return !!index.start && S[0] < 0;
+}
+function causes(name, pid, pageStatus, storeResult, storeCands, pageReason, ir, index) {
+  const anchor = indexAnchorDiffers(name, pid, storeResult, ir, index);
+  if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return anchor ? ['coverage', 'index-anchor'] : ['coverage'];
   const page = vm.runInContext(`pageCandidates(${JSON.stringify(name)}, ${JSON.stringify(pid)}, true)`, context);
   const out = new Set();
   // D33: the page's own observability check for a measurement after an earlier step (binding-specific, page-only).
@@ -271,6 +316,7 @@ function causes(name, pid, pageStatus, storeResult, storeCands, pageReason) {
     const records = onlyStore.some(x => x.kind !== 'mention') || onlyPage.some(x => !x.mention);
     if (records) out.add(kind === 'medicine' ? 'medication-records' : 'record-reconciliation');
   }
+  if (anchor) out.add('index-anchor');
   return out.size ? [...out].sort() : ['UNEXPLAINED'];
 }
 
@@ -280,7 +326,10 @@ const snapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.
 const names = vm.runInContext('Object.keys(CASES)', context);
 const cases = names.map(name => vm.runInContext(`storeCase(${JSON.stringify(name)}, {...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context));
 if (process.env.STORE_PARITY_CASES) fs.writeFileSync(process.env.STORE_PARITY_CASES, JSON.stringify({cohort, cases}));  // diagnostics
-const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases})));
+// D52: each case whose period is a hidden step has its base windows narrowed by the server's rule first (index_hull.py).
+const narrowed = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', snapshot], JSON.stringify({cohort, cases}))).cases;
+const indexOf = Object.fromEntries(narrowed.filter(c => c.index_result).map(c => [c.name, {ir: c.index_result, index: c.index}]));
+const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases: narrowed})));
 fs.rmSync(scratch, {recursive: true, force: true});
 
 const STATUS = {incomparable: 'not_comparable'};
@@ -313,7 +362,8 @@ for (const name of names) {
       assert.ok(store[name + '#with_candidate'].includes(r.pid), `${name} ${r.pid}: unresolved without a candidate`);
     }
     if (a === b) { agree += 1; continue; }
-    const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates'], r.reason);
+    const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates'], r.reason,
+                       (indexOf[name] || {}).ir, (indexOf[name] || {}).index);
     found[name][r.pid] = `${why.join('+')}: page ${a}, store ${b}`;
     for (const w of why) summary[w] = (summary[w] || 0) + 1;
   }
@@ -785,13 +835,14 @@ for (const name of names) {
   const unexplained = Object.entries(found[name]).filter(([, why]) => why.startsWith('UNEXPLAINED'));
   assert.deepEqual(unexplained, [], `${name}: differences with no named cause`);
   // The tables come from the sandbox's realm, so compare their contents.
-  assert.deepEqual(JSON.parse(JSON.stringify(found[name])), EXPECTED[name], `${name}: the differences changed`);
+  if (!DEV_COHORT) assert.deepEqual(JSON.parse(JSON.stringify(found[name])), EXPECTED[name], `${name}: the differences changed`);
 }
-assert.deepEqual(Object.keys(EXPECTED).sort(), [...names].sort());
+if (!DEV_COHORT) assert.deepEqual(Object.keys(EXPECTED).sort(), [...names].sort());
 assert.ok(matched > 0, 'nothing matched in the store: the comparison would be vacuous');
 // Every cause comes from the closed list the D32 rules fix.
 const CAUSES = ['coverage', 'letter-mentions', 'record-reconciliation', 'medication-records', 'measurement-records',
-                'order-uncertain', 'occurrence-envelope', 'count-timing', 'relative-baseline', 'measurement-observability'];
+                'order-uncertain', 'occurrence-envelope', 'count-timing', 'relative-baseline', 'measurement-observability',
+                'index-anchor'];  // D52: the store places an event's period from its own records
 assert.deepEqual(Object.keys(summary).filter(c => !CAUSES.includes(c)), [], 'a cause outside the closed list');
 // Every page feature the store does not express is refused by its code, never translated approximately.
 const REFUSALS = vm.runInContext(`(() => {
@@ -834,6 +885,16 @@ const REFUSALS = vm.runInContext(`(() => {
     'blank template, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {codedOnly: null}),
     'gene step (tree template), coded only, the store option refused on request (D49)': refusalOf(d('tree'), 'off', {codedOnly: false}),
     'a count alone, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {codedOnly: null}),
+    // D52: the index period as a hidden step; the shapes the store cannot place, and D49's point windows on request.
+    'a period from the first diagnosis (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}}}, 'off'),
+    'a period from the first SCN1A result (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'gene:SCN1A', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 1, unit: 'year'}}}, 'off'),
+    'a period from the 3rd seizure, stated findings (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'present'),
+    'a period from the 3rd seizure, coded only (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'off'),
+    'a period from a date to the first seizure (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'date', date: '2020-01-01'}, end: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a period from 1 year of age to the last seizure (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'age', amount: 1, unit: 'year'}, end: {kind: 'event', event: 'seizure', which: 'last', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a period from the first seizure to the first antiseizure start (D52)': refusalOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'event', event: 'antiseizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a count alone, coded only, point windows on request (D52)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {indexAnchor: false}),
+    'the blank template, coded only, point windows on request (D52)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {indexAnchor: false}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
@@ -854,7 +915,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'while taking the 2nd blocker': 'NTH_STEP_HAS_NO_END',
   'frequency template, coded only': null,  // D49 (FREE_TEXT_CODED_ONLY_UNSUPPORTED before)
   'frequency template, coded only for the count (D32)': null,
-  'a count alone, coded only': null,
+  'a count alone, coded only': 'INDEX_PERIOD_COUNT_UNSUPPORTED',  // D52: in a period the store places from the first seizure (null before)
   // D39: the store leaves letter mentions out of every step (profile 1.3); a caller may still ask for the refusal.
   'frequency template, coded only in the store (D39)': null,
   'rise (sequence template), coded only in the store (D39)': null,
@@ -876,7 +937,16 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'gene step (tree template), coded only, joint asked for (D42)': null,  // D49: the store's coded only is the default
   'blank template, coded only, the store option refused on request (D49)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'gene step (tree template), coded only, the store option refused on request (D49)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
-  'a count alone, coded only, the store option refused on request (D49)': null,  // D32's reading: a count is coded only
+  'a count alone, coded only, the store option refused on request (D49)': 'INDEX_PERIOD_COUNT_UNSUPPORTED',  // D52 (null before: D32's reading)
+  'a period from the first diagnosis (D52)': 'INDEX_ANCHOR_ANY_UNSUPPORTED',
+  'a period from the first SCN1A result (D52)': 'INDEX_ANCHOR_GENE_UNSUPPORTED',
+  'a period from the 3rd seizure, stated findings (D52)': 'FREE_TEXT_COUNT_UNSUPPORTED',
+  'a period from the 3rd seizure, coded only (D52)': null,
+  'a period from a date to the first seizure (D52)': 'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED',
+  'a period from 1 year of age to the last seizure (D52)': null,
+  'a period from the first seizure to the first antiseizure start (D52)': null,
+  'a count alone, coded only, point windows on request (D52)': null,
+  'the blank template, coded only, point windows on request (D52)': null,
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.
@@ -923,7 +993,8 @@ const SWEEP_CASES = (() => {
 })();
 const sweepScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-sweep-'));
 const sweepSnapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(sweepScratch, 'store')]).trim();
-const sweepRun = SWEEP_CASES.filter(c => !c.refused);
+// D52: a sweep case whose period is a hidden step is narrowed by the server's rule first, as the page's server does.
+const sweepRun = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', sweepSnapshot], JSON.stringify({cohort, cases: SWEEP_CASES.filter(c => !c.refused)}))).cases;
 const sweepStore = JSON.parse(run([path.join(here, 'store_parity.py'), 'sweep', sweepSnapshot], JSON.stringify({cohort, cases: sweepRun})));
 fs.rmSync(sweepScratch, {recursive: true, force: true});
 const sweepTally = {answered: 0, translator: {}, store: {}}, unnamed = [];
@@ -945,7 +1016,8 @@ if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({sweepTally, case
 // The store's two refusals here are page options with no meaning in its language: a rise "to at least 1 times" the
 // baseline (INVALID_FACTOR: a factor must exceed 1), and the page's relaxation of "at most -1" to "at most -1.1",
 // which narrows instead of widening (VALUE_RELAXATION_MUST_WIDEN). The page shows each as a labelled fallback.
-assert.deepEqual(sweepTally, {
+if (DEV_COHORT) console.log('sweep tally (development cohort): ' + JSON.stringify(sweepTally));
+else assert.deepEqual(sweepTally, {
   // D49: "coded only" is the store's profile 1.3 by default, and a gene step under it the joint profile, so the 157
   // coded-only and the 7 gene refusals are answered or refused by the store (D45's joint sweep: 449 answered; before
   // D49, 293 answered, FREE_TEXT_CODED_ONLY_UNSUPPORTED 157, GENE_WITH_CODED_ONLY_UNSUPPORTED 7, INVALID_FACTOR 10,
@@ -962,13 +1034,13 @@ console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.
    (no gene reports), every field equal except the snapshot's and the context's identifiers and the labels' copy. */
 // D42: the parity and sweep requests, written for the differential against main's code (d42_no_change.py) when asked.
 if (process.env.STORE_PARITY_DUMP_CASES)
-  fs.writeFileSync(process.env.STORE_PARITY_DUMP_CASES, JSON.stringify({cohort, cases: [...cases, ...sweepRun]}));
+  fs.writeFileSync(process.env.STORE_PARITY_DUMP_CASES, JSON.stringify({cohort, cases: [...narrowed, ...sweepRun]}));
 const changeScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-gene-no-change-'));
 const noChange = (() => {
   try {
     const wrapper = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(changeScratch, 'wrapper')]).trim();
     const main = run([path.join(here, 'gene_no_change.py'), 'build-main', cohort, path.join(changeScratch, 'main')]).trim();
-    return JSON.parse(run([path.join(here, 'gene_no_change.py'), 'compare', wrapper, main], JSON.stringify({cohort, cases: [...cases, ...sweepRun]})));
+    return JSON.parse(run([path.join(here, 'gene_no_change.py'), 'compare', wrapper, main], JSON.stringify({cohort, cases: [...narrowed, ...sweepRun]})));
   } finally { fs.rmSync(changeScratch, {recursive: true, force: true}); }
 })();
 assert.deepEqual(noChange.differences, [], 'a request without a gene step answered differently on the wrapper\'s build');

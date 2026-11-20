@@ -596,6 +596,11 @@ const STORE_REFUSAL = {
   // The server's own checks, before the store sees the query.
   TIME_OUT_OF_RANGE: 'a time or gap lies beyond what the server accepts (about 1,900 years)',
   TIME_MUST_BE_WHOLE_MINUTES: 'the server takes times in whole minutes',
+  // D52: index periods the store cannot place from its own records.
+  INDEX_ANCHOR_ANY_UNSUPPORTED: 'the store cannot place a period from "any diagnosis" or "any genetic result" (no concept in the store holds them all)',
+  INDEX_ANCHOR_GENE_UNSUPPORTED: 'the store cannot place a period from a gene\'s first result of any class, which it holds as no event',
+  INDEX_PERIOD_COUNT_UNSUPPORTED: 'the store counts "in the index period" over a fixed period, and this period is placed by an event whose time the records leave uncertain',
+  INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED: 'the store cannot place a period from a date (or an age before birth) to an event',
 };
 // Why the store is not offered here (the server's status), shown so the fallback to the engine is not silent.
 const STORE_UNAVAILABLE = {
@@ -618,6 +623,9 @@ const STORE_REASON = {
   OCCURRENCE_TIME_COUPLED: 'the Nth occurrence of {steps} can share events with another step, so a possible match is left undecided',
   OCCURRENCE_ORDER_UNCERTAIN: 'the records leave it uncertain which event is the first or last, and the match depends on it',
   SEARCH_BUDGET_EXHAUSTED: 'the search stopped at its budget before deciding',
+  // D52: the server places the period from the store's records (index_hull_v1); a patient it cannot place is excluded.
+  INDEX_ANCHOR_NOT_RECORDED: 'the store holds no record of the period\'s event',
+  INDEX_NO_POSSIBLE_PERIOD: 'every period the store\'s records allow ends before birth, before it starts, or after the last contact',
 };
 // D49: FILTERED under "Coded records only": the patient holds no coded record for some step (D39's candidate refinement).
 const CODED_ONLY_PROFILES = ['execution-store-conditions-1.3', 'execution-store-conditions-gene-coded-1.0'];
@@ -652,7 +660,7 @@ function runStore(token) {
     if (token !== runToken) return;
     state.results = sortResults(fromStore(answer, def));
     state.storeMeta = {snapshot: answer.snapshot_id, context: answer.context_id, conditions: answer.conditions_profile,
-                       store: answer.store_profile, ms: answer.elapsed_ms};
+                       store: answer.store_profile, ms: answer.elapsed_ms, index: !!answer.index};
     state.pending = false;
     render();
   }).catch(error => {
@@ -672,8 +680,11 @@ async function postStore(body) {
 }
 
 // A store result as a page result: the store's status, certainty, relaxations, cost and reason, its bound records,
-// and the page's own index period (which the page placed and sent).
+// and the index period: the page's own (which the page placed and sent), or since D52, when the period is placed by an
+// event, the one the store placed: the hull of the periods its records allow (`answer.index`), the period in the
+// witness's choice of times, and the record the hidden step bound.
 function fromStore(answer, def) {
+  if (answer.index) return fromStoreIndexed(answer, def);
   const opts = relaxOptions(def);
   const textOf = key => key.split('+').map(k => (opts.find(o => o.key === k) || {text: k}).text);
   // D49: under "Coded records only" (profile 1.3 or the joint profile) a reason reads over coded records.
@@ -694,6 +705,50 @@ function fromStore(answer, def) {
             reason: reasons.join('; '), unverified: !!(u && !r.binding),
             best: storeBest(view, r.binding || (u && u.binding) || (m && m.binding), r.witness || (u && u.witness) || (m && m.witness),
                             r.certainty || (u && u.certainty) || (m && m.certainty) || r.status)};
+  });
+}
+
+/* D52: a store answer to a request whose index period is a hidden step (`index_anchor_v1`). The period shown is the
+   store's: `win` is the hull of the periods its records allow (index_hull_v1); `period` is the period in the witness's
+   choice of times, from the hidden step's witness time and its offset; `anchor` is what the hidden step bound. A patient
+   the server could not place is excluded with its reason. The hidden steps are not steps of the trajectory, so they are
+   kept out of `best`. */
+const INDEX_STEP = id => id.startsWith('@index_');
+function fromStoreIndexed(answer, def) {
+  const opts = relaxOptions(def);
+  const textOf = key => key.split('+').map(k => (opts.find(o => o.key === k) || {text: k}).text);
+  const reasonDict = CODED_ONLY_PROFILES.includes(answer.conditions_profile) ? {...STORE_REASON, ...STORE_REASON_CODED_ONLY} : STORE_REASON;
+  const sides = indexSides(def.window);
+  const ix = answer.index;
+  return answer.results.map(r => {
+    const pid = r.patient_id, view = evidenceFor(pid);
+    const hull = ix.windows[pid];
+    const win = hull ? {start: hull[0] / GRID, end: hull[1] / GRID} : {reason: reasonText(STORE_REASON, ix.reasons[pid] || 'NO_INDEX_WINDOW', [])};
+    if (!hull) {
+      const own = indexStaticReason(def, state.patients.get(pid));
+      return {pid, win: own ? {reason: own} : win, backend: 'store', store: r, truncated: false, status: 'excluded', reason: own || win.reason};
+    }
+    const base = {pid, win, backend: 'store', store: r, truncated: false, indexed: true};
+    const m = r.relaxed_match, u = r.unverified_match, keys = r.relaxations || (m && m.relaxations) || [];
+    const reasons = [];
+    if (r.reason) reasons.push(reasonText(reasonDict, r.reason, storeSteps(r).map(st => INDEX_STEP(st) ? 'the period\'s event' : st)));
+    if (u) reasons.push(`an unrelaxed ${u.certainty} match was found but is not verified`);
+    if (m) reasons.push(`relaxing ${keys.flatMap(textOf).join('; ')} gives ${m.certainty === 'exact' ? 'an exact' : 'a possible'} match at cost ${+m.cost}, but the unrelaxed query is undecided`);
+    for (const note of (r.note || '').split('; ').filter(Boolean)) reasons.push(reasonText(STORE_NOTE, note, []));
+    const binding = r.binding || (u && u.binding) || (m && m.binding);
+    const witness = r.witness || (u && u.witness) || (m && m.witness);
+    const best = storeBest(view, binding, witness, r.certainty || (u && u.certainty) || (m && m.certainty) || r.status);
+    let anchor = null, period = null;
+    if (best) {
+      anchor = new Map([...best.bind].filter(([id]) => INDEX_STEP(id)));
+      for (const id of anchor.keys()) best.bind.delete(id);
+      const at = side => side.step ? (witness && witness[side.step] != null ? (witness[side.step] + side.offset) / GRID : null) : constantDay(side.constant, state.patients.get(pid));
+      const s = at(sides.start), e = at(sides.end);
+      if (s != null && e != null) period = {start: Math.max(0, s), end: e};
+    }
+    return {...base, status: STORE_STATUS[r.status] || r.status, certainty: r.certainty, cost: r.cost === undefined ? 0 : +r.cost,
+            relaxations: r.status === 'relaxed' ? keys.flatMap(textOf) : [], relaxKeys: keys.length ? new Set(keys.flatMap(k => k.split('+'))) : null,
+            reason: reasons.join('; '), unverified: !!(u && !r.binding), best, anchor, period};
   });
 }
 
@@ -739,6 +794,8 @@ function declaredCauses(r, page) {
   if (['NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT'].includes(reason)) add('coverage', 'coverage (the store\'s comparability rule)');
   if (reason === 'ADMISSION_EXCLUDED_RECORDS') add('measurement records', 'measurement records (unitless values are excluded records in the store)');
   if (reason === 'OCCURRENCE_ORDER_UNCERTAIN') add('order uncertain', 'order uncertain (the store decides first and last over every time the records allow)');
+  if (r.indexed || (r.store && r.status === 'excluded' && hasEventBound(def.window) && state.storeMeta?.index))
+    add('index anchor', 'index anchor (the store places the period from its own records of the event, over every time they allow; this page places it at one time)');
   if (page.status === 'incomparable' && /do not cover the time around/.test(page.reason || '')) add('measurement observability', 'measurement observability (a page-only check)');
   for (const n of def.nodes) {
     const kind = stepKind(n);
@@ -786,7 +843,7 @@ function renderPeriod() {
   const ref = state.results.filter(r => r.win && !r.win.reason).length;
   $('#period').innerHTML = `<div class="index-box">Every patient gets their own period, placed by the same rule. It anchors the trajectory: steps can be required to fall inside it or after it, and constraints can start from its start or end.
     ${boundEditor('start', w.start, w.end)}${boundEditor('end', w.end, w.start)}
-    <div class="plain" style="margin-top:8px"><strong>Reads as:</strong> ${esc(windowText(w))}. Placed for ${ref} of ${state.patients.size} patients.</div>
+    <div class="plain" style="margin-top:8px"><strong>Reads as:</strong> ${esc(windowText(w))}. Placed for ${ref} of ${state.patients.size} patients${state.matcher === 'store' && state.storeMeta?.index && !state.fallback ? ' by the store, over every time its records allow for the event' : ''}.</div>
     <div class="row" style="margin-top:8px"><span class="bound-label">Steps</span><select data-action="scope" aria-label="Where steps may fall">${Object.entries(SCOPES).map(([k, t]) => `<option value="${k}" ${state.def.scope === k ? 'selected' : ''}>must fall ${esc(t)}</option>`).join('')}</select></div></div>`;
 }
 
@@ -943,7 +1000,7 @@ function backendBanner() {
     const s = state.storeMeta;
     return `<div class="backend store" role="status"><strong>Answered by the execution store</strong>
       <span>snapshot <code title="${esc(s.snapshot)}">${esc(s.snapshot.slice(0, 12))}…</code> · ${esc(s.store)}${s.conditions ? ` · ${esc(s.conditions.replace('execution-store-', ''))}` : ''} · ${s.ms} ms</span>
-      <span class="hint">${state.freeText === 'off' ? 'Under "Coded records only" the store reads no clinical note: it reads every coded record as its own event' : 'The store reads every record and letter mention as its own event'}, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records by a stated rule that reads no synthetic truth (same concept, overlapping times; D47), builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page over the same grouping, and sent to the store as exact times: the store's answer holds for that period, though the event that places it may be known only within a range.</span></div>`;
+      <span class="hint">${state.freeText === 'off' ? 'Under "Coded records only" the store reads no clinical note: it reads every coded record as its own event' : 'The store reads every record and letter mention as its own event'}, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records by a stated rule that reads no synthetic truth (same concept, overlapping times; D47), builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). ${s.index ? 'The index period is placed by the store from its own records of the period\'s event, over every time those records allow (D52): a patient is matched only over the periods that end by the last contact, and listed as having no index period only when the store holds no such event or no possible period ends by then. A gap measured from the period\'s start is measured from the event plus its offset, even where that falls before birth; steps still fall no earlier than birth.' : 'Index periods are placed by this page over the same grouping, and sent to the store as exact times: the store\'s answer holds for that period, though the event that places it may be known only within a range.'}</span></div>`;
   }
   return `<div class="backend page" role="status"><strong>Matched by ${esc(state.matcher === 'browser' ? 'this page\'s own search' : pageBy)}</strong></div>`;
 }
@@ -976,7 +1033,7 @@ function renderMatches() {
     const p = state.patients.get(r.pid);
     return `<div class="cand${state.selected === r.pid ? ' active' : ''}" tabindex="0" role="button" data-action="open" data-pid="${r.pid}">
       <div class="rank">${statusLabel(r.status)[0]}</div>
-      <div><div class="who">${r.pid} <small>· ${p.sex === 'F' ? 'female' : 'male'}${r.win && !r.win.reason ? ` · period ${esc(spanText(r.win))}` : ''}</small></div>
+      <div><div class="who">${r.pid} <small>· ${p.sex === 'F' ? 'female' : 'male'}${r.win && !r.win.reason ? ` · ${r.indexed ? 'periods between' : 'period'} ${esc(spanText(r.win))}` : ''}</small></div>
         ${chip(r.status, r.cost)}${state.lens === 'truth' ? ` <span class="hint">truth: ${esc(GROUP_LABEL[p.truth.condition_group])}</span>` : ''}
         ${r.relaxations?.length ? `<div class="hint">relaxed: ${esc(r.relaxations.join('; '))}</div>` : ''}${r.reason ? `<div class="hint">${esc(r.reason)}</div>` : ''}${r.truncated ? `<div class="hint">search stopped early; ${STOPPED_NOTE[r.status]}</div>` : ''}
         ${bindingChips(r)}</div>
@@ -996,7 +1053,7 @@ function renderDetail() {
     if (c.measure) { const e = c.at ?? c.e, l = c.at ?? c.l; if (Number.isFinite(e)) markers.push({e, l, tag: id}); } else highlight.set(c.item.id, id);
   }
   const width = $('#detail-body').clientWidth || drawer.clientWidth - 36;
-  const out = [timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.win && !r.win.reason ? r.win : null,
+  const out = [timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.indexed ? r.period : r.win && !r.win.reason ? r.win : null,
                                    lens: state.lens, highlight, markers, title: `Timeline for ${r.pid}`})];
   out.push(`<p>${chip(r.status, r.cost)} ${r.status === 'relaxed' ? esc(`by ${r.relaxations.join('; ')}${r.certainty === 'possible' ? '; times still uncertain' : ''}`) : esc(r.backend === 'store' ? '' : r.reason || '')}</p>`);
   if (r.backend === 'store') out.push(storeDetail(r));
@@ -1034,6 +1091,12 @@ function storeDetail(r) {
       }).join('')
       + '</tbody></table>');
     out.push(`<p class="hint">Recorded is each record's own time range in the store (a letter mention ranges from birth to its letter); an Nth occurrence is a point the store derives, which no record holds, so it has only a witness; a gene step is the time its result's first report that is not negative was recorded. The witness is one choice of times that satisfies every constraint. The store decides certainty over every choice of times; this page does not re-check it. On the timeline, a bound record is marked on this page\'s own event that holds it, at this page\'s time for that event, which can differ from the store\'s range.${r.unverified ? ' An unverified match is a binding the search found whose standing the store could not settle (which event is first or last, or an Nth occurrence shared with another step, is uncertain), so the status stays undecided.' : ''}</p>`);
+  }
+  if (r.indexed) {
+    // D52: the period the store placed.
+    const rows = r.anchor && r.anchor.size ? [...r.anchor].map(([id, c]) => `<tr><td>${id === '@index_end' ? 'The period\'s end event' : 'The period\'s event'}</td><td>${esc(c.what || '—')}</td><td>${c.derived ? '— (no record holds this point)' : timeText(c)}</td><td>${c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`).join('') : '';
+    out.push(`<p class="hint">Index period, placed by the store: the periods its records allow run between ${esc(spanText(r.win))}${r.period ? `; in the witness's choice of times, ${esc(spanText(r.period))}` : ''}.</p>`
+      + (rows ? `<table class="tj-table"><thead><tr><th>Index</th><th>Store record</th><th>Recorded</th><th>Witness</th></tr></thead><tbody>${rows}</tbody></table>` : ''));
   }
   const page = pageAnswerFor(r.pid);
   const key = x => [x.status, x.certainty || '', x.relaxKeys ? [...x.relaxKeys].sort().join('+') : ''].join(' ');
