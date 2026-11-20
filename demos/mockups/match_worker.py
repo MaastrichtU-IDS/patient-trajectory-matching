@@ -9,7 +9,8 @@ structure separates the two. The bound is therefore on time: each match runs in 
 not answered within the time limit is killed (503 MATCH_TIME_LIMIT).
 
 A spare child is kept built and waiting, so after a kill the next match goes to it at once and the replacement is
-built off the request path (about 1.1 s). A match waits at most `lock_wait` seconds for the child (503 BUSY), and
+built off the request path (about 1.1 s). No build ever runs on a request's path: if a flood has used the spare before
+its replacement is ready, a match is refused at once (503 BUSY). A match waits at most `lock_wait` seconds for the child (503 BUSY), and
 every kill is reported to `on_event` (the server logs `match_killed`, with no body or address).
 
 The child is this file run as its own program (`python -I match_worker.py COHORT ROOT`), so nothing of the
@@ -251,8 +252,12 @@ class IsolatedMatcher:
             if self._active is None or not self._active.alive():
                 if self._active is not None:
                     self._active.kill()
-                self._active = self._take_spare() or self._launch()
+                self._active = self._take_spare()
                 self._refill()
+                if self._active is None:
+                    # No worker is built yet (a flood outran the spare's rebuild): refuse now rather than build one
+                    # on this request's path, so a match is answered or refused within its wait plus the time limit.
+                    raise store_trajectory.Unavailable('BUSY')
             child, answer, failure = self._active, None, 'MATCH_TIME_LIMIT'
             try:
                 child.process.stdin.write(json.dumps(spec) + '\n')

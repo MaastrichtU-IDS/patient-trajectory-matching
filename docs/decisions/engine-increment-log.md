@@ -4876,6 +4876,11 @@ the lows it found are fixed too.
     - A worker that cannot start leaves the pod unready and logs `match_worker_start_failed` with its reason (the
       worker's own error, or the class of the exception it died of). The tests print that reason instead of a bare
       "not ready".
+    - *The next CI run* then failed only the scaled-down flood test's timing (2.74 s against 2.5). On the slower
+      runner a flood had used the spare before its replacement was built, and the next match built a worker on its
+      own path. Now no build ever runs on a request's path: with no worker built, a match is refused at once
+      (503 BUSY), so the bound (the wait plus one time limit) holds on any machine. Passed 3 runs out of 3 in a
+      1.5-CPU Linux container.
     - The pod's memory limit is raised to 1 GiB: the server, the active worker and its spare.
 - **The re-check's lows, fixed:**
   - *Probes:* 4 threads beyond `PTM_MAX_THREADS` serve only `/api/health` and `/api/ready`, and liveness is a TCP
