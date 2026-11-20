@@ -12,8 +12,8 @@
      a point at that report's recording time, never a letter's mention;
    - OCCURRENCE_ON_GENE_STEP (D38): a gene step with an occurrence other than any (the store refuses it too);
    - GENE_WITH_CODED_ONLY_UNSUPPORTED (D38 review): a gene step under "coded records only", unless the store's own
-     coded-only option is asked for (`options.codedOnly: 'store'`) and the joint profile is available (D42,
-     STORE_GENE_CODED_ONLY or `options.geneCodedOnly: true`): then the request is profile
+     coded-only option is in force (`options.codedOnly: 'store'`, the default since D49) and the joint profile is
+     available (D42, STORE_GENE_CODED_ONLY, the default since D49, or `options.geneCodedOnly: true`): then the request is profile
      execution-store-conditions-gene-coded-1.0 (gene steps as D38, every other step over coded records only as D39);
    - RELATIVE_CONDITION_UNSUPPORTED: rises and falls, only when a caller asks for none (`options.rises: false`); since
      D36 they are translated by default (STORE_RISES), as the store's relative conditions (D33, shipped in D36);
@@ -27,8 +27,8 @@
      option would silently become "also stated findings" there. `options.codedOnly: 'derived'` keeps D32's reading
      (coded only for derived steps, stated findings elsewhere). Since D39 the store can leave letter mentions out of
      every step (profile 1.3, `exclude_kinds: ["mention"]`, patterns/store_conditions_coded.py): `options.codedOnly:
-     'store'` translates "coded only" so (STORE_CODED_ONLY would make it the default; it stays false, the owner's call), and
-     `options.codedOnly: false` asks for the named refusal;
+     'store'` translates "coded only" so, and since D49 it is the default (STORE_CODED_ONLY, the owner's decision on D45's
+     verdict); `options.codedOnly: false` (or null) asks for the named refusal;
    - VALUE_NOT_A_PLAIN_DECIMAL (D37): a threshold or factor that does not print as a plain decimal (such as 1e+21).
    Everything else is translated:
    - an Nth occurrence with N = 1 is the engine's first (Nth from last: last); with N > 1, the store's
@@ -69,16 +69,15 @@ const STORE_RISES = true;
 const STORE_GENES = true;
 const GENE_PROFILE = 'execution-store-conditions-gene-1.0';
 const GENE_CONDITION = {report: 'first_not_negative', timed_by: 'recorded_at'};
-// D39: "coded only" as the store's own exclusion of letter mentions from every step (profile 1.3), when asked for
-// (`options.codedOnly: 'store'`); by default D37's named refusal. D39 did not make it the default, and it stays false
-// after D42, D43c and D44: flipping it is the owner's decision, which would need D39's rules re-met.
-const STORE_CODED_ONLY = false;
+// D39: "coded only" as the store's own exclusion of letter mentions from every step (profile 1.3). The default since D49:
+// D45 re-met D39's rules ("ready"), and the owner decided the flip (2026-11-20), together with STORE_GENE_CODED_ONLY.
+// A caller may still ask for D37's named refusal (`options.codedOnly: false` or null) or D32's reading ('derived').
+const STORE_CODED_ONLY = true;
 const codedOnlyMode = options => options.codedOnly === undefined ? (STORE_CODED_ONLY ? 'store' : null) : options.codedOnly;
-// D42: a gene step under the store's own "coded only" (codedOnly: 'store') as the joint profile, when asked for
-// (`options.geneCodedOnly: true`); by default D38's named refusal. D42 met its rules but, by the coordinator's
-// instruction, left this false; it follows the owner's decision on "coded only" (STORE_CODED_ONLY), which stays off by
-// default, so the page's default requests do not change.
-const STORE_GENE_CODED_ONLY = false;
+// D42: a gene step under the store's own "coded only" (codedOnly: 'store') as the joint profile. The default since D49,
+// flipped together with STORE_CODED_ONLY (D45: the joint profile is ready with it), so no page template under "coded
+// only" is refused; a caller may still ask for D38's named refusal (`options.geneCodedOnly: false`).
+const STORE_GENE_CODED_ONLY = true;
 const GENE_CODED_PROFILE = 'execution-store-conditions-gene-coded-1.0';
 const jointGenes = options => codedOnlyMode(options) === 'store'
   && (options.geneCodedOnly === undefined ? STORE_GENE_CODED_ONLY : options.geneCodedOnly);

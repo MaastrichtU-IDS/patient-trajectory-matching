@@ -4500,3 +4500,97 @@ It never applies to a threshold, a timing or any measured bar, and so not to the
 - Option B (the check before every search), a lookahead at every node, conflict-directed backjumping (D48's study), if a query ever needs them.
 - The 8-worker p95 target, missed since D30 (11.24 s).
 
+## D49 "Coded records only" becomes the trajectory page's default: both constants turned on, the evidence options renamed, under rules fixed before measuring
+
+*Status:* rules and code committed; not yet measured.
+
+**The decision** (the owner, 2026-11-20, approving the coordinator's recommendations on D45's verdict, "ready" for both profiles):
+1. *Flip both page defaults together* in `demos/mockups/trajectory/store_request.js`: `STORE_CODED_ONLY = true` and `STORE_GENE_CODED_ONLY = true`. Under "Coded records only" every page template is then a store request: profile 1.3 (D39) for Sequence, Event frequency and Blank, the joint profile (D42) for Tree and Graph.
+2. *Rename the evidence options* on the trajectory page; the internal values do not change:
+
+   | Value | Label before | Label from D49 |
+   |---|---|---|
+   | `off` | Coded records only | Coded records only (unchanged) |
+   | `present` | Also findings that letters state about the patient | Coded records + findings stated in clinical notes |
+   | `possible` | Also hedged findings in letters | Coded records + uncertain findings in clinical notes (e.g. 'possible', 'suspected') |
+
+   The page's refusal messages and other text that says "letters" for these options follow.
+3. *Help text* under the options: "Coded records only" does not read clinical notes for any step.
+4. *A refusal message for `GENE_WITH_CODED_ONLY_UNSUPPORTED`* in the page's `STORE_REFUSAL` (D45's precondition for a flip of `STORE_CODED_ONLY` alone). The joint flip makes the code unreachable from the page; it stays reachable for a caller that asks for it.
+
+**What changes** (code, at the checkpoint).
+- `trajectory/store_request.js`: the two constants, `true`; their comments and the header's. `codedOnly: false` or `null` still asks for D37's refusal, `'derived'` for D32's reading, `geneCodedOnly: false` for D38's refusal.
+- `trajectory/app.js`:
+  - the three labels (`EVIDENCE_OPTIONS`) and the help text under them (`EVIDENCE_HINT`);
+  - `STORE_REFUSAL`: `FREE_TEXT_HEDGED_UNSUPPORTED` and `FREE_TEXT_CODED_ONLY_UNSUPPORTED` reworded (clinical notes, not letters), and a message for `GENE_WITH_CODED_ONLY_UNSUPPORTED`;
+  - the store banner: under "Coded records only" it no longer says the store reads every letter mention.
+- `test_store_parity.cjs`:
+  - every parity trajectory is translated as the page translates it, with no options. The ten coded-only trajectories lose their `codedOnly: 'store'` and the harness its `geneCodedOnly: true`; both are now the defaults, so their requests are unchanged (D45 rule 3.1);
+  - the template table finds the five "off" rows among those trajectories;
+  - the refusal table, the template table and the sweep tally are re-pinned **from D45's measurements, before this tree's test was run** (rule 4). Three probes are added: the named refusals stay reachable on request.
+- `d46_windows.cjs`, so that D46's reports can be regenerated with their figures rather than frozen (rule 6):
+  - its census sends the sweep with `codedOnly: null`, the translator's pre-D49 default exactly (D37's refusal, D32's reading for derived-only definitions, D38's gene refusal), so the census keeps recording D46's window moves on D46's requests;
+  - its usefulness report's `translator` label no longer says the constants are false. Its coded-only requests already carried the explicit options, which are now the defaults.
+- New: `demos/mockups/d49_flip.cjs` (`census`, `usefulness`); constructed checks of its pure parts at the end of `test_engine_parity.cjs`.
+- *Unchanged:* no file under `patterns/`, nor `store_parity.py`, `store_trajectory.py`, `option_sweep.js`, `shared/core.js` or the generator; no file a build loads. So no store answer can change except through the request the page now sends.
+
+**The tool** (`demos/mockups/d49_flip.cjs`). It loads the page's own code into node:vm contexts: main's `core.js`, `app.js` and `store_request.js` from git at b575ba8 (both constants false; the tool checks the declarations), and this tree's (both true).
+- `census` (rules 1 and 2), on the page's cohort:
+  - the definitions: the five templates, D39's two shapes without the gene step, and the 561 option-sweep definitions (568), each under each free-text setting, translated with no options on both sides;
+  - every distinct request either side sends is answered in the store (`store_parity.py build`, `sweep` for refusals, `match`);
+  - *the meaning by removal:* every coded-only request this tree sends, without its exclusion (D45's `withoutExclusion`: 1.3 to 1.2 with a rise, 1.1 with another step condition, no conditions without one; joint to gene), is answered on a snapshot built from the cohort with every letter mention removed (D39's store-against-store check, on the page's cohort). The letters, their sources and the coverage periods stay; the windows are the page's, placed on the full cohort.
+- `usefulness` (rule 3): the five templates under "Coded records only" as this tree's page writes them, built and matched per seed.
+
+**Disclosed: development runs before these rules** (none ruled; none on the page's cohort or a ruled seed; the development cohort is seed 4901, undeclared).
+- `census --cohort` on seed 4901, in full. Rule 1.1 held: 564 of the 568 definitions change under "coded only" (386 `FREE_TEXT_CODED_ONLY_UNSUPPORTED` refusals to 1.3, 17 `GENE_WITH_CODED_ONLY_UNSUPPORTED` refusals to joint, 133 from 1.1 and 28 from 1.2 to 1.3: D45's figures), and nothing outside it. The sweep as offered went from 293 to 449 answered. Rule 2.2: the 161 profile moves changed 126 results, every one a `none` that gained the reason `FILTERED` (D39's candidate refinement); **none moved for coverage**, and each equals the old request's answer on the snapshot without mentions. Rule 2.3: 294 coded-only requests, 0 results differing, 14 refused alike by the store. No refusal code without a page message.
+- *A correction to D45's expectation, from that run:* D45 wrote that among the 161, a `none` resting on a letter source's coverage would become `not_comparable`. On seed 4901 none did. Their steps are counts, Nth occurrences and measurements, which the store already judged over coded sources. What moved was the reason beside `none` (`FILTERED`: the patient holds no kept event for some step), which the page shows as "no candidate events in the store". Rule 2.2 rules the meaning by removal, not a class; the classes are reported.
+- `usefulness` in smoke mode on seed 4901 (one seed; every template answered, 0 unresolved among its few candidates).
+- The constructed checks (`test_engine_parity.cjs`'s D49 block), run alone.
+
+**Pre-committed rules** (committed with this entry, before any measurement of D49; "main" is b575ba8).
+1. **The flip changes only "Coded records only", into the request D45 measured** (`d49_flip.cjs census`, rule 1.1; report `verification/d49-flip-census-report.json`).
+   - Both constants are declared `true` exactly once here and `false` on main (the tool fails otherwise).
+   - Over 568 definitions × 3 settings, translated with no options:
+     - with stated or uncertain findings, all 1,136 requests or refusals are **byte-identical** to main's;
+     - under "Coded records only", all 568 are **equal to main's translator with the explicit option** D45 measured and the parity test pinned (`codedOnly: 'store'`, `geneCodedOnly: true`).
+   - *Reported:* the transitions, by group; the sweep as the page offers it (each definition under its own setting) on main and here, tallied as the parity test tallies it.
+2. **The store's answers** (the census, rule 2, on the page's cohort).
+   1. *Unchanged requests:* every request main answers is byte-identical here, or one of the profile moves of 2.2; no other. No file that answers a request differs from main (`git diff b575ba8` names nothing under `patterns/`, `store_parity.py`, `store_trajectory.py` or `synthetic/`). So every such request gets main's answer: the same request to the same code.
+   2. *The profile moves* (main answers by D32's reading, 1.1 or 1.2; here 1.3): each is **main's request plus the exclusion, nothing else**, and every result that changes **equals the old request's answer on the snapshot without letter mentions**. *Reported:* how many (D45 counted 161), their names, the changed results by class (`coverage`, `filtered`, other by transition) and by transition.
+   3. *The meaning by removal, every coded-only request this tree sends:* 0 results differing between the request on the full snapshot and the request without the exclusion on the snapshot without letter mentions, patient by patient (status, certainty, relaxations, reason); a store refusal by the same code on both.
+   4. *Reported:* the requests the flip newly answers (refused on main), their store refusals and status mix.
+   5. *Named:* every answered request has a result for each patient, and nothing fails without a code.
+3. **Usefulness** (the owner's counting rule; `d49_flip.cjs usefulness`, report `verification/d49-flip-usefulness-report.json`).
+   - *Cohorts:* fresh seeds, declared here: **4911 to 4940**, then 4941, 4942, … in order, to 5010 at most, while a template has fewer than 30 candidates pooled. The stop reads candidate counts only.
+   - *Requests:* the five templates as the page has them (its window, from the first seizure for 24 months, and scope, `from_start`), under "Coded records only", translated by this tree's translator with no options; built by `store_parity.py build` and matched through the dispatcher.
+   - *Candidates:* patients with a store candidate and an index window.
+   - *The bar, per template* (Sequence, Tree, Graph, Event frequency, Blank): at least 30 candidates pooled, and **at most 30% of the distinct child types unresolved**. A child type is a generator `PLAN` key (C001 is `reference`); it counts as a candidate when any of its children is one in some seed, and as unresolved when any of its candidates is.
+   - *Coverage:* none of the five is refused under "Coded records only".
+   - *Reported:* every candidate and the count without C001; status mixes and reasons, per seed and pooled; the five under stated findings beside.
+4. **Page parity.**
+   1. `test_store_parity.cjs` passes, with the pins written before it was run on this tree:
+      - *the refusal table:* "rise (sequence template), coded only", "gene step (tree template)", "gene step and rise (graph template)", "frequency template, coded only", "gene step (tree template), coded only in the store (D39)", "… coded only, genes asked for", "a gene step alone, coded only, genes asked for" and "… coded only, joint asked for (D42)" answered (each a named refusal before); the three new probes refused as pinned (`FREE_TEXT_CODED_ONLY_UNSUPPORTED`, `GENE_WITH_CODED_ONLY_UNSUPPORTED`) or answered (a count alone, D32's reading);
+      - *the template table:* the five "off" rows answered by the parity trajectories "the sequence template, coded only", "the tree template, coded only", "the graph template, coded only", "the event-frequency template" and "the blank template, coded only";
+      - *the sweep tally:* 449 answered; the translator refuses 84 (`FREE_TEXT_COUNT_UNSUPPORTED` 51, `FREE_TEXT_HEDGED_UNSUPPORTED` 31, `NTH_STEP_HAS_NO_END` 2); the store 28 (`INVALID_FACTOR` 14, `VALUE_RELAXATION_MUST_WIDEN` 14). These are D45's joint figures (its page report, regenerated with every figure equal in D46 and D47);
+      - *the parity rows (EXPECTED):* unchanged, since every trajectory's request is unchanged (D45 rule 3.1, and rule 1 here), so the totals stay **849 of 1,248**. If a row moves, it is re-pinned and declared with its cause; a move is reported, not tuned away.
+
+      Every difference has a cause from the closed list; there is no `UNEXPLAINED`; the replay holds; the D38 no-change differential holds.
+   2. `test_engine_parity.cjs` passes, the D49 block included.
+   3. *Every refusal the page can show has a message:* over the census's rows, every refusal code of the translator or the store on this tree has a `STORE_REFUSAL` entry (`messages.without_a_message` empty), and `GENE_WITH_CODED_ONLY_UNSUPPORTED` has one.
+5. **Latency: D45's verdict stands; nothing new is measured.** The flip changes a default, not code (rule 2.1). D45's rule 4 timed exactly the requests the page now sends under "Coded records only" (rule 1), on the server's own path: at the page's size, all five templates (normalised ratios 1.14 to 1.52, p95 at most 79 ms); at 300,000 patients, p95 at most 7.47 s and peak memory 7.18 GB against 3.98 GB at 14 workers (`verification/d45-coded-default-latency-verdict.json`, current). The 161 profile moves run the same exclusion path, which D45 timed as Event frequency's 1.3 request against its 1.1 one (1.10 to 1.21 at 300,000). So the flip opens no path D45 did not measure. *Carried over, not new:* D45 timed the joint profile at the page's size only (its kept build at 300,000 has no gene labels).
+6. **Regeneration: only what goes stale; a freeze only with sign-off.** The reports that bind `store_request.js` or `app.js` and are not historical:
+   - `verification/d47-page-census-report.json`, `d47-page-reference-report.json`, `d47-page-usefulness-report.json`: regenerated with their own tool. Expected: every figure equal but the reported timings. The page's own search reads neither file's changes, and the census translates both sides with this tree's translator.
+   - `verification/d46-window-census-report.json`, `d46-window-reference-report.json`, `d46-window-usefulness-report.json`: regenerated with their own tool (as amended above). Expected: every figure equal but the reported timings.
+   - `verification/d45-coded-default-page-report.json`: **proposed for `HISTORICAL`, for sign-off.** Its tool (`coded_default.cjs`) loads the translator with the constants turned on by substituting their `= false` declarations, and refuses a file without them. The report records D45's assessment of the pre-flip page; on this tree its "main" translator no longer exists. Changing the tool instead would make `verification/d45-coded-default-latency-verdict.json` stale (it binds `coded_default.cjs`), the verdict rule 5 rests on. D49's census supersedes the page report for the current tree.
+   - Any figure that differs where equality is expected is reported, not frozen away.
+   - `results/build.py` if its inputs move.
+   - One job under the bench lock: the census, the usefulness run, the parity tests and the regeneration.
+7. **Gates** (on the final tree):
+   - all suites;
+   - `tools/check_report_provenance.py` at 0 stale;
+   - `check_test_counts --write`, then the check;
+   - `check_manifest`;
+   - both `.cjs` parity tests;
+   - `~/.claude-pcx/ci-local.sh`;
+   - `results/build.py --check`.
+8. **Ship rule.** D49 ships if rules 1 to 4, 6 and 7 hold; rule 5 is D45's verdict, referenced. The flip is the owner's decision. Any miss is reported and investigated, never tuned away, and no bar changes after measuring.

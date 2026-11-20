@@ -223,6 +223,8 @@ const write = (output, report) => {
   if (output) fs.writeFileSync(output, text); else process.stdout.write(text);
 };
 const FREE_TEXT = ['present', 'off', 'possible'];
+// D49: the translator's options that reproduce its default before D49 (STORE_CODED_ONLY and STORE_GENE_CODED_ONLY false).
+const PRE_FLIP = {codedOnly: null};
 const generate = (seed, file) => run(['demos/mockups/synthetic/generate.py', '--seed', String(seed), '--output', file]);
 
 /* Windows for index_reference.py: every rule, every free-text setting, every patient. */
@@ -440,7 +442,10 @@ function census(output) {
       defs.push({name: `template: ${name}, coded only (${joint ? 'joint' : '1.3'})`, def, freeText: 'off',
                  options: joint ? {codedOnly: 'store', geneCodedOnly: true} : {codedOnly: 'store'}});
     }
-    for (const c of inContext(ctx.mine, 'sweepCases()')) defs.push({name: `sweep: ${c.name}`, def: c.def, freeText: c.freeText, options: {}});
+    // D49: the sweep as D46 measured it, before "coded only" became the store's profile 1.3 by default: `codedOnly: null`
+    // is the translator's pre-D49 default exactly (D37's refusal, D32's reading for derived-only definitions, D38's gene
+    // refusal), so this census keeps recording D46's window moves on D46's requests. D49's own census covers the flip.
+    for (const c of inContext(ctx.mine, 'sweepCases()')) defs.push({name: `sweep: ${c.name}`, def: c.def, freeText: c.freeText, options: PRE_FLIP});
     // The Blank template under each of the five added period rules (D46 review, S1), stated findings and coded only.
     for (const [rule, window] of Object.entries(inContext(ctx.mine, 'EXTENDED_RULES'))) {
       const def = {...templates.blank, window};
@@ -631,7 +636,7 @@ function usefulness(output) {
              + '(grouped by truth) on the same seeds reported beside (@main)'),
       declared_seeds: SEEDS, extension_seeds: EXTEND, seeds_used: used,
       setting: {window: 'from the first seizure, 24 months (the page\'s own)', scope: 'from_start',
-                translator: 'trajectory/store_request.js, constants as committed (STORE_CODED_ONLY and STORE_GENE_CODED_ONLY false)',
+                translator: 'trajectory/store_request.js; coded only with the explicit options above (the defaults since D49), stated findings with none',
                 store: 'store_parity.py build and match (store_conditions.match)'},
       bar, coverage, met: RULED.every(n => bar[n].met) && coverage.met,
       templates: pooled, shares_three_ways: readings, by_plan_key: byKey,

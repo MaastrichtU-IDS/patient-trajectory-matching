@@ -191,3 +191,32 @@ try {
                'regrouped + reranked + split');
   console.log('Page-view census classes: a changed result whose candidates are unchanged is unexplained.');
 }
+
+/* D49: the census's pure parts (d49_flip.cjs), on constructed requests and results. */
+{
+  const d49 = require('./d49_flip.cjs');
+  const q = {steps: []}, w = {C001: {start: 0, end: 1}};
+  const coded = (steps, profile = 'execution-store-conditions-1.3') => ({query: q, windows: w, conditions: {profile, steps, exclude_kinds: ['mention']}});
+  // The request without the exclusion: 1.3 to 1.1, 1.2 with a rise, no conditions without a conditioned step; joint to gene.
+  assert.equal(d49.withoutExclusion(coded({A: {count: {n: 2}}})).conditions.profile, 'execution-store-conditions-1.1');
+  assert.equal(d49.withoutExclusion(coded({A: {relative: {kind: 'rise'}}})).conditions.profile, 'execution-store-conditions-1.2');
+  assert.equal(d49.withoutExclusion(coded({})).conditions, null);
+  assert.equal(d49.withoutExclusion(coded({B: {gene: true}}, 'execution-store-conditions-gene-coded-1.0')).conditions.profile, 'execution-store-conditions-gene-1.0');
+  assert.ok(!('exclude_kinds' in d49.withoutExclusion(coded({A: {count: {n: 2}}})).conditions));
+  assert.throws(() => d49.withoutExclusion({query: q, windows: w, conditions: {profile: 'execution-store-conditions-1.1', steps: {}}}));
+  // The classes of a changed result under a profile move; anything else is named by its transition.
+  assert.equal(d49.moveClass({status: 'none'}, {status: 'not_comparable', reason: 'NO_SOURCE_COVERAGE'}), 'coverage');
+  assert.equal(d49.moveClass({status: 'not_comparable', reason: 'NO_SOURCE_COVERAGE'}, {status: 'not_comparable', reason: 'NO_SOURCE_RECORDS_CONCEPT'}), 'other: not_comparable -> not_comparable');
+  assert.equal(d49.moveClass({status: 'none'}, {status: 'none', reason: 'FILTERED'}), 'filtered');
+  assert.equal(d49.moveClass({status: 'none', relaxations: ['x']}, {status: 'none', reason: 'FILTERED'}), 'other: none -> none');
+  assert.equal(d49.moveClass({status: 'exact', certainty: 'exact'}, {status: 'possible', certainty: 'possible'}), 'other: exact/exact -> possible/possible');
+  // The cohort without letter mentions keeps every record; the declarations are checked exactly once.
+  const bare = d49.withoutMentions({patients: [{records: [{kind: 'letter', mentions: [{}, {}]}, {kind: 'diagnosis'}]}]});
+  assert.equal(bare.removed, 2);
+  assert.equal(bare.cohort.patients[0].records.length, 2);
+  assert.throws(() => d49.declared('const STORE_CODED_ONLY = true;', 'true'));
+  d49.declared('const STORE_CODED_ONLY = true;\nconst STORE_GENE_CODED_ONLY = true;', 'true');
+  // The page's translator as committed: both constants on (D49).
+  d49.declared(fs.readFileSync(path.join(here, 'trajectory/store_request.js'), 'utf8'), 'true');
+  console.log('D49 census parts: the request without the exclusion, the move classes and the flipped declarations.');
+}

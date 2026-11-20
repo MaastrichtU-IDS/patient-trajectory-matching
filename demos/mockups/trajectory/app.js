@@ -579,9 +579,11 @@ function runPage(token, viaEngine) {
 const STORE_URL = '../api/trajectory-store/match';
 const STORE_REFUSAL = {
   GENE_CLASSIFICATION_UNSUPPORTED: 'the store has no form for a gene step (the first report that is not negative, with reclassification)',
-  FREE_TEXT_HEDGED_UNSUPPORTED: 'the store holds no hedged findings from letters',
+  FREE_TEXT_HEDGED_UNSUPPORTED: 'the store holds no uncertain findings from clinical notes (such as "possible" or "suspected")',
   FREE_TEXT_COUNT_UNSUPPORTED: 'the store ranks and counts coded records only; an Nth occurrence or a count needs "Coded records only"',
-  FREE_TEXT_CODED_ONLY_UNSUPPORTED: 'the store reads findings that letters state for every step that is not an Nth occurrence or a count, so it cannot answer "Coded records only"',
+  FREE_TEXT_CODED_ONLY_UNSUPPORTED: 'without its own "Coded records only", the store reads findings stated in clinical notes for every step that is not an Nth occurrence or a count, so it cannot answer "Coded records only" here',
+  // D49: unreachable from the page since the flip (gene steps under "Coded records only" are the joint profile); kept for a caller that asks for the refusal.
+  GENE_WITH_CODED_ONLY_UNSUPPORTED: 'a gene step under "Coded records only" needs the store\'s own coded-only reading, which this query did not use',
   NTH_STEP_HAS_NO_END: '"while taking" reads a course\'s end, and an Nth start has none in the store',
   RELATIVE_CONDITION_UNSUPPORTED: 'rises and falls were not sent to the store',
   VALUE_NOT_A_PLAIN_DECIMAL: 'a threshold or factor is not a plain decimal number',
@@ -781,6 +783,15 @@ function renderPeriod() {
     <div class="row" style="margin-top:8px"><span class="bound-label">Steps</span><select data-action="scope" aria-label="Where steps may fall">${Object.entries(SCOPES).map(([k, t]) => `<option value="${k}" ${state.def.scope === k ? 'selected' : ''}>must fall ${esc(t)}</option>`).join('')}</select></div></div>`;
 }
 
+/* The evidence options (D49: renamed by the owner; the values are unchanged). */
+const EVIDENCE_OPTIONS = {
+  off: 'Coded records only',
+  present: 'Coded records + findings stated in clinical notes',
+  possible: 'Coded records + uncertain findings in clinical notes (e.g. \'possible\', \'suspected\')',
+};
+const EVIDENCE_HINT = '"Coded records only" does not read clinical notes for any step: every step (first, last, Nth and counts included) '
+  + 'is matched on coded records alone. Findings in letters and other clinical notes are read only under the other two options.';
+
 function renderTrajectory() {
   const def = state.def, a = state.analysis;
   const shapeClass = a.shape === 'cycle' || a.errors.length ? 'bad' : a.shape.split(' ')[0];
@@ -813,8 +824,9 @@ function renderTrajectory() {
       <td><button class="btn small" data-action="remove-edge" data-i="${i}" aria-label="Remove constraint ${i + 1}">Remove</button></td></tr>`).join('')}</tbody></table>
     <div class="actions"><button class="btn small" data-action="add-edge" ${def.nodes.length ? '' : 'disabled'}>Add constraint</button></div>
     <p class="hint">Leave the latest gap empty for no upper limit. A negative earliest gap allows the later step to start up to that many days before. Constraints from the index start or end tie a step to each patient's own period.</p>`;
-  $('#evidence-options').innerHTML = `<div class="options">${[['off', 'Coded records only'], ['present', 'Also findings that letters state about the patient'], ['possible', 'Also hedged findings in letters']].map(([v, t]) =>
-    `<label><input type="radio" name="freetext" value="${v}" data-action="freetext" ${state.freeText === v ? 'checked' : ''}><span>${esc(t)}</span></label>`).join('')}</div>`;
+  $('#evidence-options').innerHTML = `<div class="options">${Object.entries(EVIDENCE_OPTIONS).map(([v, t]) =>
+    `<label><input type="radio" name="freetext" value="${v}" data-action="freetext" ${state.freeText === v ? 'checked' : ''}><span>${esc(t)}</span></label>`).join('')}</div>
+    <p class="hint">${esc(EVIDENCE_HINT)}</p>`;
 }
 
 /* Any, first, last, Nth or Nth from last; N is shared with "at least N times". */
@@ -924,7 +936,7 @@ function backendBanner() {
     const s = state.storeMeta;
     return `<div class="backend store" role="status"><strong>Answered by the execution store</strong>
       <span>snapshot <code title="${esc(s.snapshot)}">${esc(s.snapshot.slice(0, 12))}…</code> · ${esc(s.store)}${s.conditions ? ` · ${esc(s.conditions.replace('execution-store-', ''))}` : ''} · ${s.ms} ms</span>
-      <span class="hint">The store reads every record and letter mention as its own event, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records by a stated rule that reads no synthetic truth (same concept, overlapping times; D47), builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page over the same grouping, and sent to the store as exact times: the store's answer holds for that period, though the event that places it may be known only within a range.</span></div>`;
+      <span class="hint">${state.freeText === 'off' ? 'Under "Coded records only" the store reads no clinical note: it reads every coded record as its own event' : 'The store reads every record and letter mention as its own event'}, counts recorded events, and says <em>not comparable</em> where no source covers a step. This page's own search merges records by a stated rule that reads no synthetic truth (same concept, overlapping times; D47), builds medication courses and times letter mentions from their wording, so the two can differ; each difference has a declared cause (README). Index periods are placed by this page over the same grouping, and sent to the store as exact times: the store's answer holds for that period, though the event that places it may be known only within a range.</span></div>`;
   }
   return `<div class="backend page" role="status"><strong>Matched by ${esc(state.matcher === 'browser' ? 'this page\'s own search' : pageBy)}</strong></div>`;
 }
