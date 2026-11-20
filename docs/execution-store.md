@@ -542,7 +542,7 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 
 ## Gene steps under coded only: the joint profile (D42)
 
-**Status.** Built, sound on every check, and every rule met (decision log, D42). The translator writes it only when asked (`codedOnly: 'store'` with `geneCodedOnly: true`); `STORE_GENE_CODED_ONLY` and `STORE_CODED_ONLY` stay false (the coordinator's instruction), so the page's default requests do not change. No build loads the modules involved. D45 found both ready to turn on together (decision log, D45).
+**Status.** Built, sound on every check, and every rule met (decision log, D42). D42 left `STORE_GENE_CODED_ONLY` and `STORE_CODED_ONLY` false (the coordinator's instruction). D45 found both ready to turn on together, and since D49 both are on (the owner's decision), so the page writes the joint profile for a gene step under "Coded records only" by default. No build loads the modules involved.
 
 **The request.** Profile `execution-store-conditions-gene-coded-1.0`: the gene profile (D38) plus a required `exclude_kinds` (only `"mention"`), with at least one gene step (`GENE_STEP_REQUIRED`; a coded-only request without one is 1.3). A snapshot whose `gene_report_kinds` lists a kind the request leaves out is refused (`GENE_REPORT_KIND_EXCLUDED`).
 
@@ -560,13 +560,13 @@ The latency of 1.3 requests at scale is not measured: the paired benchmark carri
 
 ## Coded only by default: the readiness verdict (D45)
 
-**Status.** Measured; ready. `STORE_CODED_ONLY` and `STORE_GENE_CODED_ONLY` stay false: flipping them is the owner's decision (decision log, D45).
+**Status.** Measured; ready (decision log, D45). Both constants were turned on in D49, the owner's decision on this verdict: "Coded records only" is now the trajectory page's store request (profile 1.3, or the joint profile with a gene step), and its evidence options are renamed (decision log, D49).
 
 - *Soundness through the page's path* (`tools/d45_measure.py`): D39's and D42's small-case generators through `store_conditions.match` with the count post-pass on. 80,000 cases: 0 worlds violations, 0 reference mismatches; the post-pass moves only STEP_CONDITION_UNCERTAIN results; pruning and the snapshot without mentions agree. A planted wrong post-pass is caught.
 - *Usefulness* (`verification/d45-coded-default-usefulness-report.json`, seeds 4501 to 4530): every template under "coded only" has 0 unresolved child types and 0 unresolved candidates.
 - *The page* (`verification/d45-coded-default-page-report.json`): the flip changes only "coded only", into the requests the parity test pins. The option sweep answers 442 (coded) or 449 (joint) of 561 definitions, every other one refused by name.
 - *Latency* (`verification/d45-coded-default-latency-verdict.json`, `tools/benchmark_coded_default.py`). Arms of requests in one tree: each coded-only request against the same request without `exclude_kinds`, control-normalised. The store's cost of leaving mentions out is 1.10 to 1.85 times at 300,000 (p95 at most 7.47 s, peak memory 7.18 GB against 3.98 GB at 14 workers) and 1.14 to 1.52 times at the page's size (p95 at most 79 ms). Most of the added time is the per-chunk query of left-out events.
-- *Recommendation:* flip both constants together. Flipping `STORE_CODED_ONLY` alone needs a page message for `GENE_WITH_CODED_ONLY_UNSUPPORTED` first.
+- *Recommendation:* flip both constants together. Flipping `STORE_CODED_ONLY` alone needs a page message for `GENE_WITH_CODED_ONLY_UNSUPPORTED` first. *Done in D49:* both flipped together, and the message added.
 
 ## Index periods are exact; the event that places them may not be (D46)
 

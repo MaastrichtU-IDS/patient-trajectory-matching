@@ -218,5 +218,22 @@ try {
   d49.declared('const STORE_CODED_ONLY = true;\nconst STORE_GENE_CODED_ONLY = true;', 'true');
   // The page's translator as committed: both constants on (D49).
   d49.declared(fs.readFileSync(path.join(here, 'trajectory/store_request.js'), 'utf8'), 'true');
-  console.log('D49 census parts: the request without the exclusion, the move classes and the flipped declarations.');
+  // The help text (D49): "Coded records only" reads no clinical note for any step. On the page's own search (its
+  // fallback), every item admissible under "off" takes its time from coded records, with one known exception: a medicine
+  // whose only medication record is a stopped order takes its start from a letter (core.js's makeItem), pinned here.
+  const fallback = JSON.parse(vm.runInContext(`JSON.stringify((() => {
+    const out = {items: 0, from_a_note: []};
+    for (const pid of state.patients.keys()) for (const i of evidenceFor(pid).items) {
+      if (!admissible(i, {freeText: 'off'}) || !i.mentions.length) continue;
+      out.items += 1;
+      const coded = i.kind === 'genetic' ? i.recs.some(r => r.kind === 'test_order' || r.kind === 'genetic_result')
+        : i.kind === 'medication' ? i.recs.some(r => (r.kind === 'medication_order' && r.status === 'active') || r.kind === 'dispensing')
+        : i.recs.some(r => r.occurred);
+      if (!coded) out.from_a_note.push(pid + ' ' + i.kind + ' ' + i.recs.map(r => r.kind + ':' + r.status).join(','));
+    }
+    return out;
+  })())`, require('./d47_page.cjs').pageContext(cohortText, 'this')));
+  assert.deepEqual(fallback.from_a_note, ['C026 medication medication_order:stopped'], 'the page\'s own search times an item from a note under coded only');
+  console.log(`D49 census parts: the request without the exclusion, the move classes and the flipped declarations; the fallback times `
+              + `${fallback.items - fallback.from_a_note.length} of ${fallback.items} mixed items from coded records under "off" (1 known exception).`);
 }

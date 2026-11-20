@@ -581,7 +581,8 @@ const STORE_REFUSAL = {
   GENE_CLASSIFICATION_UNSUPPORTED: 'the store has no form for a gene step (the first report that is not negative, with reclassification)',
   FREE_TEXT_HEDGED_UNSUPPORTED: 'the store holds no uncertain findings from clinical notes (such as "possible" or "suspected")',
   FREE_TEXT_COUNT_UNSUPPORTED: 'the store ranks and counts coded records only; an Nth occurrence or a count needs "Coded records only"',
-  FREE_TEXT_CODED_ONLY_UNSUPPORTED: 'without its own "Coded records only", the store reads findings stated in clinical notes for every step that is not an Nth occurrence or a count, so it cannot answer "Coded records only" here',
+  // Reachable only when a caller asks for it (`codedOnly: false` or null); the page itself never does since D49.
+  FREE_TEXT_CODED_ONLY_UNSUPPORTED: 'the store was asked to answer "Coded records only" without leaving clinical notes out, which it can do only when every step is an Nth occurrence, a count or a measurement',
   // D49: unreachable from the page since the flip (gene steps under "Coded records only" are the joint profile); kept for a caller that asks for the refusal.
   GENE_WITH_CODED_ONLY_UNSUPPORTED: 'a gene step under "Coded records only" needs the store\'s own coded-only reading, which this query did not use',
   NTH_STEP_HAS_NO_END: '"while taking" reads a course\'s end, and an Nth start has none in the store',
@@ -617,6 +618,9 @@ const STORE_REASON = {
   OCCURRENCE_ORDER_UNCERTAIN: 'the records leave it uncertain which event is the first or last, and the match depends on it',
   SEARCH_BUDGET_EXHAUSTED: 'the search stopped at its budget before deciding',
 };
+// D49: FILTERED under "Coded records only": the patient holds no coded record for some step (D39's candidate refinement).
+const CODED_ONLY_PROFILES = ['execution-store-conditions-1.3', 'execution-store-conditions-gene-coded-1.0'];
+const STORE_REASON_CODED_ONLY = {FILTERED: 'no coded record for some step'};
 const STORE_NOTE = {
   EXACT_SEARCH_STOPPED: 'the search for an exact match stopped at its budget',
   CHEAPER_RELAXATION_SEARCH_STOPPED: 'a cheaper relaxation may exist; its search stopped',
@@ -671,14 +675,16 @@ async function postStore(body) {
 function fromStore(answer, def) {
   const opts = relaxOptions(def);
   const textOf = key => key.split('+').map(k => (opts.find(o => o.key === k) || {text: k}).text);
+  // D49: under "Coded records only" (profile 1.3 or the joint profile) a reason reads over coded records.
+  const reasonDict = CODED_ONLY_PROFILES.includes(answer.conditions_profile) ? {...STORE_REASON, ...STORE_REASON_CODED_ONLY} : STORE_REASON;
   return answer.results.map(r => {
     const pid = r.patient_id, view = evidenceFor(pid);
     const win = windowFor(view, {freeText: state.freeText, knownByIndex: false, window: def.window});
     const base = {pid, win, backend: 'store', store: r, truncated: false};
-    if (r.status === 'excluded') return {...base, status: 'excluded', reason: win.reason || reasonText(STORE_REASON, r.reason, [])};
+    if (r.status === 'excluded') return {...base, status: 'excluded', reason: win.reason || reasonText(reasonDict, r.reason, [])};
     const m = r.relaxed_match, u = r.unverified_match, keys = r.relaxations || (m && m.relaxations) || [];
     const reasons = [];
-    if (r.reason) reasons.push(reasonText(STORE_REASON, r.reason, storeSteps(r)));
+    if (r.reason) reasons.push(reasonText(reasonDict, r.reason, storeSteps(r)));
     if (u) reasons.push(`an unrelaxed ${u.certainty} match was found but is not verified`);
     if (m) reasons.push(`relaxing ${keys.flatMap(textOf).join('; ')} gives ${m.certainty === 'exact' ? 'an exact' : 'a possible'} match at cost ${+m.cost}, but the unrelaxed query is undecided`);
     for (const note of (r.note || '').split('; ').filter(Boolean)) reasons.push(reasonText(STORE_NOTE, note, []));

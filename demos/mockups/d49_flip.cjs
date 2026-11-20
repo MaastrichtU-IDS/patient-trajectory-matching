@@ -110,6 +110,8 @@ const outcome = r => r.refused ? `refused ${r.refused}` : `profile ${(r.conditio
 const FREE_TEXT = ['off', 'present', 'possible'];
 // The option that, on main's translator, writes what this tree's writes by default (D45 rule 3.1's explicit option).
 const FLIPPED = {codedOnly: 'store', geneCodedOnly: true};
+// D45 rule 3.1: under "coded only" the flip moves 161 definitions the store already answered (133 from 1.1, 28 from 1.2).
+const D45_PROFILE_MOVES = 161;
 
 /* The request without the exclusion (D45's `withoutExclusion`, rule 4's reference): `exclude_kinds` removed and the
    profile that requires it replaced by the one the store uses without it (1.3: 1.2 with a rise, 1.1 with another step
@@ -303,7 +305,10 @@ function census(output) {
       }
       if (any) r22.definitions_with_a_change += 1;
     }
-    r22.met = movedNotExclusionOnly.length === 0 && r22.changed_not_explained_by_removal === 0;
+    // A lower bound (D49 review, S1): the moves must exist, and their count is reported beside D45's 161.
+    r22.d45_count = D45_PROFILE_MOVES;
+    r22.equal_to_d45_count = moved.length === D45_PROFILE_MOVES;
+    r22.met = moved.length > 0 && movedNotExclusionOnly.length === 0 && r22.changed_not_explained_by_removal === 0;
 
     // 2.3: the meaning by removal, for every coded-only request this tree sends (D39's store-against-store check on the
     // page's cohort): the same answer, patient by patient, as the request without the exclusion on the snapshot without
@@ -348,6 +353,7 @@ function census(output) {
       if (r.here.refused) codes.add(r.here.refused);
       else if (sweptFull[r.hereName].error) codes.add(sweptFull[r.hereName].error);
     }
+    const messageGaps = [...codes].filter(c => !known.has(c)).sort();
     const storeRefusals = {};
     for (const a of Object.values(sweptFull)) if (a.error) bump(storeRefusals, a.error);
     const report = {
@@ -367,8 +373,9 @@ function census(output) {
       rule_2_1: r21, rule_2_2: r22, rule_2_3: r23, rule_2_4: r24,
       distinct_requests: caseList.length, store_refusals: storeRefusals,
       unnamed: unnamed.slice(0, 20), incomplete: incomplete.slice(0, 20),
-      messages: {codes: [...codes].sort(), without_a_message: [...codes].filter(c => !known.has(c)).sort()},
-      met: {rule_1_1: r11.met, rule_2_1: r21.met, rule_2_2: r22.met, rule_2_3: r23.met, named: !unnamed.length && !incomplete.length},
+      messages: {codes: [...codes].sort(), without_a_message: messageGaps},
+      met: {rule_1_1: r11.met, rule_2_1: r21.met, rule_2_2: r22.met, rule_2_3: r23.met, named: !unnamed.length && !incomplete.length,
+            messages: !messageGaps.length && known.has('GENE_WITH_CODED_ONLY_UNSUPPORTED')},
       seconds: Math.round((Date.now() - t0) / 1000),
       artifacts: artifacts(), contains_patient_level_data: false, ...(SMOKE ? {smoke: true} : {}),
     };
