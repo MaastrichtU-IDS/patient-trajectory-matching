@@ -4502,7 +4502,7 @@ It never applies to a threshold, a timing or any measured bar, and so not to the
 
 ## D49 "Coded records only" becomes the trajectory page's default: both constants turned on, the evidence options renamed, under rules fixed before measuring
 
-*Status:* rules and code committed; not yet measured.
+*Status:* **shipped**. Every rule met. Under "Coded records only" the page's five templates and 449 of 561 sweep definitions are answered by the store (293 before); nothing outside that setting moves; the 161 requests whose profile moved change in 75 results, each a `none` now `FILTERED`, each equal by removal; usefulness 0 unresolved child types on all five templates over 30 fresh cohorts; parity 849 of 1,248, no row moved.
 
 **The decision** (the owner, 2026-11-20, approving the coordinator's recommendations on D45's verdict, "ready" for both profiles):
 1. *Flip both page defaults together* in `demos/mockups/trajectory/store_request.js`: `STORE_CODED_ONLY = true` and `STORE_GENE_CODED_ONLY = true`. Under "Coded records only" every page template is then a store request: profile 1.3 (D39) for Sequence, Event frequency and Blank, the joint profile (D42) for Tree and Graph.
@@ -4615,3 +4615,43 @@ It never applies to a threshold, a timing or any measured bar, and so not to the
   - `FREE_TEXT_CODED_ONLY_UNSUPPORTED`'s message is reworded to read naturally, with a comment that only an explicit caller option reaches it.
   - *The help text and the page's own search (its fallback).* A check is added to `test_engine_parity.cjs`: on the page's cohort, every item admissible under "off" that also holds letter mentions takes its time from coded records. Writing it found **one exception**: C026's medicine, whose only medication record is a stopped order, takes its start from a letter mention (`core.js`'s `makeItem`, D47's view). So under "Coded records only" the page's own search times that course from a note; the store does not. The check pins that one item. This was found while writing a test, before any ruled measurement, and is disclosed for the coordinator's decision: change the help text's scope, or change `makeItem` (which would move the page's own search, and with it D46's and D47's reports and parity rows) in a later increment.
   - The patient-first heading "Evidence" stands.
+
+**Rebased onto D48b** (main 0a17003, 2026-11-20). The log's two appended sections conflicted, and both were kept. M1 was applied at the rebase (769862e): "main" and the census's `--base` are 0a17003. D48b re-measured D45's latency verdict and carried the label fix to `coded_default.cjs`; D49 changes no file that verdict binds, so it stays current and **no conditional freeze was needed** (provenance 0 stale). The fast suites passed before the job: the mockups' 55 unit tests and the tools' 40.
+
+**Measurement** (after the rules and the review's amendments; one job under the bench lock, 2026-11-20, 14:39 to 14:49, on 769862e; the log is in `~/ptm-local/d49/`; the page's cohort checked against the committed seed).
+- *The parity test's first run stopped before comparing anything*, on a defect in the test: the three new probe names contained `\'`, which the vm's template literal turned into a bare quote (a `SyntaxError`). The names were changed (to "… coded only, the store option refused on request (D49)"); no pin or expectation changed. The test was rerun under the lock (14:50 to 14:51) and passed. Every other step of the job ran once.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 The flip changes only "Coded records only" (`verification/d49-flip-census-report.json`) | Both declarations checked (`false` at 0a17003, `true` here). 568 definitions × 3 settings = 1,704: with stated or uncertain findings **all 1,136 byte-identical**; under "Coded records only" **all 568 equal main's translator with the explicit option**. 564 change: 386 `FREE_TEXT_CODED_ONLY_UNSUPPORTED` refusals to 1.3 (templates 3, D39's shapes 2, sweep 381), 17 `GENE_WITH_CODED_ONLY_UNSUPPORTED` refusals to the joint profile (templates 2, sweep 15), and 133 from 1.1 and 28 from 1.2 to 1.3 (all sweep definitions); D45's figures exactly. *The sweep as the page offers it:* main 293 answered (translator refusals 248, store 20), here **449** (translator 84, store 28) | met |
+| 2.1 Unchanged requests | Main answers 591 of the 1,704: **430 byte-identical here** (19,200 patient results; 30 refused alike by the store), the 161 profile moves, **0 other**. `git diff 0a17003` names nothing under `patterns/`, `store_parity.py`, `store_trajectory.py` or `synthetic/` | met |
+| 2.2 The profile moves | **161** (D45's count), every one main's request plus the exclusion only. Of 7,056 patient results (14 definitions refused alike by the store), **75 changed in 33 definitions, every one `none` to `none` gaining the reason `FILTERED`** (D39's candidate refinement: the patient holds no coded record for some step); 0 for coverage, 0 of any other kind; **each equal to the old request's answer on the snapshot without letter mentions** | met |
+| 2.3 The meaning by removal | 294 distinct coded-only requests (285 at 1.3, 9 joint), 3,048 letter mentions removed: **0 of 13,440 results differ**; 14 refused alike, 0 differently | met |
+| 2.4 Reported | The 403 newly answered definitions: 16 refused by the store (`INVALID_FACTOR` 8, `VALUE_RELAXATION_MUST_WIDEN` 8); 18,576 results: none 6,547, excluded (no period) 4,118, exact 2,834, relaxed 2,282, not comparable 1,941, possible 656, unresolved 198 (`OCCURRENCE_TIME_COUPLED` 64, `STEP_CONDITION_UNCERTAIN` 62 among the reasons) | reported |
+| 2.5 Named | 595 distinct requests; every answer has a result for each of the 48 patients; nothing fails without a code | met |
+| 3 Usefulness (`verification/d49-flip-usefulness-report.json`) | Seeds 4911 to 4940, no extension. Under "Coded records only", no options: **Sequence 0 of 16 child types unresolved, Tree 0 of 7, Graph 0 of 7, Event frequency 0 of 16, Blank 0 of 44**; all candidates 0 of 209, 138, 138, 292 and 1,098; without C001, 0 of 179, 108, 108, 262 and 1,068. None of the five refused (with stated findings Event frequency is refused, `FREE_TEXT_COUNT_UNSUPPORTED`). `exact` under coded only against stated findings: Sequence 15 against 0, Tree 13 against 0, Graph 10 against 0, Blank 564 of 1,098 against 1 of 1,120; Event frequency 179 of 292 | met |
+| 4.1 `test_store_parity.cjs` | Passes with every pin as written before it ran: the refusal table, the template table (the five "off" rows answered by the five coded-only parity trajectories), the sweep tally (449; translator 51, 31, 2; store 14, 14). **849 of 1,248** agree over 26 trajectories, **no row moved** (count timing 16, coverage 237, letter mentions 113, measurement records 4, medication records 64, occurrence envelope 7, record reconciliation 124); no `UNEXPLAINED`; the replay holds. D38's no-change differential: 485 requests (21,936 results; 28 refused alike) equal, 18 gene requests left out | met |
+| 4.2 `test_engine_parity.cjs` | Passes, the D49 block included (the fallback check: 410 of 411 mixed items timed from coded records under "off", the one known exception pinned) | met |
+| 4.3 Messages | Codes the page can show: `FREE_TEXT_COUNT_UNSUPPORTED`, `FREE_TEXT_HEDGED_UNSUPPORTED`, `NTH_STEP_HAS_NO_END`, `INVALID_FACTOR`, `VALUE_RELAXATION_MUST_WIDEN`; **none without a message**; `GENE_WITH_CODED_ONLY_UNSUPPORTED` has one | met |
+| 5 Latency | D45's verdict as re-measured under D48b (2026-11-20), current: page's size normalised 1.11 to 1.33, candidate p95 at most 78 ms; 300,000 at 14 workers normalised 1.12 to 1.86, p95 at most 7.64 s, 7.02 GB against 3.80 GB. No new path | referenced |
+| 6 Regeneration | D47's three reports and D46's three regenerated: **every figure equal** to the committed ones, apart from timings, artifact digests and the two intended `setting` labels (D46's census `setting`, its usefulness `translator`). `verification/d45-coded-default-page-report.json` frozen as `HISTORICAL` (signed off). `results/build.py` wrote an unchanged `results.json`. Docs: below | met |
+| 7 Gates | Below | met |
+
+*Gates* (on the final tree): every suite; provenance 0 stale; `check_test_counts --write`, then the check; `check_manifest`; both `.cjs` parity tests; `~/.claude-pcx/ci-local.sh`; `results/build.py --check`.
+
+**Decision: D49 ships.** Every rule holds. Under "Coded records only" the trajectory page now asks the store, which leaves every clinical note out of every step:
+- all five templates are answered (none was before);
+- the option sweep answers 449 of 561 definitions (293 before);
+- nothing else the page sends changes.
+
+The 161 requests the store already answered by D32's reading change only where a patient holds no coded record for some step: 75 results now say so (`FILTERED`). D45 expected coverage moves there, and none happened. The evidence options are renamed, the help text states that coded only reads no clinical note, and every refusal the page can show has a message.
+
+*Evidence in proportion.*
+- The census and the parity test run on one 48-child cohort, and the 30 usefulness cohorts are redraws of the same plan.
+- The meaning by removal is the store against itself on a stripped cohort, not an independent reference. D39's and D45's references and worlds checks are that evidence, and no matching code changed.
+- Latency is D45's verdict, re-measured under D48b. The joint profile is still timed at the page's size only.
+- *The page's own search under "Coded records only"* still times one course on the page's cohort from a letter (C026's medicine, a stopped order only). The store does not. The help text holds for every answer the store gives. The fallback's exception is pinned by a test and queued.
+
+*Follow-ups.*
+- The page's own search: under "Coded records only", time a medicine with only a stopped order from no note (`core.js`, `makeItem`). It moves the page's own search, so it needs its own increment with D46's and D47's reports.
+- From D45, still open: a cheaper exclusion of left-out events at scale, and joint requests timed on a 300,000 build with series and gene labels.
