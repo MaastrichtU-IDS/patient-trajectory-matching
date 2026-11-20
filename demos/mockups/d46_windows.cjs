@@ -519,6 +519,10 @@ function census(output) {
              + 'transition. Met only if every changed result has a moved window (unexplained 0). Rule 8, reported: the '
              + 'store\'s results with every event anchor at the latest time its most precise record allows'),
       base: BASE, cohort_sha256: shaText(text), patients: pids.length,
+      setting: {sweep: ('the option sweep before D49\'s flip (translator option codedOnly: null, its pre-D49 default: D37\'s '
+                        + 'refusal of coded only, D32\'s reading for derived-only definitions, D38\'s gene refusal), so the '
+                        + 'window figures stay reproducible; d49-flip-census-report.json covers the flip'),
+                templates: 'stated findings with no options; coded only with the explicit options (1.3; joint for Tree and Graph)'},
       windows, results: {cases: defs.length - Object.keys(refused).length, refused, compared, changed, by_class: changes, by_case: byCase,
                          unexplained: unexplained.length, first_unexplained: unexplained.slice(0, 20)},
       view_cost: {rule: 'reported, not ruled (D46 rule 7): node, one process, after the census',

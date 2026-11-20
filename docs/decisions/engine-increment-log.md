@@ -4594,3 +4594,11 @@ It never applies to a threshold, a timing or any measured bar, and so not to the
    - `~/.claude-pcx/ci-local.sh`;
    - `results/build.py --check`.
 8. **Ship rule.** D49 ships if rules 1 to 4, 6 and 7 hold; rule 5 is D45's verdict, referenced. The flip is the owner's decision. Any miss is reported and investigated, never tuned away, and no bar changes after measuring.
+
+**At the checkpoint** (the coordinator, as the owner's delegate, on 9ef3947; before any measurement):
+- *Freeze signed off:* `verification/d45-coded-default-page-report.json` goes to `HISTORICAL`, superseded for the current tree by D49's census report (rule 6).
+- *D46's census pinned to the pre-flip sweep* (`codedOnly: null`): accepted. Its report says so in a new `setting` field, so the window figures stay reproducible; D49's census covers the flip.
+- *Order with D48b:* D48b ships first, carrying the queued label fix to `coded_default.cjs` (D47's follow-up), and D49 is rebased onto main after it lands; the D49 job runs after the rebase, so the reports regenerate once. If `verification/d45-coded-default-latency-verdict.json` is then stale because D49 changes a file it binds, it is frozen as `HISTORICAL` (signed off in advance). `coded_default.cjs` is not changed to accept flipped constants: that would only add a second stale binding.
+- *Rule 5, amended accordingly:* it then rests on that verdict as historical evidence. The flip opens no path D45 did not time, and the verdict was last re-measured, and met, under D48b on 2026-11-20.
+- *The patient-first page's evidence options* are aligned with the trajectory page: "Coded records only", "Coded records + findings stated in clinical notes", "Coded records + uncertain findings in clinical notes (e.g. 'possible', 'suspected')", under the heading "Evidence" (was "Letters and free text"). Text only; no behaviour changes. No committed report binds `patient-first/app.js`, and nothing D49 measures reads it.
+- An independent review of 9ef3947 runs before the job.

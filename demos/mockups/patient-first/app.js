@@ -636,7 +636,7 @@ function renderCriteria() {
   }
   out.push(`<h3>Concept similarity</h3><p class="hint">How clinical findings and medication exposures are compared under <em>Prefer similar</em>.</p><div class="options">${Object.entries(MEASURES).map(([v, [name, text]]) =>
     `<label><input type="radio" name="measure" value="${v}" data-action="measure" ${q.conceptMeasure === v ? 'checked' : ''}><span><strong>${esc(name)}</strong>: ${esc(text)}${v === 'simgic' ? ' (default)' : ''}</span></label>`).join('')}</div>`);
-  out.push(`<h3>Letters and free text</h3><div class="options">${[['off', 'Ignore letters: coded records only'], ['present', 'Use findings letters state about the patient'], ['possible', 'Also use hedged findings ("possible", "?")']].map(([v, t]) =>
+  out.push(`<h3>Evidence</h3><div class="options">${[['off', 'Coded records only'], ['present', 'Coded records + findings stated in clinical notes'], ['possible', 'Coded records + uncertain findings in clinical notes (e.g. \'possible\', \'suspected\')']].map(([v, t]) =>
     `<label><input type="radio" name="freetext" value="${v}" data-action="freetext" ${q.freeText === v ? 'checked' : ''}><span>${esc(t)}</span></label>`).join('')}</div>
     <p class="hint">Negated findings, plans and family history never count, whatever this is set to.</p>`);
   out.push('<p class="hint">Trajectories are defined on their own page: <a href="../trajectory/">index period, then trajectory</a>.</p>');
