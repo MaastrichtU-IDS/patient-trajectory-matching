@@ -110,6 +110,19 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(window(recs, first)['start'], round(day_of('2020-01-10T00:00') * GRID))
         self.assertIn('reason', window(recs, SECOND_VALPROATE))
 
+    def test_a_course_with_only_a_stop_has_no_start_under_coded_only(self):
+        # D53: a letter dates the course under stated findings; under coded only no note is read, so it is no anchor,
+        # and an item's other fields come from its records alone.
+        stop = record('O1', 'medication_order', 'valproate', '2020-03-01T00:00', '2020-03-01T23:59', 'day', status='stopped')
+        letter = note('N1', '2020-03-05', [{'concept': 'valproate', 'assertion': 'present', 'experiencer': 'patient',
+                                            'time_expression': 'this week'}])
+        first = {**SECOND_VALPROATE, 'start': {**SECOND_VALPROATE['start'], 'which': 'first'}}
+        self.assertNotIn('reason', window([stop, letter], first))
+        self.assertIn('reason', window([stop, letter], first, 'off'))
+        self.assertIn('reason', window([stop], first))
+        order = record('O0', 'medication_order', 'valproate', '2020-01-10T00:00', '2020-01-10T23:59', 'day', status='active')
+        self.assertEqual(window([order, stop, letter], first, 'off')['start'], round(day_of('2020-01-10T00:00') * GRID))
+
     def test_the_truth_link_is_never_read(self):
         recs = [record('R1', 'condition', 'seizure', '2019-10-19T00:00', '2019-10-19T23:59', 'day', truth_event_id='T1'),
                 record('R2', 'condition', 'seizure', '2019-12-01T00:00', '2019-12-01T23:59', 'day', truth_event_id='T1')]

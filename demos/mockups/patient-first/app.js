@@ -70,24 +70,29 @@ const SET_ITEMS = {
   phenotype: i => i.kind === 'phenotype',
   medication: i => i.kind === 'medication' && i.concept !== 'midazolam',
 };
+// Information content per term, over the cohort. Under "Coded records only" (D53) it is counted over each item as its coded
+// records alone make it (core.js's codedOf: no letter-only item, no letter's concept), so no weight reads a note; under the
+// other two settings over every item and the concept a letter names, as before. One table per key and setting.
 const icTables = {};
-function icTable(key) {
-  if (icTables[key]) return icTables[key];
+function icTable(key, freeText) {
+  const id = `${key}|${freeText}`;
+  if (icTables[id]) return icTables[id];
   const counts = new Map();
   for (const pid of state.patients.keys()) {
     const terms = new Set();
-    for (const i of evidenceFor(pid).items.filter(SET_ITEMS[key]))
+    const items = freeText === 'off' ? evidenceFor(pid).items.map(codedOf).filter(Boolean) : evidenceFor(pid).items;
+    for (const i of items.filter(SET_ITEMS[key]))
       for (const c of [i.concept, i.textConcept].filter(Boolean)) TERMS[key](c).forEach(t => terms.add(t));
     terms.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
   }
   const n = state.patients.size;
-  icTables[key] = t => -Math.log(((counts.get(t) || 0) + 1) / (n + 1));
-  return icTables[key];
+  icTables[id] = t => -Math.log(((counts.get(t) || 0) + 1) / (n + 1));
+  return icTables[id];
 }
-function conceptSim(key, a, b, measure) {
+function conceptSim(key, a, b, measure, freeText) {
   const termsOf = set => new Set([...set].flatMap(c => [...TERMS[key](c)]));
   if (measure === 'ancestor_jaccard') return jaccard(termsOf(a), termsOf(b));
-  const ic = icTable(key), sum = set => [...set].reduce((t, x) => t + ic(x), 0);
+  const ic = icTable(key, freeText), sum = set => [...set].reduce((t, x) => t + ic(x), 0);
   if (measure === 'simgic') {
     const ta = termsOf(a), tb = termsOf(b), union = new Set([...ta, ...tb]);
     const total = sum(union);
@@ -112,7 +117,7 @@ const FEATURES = [
       const items = usable(view, q, win).filter(i => i.kind === 'phenotype' && !q.features.phenotype.excluded.includes(conceptFor(i, q)));
       return items.length ? {value: new Set(items.map(i => conceptFor(i, q))), items} : null;
     },
-    sim: (a, b, q) => conceptSim('phenotype', a, b, q.conceptMeasure),
+    sim: (a, b, q) => conceptSim('phenotype', a, b, q.conceptMeasure, q.freeText),
     must(a, b, f) { const need = f.required.length ? f.required : [...a]; return need.every(r => [...b].some(c => isA(c, r))); },
     fail(a, b, f) { const need = f.required.length ? f.required : [...a]; return 'lacks ' + need.filter(r => ![...b].some(c => isA(c, r))).map(label).join(', '); },
     show: v => [...v].map(label).join(', '),
@@ -178,7 +183,7 @@ const FEATURES = [
       const items = usable(view, q, win).filter(i => i.kind === 'medication' && i.concept !== 'midazolam');
       return items.length ? {value: new Set(items.map(i => i.concept)), items} : null;
     },
-    sim: (a, b, q) => conceptSim('medication', a, b, q.conceptMeasure),
+    sim: (a, b, q) => conceptSim('medication', a, b, q.conceptMeasure, q.freeText),
     must(a, b, f) {
       const need = f.required.length ? f.required : [...a];
       return need.every(r => [...b].some(c => c === r || classesOf(c).includes(r)));
@@ -295,11 +300,14 @@ function compareTip(pid, id) {
     const d = i.kind === 'medication' ? i.med.start.e : i.time.best.e;
     return `${ageText(d)}${at?.end == null ? '' : d < at.start ? ' (before the window)' : d > at.end ? ' (after the window)' : ' (in the window)'}`;
   };
-  const same = oview.items.filter(o => compareKey(o, q) === key && (o.kind === 'medication' ? o.med.start : o.time.best));
-  const nearAll = same.length ? [] : oview.items.filter(o => relation(key, compareKey(o, q)) && (o.kind === 'medication' ? o.med.start : o.time.best));
+  // The other patient's events as the comparison reads them: under "Coded records only" each as its coded records alone make
+  // it (D53, codedOf), so the times shown are the ones compared.
+  const others = q.freeText === 'off' ? oview.items.map(codedOf).filter(Boolean) : oview.items;
+  const same = others.filter(o => compareKey(o, q) === key && (o.kind === 'medication' ? o.med.start : o.time.best));
+  const nearAll = same.length ? [] : others.filter(o => relation(key, compareKey(o, q)) && (o.kind === 'medication' ? o.med.start : o.time.best));
   const near = nearAll.filter(o => !hiddenItem(o));
   const nearHidden = nearAll.length - near.length;
-  const used = win.end != null && usable(view, q, win).includes(it);
+  const used = win.end != null && usable(view, q, win).some(u => u.id === it.id);  // by id: under coded only, usable reads each item's coded form (D53)
   const lines = [`<strong>${esc(it.display)}</strong> · ${esc(pid)} at ${esc(when(it, win))}`];
   if (same.length) {
     lines.push(`<span class="tip-shared">■ Shared exactly</span> — ${esc(other)} has it at ${esc(same.slice(0, 4).map(o => when(o, owin)).join(', '))}${same.length > 4 ? ` and ${same.length - 4} more` : ''}`);
@@ -638,7 +646,7 @@ function renderCriteria() {
     `<label><input type="radio" name="measure" value="${v}" data-action="measure" ${q.conceptMeasure === v ? 'checked' : ''}><span><strong>${esc(name)}</strong>: ${esc(text)}${v === 'simgic' ? ' (default)' : ''}</span></label>`).join('')}</div>`);
   out.push(`<h3>Evidence</h3><div class="options">${[['off', 'Coded records only'], ['present', 'Coded records + findings stated in clinical notes'], ['possible', 'Coded records + uncertain findings in clinical notes (e.g. \'possible\', \'suspected\')']].map(([v, t]) =>
     `<label><input type="radio" name="freetext" value="${v}" data-action="freetext" ${q.freeText === v ? 'checked' : ''}><span>${esc(t)}</span></label>`).join('')}</div>
-    <p class="hint">Negated findings, plans and family history never count, whatever this is set to.</p>`);
+    <p class="hint">"Coded records only" reads no clinical note: every feature, its times and the weights of the concept similarity come from coded records alone. Negated findings, plans and family history never count, whatever this is set to.</p>`);
   out.push('<p class="hint">Trajectories are defined on their own page: <a href="../trajectory/">index period, then trajectory</a>.</p>');
   const cases = uniq(draftResult.rows.flatMap(r => r.cases));
   const byCat = {};

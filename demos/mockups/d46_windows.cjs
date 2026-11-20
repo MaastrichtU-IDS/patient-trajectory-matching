@@ -154,9 +154,11 @@ const DEFINITIONS = `
   // medicine at its start's latest), placed by the same rule over a copy of the anchor view.
   var lateOne = (pid, window, freeText) => {
     const view = anchorView(pid);
-    const late = {...view, items: view.items.map(i => ({...i,
+    const atLatest = i => ({...i,
       time: i.time && i.time.best ? {...i.time, best: {...i.time.best, e: i.time.best.l}} : i.time,
-      med: i.med && i.med.start ? {...i.med, start: {...i.med.start, e: i.med.start.l}} : i.med}))};
+      med: i.med && i.med.start ? {...i.med, start: {...i.med.start, e: i.med.start.l}} : i.med});
+    // An item's coded form (D53, read under "Coded records only") moves with it.
+    const late = {...view, items: view.items.map(i => i.coded ? {...atLatest(i), coded: atLatest(i.coded)} : atLatest(i))};
     let w;
     if (typeof indexViewFor === 'function') {
       state.indexViews.set(pid, late);

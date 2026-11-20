@@ -117,7 +117,13 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # records of that measurement, as at the retry base e53ac3b (coordinator's sign-off as delegate, option (a)).
               # Each binds `tools/e0_measure.py`, `patterns/mention_time.py` and `patterns/synthetic_mentions.py` as there.
               'verification/e0-mention-time-soundness-report.json', 'verification/e0-mention-time-defects-report.json',
-              'verification/e0-mention-time-arms-report.json'}
+              'verification/e0-mention-time-arms-report.json',
+              # D53 changes `shared/core.js` and `trajectory/app.js`, which D49's flip census binds. Its rule 2.1 is a
+              # point-in-time claim against D49's base 0a17003 (no file under `patterns/` changed since), which E0b's three
+              # added files (`patterns/mention_time.py`, `synthetic_mentions.py`, `test_synthetic_mentions.py`) make false on
+              # any later tree. D53's regeneration showed every other figure equal. Kept as D49's record of its own tree, as
+              # committed on main at 34af272 (coordinator's sign-off as delegate, D53, under the conflicting-provisions rule).
+              'verification/d49-flip-census-report.json'}
 
 
 def digests(path):

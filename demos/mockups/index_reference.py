@@ -14,7 +14,8 @@ carries them. A placed window must equal the reference's to the minute; an unpla
 
 Written separately from core.js, not translated from it line by line; what it shares with the page is the rule's text,
 the page's item rules it restates (how an item is kinded, conceptualised and timed: `makeItem`, `timeOf`, `textSpan`)
-and its period rules (`usable`, `eventTimes`, `pickOccurrence`, `windowFor`). It mirrors core.js step by step, so it
+and its period rules (`usable`, `eventTimes`, `pickOccurrence`, `windowFor`; since D53, under "Coded records only", each item
+as its coded records alone make it, `codedOf`). It mirrors core.js step by step, so it
 catches a divergence between the two implementations, not a flaw in the rule itself. It reads no `truth_event_id` or
 `truth`: `strip` removes them (and, for windows, every data-quality case) before anything else runs. Synthetic data only.
 """
@@ -298,7 +299,10 @@ class Patient:
             rest = [x for x in ms if not any(x is y for y in early)]
             it = self.item(recs, rest)
             if it:
-                out.append({**it, 'provisional': False, 'records': recs, 'mentions': rest})
+                # D53: under "Coded records only" the page searches each item as its coded records alone make it
+                # (the item without its mentions; none for an item with no coded record).
+                coded = self.item(recs, []) if rest and not it['free_text_only'] else None
+                out.append({**it, 'provisional': False, 'records': recs, 'mentions': rest, 'coded': coded})
         return out
 
     # The page's whole view (D47): items, series readings, letters and the data-quality cases each holds, per record.
@@ -396,6 +400,9 @@ class Patient:
             if i['kind'] == 'medication':
                 return i['start'] is not None
             return i['best'] is not None
+        if free_text == 'off':
+            # D53: each item as its coded records alone make it; an item with no coded record is not read.
+            items = [x for x in (None if i['free_text_only'] else i.get('coded') if i['mentions'] else i for i in items) if x]
         items = [i for i in items if usable(i)]
         if eid == '@any_diagnosis':
             times = [i['best']['e'] for i in items if i['kind'] == 'diagnosis']

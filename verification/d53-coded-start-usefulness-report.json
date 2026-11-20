@@ -1,0 +1,3725 @@
+{
+ "profile": "d53-coded-start-usefulness-1.0",
+ "rule": "D53 rule 5: the page's own search (matchPatient) for each of the five templates under the three settings, over fresh seeds 5301 to 5330, extended in order to 5400 while a template has fewer than 30 candidates pooled under coded only (patients with a window and a candidate for every step). Ruled, per seed: under stated and hedged findings every result equals main's; under coded only every result equals main's on the cohort without letter mentions. Reported: the owner's counting rule (distinct child types, PLAN keys, C001 the reference; unresolved at most 30%), all candidates and the count without C001, here and main",
+ "base": "34af272",
+ "declared_seeds": [
+  5301,
+  5302,
+  5303,
+  5304,
+  5305,
+  5306,
+  5307,
+  5308,
+  5309,
+  5310,
+  5311,
+  5312,
+  5313,
+  5314,
+  5315,
+  5316,
+  5317,
+  5318,
+  5319,
+  5320,
+  5321,
+  5322,
+  5323,
+  5324,
+  5325,
+  5326,
+  5327,
+  5328,
+  5329,
+  5330
+ ],
+ "extension_seeds": [
+  5331,
+  5332,
+  5333,
+  5334,
+  5335,
+  5336,
+  5337,
+  5338,
+  5339,
+  5340,
+  5341,
+  5342,
+  5343,
+  5344,
+  5345,
+  5346,
+  5347,
+  5348,
+  5349,
+  5350,
+  5351,
+  5352,
+  5353,
+  5354,
+  5355,
+  5356,
+  5357,
+  5358,
+  5359,
+  5360,
+  5361,
+  5362,
+  5363,
+  5364,
+  5365,
+  5366,
+  5367,
+  5368,
+  5369,
+  5370,
+  5371,
+  5372,
+  5373,
+  5374,
+  5375,
+  5376,
+  5377,
+  5378,
+  5379,
+  5380,
+  5381,
+  5382,
+  5383,
+  5384,
+  5385,
+  5386,
+  5387,
+  5388,
+  5389,
+  5390,
+  5391,
+  5392,
+  5393,
+  5394,
+  5395,
+  5396,
+  5397,
+  5398,
+  5399,
+  5400
+ ],
+ "seeds_used": [
+  5301,
+  5302,
+  5303,
+  5304,
+  5305,
+  5306,
+  5307,
+  5308,
+  5309,
+  5310,
+  5311,
+  5312,
+  5313,
+  5314,
+  5315,
+  5316,
+  5317,
+  5318,
+  5319,
+  5320,
+  5321,
+  5322,
+  5323,
+  5324,
+  5325,
+  5326,
+  5327,
+  5328,
+  5329,
+  5330
+ ],
+ "checks": {
+  "other_settings_differing": 0,
+  "off_unlike_removal": 0,
+  "off_changed": 0
+ },
+ "met": {
+  "other_settings_identical": true,
+  "removal": true
+ },
+ "all_met": true,
+ "owner_rule_reported": {
+  "sequence, stated findings": {
+   "here": {
+    "candidates": 138,
+    "without_C001": 111,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 138,
+    "without_C001": 111,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "sequence, coded only": {
+   "here": {
+    "candidates": 138,
+    "without_C001": 111,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 138,
+    "without_C001": 111,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "sequence, hedged findings": {
+   "here": {
+    "candidates": 138,
+    "without_C001": 111,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 138,
+    "without_C001": 111,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "tree, stated findings": {
+   "here": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "tree, coded only": {
+   "here": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "tree, hedged findings": {
+   "here": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "graph, stated findings": {
+   "here": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "graph, coded only": {
+   "here": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "graph, hedged findings": {
+   "here": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "without_C001": 91,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    }
+   },
+   "owner_bar": true
+  },
+  "event frequency, stated findings": {
+   "here": {
+    "candidates": 206,
+    "without_C001": 176,
+    "types": 12,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    }
+   },
+   "main": {
+    "candidates": 206,
+    "without_C001": 176,
+    "types": 12,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    }
+   },
+   "owner_bar": true
+  },
+  "event frequency, coded only": {
+   "here": {
+    "candidates": 187,
+    "without_C001": 157,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "exact": 148,
+     "possible": 10,
+     "relaxed": 27,
+     "none": 2
+    }
+   },
+   "main": {
+    "candidates": 187,
+    "without_C001": 157,
+    "types": 7,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "exact": 148,
+     "possible": 10,
+     "relaxed": 27,
+     "none": 2
+    }
+   },
+   "owner_bar": true
+  },
+  "event frequency, hedged findings": {
+   "here": {
+    "candidates": 206,
+    "without_C001": 176,
+    "types": 12,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    }
+   },
+   "main": {
+    "candidates": 206,
+    "without_C001": 176,
+    "types": 12,
+    "types_unresolved": 0,
+    "types_decided": 7,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    }
+   },
+   "owner_bar": true
+  },
+  "blank, stated findings": {
+   "here": {
+    "candidates": 1082,
+    "without_C001": 1052,
+    "types": 44,
+    "types_unresolved": 0,
+    "types_decided": 44,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    }
+   },
+   "main": {
+    "candidates": 1082,
+    "without_C001": 1052,
+    "types": 44,
+    "types_unresolved": 0,
+    "types_decided": 44,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    }
+   },
+   "owner_bar": true
+  },
+  "blank, coded only": {
+   "here": {
+    "candidates": 1056,
+    "without_C001": 1026,
+    "types": 44,
+    "types_unresolved": 0,
+    "types_decided": 44,
+    "statuses": {
+     "exact": 1055,
+     "possible": 1
+    }
+   },
+   "main": {
+    "candidates": 1056,
+    "without_C001": 1026,
+    "types": 44,
+    "types_unresolved": 0,
+    "types_decided": 44,
+    "statuses": {
+     "exact": 1055,
+     "possible": 1
+    }
+   },
+   "owner_bar": true
+  },
+  "blank, hedged findings": {
+   "here": {
+    "candidates": 1082,
+    "without_C001": 1052,
+    "types": 44,
+    "types_unresolved": 0,
+    "types_decided": 44,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    }
+   },
+   "main": {
+    "candidates": 1082,
+    "without_C001": 1052,
+    "types": 44,
+    "types_unresolved": 0,
+    "types_decided": 44,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    }
+   },
+   "owner_bar": true
+  }
+ },
+ "templates": {
+  "sequence, stated findings": {
+   "here": {
+    "candidates": 138,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-2": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-1": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-3": {
+      "candidates": 18,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-typo": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 12
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 111,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 138,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-2": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-1": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-3": {
+      "candidates": 18,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-typo": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 12
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 111,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "sequence, coded only": {
+   "here": {
+    "candidates": 138,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-2": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-1": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-3": {
+      "candidates": 18,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-typo": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 12
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 111,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 138,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-2": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-1": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-3": {
+      "candidates": 18,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-typo": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 12
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 111,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "sequence, hedged findings": {
+   "here": {
+    "candidates": 138,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-2": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-1": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-3": {
+      "candidates": 18,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-typo": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 12
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 111,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 138,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 78,
+     "exact": 37,
+     "relaxed": 17,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-2": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-1": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 18
+     },
+     "dravet-ncb-3": {
+      "candidates": 18,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-typo": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 12
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 111,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "tree, stated findings": {
+   "here": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "tree, coded only": {
+   "here": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "tree, hedged findings": {
+   "here": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 68,
+     "exact": 30,
+     "relaxed": 14,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "graph, stated findings": {
+   "here": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "graph, coded only": {
+   "here": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "graph, hedged findings": {
+   "here": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 118,
+    "unresolved": 0,
+    "statuses": {
+     "possible": 71,
+     "relaxed": 14,
+     "exact": 27,
+     "none": 6
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 27
+     },
+     "dravet-preterm": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "dravet-ncb-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "dravet-lost": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-typo": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "dravet-ncb-1": {
+      "candidates": 17,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 9
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 91,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "event frequency, stated findings": {
+   "here": {
+    "candidates": 206,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-lost": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-3": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-preterm": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-1": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-typo": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "pcdh19-1": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-4": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-2": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-3": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-0": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     }
+    },
+    "distinct_child_types": {
+     "types": 12,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 0.5833333333333334
+    },
+    "without_C001": {
+     "candidates": 176,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 206,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-lost": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-3": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-preterm": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-1": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-typo": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "pcdh19-1": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-4": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-2": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-3": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-0": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     }
+    },
+    "distinct_child_types": {
+     "types": 12,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 0.5833333333333334
+    },
+    "without_C001": {
+     "candidates": 176,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 12,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "event frequency, coded only": {
+   "here": {
+    "candidates": 187,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 148,
+     "possible": 10,
+     "relaxed": 27,
+     "none": 2
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-lost": {
+      "candidates": 28,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-ncb-3": {
+      "candidates": 25,
+      "unresolved": 0,
+      "decided": 17
+     },
+     "dravet-preterm": {
+      "candidates": 25,
+      "unresolved": 0,
+      "decided": 19
+     },
+     "dravet-ncb-2": {
+      "candidates": 28,
+      "unresolved": 0,
+      "decided": 24
+     },
+     "dravet-ncb-1": {
+      "candidates": 26,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-typo": {
+      "candidates": 25,
+      "unresolved": 0,
+      "decided": 22
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 157,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 187,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 148,
+     "possible": 10,
+     "relaxed": 27,
+     "none": 2
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-lost": {
+      "candidates": 28,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-ncb-3": {
+      "candidates": 25,
+      "unresolved": 0,
+      "decided": 17
+     },
+     "dravet-preterm": {
+      "candidates": 25,
+      "unresolved": 0,
+      "decided": 19
+     },
+     "dravet-ncb-2": {
+      "candidates": 28,
+      "unresolved": 0,
+      "decided": 24
+     },
+     "dravet-ncb-1": {
+      "candidates": 26,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-typo": {
+      "candidates": 25,
+      "unresolved": 0,
+      "decided": 22
+     }
+    },
+    "distinct_child_types": {
+     "types": 7,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 157,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 7,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "event frequency, hedged findings": {
+   "here": {
+    "candidates": 206,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-lost": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-3": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-preterm": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-1": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-typo": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "pcdh19-1": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-4": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-2": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-3": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-0": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     }
+    },
+    "distinct_child_types": {
+     "types": 12,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 0.5833333333333334
+    },
+    "without_C001": {
+     "candidates": 176,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 206,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 164,
+     "relaxed": 26,
+     "none": 5,
+     "possible": 11
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-lost": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-3": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-preterm": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-ncb-1": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 26
+     },
+     "dravet-typo": {
+      "candidates": 27,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "pcdh19-1": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-4": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-2": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-3": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     },
+     "pcdh19-0": {
+      "candidates": 1,
+      "unresolved": 0,
+      "decided": 0
+     }
+    },
+    "distinct_child_types": {
+     "types": 12,
+     "types_unresolved": 0,
+     "types_decided": 7,
+     "share_decided": 0.5833333333333334
+    },
+    "without_C001": {
+     "candidates": 176,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 12,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "blank, stated findings": {
+   "here": {
+    "candidates": 1082,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-2": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "dravet-lost": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-0": {
+      "candidates": 11,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "pcdh19-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-3": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "tsc-2": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "tsc-3": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "tsc-0": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-sibling": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "dravet-ncb-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-preterm": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-1": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 24
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-5": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-4": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "gefs-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-gap": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-ncb-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-5": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-0": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-negative-fr": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-typo": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-4": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "fs-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "rett-2": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 14
+     },
+     "rett-4": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     },
+     "rett-3": {
+      "candidates": 6,
+      "unresolved": 0,
+      "decided": 6
+     },
+     "fs-5": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     }
+    },
+    "distinct_child_types": {
+     "types": 44,
+     "types_unresolved": 0,
+     "types_decided": 44,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 1052,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 1082,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-2": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "dravet-lost": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-0": {
+      "candidates": 11,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "pcdh19-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-3": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "tsc-2": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "tsc-3": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "tsc-0": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-sibling": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "dravet-ncb-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-preterm": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-1": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 24
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-5": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-4": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "gefs-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-gap": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-ncb-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-5": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-0": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-negative-fr": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-typo": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-4": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "fs-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "rett-2": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 14
+     },
+     "rett-4": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     },
+     "rett-3": {
+      "candidates": 6,
+      "unresolved": 0,
+      "decided": 6
+     },
+     "fs-5": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     }
+    },
+    "distinct_child_types": {
+     "types": 44,
+     "types_unresolved": 0,
+     "types_decided": 44,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 1052,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 44,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "blank, coded only": {
+   "here": {
+    "candidates": 1056,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 1055,
+     "possible": 1
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-lost": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-0": {
+      "candidates": 9,
+      "unresolved": 0,
+      "decided": 9
+     },
+     "pcdh19-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-3": {
+      "candidates": 12,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "tsc-2": {
+      "candidates": 21,
+      "unresolved": 0,
+      "decided": 21
+     },
+     "tsc-3": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "tsc-0": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-sibling": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-1": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-preterm": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-1": {
+      "candidates": 21,
+      "unresolved": 0,
+      "decided": 21
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-5": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-4": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-gap": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-ncb-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-0": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-negative-fr": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-typo": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-5": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 29
+     },
+     "tsc-4": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 19
+     },
+     "fs-1": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 14
+     },
+     "rett-2": {
+      "candidates": 12,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "rett-3": {
+      "candidates": 5,
+      "unresolved": 0,
+      "decided": 5
+     },
+     "rett-4": {
+      "candidates": 2,
+      "unresolved": 0,
+      "decided": 2
+     },
+     "fs-5": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     }
+    },
+    "distinct_child_types": {
+     "types": 44,
+     "types_unresolved": 0,
+     "types_decided": 44,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 1026,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 1056,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 1055,
+     "possible": 1
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-2": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-lost": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-0": {
+      "candidates": 9,
+      "unresolved": 0,
+      "decided": 9
+     },
+     "pcdh19-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-3": {
+      "candidates": 12,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "tsc-2": {
+      "candidates": 21,
+      "unresolved": 0,
+      "decided": 21
+     },
+     "tsc-3": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "tsc-0": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "dravet-sibling": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-1": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-ncb-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-preterm": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-1": {
+      "candidates": 21,
+      "unresolved": 0,
+      "decided": 21
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-5": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-4": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-gap": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-ncb-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-0": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-negative-fr": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-typo": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-5": {
+      "candidates": 29,
+      "unresolved": 0,
+      "decided": 29
+     },
+     "tsc-4": {
+      "candidates": 19,
+      "unresolved": 0,
+      "decided": 19
+     },
+     "fs-1": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 14
+     },
+     "rett-2": {
+      "candidates": 12,
+      "unresolved": 0,
+      "decided": 12
+     },
+     "rett-3": {
+      "candidates": 5,
+      "unresolved": 0,
+      "decided": 5
+     },
+     "rett-4": {
+      "candidates": 2,
+      "unresolved": 0,
+      "decided": 2
+     },
+     "fs-5": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     }
+    },
+    "distinct_child_types": {
+     "types": 44,
+     "types_unresolved": 0,
+     "types_decided": 44,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 1026,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 44,
+    "types_moved": 0,
+    "share": 0
+   }
+  },
+  "blank, hedged findings": {
+   "here": {
+    "candidates": 1082,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-2": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "dravet-lost": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-0": {
+      "candidates": 11,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "pcdh19-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-3": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "tsc-2": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "tsc-3": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "tsc-0": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-sibling": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "dravet-ncb-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-preterm": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-1": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 24
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-5": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-4": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "gefs-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-gap": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-ncb-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-5": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-0": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-negative-fr": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-typo": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-4": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "fs-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "rett-2": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 14
+     },
+     "rett-4": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     },
+     "rett-3": {
+      "candidates": 6,
+      "unresolved": 0,
+      "decided": 6
+     },
+     "fs-5": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     }
+    },
+    "distinct_child_types": {
+     "types": 44,
+     "types_unresolved": 0,
+     "types_decided": 44,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 1052,
+     "unresolved": 0
+    }
+   },
+   "main": {
+    "candidates": 1082,
+    "unresolved": 0,
+    "statuses": {
+     "exact": 1079,
+     "possible": 3
+    },
+    "by_plan_key": {
+     "reference": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-2": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "dravet-lost": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-0": {
+      "candidates": 11,
+      "unresolved": 0,
+      "decided": 11
+     },
+     "pcdh19-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-3": {
+      "candidates": 13,
+      "unresolved": 0,
+      "decided": 13
+     },
+     "tsc-2": {
+      "candidates": 22,
+      "unresolved": 0,
+      "decided": 22
+     },
+     "tsc-3": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "tsc-0": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "dravet-sibling": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "rett-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "dravet-ncb-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-preterm": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-1": {
+      "candidates": 24,
+      "unresolved": 0,
+      "decided": 24
+     },
+     "dravet-ncb-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-5": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "gefs-0": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-4": {
+      "candidates": 23,
+      "unresolved": 0,
+      "decided": 23
+     },
+     "gefs-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-gap": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-ncb-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-5": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "pcdh19-4": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-1": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "fs-0": {
+      "candidates": 15,
+      "unresolved": 0,
+      "decided": 15
+     },
+     "dravet-negative-fr": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "dravet-typo": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "cdkl5-3": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "gefs-2": {
+      "candidates": 30,
+      "unresolved": 0,
+      "decided": 30
+     },
+     "tsc-4": {
+      "candidates": 20,
+      "unresolved": 0,
+      "decided": 20
+     },
+     "fs-1": {
+      "candidates": 16,
+      "unresolved": 0,
+      "decided": 16
+     },
+     "rett-2": {
+      "candidates": 14,
+      "unresolved": 0,
+      "decided": 14
+     },
+     "rett-4": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     },
+     "rett-3": {
+      "candidates": 6,
+      "unresolved": 0,
+      "decided": 6
+     },
+     "fs-5": {
+      "candidates": 3,
+      "unresolved": 0,
+      "decided": 3
+     }
+    },
+    "distinct_child_types": {
+     "types": 44,
+     "types_unresolved": 0,
+     "types_decided": 44,
+     "share_decided": 1
+    },
+    "without_C001": {
+     "candidates": 1052,
+     "unresolved": 0
+    }
+   },
+   "moved_to_none_or_incomparable": {
+    "types": 44,
+    "types_moved": 0,
+    "share": 0
+   }
+  }
+ },
+ "per_seed": {
+  "5301": {
+   "cohort_sha256": "02ed44e116025002d7b83b57cee7aae980d1a778b431f4ffd185c14bfbdac98b",
+   "noted_items": 0
+  },
+  "5302": {
+   "cohort_sha256": "208147686c71b360a536b27e0967f04720686e01305a2c1c722eabfa62cd3a1d",
+   "noted_items": 0
+  },
+  "5303": {
+   "cohort_sha256": "57604a1bde168e8c468ab595b518b96a9ba1bb84047802305dd84d83f0f36f85",
+   "noted_items": 2
+  },
+  "5304": {
+   "cohort_sha256": "db4712fe35bca84a1240c83291e51095a7e51c5a06d2d9fb5584d6e3eae8856b",
+   "noted_items": 1
+  },
+  "5305": {
+   "cohort_sha256": "1bae27dffe7742a6b54f738ae8a1080573ba18f557d34bfd235961e410c8f6f4",
+   "noted_items": 1
+  },
+  "5306": {
+   "cohort_sha256": "d0e7444e6f0fad47a912111b28464d1478890eb9d1cf1fac050337e230c2446c",
+   "noted_items": 1
+  },
+  "5307": {
+   "cohort_sha256": "8243969b62471e5a17ef124c69685a046056bf8110331685fd5460c271891c0e",
+   "noted_items": 1
+  },
+  "5308": {
+   "cohort_sha256": "1e6c23a522a7366a492ef26cca5f8930e2ce0105f4266865cccc2a818f27cc32",
+   "noted_items": 1
+  },
+  "5309": {
+   "cohort_sha256": "47ba62a0c1df02dea6691c49b6e05d0ae6d2a147b7f987a8dd91f2244ec9dcb4",
+   "noted_items": 1
+  },
+  "5310": {
+   "cohort_sha256": "d78088790bbe5e1d41b4a9f9b8b3d6e09042ceceed989ab5b6066cff3a5c61c5",
+   "noted_items": 2
+  },
+  "5311": {
+   "cohort_sha256": "1523c6b79de1900880a3c4640aedb42d6f6e0f22c65700ab59852833beaaa3a7",
+   "noted_items": 1
+  },
+  "5312": {
+   "cohort_sha256": "7cb3cd06925fc04457f1646423dd9dc7f2fa25ee6cb91bb3458ef1352a84bbb3",
+   "noted_items": 1
+  },
+  "5313": {
+   "cohort_sha256": "8263c3ef1653b4b28814739132a07546500904c5386206378069536316667ac4",
+   "noted_items": 1
+  },
+  "5314": {
+   "cohort_sha256": "6e4394758e8df1dc79235c1aa1342c6b4081547ed790fdd3f89d23e5f0f8afd6",
+   "noted_items": 2
+  },
+  "5315": {
+   "cohort_sha256": "2b64f9a10ae33b283e255ad2ead704c10bada4ddf8c74141eb382ac83c0e23a6",
+   "noted_items": 0
+  },
+  "5316": {
+   "cohort_sha256": "a8e9c578c92f2261a9a280097a4931c1626415bf010f7c9d2ff1908ea81af86b",
+   "noted_items": 2
+  },
+  "5317": {
+   "cohort_sha256": "1292c70861872ebe986995c1838ff6ad014b2253bcceec1859fdf8f9e48ae92a",
+   "noted_items": 1
+  },
+  "5318": {
+   "cohort_sha256": "2d63569e5526f602828678f9f15cc1c80755f81f37eff992fef146f933daa45e",
+   "noted_items": 2
+  },
+  "5319": {
+   "cohort_sha256": "6c74680a52e0cb82f5195566fd6c1b8cddb4bc19664dad143c609516a90785cb",
+   "noted_items": 0
+  },
+  "5320": {
+   "cohort_sha256": "2007bc62b5dd9541a0cf625a852c5b6eedbe05ad776b389e741e571a1259c6b9",
+   "noted_items": 3
+  },
+  "5321": {
+   "cohort_sha256": "9aa77d966c5bac1829ebdaabed5d377ebe7b861bf67b8da8244d47acdd634620",
+   "noted_items": 1
+  },
+  "5322": {
+   "cohort_sha256": "b399b380927af2148ac91fe3b664fe8651ae5c1107a43dd16548ad1ea631b178",
+   "noted_items": 2
+  },
+  "5323": {
+   "cohort_sha256": "72752635793d554c41f9d92ac9dd7c0c8000194cb121389b2f3eaf8ec925eded",
+   "noted_items": 1
+  },
+  "5324": {
+   "cohort_sha256": "fe373f57d4e8488d783c2ced110c2a9e663b7fa512431ee252df6f51f38e4ff8",
+   "noted_items": 1
+  },
+  "5325": {
+   "cohort_sha256": "75a529c18a6503977a77b0f927daba1c445037127f927ab768347c6ee2cc8293",
+   "noted_items": 0
+  },
+  "5326": {
+   "cohort_sha256": "18aa6d1426bb90078b28bcdfec4f4844637c73ad06975375ce5175669035bee2",
+   "noted_items": 2
+  },
+  "5327": {
+   "cohort_sha256": "c6fab84ed594168159242a48b199fb246106df07969ecd7554448f660f6712ff",
+   "noted_items": 0
+  },
+  "5328": {
+   "cohort_sha256": "f3f52b33f2accdae800129c74a4d95d5715acc002a74f451c414316a39981af2",
+   "noted_items": 0
+  },
+  "5329": {
+   "cohort_sha256": "b1bd2199f2748bc755ae3de365fde6dfd053f7152b23b34ecc977fbf11ddb68e",
+   "noted_items": 2
+  },
+  "5330": {
+   "cohort_sha256": "72f2b533159cb85ca038ad818c9a1500789bd179c9a9fd8d363c13db8afd720b",
+   "noted_items": 2
+  }
+ },
+ "artifacts": {
+  "demos/mockups/d53_coded_start.cjs": "9d8aac06707b94cde1b26baaefea58b1f4ba99099423bfc8bbf08f01b8fbfbb0",
+  "demos/mockups/d47_page.cjs": "abfe5b50cc2f6abe918e05440a3c7b65c3fd153561293346e9c98527b5483eef",
+  "demos/mockups/d49_flip.cjs": "5fc7dfbd914e9a583c30ce9c5e425044527135975ee27f2a19a42b37a0b13a42",
+  "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "demos/mockups/trajectory/app.js": "2348c1ff8970ca905970ec8f721b3a8ab85423925791c4a67aea0b255478b9da",
+  "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/d46_windows.cjs": "87d31fa9a857a3bcdfdb9ea6f6fefe857011c0896d1699e1262aa194d99715ff"
+ },
+ "contains_patient_level_data": false
+}

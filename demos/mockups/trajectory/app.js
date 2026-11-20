@@ -173,7 +173,8 @@ const relaxedParam = n => relative(n.cond) ? Math.max(1.1, Math.round(n.param * 
 
 function candidates(view, n, relax, win) {
   const q = {freeText: state.freeText};
-  const items = view.items.filter(i => admissible(i, q));
+  // Under "Coded records only" each item as its coded records alone make it (D53, core.js's searchable).
+  const items = searchable(view, q);
   const kind = stepKind(n);
   let out = [];
   if (kind === 'occurrence') {

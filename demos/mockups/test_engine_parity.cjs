@@ -218,22 +218,152 @@ try {
   d49.declared('const STORE_CODED_ONLY = true;\nconst STORE_GENE_CODED_ONLY = true;', 'true');
   // The page's translator as committed: both constants on (D49).
   d49.declared(fs.readFileSync(path.join(here, 'trajectory/store_request.js'), 'utf8'), 'true');
-  // The help text (D49): "Coded records only" reads no clinical note for any step. On the page's own search (its
-  // fallback), every item admissible under "off" takes its time from coded records, with one known exception: a medicine
-  // whose only medication record is a stopped order takes its start from a letter (core.js's makeItem), pinned here.
-  const fallback = JSON.parse(vm.runInContext(`JSON.stringify((() => {
-    const out = {items: 0, from_a_note: []};
+  console.log('D49 census parts: the request without the exclusion, the move classes and the flipped declarations.');
+}
+
+/* D53: "Coded records only" reads no clinical note for any step, in the page's own search and its index periods too
+   (D49's help text; D49 pinned one exception, C026's medicine, a course with only a stop order, started from a letter).
+   Generic, over the whole cohort: every item as that setting searches it (core.js's codedOf) equals, in every field a
+   search reads and its label, the item the same records make on the cohort with every letter mention removed; an item
+   with no coded record is not searched. The index periods under that setting (D46's twelve rules, and windows anchored on
+   every concept an item holds, first and last) and the page's own search (the templates and the first 200 sweep
+   definitions) are the same on both cohorts. Not vacuous: some item's full form takes a searched field from a note, and
+   under stated findings some anchored window still reads one. */
+{
+  const d49 = require('./d49_flip.cjs'), d53 = require('./d53_coded_start.cjs'), d47 = require('./d47_page.cjs');
+  const bare = d49.withoutMentions(JSON.parse(cohortText)), bareText = JSON.stringify(bare.cohort);
+  assert.ok(bare.removed > 0, 'no letter mention removed: the check would be vacuous');
+  const FIELDS = JSON.stringify(['kind', 'concept', 'textConcept', 'display', 'time', 'med', 'gene', 'procedure', 'freeTextOnly',
+                                 'possibleOnly', 'recordedDay', 'availableDay']);
+  const READ = `(() => {
+    const F = ${FIELDS}, form = i => JSON.stringify(F.map(k => i[k] === undefined ? null : i[k]));
+    const out = {searched: {}, noted: [], concepts: {}};
     for (const pid of state.patients.keys()) for (const i of evidenceFor(pid).items) {
-      if (!admissible(i, {freeText: 'off'}) || !i.mentions.length) continue;
-      out.items += 1;
-      const coded = i.kind === 'genetic' ? i.recs.some(r => r.kind === 'test_order' || r.kind === 'genetic_result')
-        : i.kind === 'medication' ? i.recs.some(r => (r.kind === 'medication_order' && r.status === 'active') || r.kind === 'dispensing')
-        : i.recs.some(r => r.occurred);
-      if (!coded) out.from_a_note.push(pid + ' ' + i.kind + ' ' + i.recs.map(r => r.kind + ':' + r.status).join(','));
+      const c = codedOf(i), key = pid + ' ' + i.recs.map(r => r.record_id).sort().join(',');
+      if (c) out.searched[key] = form(c);
+      if (c && i.mentions.length && ${JSON.stringify(d53.SEARCH_FIELDS)}.some(k => JSON.stringify(c[k]) !== JSON.stringify(i[k])))
+        out.noted.push(pid + ' ' + i.kind + ' ' + i.concept + ' ' + i.recs.map(r => r.kind + ':' + r.status).join(','));
+      if (i.concept) (out.concepts[pid] = out.concepts[pid] || new Set()).add(i.concept);
+    }
+    for (const pid of Object.keys(out.concepts)) out.concepts[pid] = [...out.concepts[pid]].sort();
+    return out;
+  })()`;
+  const full = d47.pageContext(cohortText, 'this'), stripped = d47.pageContext(bareText, 'this');
+  const a = d47.inContext(full, READ), b = d47.inContext(stripped, READ);
+  assert.deepEqual(Object.keys(a.searched).sort(), Object.keys(b.searched).sort(), 'coded only searches other items than the records make without mentions');
+  const unlike = Object.keys(a.searched).filter(k => a.searched[k] !== b.searched[k]);
+  assert.deepEqual(unlike, [], 'an item under coded only takes a time, a concept or a label from a note');
+  assert.equal(b.noted.length, 0);
+  assert.ok(a.noted.length > 0, 'no item reads a note in a searched field: the check would be vacuous');
+  // The index periods: D46's rules, and windows anchored on every concept an item holds (first and last, for 6 months).
+  const placedBare = d46.windowsOf(bareText);
+  for (const rule of Object.keys(placed.windows))
+    assert.deepEqual(placedBare.windows[rule].off, placed.windows[rule].off, `${rule}: an index period under coded only reads a note`);
+  const ANCHORED = setting => `(() => {
+    const out = {};
+    for (const [pid, cs] of Object.entries(${JSON.stringify(a.concepts)})) for (const c of cs) for (const which of ['first', 'last']) {
+      const w = windowFor(evidenceFor(pid), {freeText: '${setting}', knownByIndex: false,
+        window: {start: {kind: 'event', event: c, which, n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 6, unit: 'month'}}});
+      out[pid + ' ' + which + ' ' + c] = w.reason ? 'unplaced' : [w.start, w.end];
     }
     return out;
-  })())`, require('./d47_page.cjs').pageContext(cohortText, 'this')));
-  assert.deepEqual(fallback.from_a_note, ['C026 medication medication_order:stopped'], 'the page\'s own search times an item from a note under coded only');
-  console.log(`D49 census parts: the request without the exclusion, the move classes and the flipped declarations; the fallback times `
-              + `${fallback.items - fallback.from_a_note.length} of ${fallback.items} mixed items from coded records under "off" (1 known exception).`);
+  })()`;
+  const anchoredFull = d47.inContext(full, ANCHORED('off')), anchoredBare = d47.inContext(stripped, ANCHORED('off'));
+  assert.deepEqual(anchoredFull, anchoredBare, 'a window anchored on an item under coded only reads a note');
+  const statedFull = d47.inContext(full, ANCHORED('present')), statedBare = d47.inContext(stripped, ANCHORED('present'));
+  const stated = Object.keys(statedFull).filter(k => JSON.stringify(statedFull[k]) !== JSON.stringify(statedBare[k]));
+  assert.ok(stated.length > 0, 'under stated findings no anchored window reads a note: the check would be vacuous');
+  // A step's candidates under coded only (trajectory/app.js's candidates: times, course ends and labels), one step on
+  // every concept an item holds, over the whole record: the same on both cohorts.
+  const CANDS = `(() => {
+    const before = state.freeText, out = {}, all = {start: -Infinity, end: Infinity};
+    state.freeText = 'off';
+    try {
+      for (const [pid, cs] of Object.entries(${JSON.stringify(a.concepts)})) for (const c of cs) {
+        const n = {id: 'A', concept: c, occ: 'any'};
+        if (stepKind(n) && stepKind(n) !== 'measure') out[pid + ' ' + c] = candidates(evidenceFor(pid), n, new Set(), all).map(x => [x.e, x.l, x.fe, x.fl, x.what]);
+      }
+    } finally { state.freeText = before; }
+    return out;
+  })()`;
+  const candsFull = d47.inContext(full, CANDS), candsBare = d47.inContext(stripped, CANDS);
+  assert.ok(Object.keys(candsFull).length > 0);
+  assert.deepEqual(candsFull, candsBare, 'a step\'s candidates under coded only read a note');
+  // The page's own search under coded only: the same on both cohorts.
+  const OWN =`(() => { const out = {};
+    const defs = [...Object.entries(TEMPLATE_DEFS).map(([n, def]) => ['template: ' + n, def]), ...sweepCases().slice(0, 200).map(c => ['sweep: ' + c.name, c.def])];
+    for (const [name, def] of defs) out[name] = ownResults(def, 'off');
+    return out; })()`;
+  const ownFull = d47.inContext(full, OWN), ownBare = d47.inContext(stripped, OWN);
+  let compared = 0;
+  for (const k of Object.keys(ownFull)) for (const pid of Object.keys(ownFull[k])) {
+    compared += 1;
+    assert.deepEqual(ownBare[k][pid], ownFull[k][pid], `${k} ${pid}: the page's own search under coded only reads a note`);
+  }
+  // The census's pure parts (d53_coded_start.cjs).
+  const req = w => ({query: {steps: []}, conditions: null, windows: w});
+  assert.deepEqual(d53.requestDiff(req({C1: {start: 1, end: 2}}), req({C1: {start: 1, end: 2}})), {same: true, windows_only: true, patients: []});
+  assert.deepEqual(d53.requestDiff(req({C1: {start: 1, end: 2}, C2: {start: 0, end: 3}}), req({C1: {start: 1, end: 9}, C2: {start: 0, end: 3}})),
+                   {same: false, windows_only: true, patients: ['C1']});
+  assert.equal(d53.requestDiff({...req({}), conditions: {profile: 'x'}}, req({})).windows_only, false);
+  assert.equal(d53.requestDiff({refused: 'A'}, {refused: 'B'}).windows_only, false);
+  const cand = (sig, t = [1, 1, 1, 1]) => ({t, sig});
+  assert.equal(d53.traced({'step:A': [cand(['r1'])]}, {'step:A': [cand(['r1'])]}, [['r1']]), false, 'identical candidates trace nothing');
+  assert.equal(d53.traced({'step:A': [cand(['r1'], [5, 5, 5, 5])]}, {'step:A': []}, [['r1']]), true);
+  assert.equal(d53.traced({'step:A': [cand(['r1'], [5, 5, 5, 5])]}, {'step:A': []}, [['r2']]), false, 'a candidate of an item that reads no note');
+  assert.equal(d53.traced({'step:A': [cand(['r2'])], 'all step:A': [cand(['r1']), cand(['r2'])]},
+                          {'step:A': [cand(['r3'])], 'all step:A': [cand(['r2']), cand(['r3'])]}, [['r1'], ['r3']]), true, 'reranked by noted items');
+  assert.equal(d53.traced({'step:A': [cand(['r2'])], 'all step:A': [cand(['r2'])]}, {'step:A': [], 'all step:A': [cand(['r2'])]}, [['r2']]), false,
+               'a pick that moves over the same events is not traced');
+  const tallies = (over = {}) => ({other: {results: 0, windows: 0, requests: 0}, noted_items: 1,
+    off: {results_unlike_removal: 0, windows_unlike_removal: 0, untraced_results: 0, untraced_windows: 0, requests_not_windows_only: 0,
+          request_windows_untraced: 0, ...over}});
+  assert.ok(Object.values(d53.censusMet(tallies())).every(Boolean));
+  assert.equal(d53.censusMet(tallies({untraced_results: 1})).traced, false);
+  assert.equal(d53.censusMet(tallies({results_unlike_removal: 1})).removal, false);
+  assert.equal(d53.censusMet({...tallies(), noted_items: 0}).not_vacuous, false);
+  console.log(`D53 coded only reads no note: ${Object.keys(a.searched).length} searched items equal their records' own on the cohort without `
+              + `${bare.removed} letter mentions (before D53, ${a.noted.length} read one in a searched field: ${a.noted.slice(0, 3).join('; ')}); `
+              + `${Object.keys(placed.windows).length} period rules, ${Object.keys(anchoredFull).length} anchored windows, ${Object.keys(candsFull).length} steps' candidates and ${compared} `
+              + `own-search results under coded only are the same without them; under stated findings ${stated.length} anchored windows read one.`);
+}
+
+/* D53 review (S1): the patient-first page under "Coded records only" reads no note either, its similarity weights
+   (icTable) included. Its comparison (evaluate), for references C001 and C026, each similarity measure and "known by the
+   end of the window" on and off, gives the same rows (scores, per-feature similarities, coverage, feature values) and
+   exclusions on the cohort and on the cohort without letter mentions. Not vacuous: under stated findings some row differs. */
+{
+  const d49 = require('./d49_flip.cjs');
+  const bareText = JSON.stringify(d49.withoutMentions(JSON.parse(cohortText)).cohort);
+  const pfApp = fs.readFileSync(path.join(here, 'patient-first/app.js'), 'utf8').replace(/\nmain\(\);\s*$/, '\n');
+  const pfRun = (text, freeText) => {
+    const ctx = vm.createContext({document: stub, addEventListener() {}, console, structuredClone, DATA: text});
+    vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n' + pfApp + `
+      state.data = JSON.parse(DATA); state.concepts = state.data.concepts;
+      for (const [cid, c] of Object.entries(state.concepts)) for (const coding of c.codings) state.codeIndex.set(coding.system + '|' + coding.code, cid);
+      for (const p of state.data.patients) state.patients.set(p.patient_id, p);`, ctx);
+    return JSON.parse(vm.runInContext(`JSON.stringify((() => {
+      const out = {};
+      for (const ref of ['C001', 'C026']) for (const m of Object.keys(MEASURES)) for (const k of [true, false]) {
+        state.referenceId = ref;
+        const q = {...defaultQuery(), freeText: '${freeText}', knownByIndex: k, conceptMeasure: m}, r = evaluate(q);
+        const shown = values => Object.fromEntries(FEATURES.map(f => [f.key, values[f.key] ? f.show(values[f.key].value) : null]));
+        out[ref + ' ' + m + (k ? ' known' : '')] = {ref: shown(r.ref.values), excluded: r.excluded,
+          rows: r.rows.map(x => ({pid: x.pid, score: x.score, coverage: x.coverage, sims: x.sims, values: shown(x.values)}))};
+      }
+      return out;
+    })())`, ctx));
+  };
+  const offFull = pfRun(cohortText, 'off'), offBare = pfRun(bareText, 'off');
+  let rows = 0;
+  for (const k of Object.keys(offFull)) {
+    rows += offFull[k].rows.length;
+    assert.deepEqual(offBare[k], offFull[k], `patient-first, ${k}: the comparison under coded only reads a note`);
+  }
+  assert.ok(rows > 0);
+  const statedFull = pfRun(cohortText, 'present'), statedBare = pfRun(bareText, 'present');
+  const statedDiffer = Object.keys(statedFull).filter(k => JSON.stringify(statedFull[k]) !== JSON.stringify(statedBare[k])).length;
+  assert.ok(statedDiffer > 0, 'under stated findings no patient-first comparison reads a note: the check would be vacuous');
+  console.log(`D53 patient-first under coded only reads no note: ${Object.keys(offFull).length} comparisons (${rows} rows; 3 measures, 2 references) `
+              + `the same without letter mentions; under stated findings ${statedDiffer} differ.`);
 }
