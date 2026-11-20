@@ -4864,10 +4864,18 @@ the lows it found are fixed too.
       discarded stderr, so nothing printed (a DuckDB progress bar, say) can corrupt an answer.
     - The worker limits its own address space (RLIMIT_AS, `PTM_MATCH_WORKER_MAX_MIB`, 400 MiB, on Linux) and caps
       malloc arenas at 2.
-    - *Measured:* DuckDB sizes its threads by the cgroup CPU limit, so with the pod's limit of 1 a worker uses about
-      145 MiB resident and 305 MiB of address space; at six CPUs it is 484 MiB, which a 400 MiB limit refuses.
-    - The limit is therefore tied to the CPU limit in `app.yaml`, and a worker that cannot start leaves the pod
-      unready (`match_worker_start_failed`) rather than serving without a bound.
+    - *Measured at first:* DuckDB 2.0 starts `async_threads`, 4 per CPU it sees (by the cgroup limit, else every
+      CPU), on top of the store's `threads=1`. A worker therefore used 305 MiB of address space at one CPU but 484 MiB
+      at six, which a 400 MiB limit refuses. That is what failed the PR's CI run: the GitHub runner has several CPUs
+      and no cgroup limit, the worker could not start, and readiness waited for it.
+    - *Fixed:* the worker opens every DuckDB database with `threads=1` and `async_threads=1`, by defaulting the
+      connection config in the worker process only (`confine_duckdb`; the engine and the store are unchanged, and the
+      answers do not depend on it). Measured in a Linux container, a worker now holds 2 threads, about 145 MiB
+      resident and 268 MiB of address space, the same at one CPU, at four (cgroup-limited) and at six (no limit).
+      400 MiB holds on any host.
+    - A worker that cannot start leaves the pod unready and logs `match_worker_start_failed` with its reason (the
+      worker's own error, or the class of the exception it died of). The tests print that reason instead of a bare
+      "not ready".
     - The pod's memory limit is raised to 1 GiB: the server, the active worker and its spare.
 - **The re-check's lows, fixed:**
   - *Probes:* 4 threads beyond `PTM_MAX_THREADS` serve only `/api/health` and `/api/ready`, and liveness is a TCP

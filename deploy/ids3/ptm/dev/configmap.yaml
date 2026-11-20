@@ -48,8 +48,9 @@ data:
   # Must be a finite number with 0 < x <= 30 when hosted, or the server refuses to start. A match waits at most
   # GATE_WAIT (3 s) in all for a slot and for the worker, then gets 503 BUSY; a spare worker is kept built, so a kill
   # never puts a rebuild on a request's path. Each kill is logged as a `match_killed` event (no body, no address).
-  # The match worker's address-space limit in MiB (RLIMIT_AS). 400 fits the pod's CPU limit of 1 (app.yaml); a
-  # worker that cannot start under it leaves the pod unready and logs `match_worker_start_failed`.
+  # The match worker's address-space limit in MiB (RLIMIT_AS). A worker uses about 268 MiB of address space on any
+  # number of CPUs (it confines DuckDB's threads); one that cannot start leaves the pod unready and logs
+  # `match_worker_start_failed` with the reason.
   PTM_MATCH_WORKER_MAX_MIB: "400"
 
   # ── Logs ─────────────────────────────────────────────────────────────────

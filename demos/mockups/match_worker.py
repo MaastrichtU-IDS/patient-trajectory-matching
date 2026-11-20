@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import select
 import shutil
 import subprocess
@@ -35,6 +36,23 @@ import threading
 
 HERE = Path(__file__).resolve().parent
 START_WAIT = 120  # seconds to wait for a child to build its store
+ERROR_CLASS = re.compile(r'^([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|Exit|Interrupt))\b', re.M)
+
+
+def confine_duckdb():
+    """Every DuckDB database this process opens uses one worker thread and one async (I/O) thread. The store already
+    asks for `threads=1`, but DuckDB 2.0 also starts `async_threads` = 4 per CPU it sees (24 on six CPUs, each with
+    its own stack), so the worker's address space grew with the host's CPU count and passed its RLIMIT_AS on larger
+    machines. Set here, in the worker only, by defaulting the connection's config; the answers do not depend on it."""
+    import duckdb
+    original = duckdb.connect
+
+    def connect(database=':memory:', read_only=False, config=None, **kwargs):
+        config = dict(config or {})
+        config.setdefault('threads', 1)
+        config.setdefault('async_threads', 1)
+        return original(database, read_only=read_only, config=config, **kwargs)
+    duckdb.connect = connect
 
 
 def child_main(cohort, root):
@@ -56,6 +74,7 @@ def child_main(cohort, root):
             return
     sys.path.insert(0, str(HERE.parents[1]))
     sys.path.insert(0, str(HERE))
+    confine_duckdb()
     import store_trajectory
     try:
         store = store_trajectory.TrajectoryStore(cohort, root).start()
@@ -63,6 +82,11 @@ def child_main(cohort, root):
     except MemoryError:
         send({'ready': False, 'error': 'WORKER_OUT_OF_MEMORY'})
         return
+    # Started: from here on nothing the child writes to fd 1 or 2 is kept (the start's stderr file is for a failed
+    # start only, which the parent reads for the exception's class name).
+    null = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(null, 1)
+    os.dup2(null, 2)
     send({'ready': bool(status.get('available')), 'error': status.get('error')})
     for line in sys.stdin:
         try:
@@ -138,18 +162,27 @@ class IsolatedMatcher:
         self.root.mkdir(parents=True, exist_ok=True)
         scratch = Path(tempfile.mkdtemp(prefix='ptm-match-worker-', dir=self.root))
         env = {**os.environ, 'MALLOC_ARENA_MAX': '2', 'PTM_MATCH_WORKER_MAX_MIB': str(self.memory_mib or 0)}
-        process = subprocess.Popen(
-            [sys.executable, '-I', str(Path(__file__).resolve()), self.cohort, str(scratch)],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1, env=env)
+        start_log = scratch / 'start.stderr'
+        with open(start_log, 'wb') as log:
+            process = subprocess.Popen(
+                [sys.executable, '-I', str(Path(__file__).resolve()), self.cohort, str(scratch)],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=log, text=True, bufsize=1, env=env)
         child = _Child(process, scratch)
         try:
             hello = child.read(START_WAIT)
         except (EOFError, ValueError):
             hello = None
         if not hello or not hello.get('ready'):
+            reason = (hello or {}).get('error')
+            if not reason:  # the child died before saying why: the last exception class in its stderr, if any
+                try:
+                    found = ERROR_CLASS.findall(start_log.read_text(errors='replace')[-4000:])
+                except OSError:
+                    found = []
+                reason = 'WORKER_START_CRASHED' + (f': {found[-1]}' if found else '')
             child.kill()
-            self._last_error = (hello or {}).get('error') or 'MATCH_WORKER_FAILED'
-            self.on_event('match_worker_start_failed', reason=self._last_error)
+            self._last_error = reason
+            self.on_event('match_worker_start_failed', reason=reason)
             raise store_trajectory.Unavailable('MATCH_WORKER_FAILED')
         self._started_once, self._last_error = True, None
         return child

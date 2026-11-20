@@ -165,7 +165,7 @@ curl -s https://ptm.k8s.semanticscience.org/api/auth-config # issuer and client 
 | Every bearer request `401 TOKEN_INVALID`, though issuer and audience are right | `azp` is not `ptm-mockups` (token from another client), or `sub` missing (the `basic` scope removed) |
 | `503 MATCH_TIME_LIMIT` for ordinary page queries | the cluster CPU is much slower than measured; raise `PTM_MATCH_TIME_LIMIT` a little and re-measure |
 | Pod stays Pending | no schedulable front-door node (`ids.maastrichtu/front-door=true`), see `app.yaml`'s affinity |
-| Pod never Ready, logs show `match_worker_start_failed` | the match worker cannot start under `PTM_MATCH_WORKER_MAX_MIB` (raised CPU limit?); raise it about 36 MiB per extra CPU |
+| Pod never Ready, logs show `match_worker_start_failed` | the match worker cannot start; the event's `reason` says why (for example a store build failure, or an exception class under `PTM_MATCH_WORKER_MAX_MIB`) |
 | `429` on matches for many people at once | they share one NAT address, and `ptm-match-inflight` allows one match in flight per address; raise its `amount` |
 | Many `503 BUSY` | `PTM_MATCH_CONCURRENCY` or `PTM_MAX_THREADS` too low for real use, or a flood the rate limits let through |
 | Probes fail after `allow-traefik-ingress.yaml` | the pod runs on a node whose cni0 address is not listed (see the file's header) |

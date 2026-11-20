@@ -111,7 +111,9 @@ def wait_ready(client, seconds=120):
         if client.call('/api/ready')[0] == 200:
             return
         time.sleep(0.2)
-    raise AssertionError('not ready')
+    # Say why: each dataset's state, and a hosted match worker's last start error.
+    why = [(d.id, d.state(), getattr(d.matcher, '_last_error', None)) for d in client.httpd.registry.datasets]
+    raise AssertionError(f'not ready: {why}')
 
 
 @unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')
@@ -778,6 +780,17 @@ class HostedWorkerFloodTests(unittest.TestCase):
             self.assertEqual(matcher.kills, 2)
         finally:
             matcher.close()
+
+    def test_the_worker_confines_duckdbs_threads(self):
+        # DuckDB 2.0 starts 4 async threads per CPU it sees; the worker opens every database with one worker thread and
+        # one async thread, so its address space (and RLIMIT_AS) does not depend on the host's CPUs. In a subprocess,
+        # as the worker does it, so this test process's duckdb is left alone.
+        import subprocess
+        code = ('import sys; sys.path.insert(0, sys.argv[1]); import match_worker; match_worker.confine_duckdb(); '
+                'import duckdb; db = duckdb.connect(":memory:", config={"preserve_insertion_order": False}); '
+                'print(db.execute("select current_setting(\'threads\'), current_setting(\'async_threads\')").fetchall())')
+        out = subprocess.run([sys.executable, '-I', '-c', code, str(HERE)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(out.stdout.strip(), '[(1, 1)]', out.stderr[-500:])
 
     def test_the_time_limit_must_be_finite_and_bounded_when_hosted(self):
         for bad in (float('inf'), float('nan'), 0, -1, 31, True):
