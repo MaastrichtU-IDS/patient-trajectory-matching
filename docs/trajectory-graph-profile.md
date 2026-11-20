@@ -113,7 +113,7 @@ Why the polynomial cases stop where they do:
 - Possibility on point events can also be read as max-closed constraints over time variables (engine design §7.2). On a cyclic graph, though, propagation can shave a domain one grid point at a time, so its cost grows with the length of the time ranges, not with the number of events.
 - An exposure's start and end are chosen together, which breaks max-closure (engine design §7.3).
 
-Those cases are searched, under a budget, and an exhausted budget is reported as `unresolved`.
+Those cases are searched, under a budget, and an exhausted budget is reported as `unresolved`. Since D48b a joint search (the possible phase, and the exact phase with order facts) that has spent 1,000 steps (`HULL_AFTER`) checks once a network over its steps' hulls: each step's start and end over the union of its candidates' ranges, its duration band, every constraint and every order fact each of its candidates meets (`_hull_refutes`, D40's bounds network). No solution means no binding, and the search ends complete and empty (`hull_refuted` internally). The check removes only branches with no solution and keeps the search's order, so wherever a search decided within its budget its answer, binding and witness are unchanged; only a search that would have stopped can end decided. A budget of at most 1,000 never checks.
 
 Each result names its `method` and whether it is `complete`. A possible result carries a witness start time for each step.
 

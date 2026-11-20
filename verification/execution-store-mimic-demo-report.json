@@ -314,24 +314,24 @@
     "mismatch_examples": []
   },
   "timings_seconds": {
-    "adapter": 67.89,
-    "admission_and_claims": 0.78,
-    "chartevents_built_store_comparison": 8.9,
-    "chartevents_census": 614.9,
-    "chartevents_raw_row_check": 3.0,
-    "chartevents_route_b": 20.19,
-    "derived_differential": 354.3,
-    "differential": 476.3,
+    "adapter": 72.31,
+    "admission_and_claims": 0.8,
+    "chartevents_built_store_comparison": 8.94,
+    "chartevents_census": 581.59,
+    "chartevents_raw_row_check": 2.99,
+    "chartevents_route_b": 20.34,
+    "derived_differential": 353.7,
+    "differential": 477.79,
     "mapping": 0.27,
-    "relative_differential": 418.26,
-    "store_build": 16.17,
+    "relative_differential": 421.01,
+    "store_build": 16.69,
     "store_open_and_verify": 0.04,
-    "total": 2182.71,
-    "value_differential": 201.56
+    "total": 2158.37,
+    "value_differential": 201.73
   },
   "resources": {
-    "cpu_seconds": 8462.4,
-    "peak_rss_bytes_main_process": 2266497024,
+    "cpu_seconds": 8105.1,
+    "peak_rss_bytes_main_process": 2309226496,
     "note": "this run, this machine: CPU time of the verifier and its worker processes"
   },
   "artifacts": {
@@ -376,7 +376,7 @@
     "patterns/series_values.py": "6c0ed200c4271b29d1601fedd188391e0442b9ed739d0e68a1893db2b5baf2ab",
     "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
     "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e",
-    "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8",
+    "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182",
     "patterns/trajectory_graph_sulo.py": "a092c3ef5744ae298b9eef25da28800544881c0ea3a2b4a4b5c2fcf41e672faa",
     "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
     "patterns/verify_mimic_demo.py": "c3f3967718a2545aed07749ce0ab6480fd9e8652c6eb609d8de55a2b9187a273",

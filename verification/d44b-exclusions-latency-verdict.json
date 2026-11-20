@@ -26,12 +26,12 @@
  "limit": null,
  "order": "ABBA: the reference first in even repeats, the candidate first in odd",
  "reference": {
-  "git_ref": "f9e087e",
-  "git_commit": "f9e087e8668a1b3d46c2dede4a1504da4324364f",
+  "git_ref": "bcf4077",
+  "git_commit": "bcf407701bb61cb2ba25f6e4b31352239928654a",
   "files_at_ref": [
    {
     "path": "patterns/execution_store.py",
-    "sha256": "54de9edc344ce53a1c0e34559544879886253902e28c59fab845145c8e8ec327"
+    "sha256": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff"
    },
    {
     "path": "patterns/store_conditions.py",
@@ -39,7 +39,7 @@
    },
    {
     "path": "patterns/store_conditions_counts.py",
-    "sha256": "5d60281858c50c92d47f64aefc50985641ceceedce24b7e6652d944570516e98"
+    "sha256": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf"
    },
    {
     "path": "patterns/store_conditions_relative.py",
@@ -62,14 +62,14 @@
     "reference",
     "candidate"
    ],
-   "reference_seconds": 151.53581484453753,
-   "candidate_seconds": 150.01163298264146,
-   "ratio": 0.9899417714323195,
+   "reference_seconds": 150.38331191334873,
+   "candidate_seconds": 148.9351271833293,
+   "ratio": 0.990370043646506,
    "ratio_by_group": {
-    "derived": 0.9920773043771862,
-    "differential": 0.9878169064202724,
-    "relative": 0.9962899707194511,
-    "value": 0.9896542944349094
+    "derived": 0.992732430888036,
+    "differential": 0.9888454659406748,
+    "relative": 0.9943590683432912,
+    "value": 0.989546283528835
    }
   },
   {
@@ -78,14 +78,14 @@
     "candidate",
     "reference"
    ],
-   "reference_seconds": 149.4175346181728,
-   "candidate_seconds": 149.57299158815295,
-   "ratio": 1.0010404198568623,
+   "reference_seconds": 147.72871238086373,
+   "candidate_seconds": 148.39298035763204,
+   "ratio": 1.0044965394070162,
    "ratio_by_group": {
-    "derived": 1.0022363524316469,
-    "differential": 0.999641435571125,
-    "relative": 1.0005626215969876,
-    "value": 1.0034237503389218
+    "derived": 1.004979334731299,
+    "differential": 1.0040396012205075,
+    "relative": 1.0031600013875448,
+    "value": 1.0057740438109222
    }
   },
   {
@@ -94,14 +94,14 @@
     "reference",
     "candidate"
    ],
-   "reference_seconds": 149.0347570613958,
-   "candidate_seconds": 148.44333494687453,
-   "ratio": 0.9960316497561865,
+   "reference_seconds": 147.0507362675853,
+   "candidate_seconds": 147.5716087068431,
+   "ratio": 1.0035421273805116,
    "ratio_by_group": {
-    "derived": 0.994178901071175,
-    "differential": 0.9977595233670087,
-    "relative": 0.990642708873746,
-    "value": 0.9965578387466624
+    "derived": 1.005071688285409,
+    "differential": 1.0035779347492058,
+    "relative": 1.0051885943936103,
+    "value": 1.0009642488874908
    }
   },
   {
@@ -110,22 +110,22 @@
     "candidate",
     "reference"
    ],
-   "reference_seconds": 148.15203420398757,
-   "candidate_seconds": 147.85889263032004,
-   "ratio": 0.9980213462795664,
+   "reference_seconds": 148.35272991238162,
+   "candidate_seconds": 147.98026413097978,
+   "ratio": 0.9974893230369146,
    "ratio_by_group": {
-    "derived": 0.9983159265060921,
-    "differential": 0.9970389493509194,
-    "relative": 0.9988584505719124,
-    "value": 0.99969605469453
+    "derived": 0.9975043441358891,
+    "differential": 0.9967939996489794,
+    "relative": 0.9965513820104454,
+    "value": 0.9996542808772043
    }
   }
  ],
- "candidate_seconds_median": 149.00816326751374,
- "reference_seconds_median": 149.2261458397843,
+ "candidate_seconds_median": 148.1866222443059,
+ "reference_seconds_median": 148.04072114662267,
  "peak_rss_bytes": {
-  "reference": 605831168,
-  "candidate": 597262336
+  "reference": 605519872,
+  "candidate": 597966848
  },
  "structure_and_movement": {
   "movement": {
@@ -171,10 +171,10 @@
   "ratio": {
    "bar": 1.05,
    "ratios": [
-    0.9899417714323195,
-    1.0010404198568623,
-    0.9960316497561865,
-    0.9980213462795664
+    0.990370043646506,
+    1.0044965394070162,
+    1.0035421273805116,
+    0.9974893230369146
    ],
    "every_pair_at_most": true
   },
@@ -191,7 +191,7 @@
   },
   "met": true
  },
- "seconds": 1473.7,
+ "seconds": 1467.3,
  "artifacts": {
   "tools/benchmark_exclusions.py": "cb2f8ee8e43eec64906564c83ab9393ffc8150e75c6002a9b486f33267058e02",
   "tools/d44_measure.py": "9ac8f9b9bf05d45ad3595039fbdf50e599735866f5bbad96d40027ea72dec8db",
@@ -201,7 +201,7 @@
   "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
   "patterns/verify_mimic_store_ingest.py": "d2aa59bb5457916777b0370dd02679301b0d4a06e3b70a3734196036e7ccbda0",
   "patterns/mimic_store_ingest.py": "8f9c2eba3708981b658239418d1795f90265cdcfd5eba0c9c7316586ba5ca21c",
-  "patterns/trajectory_graph.py": "fbc8efb5ee90191b37261183a094bbcfd8d21bfdb8a5b0669306c4589dd025e8"
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182"
  },
  "contains_patient_level_data": false,
  "limitations": "one machine and one session; the open MIMIC-IV demo (100 patients), whose times are exact, so D44's mark is rare there; a pair's time is one timed pass of every request per process"

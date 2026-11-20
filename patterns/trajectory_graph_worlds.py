@@ -25,8 +25,12 @@ world, and that no binding of its set is exact, unless the result or the match s
 (`claims_no_exact`). `EXACT_SEARCH_STOPPED` withdraws the second claim. `EXCLUDED_RECORDS_MAY_MAKE_EXACT` (D18 on a
 `possible` result; D44 on a match beside `unresolved`) withdraws it only over the whole source (`whole`: the patient's
 events include the records the store left out, such as excluded records or every reading of an undetermined gene
-record): over the records the store kept, the claim stands. A `relaxed` result is read as before (its own exact search's
-stop has no note; no check here meets one: their searches never stop).
+record): over the records the store kept, the claim stands. A `relaxed` result's own exact search's stop has no note, so
+since D48b `check` (not `check_derived`, whose strict reading D36's planted defect needs) reads two shapes from the
+result itself: a `relaxed` result with `complete: false`, and a relaxed match beside an `unresolved` result whose reason
+is `SEARCH_BUDGET_EXHAUSTED`, claim only that their binding reaches `possible`, not that no binding of the set is exact
+(the search that would have found one may have stopped). Every other claim is read as before. The cleaner fix is a note
+from the engine (`EXACT_SEARCH_STOPPED` on the relaxed claim; D40's and D44's follow-up).
 
 Small grids only: the number of worlds is the product of the variables' range widths.
 """
@@ -38,12 +42,26 @@ INF = math.inf
 MAY_MAKE_EXACT = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
 
 
-def claims_no_exact(m, whole):
+def claims_no_exact(m, whole, result=None):
     """Whether a `possible` result, or a match beside `unresolved` with certainty `possible`, still claims that no binding
     of its set is exact (D44): unless its note says the exact search stopped, or, over the whole source (`whole`), that
-    a record the store left out may make it exact."""
+    a record the store left out may make it exact. With `result` (the `unresolved` result `m` stands beside; D48b), also
+    unless `m` is the relaxed match beside an `unresolved` result whose reason is `SEARCH_BUDGET_EXHAUSTED`: its own exact
+    search may have stopped, and nothing says so. A `relaxed` result is read by `stopped_relaxed`, not here."""
     notes = set((m.get('note') or '').split('; '))
-    return 'EXACT_SEARCH_STOPPED' not in notes and not (whole and MAY_MAKE_EXACT in notes)
+    if 'EXACT_SEARCH_STOPPED' in notes or (whole and MAY_MAKE_EXACT in notes):
+        return False
+    if result is not None and result['status'] == 'unresolved' and m is result.get('relaxed_match') \
+            and result.get('reason') == 'SEARCH_BUDGET_EXHAUSTED':
+        return False
+    return True
+
+
+def stopped_relaxed(result):
+    """D48b: a `relaxed` result with `complete: false`, whose `possible` claims only that its binding reaches `possible`
+    (its own exact search may have stopped, and nothing says so). The only withdrawal at a relaxed result: the note rules
+    of `claims_no_exact` do not apply there, as before D48b."""
+    return result['status'] == 'relaxed' and result.get('complete') is False
 
 
 def _events(patient):
@@ -222,7 +240,7 @@ def check(result, query, patient, horizon=None, whole=False):
             for c in sets[:sets.index(chosen)]:
                 if ask(c).possible():
                     wrong.append(f'relaxed by {ids}, but the cheaper set {[x["id"] for x in c]} is possible')
-        if not certainty_holds(ask(chosen), result['certainty'], result['binding']):
+        if not certainty_holds(ask(chosen), result['certainty'], result['binding'], not stopped_relaxed(result)):
             wrong.append(f'relaxed {result["certainty"]} by {ids}, which its binding does not reach')
     if status == 'none' and complete:
         for c in sets:
@@ -231,7 +249,7 @@ def check(result, query, patient, horizon=None, whole=False):
     if status == 'unresolved' and 'relaxed_match' in result:
         m = result['relaxed_match']
         chosen = next(c for c in sets if [x['id'] for x in c] == m['relaxations'])
-        if not certainty_holds(ask(chosen), m['certainty'], m['binding'], claims_no_exact(m, whole)):
+        if not certainty_holds(ask(chosen), m['certainty'], m['binding'], claims_no_exact(m, whole, result)):
             wrong.append('the relaxed match beside unresolved does not reach its certainty')
     return wrong
 
