@@ -93,16 +93,17 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     // D32: Nth occurrences and counts, over coded records only (the page's "coded only" setting; the store refuses
     // them over stated free text). D37 kept three of them on D32's reading (coded only for the derived step, stated
     // findings elsewhere); since D39 every step reads coded records only, as the page does (codedOnly: 'store': the
-    // store's profile 1.3, letter mentions left out of every step).
-    'the event-frequency template': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    // store's profile 1.3, letter mentions left out of every step). Since D49 that is the page's default, so these cases,
+    // like every case here, are translated exactly as the page translates them (no options).
+    'the event-frequency template': {scope: 'from_start', window, freeText: 'off',
       nodes: TEMPLATES.frequency.nodes, edges: TEMPLATES.frequency.edges},
-    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    'the second seizure, then a sodium-channel blocker': {scope: 'from_start', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth', n: 2}, {id: 'B', concept: 'sodium_channel_blocker', occ: 'first'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: 0, max: 12, unit: 'month'}]},
-    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off', codedOnly: 'store',
+    'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
-    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off', codedOnly: 'store',
+    'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
     // D33: the page's three rise templates, with the page's own window, scope and free-text setting. The tree and graph
     // templates carry a gene step, which the store refuses by name (asserted below), so they run here without that step
@@ -119,19 +120,19 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'the tree template': {scope: 'from_start', window, nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges},
     'the graph template': {scope: 'from_start', window, nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges},
     // D39: the other templates under "coded only", every step over coded records (the store's profile 1.3).
-    'the sequence template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    'the sequence template, coded only': {scope: 'from_start', window, freeText: 'off',
       nodes: TEMPLATES.sequence.nodes, edges: TEMPLATES.sequence.edges},
-    'the tree template without its gene step, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    'the tree template without its gene step, coded only': {scope: 'from_start', window, freeText: 'off',
       ...withoutNodes({nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges}, new Set(['B']))},
-    'the graph template without its gene step, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    'the graph template without its gene step, coded only': {scope: 'from_start', window, freeText: 'off',
       ...withoutNodes({nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges}, new Set(['E']))},
-    'the blank template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store', nodes: BLANK.nodes,
+    'the blank template, coded only': {scope: 'from_start', window, freeText: 'off', nodes: BLANK.nodes,
       edges: BLANK.edges},
     // D42: the tree and graph templates under "coded only", gene step included (the joint profile: gene steps as D38,
     // every other step over coded records as D39).
-    'the tree template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    'the tree template, coded only': {scope: 'from_start', window, freeText: 'off',
       nodes: TEMPLATES.tree.nodes, edges: TEMPLATES.tree.edges},
-    'the graph template, coded only': {scope: 'from_start', window, freeText: 'off', codedOnly: 'store',
+    'the graph template, coded only': {scope: 'from_start', window, freeText: 'off',
       nodes: TEMPLATES.graph.nodes, edges: TEMPLATES.graph.edges},
   };
   // Each case's free-text setting: the page's own default (stated findings) unless the case says otherwise.
@@ -145,11 +146,9 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
   var storeCase = function (name, def) {
     return withFreeText(name, () => {
       const pids = [...state.patients.keys()], byId = nodeById(def);
-      // D36: rises are translated (the store's relative conditions), as the translator now does by default. D37: only
-      // the cases that say so read "coded only" as D32 did. D38: gene steps are translated (the store's gene condition).
-      // D42: a gene step under the store's "coded only" is the joint profile, asked for here.
-      const {query, conditions, windows} = storeRequest(def, state.freeText, pids, {rises: true, genes: true, geneCodedOnly: true,
-                                                                                    codedOnly: CASES[name].codedOnly});
+      // The page's own call (D49): no options. Rises (D36), gene steps (D38), "coded only" as the store's profile 1.3
+      // (D39) and gene steps under it as the joint profile (D42) are all the translator's defaults since D49.
+      const {query, conditions, windows} = storeRequest(def, state.freeText, pids);
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
       for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
@@ -831,44 +830,53 @@ const REFUSALS = vm.runInContext(`(() => {
     'gene step (tree template), coded only for the count, joint asked for (D42)': refusalOf(d('tree'), 'off', {codedOnly: 'derived', geneCodedOnly: true}),
     'gene step (tree template), coded only in the store, joint refused on request (D42)': refusalOf(d('tree'), 'off', {codedOnly: 'store', geneCodedOnly: false}),
     'gene step (tree template), coded only, joint asked for (D42)': refusalOf(d('tree'), 'off', {geneCodedOnly: true}),
+    // D49: the named refusals stay reachable for a caller that asks for them (the page never does).
+    'blank template, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), ...clone(BLANK)}, 'off', {codedOnly: null}),
+    'gene step (tree template), coded only, the store option refused on request (D49)': refusalOf(d('tree'), 'off', {codedOnly: false}),
+    'a count alone, coded only, the store option refused on request (D49)': refusalOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {codedOnly: null}),
   };
 })()`, context);
 assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   // D36: rises are translated by default (STORE_RISES); the named refusal remains for a caller that asks for it.
   'rise (sequence template)': null,
-  // D37: "coded only" with steps that would still read letter mentions in the store.
-  'rise (sequence template), coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
-  // D38: gene steps are translated by default (STORE_GENES); under coded only they wait for a joint profile.
-  'gene step (tree template)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
-  'gene step and rise (graph template)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  // D37 refused "coded only" with steps that would still read letter mentions in the store; since D49 the page writes it
+  // as the store's profile 1.3 by default (STORE_CODED_ONLY).
+  'rise (sequence template), coded only': null,
+  // D38: gene steps are translated by default (STORE_GENES); under coded only, since D49, as the joint profile by default
+  // (STORE_GENE_CODED_ONLY), refused before.
+  'gene step (tree template)': null,
+  'gene step and rise (graph template)': null,
   'rise (sequence template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',
   'gene step and rise (graph template), rises refused on request': 'RELATIVE_CONDITION_UNSUPPORTED',  // first refused, in node order
   'count over stated free text (frequency template)': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'Nth over stated free text': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'hedged free text': 'FREE_TEXT_HEDGED_UNSUPPORTED',
   'while taking the 2nd blocker': 'NTH_STEP_HAS_NO_END',
-  'frequency template, coded only': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'frequency template, coded only': null,  // D49 (FREE_TEXT_CODED_ONLY_UNSUPPORTED before)
   'frequency template, coded only for the count (D32)': null,
   'a count alone, coded only': null,
   // D39: the store leaves letter mentions out of every step (profile 1.3); a caller may still ask for the refusal.
   'frequency template, coded only in the store (D39)': null,
   'rise (sequence template), coded only in the store (D39)': null,
-  'gene step (tree template), coded only in the store (D39)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',  // until D42's verdict (STORE_GENE_CODED_ONLY)
+  'gene step (tree template), coded only in the store (D39)': null,  // the joint profile by default since D49 (STORE_GENE_CODED_ONLY)
   'frequency template, coded only refused on request (D39)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
   'a threshold that is not a plain decimal': 'VALUE_NOT_A_PLAIN_DECIMAL',
   'gene step (tree template), genes asked for': null,
-  // D38 review: gene steps under coded-only wait for a joint profile with the store's coded-only option.
-  'gene step (tree template), coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  // D38 review: gene steps under coded-only waited for a joint profile with the store's coded-only option (D42; default since D49).
+  'gene step (tree template), coded only, genes asked for': null,  // D49: the joint profile by default
   'gene step and rise (graph template), genes refused on request': 'GENE_CLASSIFICATION_UNSUPPORTED',
-  'a gene step alone, coded only, genes asked for': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'a gene step alone, coded only, genes asked for': null,  // D49: the joint profile by default
   'a gene step with an occurrence, genes asked for': 'OCCURRENCE_ON_GENE_STEP',
-  // D42: under the store's coded only, a gene step is the joint profile when asked for; under D32's reading of coded only,
-  // or without the store's coded only (the page's default, STORE_CODED_ONLY), D38's refusal stands.
+  // D42: under the store's coded only, a gene step is the joint profile (the default since D49); under D32's reading of
+  // coded only, or with the joint profile refused on request, D38's refusal stands.
   'gene step (tree template), coded only in the store, joint asked for (D42)': null,
   'gene step and rise (graph template), coded only in the store, joint asked for (D42)': null,
   'gene step (tree template), coded only for the count, joint asked for (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'gene step (tree template), coded only in the store, joint refused on request (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
-  'gene step (tree template), coded only, joint asked for (D42)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'gene step (tree template), coded only, joint asked for (D42)': null,  // D49: the store's coded only is the default
+  'blank template, coded only, the store option refused on request (D49)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'gene step (tree template), coded only, the store option refused on request (D49)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'a count alone, coded only, the store option refused on request (D49)': null,  // D32's reading: a count is coded only
 });
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.
@@ -880,26 +888,26 @@ const TEMPLATE_TABLE = JSON.parse(vm.runInContext(`JSON.stringify((() => {
   for (const name of [...Object.keys(TEMPLATES), 'blank']) for (const freeText of ['off', 'present', 'possible']) {
     const def = {...defaultDef(), ...clone(name === 'blank' ? BLANK : TEMPLATES[name])};
     const code = refusalOf(def, freeText);
-    const parity = Object.keys(CASES).find(k => (CASES[k].freeText || 'present') === freeText && !CASES[k].codedOnly
+    const parity = Object.keys(CASES).find(k => (CASES[k].freeText || 'present') === freeText
       && same([CASES[k].window, CASES[k].scope, CASES[k].nodes, CASES[k].edges], [def.window, def.scope, def.nodes, def.edges]));
     out[name + ', ' + freeText] = code || (parity ? 'store: ' + parity : 'ANSWERED BUT NOT A PARITY TRAJECTORY');
   }
   return out;
 })())`, context));
 assert.deepEqual(TEMPLATE_TABLE, {
-  'sequence, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'sequence, off': 'store: the sequence template, coded only',  // D49 (FREE_TEXT_CODED_ONLY_UNSUPPORTED before)
   'sequence, present': 'store: the sequence template (a rise)',
   'sequence, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'tree, off': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'tree, off': 'store: the tree template, coded only',  // D49 (GENE_WITH_CODED_ONLY_UNSUPPORTED before)
   'tree, present': 'store: the tree template',
   'tree, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'graph, off': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
+  'graph, off': 'store: the graph template, coded only',  // D49 (GENE_WITH_CODED_ONLY_UNSUPPORTED before)
   'graph, present': 'store: the graph template',
   'graph, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'frequency, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'frequency, off': 'store: the event-frequency template',  // D49 (FREE_TEXT_CODED_ONLY_UNSUPPORTED before)
   'frequency, present': 'FREE_TEXT_COUNT_UNSUPPORTED',
   'frequency, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
-  'blank, off': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+  'blank, off': 'store: the blank template, coded only',  // D49 (FREE_TEXT_CODED_ONLY_UNSUPPORTED before)
   'blank, present': 'store: the blank template (the first seizure)',
   'blank, possible': 'FREE_TEXT_HEDGED_UNSUPPORTED',
 });
@@ -938,11 +946,13 @@ if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({sweepTally, case
 // baseline (INVALID_FACTOR: a factor must exceed 1), and the page's relaxation of "at most -1" to "at most -1.1",
 // which narrows instead of widening (VALUE_RELAXATION_MUST_WIDEN). The page shows each as a labelled fallback.
 assert.deepEqual(sweepTally, {
-  // D38: the seven gene definitions with stated findings are answered; the seven under coded only wait for a joint profile.
-  answered: 293,
-  translator: {FREE_TEXT_CODED_ONLY_UNSUPPORTED: 157, FREE_TEXT_COUNT_UNSUPPORTED: 51, NTH_STEP_HAS_NO_END: 2,
-               GENE_WITH_CODED_ONLY_UNSUPPORTED: 7, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
-  store: {INVALID_FACTOR: 10, VALUE_RELAXATION_MUST_WIDEN: 10},
+  // D49: "coded only" is the store's profile 1.3 by default, and a gene step under it the joint profile, so the 157
+  // coded-only and the 7 gene refusals are answered or refused by the store (D45's joint sweep: 449 answered; before
+  // D49, 293 answered, FREE_TEXT_CODED_ONLY_UNSUPPORTED 157, GENE_WITH_CODED_ONLY_UNSUPPORTED 7, INVALID_FACTOR 10,
+  // VALUE_RELAXATION_MUST_WIDEN 10).
+  answered: 449,
+  translator: {FREE_TEXT_COUNT_UNSUPPORTED: 51, NTH_STEP_HAS_NO_END: 2, FREE_TEXT_HEDGED_UNSUPPORTED: 31},
+  store: {INVALID_FACTOR: 14, VALUE_RELAXATION_MUST_WIDEN: 14},
 }, 'the option sweep changed');
 console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.answered} answered by the store; refused by the translator `
   + `${Object.entries(sweepTally.translator).sort().map(([k, v]) => `${k} ${v}`).join(', ')}; refused by the store `

@@ -105,7 +105,13 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # rise usefulness, D38's gene usefulness, D43c's coded usefulness and D45's coded-default usefulness, each as
               # last regenerated on main at 28a3cbf. D45's page report is regenerated instead. Undone if D46 is reverted.
               'verification/d36-rise-usefulness-report.json', 'verification/d38-gene-usefulness-report.json',
-              'verification/d43c-coded-usefulness-report.json', 'verification/d45-coded-default-usefulness-report.json'}
+              'verification/d43c-coded-usefulness-report.json', 'verification/d45-coded-default-usefulness-report.json',
+              # D49 turns both constants of `trajectory/store_request.js` on (the owner's decision on D45's verdict). D45's
+              # page report assessed that flip by loading the translator with the constants substituted from `= false`, a
+              # file its tool (`coded_default.cjs`) refuses once they are true; it records D45's assessment of the
+              # pre-flip page, as last regenerated on main at 0a17003 (D48b), superseded for the current tree by
+              # `verification/d49-flip-census-report.json` (coordinator's sign-off as delegate, D49's checkpoint).
+              'verification/d45-coded-default-page-report.json'}
 
 
 def digests(path):

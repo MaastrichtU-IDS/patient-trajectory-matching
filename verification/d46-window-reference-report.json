@@ -849,12 +849,12 @@
   "defects": true
  },
  "artifacts": {
-  "demos/mockups/d46_windows.cjs": "292cc254a8747b4d0bf43a66fa963fe633ddb34ed1d32981d03b6a8efa44a668",
+  "demos/mockups/d46_windows.cjs": "a23751c83b4821f1b0a104c9dcdacbefc1b6fa3053333bf186baf20a708a9266",
   "demos/mockups/index_reference.py": "d26a724c4ffaada612dc18c3b81999c408401b82bfae278ff47b21f309db522e",
   "demos/mockups/option_sweep.js": "d95fffe2b6cfb486349932b0ce82d05c258bf553ff91d6567bbbdd0bac617a2f",
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
-  "demos/mockups/trajectory/store_request.js": "da0cab1530450258f8e50d44055bd7fa097f92fafe824b78531f287fe9e65eda",
-  "demos/mockups/trajectory/app.js": "bb64343679f444476ceefbd0f6f79c4a4ffa40e3c800879d5bd6fa3f80f96b86",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
+  "demos/mockups/trajectory/app.js": "c5138d9d3062d3c859f38cc56db6b348412cb92ecba1343a6f1e1bdb4cedee9b",
   "demos/mockups/shared/core.js": "b8ff4f1f980ea61b62ea4fb38bd0aa89db4e4653471b974fbc4c916610715303",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
