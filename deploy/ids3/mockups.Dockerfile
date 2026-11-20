@@ -45,7 +45,7 @@ COPY patterns/ ./patterns/
 COPY schemas/ ./schemas/
 COPY ontology/ ./ontology/
 # server.py serves its own directory as static files, so only the pages and the server's modules go there.
-COPY demos/mockups/server.py demos/mockups/access.py demos/mockups/datasets.py demos/mockups/store_query.py \
+COPY demos/mockups/server.py demos/mockups/access.py demos/mockups/datasets.py demos/mockups/match_worker.py demos/mockups/store_query.py \
      demos/mockups/store_trajectory.py demos/mockups/store_parity.py demos/mockups/index.html ./demos/mockups/
 COPY demos/mockups/shared/ ./demos/mockups/shared/
 COPY demos/mockups/patient-first/ ./demos/mockups/patient-first/

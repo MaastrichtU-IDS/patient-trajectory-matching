@@ -28,6 +28,14 @@ spec:
       # default service account by itself; it does not need the token mounted here.)
       automountServiceAccountToken: false
       enableServiceLinks: false
+      # On a front-door node (the nodes Traefik runs on), so Traefik's connections and the kubelet's probes arrive from
+      # the node addresses allow-traefik-ingress.yaml admits (security re-check of D50).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - { key: ids.maastrichtu/front-door, operator: In, values: ["true"] }
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -51,7 +59,8 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: { drop: [ALL] }
           volumeMounts:
-            - { name: tmp, mountPath: /tmp }                      # the synthetic store's build (PTM_TRAJECTORY_STORE_ROOT)
+            # the synthetic store's build, and the match worker's own copy (PTM_TRAJECTORY_STORE_ROOT)
+            - { name: tmp, mountPath: /tmp }
             - { name: datasets, mountPath: /etc/ptm, readOnly: true }
           # /api/health answers as soon as the socket is bound, during the store build too (checked by a test).
           # /api/ready answers 200 only once every configured dataset is ready, so a pod whose synthetic store fails
@@ -60,8 +69,11 @@ spec:
             httpGet: { path: /api/health, port: http }
             periodSeconds: 2
             failureThreshold: 30
+          # Liveness by TCP connect: the kernel accepts it while the server's accept loop runs, whatever its request
+          # threads are doing, so a flood of slow requests cannot get the pod restarted. Readiness stays HTTP and is
+          # served from threads reserved beyond PTM_MAX_THREADS for the probes.
           livenessProbe:
-            httpGet: { path: /api/health, port: http }
+            tcpSocket: { port: http }
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
@@ -70,14 +82,15 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
-          # Measured locally: about 180 MB peak RSS with the store built and a match served (hosting plan, section 6).
-          # Re-measure on the cluster after the first deploy and adjust.
+          # Measured locally: about 180 MB peak RSS with the store built and a match served (hosting plan, section 6),
+          # plus about as much again for the match worker's copy of the store (match_worker.py). Re-measure on the
+          # cluster after the first deploy and adjust.
           resources:
             requests: { cpu: 100m, memory: 256Mi }
             limits: { cpu: "1", memory: 768Mi }
       volumes:
         - name: tmp
-          emptyDir: { sizeLimit: 256Mi }
+          emptyDir: { sizeLimit: 512Mi }
         - name: datasets
           configMap: { name: ptm-mockups-datasets }
       terminationGracePeriodSeconds: 10

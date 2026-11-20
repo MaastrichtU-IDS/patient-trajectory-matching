@@ -427,22 +427,50 @@ class HardeningTests(unittest.TestCase):
         finally:
             client.close()
 
-    def test_the_request_thread_cap_answers_busy_without_a_thread(self):
+    def test_the_request_thread_cap_keeps_a_reserve_for_the_probes(self):
         client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, max_threads=1))
         import socket
-        idle = socket.create_connection(('127.0.0.1', client.httpd.server_port))  # holds the only slot
+        port = client.httpd.server_port
+        idle = [socket.create_connection(('127.0.0.1', port))]  # holds the only ordinary slot
         try:
+            time.sleep(0.2)
+            # Beyond the cap, a reserve thread still answers the probes, and nothing else.
+            self.assertEqual(client.call('/api/health')[:2], (200, {'profile': 'trajectory-graph-1.0'}))
+            self.assertEqual(client.call('/api/ready')[0], 200)
+            status, body, headers = client.call('/api/datasets')
+            self.assertEqual((status, body, headers['Retry-After']), (503, {'error': 'BUSY'}, '2'))
+            # With the reserve held too, 503 BUSY at once, without a thread.
+            idle += [socket.create_connection(('127.0.0.1', port)) for _ in range(server.PROBE_RESERVE)]
             time.sleep(0.2)
             status, body, headers = client.call('/api/health')
             self.assertEqual((status, body, headers['Retry-After']), (503, {'error': 'BUSY'}, '2'))
         finally:
-            idle.close()
+            for sock in idle:
+                sock.close()
         deadline = time.time() + 5
-        while client.call('/api/health')[0] != 200 and time.time() < deadline:
+        while client.call('/api/datasets')[0] != 200 and time.time() < deadline:
             time.sleep(0.1)
-        self.assertEqual(client.call('/api/health')[0], 200)
+        self.assertEqual(client.call('/api/datasets')[0], 200)
         self.assertEqual(server.Handler.timeout, 30)  # an idle connection holds its slot for 30 s at most
         client.close()
+
+    def test_a_nul_byte_in_a_path_is_a_404(self):
+        import socket
+        client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True))
+        err = io.StringIO()
+        try:
+            with mock.patch.object(sys, 'stderr', err):
+                for raw in (b'GET /index%00.html HTTP/1.0\r\n\r\n', b'GET /shared/\x00core.js HTTP/1.0\r\n\r\n',
+                            b'GET /api/health%00 HTTP/1.0\r\n\r\n'):
+                    with socket.create_connection(('127.0.0.1', client.httpd.server_port), timeout=5) as sock:
+                        sock.sendall(raw)
+                        reply = sock.recv(256)
+                    self.assertTrue(reply.startswith(b'HTTP/1.0 404'), (raw, reply[:40]))
+                time.sleep(0.2)
+            self.assertNotIn('Traceback', err.getvalue())
+            self.assertNotIn('ValueError', err.getvalue())
+        finally:
+            client.close()
 
     def test_the_hosted_surface(self):
         client = Client(server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True))
@@ -536,6 +564,97 @@ class HardeningTests(unittest.TestCase):
             self.assertIsNone(re.search(r'\son[a-z]+=\\?["\']', text), f'inline handler in markup built by {script}')
             self.assertNotIn('eval(', text, script)
             self.assertNotIn('new Function', text, script)
+
+
+@unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')
+class HostedStoreBoundTests(unittest.TestCase):
+    """The security re-check's M1 residual: one small request must not hold the synthetic store for long. Hosted, the
+    search budget is clamped, the caps are lower, and every match runs in a child process killed at the time limit."""
+
+    @classmethod
+    def setUpClass(cls):
+        from test_store_trajectory import requests
+        cls.client = Client(server.serve('127.0.0.1', 0, hosted=True, match_time_limit=1.0))
+        wait_ready(cls.client)
+        pids = sorted(json.loads(store_trajectory.COHORT.read_text())['patients'], key=lambda p: p['patient_id'])
+        cls.pids = [p['patient_id'] for p in pids]
+        cls.page_like = requests(cls.pids)
+        cls.windows = {pid: {'start': 0, 'end': 3653 * 10 * 1440} for pid in cls.pids}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.client.close()
+
+    def adversarial(self, steps=6, relaxations=4, search_budget=10_000_000):
+        # The costliest shape measured: seizure steps cycling first, last and any, chained by `after` 1 to 2 days, with
+        # tiny-cost relaxations so every subset of them is tried. About 6.5 s in-process at any search budget.
+        day = 1440
+        occ = ('first', 'last', 'any')
+        return {'query': {'profile': 'trajectory-graph-1.0', 'scope': 'any',
+                          'steps': [{'id': f'S{i}', 'concept': 'seizure', 'occurrence': occ[i % 3]} for i in range(steps)],
+                          'relations': [{'id': f'edge:{i}', 'kind': 'after', 'from': f'S{i}', 'to': f'S{i + 1}',
+                                         'min': day, 'max': 2 * day} for i in range(steps - 1)],
+                          'relaxations': [{'id': f'gap:{i}', 'kind': 'extend_max', 'relation': f'edge:{i}',
+                                           'max': 5 * day, 'cost': '0.01'} for i in range(relaxations)],
+                          'budget': '1', 'search_budget': search_budget},
+                'conditions': None, 'windows': self.windows}
+
+    def test_a_costly_request_is_cut_at_the_time_limit_and_the_store_recovers(self):
+        started = time.perf_counter()
+        status, body, _ = self.client.call('/api/trajectory-store/match', body=self.adversarial())
+        elapsed = time.perf_counter() - started
+        self.assertEqual((status, body), (503, {'error': 'MATCH_TIME_LIMIT'}))
+        self.assertLess(elapsed, 4, 'cut near the 1 s limit (plus waiting for the child to be ready)')
+        # The child is started again; the page's own kind of request is answered.
+        for name, request in list(self.page_like.items())[:2]:
+            status, body, _ = self.client.call('/api/trajectory-store/match', body=request)
+            self.assertEqual(status, 200, (name, body))
+
+    def test_hosted_answers_equal_the_in_process_store(self):
+        # Through the child, at the clamped budget, the page's requests get the in-process store's answers at 40,000.
+        local = Client(server.serve('127.0.0.1', 0))
+        try:
+            wait_ready(local)
+            for name, request in self.page_like.items():
+                hosted = self.client.call('/api/trajectory-store/match', body=request)
+                direct = local.call('/api/trajectory-store/match', body=request)
+                self.assertEqual(hosted[0], direct[0], name)
+                if hosted[0] == 200:
+                    # the context id digests the request, search budget included, so it differs by design
+                    strip = lambda b: {k: v for k, v in b.items() if k not in ('elapsed_ms', 'context_id')}
+                    self.assertEqual(strip(hosted[1]), strip(direct[1]), name)
+        finally:
+            local.close()
+
+    def test_hosted_caps_and_the_budget_clamp(self):
+        call = lambda body: self.client.call('/api/trajectory-store/match', body=body)[:2]
+        self.assertEqual(call(self.adversarial(steps=server.HOSTED_MAX_STEPS + 1, relaxations=0)),
+                         (400, {'error': 'TOO_MANY_STEPS', 'by': 'server'}))
+        too_relaxed = self.adversarial(relaxations=0)
+        too_relaxed['query']['relaxations'] = [{'id': f'concept:S{i % 6}', 'kind': 'widen_concept', 'step': f'S{i % 6}',
+                                                'concept': 'seizure', 'cost': '0.01'} for i in range(server.HOSTED_MAX_RELAXATIONS + 1)]
+        self.assertEqual(call(too_relaxed), (400, {'error': 'TOO_MANY_RELAXATIONS', 'by': 'server'}))
+        costly = self.adversarial(relaxations=1)
+        costly['query']['budget'] = '1.5'
+        self.assertEqual(call(costly), (400, {'error': 'RELAXATION_BUDGET_ABOVE_HOSTED_MAX', 'by': 'server'}))
+        original = self.adversarial()
+        clamped = server.hosted_request(original)
+        self.assertEqual(clamped['query']['search_budget'], server.HOSTED_SEARCH_BUDGET)
+        self.assertEqual(original['query']['search_budget'], 10_000_000, "the caller's request is not changed")
+        lower = self.adversarial(search_budget=200)
+        self.assertEqual(server.hosted_request(lower)['query']['search_budget'], 200)
+        missing = self.adversarial()
+        del missing['query']['search_budget']
+        self.assertEqual(server.hosted_request(missing)['query']['search_budget'], server.HOSTED_SEARCH_BUDGET)
+        self.assertEqual(self.client.call('/api/limits')[1],
+                         {'hosted': True, 'search_budget': server.HOSTED_SEARCH_BUDGET, 'match_time_limit_s': 1.0,
+                          'max_steps': server.HOSTED_MAX_STEPS, 'max_relaxations': server.HOSTED_MAX_RELAXATIONS})
+
+    def test_a_hosted_realm_needs_the_client_id(self):
+        realm = access.OidcVerifier(ISSUER, 'http://127.0.0.1:9/certs', AUDIENCE)  # no client id
+        with self.assertRaises(ValueError) as caught:
+            server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True, verifier=realm)
+        self.assertEqual(str(caught.exception), 'HOSTED_REALM_NEEDS_PTM_OIDC_CLIENT_ID')
 
 
 if __name__ == '__main__':

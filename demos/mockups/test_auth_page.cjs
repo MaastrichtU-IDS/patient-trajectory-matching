@@ -38,7 +38,8 @@ function browser({href, session, authEnabled = true, tokenResponses = []}) {
         return authEnabled ? json(200, {enabled: true, issuer: ISSUER, client_id: 'ptm-mockups'}) : json(200, {enabled: false});
       }
       if (url === `${ISSUER}/protocol/openid-connect/token`) {
-        const next = tokenResponses.shift();
+        let next = tokenResponses.shift();
+        if (typeof next === 'function') next = await next(Object.fromEntries(new URLSearchParams(options.body)), session);
         return next ? json(200, next) : json(400, {error: 'invalid_grant'});
       }
       return json(200, {ok: true});
@@ -137,6 +138,35 @@ const tokenOf = (calls, i) => Object.fromEntries(new URLSearchParams(calls.filte
     assert.deepStrictEqual([logout.searchParams.get('id_token_hint'), logout.searchParams.get('client_id'),
                             logout.searchParams.get('post_logout_redirect_uri')], ['IDT', 'ptm-mockups', `${SITE}/store-query/`]);
     console.log('ok: sign-out revokes the refresh token and ends the realm session');
+  }
+
+  // 8. Two requests that find the access token expired share one refresh: the rotating token is spent once.
+  {
+    const session = storage({'ptm.refresh': 'RT1'});
+    const {calls, auth} = browser({href: `${SITE}/`, session, tokenResponses: [
+      {access_token: 'AT1', expires_in: 1, refresh_token: 'RT2'},           // at load; expires at once (20 s margin)
+      async () => { await new Promise(r => setTimeout(r, 50)); return {access_token: 'AT2', expires_in: 300, refresh_token: 'RT3'}; },
+    ]});
+    await auth.ready;
+    await Promise.all([auth.fetch(`${SITE}/api/datasets`), auth.fetch(`${SITE}/api/store/status`)]);
+    const refreshes = calls.filter(c => c.url.endsWith('/token')).map(c => Object.fromEntries(new URLSearchParams(c.options.body)).refresh_token);
+    assert.deepStrictEqual(refreshes, ['RT1', 'RT2'], 'one refresh for both requests');
+    const sent = calls.filter(c => /api\/(datasets|store\/status)$/.test(c.url)).map(c => c.options.headers.Authorization);
+    assert.deepStrictEqual(sent, ['Bearer AT2', 'Bearer AT2']);
+    assert.strictEqual(session.data['ptm.refresh'], 'RT3');
+    console.log('ok: concurrent requests share one refresh');
+  }
+
+  // 9. Our refresh refused, but the stored token rotated meanwhile (another frame refreshed): adopt it, stay signed in.
+  {
+    const session = storage({'ptm.refresh': 'OLD'});
+    const {auth} = browser({href: `${SITE}/`, session, tokenResponses: [
+      (params, store) => { store.setItem('ptm.refresh', 'NEWER'); return null; },  // ours refused; another refresh landed
+      params => (params.refresh_token === 'NEWER' ? {access_token: 'AT', expires_in: 300, refresh_token: 'NEWEST'} : null),
+    ]});
+    await auth.ready;
+    assert.strictEqual(session.data['ptm.refresh'], 'NEWEST');
+    console.log('ok: a token rotated elsewhere is adopted, not discarded');
   }
 
   // 5. A refused refresh signs out locally; without a realm everything is plain fetch.

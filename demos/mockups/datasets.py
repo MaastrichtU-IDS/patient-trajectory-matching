@@ -137,6 +137,7 @@ class Dataset:
         self.entry = entry
         self.service = service
         self._opening = False
+        self.matcher = None  # hosted synthetic datasets: a match_worker.IsolatedMatcher (server.py sets it)
 
     id = property(lambda self: self.entry.id)
     kind = property(lambda self: self.entry.kind)

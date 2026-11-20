@@ -37,8 +37,14 @@ data:
   PTM_MAX_BODY: "262144"
   # Matches at once in this pod, each slot taken BEFORE its body is read; one more waits up to 5 s, then 503 BUSY.
   PTM_MATCH_CONCURRENCY: "4"
-  # Requests in flight in this pod (one thread each); one more gets 503 BUSY at once, without a thread.
+  # Requests in flight in this pod (one thread each); one more gets 503 BUSY at once, without a thread. Four more
+  # threads beyond these serve /api/health and /api/ready only.
   PTM_MAX_THREADS: "64"
+  # Seconds a synthetic-store match may run (in a child process, match_worker.py) before it is killed with 503
+  # MATCH_TIME_LIMIT. The page's own requests take under 0.1 s; the worst shape the hosted caps allow takes about
+  # 6.5 s in-process (hosting plan, "The security review"). Hosted, searches are also clamped to 1,000 attempts per
+  # patient and requests to 6 steps, 8 relations and 6 relaxations.
+  PTM_MATCH_TIME_LIMIT: "2"
 
   # ── Logs ─────────────────────────────────────────────────────────────────
   # One JSON line per API request on stdout (route, status, duration, dataset, auth kind, token subject); never a

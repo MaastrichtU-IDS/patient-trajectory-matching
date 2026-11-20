@@ -38,17 +38,22 @@ the machine, who is the owner and is served every configured dataset as before; 
 datasets only. On a non-loopback bind the server refuses to start with a non-public dataset and no realm.
 
 **Hosted** (any non-loopback bind): the anonymous engine route is off (the page uses the store), static files are
-limited to page asset types with no directory listings, and MIMIC stores open at startup rather than at first use.
+limited to page asset types with no directory listings, MIMIC stores open at startup rather than at first use, and
+each synthetic-store match runs in a child process (`match_worker.py`) killed after PTM_MATCH_TIME_LIMIT seconds
+(default 2), with its search budget clamped to 1,000 and lower caps on steps, relations and relaxations
+(`GET /api/limits` says so). A realm then needs PTM_OIDC_CLIENT_ID.
 Everywhere: `GET /api/ready` answers `{"ready": ...}` (200 once every started dataset is ready, else 503; the owner
 also gets the counts), while `/api/health` answers from the moment the socket is bound. Requests are bounded:
 PTM_MAX_BODY (default 20 MiB), PTM_MATCH_CONCURRENCY (matches at once, taken before a body is read; default
-unlimited locally, 4 hosted), PTM_MAX_THREADS (requests in flight, default 64; beyond it, 503 BUSY at once), a
+unlimited locally, 4 hosted), PTM_MAX_THREADS (requests in flight, default 64; beyond it, 4 reserve threads for the
+probes, then 503 BUSY at once), a
 30 s socket timeout, and caps on patients, events, steps and relations in a match. PTM_LOG_FORMAT=json writes one
 JSON line per API request to stdout: never a body, a token, a header or an address. Every response carries a
 Content-Security-Policy (with the hashes of the pages' inline scripts) and the usual hardening headers.
 """
 import argparse
 import base64
+from fractions import Fraction
 from functools import partial
 import hashlib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -69,6 +74,7 @@ sys.path.insert(0, str(HERE))
 from patterns import trajectory_graph as engine  # noqa: E402
 import access  # noqa: E402
 import datasets  # noqa: E402
+import match_worker  # noqa: E402
 import store_query  # noqa: E402
 import store_trajectory  # noqa: E402
 
@@ -81,12 +87,24 @@ MAX_PATIENTS = 500       # in an engine request (the page sends the 48-patient c
 MAX_EVENTS = 50_000      # in an engine request, summed over its patients
 MAX_STEPS = 12           # in any match request's query
 MAX_RELATIONS = 40       # relations, and separately relaxations, in any match request's query
+# Hosted bounds (security re-check of D50, M1), measured on the synthetic store at one worker (docs/hosting-plan.md,
+# "The security review"): the page's own requests use at most 5 steps, 4 relations, 4 relaxations, a relaxation
+# cost budget of 1 and a search budget of 40,000, and none of their 317 answers changes at a search budget of 500.
+HOSTED_MAX_STEPS = 6
+HOSTED_MAX_RELATIONS = 8
+HOSTED_MAX_RELAXATIONS = 6
+HOSTED_COST_BUDGET = Fraction(1)
+HOSTED_SEARCH_BUDGET = 1000      # clamped server-side; a search that reaches it is the engine's own `unresolved`
+HOSTED_MATCH_TIME_LIMIT = 2.0    # seconds; a store match still running is killed (match_worker.py)
+PROBE_RESERVE = 4                # threads beyond PTM_MAX_THREADS for /api/health and /api/ready only
+PROBE_ROUTES = frozenset({'/api/health', '/api/ready'})
 SECURITY_HEADERS = (('X-Content-Type-Options', 'nosniff'), ('Referrer-Policy', 'no-referrer'),
                     ('X-Frame-Options', 'DENY'))
 STATIC_TYPES = frozenset({'.html', '.js', '.css', '.json', '.svg', '.png', '.ico', '.txt', '.woff2'})
 DATASET_ROUTE = re.compile(r'/api/datasets/([^/]+)/(status|catalogue|match)')
 INLINE_SCRIPT = re.compile(r'<script>(.*?)</script>', re.S)
 LOG_LOCK = threading.Lock()
+_THREAD = threading.local()  # .probe_only: a request on a reserve thread, which serves the probes and nothing else
 
 
 def inline_script_hashes(root=HERE):
@@ -122,6 +140,7 @@ class Handler(SimpleHTTPRequestHandler):
     csp = content_security_policy()
     timeout = REQUEST_TIMEOUT
     server_version = 'ptm'
+    match_time_limit = 0
 
     def version_string(self):
         return self.server_version  # no Python or library version in the Server header
@@ -224,7 +243,20 @@ class Handler(SimpleHTTPRequestHandler):
             target = target / 'index.html'
         return target.suffix.lower() in STATIC_TYPES
 
+    def refused_early(self):
+        """A reserve thread serves only the probes (503 BUSY otherwise); a path holding a NUL byte is a 404."""
+        path = getattr(self, 'path', '')
+        if getattr(_THREAD, 'probe_only', False) and path not in PROBE_ROUTES:
+            self.send_json(503, {'error': 'BUSY'}, (('Retry-After', '2'),))
+            return True
+        if '\x00' in path or '%00' in path.lower():
+            self.send_error(404)
+            return True
+        return False
+
     def do_HEAD(self):
+        if self.refused_early():
+            return
         if self.is_api() or not self.static_allowed():
             self.send_error(404)
             return
@@ -233,9 +265,15 @@ class Handler(SimpleHTTPRequestHandler):
     # ------------------------------------------------------------ GET
 
     def do_GET(self):
+        if self.refused_early():
+            return
         path = self.path
         if not path.startswith('/api/'):
-            if not self.static_allowed():
+            try:
+                allowed = self.static_allowed()
+            except ValueError:  # a path the filesystem cannot hold
+                allowed = False
+            if not allowed:
                 return self.send_error(404)
             return super().do_GET()
         found = DATASET_ROUTE.fullmatch(path)
@@ -246,6 +284,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.ready()
         if path == '/api/auth-config':
             return self.send_json(200, self.auth.public_config())
+        if path == '/api/limits':
+            return self.send_json(200, self.limits())
         if path == '/api/datasets':
             return self.dataset_list()
         if path in ('/api/store/status', '/api/store/catalogue'):
@@ -255,6 +295,13 @@ class Handler(SimpleHTTPRequestHandler):
         if found and found.group(2) != 'match':
             return self.dataset_route(found)
         return self.not_found()
+
+    def limits(self):
+        """What bounds a search here, for the page to say so: the hosted search budget and time limit."""
+        if not self.hosted:
+            return {'hosted': False}
+        return {'hosted': True, 'search_budget': HOSTED_SEARCH_BUDGET, 'match_time_limit_s': self.match_time_limit or None,
+                'max_steps': HOSTED_MAX_STEPS, 'max_relaxations': HOSTED_MAX_RELAXATIONS}
 
     def ready(self):
         """{"ready": bool}: 200 once every started dataset is ready. Never opens a store (hosted, MIMIC stores open at
@@ -318,8 +365,12 @@ class Handler(SimpleHTTPRequestHandler):
         self.log_dataset = dataset.id
         service = dataset.service
         if operation == 'match':
-            answer = self.trajectory_answer if dataset.kind == 'synthetic-trajectory' else self.store_answer
-            return self.gated_body(lambda data: answer(lambda: service.match(check_size(data))))
+            hosted = self.hosted
+            if dataset.kind == 'synthetic-trajectory':
+                matcher = dataset.matcher or service  # hosted: a child process with a time limit
+                return self.gated_body(lambda data: self.trajectory_answer(
+                    lambda: matcher.match(hosted_request(check_size(data, hosted)) if hosted else check_size(data))))
+            return self.gated_body(lambda data: self.store_answer(lambda: service.match(check_size(data, hosted))))
         if dataset.kind == 'synthetic-trajectory':
             return self.trajectory_answer(service.status)
         return self.store_answer(service.status if operation == 'status' else service.catalogue)
@@ -352,6 +403,8 @@ class Handler(SimpleHTTPRequestHandler):
         return self.gated(read_then_run)
 
     def do_POST(self):
+        if self.refused_early():
+            return
         path = self.path
         found = DATASET_ROUTE.fullmatch(path)
         self.begin('/api/datasets/{id}/match' if found else path if path in POST_ROUTES else 'unknown')
@@ -431,20 +484,42 @@ class SizeError(ValueError):
     """A match request above the server's caps on steps, relations or relaxations (400, before any work)."""
 
 
-def check_size(data):
-    """`data`, after checking that a match request's query is within MAX_STEPS and MAX_RELATIONS. The stores and the
-    engine check shape; this bounds the work any one request can ask for."""
+def check_size(data, hosted=False):
+    """`data`, after checking that a match request's query is within the step, relation and relaxation caps (lower
+    when hosted). The stores and the engine check shape; this bounds the work any one request can ask for."""
+    steps, relations, relaxations = ((HOSTED_MAX_STEPS, HOSTED_MAX_RELATIONS, HOSTED_MAX_RELAXATIONS) if hosted
+                                     else (MAX_STEPS, MAX_RELATIONS, MAX_RELATIONS))
     query = data.get('query') if isinstance(data, dict) else None
     if isinstance(query, dict):
-        if isinstance(query.get('steps'), list) and len(query['steps']) > MAX_STEPS:
+        if isinstance(query.get('steps'), list) and len(query['steps']) > steps:
             raise SizeError('TOO_MANY_STEPS')
-        for key in ('relations', 'relaxations'):
-            if isinstance(query.get(key), list) and len(query[key]) > MAX_RELATIONS:
+        for key, cap in (('relations', relations), ('relaxations', relaxations)):
+            if isinstance(query.get(key), list) and len(query[key]) > cap:
                 raise SizeError('TOO_MANY_' + key.upper())
     return data
 
 
-GET_ROUTES = frozenset({'/api/health', '/api/ready', '/api/auth-config', '/api/datasets', '/api/store/status',
+def hosted_request(data):
+    """A hosted synthetic-store request: the relaxation cost budget at most 1 (the page's own maximum; 400 above it)
+    and the search budget clamped to HOSTED_SEARCH_BUDGET, so a search the clamp stops is the engine's own
+    `unresolved` (SEARCH_BUDGET_EXHAUSTED) rather than minutes of work. The caller's dict is not changed."""
+    query = data.get('query') if isinstance(data, dict) else None
+    if not isinstance(query, dict):
+        return data  # the store refuses it by name
+    cost = query.get('budget', '0')
+    try:
+        too_costly = Fraction(cost) > HOSTED_COST_BUDGET
+    except (TypeError, ValueError, ZeroDivisionError):
+        too_costly = False  # malformed: the engine refuses it by name
+    if too_costly:
+        raise SizeError('RELAXATION_BUDGET_ABOVE_HOSTED_MAX')
+    budget = query.get('search_budget', HOSTED_SEARCH_BUDGET)
+    if type(budget) is int and budget > HOSTED_SEARCH_BUDGET or 'search_budget' not in query:
+        budget = HOSTED_SEARCH_BUDGET
+    return {**data, 'query': {**query, 'search_budget': budget}}
+
+
+GET_ROUTES = frozenset({'/api/health', '/api/ready', '/api/auth-config', '/api/limits', '/api/datasets', '/api/store/status',
                         '/api/store/catalogue', '/api/trajectory-store/status'})
 POST_ROUTES = frozenset({'/api/trajectory-graph/match', '/api/store/match', '/api/trajectory-store/match'})
 BUSY = b'{"error": "BUSY"}'
@@ -464,9 +539,15 @@ class Server(ThreadingHTTPServer):
         self.server_name, self.server_port = host, port
 
     def process_request(self, request, client_address):
-        """A thread per request, at most `max_threads` at once; beyond that, 503 BUSY without a thread or a read."""
+        """A thread per request, at most `max_threads` at once. Beyond that, PROBE_RESERVE more threads serve only
+        /api/health and /api/ready (so a flood cannot fail the pod's probes); beyond those, 503 BUSY without a thread
+        or a read."""
         slots = self.__dict__.setdefault('_slots', threading.BoundedSemaphore(self.max_threads))
+        reserve = self.__dict__.setdefault('_reserve', threading.BoundedSemaphore(PROBE_RESERVE))
         if not slots.acquire(blocking=False):
+            if reserve.acquire(blocking=False):
+                threading.Thread(target=self._probe_thread, args=(request, client_address), daemon=True).start()
+                return
             try:
                 request.sendall(b'HTTP/1.0 503 Service Unavailable\r\nContent-Type: application/json\r\n'
                                 b'Retry-After: 2\r\nConnection: close\r\nContent-Length: '
@@ -487,6 +568,16 @@ class Server(ThreadingHTTPServer):
         finally:
             self._slots.release()
 
+    def _probe_thread(self, request, client_address):
+        _THREAD.probe_only = True
+        try:
+            self.finish_request(request, client_address)
+        except Exception:
+            self.handle_error(request, client_address)
+        finally:
+            self.shutdown_request(request)
+            self._reserve.release()
+
     def handle_error(self, request, client_address):
         """An unexpected failure in a request: its exception class only, never the client's address or a traceback."""
         with LOG_LOCK:
@@ -499,6 +590,8 @@ class Server(ThreadingHTTPServer):
         for dataset in self.registry.datasets:
             if dataset.kind == 'synthetic-trajectory':
                 dataset.service.close()
+            if dataset.matcher is not None:
+                dataset.matcher.close()
 
 
 def _int_env(name, default):
@@ -513,7 +606,8 @@ def _int_env(name, default):
 
 def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None,
           trajectory_store=True, trajectory_store_root=None, trajectory_cohort=None, *, datasets_file=None,
-          verifier=None, max_body=None, match_concurrency=None, log_format=None, max_threads=None, hosted=False):
+          verifier=None, max_body=None, match_concurrency=None, log_format=None, max_threads=None, hosted=False,
+          match_time_limit=None):
     """The server. Datasets come from `datasets_file` or PTM_DATASETS, else from the flags: the synthetic cohort
     (`trajectory_cohort`, by default the page's) unless `trajectory_store` is false, built on a background thread
     under `trajectory_store_root` or PTM_TRAJECTORY_STORE_ROOT (else a temporary directory; `server_close()` removes
@@ -531,6 +625,11 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
     hosted = bool(hosted) or not access.is_loopback(host)
     if hosted and verifier is None and any(e.policy.access != 'public' for e in entries):
         raise ValueError('NON_PUBLIC_DATASET_NEEDS_OIDC_ON_A_NON_LOOPBACK_BIND')
+    if hosted and verifier is not None and not verifier.client_id:
+        raise ValueError('HOSTED_REALM_NEEDS_PTM_OIDC_CLIENT_ID')  # so that `azp` is always checked when hosted
+    if match_time_limit is None:
+        raw = os.environ.get('PTM_MATCH_TIME_LIMIT')
+        match_time_limit = float(raw) if raw not in (None, '') else (HOSTED_MATCH_TIME_LIMIT if hosted else 0)
     pin = {'pin': demo_pin} if demo_pin else {}
     built = []
     for entry in entries:
@@ -554,6 +653,7 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
         'match_gate': threading.BoundedSemaphore(gate_size) if gate_size else None,
         'log_json': log_format == 'json',
         'hosted': hosted,
+        'match_time_limit': match_time_limit,
         'csp': content_security_policy(verifier.issuer if verifier else None)})
     httpd = Server((host, port), partial(handler, directory=str(HERE)))
     httpd.max_threads = max_threads if max_threads is not None else _int_env('PTM_MAX_THREADS', MAX_THREADS)
@@ -564,6 +664,9 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
     for dataset in registry.datasets:
         if dataset.kind == 'synthetic-trajectory':
             dataset.service.start()      # built now, on its own thread
+            if match_time_limit:         # hosted: matches in a child process with a hard time limit
+                dataset.matcher = match_worker.IsolatedMatcher(dataset.service.cohort_path, root,
+                                                               match_time_limit).start()
         elif hosted:
             dataset.open_in_background()  # hosted: opened now, so readiness covers it; locally at first use
     httpd.trajectory_store = first_synthetic.service if first_synthetic else None

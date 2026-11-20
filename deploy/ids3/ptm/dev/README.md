@@ -48,7 +48,10 @@ Bounds (security review of D50): Traefik rate limits (general, and about 1/s for
 `ingress-match.yaml`), a 256 KiB body limit and HSTS; in the pod, `PTM_MATCH_CONCURRENCY` (a slot is taken before
 a body is read), `PTM_MAX_THREADS`, a 30 s socket timeout, and caps on patients, events, steps and relations.
 Hosted, the anonymous engine route is off, only page asset types are served, and every response carries a
-Content-Security-Policy. `allow-traefik-ingress.yaml` admits only Traefik to the pod.
+Content-Security-Policy. Each synthetic-store match runs in a child process killed after `PTM_MATCH_TIME_LIMIT`
+(2 s), searches are clamped to 1,000 attempts per patient, and requests are capped at 6 steps, 8 relations and 6
+relaxations. `allow-traefik-ingress.yaml` admits only Traefik to the pod, and the pod runs on a front-door node.
+Liveness is a TCP probe; readiness is served from threads reserved for the probes.
 
 ## Secrets
 
@@ -160,6 +163,8 @@ curl -s https://ptm.k8s.semanticscience.org/api/auth-config # issuer and client 
 | Signed in, but every request `401 TOKEN_INVALID` | issuer mismatch (`PTM_OIDC_ISSUER` vs the token's `iss`), or the `ptm-api` audience mapper missing or not on the access token |
 | Signed in and approved, but the page says "awaiting approval" and approved datasets are 404 | `approved` group lacks the `approved` realm role mapping, or the `roles` scope is not on the client |
 | Every bearer request `401 TOKEN_INVALID`, though issuer and audience are right | `azp` is not `ptm-mockups` (token from another client), or `sub` missing (the `basic` scope removed) |
+| `503 MATCH_TIME_LIMIT` for ordinary page queries | the cluster CPU is much slower than measured; raise `PTM_MATCH_TIME_LIMIT` a little and re-measure |
+| Pod stays Pending | no schedulable front-door node (`ids.maastrichtu/front-door=true`), see `app.yaml`'s affinity |
 | Many `503 BUSY` | `PTM_MATCH_CONCURRENCY` or `PTM_MAX_THREADS` too low for real use, or a flood the rate limits let through |
 | Probes fail after `allow-traefik-ingress.yaml` | the pod runs on a node whose cni0 address is not listed (see the file's header) |
 | `invalid_redirect_uri` at Keycloak | client redirect URIs or web origins do not match `https://ptm.k8s.semanticscience.org` exactly |

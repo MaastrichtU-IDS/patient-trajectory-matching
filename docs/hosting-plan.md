@@ -280,6 +280,55 @@ found one medium and nine low issues, all fixed:
   - the `Server` header carries no version;
   - HSTS is sent through a Traefik headers middleware.
 - **Queued:** `--require-hashes` for the lock files.
+- **The re-check (of `42a3c6e`), M1 residual: one small request could hold the synthetic store.**
+  - *Finding:* an anonymous 3.7 KB request with 12 chained `seizure` steps took 28.7 s under the store's lock at the
+    default search budget, and minutes at 1,000,000. The engine accepts budgets up to 10,000,000, and the step cap
+    bounded the steps, not the work.
+  - *Measured, at one worker on the 48-patient synthetic store (M4 Pro; probes in `/tmp/ptm-m1/`, outside the
+    repository):*
+    - The page's own requests use at most 5 steps, 4 relations, 4 relaxations (16 relaxation sets, the graph
+      template), a relaxation cost budget of 1 and a search budget of 40,000. Requests counted: all 313 option-sweep
+      cases plus the 4 answered templates; the worst costs 0.07 s.
+    - Clamping their search budget to 1,000 or to 500 changes **none** of their 317 answers.
+    - Adversarial shapes under the caps chosen below (6 steps, 8 relations, 6 relaxations, cost budget 1):
+      - a chain of `any` steps with 1 to 2-day `after` windows: 0.15 s without relaxations;
+      - the same chain with 4 tiny-cost relaxations (all 16 sets tried): 1.6 s at a budget of 1,000, 3.7 s at 5,000
+        and above;
+      - `during` and `after` with grace relaxations: 2.1 s;
+      - counts on every step: 0.06 s;
+      - 4 concept widenings: 0.8 s;
+      - **first, last and any occurrences in a chain with 4 relaxations: 6.5 s even at a budget of 500.** This one
+        is not bounded by the search budget: each relaxation set does occurrence and order checks the budget does
+        not count.
+    - The page's graph template has that same structure and costs 0.07 s only because its concepts are sparse. No
+      cap on structure separates the two.
+  - *Fix (server only; the engine is unchanged):*
+    - When hosted, each synthetic-store match runs in a child process (`match_worker.py`: the same
+      `TrajectoryStore`, its own copy of the store) and is killed at `PTM_MATCH_TIME_LIMIT` (2 s), answering
+      `503 MATCH_TIME_LIMIT`. The page then matches in the browser, as it does for any refusal.
+    - Restarting the child costs a 1.3 s rebuild.
+    - The search budget is clamped to 1,000, so a long search ends as the engine's own `unresolved`
+      (`SEARCH_BUDGET_EXHAUSTED`).
+    - Hosted caps: 6 steps, 8 relations, 6 relaxations, and a relaxation cost budget of at most 1 (400 above it).
+    - The trajectory page says so on a hosted copy (`/api/limits`, `shared/limits.js`).
+  - **Measured bound: no hosted request holds the store for more than the 2 s limit.** The page's own requests take
+    under 0.1 s, with answers identical to the in-process store's at 40,000.
+  - *Tests:* the costliest shape, at a 1 s limit, is cut with 503 and the store answers the next request; the
+    page-shaped requests answered through the child equal the in-process answers; the caps and the clamp; the
+    reviewer's 6-step chain now answers in 0.15 s, and its 12-step chain gets 400.
+- **The re-check's lows, fixed:**
+  - *Probes:* 4 threads beyond `PTM_MAX_THREADS` serve only `/api/health` and `/api/ready`, and liveness is a TCP
+    probe.
+  - *IPv6:* the front door listens on IPv4 only (`traefik-config.yaml`), so no `ipv6Subnet` is needed; this is
+    noted.
+  - *Ingress policy:* the `kube-system` rule is narrowed to Traefik's chart label, and the Deployment is pinned to
+    front-door nodes (`ids.maastrichtu/front-door=true`), so probes come from listed addresses.
+  - *Realm:* when hosted, a realm requires `PTM_OIDC_CLIENT_ID`, so `azp` is always checked.
+  - *Paths:* a path holding a NUL byte is a 404.
+  - *Sign-in:* `auth.js` refreshes once at a time and adopts a refresh token rotated by another refresh, instead of
+    signing out.
+  - *Workflow:* before activating the image workflow, the pinned action SHAs and the releases named beside them are
+    to be checked; this is a first-deploy step.
 
 ## 5. Logs, and tracing later
 
@@ -344,7 +393,9 @@ found one medium and nine low issues, all fixed:
 
 1. Owner: name the backup admin, register the OAuth apps. Platform admin: the registration-notice provider.
 2. Realm admin: `KEYCLOAK-REALM.md`.
-3. Owner: move the image workflow into `.github/workflows/`, push `mockups-v0.1.0`, take the digest.
+3. Owner: check each pinned action SHA in `deploy/ids3/mockups-image.workflow.yml` against the release named beside
+   it (in the action's own repository), then move the workflow into `.github/workflows/`, push `mockups-v0.1.0`,
+   and take the digest.
 4. Services-repo PR: copy `deploy/ids3/ptm/dev/` to `ids3/projects/ptm/dev/`, put the digest into `app.yaml`, complete
    the README checklists, merge (ArgoCD syncs at once; with no secret there is nothing to wait for in Vault).
 5. Verify (README, "Verify after deploy"). Roll back by reverting the image line; remove by deleting the directory.
@@ -369,5 +420,9 @@ found one medium and nine low issues, all fixed:
 7. The first real image build and its checks (the image workflow), since none could run here.
 8. `--require-hashes` for the lock files (hosting lock, store lock, base lock), from the security review.
 9. Load every page in a browser under the Content-Security-Policy once hosted (checked statically here).
-10. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
-   fallback the static image and an unreachable server still need.
+10. The MIMIC-IV demo kind, if hosted: its match uses the server's fixed search budget of 40,000 and runs
+    in-process; give it the same child process and time limit first.
+11. Re-measure the hosted time limit on the cluster's CPU (the 2 s figure and the 6.5 s worst shape are from an
+    M4 Pro).
+12. Retire or keep the in-browser path (D29 stage 3): unchanged by this plan, which keeps it as the labelled
+    fallback the static image and an unreachable server still need.

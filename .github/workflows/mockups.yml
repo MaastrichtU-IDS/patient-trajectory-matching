@@ -30,7 +30,7 @@ jobs:
           node-version: '20'
       - name: Parse every page script
         run: |
-          for script in demos/mockups/shared/core.js demos/mockups/shared/auth.js demos/mockups/patient-first/app.js demos/mockups/trajectory/app.js demos/mockups/store-query/app.js; do
+          for script in demos/mockups/shared/core.js demos/mockups/shared/auth.js demos/mockups/shared/limits.js demos/mockups/patient-first/app.js demos/mockups/trajectory/app.js demos/mockups/store-query/app.js; do
             node --check "$script"
           done
       - name: Mockup server serves the pages, the engine, the store endpoints and per-dataset access (tokens checked locally)

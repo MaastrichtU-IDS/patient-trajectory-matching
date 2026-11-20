@@ -37,13 +37,33 @@
     if (value.refresh_token) sessionStorage.setItem(REFRESH_KEY, value.refresh_token);
   }
 
-  async function refresh() {
+  /* One refresh at a time (a single shared promise), so two requests that find the access token expired do not both
+     spend the same rotating refresh token, the second then being refused and signing the user out. If ours is
+     refused but the stored refresh token has changed meanwhile (another refresh, in another frame of this tab, got
+     there first), the stored one is adopted rather than discarded. */
+  let refreshing = null;
+  function refresh() {
+    if (!refreshing) refreshing = refreshOnce().finally(() => { refreshing = null; });
+    return refreshing;
+  }
+
+  async function refreshOnce() {
     const saved = sessionStorage.getItem(REFRESH_KEY);
     if (!saved) { access = null; return false; }
     try {
       await token({grant_type: 'refresh_token', refresh_token: saved});
       return true;
     } catch (error) {
+      const stored = sessionStorage.getItem(REFRESH_KEY);
+      if (stored && stored !== saved) {
+        try {
+          await token({grant_type: 'refresh_token', refresh_token: stored});
+          return true;
+        } catch (again) {
+          access = null;  // the newer token is not ours to discard
+          return false;
+        }
+      }
       sessionStorage.removeItem(REFRESH_KEY); access = null;
       return false;
     }

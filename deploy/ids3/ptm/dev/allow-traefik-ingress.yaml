@@ -8,9 +8,9 @@
 # ones ids3/platform/minio-data/netpol.yaml uses for the same purpose; the kube-system namespace selector is kept for a
 # Traefik that ever runs as an ordinary pod again. Copy any change to those addresses from that file.
 #
-# ADMIN, confirm on first sync: the kubelet's probes. They come from the pod's own node; on a front-door node that is
-# its cni0 address, listed below. If the pod is ever scheduled on another node and its probes start failing after
-# this lands, add that node's cni0 /32 here (or pin the Deployment to a front-door node).
+# The kubelet's probes come from the pod's own node. app.yaml pins the pod to a front-door node
+# (ids.maastrichtu/front-door=true), whose cni0 address is listed below, so the probes are admitted. ADMIN, confirm
+# on first sync that the probes pass; a front-door node added later needs its flannel.1 and cni0 /32s here.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -23,8 +23,10 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
+        - namespaceSelector:          # a Traefik pod on the pod network, if it ever leaves the host network
             matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:                # the k3s Traefik chart's label (ids3/platform/traefik-config.yaml)
+            matchLabels: { app.kubernetes.io/name: traefik }
         - ipBlock: { cidr: 10.42.0.0/32 }   # as in minio-data/netpol.yaml (flannel.1)
         - ipBlock: { cidr: 10.42.0.1/32 }   # as in minio-data/netpol.yaml (cni0)
         - ipBlock: { cidr: 10.42.1.0/32 }   # fsesrv-node000001 flannel.1 (front door)

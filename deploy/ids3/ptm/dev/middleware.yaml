@@ -20,7 +20,9 @@ spec:
     burst: 60
 ---
 # The match routes only (ingress-match.yaml): each match is real CPU work, so a client gets about one a second,
-# with a burst of five for a person trying a few queries in a row (security review of D50, M1).
+# with a burst of five for a person trying a few queries in a row (security review of D50, M1). Per IPv4 address:
+# the front door listens on IPv4 only (ids3/platform/traefik-config.yaml, hostIP 0.0.0.0), so no ipv6Subnet is
+# needed; add `sourceCriterion: {ipStrategy: {ipv6Subnet: 64}}` if it ever serves IPv6.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

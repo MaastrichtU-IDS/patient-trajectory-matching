@@ -70,6 +70,7 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' localhost:8080/api/trajectory-graph/match)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/server.py)" = 404
           curl -fsSI localhost:8080/ | grep -qi '^content-security-policy:'
+          curl -fsS localhost:8080/api/limits | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['hosted'] and d['search_budget']==1000 and d['match_time_limit_s']==2, d"
           test -z "$(docker exec m sh -c 'find / -xdev \( -iname "*mimic*" -a \( -name "*.duckdb" -o -name "*.parquet" -o -name "*.csv.gz" \) \) 2>/dev/null')"
           test -z "$(docker exec m env | grep -i '^PTM_MIMIC' || true)"
           docker rm -f m
