@@ -45,19 +45,23 @@ MAY_MAKE_EXACT = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
 def claims_no_exact(m, whole, result=None):
     """Whether a `possible` result, or a match beside `unresolved` with certainty `possible`, still claims that no binding
     of its set is exact (D44): unless its note says the exact search stopped, or, over the whole source (`whole`), that
-    a record the store left out may make it exact. With `result` (the result `m` is, or stands beside; D48b), also
-    unless `m` is a `relaxed` result with `complete: false`, or the relaxed match beside an `unresolved` result whose
-    reason is `SEARCH_BUDGET_EXHAUSTED`: their own exact search may have stopped, and nothing says so."""
+    a record the store left out may make it exact. With `result` (the `unresolved` result `m` stands beside; D48b), also
+    unless `m` is the relaxed match beside an `unresolved` result whose reason is `SEARCH_BUDGET_EXHAUSTED`: its own exact
+    search may have stopped, and nothing says so. A `relaxed` result is read by `stopped_relaxed`, not here."""
     notes = set((m.get('note') or '').split('; '))
     if 'EXACT_SEARCH_STOPPED' in notes or (whole and MAY_MAKE_EXACT in notes):
         return False
-    if result is not None:
-        if m is result and result['status'] == 'relaxed' and result.get('complete') is False:
-            return False
-        if result['status'] == 'unresolved' and m is result.get('relaxed_match') \
-                and result.get('reason') == 'SEARCH_BUDGET_EXHAUSTED':
-            return False
+    if result is not None and result['status'] == 'unresolved' and m is result.get('relaxed_match') \
+            and result.get('reason') == 'SEARCH_BUDGET_EXHAUSTED':
+        return False
     return True
+
+
+def stopped_relaxed(result):
+    """D48b: a `relaxed` result with `complete: false`, whose `possible` claims only that its binding reaches `possible`
+    (its own exact search may have stopped, and nothing says so). The only withdrawal at a relaxed result: the note rules
+    of `claims_no_exact` do not apply there, as before D48b."""
+    return result['status'] == 'relaxed' and result.get('complete') is False
 
 
 def _events(patient):
@@ -236,7 +240,7 @@ def check(result, query, patient, horizon=None, whole=False):
             for c in sets[:sets.index(chosen)]:
                 if ask(c).possible():
                     wrong.append(f'relaxed by {ids}, but the cheaper set {[x["id"] for x in c]} is possible')
-        if not certainty_holds(ask(chosen), result['certainty'], result['binding'], claims_no_exact(result, whole, result)):
+        if not certainty_holds(ask(chosen), result['certainty'], result['binding'], not stopped_relaxed(result)):
             wrong.append(f'relaxed {result["certainty"]} by {ids}, which its binding does not reach')
     if status == 'none' and complete:
         for c in sets:

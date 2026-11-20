@@ -1969,12 +1969,19 @@ class StoppedRelaxedClaimTests(unittest.TestCase):
         self.assertEqual(unhulled({**q, 'search_budget': 40_000}, p)['certainty'], 'exact')
         complete = {**r, 'complete': True}
         self.assertEqual(worlds.check(complete, q, p), ["relaxed possible by ['wd'], which its binding does not reach"])
+        # The coordinator's C1: at a relaxed result only the incomplete shape withdraws the claim; a note does not, as
+        # before D48b (neither EXACT_SEARCH_STOPPED nor the excluded-records mark, over either reading).
+        for note in ('EXACT_SEARCH_STOPPED', 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'):
+            for whole in (False, True):
+                with self.subTest(note=note, whole=whole):
+                    self.assertEqual(worlds.check({**complete, 'note': note}, q, p, whole=whole),
+                                     ["relaxed possible by ['wd'], which its binding does not reach"])
 
     def test_the_reading_by_shape(self):
         relaxed = {'status': 'relaxed', 'certainty': 'possible', 'complete': False}
-        self.assertFalse(worlds.claims_no_exact(relaxed, False, relaxed))
-        self.assertTrue(worlds.claims_no_exact({**relaxed, 'complete': True}, False, {**relaxed, 'complete': True}))
-        self.assertTrue(worlds.claims_no_exact(relaxed, False))  # without the result: D44's reading
+        self.assertTrue(worlds.stopped_relaxed(relaxed))
+        self.assertFalse(worlds.stopped_relaxed({**relaxed, 'complete': True}))
+        self.assertFalse(worlds.stopped_relaxed({'status': 'possible', 'complete': False}))
         match = {'certainty': 'possible'}
         stopped = {'status': 'unresolved', 'reason': 'SEARCH_BUDGET_EXHAUSTED', 'relaxed_match': match}
         self.assertFalse(worlds.claims_no_exact(match, False, stopped))
