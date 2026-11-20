@@ -566,6 +566,21 @@ class HardeningTests(unittest.TestCase):
             self.assertNotIn('new Function', text, script)
 
 
+def costly_request(windows, steps=6, relaxations=4, search_budget=10_000_000):
+    """The costliest shape measured (D50): seizure steps cycling first, last and any, chained by `after` 1 to 2 days,
+    with tiny-cost relaxations so every subset of them is tried. About 6.5 s in-process at any search budget."""
+    day = 1440
+    occ = ('first', 'last', 'any')
+    return {'query': {'profile': 'trajectory-graph-1.0', 'scope': 'any',
+                      'steps': [{'id': f'S{i}', 'concept': 'seizure', 'occurrence': occ[i % 3]} for i in range(steps)],
+                      'relations': [{'id': f'edge:{i}', 'kind': 'after', 'from': f'S{i}', 'to': f'S{i + 1}',
+                                     'min': day, 'max': 2 * day} for i in range(steps - 1)],
+                      'relaxations': [{'id': f'gap:{i}', 'kind': 'extend_max', 'relation': f'edge:{i}',
+                                       'max': 5 * day, 'cost': '0.01'} for i in range(relaxations)],
+                      'budget': '1', 'search_budget': search_budget},
+            'conditions': None, 'windows': windows}
+
+
 @unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')
 class HostedStoreBoundTests(unittest.TestCase):
     """The security re-check's M1 residual: one small request must not hold the synthetic store for long. Hosted, the
@@ -586,18 +601,7 @@ class HostedStoreBoundTests(unittest.TestCase):
         cls.client.close()
 
     def adversarial(self, steps=6, relaxations=4, search_budget=10_000_000):
-        # The costliest shape measured: seizure steps cycling first, last and any, chained by `after` 1 to 2 days, with
-        # tiny-cost relaxations so every subset of them is tried. About 6.5 s in-process at any search budget.
-        day = 1440
-        occ = ('first', 'last', 'any')
-        return {'query': {'profile': 'trajectory-graph-1.0', 'scope': 'any',
-                          'steps': [{'id': f'S{i}', 'concept': 'seizure', 'occurrence': occ[i % 3]} for i in range(steps)],
-                          'relations': [{'id': f'edge:{i}', 'kind': 'after', 'from': f'S{i}', 'to': f'S{i + 1}',
-                                         'min': day, 'max': 2 * day} for i in range(steps - 1)],
-                          'relaxations': [{'id': f'gap:{i}', 'kind': 'extend_max', 'relation': f'edge:{i}',
-                                           'max': 5 * day, 'cost': '0.01'} for i in range(relaxations)],
-                          'budget': '1', 'search_budget': search_budget},
-                'conditions': None, 'windows': self.windows}
+        return costly_request(self.windows, steps, relaxations, search_budget)
 
     def test_a_costly_request_is_cut_at_the_time_limit_and_the_store_recovers(self):
         started = time.perf_counter()
@@ -655,6 +659,142 @@ class HostedStoreBoundTests(unittest.TestCase):
         with self.assertRaises(ValueError) as caught:
             server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True, verifier=realm)
         self.assertEqual(str(caught.exception), 'HOSTED_REALM_NEEDS_PTM_OIDC_CLIENT_ID')
+
+
+@unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')
+class HostedWorkerFloodTests(unittest.TestCase):
+    """The final check's medium-low: a client sending costly matches back to back kept the worker's queue full, and
+    legitimate matches waited 12 to 16 s. Now a spare worker takes over at once after a kill (the rebuild is off the
+    request path), a match waits at most GATE_WAIT for the worker (then 503 BUSY), and each kill is logged."""
+
+    def test_the_reviewers_flood_scaled_down_keeps_legitimate_matches_bounded(self):
+        from test_store_trajectory import requests
+        out = io.StringIO()
+        gate_wait = mock.patch.object(server, 'GATE_WAIT', 1.0)
+        gate_wait.start()
+        self.addCleanup(gate_wait.stop)
+        with mock.patch.object(sys, 'stdout', out):
+            client = Client(server.serve('127.0.0.1', 0, hosted=True, match_time_limit=0.5, log_format='json'))
+        try:
+            wait_ready(client)
+            pids = sorted(p['patient_id'] for p in json.loads(store_trajectory.COHORT.read_text())['patients'])
+            light = list(requests(pids).values())[0]
+            heavy = costly_request({pid: {'start': 0, 'end': 3653 * 10 * 1440} for pid in pids})
+            stop = time.time() + 4
+            attack, user = [], []
+
+            def attacker():  # faster than the time limit: four costly matches a second
+                while time.time() < stop:
+                    threading.Thread(target=lambda: attack.append(
+                        client.call('/api/trajectory-store/match', body=heavy)[:2])).start()
+                    time.sleep(0.25)
+
+            def legitimate():
+                while time.time() < stop:
+                    started = time.perf_counter()
+                    status, body, _ = client.call('/api/trajectory-store/match', body=light)
+                    user.append((status, body.get('error'), round(time.perf_counter() - started, 2)))
+                    time.sleep(0.3)
+            with mock.patch.object(sys, 'stdout', out):
+                threads = [threading.Thread(target=attacker), threading.Thread(target=legitimate)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join(30)
+                time.sleep(3)  # the attacker's last requests finish
+            self.assertTrue(user and attack)
+            # Every legitimate match is answered or refused BUSY within GATE_WAIT plus one time limit (and a margin).
+            self.assertLess(max(seconds for _, _, seconds in user), 1.0 + 0.5 + 1.0, user)
+            self.assertTrue(all(status == 200 or (status, error) == (503, 'BUSY') for status, error, _ in user), user)
+            self.assertGreater(sum(1 for status, _, _ in user if status == 200), 0, user)
+            self.assertTrue(all(code in (503,) for code, _ in attack), attack)
+            kills = [json.loads(line) for line in out.getvalue().splitlines() if '"match_killed"' in line]
+            self.assertGreater(len(kills), 0)
+            self.assertEqual(set(kills[0]), {'ts', 'event', 'reason'})  # no body, no address
+            # After the flood a legitimate match is fast again: the spare took over, the rebuild ran off the path.
+            started = time.perf_counter()
+            self.assertEqual(client.call('/api/trajectory-store/match', body=light)[0], 200)
+            self.assertLess(time.perf_counter() - started, 1.0)
+        finally:
+            client.close()
+
+    def test_one_client_within_the_front_doors_bounds_cannot_starve_others(self):
+        # Traefik now lets one client have one match in flight and about one per 3 s (ingress-match.yaml). Scaled down
+        # in the time limit only (0.5 s; still one costly match per 3 s, one at a time, as the spare worker's rebuild
+        # takes about a second whatever the limit), every legitimate match is answered, after waiting at most for the
+        # one costly match ahead of it.
+        from test_store_trajectory import requests
+        client = Client(server.serve('127.0.0.1', 0, hosted=True, match_time_limit=0.5))
+        try:
+            wait_ready(client)
+            pids = sorted(p['patient_id'] for p in json.loads(store_trajectory.COHORT.read_text())['patients'])
+            light = list(requests(pids).values())[0]
+            heavy = costly_request({pid: {'start': 0, 'end': 3653 * 10 * 1440} for pid in pids})
+            stop = time.time() + 7
+            attack, user = [], []
+
+            def attacker():
+                while time.time() < stop:
+                    started = time.time()
+                    attack.append(client.call('/api/trajectory-store/match', body=heavy)[0])
+                    time.sleep(max(0, 3 - (time.time() - started)))
+
+            def legitimate():
+                while time.time() < stop:
+                    started = time.perf_counter()
+                    status = client.call('/api/trajectory-store/match', body=light)[0]
+                    user.append((status, round(time.perf_counter() - started, 2)))
+                    time.sleep(0.3)
+            threads = [threading.Thread(target=attacker), threading.Thread(target=legitimate)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(30)
+            self.assertTrue(attack and all(code == 503 for code in attack), attack)
+            self.assertTrue(all(status == 200 for status, _ in user), user)
+            self.assertLess(max(seconds for _, seconds in user), 0.5 + 1.0, user)
+        finally:
+            client.close()
+
+    def test_a_failure_after_the_write_kills_the_worker_and_is_named(self):
+        import match_worker
+        matcher = match_worker.IsolatedMatcher(store_trajectory.COHORT, time_limit=5).start()
+        try:
+            pids = sorted(p['patient_id'] for p in json.loads(store_trajectory.COHORT.read_text())['patients'])
+            from test_store_trajectory import requests
+            light = list(requests(pids).values())[0]
+            self.assertIn('results', matcher.match(light))
+            for failure in (EOFError('closed'), ValueError('garbage')):
+                child = matcher._active
+                with mock.patch.object(match_worker._Child, 'read', side_effect=failure):
+                    with self.assertRaises(store_trajectory.Unavailable) as caught:
+                        matcher.match(light)
+                self.assertEqual(str(caught.exception), 'MATCH_WORKER_FAILED')  # a crash is not a time limit
+                self.assertIsNotNone(child.process.poll(), 'the worker is killed, never reused')
+                deadline = time.time() + 10
+                while matcher._spare is None and time.time() < deadline:
+                    time.sleep(0.1)
+                self.assertIn('results', matcher.match(light))
+            self.assertEqual(matcher.kills, 2)
+        finally:
+            matcher.close()
+
+    def test_the_time_limit_must_be_finite_and_bounded_when_hosted(self):
+        for bad in (float('inf'), float('nan'), 0, -1, 31, True):
+            with self.assertRaises(ValueError, msg=bad):
+                server.match_time_limit_from(bad, hosted=True)
+        for raw in ('inf', '0', '', 'abc', '45'):
+            with mock.patch.dict(os.environ, {'PTM_MATCH_TIME_LIMIT': raw}):
+                if raw == '':
+                    self.assertEqual(server.match_time_limit_from(None, hosted=True), server.HOSTED_MATCH_TIME_LIMIT)
+                else:
+                    with self.assertRaises(ValueError, msg=raw):
+                        server.match_time_limit_from(None, hosted=True)
+        self.assertEqual(server.match_time_limit_from(None, hosted=False), 0)  # locally: in-process, as before
+        self.assertEqual(server.match_time_limit_from(0, hosted=False), 0)
+        self.assertEqual(server.match_time_limit_from(30, hosted=True), 30)
+        with self.assertRaises(ValueError):
+            server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True, match_time_limit=float('inf'))
 
 
 if __name__ == '__main__':

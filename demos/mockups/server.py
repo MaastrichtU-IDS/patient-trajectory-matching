@@ -58,6 +58,7 @@ from functools import partial
 import hashlib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -79,7 +80,8 @@ import store_query  # noqa: E402
 import store_trajectory  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024
-GATE_WAIT = 5            # seconds a match waits for a free slot under PTM_MATCH_CONCURRENCY before 503 BUSY
+GATE_WAIT = 3            # seconds a match may wait in all (for a match slot, then for the hosted match worker) before
+                         # 503 BUSY: a legitimate match is answered or refused within GATE_WAIT + the time limit
 HOSTED_MATCH_CONCURRENCY = 4
 MAX_THREADS = 64         # requests in flight; one more gets 503 BUSY without a thread
 REQUEST_TIMEOUT = 30     # seconds a connection may sit idle mid-request
@@ -96,6 +98,8 @@ HOSTED_MAX_RELAXATIONS = 6
 HOSTED_COST_BUDGET = Fraction(1)
 HOSTED_SEARCH_BUDGET = 1000      # clamped server-side; a search that reaches it is the engine's own `unresolved`
 HOSTED_MATCH_TIME_LIMIT = 2.0    # seconds; a store match still running is killed (match_worker.py)
+MAX_MATCH_TIME_LIMIT = 30.0      # PTM_MATCH_TIME_LIMIT above this (or not a finite number) is refused at startup
+HOSTED_WORKER_MAX_MIB = 400      # the match worker's address-space limit (RLIMIT_AS), PTM_MATCH_WORKER_MAX_MIB
 PROBE_RESERVE = 4                # threads beyond PTM_MAX_THREADS for /api/health and /api/ready only
 PROBE_ROUTES = frozenset({'/api/health', '/api/ready'})
 SECURITY_HEADERS = (('X-Content-Type-Options', 'nosniff'), ('Referrer-Policy', 'no-referrer'),
@@ -367,9 +371,12 @@ class Handler(SimpleHTTPRequestHandler):
         if operation == 'match':
             hosted = self.hosted
             if dataset.kind == 'synthetic-trajectory':
-                matcher = dataset.matcher or service  # hosted: a child process with a time limit
+                matcher = dataset.matcher
+                if matcher is not None:  # hosted: a child process with a time limit, waited for until the deadline
+                    return self.gated_body(lambda data: self.trajectory_answer(
+                        lambda: matcher.match(hosted_request(check_size(data, hosted)), wait=self.queue_left())))
                 return self.gated_body(lambda data: self.trajectory_answer(
-                    lambda: matcher.match(hosted_request(check_size(data, hosted)) if hosted else check_size(data))))
+                    lambda: service.match(hosted_request(check_size(data, hosted)) if hosted else check_size(data))))
             return self.gated_body(lambda data: self.store_answer(lambda: service.match(check_size(data, hosted))))
         if dataset.kind == 'synthetic-trajectory':
             return self.trajectory_answer(service.status)
@@ -438,8 +445,14 @@ class Handler(SimpleHTTPRequestHandler):
             code = str(error) if isinstance(error, (engine.TrajectoryError, SizeError)) else 'MALFORMED_REQUEST'
             return self.send_json(400, {'error': code})
 
+    def queue_left(self):
+        """Seconds left of this match's GATE_WAIT deadline (at least a moment, so a free worker is still taken)."""
+        return max(0.05, getattr(self, 'queue_deadline', time.monotonic() + GATE_WAIT) - time.monotonic())
+
     def gated(self, run):
-        """`run` under PTM_MATCH_CONCURRENCY: a match waits up to GATE_WAIT seconds for a slot, then gets 503 BUSY."""
+        """`run` under PTM_MATCH_CONCURRENCY: a match waits up to GATE_WAIT seconds for a slot, then gets 503 BUSY.
+        The same deadline then bounds its wait for the hosted match worker (`queue_left`)."""
+        self.queue_deadline = time.monotonic() + GATE_WAIT
         gate = self.match_gate
         if gate is None:
             return run()
@@ -594,6 +607,31 @@ class Server(ThreadingHTTPServer):
                 dataset.matcher.close()
 
 
+def log_event(event, **fields):
+    """A server event (not a request) as one JSON line on stdout: its name and named fields, never a body or address."""
+    with LOG_LOCK:
+        sys.stdout.write(json.dumps({'ts': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'event': event, **fields}) + '\n')
+        sys.stdout.flush()
+
+
+def match_time_limit_from(value, hosted):
+    """The match time limit in seconds: `value`, else PTM_MATCH_TIME_LIMIT, else 2 hosted and 0 (none) locally.
+    Hosted it must be a finite number with 0 < x <= 30: `inf` would hang matching for good and 0 would silently
+    remove the bound, so either refuses startup (ValueError). Locally 0 means in-process matching, as before."""
+    if value is None:
+        raw = os.environ.get('PTM_MATCH_TIME_LIMIT')
+        if raw in (None, ''):
+            return HOSTED_MATCH_TIME_LIMIT if hosted else 0
+        try:
+            value = float(raw)
+        except ValueError:
+            raise ValueError('PTM_MATCH_TIME_LIMIT_MUST_BE_A_NUMBER_OF_SECONDS') from None
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) \
+            or value < 0 or value > MAX_MATCH_TIME_LIMIT or (hosted and value == 0):
+        raise ValueError('PTM_MATCH_TIME_LIMIT_MUST_BE_ABOVE_0_AND_AT_MOST_30_S')
+    return value
+
+
 def _int_env(name, default):
     value = os.environ.get(name)
     if value in (None, ''):
@@ -627,9 +665,8 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
         raise ValueError('NON_PUBLIC_DATASET_NEEDS_OIDC_ON_A_NON_LOOPBACK_BIND')
     if hosted and verifier is not None and not verifier.client_id:
         raise ValueError('HOSTED_REALM_NEEDS_PTM_OIDC_CLIENT_ID')  # so that `azp` is always checked when hosted
-    if match_time_limit is None:
-        raw = os.environ.get('PTM_MATCH_TIME_LIMIT')
-        match_time_limit = float(raw) if raw not in (None, '') else (HOSTED_MATCH_TIME_LIMIT if hosted else 0)
+    match_time_limit = match_time_limit_from(match_time_limit, hosted)
+    worker_mib = _int_env('PTM_MATCH_WORKER_MAX_MIB', HOSTED_WORKER_MAX_MIB if hosted else 0)
     pin = {'pin': demo_pin} if demo_pin else {}
     built = []
     for entry in entries:
@@ -665,8 +702,8 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
         if dataset.kind == 'synthetic-trajectory':
             dataset.service.start()      # built now, on its own thread
             if match_time_limit:         # hosted: matches in a child process with a hard time limit
-                dataset.matcher = match_worker.IsolatedMatcher(dataset.service.cohort_path, root,
-                                                               match_time_limit).start()
+                dataset.matcher = match_worker.IsolatedMatcher(
+                    dataset.service.cohort_path, root, match_time_limit, memory_mib=worker_mib, on_event=log_event).start()
         elif hosted:
             dataset.open_in_background()  # hosted: opened now, so readiness covers it; locally at first use
     httpd.trajectory_store = first_synthetic.service if first_synthetic else None

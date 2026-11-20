@@ -29,9 +29,27 @@ metadata:
   name: ptm-match-ratelimit
 spec:
   rateLimit:
+    # About one match per 3 s per client (final check of D50: a costly match holds the worker for up to the 2 s time
+    # limit). The page sends one match per edit, without debouncing, so the burst of 6 lets a person make a run of
+    # quick edits; beyond it a match gets 429 and the page matches that query in the browser.
     average: 1
-    period: 1s
-    burst: 5
+    period: 3s
+    burst: 6
+---
+# One match in flight per client address (final check of D50): a client cannot queue costly matches behind each
+# other, so the one match worker is held by at most one of its requests at a time, and a legitimate match waits at
+# most one time limit. The source is the connection's address (`ipStrategy: {}`); inFlightReq's own default would be
+# the request's Host, which is the same for everyone. CAVEAT: people behind one NAT address share this allowance;
+# if that bites (a whole department on one address), raise `amount`.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ptm-match-inflight
+spec:
+  inFlightReq:
+    amount: 1
+    sourceCriterion:
+      ipStrategy: {}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

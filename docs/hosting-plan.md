@@ -316,6 +316,44 @@ found one medium and nine low issues, all fixed:
   - *Tests:* the costliest shape, at a 1 s limit, is cut with 503 and the store answers the next request; the
     page-shaped requests answered through the child equal the in-process answers; the caps and the clamp; the
     reviewer's 6-step chain now answers in 0.15 s, and its 12-step chain gets 400.
+- **The final check (of `f4bf811`).** It confirmed the per-request bound: no request held the store for more than
+  about 2.2 s, plus a 1.1 s restart. It found no injection and no leak. It raised one medium-low and two lows, now
+  fixed.
+  - *Medium-low: one client kept the worker's queue full.*
+    - *Finding:* a costly match cost about 3.2 s (the kill plus the restart), and the rate limit allowed one a
+      second, so legitimate matches waited 12 to 16 s.
+    - *Fix, in the pod:*
+      - a spare worker is kept built, so after a kill the next match goes to it and the rebuild runs off the request
+        path;
+      - readiness waits for the spare;
+      - a match waits at most `GATE_WAIT` (now 3 s) **in all**, for a match slot and then for the worker, before
+        `503 BUSY`. A legitimate match is therefore answered or refused within 3 s plus one time limit;
+      - each kill is logged as `match_killed` (reason only).
+    - *Fix, at the front door:* `ptm-match-inflight` allows one match in flight per client address, and the match
+      rate limit is about one per 3 s with a burst of 6. The page sends one match per edit, without debouncing, and
+      the burst covers a run of quick edits. Clients behind one NAT address share this allowance, which is noted
+      for the admin.
+    - *Measured* in a Linux container (python 3.11, one CPU, the same wheels), running the reviewer's 30 s storm:
+      - with only the pod's bounds (an attacker sending a costly match every second), every legitimate match is
+        answered or refused BUSY within 3.04 s, never 12 to 16;
+      - with the front door's bounds as well (one costly match in flight, one per 3 s), all 10 legitimate matches
+        are answered, the slowest in 2.04 s.
+    - *Tests (scaled down):* the in-pod flood keeps legitimate matches within the bound and logs the kills;
+      one client within the front door's bounds cannot starve others.
+  - *Low: `PTM_MATCH_TIME_LIMIT` was not validated.* When hosted it must be a finite number with
+    0 < x <= 30, or the server refuses to start (tested: `inf`, `nan`, 0, -1, 31 and text). After the write, any
+    exception kills the worker. A crash, an EOF or a line that is not an answer is `503 MATCH_WORKER_FAILED`, not
+    `MATCH_TIME_LIMIT` (tested).
+  - *Low and informational:*
+    - The worker's protocol runs on a duplicate of its original stdout. Its fd 1 and `sys.stdout` point at the
+      discarded stderr, so nothing printed (a DuckDB progress bar, say) can corrupt an answer.
+    - The worker limits its own address space (RLIMIT_AS, `PTM_MATCH_WORKER_MAX_MIB`, 400 MiB, on Linux) and caps
+      malloc arenas at 2.
+    - *Measured:* DuckDB sizes its threads by the cgroup CPU limit, so with the pod's limit of 1 a worker uses about
+      145 MiB resident and 305 MiB of address space; at six CPUs it is 484 MiB, which a 400 MiB limit refuses.
+    - The limit is therefore tied to the CPU limit in `app.yaml`, and a worker that cannot start leaves the pod
+      unready (`match_worker_start_failed`) rather than serving without a bound.
+    - The pod's memory limit is raised to 1 GiB: the server, the active worker and its spare.
 - **The re-check's lows, fixed:**
   - *Probes:* 4 threads beyond `PTM_MAX_THREADS` serve only `/api/health` and `/api/ready`, and liveness is a TCP
     probe.

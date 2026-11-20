@@ -163,7 +163,9 @@ class Dataset:
             # latency verdict, so it is left unchanged rather than given a method of its own.
             if not service._ready.is_set():
                 return 'pending'
-            return 'ready' if service._store is not None else 'failed'
+            if service._store is None:
+                return 'failed'
+            return self.matcher.state() if self.matcher is not None else 'ready'
         if not service.opened and not self._opening:
             return 'idle'
         return service.state()

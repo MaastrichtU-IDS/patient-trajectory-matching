@@ -1,6 +1,7 @@
 # ids3/projects/ptm/dev/ingress-match.yaml
 # The match routes, on their own Ingress so they get a tighter per-client rate limit (ptm-match-ratelimit: about one
-# a second, burst five) on top of the general one (security review of D50, M1). These paths take only POST; every
+# per 3 s, burst six) and at most one match in flight per client (ptm-match-inflight), on top of the general limit
+# (security review of D50, M1, and its final check). These paths take only POST; every
 # match is real work, while page loads are cheap.
 #
 # Exact paths, one per match route the server answers when hosted: the two old aliases and one per dataset in the
@@ -16,7 +17,7 @@ kind: Ingress
 metadata:
   name: ptm-mockups-match
   annotations:
-    traefik.ingress.kubernetes.io/router.middlewares: ptm-dev-ptm-hsts@kubernetescrd,ptm-dev-ptm-ratelimit@kubernetescrd,ptm-dev-ptm-match-ratelimit@kubernetescrd,ptm-dev-ptm-body-limit@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: ptm-dev-ptm-hsts@kubernetescrd,ptm-dev-ptm-ratelimit@kubernetescrd,ptm-dev-ptm-match-ratelimit@kubernetescrd,ptm-dev-ptm-match-inflight@kubernetescrd,ptm-dev-ptm-body-limit@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:

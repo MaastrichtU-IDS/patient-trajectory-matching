@@ -264,8 +264,9 @@ what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/h
   public datasets only. On any other address, a non-public dataset without a realm means the server refuses to start.
 - **Hosted** (any non-loopback bind): the anonymous engine route is off (the page uses the store, and falls back to
   the browser if the engine is chosen), only page asset types are served with no directory listings, and MIMIC
-  stores open at startup. Synthetic-store matches run in a child process (`match_worker.py`) killed after
-  `PTM_MATCH_TIME_LIMIT` seconds (default 2; `503 MATCH_TIME_LIMIT`), searches are clamped to 1,000 attempts per
+  stores open at startup. Synthetic-store matches run in a child process (`match_worker.py`, with a spare kept built) killed after
+  `PTM_MATCH_TIME_LIMIT` seconds (default 2, at most 30; `503 MATCH_TIME_LIMIT`; a crash is `503 MATCH_WORKER_FAILED`;
+  each kill is logged as `match_killed`), a match waits at most 3 s in all before `503 BUSY`, searches are clamped to 1,000 attempts per
   patient (a search that reaches it is `unresolved`, `SEARCH_BUDGET_EXHAUSTED`), and requests are capped at 6 steps, 8
   relations, 6 relaxations and a relaxation cost budget of 1. `GET /api/limits` says so, and the trajectory page shows
   it. The page's own requests never reach these bounds (D50). A realm needs `PTM_OIDC_CLIENT_ID` when hosted.
@@ -276,7 +277,7 @@ what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/h
   every started dataset is ready (counts for the owner only; it never opens a store); `/api/health` answers from the
   start. `--datasets FILE` (or `PTM_DATASETS`) names a registry; without one the flags build it.
 - **Limits and logs.** `PTM_MAX_BODY` (default 20 MiB), `PTM_MATCH_CONCURRENCY` (default unlimited locally, 4
-  hosted; the slot is taken before a body is read; extra matches wait 5 s, then get `503 BUSY`), `PTM_MAX_THREADS`
+  hosted; the slot is taken before a body is read; extra matches wait 3 s in all, then get `503 BUSY`), `PTM_MAX_THREADS`
   (requests in flight, default 64; beyond, 4 reserve threads serve only the probes, then `503 BUSY` at once), a
   30 s socket timeout, a 404 for any path holding a NUL byte, and caps on steps (12),
   relations and relaxations (40 each), and the engine route's patients (500) and events (50,000). With `PTM_LOG_FORMAT=json`, one JSON line per API request: route, status, duration,

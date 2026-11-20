@@ -82,12 +82,15 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
-          # Measured locally: about 180 MB peak RSS with the store built and a match served (hosting plan, section 6),
-          # plus about as much again for the match worker's copy of the store (match_worker.py). Re-measure on the
-          # cluster after the first deploy and adjust.
+          # Measured: about 180 MB peak RSS for the server with its store, plus about 145 MiB for each of the two match
+          # workers (the active one and its spare, match_worker.py). Re-measure on the cluster after the first deploy.
+          # The CPU limit of 1 also sizes DuckDB: it starts one thread per CPU of the cgroup limit, and the match
+          # worker's address-space limit (PTM_MATCH_WORKER_MAX_MIB, 400) fits one CPU with room to spare. Measured in
+          # a Linux container at one CPU: each worker about 145 MiB resident and 305 MiB of address space; at six CPUs
+          # 484 MiB. Raise PTM_MATCH_WORKER_MAX_MIB (about 36 MiB per extra CPU) if this limit is raised.
           resources:
-            requests: { cpu: 100m, memory: 256Mi }
-            limits: { cpu: "1", memory: 768Mi }
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { cpu: "1", memory: 1Gi }
       volumes:
         - name: tmp
           emptyDir: { sizeLimit: 512Mi }
