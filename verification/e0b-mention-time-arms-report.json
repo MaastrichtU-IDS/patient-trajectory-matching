@@ -306,7 +306,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.623,
+    "seconds": 1.607,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -391,7 +391,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.597,
+    "seconds": 1.615,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -478,7 +478,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.603,
+    "seconds": 1.62,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -529,7 +529,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.748,
+    "seconds": 1.757,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -578,7 +578,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.736,
+    "seconds": 1.762,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -629,7 +629,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.758,
+    "seconds": 1.772,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -680,7 +680,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.999,
+    "seconds": 1.988,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -729,7 +729,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 1.926,
+    "seconds": 1.945,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -778,7 +778,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.085,
+    "seconds": 2.023,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -977,7 +977,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.37,
+    "seconds": 0.374,
     "distinct_child_types": {
      "types": 44,
      "types_unresolved": 0
@@ -1371,7 +1371,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.355,
+    "seconds": 0.351,
     "distinct_child_types": {
      "types": 44,
      "types_unresolved": 0
@@ -1460,7 +1460,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.087,
+    "seconds": 2.113,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -1547,7 +1547,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.106,
+    "seconds": 2.129,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -1634,7 +1634,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.105,
+    "seconds": 2.125,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -1687,7 +1687,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.034,
+    "seconds": 2.053,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -1738,7 +1738,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.074,
+    "seconds": 2.088,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -1789,7 +1789,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.101,
+    "seconds": 2.084,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -1842,7 +1842,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.329,
+    "seconds": 2.324,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -1893,7 +1893,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.324,
+    "seconds": 2.354,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -1944,7 +1944,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 2.452,
+    "seconds": 2.366,
     "distinct_child_types": {
      "types": 7,
      "types_unresolved": 0
@@ -2033,7 +2033,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.936,
+    "seconds": 0.934,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -2120,7 +2120,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.926,
+    "seconds": 0.934,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -2207,7 +2207,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.936,
+    "seconds": 0.949,
     "distinct_child_types": {
      "types": 16,
      "types_unresolved": 0
@@ -2405,7 +2405,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.55,
+    "seconds": 0.553,
     "distinct_child_types": {
      "types": 44,
      "types_unresolved": 0
@@ -2601,7 +2601,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.559,
+    "seconds": 0.554,
     "distinct_child_types": {
      "types": 44,
      "types_unresolved": 0
@@ -2797,7 +2797,7 @@
       "unresolved": 0
      }
     },
-    "seconds": 0.549,
+    "seconds": 0.548,
     "distinct_child_types": {
      "types": 44,
      "types_unresolved": 0
@@ -3558,115 +3558,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05108233401551843,
+      "seconds": 0.0525261671282351,
       "digest": "8319c86f96f786aea032124e811b910622821d98d6c5673a4d70e69bea0298e2"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06843366706743836,
+      "seconds": 0.06917941709980369,
       "digest": "d681a95795cd634a0371e9c524632ec6b68b82a1bc1fa4cc983e25776546e08b"
      },
      "tree, stated findings": {
-      "seconds": 0.057223166804760695,
+      "seconds": 0.057864333037287,
       "digest": "5c4e88948bec89d1ddd94330e9383b9ac0925d57caada74e425b1410b3f55121"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0678103337995708,
+      "seconds": 0.06733212480321527,
       "digest": "01a2729e3b4281b5586bc31e1f5d660c8b9e329093d4a21fff70f1e2b5e9cf96"
      },
      "graph, stated findings": {
-      "seconds": 0.07059554196894169,
+      "seconds": 0.07037137495353818,
       "digest": "7293e206b84744c2c2693e6aa98be08873203d2ea44bc88b2a072ead434d268f"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07634170819073915,
+      "seconds": 0.07541370904073119,
       "digest": "08f1e1339811e0e11f95a3e2fada823843e932abed382b6da08182f9688373ad"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02375291706994176,
+      "seconds": 0.023134750314056873,
       "digest": "f807041c17d53ea5f207ad6fdf18a791f743f36c90056a5267a823cacaa4cc92"
      },
      "blank, stated findings": {
-      "seconds": 0.010596499778330326,
+      "seconds": 0.010788166895508766,
       "digest": "86685ee0d500a1a575c1df69c25f227ad0c2e4e8a0500d211dd39cfc46e0a603"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.0175476660951972,
+      "seconds": 0.018112082965672016,
       "digest": "77e77c3ecf34cbdc3206381e6e6f6e8d6a0248e6c79955bea15ac4a8b159a8de"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05136058293282986,
+      "seconds": 0.05897320806980133,
       "digest": "8114ab70c096779b96cdf9f47f5bcf8e707e9c3971bbce55d69dfa9528ff6be7"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06801824970170856,
+      "seconds": 0.07213108381256461,
       "digest": "d681a95795cd634a0371e9c524632ec6b68b82a1bc1fa4cc983e25776546e08b"
      },
      "tree, stated findings": {
-      "seconds": 0.05691720871254802,
+      "seconds": 0.05749116698279977,
       "digest": "b5b8d2be851945cff0f93f88a0b34cc4b73e03675be827b502ee55d51dd2fe6e"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06766666611656547,
+      "seconds": 0.06782079208642244,
       "digest": "01a2729e3b4281b5586bc31e1f5d660c8b9e329093d4a21fff70f1e2b5e9cf96"
      },
      "graph, stated findings": {
-      "seconds": 0.06402854202315211,
+      "seconds": 0.06329999957233667,
       "digest": "8ee63784d9b411eb6933a3a66daf91b92464a067e73ae1df61d606a68383e83f"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07530208304524422,
+      "seconds": 0.07560524996370077,
       "digest": "08f1e1339811e0e11f95a3e2fada823843e932abed382b6da08182f9688373ad"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023185249883681536,
+      "seconds": 0.023990457877516747,
       "digest": "f807041c17d53ea5f207ad6fdf18a791f743f36c90056a5267a823cacaa4cc92"
      },
      "blank, stated findings": {
-      "seconds": 0.010640707798302174,
+      "seconds": 0.01048658275976777,
       "digest": "b8f22e96fb6c8bb6377e4256ad90111a07d4ccf9b3e5db88980b5828738164a8"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017578499857336283,
+      "seconds": 0.017536666709929705,
       "digest": "77e77c3ecf34cbdc3206381e6e6f6e8d6a0248e6c79955bea15ac4a8b159a8de"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05087650008499622,
+      "seconds": 0.05037004221230745,
       "digest": "98b0c6fd3aa0bf3359507a6d03db5fb0602ee7f3985265d9a8d08975efd65e9b"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0681068329140544,
+      "seconds": 0.06942266691476107,
       "digest": "d681a95795cd634a0371e9c524632ec6b68b82a1bc1fa4cc983e25776546e08b"
      },
      "tree, stated findings": {
-      "seconds": 0.05793070886284113,
+      "seconds": 0.05706087499856949,
       "digest": "a3c98a3e61c01ed8266720ef3984d958f2b05fb15969faeba462d6308c09ebe1"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07390937535092235,
+      "seconds": 0.07382045779377222,
       "digest": "01a2729e3b4281b5586bc31e1f5d660c8b9e329093d4a21fff70f1e2b5e9cf96"
      },
      "graph, stated findings": {
-      "seconds": 0.07305908296257257,
+      "seconds": 0.07044933270663023,
       "digest": "e15cb7799fbbfd65d342fc235fc7d3c2226820903715f37803cc4fbf72ae11e5"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08101254189386964,
+      "seconds": 0.07595695788040757,
       "digest": "08f1e1339811e0e11f95a3e2fada823843e932abed382b6da08182f9688373ad"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023519957903772593,
+      "seconds": 0.023461916018277407,
       "digest": "f807041c17d53ea5f207ad6fdf18a791f743f36c90056a5267a823cacaa4cc92"
      },
      "blank, stated findings": {
-      "seconds": 0.010883249808102846,
+      "seconds": 0.010649207979440689,
       "digest": "71f8fc347f629ec23230a1a5f6bfe800495bc4c80abbcd7f9b2977fefde95c69"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01774204196408391,
+      "seconds": 0.01732395775616169,
       "digest": "77e77c3ecf34cbdc3206381e6e6f6e8d6a0248e6c79955bea15ac4a8b159a8de"
      }
     }
@@ -3683,115 +3683,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05317595833912492,
+      "seconds": 0.051976250018924475,
       "digest": "0f7e5fd6d15bf8f805061e8cc94c28e6c78398c8fd1c9a2224bcbf11c771c92b"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06970479199662805,
+      "seconds": 0.07107920804992318,
       "digest": "dc88d7dd6741a1d9d7a93a8070d715554a584c7871f1f29f7ccbc70012abc12c"
      },
      "tree, stated findings": {
-      "seconds": 0.0561127089895308,
+      "seconds": 0.05639800010249019,
       "digest": "9d5bcc87696567862ac989762705126b27467decb21338dd7806d265b81322bf"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0648996657691896,
+      "seconds": 0.06563112465664744,
       "digest": "d1d913e451d87a506ee3fd39eda15493dfaa0fa728d95496727cfa15fd944ce5"
      },
      "graph, stated findings": {
-      "seconds": 0.059692792128771544,
+      "seconds": 0.060569457709789276,
       "digest": "22cdb1c083819476bbc88d0fe2cfaa958cf1e7eed539e5d9d3234b49a6956616"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07132312469184399,
+      "seconds": 0.07194304140284657,
       "digest": "1e9a5052f508ccef10a4cce3b38a90587782e48f64ae587281dd9bcd3a7656f5"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024455249775201082,
+      "seconds": 0.023782957810908556,
       "digest": "5fce41d2e33e832dc49e4c4ee7ab5c4d0ae566794a7b07f8757b015fb9f3f914"
      },
      "blank, stated findings": {
-      "seconds": 0.016942208167165518,
+      "seconds": 0.01701291697099805,
       "digest": "7bc27382e5bf13be2bcd974d5d5ad8104b2969996181a71d91b422c3d0356b44"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018349541816860437,
+      "seconds": 0.0180007079616189,
       "digest": "80bb02786576a471451df6ba55851f8a25fd194a1ab94f0effe5dabdde0abc87"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05256525008007884,
+      "seconds": 0.05252145789563656,
       "digest": "f938c44bd3ef285a4e2d1015e28663394c9bcc2307c90b2180edd607a7ac6701"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06992445886135101,
+      "seconds": 0.07155954232439399,
       "digest": "dc88d7dd6741a1d9d7a93a8070d715554a584c7871f1f29f7ccbc70012abc12c"
      },
      "tree, stated findings": {
-      "seconds": 0.05516520794481039,
+      "seconds": 0.05621499987319112,
       "digest": "88be707d2e346d4ff14ae48f412fdb34a9d8020c87687a210869665b1bf8a75f"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06612649979069829,
+      "seconds": 0.06539520900696516,
       "digest": "d1d913e451d87a506ee3fd39eda15493dfaa0fa728d95496727cfa15fd944ce5"
      },
      "graph, stated findings": {
-      "seconds": 0.06010908307507634,
+      "seconds": 0.06030775001272559,
       "digest": "2d5931b30c661b53dbf4e41e9b81d6b3d106c27598b9d5702f067e5d1b2c3b20"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07273820787668228,
+      "seconds": 0.07204258302226663,
       "digest": "1e9a5052f508ccef10a4cce3b38a90587782e48f64ae587281dd9bcd3a7656f5"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02451962511986494,
+      "seconds": 0.023459792137145996,
       "digest": "5fce41d2e33e832dc49e4c4ee7ab5c4d0ae566794a7b07f8757b015fb9f3f914"
      },
      "blank, stated findings": {
-      "seconds": 0.010754832997918129,
+      "seconds": 0.010935209225863218,
       "digest": "ed3297bbe8cc93b2fb233bc1d15eb7fee1cdfb68eaaeaee89e85c94ef70e1e51"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017851500306278467,
+      "seconds": 0.0180097920820117,
       "digest": "80bb02786576a471451df6ba55851f8a25fd194a1ab94f0effe5dabdde0abc87"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05223975004628301,
+      "seconds": 0.05261895805597305,
       "digest": "1f88a482d28ce1bacd30965caa0bf3f839704d3262be91aae0124c67d2d469e0"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06890549976378679,
+      "seconds": 0.07081549987196922,
       "digest": "dc88d7dd6741a1d9d7a93a8070d715554a584c7871f1f29f7ccbc70012abc12c"
      },
      "tree, stated findings": {
-      "seconds": 0.055689250119030476,
+      "seconds": 0.05669112503528595,
       "digest": "f17b07ec53ee1640a79eb50986a8d50712ec7a8f62f043030fa925b92b5d7839"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06507829111069441,
+      "seconds": 0.06526266690343618,
       "digest": "d1d913e451d87a506ee3fd39eda15493dfaa0fa728d95496727cfa15fd944ce5"
      },
      "graph, stated findings": {
-      "seconds": 0.07000870816409588,
+      "seconds": 0.07049929164350033,
       "digest": "ff0f649579ce00eda87da11784edbd352279abeb5daf6d111a5cd7013c6f0601"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08001604164019227,
+      "seconds": 0.0729762502014637,
       "digest": "1e9a5052f508ccef10a4cce3b38a90587782e48f64ae587281dd9bcd3a7656f5"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024413458071649075,
+      "seconds": 0.024347833823412657,
       "digest": "5fce41d2e33e832dc49e4c4ee7ab5c4d0ae566794a7b07f8757b015fb9f3f914"
      },
      "blank, stated findings": {
-      "seconds": 0.01139054074883461,
+      "seconds": 0.010815875139087439,
       "digest": "a1946cb1fb95f651e2e42cc42aa2bc27bcc4fbb6fe416054cd227e060eb055bd"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018105833791196346,
+      "seconds": 0.01845324970781803,
       "digest": "80bb02786576a471451df6ba55851f8a25fd194a1ab94f0effe5dabdde0abc87"
      }
     }
@@ -3808,115 +3808,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05629016598686576,
+      "seconds": 0.05555766727775335,
       "digest": "6dbbf6fec811c9bbf10a91ae3b07e0dc5b408385cf8de02d9ae82653c0aa89a5"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07189479190856218,
+      "seconds": 0.07243370823562145,
       "digest": "4f12ebb60ae189747b4a54c372c20d995d79f3fb13a9468e30016de668d9d650"
      },
      "tree, stated findings": {
-      "seconds": 0.05884133279323578,
+      "seconds": 0.059681040700525045,
       "digest": "a7273ff12dca665acc972bc10bba099c71af0c195a06706f3e374e95fce23b20"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06922679115086794,
+      "seconds": 0.07084649987518787,
       "digest": "0d64eba4073bb4336816c1ca988d1f1205da884d35ff3964fadf81924993f2af"
      },
      "graph, stated findings": {
-      "seconds": 0.07403800031170249,
+      "seconds": 0.07303049974143505,
       "digest": "76305609ef7dd8236933ad792c3cd39f37bbf2f4af1dc69951b5156c45b042ad"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07832620944827795,
+      "seconds": 0.07853329088538885,
       "digest": "b3b8d21ee9f6d9b17367c28c3fb9275ab6e4e0c6dcd9ea98c4164f120d2d56a0"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024246749933809042,
+      "seconds": 0.02468966692686081,
       "digest": "89610483306f206f4b345b5a825456a5522f51eb8d08313c2ef7c7dc24485713"
      },
      "blank, stated findings": {
-      "seconds": 0.011256624944508076,
+      "seconds": 0.011435790918767452,
       "digest": "108be90be710a75bfccec04c7df374bc461bc1e57980f6629946ba59c14c24e5"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017633291892707348,
+      "seconds": 0.01767308311536908,
       "digest": "21bb21f16f74172c78856792581fd07b05e2aed33085560b84c1cfcc90d9b569"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05465412512421608,
+      "seconds": 0.05554716708138585,
       "digest": "a7b067abe56ae92d3cf5f765eac522bad3084744db315bceae5c4dcd583d0a0a"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07176008401438594,
+      "seconds": 0.07214354071766138,
       "digest": "4f12ebb60ae189747b4a54c372c20d995d79f3fb13a9468e30016de668d9d650"
      },
      "tree, stated findings": {
-      "seconds": 0.05948312534019351,
+      "seconds": 0.05960350017994642,
       "digest": "2b3ad21bf963232cc708e1383a4990aa126075a793cf339b2c330f0a5fb0bf7b"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06984162516891956,
+      "seconds": 0.0693145003169775,
       "digest": "0d64eba4073bb4336816c1ca988d1f1205da884d35ff3964fadf81924993f2af"
      },
      "graph, stated findings": {
-      "seconds": 0.0689044171012938,
+      "seconds": 0.06719245808199048,
       "digest": "62b887d8e6d49ccf277b259ef7736d55abcff7db576e4737be663bff25ee5510"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07939995918422937,
+      "seconds": 0.08045929111540318,
       "digest": "b3b8d21ee9f6d9b17367c28c3fb9275ab6e4e0c6dcd9ea98c4164f120d2d56a0"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02379295788705349,
+      "seconds": 0.024737750180065632,
       "digest": "89610483306f206f4b345b5a825456a5522f51eb8d08313c2ef7c7dc24485713"
      },
      "blank, stated findings": {
-      "seconds": 0.017362958751618862,
+      "seconds": 0.01767487498000264,
       "digest": "dc0e14b4b6ed87d3e533830944d8af1c317286208596118c3d3ccaa253642b76"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.02031087502837181,
+      "seconds": 0.018278374802321196,
       "digest": "21bb21f16f74172c78856792581fd07b05e2aed33085560b84c1cfcc90d9b569"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.054669708013534546,
+      "seconds": 0.05491337459534407,
       "digest": "8bac26ec1b014428138edebc2eadecc4c0f10b28afc2f082696121a54b09ca0d"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07181570772081614,
+      "seconds": 0.07233454193919897,
       "digest": "4f12ebb60ae189747b4a54c372c20d995d79f3fb13a9468e30016de668d9d650"
      },
      "tree, stated findings": {
-      "seconds": 0.05993016669526696,
+      "seconds": 0.060432208236306906,
       "digest": "3478e0e07339b3547e2e47e33635ba5b7f0c0fc3123d0a12120f339173d4a335"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07129545835778117,
+      "seconds": 0.07009016675874591,
       "digest": "0d64eba4073bb4336816c1ca988d1f1205da884d35ff3964fadf81924993f2af"
      },
      "graph, stated findings": {
-      "seconds": 0.07935570925474167,
+      "seconds": 0.07208812469616532,
       "digest": "1c3db3e49f4afb999c9a9689fe57edcaf4300e4a9b6c6ff6500eac140c9e20f9"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07878316706046462,
+      "seconds": 0.07812449987977743,
       "digest": "b3b8d21ee9f6d9b17367c28c3fb9275ab6e4e0c6dcd9ea98c4164f120d2d56a0"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02413945784792304,
+      "seconds": 0.024290834087878466,
       "digest": "89610483306f206f4b345b5a825456a5522f51eb8d08313c2ef7c7dc24485713"
      },
      "blank, stated findings": {
-      "seconds": 0.011359000112861395,
+      "seconds": 0.011189708020538092,
       "digest": "14ef9f5d0cd3a67888bf647173da4706ae971a3371608439a00612d5ccbb1014"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017949375323951244,
+      "seconds": 0.017773084342479706,
       "digest": "21bb21f16f74172c78856792581fd07b05e2aed33085560b84c1cfcc90d9b569"
      }
     }
@@ -3933,115 +3933,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.0527538750320673,
+      "seconds": 0.051092333160340786,
       "digest": "3481c3ccc57f9384c5209b88f8f61fe453c63a4c555b21e000fafcc36d688c31"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06867404095828533,
+      "seconds": 0.0690282080322504,
       "digest": "7bf7f71a525a8dd137de4d8f6ad92494a2cea81ecacb5a7508fba21781e687da"
      },
      "tree, stated findings": {
-      "seconds": 0.05690387496724725,
+      "seconds": 0.05600666720420122,
       "digest": "b18690430e9eb1e2b5407d7936f4b2c878ef6cb3c3fdcc48860a1b2af9dcf93c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06654633302241564,
+      "seconds": 0.06603295914828777,
       "digest": "ad12b6c198d336e8b8a375924d2856dca49fd12a126dfa188545b91c872395e5"
      },
      "graph, stated findings": {
-      "seconds": 0.06167362490668893,
+      "seconds": 0.06121233291924,
       "digest": "00c6464416adf5553569ee115a3d7cc3ff078d739c3f87808597f1113c579f3d"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07448383281007409,
+      "seconds": 0.07627491606399417,
       "digest": "a9eb6f4676240c75164209b9dfb9b8d0b4180a89eff12c833b3b040256251627"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03705037524923682,
+      "seconds": 0.035993208643049,
       "digest": "bee3bcbb67cc8ac176c83587ac5cd911be2448c94aa7f4892295ea505e60280e"
      },
      "blank, stated findings": {
-      "seconds": 0.011089874897152185,
+      "seconds": 0.011034166906028986,
       "digest": "633e0cfe7da3091089f5826e2fc733c8c23e636e3a0ff4c8bde5d027cf9146aa"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018581375014036894,
+      "seconds": 0.017609333153814077,
       "digest": "2d73107c93e7f126aa3e007f7bf150ca50ba2239b41bd82e93f54cc84a2640c3"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05133504094555974,
+      "seconds": 0.051740082912147045,
       "digest": "a3fdd17acf45d64612cce94e4a52825d7301739343bea0ebf4e74bdd02431407"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06804929208010435,
+      "seconds": 0.06751783285290003,
       "digest": "7bf7f71a525a8dd137de4d8f6ad92494a2cea81ecacb5a7508fba21781e687da"
      },
      "tree, stated findings": {
-      "seconds": 0.05595920793712139,
+      "seconds": 0.05582012515515089,
       "digest": "956440c1c2710f0befac76de55da51e9e586db76eec4055ac6b86c34bb1c8ccb"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06778499996289611,
+      "seconds": 0.0667465003207326,
       "digest": "ad12b6c198d336e8b8a375924d2856dca49fd12a126dfa188545b91c872395e5"
      },
      "graph, stated findings": {
-      "seconds": 0.061608666088432074,
+      "seconds": 0.060953875072300434,
       "digest": "96f638548b663626c84bc0a118088e82748742254a59d60646216f5291ff52e1"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0756860408000648,
+      "seconds": 0.07450162479653955,
       "digest": "a9eb6f4676240c75164209b9dfb9b8d0b4180a89eff12c833b3b040256251627"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03677933290600777,
+      "seconds": 0.03689450025558472,
       "digest": "bee3bcbb67cc8ac176c83587ac5cd911be2448c94aa7f4892295ea505e60280e"
      },
      "blank, stated findings": {
-      "seconds": 0.010784958023577929,
+      "seconds": 0.010909415781497955,
       "digest": "62ce4552484026c293aa4e33dca2713579ea1cd23410d5f0d44904b44321b990"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.023651749826967716,
+      "seconds": 0.023637291975319386,
       "digest": "2d73107c93e7f126aa3e007f7bf150ca50ba2239b41bd82e93f54cc84a2640c3"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.06503395829349756,
+      "seconds": 0.05891583301126957,
       "digest": "9865ead342ecf25e5328a7456f5776973619f63152235c5a85aa66cb86d46e33"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07626004191115499,
+      "seconds": 0.06963149970397353,
       "digest": "7bf7f71a525a8dd137de4d8f6ad92494a2cea81ecacb5a7508fba21781e687da"
      },
      "tree, stated findings": {
-      "seconds": 0.06071575032547116,
+      "seconds": 0.05696904193609953,
       "digest": "b520d59fc5db13664a383b1623c8917556a24405bc5f4a3851968d8a571b0d19"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07319404184818268,
+      "seconds": 0.06717399973422289,
       "digest": "ad12b6c198d336e8b8a375924d2856dca49fd12a126dfa188545b91c872395e5"
      },
      "graph, stated findings": {
-      "seconds": 0.0646198745816946,
+      "seconds": 0.06368445791304111,
       "digest": "cc31fcbb923f603a1ff504958e3eb8cba862f8b7256dbd31627d03c49ae57f25"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07886304100975394,
+      "seconds": 0.07470595790073276,
       "digest": "a9eb6f4676240c75164209b9dfb9b8d0b4180a89eff12c833b3b040256251627"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.036390624940395355,
+      "seconds": 0.036314459051936865,
       "digest": "bee3bcbb67cc8ac176c83587ac5cd911be2448c94aa7f4892295ea505e60280e"
      },
      "blank, stated findings": {
-      "seconds": 0.011572165880352259,
+      "seconds": 0.011223375331610441,
       "digest": "1a54fa4f25f58d3707d70e9d85d4052508c37c563da2d0a8986b0d832a39980b"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01853329222649336,
+      "seconds": 0.01798958331346512,
       "digest": "2d73107c93e7f126aa3e007f7bf150ca50ba2239b41bd82e93f54cc84a2640c3"
      }
     }
@@ -4058,115 +4058,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05276587512344122,
+      "seconds": 0.052054207772016525,
       "digest": "5d390f3b8db12ac5cd76b6c3fdc62bceb71c41b5645bee82e6acd3e170aacb2a"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06892604101449251,
+      "seconds": 0.06968945823609829,
       "digest": "d0d2b1205857d0b881d0a252adc7b8ab62c43e357f5731bad3de3f9d1a834542"
      },
      "tree, stated findings": {
-      "seconds": 0.057600084226578474,
+      "seconds": 0.05644833296537399,
       "digest": "d2c2d7eec5e50d9fc8b1a24bc9bd31d11940907f5d0d4df16acbe4467b3c4eb8"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06839912524446845,
+      "seconds": 0.0674820002168417,
       "digest": "e22a3b10a3d9743168446b868d1ef730c9f9ede62833f2b60012f36f86b041f6"
      },
      "graph, stated findings": {
-      "seconds": 0.06998666701838374,
+      "seconds": 0.06884566601365805,
       "digest": "2a347f2774566fb0093f50076b19329dbd62033ac0c6e31609899d95337eff06"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07671091705560684,
+      "seconds": 0.07551279105246067,
       "digest": "de8f499b4ef3c6f7548638ea5e98144ae8bc7fee619fce582a7973f6416fdb0b"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.0351458340883255,
+      "seconds": 0.034236165694892406,
       "digest": "808a447109be8254e672b34f2479fe91ac1c0c275ed7d93cd4ebb2111f5558d5"
      },
      "blank, stated findings": {
-      "seconds": 0.011164917144924402,
+      "seconds": 0.010977499652653933,
       "digest": "795022f8a93395ed821c52e27dd1424a61e277294723f7a5a4d8bb67ca0f57dc"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018016042187809944,
+      "seconds": 0.017678082920610905,
       "digest": "dd0c6694b682d692e1ad08ada2adb9887e1ea9971f825445b7ad53ec987265b6"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05140983406454325,
+      "seconds": 0.057196666952222586,
       "digest": "36b62f041b095097a89d4146a9a66108a5b6f423aab641c374698f6862d6bef0"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06952804187312722,
+      "seconds": 0.07089575007557869,
       "digest": "d0d2b1205857d0b881d0a252adc7b8ab62c43e357f5731bad3de3f9d1a834542"
      },
      "tree, stated findings": {
-      "seconds": 0.057603124994784594,
+      "seconds": 0.058010208420455456,
       "digest": "d89d4e64001e583949d22bf967e2d1c334a2bdbb70b49c7c679e08611d132544"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06720558274537325,
+      "seconds": 0.06647483259439468,
       "digest": "e22a3b10a3d9743168446b868d1ef730c9f9ede62833f2b60012f36f86b041f6"
      },
      "graph, stated findings": {
-      "seconds": 0.0629575839266181,
+      "seconds": 0.0630346667021513,
       "digest": "4c570d12ca819ad02b3c95e10dcd1f538f8d3f293f5de5d39ba659a256067e85"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0770666659809649,
+      "seconds": 0.0756516670808196,
       "digest": "de8f499b4ef3c6f7548638ea5e98144ae8bc7fee619fce582a7973f6416fdb0b"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.033795374911278486,
+      "seconds": 0.034963083919137716,
       "digest": "808a447109be8254e672b34f2479fe91ac1c0c275ed7d93cd4ebb2111f5558d5"
      },
      "blank, stated findings": {
-      "seconds": 0.010760957840830088,
+      "seconds": 0.010966707952320576,
       "digest": "3315765589ba6c6297e75670a89ae5cec9cc4e181b91c71c1f729de037479825"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017683124635368586,
+      "seconds": 0.017669832799583673,
       "digest": "dd0c6694b682d692e1ad08ada2adb9887e1ea9971f825445b7ad53ec987265b6"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05204887501895428,
+      "seconds": 0.05184441711753607,
       "digest": "972f13ffa51d174956a3b36bf1e6a6b73967f2f414de3b4f17e7ee83779fa077"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06920191599056125,
+      "seconds": 0.06859358306974173,
       "digest": "d0d2b1205857d0b881d0a252adc7b8ab62c43e357f5731bad3de3f9d1a834542"
      },
      "tree, stated findings": {
-      "seconds": 0.058228082954883575,
+      "seconds": 0.05634224973618984,
       "digest": "e7da0c27a4e60339ccf27121ce6d5a6d1c84006b4ef1f409128d3a35515cf0e5"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07377299992367625,
+      "seconds": 0.07229174999520183,
       "digest": "e22a3b10a3d9743168446b868d1ef730c9f9ede62833f2b60012f36f86b041f6"
      },
      "graph, stated findings": {
-      "seconds": 0.06346262479200959,
+      "seconds": 0.06383024994283915,
       "digest": "b5a5be6ccb33c763c791415f67d6630f95d6bca8426679e881d12f980459e0b5"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08166933339089155,
+      "seconds": 0.08085445780307055,
       "digest": "de8f499b4ef3c6f7548638ea5e98144ae8bc7fee619fce582a7973f6416fdb0b"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03677804209291935,
+      "seconds": 0.04008379206061363,
       "digest": "808a447109be8254e672b34f2479fe91ac1c0c275ed7d93cd4ebb2111f5558d5"
      },
      "blank, stated findings": {
-      "seconds": 0.011284582782536745,
+      "seconds": 0.012769666966050863,
       "digest": "fb66bd24641fa2104c309132859c085d498d0e77373ecc1f41b0dfc1f001a024"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017808665987104177,
+      "seconds": 0.020097500178962946,
       "digest": "dd0c6694b682d692e1ad08ada2adb9887e1ea9971f825445b7ad53ec987265b6"
      }
     }
@@ -4183,115 +4183,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.056359958834946156,
+      "seconds": 0.05518474988639355,
       "digest": "2aa18b20f6ee1afd092bf2ca6e813a0b7beee41dbd6257b8555caf502d778a09"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07224291609600186,
+      "seconds": 0.0714769996702671,
       "digest": "f75a6550ae2945f59b563a4d842bf2eda461c2b6d7f878a5ea3072ae4e45314a"
      },
      "tree, stated findings": {
-      "seconds": 0.06141295796260238,
+      "seconds": 0.06005920795723796,
       "digest": "1d777a5c5cce73b9e166451d7794939d8203097edb495f428a5fd6420fa9a84c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07091829180717468,
+      "seconds": 0.06850233301520348,
       "digest": "1999ca8b1a13abf382da3b2cc11dc5aa98fc2b315cfb7950db6ec0f57dcc9f03"
      },
      "graph, stated findings": {
-      "seconds": 0.0726342499256134,
+      "seconds": 0.07222524983808398,
       "digest": "24425127a28aad1e3ddb1038b1a5bae5fbb6f035e21e0f463480fbe20981c33e"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08074691705405712,
+      "seconds": 0.08036358328536153,
       "digest": "eff60d2e5d186e2cfaf28af959788ee9f75506f0476f10034ab1e0434dd9bd0f"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023493041284382343,
+      "seconds": 0.023026041220873594,
       "digest": "390c2435ad0a8547a63f8b7d94dd26b5d3b2f9bed1f4036e44c3993459539315"
      },
      "blank, stated findings": {
-      "seconds": 0.01139124995097518,
+      "seconds": 0.011413916014134884,
       "digest": "b9f41fce78ac06120ac8a3922dc2519fd4804f705c9e47e60320134cf748add0"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018650291953235865,
+      "seconds": 0.017700624652206898,
       "digest": "10e5a836ad20adf782172d15b7fe30d73ffad84bbd53e2cf94d3f8d37bd22903"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05624920781701803,
+      "seconds": 0.053592583630234,
       "digest": "17d5bbb683707b4d4cd1d2fbcdba924aec89c049979dbb7ad2595c55740bd403"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0713706249371171,
+      "seconds": 0.0718222907744348,
       "digest": "f75a6550ae2945f59b563a4d842bf2eda461c2b6d7f878a5ea3072ae4e45314a"
      },
      "tree, stated findings": {
-      "seconds": 0.06032183300703764,
+      "seconds": 0.059380958788096905,
       "digest": "9b5671cb6f0094b4a90b365784fcee48a929795098d07f98d1e0d502511c9da1"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07030274998396635,
+      "seconds": 0.06899616727605462,
       "digest": "1999ca8b1a13abf382da3b2cc11dc5aa98fc2b315cfb7950db6ec0f57dcc9f03"
      },
      "graph, stated findings": {
-      "seconds": 0.06647120881825686,
+      "seconds": 0.06641562515869737,
       "digest": "3a189a71f0ae7a8058af9cb6059ebbb9cefa4c088c5c45ec6b5038bc7b4ad840"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0804742919281125,
+      "seconds": 0.080486792139709,
       "digest": "eff60d2e5d186e2cfaf28af959788ee9f75506f0476f10034ab1e0434dd9bd0f"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023483708035200834,
+      "seconds": 0.02322566695511341,
       "digest": "390c2435ad0a8547a63f8b7d94dd26b5d3b2f9bed1f4036e44c3993459539315"
      },
      "blank, stated findings": {
-      "seconds": 0.011400667019188404,
+      "seconds": 0.01129124965518713,
       "digest": "46b0471661c9449ed45b0c945497b7fe2247a774afc33877e2c08aecd5848deb"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017635332886129618,
+      "seconds": 0.017575125209987164,
       "digest": "10e5a836ad20adf782172d15b7fe30d73ffad84bbd53e2cf94d3f8d37bd22903"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.06082466710358858,
+      "seconds": 0.06164666684344411,
       "digest": "d1614307ab49c818fa7aa9302a13d3da10812b398d974344ed7f7d4454a1d964"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07184212515130639,
+      "seconds": 0.07119599962607026,
       "digest": "f75a6550ae2945f59b563a4d842bf2eda461c2b6d7f878a5ea3072ae4e45314a"
      },
      "tree, stated findings": {
-      "seconds": 0.059129499830305576,
+      "seconds": 0.059810124803334475,
       "digest": "ca831c6aeb15d3d32148521443406dfd87b41902fe473a2723f566a00230d404"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07233916688710451,
+      "seconds": 0.06969933304935694,
       "digest": "1999ca8b1a13abf382da3b2cc11dc5aa98fc2b315cfb7950db6ec0f57dcc9f03"
      },
      "graph, stated findings": {
-      "seconds": 0.07345062494277954,
+      "seconds": 0.0694717918522656,
       "digest": "15f18ee78954f2e34c035a15ae807da8f02d96855ab65321413062b7c9062a78"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08175574988126755,
+      "seconds": 0.08190029207617044,
       "digest": "eff60d2e5d186e2cfaf28af959788ee9f75506f0476f10034ab1e0434dd9bd0f"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.022982375230640173,
+      "seconds": 0.02534012496471405,
       "digest": "390c2435ad0a8547a63f8b7d94dd26b5d3b2f9bed1f4036e44c3993459539315"
      },
      "blank, stated findings": {
-      "seconds": 0.011306167114526033,
+      "seconds": 0.012458916753530502,
       "digest": "4e5ad44786fbdeb5e2cd856159e6141504fc51becdbfdeb13c00796db3bb45d6"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.0177862080745399,
+      "seconds": 0.019154957961291075,
       "digest": "10e5a836ad20adf782172d15b7fe30d73ffad84bbd53e2cf94d3f8d37bd22903"
      }
     }
@@ -4308,115 +4308,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05167516693472862,
+      "seconds": 0.051597749814391136,
       "digest": "50fcbdcad43eaa1c0628d70e8678ca6220946d47882b022c129139c25da66833"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06759004108607769,
+      "seconds": 0.067585582844913,
       "digest": "507988419a86bcdea13286fa152f5c869c9be9f74d489e65632a2e928d203bca"
      },
      "tree, stated findings": {
-      "seconds": 0.05594408279284835,
+      "seconds": 0.056387916672974825,
       "digest": "a17330086d989a55849afff1e64e18fb5a5beaa026e87422491da451b5e6889b"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06517862528562546,
+      "seconds": 0.06399591639637947,
       "digest": "2f3a677ccf63ac8e35f3e3465ee19df657d6eb294430be7783d7866c41e65293"
      },
      "graph, stated findings": {
-      "seconds": 0.0669058752246201,
+      "seconds": 0.06647949991747737,
       "digest": "350bb0afb20adba3bbdff69c2b147a6ede216a62d619736e4962b92725fd53db"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08536650007590652,
+      "seconds": 0.07266516704112291,
       "digest": "c460d1f74031f70f6725fbc9d3948bdb4dc4e6c77dc43c397b97bf7b903c38a9"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.027253166306763887,
+      "seconds": 0.023956582881510258,
       "digest": "2642ab381a3a5f8f5117948b9ff6b4886d9778044caf1f2334c7d0ab37ebffe8"
      },
      "blank, stated findings": {
-      "seconds": 0.01253970805555582,
+      "seconds": 0.01109112473204732,
       "digest": "12b230ecdd572a2a00c0d7ee64defbe00f3fd378434510f335ed78cd0ab75134"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.019884875044226646,
+      "seconds": 0.017576334066689014,
       "digest": "8d105095541574d515f7567b86b90ca9b78d935fc47776c60cd3c9fa6d0bb070"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05293870810419321,
+      "seconds": 0.05245670909062028,
       "digest": "e491a14b66bfc3364b0e19e4d11a516191235cd679a8cd962a53704042bb301c"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06976437522098422,
+      "seconds": 0.07022291701287031,
       "digest": "507988419a86bcdea13286fa152f5c869c9be9f74d489e65632a2e928d203bca"
      },
      "tree, stated findings": {
-      "seconds": 0.05589504214003682,
+      "seconds": 0.056321249809116125,
       "digest": "ddcbeb1241efdb42ab4c8b1f2b3c4c706cef5617f86ecb49051d42ce0410fae5"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0664232918061316,
+      "seconds": 0.06498391600325704,
       "digest": "2f3a677ccf63ac8e35f3e3465ee19df657d6eb294430be7783d7866c41e65293"
      },
      "graph, stated findings": {
-      "seconds": 0.05948508298024535,
+      "seconds": 0.059657791163772345,
       "digest": "e11c83a757161f2d39434bb6bd39dd155c2d04158a25a6425c5abb8b69ee7152"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07501458283513784,
+      "seconds": 0.07332754181697965,
       "digest": "c460d1f74031f70f6725fbc9d3948bdb4dc4e6c77dc43c397b97bf7b903c38a9"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023832499980926514,
+      "seconds": 0.024580582976341248,
       "digest": "2642ab381a3a5f8f5117948b9ff6b4886d9778044caf1f2334c7d0ab37ebffe8"
      },
      "blank, stated findings": {
-      "seconds": 0.011107250116765499,
+      "seconds": 0.011085917241871357,
       "digest": "cfa84345dba13a0f992c7e24797c61da55dd4777d7d156532913c6b07752d99c"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017666667234152555,
+      "seconds": 0.017944416031241417,
       "digest": "8d105095541574d515f7567b86b90ca9b78d935fc47776c60cd3c9fa6d0bb070"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.051991499960422516,
+      "seconds": 0.05136558320373297,
       "digest": "738e95b14dcffe79baa0c9fcbef10fa0be083f9ff5d23dc7025c6b5d6c4c5a3f"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06807262497022748,
+      "seconds": 0.06979454215615988,
       "digest": "507988419a86bcdea13286fa152f5c869c9be9f74d489e65632a2e928d203bca"
      },
      "tree, stated findings": {
-      "seconds": 0.055904874578118324,
+      "seconds": 0.0552796246483922,
       "digest": "97262b037f7fbc59534304b885d0ab854633b331902ffe93c5889ed783a6d49e"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06556358328089118,
+      "seconds": 0.06595849990844727,
       "digest": "2f3a677ccf63ac8e35f3e3465ee19df657d6eb294430be7783d7866c41e65293"
      },
      "graph, stated findings": {
-      "seconds": 0.06754666706547141,
+      "seconds": 0.05997225036844611,
       "digest": "3490758207d470283590e16817b14e4d2692e5d3807899bd37a4b88d174a5253"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08485962497070432,
+      "seconds": 0.08020437508821487,
       "digest": "c460d1f74031f70f6725fbc9d3948bdb4dc4e6c77dc43c397b97bf7b903c38a9"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024846165906637907,
+      "seconds": 0.02538383286446333,
       "digest": "2642ab381a3a5f8f5117948b9ff6b4886d9778044caf1f2334c7d0ab37ebffe8"
      },
      "blank, stated findings": {
-      "seconds": 0.011186083778738976,
+      "seconds": 0.011927792336791754,
       "digest": "3e68046e8f2f8156f44567bb81c94a5f777f010a1325d0c13c15564949b10b8d"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017895166762173176,
+      "seconds": 0.019107459113001823,
       "digest": "8d105095541574d515f7567b86b90ca9b78d935fc47776c60cd3c9fa6d0bb070"
      }
     }
@@ -4433,115 +4433,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.057909166906028986,
+      "seconds": 0.05663166707381606,
       "digest": "b7f9dbfb04e894af9415f50130d084798249be09ae85fb681e38bd04469d7854"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07525720912963152,
+      "seconds": 0.07339245779439807,
       "digest": "7d4d0b754fcb5dd0234f17a789c058c7221a16ef4ef56f1ed61271b75e997b9b"
      },
      "tree, stated findings": {
-      "seconds": 0.060492667369544506,
+      "seconds": 0.05928787495940924,
       "digest": "9aa044be00659962a26bd57cd3e0d36f2f73c28b15713dafe49e206abe0b2039"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06996129220351577,
+      "seconds": 0.07054808409884572,
       "digest": "3e715cbbf466aaa955c093fbc9b8a9f6a91d9c824f8025a67e4dabdf1025d294"
      },
      "graph, stated findings": {
-      "seconds": 0.06713691726326942,
+      "seconds": 0.06623091688379645,
       "digest": "ce915d3ab06ea5b1489256cd0c3a788831650f58da2acbab2ea726aa95f6461f"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07943866681307554,
+      "seconds": 0.0801056670024991,
       "digest": "69d12f64c134f0963cf85bf984c8d654d95a1f6d3888e2da6f2346a7fc807796"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.036335166078060865,
+      "seconds": 0.036465666722506285,
       "digest": "b28cd9411ac651d9a47f24dd0b88b1329f57f06b19291ac3f4d4eaab2850b958"
      },
      "blank, stated findings": {
-      "seconds": 0.01748420810326934,
+      "seconds": 0.017430999781936407,
       "digest": "b1bcbf7a40dd2995a2da38f33c0dbe2ca76c5daa6bc08f703f24cff359d568da"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01780112460255623,
+      "seconds": 0.01811175001785159,
       "digest": "1ef825216c32c8855fdb8dab895663bac6f8fac47258c7c6d6f3f2efbace2869"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05630412511527538,
+      "seconds": 0.05685416702181101,
       "digest": "9c66f9bcd41bf4c6348ac3dcfc4b9e94583cfa86b0d1b0ad069b4014a7ef55d0"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07410799991339445,
+      "seconds": 0.07489979173988104,
       "digest": "7d4d0b754fcb5dd0234f17a789c058c7221a16ef4ef56f1ed61271b75e997b9b"
      },
      "tree, stated findings": {
-      "seconds": 0.06001420924440026,
+      "seconds": 0.06065891729667783,
       "digest": "f0da424433f9026d59fa33edcd4254d91f41d367f8c8a8c16ae090e1285181c5"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07073616702109575,
+      "seconds": 0.06958204228430986,
       "digest": "3e715cbbf466aaa955c093fbc9b8a9f6a91d9c824f8025a67e4dabdf1025d294"
      },
      "graph, stated findings": {
-      "seconds": 0.06849800003692508,
+      "seconds": 0.06796604068949819,
       "digest": "0b54277893cbaaee98d71dbc294c1d582a5e68aead383102cba5eea09dced8b7"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07967791706323624,
+      "seconds": 0.07985612470656633,
       "digest": "69d12f64c134f0963cf85bf984c8d654d95a1f6d3888e2da6f2346a7fc807796"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.0365370842628181,
+      "seconds": 0.03604366583749652,
       "digest": "b28cd9411ac651d9a47f24dd0b88b1329f57f06b19291ac3f4d4eaab2850b958"
      },
      "blank, stated findings": {
-      "seconds": 0.011208917014300823,
+      "seconds": 0.01134437508881092,
       "digest": "119776aae342f0767404ccae9a962ab3f523b3c981fffe756ac899f0d7db2f8b"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01815408281981945,
+      "seconds": 0.017804708797484636,
       "digest": "1ef825216c32c8855fdb8dab895663bac6f8fac47258c7c6d6f3f2efbace2869"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.0570163750089705,
+      "seconds": 0.05720120808109641,
       "digest": "bd3f8f71e931da83e9e8da4a5dc5b7a40521fc85ce9e973ab988c65774bb632a"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.08125199982896447,
+      "seconds": 0.0807982082478702,
       "digest": "7d4d0b754fcb5dd0234f17a789c058c7221a16ef4ef56f1ed61271b75e997b9b"
      },
      "tree, stated findings": {
-      "seconds": 0.0627161250449717,
+      "seconds": 0.06083929166197777,
       "digest": "ebfeb333344ce0bc4b1a347af16527261042f087ad4e1c44b435db859d4266b6"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07508695824071765,
+      "seconds": 0.07359233312308788,
       "digest": "3e715cbbf466aaa955c093fbc9b8a9f6a91d9c824f8025a67e4dabdf1025d294"
      },
      "graph, stated findings": {
-      "seconds": 0.07534420816227794,
+      "seconds": 0.0737506253644824,
       "digest": "7f16aef3ba2093b3d47ab6d5ac7bc7106d3f6f005568234d6b39e91b241db96b"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08170520886778831,
+      "seconds": 0.08006383385509253,
       "digest": "69d12f64c134f0963cf85bf984c8d654d95a1f6d3888e2da6f2346a7fc807796"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03641729196533561,
+      "seconds": 0.0364527078345418,
       "digest": "b28cd9411ac651d9a47f24dd0b88b1329f57f06b19291ac3f4d4eaab2850b958"
      },
      "blank, stated findings": {
-      "seconds": 0.01116662472486496,
+      "seconds": 0.01087529119104147,
       "digest": "5735e64acc605964ce297443c8e1c40e41b54f70f1e95e9627df2445c63219cb"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018031124956905842,
+      "seconds": 0.01788120763376355,
       "digest": "1ef825216c32c8855fdb8dab895663bac6f8fac47258c7c6d6f3f2efbace2869"
      }
     }
@@ -4558,115 +4558,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.050332958810031414,
+      "seconds": 0.0491995420306921,
       "digest": "0f82cdefcf0f077d67f33568432400eb7c27dcbf0128e0b05967dc7be3974551"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06519962474703789,
+      "seconds": 0.06553058279678226,
       "digest": "39987e111c96bfe6fd035b194e0d6bec113cc6a238f6e684e4ec37e461c0ea9d"
      },
      "tree, stated findings": {
-      "seconds": 0.05658104224130511,
+      "seconds": 0.05863550025969744,
       "digest": "b29afdc2564ed47327ca1c7b1b23c6520a3a877896c40b2d7b9022168cbca9c5"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0638405829668045,
+      "seconds": 0.06597445765510201,
       "digest": "0617d8c025ee472f5328683e82e0d043a75cd768b90470602f682861ce30fd03"
      },
      "graph, stated findings": {
-      "seconds": 0.06868504080921412,
+      "seconds": 0.068080916069448,
       "digest": "236bf9e8cf5b575c052c0c59b75a2668daeb8cdaf254bd87023381abcfc57528"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07177608273923397,
+      "seconds": 0.07312974985688925,
       "digest": "b2cf69e1fb11a70f45d11686f7880dd31e2aff7c036e34c6260ee87a918e586a"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.034985290840268135,
+      "seconds": 0.03514620801433921,
       "digest": "59c6153218cb0a479fc61a5c00c5be7b6675336b0e1b1facabd718fa4e4ffe4a"
      },
      "blank, stated findings": {
-      "seconds": 0.011094166897237301,
+      "seconds": 0.011301458813250065,
       "digest": "fcc0fbea9b4296ec8d13f26790f9be060743521a69ac2e383d670ceb0643ad1e"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01836341619491577,
+      "seconds": 0.017810957971960306,
       "digest": "42f6041efed3d120fa2a9646e59e4e081c163aadbcc5d3dc2827306eaeccce30"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.04985020915046334,
+      "seconds": 0.050427916925400496,
       "digest": "2f853e6d57065b779df31957d6ee251d760c1922f96adb1034935315693a9769"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0651967921294272,
+      "seconds": 0.06535583268851042,
       "digest": "39987e111c96bfe6fd035b194e0d6bec113cc6a238f6e684e4ec37e461c0ea9d"
      },
      "tree, stated findings": {
-      "seconds": 0.05588362505659461,
+      "seconds": 0.056033124681562185,
       "digest": "4790fa73b5e52879455feb7e53f1f9b4a61ad3665ab2ee232a41e0fa0e64b7f2"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06551666604354978,
+      "seconds": 0.06375029124319553,
       "digest": "0617d8c025ee472f5328683e82e0d043a75cd768b90470602f682861ce30fd03"
      },
      "graph, stated findings": {
-      "seconds": 0.061536625027656555,
+      "seconds": 0.06157370796427131,
       "digest": "861036e9df7809f4308d02cf7bfebec4d8e8042de1e20bab3f38eff349d317a0"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07145741581916809,
+      "seconds": 0.07221295824274421,
       "digest": "b2cf69e1fb11a70f45d11686f7880dd31e2aff7c036e34c6260ee87a918e586a"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03519900003448129,
+      "seconds": 0.035538540687412024,
       "digest": "59c6153218cb0a479fc61a5c00c5be7b6675336b0e1b1facabd718fa4e4ffe4a"
      },
      "blank, stated findings": {
-      "seconds": 0.011071625165641308,
+      "seconds": 0.010887125041335821,
       "digest": "6cc8384074c9c34ab7eea536b052a9bfb8776dcee5eb9f0e5e548152d1da0586"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018160208128392696,
+      "seconds": 0.01758658280596137,
       "digest": "42f6041efed3d120fa2a9646e59e4e081c163aadbcc5d3dc2827306eaeccce30"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.051316291093826294,
+      "seconds": 0.051323124673217535,
       "digest": "78e2f6c9a9afb82cfdd41c3e1f0035e51b36e0bd9c92da387b822b08970ef29e"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06598729128018022,
+      "seconds": 0.07086408277973533,
       "digest": "39987e111c96bfe6fd035b194e0d6bec113cc6a238f6e684e4ec37e461c0ea9d"
      },
      "tree, stated findings": {
-      "seconds": 0.05553516699001193,
+      "seconds": 0.05694470927119255,
       "digest": "51b48d86f448cfa061df019c313bfe5f3ccdbfa92e1f2b535e9eb40fd15ef3ec"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07083570770919323,
+      "seconds": 0.06463962513953447,
       "digest": "0617d8c025ee472f5328683e82e0d043a75cd768b90470602f682861ce30fd03"
      },
      "graph, stated findings": {
-      "seconds": 0.07520379219204187,
+      "seconds": 0.07239645812660456,
       "digest": "b54141bcbf8efc9736cdc0fbc3f06418548789f3652d32ce4af8962985fae39d"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07264316640794277,
+      "seconds": 0.07282537501305342,
       "digest": "b2cf69e1fb11a70f45d11686f7880dd31e2aff7c036e34c6260ee87a918e586a"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03479541698470712,
+      "seconds": 0.035086000338196754,
       "digest": "59c6153218cb0a479fc61a5c00c5be7b6675336b0e1b1facabd718fa4e4ffe4a"
      },
      "blank, stated findings": {
-      "seconds": 0.011765125207602978,
+      "seconds": 0.011040125042200089,
       "digest": "f8df0f0afd36600dc88cf77f94528daa21f8d54c217cef65c6073e8d08465c73"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01757674990221858,
+      "seconds": 0.01765649998560548,
       "digest": "42f6041efed3d120fa2a9646e59e4e081c163aadbcc5d3dc2827306eaeccce30"
      }
     }
@@ -4683,115 +4683,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05371641693636775,
+      "seconds": 0.05252254195511341,
       "digest": "99b13c9c3b42aa6d76e9ea8336dff505c50060f624851295b02658c4d961fe51"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0691686668433249,
+      "seconds": 0.07418200001120567,
       "digest": "9e866607fe659ba9da66c85fae551d3df46b4b8a50f6bbde839416a17ef284b1"
      },
      "tree, stated findings": {
-      "seconds": 0.05874662473797798,
+      "seconds": 0.06721754232421517,
       "digest": "9754bc5fcd59767c4c07a769ad836bccb7771f28dcc006ba83c855006fa70654"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0672402917407453,
+      "seconds": 0.07076004194095731,
       "digest": "87627659df054b23207beffec5e493fdbedccc9166a5f3d8d19ed68b981f72c5"
      },
      "graph, stated findings": {
-      "seconds": 0.06451870780438185,
+      "seconds": 0.06467258324846625,
       "digest": "1ba84f517f814b95e81e7c7aef787db1b6a83aeedffdaf75f53e3e92740f5d9e"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07979508303105831,
+      "seconds": 0.079155582934618,
       "digest": "b04f52025d308145fe55a490e1af76c6365ab01799b2f507436f579bca99d6b4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024190041236579418,
+      "seconds": 0.02448254218325019,
       "digest": "bad358f6a28ad001098bf8ada90e2ffa0e666fa8ccd66b03599caa1a4b614e66"
      },
      "blank, stated findings": {
-      "seconds": 0.011236750055104494,
+      "seconds": 0.011162958107888699,
       "digest": "e6bc06d3ed0d7a9d9b83d12362139de54c567e1bcc637294c20ada26800eaac8"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017821624875068665,
+      "seconds": 0.01772312493994832,
       "digest": "39cd528102cc8fd03e38cdc97b80e359c7296c7f34dd97093bf19ed693de8175"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05903133284300566,
+      "seconds": 0.05790966609492898,
       "digest": "05109464e2793df7fbe67862481df5a13e2c3094c426e268c852175f5240d8c0"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06989299971610308,
+      "seconds": 0.06984074972569942,
       "digest": "9e866607fe659ba9da66c85fae551d3df46b4b8a50f6bbde839416a17ef284b1"
      },
      "tree, stated findings": {
-      "seconds": 0.05834541702643037,
+      "seconds": 0.05787916714325547,
       "digest": "15e16116ed498bd84adb29989a5fa4f13c42a7a76c307f9a9b4c66e26331aea6"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06859941594302654,
+      "seconds": 0.06887941714376211,
       "digest": "87627659df054b23207beffec5e493fdbedccc9166a5f3d8d19ed68b981f72c5"
      },
      "graph, stated findings": {
-      "seconds": 0.06507095880806446,
+      "seconds": 0.06571112480014563,
       "digest": "7100793a358ed00288d0f75889a6db7de441f278d1d6408beb26f63a86b99c9e"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07924112491309643,
+      "seconds": 0.08203583396971226,
       "digest": "b04f52025d308145fe55a490e1af76c6365ab01799b2f507436f579bca99d6b4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.028244459070265293,
+      "seconds": 0.024101207964122295,
       "digest": "bad358f6a28ad001098bf8ada90e2ffa0e666fa8ccd66b03599caa1a4b614e66"
      },
      "blank, stated findings": {
-      "seconds": 0.012883542105555534,
+      "seconds": 0.011558459140360355,
       "digest": "55da95adc8e1566ff8a6a32a9d6f42abdbd47d79c5066804ddacc4d424427c11"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.02112141577526927,
+      "seconds": 0.018447374925017357,
       "digest": "39cd528102cc8fd03e38cdc97b80e359c7296c7f34dd97093bf19ed693de8175"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05234529124572873,
+      "seconds": 0.054871708154678345,
       "digest": "869545703d6e0f1cbd857d490e3abc6481b1a45a1ba1459c72f64cfb741dda2c"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07067341590300202,
+      "seconds": 0.07019350025802851,
       "digest": "9e866607fe659ba9da66c85fae551d3df46b4b8a50f6bbde839416a17ef284b1"
      },
      "tree, stated findings": {
-      "seconds": 0.05912029091268778,
+      "seconds": 0.05925991712138057,
       "digest": "d7ca32244b3c154021b7edccf0f376c70d33aeabe47f72f899015971c94d8f4f"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06794025003910065,
+      "seconds": 0.06737179076299071,
       "digest": "87627659df054b23207beffec5e493fdbedccc9166a5f3d8d19ed68b981f72c5"
      },
      "graph, stated findings": {
-      "seconds": 0.06831629201769829,
+      "seconds": 0.06398404110223055,
       "digest": "dcc8fd6fc6492c1ddc9df4fd352a54fd0734b1d8f4b2bce461158101c4b2f14a"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.09166625002399087,
+      "seconds": 0.08526362478733063,
       "digest": "b04f52025d308145fe55a490e1af76c6365ab01799b2f507436f579bca99d6b4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02551370905712247,
+      "seconds": 0.024053500033915043,
       "digest": "bad358f6a28ad001098bf8ada90e2ffa0e666fa8ccd66b03599caa1a4b614e66"
      },
      "blank, stated findings": {
-      "seconds": 0.011228916700929403,
+      "seconds": 0.010903582908213139,
       "digest": "b2ed87b54ff3c91550d751ab388bb6a531d6457bd62a66ea9df49ea21b0ca10e"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018237290903925896,
+      "seconds": 0.01871924987062812,
       "digest": "39cd528102cc8fd03e38cdc97b80e359c7296c7f34dd97093bf19ed693de8175"
      }
     }
@@ -4808,115 +4808,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05509558320045471,
+      "seconds": 0.054074875079095364,
       "digest": "756d84f7c70476b2269c6601d59db8ac2a0d9dc77fa4dfd5cd58590b933e5061"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07079058419913054,
+      "seconds": 0.07020499976351857,
       "digest": "aec9d956f475089436d3c96af1d4708a1ed4f1b8036454bb6f0c748f46b9802d"
      },
      "tree, stated findings": {
-      "seconds": 0.05942333396524191,
+      "seconds": 0.05922904144972563,
       "digest": "0034293539510392cbe17f512ef65bd8f53e32ce69325e3ec3d9898f15819488"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07029024977236986,
+      "seconds": 0.0701368753798306,
       "digest": "5d735919384fe640ec2eeaed0ef8172ed323c7de747b2c5d3ad70b56b45e09c7"
      },
      "graph, stated findings": {
-      "seconds": 0.06689666584134102,
+      "seconds": 0.0658399579115212,
       "digest": "e1adce504b39d0ff40d747d64f63f33efe5a4427e211df8e18897b0d13fbcc90"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08048229105770588,
+      "seconds": 0.08012499986216426,
       "digest": "23a3673710019102e3ad8be28b2a1965e30d46c046ccde40b1659fb259f10d8e"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03777633374556899,
+      "seconds": 0.038117249961942434,
       "digest": "781b12b69320b649c21449a030a4d0890c97127e7ccc63495055910cd53b0b27"
      },
      "blank, stated findings": {
-      "seconds": 0.01765516633167863,
+      "seconds": 0.017511624842882156,
       "digest": "95a4e579514569b0ac5997556043a008f880b77137c31c331b53156835b03cfd"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01846758322790265,
+      "seconds": 0.018574665766209364,
       "digest": "5a7504e25ec0e381f7dd435b84402ebd58391b74b5e9db5ca6a064050425ae55"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.06078487494960427,
+      "seconds": 0.05299254134297371,
       "digest": "a2eebd9d5d7ad6e6f58bd4c09b1d9c912af04ae9bf8f3f6786c31217f22be986"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07724212482571602,
+      "seconds": 0.07068816665560007,
       "digest": "aec9d956f475089436d3c96af1d4708a1ed4f1b8036454bb6f0c748f46b9802d"
      },
      "tree, stated findings": {
-      "seconds": 0.060642124619334936,
+      "seconds": 0.0589606249704957,
       "digest": "d656215686c6085f64a69a78733707c7e6b64b084a88d2b8f17bfa9965a52270"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0702990829013288,
+      "seconds": 0.07087016711011529,
       "digest": "5d735919384fe640ec2eeaed0ef8172ed323c7de747b2c5d3ad70b56b45e09c7"
      },
      "graph, stated findings": {
-      "seconds": 0.06659433292225003,
+      "seconds": 0.06611762521788478,
       "digest": "388d9146af523dde85aa5be7ec16e17182a3a72e90705c16ac70384ca466aed7"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.081172542180866,
+      "seconds": 0.08108570799231529,
       "digest": "23a3673710019102e3ad8be28b2a1965e30d46c046ccde40b1659fb259f10d8e"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03763258410617709,
+      "seconds": 0.03801374975591898,
       "digest": "781b12b69320b649c21449a030a4d0890c97127e7ccc63495055910cd53b0b27"
      },
      "blank, stated findings": {
-      "seconds": 0.011379291769117117,
+      "seconds": 0.01136466721072793,
       "digest": "02b8fcb51eb7a3273577e1f047292e9984523fb8cccb84611cacb733313597df"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018787250388413668,
+      "seconds": 0.01756304083392024,
       "digest": "5a7504e25ec0e381f7dd435b84402ebd58391b74b5e9db5ca6a064050425ae55"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05405004136264324,
+      "seconds": 0.054903417360037565,
       "digest": "5a6258fead3ccd45da9f61e4b2e2b6f4aea8e08bf727d666f5f6f5f74167e4d9"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07879754062741995,
+      "seconds": 0.07898624986410141,
       "digest": "aec9d956f475089436d3c96af1d4708a1ed4f1b8036454bb6f0c748f46b9802d"
      },
      "tree, stated findings": {
-      "seconds": 0.05985837522894144,
+      "seconds": 0.06013245787471533,
       "digest": "8926c96a1a0c6cae91d903c71ecac3f9792f8986b5caf47b0d83c7999ceab370"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07392079196870327,
+      "seconds": 0.06992362486198545,
       "digest": "5d735919384fe640ec2eeaed0ef8172ed323c7de747b2c5d3ad70b56b45e09c7"
      },
      "graph, stated findings": {
-      "seconds": 0.07393283396959305,
+      "seconds": 0.07005666615441442,
       "digest": "2bf42c6ad605312d6b7f1163389aa2551867970650c5fa5d7ded691322fff1a5"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08134587481617928,
+      "seconds": 0.08146174997091293,
       "digest": "23a3673710019102e3ad8be28b2a1965e30d46c046ccde40b1659fb259f10d8e"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.038253667298704386,
+      "seconds": 0.03820729209110141,
       "digest": "781b12b69320b649c21449a030a4d0890c97127e7ccc63495055910cd53b0b27"
      },
      "blank, stated findings": {
-      "seconds": 0.011190582998096943,
+      "seconds": 0.011520584113895893,
       "digest": "52407a1dc2acf5891cb7d91a259328ca64ad0a9f27512a5d787e10349467cab8"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01833066577091813,
+      "seconds": 0.01801558304578066,
       "digest": "5a7504e25ec0e381f7dd435b84402ebd58391b74b5e9db5ca6a064050425ae55"
      }
     }
@@ -4933,115 +4933,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05302070779725909,
+      "seconds": 0.05285354098305106,
       "digest": "777e8019a953f98d1ed8c7543eba61996f1bf03b49eabe26744727d09ac46607"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06956458278000355,
+      "seconds": 0.07015587482601404,
       "digest": "7fd82b11c7697811216f0ba2e237f31b0d3037a52f2c4f122a0c18e1624e38b8"
      },
      "tree, stated findings": {
-      "seconds": 0.05797820817679167,
+      "seconds": 0.05945929232984781,
       "digest": "969cabac35bc1977e76803939e8f54162e3fd1ef3a09c6e0dc7942acaf85c49d"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06888829218223691,
+      "seconds": 0.06929700030013919,
       "digest": "3f9b7d14737aad89cb006949e321a347a33b858807dcedb604f2c9bb9b73551d"
      },
      "graph, stated findings": {
-      "seconds": 0.07193649979308248,
+      "seconds": 0.07128629181534052,
       "digest": "dfa76361af70260f531c404d6f1fea948b839a6b415e87ba856f2fb6fd9c3384"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07837933395057917,
+      "seconds": 0.0775478333234787,
       "digest": "8744c71fcaf6a6807a47834130b0ca8cdcc7236ac6a3925385aed417b59ab1e4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.035444042179733515,
+      "seconds": 0.034853499848395586,
       "digest": "ab6ba17d7ebb8ff09c5195bb94a4c995d4c66b2103a0cc6095b7c75db82443a7"
      },
      "blank, stated findings": {
-      "seconds": 0.013594459276646376,
+      "seconds": 0.013443583622574806,
       "digest": "eca63da45129070e65c1301661d372ee1bab4ac2e6bd5ac15e70800f6e4b6478"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01747399987652898,
+      "seconds": 0.017412874847650528,
       "digest": "3308d734ac116b4d77d043954b16986c254e1e4bea54e4c2b92e76e51764e94d"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.052614542189985514,
+      "seconds": 0.05916374968364835,
       "digest": "c8e728eeed848b4453c9a17f7da9b27c9aebcc533808f7a0d31b6e1a84e7c076"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06928074965253472,
+      "seconds": 0.0787593750283122,
       "digest": "7fd82b11c7697811216f0ba2e237f31b0d3037a52f2c4f122a0c18e1624e38b8"
      },
      "tree, stated findings": {
-      "seconds": 0.05939979199320078,
+      "seconds": 0.05890462500974536,
       "digest": "aba2bf66e09d9e69d6eb9a748c01bdeef5c4486c01b2c477e8a7735b6c329177"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06959304120391607,
+      "seconds": 0.0697390828281641,
       "digest": "3f9b7d14737aad89cb006949e321a347a33b858807dcedb604f2c9bb9b73551d"
      },
      "graph, stated findings": {
-      "seconds": 0.06501179188489914,
+      "seconds": 0.06452825013548136,
       "digest": "9fcc56545c4f59107e70cbf73f3e8eaaafb3f60cbea5fa727b058826ab1c0a00"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07705875020474195,
+      "seconds": 0.07816499983891845,
       "digest": "8744c71fcaf6a6807a47834130b0ca8cdcc7236ac6a3925385aed417b59ab1e4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.035073583014309406,
+      "seconds": 0.03608691692352295,
       "digest": "ab6ba17d7ebb8ff09c5195bb94a4c995d4c66b2103a0cc6095b7c75db82443a7"
      },
      "blank, stated findings": {
-      "seconds": 0.013480749912559986,
+      "seconds": 0.013329292181879282,
       "digest": "cff201b9758c7dda3965eeb2e277d30505ecd5b13069078d7f8cdfdfa710efcc"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017822833266109228,
+      "seconds": 0.017636749893426895,
       "digest": "3308d734ac116b4d77d043954b16986c254e1e4bea54e4c2b92e76e51764e94d"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05296400003135204,
+      "seconds": 0.05287649994716048,
       "digest": "20fc0b0a53612b09b06cfd6110154ea41199824b3784267437a6622f326ae910"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06869724998250604,
+      "seconds": 0.06983216712251306,
       "digest": "7fd82b11c7697811216f0ba2e237f31b0d3037a52f2c4f122a0c18e1624e38b8"
      },
      "tree, stated findings": {
-      "seconds": 0.06792595889419317,
+      "seconds": 0.0651577920652926,
       "digest": "f21f015b2d152cd8fc6a1862eefde660a17f478b3e2809ade835e46333e3e77c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07543412502855062,
+      "seconds": 0.06869845883920789,
       "digest": "3f9b7d14737aad89cb006949e321a347a33b858807dcedb604f2c9bb9b73551d"
      },
      "graph, stated findings": {
-      "seconds": 0.06570420833304524,
+      "seconds": 0.06451320834457874,
       "digest": "e60d748fc674dd2c11e70a9a8821c26150ae3c5627ad579f046a4bd1fc53c162"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0782467913813889,
+      "seconds": 0.07804979244247079,
       "digest": "8744c71fcaf6a6807a47834130b0ca8cdcc7236ac6a3925385aed417b59ab1e4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03514645900577307,
+      "seconds": 0.03578704223036766,
       "digest": "ab6ba17d7ebb8ff09c5195bb94a4c995d4c66b2103a0cc6095b7c75db82443a7"
      },
      "blank, stated findings": {
-      "seconds": 0.014758083038032055,
+      "seconds": 0.013654625043272972,
       "digest": "6357c4e0e23427896486a42b1ec53df6db07d1b46589a336de1f6ae98d072b10"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018397207837551832,
+      "seconds": 0.01746737491339445,
       "digest": "3308d734ac116b4d77d043954b16986c254e1e4bea54e4c2b92e76e51764e94d"
      }
     }
@@ -5058,115 +5058,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.0535733331926167,
+      "seconds": 0.05190933309495449,
       "digest": "b058feaef9d5a7d6c7bffebaf9218a778c0bf34efccaf8a4f18ad84637ef1541"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06916837487369776,
+      "seconds": 0.06933274958282709,
       "digest": "4119d74d86fc512143c75ba7294660628235c216992891fa158fb807ca0426de"
      },
      "tree, stated findings": {
-      "seconds": 0.05939812492579222,
+      "seconds": 0.057343459222465754,
       "digest": "f6ed7da06b60d43ca9ce3045ae00134911847393828696f026dbb784022b428f"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.068703040946275,
+      "seconds": 0.0682814996689558,
       "digest": "4b189cbfcd91d3c60a1744cec178f339fc5867c8071ffef44dffb5d5efb6c9c7"
      },
      "graph, stated findings": {
-      "seconds": 0.07190841669216752,
+      "seconds": 0.07037741737440228,
       "digest": "aa049440724ed9bd521f9ff5a1feed1193e76b4964fe44a3d740aac12d33e793"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07843750016763806,
+      "seconds": 0.0948694171383977,
       "digest": "24e663e1fb7c58cd509fa5661222d95edbffeca9263108dfb341d05b4dfbb898"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03592041693627834,
+      "seconds": 0.039096416905522346,
       "digest": "a4f0337add8b46028cabf6e018b46cfcde884a2acf1547af2af4900df5041b81"
      },
      "blank, stated findings": {
-      "seconds": 0.013666000217199326,
+      "seconds": 0.0138740842230618,
       "digest": "a0fb4251df623dbc17a75b96c906eecf3204fb148d6b4d006a762cca0078cb94"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01781674986705184,
+      "seconds": 0.018377375323325396,
       "digest": "37cea6228b112957c1216661e5427523a9981ce678e1b34bf98112cf76d2c2b4"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05158562492579222,
+      "seconds": 0.05127766728401184,
       "digest": "0a1b1c261ca7b46bb6da58eff7c1d0055792288bfd7dd8bf687354e6d3135963"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0694918748922646,
+      "seconds": 0.06976433284580708,
       "digest": "4119d74d86fc512143c75ba7294660628235c216992891fa158fb807ca0426de"
      },
      "tree, stated findings": {
-      "seconds": 0.05873266700655222,
+      "seconds": 0.05822487501427531,
       "digest": "cf6d68c3e5dc2dacfea145026211e1e25ab979e614422c561b3bf3ac3e530418"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06975941685959697,
+      "seconds": 0.06762579083442688,
       "digest": "4b189cbfcd91d3c60a1744cec178f339fc5867c8071ffef44dffb5d5efb6c9c7"
      },
      "graph, stated findings": {
-      "seconds": 0.06441449979320168,
+      "seconds": 0.06427008286118507,
       "digest": "24c6358c9b51e91665627f38cf9b10dd8548706517182ab22de6ed80e8075cc6"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07706508319824934,
+      "seconds": 0.07768579106777906,
       "digest": "24e663e1fb7c58cd509fa5661222d95edbffeca9263108dfb341d05b4dfbb898"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03532770788297057,
+      "seconds": 0.03519704099744558,
       "digest": "a4f0337add8b46028cabf6e018b46cfcde884a2acf1547af2af4900df5041b81"
      },
      "blank, stated findings": {
-      "seconds": 0.013473541010171175,
+      "seconds": 0.013466500211507082,
       "digest": "90bc4b138f3b6f3b650d4941d98bb926f7eb8f35542b4d3337d22fa5ed4b51db"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.02447483316063881,
+      "seconds": 0.024285582825541496,
       "digest": "37cea6228b112957c1216661e5427523a9981ce678e1b34bf98112cf76d2c2b4"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05223312508314848,
+      "seconds": 0.05271508311852813,
       "digest": "d5a87c201a7414339c88e2d73943ceadeefef55a7cc3c5b58cec7eab459a01a3"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06936087505891919,
+      "seconds": 0.06898441584780812,
       "digest": "4119d74d86fc512143c75ba7294660628235c216992891fa158fb807ca0426de"
      },
      "tree, stated findings": {
-      "seconds": 0.058435249608010054,
+      "seconds": 0.0582479159347713,
       "digest": "991528e52f193a591de7a738addbbf96f165e5b767134ce10c530210c3aec731"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07252154173329473,
+      "seconds": 0.06848562508821487,
       "digest": "4b189cbfcd91d3c60a1744cec178f339fc5867c8071ffef44dffb5d5efb6c9c7"
      },
      "graph, stated findings": {
-      "seconds": 0.06983266677707434,
+      "seconds": 0.06445225002244115,
       "digest": "7a9b735cc03a2ba5357339be6c029450eae3136db579b6cce6ccd25c911106f8"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0779795409180224,
+      "seconds": 0.07805204158648849,
       "digest": "24e663e1fb7c58cd509fa5661222d95edbffeca9263108dfb341d05b4dfbb898"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.034928333945572376,
+      "seconds": 0.0356375421397388,
       "digest": "a4f0337add8b46028cabf6e018b46cfcde884a2acf1547af2af4900df5041b81"
      },
      "blank, stated findings": {
-      "seconds": 0.013732249848544598,
+      "seconds": 0.013839832972735167,
       "digest": "9a4fcdb36832405f3e6489290b16288675b9513097b74a277e22efec661b652f"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018643875140696764,
+      "seconds": 0.017529041972011328,
       "digest": "37cea6228b112957c1216661e5427523a9981ce678e1b34bf98112cf76d2c2b4"
      }
     }
@@ -5183,115 +5183,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.060333500150591135,
+      "seconds": 0.058775624725967646,
       "digest": "0126529f9e5151b11e458a3d2d54a10ccfd0d2b9ab763338eb9a319d2f026e10"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0686694998294115,
+      "seconds": 0.06866441713646054,
       "digest": "81dff4d2becd8e44b9319747c06ca632c7d26093d006af76f64272cef93974c7"
      },
      "tree, stated findings": {
-      "seconds": 0.0621714168228209,
+      "seconds": 0.05890883319079876,
       "digest": "475c2897194f60633f2ccf56dd89c4e221df1b82b489c3b97ebc45e265bd4442"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07148195803165436,
+      "seconds": 0.07068920787423849,
       "digest": "1c77d4808bf7a61c9440cd0f5354c6528c289411b263ea8129048fd27bf29094"
      },
      "graph, stated findings": {
-      "seconds": 0.06681525008752942,
+      "seconds": 0.06577125005424023,
       "digest": "8d7ed395993d417550b4dd5e6101d06cefbccc3a5cb5a8a4f8973d4c7c1270c2"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07844087528064847,
+      "seconds": 0.07899125013500452,
       "digest": "cbf527ded8bc0dd1fa09fd264bfc4c3035dbb01de97380044aff8b94256f26d1"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.035318500362336636,
+      "seconds": 0.034791499841958284,
       "digest": "6ead9e6af6ccb9f97b56b5d0fce49be5dec7c6446c7bbe58d83d2a12411645ba"
      },
      "blank, stated findings": {
-      "seconds": 0.01112845866009593,
+      "seconds": 0.010921625420451164,
       "digest": "27cd7b50687d562dc1e093e8cd4d42b6bf1eb4b5e0ebdac18afb213c806763a5"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01788258273154497,
+      "seconds": 0.017377375159412622,
       "digest": "38f279fe19c5aea265b85c7ff8429a52e275e0f172e5cd325ac7d693a6bba2a2"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.052177167031913996,
+      "seconds": 0.05410508392378688,
       "digest": "aabb55c24a7f5cf1e6dd46a4bb0ed39b3a8ed677828a3fd2ca28ab77bbd1e1b8"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06931820791214705,
+      "seconds": 0.07051658304408193,
       "digest": "81dff4d2becd8e44b9319747c06ca632c7d26093d006af76f64272cef93974c7"
      },
      "tree, stated findings": {
-      "seconds": 0.059909291099756956,
+      "seconds": 0.06146058393642306,
       "digest": "ba7bda4fee450ae053d4a01f8a643a5c51cf90fcd7d13366ab17998385482653"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06952570797875524,
+      "seconds": 0.07063504215329885,
       "digest": "1c77d4808bf7a61c9440cd0f5354c6528c289411b263ea8129048fd27bf29094"
      },
      "graph, stated findings": {
-      "seconds": 0.06774125015363097,
+      "seconds": 0.0669023753143847,
       "digest": "aeecd2567a01b3ba0dbcb010721032a35c2fae284e57dc9aeaf72a5b7eb03395"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08593858405947685,
+      "seconds": 0.08441754197701812,
       "digest": "cbf527ded8bc0dd1fa09fd264bfc4c3035dbb01de97380044aff8b94256f26d1"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03486554091796279,
+      "seconds": 0.03485020902007818,
       "digest": "6ead9e6af6ccb9f97b56b5d0fce49be5dec7c6446c7bbe58d83d2a12411645ba"
      },
      "blank, stated findings": {
-      "seconds": 0.011287207715213299,
+      "seconds": 0.011069917120039463,
       "digest": "5ae7283091ed9fb8bae06cf0c8c9164e3628dfdc69978637a1c6f093a26c84e1"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017655625008046627,
+      "seconds": 0.0176988341845572,
       "digest": "38f279fe19c5aea265b85c7ff8429a52e275e0f172e5cd325ac7d693a6bba2a2"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05153941595926881,
+      "seconds": 0.05194924958050251,
       "digest": "0610283bafbe9973bf471ec23df9414fd892174421aa7a9cfe029e1eb73f1a96"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06973166624084115,
+      "seconds": 0.07125658309087157,
       "digest": "81dff4d2becd8e44b9319747c06ca632c7d26093d006af76f64272cef93974c7"
      },
      "tree, stated findings": {
-      "seconds": 0.05967291723936796,
+      "seconds": 0.06966529181227088,
       "digest": "3d92981f08fe70c7dfcfa7f42cad185ee9dee947b2be9b85e7a13dba748c8775"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0736542078666389,
+      "seconds": 0.0756888329051435,
       "digest": "1c77d4808bf7a61c9440cd0f5354c6528c289411b263ea8129048fd27bf29094"
      },
      "graph, stated findings": {
-      "seconds": 0.08316745795309544,
+      "seconds": 0.0712483748793602,
       "digest": "1ab54b9423bded9a4c90fa3739c458f71fdba5d88a5408c1144b2bc819794fb3"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.09028079221025109,
+      "seconds": 0.07763841655105352,
       "digest": "cbf527ded8bc0dd1fa09fd264bfc4c3035dbb01de97380044aff8b94256f26d1"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03507491573691368,
+      "seconds": 0.036538499873131514,
       "digest": "6ead9e6af6ccb9f97b56b5d0fce49be5dec7c6446c7bbe58d83d2a12411645ba"
      },
      "blank, stated findings": {
-      "seconds": 0.011262333020567894,
+      "seconds": 0.010937584098428488,
       "digest": "ab8805ec343d9acc727c01f27caaf5d12df5992b6579cadad77c7483ffa4fef8"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018079416826367378,
+      "seconds": 0.017802417278289795,
       "digest": "38f279fe19c5aea265b85c7ff8429a52e275e0f172e5cd325ac7d693a6bba2a2"
      }
     }
@@ -5308,115 +5308,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05230508325621486,
+      "seconds": 0.05188074987381697,
       "digest": "9c0888881a29d98c5dfbea8d5a7c747ae87c2b9c6836f781a73cc0dcd88d0abb"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06896595796570182,
+      "seconds": 0.06899754190817475,
       "digest": "c54091a5ddabfc4ab777f9b41e6e4218920ac3d9e064b10ed78397bf65ae8f32"
      },
      "tree, stated findings": {
-      "seconds": 0.06107212509959936,
+      "seconds": 0.05991570791229606,
       "digest": "4d130fc6990ded96f0f7b3bc29585597c2f99de2f0629d4f8c48c92fed6e58ea"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07060433318838477,
+      "seconds": 0.07167716696858406,
       "digest": "0742edf251ac29de1dd528310bcc692a002196132a48be5782005970acb0d624"
      },
      "graph, stated findings": {
-      "seconds": 0.0681194169446826,
+      "seconds": 0.06832254212349653,
       "digest": "cee98dcb798e351b7fb1c19204fa5d8dd4e22925a0fece8c818c75c3b7ee7a88"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08056137524545193,
+      "seconds": 0.07921124994754791,
       "digest": "1314c3fc32885a0b89befea0c264d96999c731ea2f80b21080c8e3cacff2be42"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03482320765033364,
+      "seconds": 0.03440908342599869,
       "digest": "31d779d07828e97bd65fd1611b36dd536956f4a44974f4bef6b370782ee52305"
      },
      "blank, stated findings": {
-      "seconds": 0.01109533291310072,
+      "seconds": 0.010892500169575214,
       "digest": "8fa2b18b5960bb6611620c713b7e9109424007676663a3e6984f317584dd1562"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01779554085806012,
+      "seconds": 0.01845424994826317,
       "digest": "e71f5192f688ef7cd9fdcdabec44d44a90304bac9035bd8de3ab2eeb46e055b3"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05254537472501397,
+      "seconds": 0.05326241720467806,
       "digest": "b03147e5e94a895f479ab53b3f6ea7c1eb852ac4f114949e4a92136f7cac5349"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06958174984902143,
+      "seconds": 0.06889891671016812,
       "digest": "c54091a5ddabfc4ab777f9b41e6e4218920ac3d9e064b10ed78397bf65ae8f32"
      },
      "tree, stated findings": {
-      "seconds": 0.059127459302544594,
+      "seconds": 0.05982016725465655,
       "digest": "a5fa6154f06448225c10154ff2a8e9fa4c6848992495a089d9eeaa5b2aaeab8e"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.070163166616112,
+      "seconds": 0.07055000029504299,
       "digest": "0742edf251ac29de1dd528310bcc692a002196132a48be5782005970acb0d624"
      },
      "graph, stated findings": {
-      "seconds": 0.07627533376216888,
+      "seconds": 0.0790635421872139,
       "digest": "c7721cfb2724d74e4a65228670acc8367782261c3e3138610bb6fe3f1871cb11"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08003729209303856,
+      "seconds": 0.09228187473490834,
       "digest": "1314c3fc32885a0b89befea0c264d96999c731ea2f80b21080c8e3cacff2be42"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03443404193967581,
+      "seconds": 0.03650712501257658,
       "digest": "31d779d07828e97bd65fd1611b36dd536956f4a44974f4bef6b370782ee52305"
      },
      "blank, stated findings": {
-      "seconds": 0.011190332937985659,
+      "seconds": 0.01096904231235385,
       "digest": "a69cbf8f2647a48d6d7e0edd22d2e8607af6279109c858c36587efdc8dd9ba5d"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017665958032011986,
+      "seconds": 0.017986000049859285,
       "digest": "e71f5192f688ef7cd9fdcdabec44d44a90304bac9035bd8de3ab2eeb46e055b3"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05310350004583597,
+      "seconds": 0.05288387509062886,
       "digest": "196716faed3a5ae8733d5cb46bcc285d8e3c8f81466c396f5598e23567f2e0ca"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06954041728749871,
+      "seconds": 0.07076062494888902,
       "digest": "c54091a5ddabfc4ab777f9b41e6e4218920ac3d9e064b10ed78397bf65ae8f32"
      },
      "tree, stated findings": {
-      "seconds": 0.0608710004016757,
+      "seconds": 0.060018917080014944,
       "digest": "655131c1946cd9ade43f64ccd66a86f86244e1c40d0f339cb5a60204b693e0d5"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0694204168394208,
+      "seconds": 0.0715970410965383,
       "digest": "0742edf251ac29de1dd528310bcc692a002196132a48be5782005970acb0d624"
      },
      "graph, stated findings": {
-      "seconds": 0.08257687510922551,
+      "seconds": 0.07806400023400784,
       "digest": "1693f52c37bcbeebdd0f96e4aed574456b23b66a10cd28c5c8ce070309e789f6"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08403829205781221,
+      "seconds": 0.07998454198241234,
       "digest": "1314c3fc32885a0b89befea0c264d96999c731ea2f80b21080c8e3cacff2be42"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03464408265426755,
+      "seconds": 0.034496541135013103,
       "digest": "31d779d07828e97bd65fd1611b36dd536956f4a44974f4bef6b370782ee52305"
      },
      "blank, stated findings": {
-      "seconds": 0.011324874591082335,
+      "seconds": 0.01090987492352724,
       "digest": "97a55f9644f5ee51b786e3f91cbd718e5b9ea08ecbca254b9dcf466ff609b1e0"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018328375183045864,
+      "seconds": 0.01774466596543789,
       "digest": "e71f5192f688ef7cd9fdcdabec44d44a90304bac9035bd8de3ab2eeb46e055b3"
      }
     }
@@ -5433,115 +5433,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05397362494841218,
+      "seconds": 0.05313337501138449,
       "digest": "5f831815e8185e512fae0851f5a395e4b105a2c5115fdb63d1eadf109331fb9e"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06944270804524422,
+      "seconds": 0.06914345780387521,
       "digest": "931e00d51dbf1de1fb2e65063649ca446c3de826e220986bfe9dbd6671898c1d"
      },
      "tree, stated findings": {
-      "seconds": 0.05755633395165205,
+      "seconds": 0.0572912092320621,
       "digest": "d37f57abcae4002a68e87d025dc1de8ff440b0ca7eb24e21bcdedc70bf9c6ca0"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06733879167586565,
+      "seconds": 0.06611162470653653,
       "digest": "b22912e5f7e44c01576ad6cad8742f8144d1c429df5c0bbea043420376e7607b"
      },
      "graph, stated findings": {
-      "seconds": 0.06323666591197252,
+      "seconds": 0.06251929188147187,
       "digest": "39bd8d0291437800e3042f1a9479b98230e50c24f08f62de0738012bfc6149a1"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07773604057729244,
+      "seconds": 0.07635024981573224,
       "digest": "2d0781346b46e63e005ce8f6e6edb294a2bf88ffad3854daabc9e61192a08442"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024783958215266466,
+      "seconds": 0.02445574989542365,
       "digest": "50362cd2fd8aac07f131fcbd7b811d52e8010dc843ed8a7f6d53e880986ef61b"
      },
      "blank, stated findings": {
-      "seconds": 0.011039749719202518,
+      "seconds": 0.01113816723227501,
       "digest": "2aa7918d38429c6619e5086bbda3a1eb5c375ad24431e898777e696156d0b2d1"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01810212479904294,
+      "seconds": 0.01794775016605854,
       "digest": "fb0a205b01b14c8f8257a97c5a4cfb84851332a22719742f87e669231fcc0290"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05874358303844929,
+      "seconds": 0.05274783307686448,
       "digest": "f0edd49dafd1bf36b4554eb3739b91b921602cc6e935db66873389b1bc406bb8"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07982737477868795,
+      "seconds": 0.07718720892444253,
       "digest": "931e00d51dbf1de1fb2e65063649ca446c3de826e220986bfe9dbd6671898c1d"
      },
      "tree, stated findings": {
-      "seconds": 0.058445415925234556,
+      "seconds": 0.05684358300641179,
       "digest": "86aa483a4c99c17b55148a6b23edc8d1e6c619f89c119499352cf9664600ce2a"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06793725024908781,
+      "seconds": 0.06652583321556449,
       "digest": "b22912e5f7e44c01576ad6cad8742f8144d1c429df5c0bbea043420376e7607b"
      },
      "graph, stated findings": {
-      "seconds": 0.0640605422668159,
+      "seconds": 0.06254408275708556,
       "digest": "018ac70791ae9c507adefe156432fd624ee31fff3131072caa19d37e843bc374"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07721129199489951,
+      "seconds": 0.08186479192227125,
       "digest": "2d0781346b46e63e005ce8f6e6edb294a2bf88ffad3854daabc9e61192a08442"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.025302166119217873,
+      "seconds": 0.025410374626517296,
       "digest": "50362cd2fd8aac07f131fcbd7b811d52e8010dc843ed8a7f6d53e880986ef61b"
      },
      "blank, stated findings": {
-      "seconds": 0.011187875177711248,
+      "seconds": 0.01123412512242794,
       "digest": "7d0eb75db78da504b29bcb0480d3749772600ccbcb7499393d3f2feca04b6ee6"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01833275007084012,
+      "seconds": 0.018180500250309706,
       "digest": "fb0a205b01b14c8f8257a97c5a4cfb84851332a22719742f87e669231fcc0290"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05379545781761408,
+      "seconds": 0.05435850005596876,
       "digest": "a1bd97c407778ddc9aab3e280aa3fc0ad78936be377303f31bc2a758844c69f5"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07042150013148785,
+      "seconds": 0.06995695782825351,
       "digest": "931e00d51dbf1de1fb2e65063649ca446c3de826e220986bfe9dbd6671898c1d"
      },
      "tree, stated findings": {
-      "seconds": 0.057992625050246716,
+      "seconds": 0.057399250101298094,
       "digest": "c809241bccae02ae73a63fdf50330596dc989a0a943a022e52c02e2d0911d3da"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06925841700285673,
+      "seconds": 0.0676319575868547,
       "digest": "b22912e5f7e44c01576ad6cad8742f8144d1c429df5c0bbea043420376e7607b"
      },
      "graph, stated findings": {
-      "seconds": 0.07523745810613036,
+      "seconds": 0.06835091626271605,
       "digest": "9d99e662912ff4b299ed8a7671157aef6a96da834301d9fb1afb389111c6b341"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08374804118648171,
+      "seconds": 0.08389700017869473,
       "digest": "2d0781346b46e63e005ce8f6e6edb294a2bf88ffad3854daabc9e61192a08442"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024584459140896797,
+      "seconds": 0.024456082843244076,
       "digest": "50362cd2fd8aac07f131fcbd7b811d52e8010dc843ed8a7f6d53e880986ef61b"
      },
      "blank, stated findings": {
-      "seconds": 0.01111887488514185,
+      "seconds": 0.011006458662450314,
       "digest": "69eaec046066c3eda3bcf1b46866912ff92064d6980428ae0076b2802b7c259e"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018573208712041378,
+      "seconds": 0.017939584329724312,
       "digest": "fb0a205b01b14c8f8257a97c5a4cfb84851332a22719742f87e669231fcc0290"
      }
     }
@@ -5558,115 +5558,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05144420871511102,
+      "seconds": 0.05043170787394047,
       "digest": "8680cc5851a49530dd0e736c5d12b397bb3b0b0a065b8a1f7702092f9b88a3b3"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06760525004938245,
+      "seconds": 0.06772241601720452,
       "digest": "f7a2dd79a0cff60000cfd18faffcdd42c176e23a0b0129118aa0df4e19bbc9e5"
      },
      "tree, stated findings": {
-      "seconds": 0.057957207784056664,
+      "seconds": 0.056631125044077635,
       "digest": "d3b73059fb2ffa83df94e8309d340fe230fdb6ff3933d56f9cbca359d0cbac55"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06613379204645753,
+      "seconds": 0.06784220784902573,
       "digest": "a930c924dcc190a72114d3863d56d1784f78366bb56a5ab929caacfe1690cbfa"
      },
      "graph, stated findings": {
-      "seconds": 0.06314645940437913,
+      "seconds": 0.06625941582024097,
       "digest": "7872b895ffc27c58ae01e1c58e83bb479bd6a44f8af6e2bfdeb45853ab0d9a7c"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07824950013309717,
+      "seconds": 0.07673216704279184,
       "digest": "e10d9fbbec047890716ca3f97012d682d746c769fea3aae8ce7d921358fcd5ff"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03818766726180911,
+      "seconds": 0.03751674992963672,
       "digest": "da65e66bae91f69c57918cf95d81598a3358f9306f61e976cc3674d9218eeb26"
      },
      "blank, stated findings": {
-      "seconds": 0.011368833016604185,
+      "seconds": 0.011398499831557274,
       "digest": "deff3856667ebe74d83d2acf78ddcb49d02d46137641d83eeaccd02483673e2d"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018845874816179276,
+      "seconds": 0.01804137509316206,
       "digest": "4e6abf73077d07e457b23e911331ded6dba6fbb2463557c39845ee7f53493796"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.050661375280469656,
+      "seconds": 0.05050095822662115,
       "digest": "33beab5b41a19c7bb3efd88a9fc03f91fc7baef5c96248e8f4ba6963e9428aaa"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06745291734114289,
+      "seconds": 0.06994420802220702,
       "digest": "f7a2dd79a0cff60000cfd18faffcdd42c176e23a0b0129118aa0df4e19bbc9e5"
      },
      "tree, stated findings": {
-      "seconds": 0.057348750066012144,
+      "seconds": 0.06263770814985037,
       "digest": "719d951218659d800bf14e2b2f654feb2ab79736e8c2dc9a49d1828458793430"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07448945939540863,
+      "seconds": 0.07491674972698092,
       "digest": "a930c924dcc190a72114d3863d56d1784f78366bb56a5ab929caacfe1690cbfa"
      },
      "graph, stated findings": {
-      "seconds": 0.06259404215961695,
+      "seconds": 0.06231091730296612,
       "digest": "cf0cbc42c2fddfa11377df358dfea84aa009587a4f3419eac7467167dae6b3be"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07527820812538266,
+      "seconds": 0.07535079075023532,
       "digest": "e10d9fbbec047890716ca3f97012d682d746c769fea3aae8ce7d921358fcd5ff"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03716091671958566,
+      "seconds": 0.03698795801028609,
       "digest": "da65e66bae91f69c57918cf95d81598a3358f9306f61e976cc3674d9218eeb26"
      },
      "blank, stated findings": {
-      "seconds": 0.010859792120754719,
+      "seconds": 0.010954124853014946,
       "digest": "dc7443c02723fcc3b90200e9a34db8b6f7215c78f5d2f42f0a83f3110d91315e"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018231083638966084,
+      "seconds": 0.019031124655157328,
       "digest": "4e6abf73077d07e457b23e911331ded6dba6fbb2463557c39845ee7f53493796"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05077858408913016,
+      "seconds": 0.05109491711482406,
       "digest": "1c9a3327e04c29f204eb653f634dbc5752fe847beec31a5e9d5282dce85881ce"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06873741699382663,
+      "seconds": 0.06787291681393981,
       "digest": "f7a2dd79a0cff60000cfd18faffcdd42c176e23a0b0129118aa0df4e19bbc9e5"
      },
      "tree, stated findings": {
-      "seconds": 0.056620333809405565,
+      "seconds": 0.06499566696584225,
       "digest": "5d8ab9fe58304adf6085dd3ef63b6f2ea8139b16a85332a3035440302f3e26c3"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06722466740757227,
+      "seconds": 0.07655654195696115,
       "digest": "a930c924dcc190a72114d3863d56d1784f78366bb56a5ab929caacfe1690cbfa"
      },
      "graph, stated findings": {
-      "seconds": 0.06969533301889896,
+      "seconds": 0.0644113328307867,
       "digest": "4603d4995b16d696a341b76def8ffcd3a22633dcf870a5c391779ab501cbec73"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07682616589590907,
+      "seconds": 0.07613483304157853,
       "digest": "e10d9fbbec047890716ca3f97012d682d746c769fea3aae8ce7d921358fcd5ff"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03772154077887535,
+      "seconds": 0.037228332832455635,
       "digest": "da65e66bae91f69c57918cf95d81598a3358f9306f61e976cc3674d9218eeb26"
      },
      "blank, stated findings": {
-      "seconds": 0.01166549976915121,
+      "seconds": 0.011177540756762028,
       "digest": "b76a639b3bd44c26891a6d7194aea5be1e0989786bd1fd2a0133d2550ead353e"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01787254074588418,
+      "seconds": 0.017848458141088486,
       "digest": "4e6abf73077d07e457b23e911331ded6dba6fbb2463557c39845ee7f53493796"
      }
     }
@@ -5683,115 +5683,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.0503543340601027,
+      "seconds": 0.04884691722691059,
       "digest": "c2630a3a5ec4f12be7fc636bf937a60e5ef2483f06a096f6a7d0ee39c9615296"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06525862496346235,
+      "seconds": 0.06447400012984872,
       "digest": "816c089247df28b25342d09ea0867dd03a656f53d7681f5d639bf4ebcc5a42d9"
      },
      "tree, stated findings": {
-      "seconds": 0.05844545876607299,
+      "seconds": 0.05701633309945464,
       "digest": "8aeb2dc18ce1eb1c4ceb07fc199ce9cb163aecf403130f821b61845dc44b571c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06672720797359943,
+      "seconds": 0.06726749986410141,
       "digest": "3cd086207edd034b8ba2d1db307c5b0cae971814a5f0181dc1bdd7bf837e2b7a"
      },
      "graph, stated findings": {
-      "seconds": 0.06174408411607146,
+      "seconds": 0.0630617500282824,
       "digest": "ceeb4761d7256219af74bcfcabff8958a8c50f067e70b1cbe7ddc487048a0ac0"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07457879232242703,
+      "seconds": 0.07487929193302989,
       "digest": "da6c4d671b89dbf1c381ec63d605d6d91152685aa79cf8b63acd35077ece96bd"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.035598792135715485,
+      "seconds": 0.03501195786520839,
       "digest": "18ee9d947e5f895a27ba3200cc57514d54b632f2c957f84d0660d8d5f7b18589"
      },
      "blank, stated findings": {
-      "seconds": 0.011269167065620422,
+      "seconds": 0.01091016735881567,
       "digest": "870502d600ecdc5561694ba4897a5f82bd9741bdc8fda87e38fe94b99a8566af"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01773091685026884,
+      "seconds": 0.017832959070801735,
       "digest": "8721f611526cf36dd73f56c56bdbe51773f41137af0338f4632d42aafccd27e4"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.046880208887159824,
+      "seconds": 0.047992290928959846,
       "digest": "cd8460efda6e7c320b519a6cde887b0d638a4fd086fa5318237b6aef21438ca0"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06466841697692871,
+      "seconds": 0.06713566603139043,
       "digest": "816c089247df28b25342d09ea0867dd03a656f53d7681f5d639bf4ebcc5a42d9"
      },
      "tree, stated findings": {
-      "seconds": 0.058994750026613474,
+      "seconds": 0.060630499850958586,
       "digest": "2a3a19a818628b3572b8ea245d07d269517da0ccddd8b7a1bc22c30b77dc31d1"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06753079174086452,
+      "seconds": 0.06826883368194103,
       "digest": "3cd086207edd034b8ba2d1db307c5b0cae971814a5f0181dc1bdd7bf837e2b7a"
      },
      "graph, stated findings": {
-      "seconds": 0.06336641684174538,
+      "seconds": 0.0630375831387937,
       "digest": "a2965767dc1427bd503eaf7a27fa85281bdc854729796adf3bac05cbe5390071"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07854570774361491,
+      "seconds": 0.07433362491428852,
       "digest": "da6c4d671b89dbf1c381ec63d605d6d91152685aa79cf8b63acd35077ece96bd"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.037355124950408936,
+      "seconds": 0.03596341609954834,
       "digest": "18ee9d947e5f895a27ba3200cc57514d54b632f2c957f84d0660d8d5f7b18589"
      },
      "blank, stated findings": {
-      "seconds": 0.011007916647940874,
+      "seconds": 0.010829540900886059,
       "digest": "a85da32c58e09ee7e8d03b01231654c639dcbc37c5f8a7d2870066bc71251c49"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018409957643598318,
+      "seconds": 0.01763583393767476,
       "digest": "8721f611526cf36dd73f56c56bdbe51773f41137af0338f4632d42aafccd27e4"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05495700007304549,
+      "seconds": 0.05794204166159034,
       "digest": "34dc907800a11b275b4997aae79505acf128ad6b32a9d4426a2262484e8a8e5e"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06532824970781803,
+      "seconds": 0.06853541685268283,
       "digest": "816c089247df28b25342d09ea0867dd03a656f53d7681f5d639bf4ebcc5a42d9"
      },
      "tree, stated findings": {
-      "seconds": 0.05704037519171834,
+      "seconds": 0.058471125084906816,
       "digest": "231366af5a5e438b771a7b5468aa29ccc4d20c8647276ce6e4ee3566b06828d5"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06674887472763658,
+      "seconds": 0.06899954192340374,
       "digest": "3cd086207edd034b8ba2d1db307c5b0cae971814a5f0181dc1bdd7bf837e2b7a"
      },
      "graph, stated findings": {
-      "seconds": 0.0634802090935409,
+      "seconds": 0.06491304188966751,
       "digest": "2f20af490a965a220cbe74fef2f51dd99f3d443d9301bab08dae239d4186d29f"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08299125032499433,
+      "seconds": 0.0764126661233604,
       "digest": "da6c4d671b89dbf1c381ec63d605d6d91152685aa79cf8b63acd35077ece96bd"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.037512249778956175,
+      "seconds": 0.03691537491977215,
       "digest": "18ee9d947e5f895a27ba3200cc57514d54b632f2c957f84d0660d8d5f7b18589"
      },
      "blank, stated findings": {
-      "seconds": 0.011473374906927347,
+      "seconds": 0.010987374931573868,
       "digest": "b9dcdbde9e1d77c41b250287cea615aacfc8f4cd4c79e159915e045caa4b4c24"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018023042008280754,
+      "seconds": 0.01814787508919835,
       "digest": "8721f611526cf36dd73f56c56bdbe51773f41137af0338f4632d42aafccd27e4"
      }
     }
@@ -5808,115 +5808,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05078216688707471,
+      "seconds": 0.050743458326905966,
       "digest": "c34fe7517fd4dbb62a9c91bc59b27f76dae66804a63fb22361867571fbf27854"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0655115838162601,
+      "seconds": 0.06897979183122516,
       "digest": "2aead0b0a37e677df68c8506c3ee47ba0d0aaf8967ae642c37bc925621c0288e"
      },
      "tree, stated findings": {
-      "seconds": 0.05443295789882541,
+      "seconds": 0.0568400826305151,
       "digest": "05f5dc0cfbff6078f8dd6460ffe45907b68e4f340ce6f5fe5ef6fc783ea3782b"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06426874967291951,
+      "seconds": 0.06665195804089308,
       "digest": "439421ee126fe2fa90eb367ddf093fb9b248f2475b55ded11e2668750da3a629"
      },
      "graph, stated findings": {
-      "seconds": 0.05736133409664035,
+      "seconds": 0.05817633308470249,
       "digest": "59f75c61e8bfd7f4bfd7d049bb6aab3aa1bb1c7cd4f9c8908a5fd9c48479bf0a"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07160066673532128,
+      "seconds": 0.07038541696965694,
       "digest": "5e7367c41f1eb6525dae699e7f66da9c628a0799ae0407de7bd3d9e34af3e930"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023073125164955854,
+      "seconds": 0.023267250042408705,
       "digest": "dc49a43b2b14cda38da9b2ad75351666baa0af39cf1ed4392e104e38a2b612d7"
      },
      "blank, stated findings": {
-      "seconds": 0.01133158290758729,
+      "seconds": 0.011584165971726179,
       "digest": "31f835d566a60d9a5a00b8e71351d909806ce08c7130f33c40c0f11949b920e2"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.024747916962951422,
+      "seconds": 0.024960957933217287,
       "digest": "c9991352b046f68c95806e1ed76c1b77a7ceda09dfd31b01237ffdf20e690538"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.0492932079359889,
+      "seconds": 0.04926408268511295,
       "digest": "d58069c24d263aa96550f264b0afb97f9223b6fa0836241e252fdb5f3ee4e260"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06653124978765845,
+      "seconds": 0.06565233273431659,
       "digest": "2aead0b0a37e677df68c8506c3ee47ba0d0aaf8967ae642c37bc925621c0288e"
      },
      "tree, stated findings": {
-      "seconds": 0.05355716682970524,
+      "seconds": 0.055077041033655405,
       "digest": "3fcf5d83d2df5d630cd4e24696ce9dd6cf2d183b34c887f4fb7afacf805b94dd"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06530704209581017,
+      "seconds": 0.06389325018972158,
       "digest": "439421ee126fe2fa90eb367ddf093fb9b248f2475b55ded11e2668750da3a629"
      },
      "graph, stated findings": {
-      "seconds": 0.05851745791733265,
+      "seconds": 0.06875391723588109,
       "digest": "8ade0f0b1b0c504bf27f95e6b61aabc4959cca89778f2cb7fe9de39f6b96200c"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07046412490308285,
+      "seconds": 0.08903779182583094,
       "digest": "5e7367c41f1eb6525dae699e7f66da9c628a0799ae0407de7bd3d9e34af3e930"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.022964999545365572,
+      "seconds": 0.02476199995726347,
       "digest": "dc49a43b2b14cda38da9b2ad75351666baa0af39cf1ed4392e104e38a2b612d7"
      },
      "blank, stated findings": {
-      "seconds": 0.011355458293110132,
+      "seconds": 0.011641583871096373,
       "digest": "a224aa531bd3ff46b2a5520f676c586e14a036fa00ed53a950fa74f1b275d928"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018280666787177324,
+      "seconds": 0.018215750344097614,
       "digest": "c9991352b046f68c95806e1ed76c1b77a7ceda09dfd31b01237ffdf20e690538"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.04963341588154435,
+      "seconds": 0.04954445920884609,
       "digest": "5f02070932291540b53f93bdcc147da755c37e98b2f9452367126f7cdb87393f"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06891920790076256,
+      "seconds": 0.06580854207277298,
       "digest": "2aead0b0a37e677df68c8506c3ee47ba0d0aaf8967ae642c37bc925621c0288e"
      },
      "tree, stated findings": {
-      "seconds": 0.06261033425107598,
+      "seconds": 0.05551420897245407,
       "digest": "7d22204a2f97ac6ea9c2697ebc08aa9cc573f86de684a4a3667156199c17014c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07052733283489943,
+      "seconds": 0.06293820776045322,
       "digest": "439421ee126fe2fa90eb367ddf093fb9b248f2475b55ded11e2668750da3a629"
      },
      "graph, stated findings": {
-      "seconds": 0.059968582820147276,
+      "seconds": 0.059293707832694054,
       "digest": "2908aea4c96458288b097c3bc183de362d775571ecf6b5b93af7fb490fb2988c"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07380187511444092,
+      "seconds": 0.06999695813283324,
       "digest": "5e7367c41f1eb6525dae699e7f66da9c628a0799ae0407de7bd3d9e34af3e930"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.025298290885984898,
+      "seconds": 0.023700457997620106,
       "digest": "dc49a43b2b14cda38da9b2ad75351666baa0af39cf1ed4392e104e38a2b612d7"
      },
      "blank, stated findings": {
-      "seconds": 0.012492916081100702,
+      "seconds": 0.011030000168830156,
       "digest": "0757cc1725f2417d65fec765444723944b353f5b99bcc3db347a6d2aa6903c62"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.019112250301986933,
+      "seconds": 0.018366167321801186,
       "digest": "c9991352b046f68c95806e1ed76c1b77a7ceda09dfd31b01237ffdf20e690538"
      }
     }
@@ -5933,115 +5933,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.058801458682864904,
+      "seconds": 0.057186916936188936,
       "digest": "acf048d9cd29379f9ce24a8bf4e38d5cdc1bb7279cc0fc7b5b212f8bbadf5ee0"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07453991705551744,
+      "seconds": 0.07355658430606127,
       "digest": "e37eaa6d6a8e06e2696cedc4395090e6a79e47f6e54318c87ef55be953839905"
      },
      "tree, stated findings": {
-      "seconds": 0.05955591658130288,
+      "seconds": 0.0593258747830987,
       "digest": "4221d638795d59afe3b8ead0f5815522464c619df7f7840f9903260c9f3a59ef"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06986262509599328,
+      "seconds": 0.06995412474498153,
       "digest": "604fe1b256889dcc232ac2b8e27dd66dd52ef84a87050a61272a5dc8344515cb"
      },
      "graph, stated findings": {
-      "seconds": 0.06715362472459674,
+      "seconds": 0.06584004173055291,
       "digest": "464140db9fc1fff507b252797d0599cf4501fe808c71d8a661ff540c19244b00"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07744587538763881,
+      "seconds": 0.07815641677007079,
       "digest": "d00411360b2ae2159549f5e52cbd82d74962fc39fd1bed6864334ae3ac433b93"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03758620796725154,
+      "seconds": 0.03650716599076986,
       "digest": "af8ab87e0db0a61986e158143afda236bb858a98050f8c0ff3ac42519c97e0ce"
      },
      "blank, stated findings": {
-      "seconds": 0.010962416883558035,
+      "seconds": 0.010965125169605017,
       "digest": "dcc11a24b03dc12481502f6074cd6587dde91f9de9f9c0714777fd4389cd6470"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017568999901413918,
+      "seconds": 0.019647249951958656,
       "digest": "9df0529278c503b75d22db86905b5ffea88d2b3b7edbcda3c9e2043ae429616e"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.056735957972705364,
+      "seconds": 0.057751541025936604,
       "digest": "a243b2c6189296fbef640cc16a869c42900cd8f1e959c7501bb15cf752b601ec"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.08181916689500213,
+      "seconds": 0.0817637499421835,
       "digest": "e37eaa6d6a8e06e2696cedc4395090e6a79e47f6e54318c87ef55be953839905"
      },
      "tree, stated findings": {
-      "seconds": 0.05946941673755646,
+      "seconds": 0.06512412475422025,
       "digest": "3f9e9f9108ec5088b1429a0a81ba04c82a14f7178b0d14472a95cfc995a81dd1"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07071608304977417,
+      "seconds": 0.075548583175987,
       "digest": "604fe1b256889dcc232ac2b8e27dd66dd52ef84a87050a61272a5dc8344515cb"
      },
      "graph, stated findings": {
-      "seconds": 0.066686250269413,
+      "seconds": 0.06753612495958805,
       "digest": "f9e041602f4bc774acf7cc0ce2ac12586108a456b455e50a91351def5afba9e3"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07772124977782369,
+      "seconds": 0.07804754190146923,
       "digest": "d00411360b2ae2159549f5e52cbd82d74962fc39fd1bed6864334ae3ac433b93"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03623762493953109,
+      "seconds": 0.03657629108056426,
       "digest": "af8ab87e0db0a61986e158143afda236bb858a98050f8c0ff3ac42519c97e0ce"
      },
      "blank, stated findings": {
-      "seconds": 0.010865834075957537,
+      "seconds": 0.010904000140726566,
       "digest": "4943ebb55fea7999cbb9c89fbbf0d61278591cd00f686cb7018bfb292292067e"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017820000182837248,
+      "seconds": 0.017862415872514248,
       "digest": "9df0529278c503b75d22db86905b5ffea88d2b3b7edbcda3c9e2043ae429616e"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05693770805373788,
+      "seconds": 0.057585999835282564,
       "digest": "a6e07ee7d9579f402c0a4c4c2fee12cea2d40a17fcb8b683e374e155137bf17d"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07408000016584992,
+      "seconds": 0.07433633273467422,
       "digest": "e37eaa6d6a8e06e2696cedc4395090e6a79e47f6e54318c87ef55be953839905"
      },
      "tree, stated findings": {
-      "seconds": 0.05904500000178814,
+      "seconds": 0.06048833392560482,
       "digest": "e1b10c9e02313c034f7b611f635c4cbff4466ae8fd8620f90920d84c8993d2ca"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07021283265203238,
+      "seconds": 0.07029529102146626,
       "digest": "604fe1b256889dcc232ac2b8e27dd66dd52ef84a87050a61272a5dc8344515cb"
      },
      "graph, stated findings": {
-      "seconds": 0.07897758390754461,
+      "seconds": 0.07881791610270739,
       "digest": "1c68a439debc2bb2c58b5537e55ee23dcf494483f5b3ddafc8d50b6b7109a920"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08434433303773403,
+      "seconds": 0.07811791729182005,
       "digest": "d00411360b2ae2159549f5e52cbd82d74962fc39fd1bed6864334ae3ac433b93"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03877250012010336,
+      "seconds": 0.03767537511885166,
       "digest": "af8ab87e0db0a61986e158143afda236bb858a98050f8c0ff3ac42519c97e0ce"
      },
      "blank, stated findings": {
-      "seconds": 0.01102604204788804,
+      "seconds": 0.010794708039611578,
       "digest": "857f4fcb0987624834725bc646561d14a48d698bf5163b1068c18db353569128"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018613165710121393,
+      "seconds": 0.017907333094626665,
       "digest": "9df0529278c503b75d22db86905b5ffea88d2b3b7edbcda3c9e2043ae429616e"
      }
     }
@@ -6058,115 +6058,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.055057333782315254,
+      "seconds": 0.053437292110174894,
       "digest": "f485b7698b05f40c6fe62b6d96fa4d87a8c72c82e47edcf3b45f0abd8c20daea"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06984337465837598,
+      "seconds": 0.06997816730290651,
       "digest": "c372dfdc0765076dbf295adb81e17745bd66909e6e2136fbbc2f1b72555b76dd"
      },
      "tree, stated findings": {
-      "seconds": 0.06111512519419193,
+      "seconds": 0.05822854209691286,
       "digest": "0b89083bdf784af7bd11d56c17e0b6598eb113317dd62a70fd39f995c3fb0999"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06968204211443663,
+      "seconds": 0.06919395783916116,
       "digest": "c251866f8f546065cdb7003db77cbd023c75fcf89f94a29cfadb3a3c269fc097"
      },
      "graph, stated findings": {
-      "seconds": 0.07322212494909763,
+      "seconds": 0.07191791664808989,
       "digest": "28bfe7f0f2d3196cfd3d74e4d3de2c41ebb5fbaf0f1d2d3451eeac3ccd9325a7"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07861929200589657,
+      "seconds": 0.07631854200735688,
       "digest": "475aa3f9858a8eb7788bda81cb2ad70a384da1ff8196367fa9257e703d67c772"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024004791863262653,
+      "seconds": 0.024158082902431488,
       "digest": "d5a968f8572abb42dae9b72a7e4b5b3f1b3a2e2e77fa15403a1103aeadd77107"
      },
      "blank, stated findings": {
-      "seconds": 0.013894457835704088,
+      "seconds": 0.014187959022819996,
       "digest": "006d47a5d9e15afc631668f2b5fc942517f0feda8af20106e062e23e2baafd94"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01772820809856057,
+      "seconds": 0.01779354177415371,
       "digest": "f87b6728f5d097bf0492bb29a18ed145d9aec99922856714a6e30f8913d5bc4b"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05417050002142787,
+      "seconds": 0.05341258319094777,
       "digest": "4fe3d248b6d2cd30a6f1c43309b1ba19678f7a64b3e9ab23129dafef45ee016d"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.070355708245188,
+      "seconds": 0.07069924985989928,
       "digest": "c372dfdc0765076dbf295adb81e17745bd66909e6e2136fbbc2f1b72555b76dd"
      },
      "tree, stated findings": {
-      "seconds": 0.05831891717389226,
+      "seconds": 0.058629042003303766,
       "digest": "1659cd22e86d227bafe94420c8a4c7a3d19add35ebcc3da054041e27b3247938"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06856170808896422,
+      "seconds": 0.06971729220822453,
       "digest": "c251866f8f546065cdb7003db77cbd023c75fcf89f94a29cfadb3a3c269fc097"
      },
      "graph, stated findings": {
-      "seconds": 0.06475562509149313,
+      "seconds": 0.06611370807513595,
       "digest": "97165640fb3814ed4fb32aaf9c54c7d35b7cd309a4cf3eb19cd5b0371b1eff84"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07896720804274082,
+      "seconds": 0.07754895929247141,
       "digest": "475aa3f9858a8eb7788bda81cb2ad70a384da1ff8196367fa9257e703d67c772"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023195916786789894,
+      "seconds": 0.023874416947364807,
       "digest": "d5a968f8572abb42dae9b72a7e4b5b3f1b3a2e2e77fa15403a1103aeadd77107"
      },
      "blank, stated findings": {
-      "seconds": 0.01380024990066886,
+      "seconds": 0.013754083774983883,
       "digest": "51d55b21bf1302f5dbe39dd6f0c8d077865040cfbc4f4883a3cdf6d85c1094c6"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017781042028218508,
+      "seconds": 0.017839291598647833,
       "digest": "f87b6728f5d097bf0492bb29a18ed145d9aec99922856714a6e30f8913d5bc4b"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.052848417311906815,
+      "seconds": 0.05333429202437401,
       "digest": "d369f5e10a9b9fae93c613de4c58b0b9e503f867510d0743f8a1c526d98ec07e"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06935420911759138,
+      "seconds": 0.07170916721224785,
       "digest": "c372dfdc0765076dbf295adb81e17745bd66909e6e2136fbbc2f1b72555b76dd"
      },
      "tree, stated findings": {
-      "seconds": 0.05828783428296447,
+      "seconds": 0.05983483325690031,
       "digest": "76e495ab7e31ffb92557bb03e6d768f3df023a2ead90e58756062535c0b3d812"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06898958329111338,
+      "seconds": 0.06978625012561679,
       "digest": "c251866f8f546065cdb7003db77cbd023c75fcf89f94a29cfadb3a3c269fc097"
      },
      "graph, stated findings": {
-      "seconds": 0.0688642910681665,
+      "seconds": 0.06605358282104135,
       "digest": "3456750ca01f63c8c53081ed0286336fb2ac90b2bae99925b09bc382073fa781"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08412112481892109,
+      "seconds": 0.07885654224082828,
       "digest": "475aa3f9858a8eb7788bda81cb2ad70a384da1ff8196367fa9257e703d67c772"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02399674989283085,
+      "seconds": 0.02706350013613701,
       "digest": "d5a968f8572abb42dae9b72a7e4b5b3f1b3a2e2e77fa15403a1103aeadd77107"
      },
      "blank, stated findings": {
-      "seconds": 0.01408225018531084,
+      "seconds": 0.016195000149309635,
       "digest": "102888d9459d078cb4c3331ef1d9676999686f503f5ea4c267e6c762a8c31579"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01814229227602482,
+      "seconds": 0.02169408369809389,
       "digest": "f87b6728f5d097bf0492bb29a18ed145d9aec99922856714a6e30f8913d5bc4b"
      }
     }
@@ -6183,115 +6183,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.06221425021067262,
+      "seconds": 0.06124991690739989,
       "digest": "2909943fc4a18688d69733a714cd6b1256f07354b8ddc5937cb0984c7ee3c5f9"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0709434594027698,
+      "seconds": 0.07169308280572295,
       "digest": "622ed6a425f9e090e8f3d554a8fff58bc1909b0c128b6b4fa84922b99cd3fe00"
      },
      "tree, stated findings": {
-      "seconds": 0.05660254089161754,
+      "seconds": 0.05583699978888035,
       "digest": "37aa7d0a28728e0da21b060fb29a6bf0aaec78f3a13c7996694b4314702b981e"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06569145806133747,
+      "seconds": 0.06723870802670717,
       "digest": "d0b04af580c82755aec58953e6baf284e2491e9f8c010650cc3445ade5cb0c66"
      },
      "graph, stated findings": {
-      "seconds": 0.06859695911407471,
+      "seconds": 0.061055957805365324,
       "digest": "99d33b77c2a086f3789d3b7b67ed9b7ffeac8db8f628ffc5a979e6d75fdab3bd"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08555458299815655,
+      "seconds": 0.07457224978134036,
       "digest": "00aedb35094e48dfdf34b2cacb50cbbc452b7431e1ab00d6a20c68ec33575c1f"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02556241722777486,
+      "seconds": 0.024302999954670668,
       "digest": "ca36232e8a5d6ef87c39ad70231032750327c4cd4d0fc918de77501919180d31"
      },
      "blank, stated findings": {
-      "seconds": 0.011642083059996367,
+      "seconds": 0.011061582714319229,
       "digest": "a7cd02a24e154a9120c72f431ac660d29b23deb7228f7a3be7025635d7d9c2e8"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018760834354907274,
+      "seconds": 0.017735457979142666,
       "digest": "c2a8a404088c9e8dc72a9976e87fa00b9cf96a5e34fe52555ea00152983707f5"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05494370823726058,
+      "seconds": 0.0537667921744287,
       "digest": "5233243e89ce82a593ad81b53d535db1b6955fe3dfa77d2136f235bb428287e9"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07305754208937287,
+      "seconds": 0.07102175010368228,
       "digest": "622ed6a425f9e090e8f3d554a8fff58bc1909b0c128b6b4fa84922b99cd3fe00"
      },
      "tree, stated findings": {
-      "seconds": 0.057055624667555094,
+      "seconds": 0.05613733269274235,
       "digest": "076e40da4d4d0a0bb1e6a7bb80b7d2c1005971963f4705b82e6d9adb47fbe1bb"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06692283321171999,
+      "seconds": 0.06592304166406393,
       "digest": "d0b04af580c82755aec58953e6baf284e2491e9f8c010650cc3445ade5cb0c66"
      },
      "graph, stated findings": {
-      "seconds": 0.0609311661683023,
+      "seconds": 0.06094900006428361,
       "digest": "125702c634b82f13a4695cf195253eb4d9a7b4012bb1bf8d781b059523f059b6"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07484766701236367,
+      "seconds": 0.07432849984616041,
       "digest": "00aedb35094e48dfdf34b2cacb50cbbc452b7431e1ab00d6a20c68ec33575c1f"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.025777374859899282,
+      "seconds": 0.025030917022377253,
       "digest": "ca36232e8a5d6ef87c39ad70231032750327c4cd4d0fc918de77501919180d31"
      },
      "blank, stated findings": {
-      "seconds": 0.018410209100693464,
+      "seconds": 0.018042082898318768,
       "digest": "8b5f99945604128bb3fa9a00e5dfb5859121e69cdfe0fc1c46b055f5b704a375"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018921957816928625,
+      "seconds": 0.01874099997803569,
       "digest": "c2a8a404088c9e8dc72a9976e87fa00b9cf96a5e34fe52555ea00152983707f5"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05369691597297788,
+      "seconds": 0.05470224982127547,
       "digest": "2c71bb42da83a1820221a7c08cf09d8c3f26ab1b412ed6f9fd735cda34b2b5f1"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07125462498515844,
+      "seconds": 0.07185270823538303,
       "digest": "622ed6a425f9e090e8f3d554a8fff58bc1909b0c128b6b4fa84922b99cd3fe00"
      },
      "tree, stated findings": {
-      "seconds": 0.05544954119250178,
+      "seconds": 0.05586287518963218,
       "digest": "a31e304451c1766625bb3aad560c4d3b76a9ce37e46ec5d2a74e252c73861542"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06718391692265868,
+      "seconds": 0.06693762494251132,
       "digest": "d0b04af580c82755aec58953e6baf284e2491e9f8c010650cc3445ade5cb0c66"
      },
      "graph, stated findings": {
-      "seconds": 0.0613494161516428,
+      "seconds": 0.06197841605171561,
       "digest": "a4c18ae6da93f4e7d0201fe4b81d13c21bed9bf26ad335614b6a7b3d8360b4a1"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07976837502792478,
+      "seconds": 0.07412095787003636,
       "digest": "00aedb35094e48dfdf34b2cacb50cbbc452b7431e1ab00d6a20c68ec33575c1f"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02725762454792857,
+      "seconds": 0.025251667015254498,
       "digest": "ca36232e8a5d6ef87c39ad70231032750327c4cd4d0fc918de77501919180d31"
      },
      "blank, stated findings": {
-      "seconds": 0.011390249710530043,
+      "seconds": 0.010913458187133074,
       "digest": "06b1be54daba91313b88807bf46f50a1f4bc951c36a28f389cf4319a8596f7e0"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018378375098109245,
+      "seconds": 0.017803875263780355,
       "digest": "c2a8a404088c9e8dc72a9976e87fa00b9cf96a5e34fe52555ea00152983707f5"
      }
     }
@@ -6308,115 +6308,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.052673082798719406,
+      "seconds": 0.05187791585922241,
       "digest": "757af205680da551733dbd90703cc74b6286cec6e5d4545694484e2024e7a47f"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07723254105076194,
+      "seconds": 0.07683195918798447,
       "digest": "e9255a6d94b6159c4c5006da534436793bc654c0477a3211ae5aa1d899608af9"
      },
      "tree, stated findings": {
-      "seconds": 0.05705641722306609,
+      "seconds": 0.05746558262035251,
       "digest": "124efac217d94dd51581e1213e6bc30cb52a807722474040cfbde22b0ed222ce"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06746724992990494,
+      "seconds": 0.0663148332387209,
       "digest": "382bea139bac5e4974a31d8810b515d440bb6581e7b0f52b8901d4e62c889934"
      },
      "graph, stated findings": {
-      "seconds": 0.06260741595178843,
+      "seconds": 0.06263050017878413,
       "digest": "1281384cb386b41c1d27e856f7eea16e4e0dec8ceafa59cdca8e5409a4baea3f"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07616945775225759,
+      "seconds": 0.07872479222714901,
       "digest": "a03d72d2f2209cd93c171f88db906f455cf397b551677c56296b4753478bf332"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023290750104933977,
+      "seconds": 0.023441124707460403,
       "digest": "2072e6e3456264d3640ced97a3f80cf023ad3e2dcf89f8563bea9a4c266d774a"
      },
      "blank, stated findings": {
-      "seconds": 0.011058500036597252,
+      "seconds": 0.01166508300229907,
       "digest": "603edc45f68ad06ad992087dea0655a29dcb5371feef1864a4adc3ec8dd39b91"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01776308286935091,
+      "seconds": 0.018193083815276623,
       "digest": "c1234bca5351217ce975ddcdde895ba5a5c375e5558966eec8630f79e056eb3f"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.0519377076998353,
+      "seconds": 0.052379915956407785,
       "digest": "5370179238d7b3b3235ddb30b72e824267905368c9d6b91262ec34604a49d8c3"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06896954216063023,
+      "seconds": 0.06923725036904216,
       "digest": "e9255a6d94b6159c4c5006da534436793bc654c0477a3211ae5aa1d899608af9"
      },
      "tree, stated findings": {
-      "seconds": 0.05653370823711157,
+      "seconds": 0.05714783305302262,
       "digest": "648d881444c008086f1f2ae1eb5fc5cb4dbf35149eed838e75e746ec2ee80e3f"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06784408306702971,
+      "seconds": 0.06700416700914502,
       "digest": "382bea139bac5e4974a31d8810b515d440bb6581e7b0f52b8901d4e62c889934"
      },
      "graph, stated findings": {
-      "seconds": 0.06269112462177873,
+      "seconds": 0.06303754216060042,
       "digest": "336db2ae77bd0df3df9ede044d07559d190682441c87e2fad16d9b211e865785"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07676583295688033,
+      "seconds": 0.07570454105734825,
       "digest": "a03d72d2f2209cd93c171f88db906f455cf397b551677c56296b4753478bf332"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02300666691735387,
+      "seconds": 0.02310987515375018,
       "digest": "2072e6e3456264d3640ced97a3f80cf023ad3e2dcf89f8563bea9a4c266d774a"
      },
      "blank, stated findings": {
-      "seconds": 0.011396124958992004,
+      "seconds": 0.011119750328361988,
       "digest": "5e8a5830968b9a968a60e6e827a223152a592560ef948d2947da8fb58fe7670c"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018484707921743393,
+      "seconds": 0.018000292126089334,
       "digest": "c1234bca5351217ce975ddcdde895ba5a5c375e5558966eec8630f79e056eb3f"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05287845805287361,
+      "seconds": 0.053503542207181454,
       "digest": "9be8826000fe1c004d89b5ba0cd96c2c497aab39a8c0f9de838c9c6a478dee31"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06916054198518395,
+      "seconds": 0.06894420878961682,
       "digest": "e9255a6d94b6159c4c5006da534436793bc654c0477a3211ae5aa1d899608af9"
      },
      "tree, stated findings": {
-      "seconds": 0.05782841704785824,
+      "seconds": 0.05703791603446007,
       "digest": "4549996aa6f7d44b6aea91ba40aaab792d1e674a61efacf827841dcce3f6c330"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06702399998903275,
+      "seconds": 0.0663301246240735,
       "digest": "382bea139bac5e4974a31d8810b515d440bb6581e7b0f52b8901d4e62c889934"
      },
      "graph, stated findings": {
-      "seconds": 0.06333258422091603,
+      "seconds": 0.06225920794531703,
       "digest": "d0832a4b6142af9e5532adf87b82d04a3a34af30322c717004ed8f30cdf684ea"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08263045782223344,
+      "seconds": 0.07656483398750424,
       "digest": "a03d72d2f2209cd93c171f88db906f455cf397b551677c56296b4753478bf332"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024364166893064976,
+      "seconds": 0.023738750256597996,
       "digest": "2072e6e3456264d3640ced97a3f80cf023ad3e2dcf89f8563bea9a4c266d774a"
      },
      "blank, stated findings": {
-      "seconds": 0.011269709095358849,
+      "seconds": 0.011106042191386223,
       "digest": "319b37980cf4f204a410108164a0971f282a1f4558c55370eaa55b71bcbf64ea"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018402208108454943,
+      "seconds": 0.017675249837338924,
       "digest": "c1234bca5351217ce975ddcdde895ba5a5c375e5558966eec8630f79e056eb3f"
      }
     }
@@ -6433,115 +6433,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05130349984392524,
+      "seconds": 0.05624174978584051,
       "digest": "9c2ccfdff9bab79089e7eb43bc53e861bca13ce51f811b696a69dc9a814cebe8"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06714370800182223,
+      "seconds": 0.07446216605603695,
       "digest": "55ce7e865d684dc264af1c2de1b71b8983d400747225c8f4ac5a01196b085c1b"
      },
      "tree, stated findings": {
-      "seconds": 0.0584803749807179,
+      "seconds": 0.060600541066378355,
       "digest": "715733b4e63d54ef823938a07e6f8f6074d455769042bb203b73a15fd114cb8c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06744070770218968,
+      "seconds": 0.06939054140821099,
       "digest": "ba804511a0d326ca0a3da33281a8661d62eba98689a21d79260804a315b451d2"
      },
      "graph, stated findings": {
-      "seconds": 0.07208862481638789,
+      "seconds": 0.07106025004759431,
       "digest": "e99b1ec609ff9daa0c716edea43c31b820be5362d8b0511e9e0b476db0ccf5b6"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07702487520873547,
+      "seconds": 0.07598962495103478,
       "digest": "3beeda846f780b22ef6ac46ac55edb1b0d6c79d3843d6c07234eaeba133457a4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.035329666920006275,
+      "seconds": 0.03549204207956791,
       "digest": "a3700b2285ef9b773cedefdd8790346c94b485237394f351bf4884d1df28b3f2"
      },
      "blank, stated findings": {
-      "seconds": 0.011252874974161386,
+      "seconds": 0.01139350002631545,
       "digest": "69630d7055838b6801b786ac85747b689cd8dff5a29acda3465967719559fa27"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018035042099654675,
+      "seconds": 0.017942917067557573,
       "digest": "026a590b243b237bbbd1c03ac2f18d1a7b3b10a5cea116b00549bb1f748be7f9"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.04889570828527212,
+      "seconds": 0.049723082687705755,
       "digest": "efac14a106d4cf8ce6b61b4b716617968e6fa1e00434c8d43ba28c99d138a466"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06718237465247512,
+      "seconds": 0.06596479192376137,
       "digest": "55ce7e865d684dc264af1c2de1b71b8983d400747225c8f4ac5a01196b085c1b"
      },
      "tree, stated findings": {
-      "seconds": 0.05782933300361037,
+      "seconds": 0.057602459099143744,
       "digest": "62aa120a041ffa99d159e34ef8e01cf9700cd44295f2b748ae4c3dcc44be02cb"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06762133305892348,
+      "seconds": 0.06798783410340548,
       "digest": "ba804511a0d326ca0a3da33281a8661d62eba98689a21d79260804a315b451d2"
      },
      "graph, stated findings": {
-      "seconds": 0.06309624994173646,
+      "seconds": 0.06456170789897442,
       "digest": "ca0794b686998c8ea3e23a1595b170cceaa6a461a4b481184503c12df1f58bfa"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0763907921500504,
+      "seconds": 0.07630358310416341,
       "digest": "3beeda846f780b22ef6ac46ac55edb1b0d6c79d3843d6c07234eaeba133457a4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03496612515300512,
+      "seconds": 0.03504966711625457,
       "digest": "a3700b2285ef9b773cedefdd8790346c94b485237394f351bf4884d1df28b3f2"
      },
      "blank, stated findings": {
-      "seconds": 0.011203542351722717,
+      "seconds": 0.011142124887555838,
       "digest": "d0f72da3946d040c7ad39e8208c16c97bc463154e65ffc43038de09a0ec0f312"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018053625244647264,
+      "seconds": 0.017616791184991598,
       "digest": "026a590b243b237bbbd1c03ac2f18d1a7b3b10a5cea116b00549bb1f748be7f9"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05015391716733575,
+      "seconds": 0.050995749887079,
       "digest": "3dfa6a4caf40938828ea2d3182411215f66ff97564d645289cb6c74712a3a854"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06669804221019149,
+      "seconds": 0.06629087496548891,
       "digest": "55ce7e865d684dc264af1c2de1b71b8983d400747225c8f4ac5a01196b085c1b"
      },
      "tree, stated findings": {
-      "seconds": 0.05756604112684727,
+      "seconds": 0.057614249642938375,
       "digest": "9011944a0240a3d538490087b97c3687cc4b60b375bea08ca9847ac6a849bff8"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06773229083046317,
+      "seconds": 0.07003566669300199,
       "digest": "ba804511a0d326ca0a3da33281a8661d62eba98689a21d79260804a315b451d2"
      },
      "graph, stated findings": {
-      "seconds": 0.06396191706880927,
+      "seconds": 0.06483487505465746,
       "digest": "c6985b0d0227df96e0e429b14fc1a803831d3a59fd39f1d4ed7d752e17467af2"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08771899994462729,
+      "seconds": 0.08510404219850898,
       "digest": "3beeda846f780b22ef6ac46ac55edb1b0d6c79d3843d6c07234eaeba133457a4"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03707837499678135,
+      "seconds": 0.03478608326986432,
       "digest": "a3700b2285ef9b773cedefdd8790346c94b485237394f351bf4884d1df28b3f2"
      },
      "blank, stated findings": {
-      "seconds": 0.01119695883244276,
+      "seconds": 0.010990333277732134,
       "digest": "968d2f12a8dfbae6e6d787ef6ae8c57d1a6c996d87e3728287cb4b0e7b5048eb"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017977332696318626,
+      "seconds": 0.01773833390325308,
       "digest": "026a590b243b237bbbd1c03ac2f18d1a7b3b10a5cea116b00549bb1f748be7f9"
      }
     }
@@ -6558,115 +6558,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05061387503519654,
+      "seconds": 0.04869070881977677,
       "digest": "2657ef7a4372fbb9c9e30f213d8e1e2c2cf04803db879753818aa807b69ff098"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06659929221495986,
+      "seconds": 0.06615008320659399,
       "digest": "3b6c5a33140a8005a3c02c5e04812d89c511736f5a9e260e9aadb47093608904"
      },
      "tree, stated findings": {
-      "seconds": 0.058319457806646824,
+      "seconds": 0.05698100011795759,
       "digest": "28568bf35ab5edd1c807518e7c45fbf1e0d074842df550d231ae53fb1e898d57"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06707370840013027,
+      "seconds": 0.06730454228818417,
       "digest": "719f2cf15c9689f7fdbbe72323b925198243b549d09ce0daa3530dc2224581a8"
      },
      "graph, stated findings": {
-      "seconds": 0.06584816705435514,
+      "seconds": 0.06475679203867912,
       "digest": "2e42aab6b7d704395e96a9284d43dddc96cbbdf825c49b7eeac722162cfd40f1"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07674774993211031,
+      "seconds": 0.07695366675034165,
       "digest": "bb5c8ee4c9cf804b3908277fa5952b7469653ed79a71acacd4434e7c69f14519"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023720791097730398,
+      "seconds": 0.024127624928951263,
       "digest": "f5cfff434133a791421f0b600d58fff745dbbe32db80b916133e30302bce4168"
      },
      "blank, stated findings": {
-      "seconds": 0.011117749847471714,
+      "seconds": 0.010899665765464306,
       "digest": "99d8f89f60fddb8463fa366df48d106eeacbe3211a1d9a2f0f77702510b9ac7b"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018305417150259018,
+      "seconds": 0.01780545897781849,
       "digest": "67d03108e5ca7e5ace12daabaed16caa6b589f7d51cb34c79c6a1f65f66782ae"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.04874429199844599,
+      "seconds": 0.048740750178694725,
       "digest": "4190a1fa62799afe6925c5dd704ad11ed5df5083bc5943a7b48db82d4748d90f"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0658525419421494,
+      "seconds": 0.06634070817381144,
       "digest": "3b6c5a33140a8005a3c02c5e04812d89c511736f5a9e260e9aadb47093608904"
      },
      "tree, stated findings": {
-      "seconds": 0.057456917129457,
+      "seconds": 0.05844962503761053,
       "digest": "ec3cf918d84653f8b60e626235579133d82331a093477cbb4b8ba432315e612d"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07498154183849692,
+      "seconds": 0.07432958297431469,
       "digest": "719f2cf15c9689f7fdbbe72323b925198243b549d09ce0daa3530dc2224581a8"
      },
      "graph, stated findings": {
-      "seconds": 0.06380629213526845,
+      "seconds": 0.06329558277502656,
       "digest": "48ebcee8e39ef123bae329e9feb1f1c096670b3e4971699bf8f6b9b28264cb9e"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07750258315354586,
+      "seconds": 0.07757891714572906,
       "digest": "bb5c8ee4c9cf804b3908277fa5952b7469653ed79a71acacd4434e7c69f14519"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.023603541776537895,
+      "seconds": 0.02338683418929577,
       "digest": "f5cfff434133a791421f0b600d58fff745dbbe32db80b916133e30302bce4168"
      },
      "blank, stated findings": {
-      "seconds": 0.01089600007981062,
+      "seconds": 0.010924874804913998,
       "digest": "c09603731a7a987ae8b9ee6287d0ecdde8c2e3947dd671031cd2c3a84abf9b71"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01793104177340865,
+      "seconds": 0.018068875186145306,
       "digest": "67d03108e5ca7e5ace12daabaed16caa6b589f7d51cb34c79c6a1f65f66782ae"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05026629101485014,
+      "seconds": 0.05454829195514321,
       "digest": "b387b659121f02892e29be77c8f8d9c4643282790563f65f16a0099bdbc388b9"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.0673303329385817,
+      "seconds": 0.06848741695284843,
       "digest": "3b6c5a33140a8005a3c02c5e04812d89c511736f5a9e260e9aadb47093608904"
      },
      "tree, stated findings": {
-      "seconds": 0.05853912467136979,
+      "seconds": 0.05789633374661207,
       "digest": "414059e439619c07c4505cad92e44c4ec4f376a91b9ee44eb21e649a10944b8e"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06761024985462427,
+      "seconds": 0.06811120826750994,
       "digest": "719f2cf15c9689f7fdbbe72323b925198243b549d09ce0daa3530dc2224581a8"
      },
      "graph, stated findings": {
-      "seconds": 0.06389179220423102,
+      "seconds": 0.06665283301845193,
       "digest": "90b5bc7c82cedc20ae1f22f1f61e778f38b6f23c463e9df6031a0815ad7ceb5d"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07802358316257596,
+      "seconds": 0.07829712517559528,
       "digest": "bb5c8ee4c9cf804b3908277fa5952b7469653ed79a71acacd4434e7c69f14519"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024541125167161226,
+      "seconds": 0.024010791908949614,
       "digest": "f5cfff434133a791421f0b600d58fff745dbbe32db80b916133e30302bce4168"
      },
      "blank, stated findings": {
-      "seconds": 0.012335540726780891,
+      "seconds": 0.011163375340402126,
       "digest": "f6ea307b3431857881a2a0a7b80891b40c261a93dcfe3169378b8cb1d678b335"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01971012493595481,
+      "seconds": 0.017901083920150995,
       "digest": "67d03108e5ca7e5ace12daabaed16caa6b589f7d51cb34c79c6a1f65f66782ae"
      }
     }
@@ -6683,115 +6683,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05321104172617197,
+      "seconds": 0.05169487465173006,
       "digest": "55b983892481755dedd2be2f94b9b4d71681336857b1ea02b33ad0a99ff67dbd"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06956687523052096,
+      "seconds": 0.06978558422997594,
       "digest": "e97405517c850444abe05277885704af699c356d2cd9451f9f3f80ae2fc75071"
      },
      "tree, stated findings": {
-      "seconds": 0.05935387499630451,
+      "seconds": 0.062078166753053665,
       "digest": "e4b3a2b05528dda150d549f26d713fac8479ab42732d2ecbd1552d761696b943"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0690744579769671,
+      "seconds": 0.07092850003391504,
       "digest": "b6a7b3960d892866483e495e528dd04b5b302aa001360bf9aec4ab874a8f78a6"
      },
      "graph, stated findings": {
-      "seconds": 0.06711200019344687,
+      "seconds": 0.06676141731441021,
       "digest": "9b1c6f7594d0d08d5ab0c63a43066bb4c49030c42f5a1f5efc8252ebd51cb3cb"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0792787498794496,
+      "seconds": 0.07883487502112985,
       "digest": "8f87ffd5060f09eb3fc60f37ab0abe60d25324c56fedc7ad82f558428f54f6bc"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.0365225407294929,
+      "seconds": 0.035104958806186914,
       "digest": "688f384d38cd33ac4cfa9eaf4778dfa09e0264839efb2f0825f480e103ce445b"
      },
      "blank, stated findings": {
-      "seconds": 0.011230540927499533,
+      "seconds": 0.011247874703258276,
       "digest": "f1478f9a5007f8d8764ab84df0eb6a3995ba0e22256fcfc4302c9677cd3b9b24"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018479499965906143,
+      "seconds": 0.018105959054082632,
       "digest": "361c0b7054dd95f5b1a0dc28a64379eca2ff453f22e4e6375e6f3b8688c119a7"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05270162504166365,
+      "seconds": 0.05224049976095557,
       "digest": "0d20e22fca3b5775e1912ff2a6433936167de2d911303562123ca0264132cf88"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06911499984562397,
+      "seconds": 0.06933691678568721,
       "digest": "e97405517c850444abe05277885704af699c356d2cd9451f9f3f80ae2fc75071"
      },
      "tree, stated findings": {
-      "seconds": 0.061727249994874,
+      "seconds": 0.06513054203242064,
       "digest": "31b6186b5fd351d2e7fa9e8867dbf29256c38d6a27391d0c09e66971c55fe2bf"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07835258264094591,
+      "seconds": 0.08901729201897979,
       "digest": "b6a7b3960d892866483e495e528dd04b5b302aa001360bf9aec4ab874a8f78a6"
      },
      "graph, stated findings": {
-      "seconds": 0.06577670900151134,
+      "seconds": 0.06686762487515807,
       "digest": "9bb6982c4a6a855a80d67390ecbda8f077195772d072bc965e0ca019e10157fd"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07851083390414715,
+      "seconds": 0.07857145788148046,
       "digest": "8f87ffd5060f09eb3fc60f37ab0abe60d25324c56fedc7ad82f558428f54f6bc"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03562333295121789,
+      "seconds": 0.036352917086333036,
       "digest": "688f384d38cd33ac4cfa9eaf4778dfa09e0264839efb2f0825f480e103ce445b"
      },
      "blank, stated findings": {
-      "seconds": 0.013756707776337862,
+      "seconds": 0.013583917170763016,
       "digest": "bb9bbb2a7e6cd9b69e92cb726080f4376be1bc3a668d3acfaa627d0855a22cb7"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017825542017817497,
+      "seconds": 0.01839862484484911,
       "digest": "361c0b7054dd95f5b1a0dc28a64379eca2ff453f22e4e6375e6f3b8688c119a7"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05258137499913573,
+      "seconds": 0.053319333121180534,
       "digest": "68bf53e059aae19a2e549b62d6b28cb26a6eb52cd845085b9e47eeefe6a6afb1"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06941983383148909,
+      "seconds": 0.06905704224482179,
       "digest": "e97405517c850444abe05277885704af699c356d2cd9451f9f3f80ae2fc75071"
      },
      "tree, stated findings": {
-      "seconds": 0.05930833285674453,
+      "seconds": 0.05920254159718752,
       "digest": "a77e4b4ada4fc5d78bbfd6d581d3a6f8f45218bd317bb60311dbc0aedf2dc83d"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07004049979150295,
+      "seconds": 0.0686628338880837,
       "digest": "b6a7b3960d892866483e495e528dd04b5b302aa001360bf9aec4ab874a8f78a6"
      },
      "graph, stated findings": {
-      "seconds": 0.07057095831260085,
+      "seconds": 0.06795841734856367,
       "digest": "030aa2d4bdeadf6443e68c334725c3b9e56d604a6fb0d65f17c77540b26e3f01"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.09439300000667572,
+      "seconds": 0.09522445779293776,
       "digest": "8f87ffd5060f09eb3fc60f37ab0abe60d25324c56fedc7ad82f558428f54f6bc"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.036150542087852955,
+      "seconds": 0.038899249862879515,
       "digest": "688f384d38cd33ac4cfa9eaf4778dfa09e0264839efb2f0825f480e103ce445b"
      },
      "blank, stated findings": {
-      "seconds": 0.015310207847505808,
+      "seconds": 0.01450612535700202,
       "digest": "cab6502bdd7f98c0cc1c54ffc7bde2b4cc853a33150d88db03bdafbdfb21e6ac"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018609208054840565,
+      "seconds": 0.017779000103473663,
       "digest": "361c0b7054dd95f5b1a0dc28a64379eca2ff453f22e4e6375e6f3b8688c119a7"
      }
     }
@@ -6808,115 +6808,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05636649997904897,
+      "seconds": 0.06265420839190483,
       "digest": "fe7e9e845156cbeeaa772378ec57ec86e1de15c48958f7e7db0cc8aedfe8a13a"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07075783424079418,
+      "seconds": 0.08160345908254385,
       "digest": "a8db82f64d9d239c764d1806b2bbea7d694b3bcb5adfbdfed7bdd9bce217942d"
      },
      "tree, stated findings": {
-      "seconds": 0.05759912496432662,
+      "seconds": 0.06572262523695827,
       "digest": "5a97205ae96b6e92929fcde778bafc5db28b9443e019ba18ce3666d402da580f"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07002774998545647,
+      "seconds": 0.07690262515097857,
       "digest": "fe248ee4df89fb6bbfd334f947f745cfa49a831f533d01a9379908aa51cad394"
      },
      "graph, stated findings": {
-      "seconds": 0.07191087491810322,
+      "seconds": 0.07206716574728489,
       "digest": "da6ed74e80fc35c36994787dcf273a0727af5a0f2771a816c1d2bb1a5f550036"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08106462471187115,
+      "seconds": 0.08846374973654747,
       "digest": "ef9f568ad11c0dea35afaa39883012dfad9e31b5be4d39c52eb67ddc82aacaf7"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03825649991631508,
+      "seconds": 0.04496499989181757,
       "digest": "57927903cb044a0d1f576ec36aedccc3bc1482291a8b782981f8c4fc1f180727"
      },
      "blank, stated findings": {
-      "seconds": 0.010901167057454586,
+      "seconds": 0.014901333022862673,
       "digest": "dd3b1264bf0da4c8206f35ad83bd42e46b849ebc588a7e4557dbe5fd8a724d54"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018053332809358835,
+      "seconds": 0.023255374748259783,
       "digest": "ddfa6119eac47367b882b3674395b42f0cfc8341f5f6d59e2c5f0a6092fe9eed"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.06250241631641984,
+      "seconds": 0.07081083301454782,
       "digest": "f50df8f2eff641eee8ef1ef7de9e056950150a0fb34859ca881ed3edb0dd24ea"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07253416581079364,
+      "seconds": 0.0805902499705553,
       "digest": "a8db82f64d9d239c764d1806b2bbea7d694b3bcb5adfbdfed7bdd9bce217942d"
      },
      "tree, stated findings": {
-      "seconds": 0.05729933315888047,
+      "seconds": 0.06493799993768334,
       "digest": "dc1feb463aedb78cc0212ed4b301765edeea97ae1c7520d4cbae5d46208dae42"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06672179233282804,
+      "seconds": 0.07686574989929795,
       "digest": "fe248ee4df89fb6bbfd334f947f745cfa49a831f533d01a9379908aa51cad394"
      },
      "graph, stated findings": {
-      "seconds": 0.06269429111853242,
+      "seconds": 0.07137129129841924,
       "digest": "c2d0964222bbb32a8228b0015f8610ba48a9a7209827b8f447aad1ee3bf7cc76"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0761437090113759,
+      "seconds": 0.0871491669677198,
       "digest": "ef9f568ad11c0dea35afaa39883012dfad9e31b5be4d39c52eb67ddc82aacaf7"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03723712498322129,
+      "seconds": 0.043956791050732136,
       "digest": "57927903cb044a0d1f576ec36aedccc3bc1482291a8b782981f8c4fc1f180727"
      },
      "blank, stated findings": {
-      "seconds": 0.010731374844908714,
+      "seconds": 0.012708333320915699,
       "digest": "c01fa820e893c9bb1ac911aca83c27ee9a3d0b4875b5dbb4b5815984583f5cf6"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018046125303953886,
+      "seconds": 0.020782957784831524,
       "digest": "ddfa6119eac47367b882b3674395b42f0cfc8341f5f6d59e2c5f0a6092fe9eed"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.054576709400862455,
+      "seconds": 0.06177520798519254,
       "digest": "a986af24127df4004c3d0433ca67bf35d6326f221523c81dc6cf909223943037"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07039549993351102,
+      "seconds": 0.08208933426067233,
       "digest": "a8db82f64d9d239c764d1806b2bbea7d694b3bcb5adfbdfed7bdd9bce217942d"
      },
      "tree, stated findings": {
-      "seconds": 0.056285582948476076,
+      "seconds": 0.06526408297941089,
       "digest": "1c94806078c1de2e5406ad5b5d5e80f1614f7dc6646e5b2bad61237c04d899d0"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06689683394506574,
+      "seconds": 0.07657191623002291,
       "digest": "fe248ee4df89fb6bbfd334f947f745cfa49a831f533d01a9379908aa51cad394"
      },
      "graph, stated findings": {
-      "seconds": 0.06172399967908859,
+      "seconds": 0.0733160418458283,
       "digest": "4396fe1a89b267a32fbe070584c28f05a223dba7b14ea2f75738cd13c77fd2f1"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.09134283382445574,
+      "seconds": 0.08736545825377107,
       "digest": "ef9f568ad11c0dea35afaa39883012dfad9e31b5be4d39c52eb67ddc82aacaf7"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.037365333177149296,
+      "seconds": 0.03795991698279977,
       "digest": "57927903cb044a0d1f576ec36aedccc3bc1482291a8b782981f8c4fc1f180727"
      },
      "blank, stated findings": {
-      "seconds": 0.012415916193276644,
+      "seconds": 0.011192708741873503,
       "digest": "6a72559434da1374b648db28ab77e5a830a1e793a04b7b509290318bb1170e1d"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01881599985063076,
+      "seconds": 0.017815083265304565,
       "digest": "ddfa6119eac47367b882b3674395b42f0cfc8341f5f6d59e2c5f0a6092fe9eed"
      }
     }
@@ -6933,115 +6933,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.0495949168689549,
+      "seconds": 0.04908633325248957,
       "digest": "e4885f6f8ed164a62852ccbcdd4c06259eaf309e26bd4a45853cae4dc3317d24"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06549545889720321,
+      "seconds": 0.0675957496277988,
       "digest": "6d099e9ce337da099fb744a22d1f2ccc35342f8ba0ffd3082c133b89358a5861"
      },
      "tree, stated findings": {
-      "seconds": 0.05648870766162872,
+      "seconds": 0.05585524998605251,
       "digest": "6827e978e6a698d7b0947d58e635ec500abd871d4b9cd2c0747ba05a38b2cff6"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06648887461051345,
+      "seconds": 0.06378504168242216,
       "digest": "def4eca6d29c5559546acff2b5313366ba716e240187e9955e9e709e58269532"
      },
      "graph, stated findings": {
-      "seconds": 0.060701292008161545,
+      "seconds": 0.06052645808085799,
       "digest": "238bb84af86cf3a9b392dc36f49c097c41444f00ac5cbf5fdbc3ea3666802520"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07297954196110368,
+      "seconds": 0.07396925007924438,
       "digest": "3c63175e2ff08777a4746548feed3f282a2c9d227c5af06a3d214a4285ebe601"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.0389931658282876,
+      "seconds": 0.03595016710460186,
       "digest": "2d894985a1f68e5081efe150cd54c6fca73bbaa67a1db7d2bd785fae12d1c312"
      },
      "blank, stated findings": {
-      "seconds": 0.011194250080734491,
+      "seconds": 0.011063917074352503,
       "digest": "afcf4c1ecc1988ff234282450dbead665ffbe3509ff32e92c794b5053cab0160"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018424249719828367,
+      "seconds": 0.01767783286049962,
       "digest": "5ad03059b7be82ac0f73def6b162cc0ec5adb89e5fc0b9b3cb20a29b424eda21"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05009895795956254,
+      "seconds": 0.05191254196688533,
       "digest": "ac9e4c3470281e6308d3e1505a51ddc077117372276bbf70b1fe927cbc43d307"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06685899989679456,
+      "seconds": 0.06750691588968039,
       "digest": "6d099e9ce337da099fb744a22d1f2ccc35342f8ba0ffd3082c133b89358a5861"
      },
      "tree, stated findings": {
-      "seconds": 0.05565124982967973,
+      "seconds": 0.05587645806372166,
       "digest": "62f8d814e634c21904f075cb2cc9aeda7178a628d69cb9b3423bb2d5d3522e7c"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.07378004211932421,
+      "seconds": 0.07333945808932185,
       "digest": "def4eca6d29c5559546acff2b5313366ba716e240187e9955e9e709e58269532"
      },
      "graph, stated findings": {
-      "seconds": 0.060130625031888485,
+      "seconds": 0.06131833279505372,
       "digest": "56c22106c148aedff40e36a0071583267e3faa2b1f3e225e7bc2571508865fa2"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0748505829833448,
+      "seconds": 0.07682883413508534,
       "digest": "3c63175e2ff08777a4746548feed3f282a2c9d227c5af06a3d214a4285ebe601"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.035598082933574915,
+      "seconds": 0.035814957693219185,
       "digest": "2d894985a1f68e5081efe150cd54c6fca73bbaa67a1db7d2bd785fae12d1c312"
      },
      "blank, stated findings": {
-      "seconds": 0.011097041890025139,
+      "seconds": 0.011230708099901676,
       "digest": "fcd5bb46636ff72100fc95298ef6cf758fc1ae22ac75003e0cc8848da7ef8f82"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018370083067566156,
+      "seconds": 0.01817416725680232,
       "digest": "5ad03059b7be82ac0f73def6b162cc0ec5adb89e5fc0b9b3cb20a29b424eda21"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.050432583317160606,
+      "seconds": 0.04963083378970623,
       "digest": "91af0a4bdb218c6185952f649d4cb7305a84b2c8e040a4533516dd58fe649365"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06618425017222762,
+      "seconds": 0.06634587468579412,
       "digest": "6d099e9ce337da099fb744a22d1f2ccc35342f8ba0ffd3082c133b89358a5861"
      },
      "tree, stated findings": {
-      "seconds": 0.05645616725087166,
+      "seconds": 0.056695083156228065,
       "digest": "4576a266d8414c5133406ee804d38918aad14a340a09539a48317a42b7e84e4b"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06616029189899564,
+      "seconds": 0.06603395799174905,
       "digest": "def4eca6d29c5559546acff2b5313366ba716e240187e9955e9e709e58269532"
      },
      "graph, stated findings": {
-      "seconds": 0.062354250345379114,
+      "seconds": 0.060242332983762026,
       "digest": "059474f1e58e752771decf7d368b9e699ef9465b9055c12a3950ccbd9d80a7d4"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07520379219204187,
+      "seconds": 0.07650574995204806,
       "digest": "3c63175e2ff08777a4746548feed3f282a2c9d227c5af06a3d214a4285ebe601"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03482204116880894,
+      "seconds": 0.041669709142297506,
       "digest": "2d894985a1f68e5081efe150cd54c6fca73bbaa67a1db7d2bd785fae12d1c312"
      },
      "blank, stated findings": {
-      "seconds": 0.01104879193007946,
+      "seconds": 0.012589666992425919,
       "digest": "27f4e6599c950a152ed06360e3ddc0a237db9c5b86f851d6d19371cc5c8757d6"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018204540945589542,
+      "seconds": 0.020861999597400427,
       "digest": "5ad03059b7be82ac0f73def6b162cc0ec5adb89e5fc0b9b3cb20a29b424eda21"
      }
     }
@@ -7058,115 +7058,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.0599432080052793,
+      "seconds": 0.05887950025498867,
       "digest": "fe76f59e5ff1cbadd493f908c97f37928ba66a8dbd1ab5f2fb628f48d1d2fe79"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07081183325499296,
+      "seconds": 0.06885679205879569,
       "digest": "5742d02ea2eb77d5ec916733909da7de2a44d35fbb3ae888e395d151c25d724e"
      },
      "tree, stated findings": {
-      "seconds": 0.0574043751694262,
+      "seconds": 0.05744750006124377,
       "digest": "4f04d85bd42da0a438e4a7b2f7363a9b2dfb8d3e08fc9a06bf15e5792afb51d3"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06638549966737628,
+      "seconds": 0.06602862477302551,
       "digest": "0ef425f4128c1b67a1d42d4b3d956ad5c7944970286b511698d9a860148f8425"
      },
      "graph, stated findings": {
-      "seconds": 0.06159591628238559,
+      "seconds": 0.061287999618798494,
       "digest": "eddcb34509ec58a714cc655173bf91b53c23295780888d3eee1316fafd5e7cf5"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07510208338499069,
+      "seconds": 0.07346870796754956,
       "digest": "3d432499d875b6e9ee7e843a49e487e50bfa40daa9fd0fcb8ce25672fa44822e"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.0361840408295393,
+      "seconds": 0.038847082760185,
       "digest": "c63927d3fabd47419af7ccdb27f05bfecc3af300dde2d0e1220b6eb341e884c6"
      },
      "blank, stated findings": {
-      "seconds": 0.011017167009413242,
+      "seconds": 0.01205520797520876,
       "digest": "7b1a012e9e80ae5c2435394990e8171439d6ebad981422323377353e4ec52a4c"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017980000004172325,
+      "seconds": 0.020105750299990177,
       "digest": "dfcfd86e8881e47329cb43a6475c34636ff99a1a085a345bcc0da17460310bf5"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.05036829225718975,
+      "seconds": 0.050679541658610106,
       "digest": "be885e1130900cf6f6febc01e37dc3770a3eac7c4c3337b65335125e8f383f8e"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06780841713771224,
+      "seconds": 0.06919395830482244,
       "digest": "5742d02ea2eb77d5ec916733909da7de2a44d35fbb3ae888e395d151c25d724e"
      },
      "tree, stated findings": {
-      "seconds": 0.0559597909450531,
+      "seconds": 0.05582450004294515,
       "digest": "b7c8b81380e953fa30ce2770349a94d5426490fff3adb4992118ccde2ba747b6"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06716404110193253,
+      "seconds": 0.0671957079321146,
       "digest": "0ef425f4128c1b67a1d42d4b3d956ad5c7944970286b511698d9a860148f8425"
      },
      "graph, stated findings": {
-      "seconds": 0.06243454059585929,
+      "seconds": 0.06316312542185187,
       "digest": "a004d478c82e303aa98b6826af6c0ecff79d90c76a077a26ed7834058d6ad3cc"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07559075020253658,
+      "seconds": 0.07547404197975993,
       "digest": "3d432499d875b6e9ee7e843a49e487e50bfa40daa9fd0fcb8ce25672fa44822e"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03513370780274272,
+      "seconds": 0.03562687523663044,
       "digest": "c63927d3fabd47419af7ccdb27f05bfecc3af300dde2d0e1220b6eb341e884c6"
      },
      "blank, stated findings": {
-      "seconds": 0.010956792160868645,
+      "seconds": 0.010904207825660706,
       "digest": "cb8fa0fdf21c5d48189d26febe7327f3a1257c68dc82aa69d087132f443aab19"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.018003500066697598,
+      "seconds": 0.01810679119080305,
       "digest": "dfcfd86e8881e47329cb43a6475c34636ff99a1a085a345bcc0da17460310bf5"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05202479101717472,
+      "seconds": 0.052327875047922134,
       "digest": "9d2b844d9733e46db70f28f72d598ba164ec6aea5173c2ad72678491143c9b63"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.06818170892074704,
+      "seconds": 0.06812462490051985,
       "digest": "5742d02ea2eb77d5ec916733909da7de2a44d35fbb3ae888e395d151c25d724e"
      },
      "tree, stated findings": {
-      "seconds": 0.05621025012806058,
+      "seconds": 0.055926792323589325,
       "digest": "aff8b664ee1dc6ed28f9b991d676bd145f2eec772d166cd5a4d9ea67cc3b5da9"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0739540415816009,
+      "seconds": 0.07495675003156066,
       "digest": "0ef425f4128c1b67a1d42d4b3d956ad5c7944970286b511698d9a860148f8425"
      },
      "graph, stated findings": {
-      "seconds": 0.06484491610899568,
+      "seconds": 0.06452445825561881,
       "digest": "f45ffcfe33203a890146a69ec00f22b6df8d532338360b46f8d51fe034f94181"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.0756585830822587,
+      "seconds": 0.0763588328845799,
       "digest": "3d432499d875b6e9ee7e843a49e487e50bfa40daa9fd0fcb8ce25672fa44822e"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.03497879207134247,
+      "seconds": 0.035916415974497795,
       "digest": "c63927d3fabd47419af7ccdb27f05bfecc3af300dde2d0e1220b6eb341e884c6"
      },
      "blank, stated findings": {
-      "seconds": 0.011290000285953283,
+      "seconds": 0.011500708293169737,
       "digest": "2add8ed49c00fb91d2fc634fa0addfc541ae4d9de5746c7f60d197b8edb31701"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.017731583211570978,
+      "seconds": 0.018236834090203047,
       "digest": "dfcfd86e8881e47329cb43a6475c34636ff99a1a085a345bcc0da17460310bf5"
      }
     }
@@ -7183,115 +7183,115 @@
    "arms": {
     "G": {
      "sequence, stated findings": {
-      "seconds": 0.05640883278101683,
+      "seconds": 0.05463579064235091,
       "digest": "3490f5737defe25d9f3542920ebc4acdb3d96a58282c6892a4ff2d224c4862ed"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07248962530866265,
+      "seconds": 0.07134183403104544,
       "digest": "4009bd4ec1e860cca30ac72d13667a6bb3ff4cd58c86834bb881b9183700736e"
      },
      "tree, stated findings": {
-      "seconds": 0.05809000041335821,
+      "seconds": 0.056880374904721975,
       "digest": "1eda6fa225ce86b885a0418de620ea824dcb23bae5b96ab7b3e0e3a67bcd180d"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06672358326613903,
+      "seconds": 0.0711730825714767,
       "digest": "1e482a655a57595c3c328949904f93656152504f9fdbf6c769bcdcbae6aa6d95"
      },
      "graph, stated findings": {
-      "seconds": 0.06138529209420085,
+      "seconds": 0.06716991728171706,
       "digest": "b9616b8ee9e61bc4e16cf8a48e19d40935c1d9b3f47c95dd94917a165316dfb6"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07623104192316532,
+      "seconds": 0.07650300022214651,
       "digest": "c4729d2c13f29021d674f67b3da58d19b0df1e569fa26b2ae1c41f7a918a9ef2"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.024552249815315008,
+      "seconds": 0.024690999649465084,
       "digest": "4aeaaace65d0c42a1ed5b74847ad28b3bdf2568a6e1e1d016099bdb02e4ec78e"
      },
      "blank, stated findings": {
-      "seconds": 0.01861204206943512,
+      "seconds": 0.018778583966195583,
       "digest": "b8647eb678af7314e0c2a31689ee4f6db125498be1ba95d1d92da93c4ae156b9"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01777941733598709,
+      "seconds": 0.018240709323436022,
       "digest": "d448547d0d815bcedd603ff87bc0383d1c81c6c41ad68509d43e7501db2a1c7b"
      }
     },
     "GT": {
      "sequence, stated findings": {
-      "seconds": 0.055216250009834766,
+      "seconds": 0.05519620794802904,
       "digest": "bfe59bdf719c9db9d1d045227bcd3a500785c64ff270c11c1d06022ffe131439"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07186454068869352,
+      "seconds": 0.07236158335581422,
       "digest": "4009bd4ec1e860cca30ac72d13667a6bb3ff4cd58c86834bb881b9183700736e"
      },
      "tree, stated findings": {
-      "seconds": 0.05699487496167421,
+      "seconds": 0.05713437497615814,
       "digest": "3a6c20ff9a063e94b414424dc4b383bba35e444ea589b1bd9b62b7cd69d2d185"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.0661614160053432,
+      "seconds": 0.0660454579629004,
       "digest": "1e482a655a57595c3c328949904f93656152504f9fdbf6c769bcdcbae6aa6d95"
      },
      "graph, stated findings": {
-      "seconds": 0.06569145899266005,
+      "seconds": 0.06271887477487326,
       "digest": "fc41024a568f90b28907170ad72b50fbeef75042bbdaf4d8b62b83c90624a259"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.08790112473070621,
+      "seconds": 0.07585199968889356,
       "digest": "c4729d2c13f29021d674f67b3da58d19b0df1e569fa26b2ae1c41f7a918a9ef2"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.0258344579488039,
+      "seconds": 0.02359237475320697,
       "digest": "4aeaaace65d0c42a1ed5b74847ad28b3bdf2568a6e1e1d016099bdb02e4ec78e"
      },
      "blank, stated findings": {
-      "seconds": 0.011402917094528675,
+      "seconds": 0.011712625157088041,
       "digest": "fc2e818fe2c9b21c56273882bdffe90dd2296814fd342f1b69baf9d2e3a8c5b0"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01780466688796878,
+      "seconds": 0.017528584226965904,
       "digest": "d448547d0d815bcedd603ff87bc0383d1c81c6c41ad68509d43e7501db2a1c7b"
      }
     },
     "T": {
      "sequence, stated findings": {
-      "seconds": 0.05565470829606056,
+      "seconds": 0.05526404222473502,
       "digest": "8dbed223a3a359481b0c8032ae97f0b77f33b8c6db0b98f211b1905b82fef937"
      },
      "sequence, coded only (1.3)": {
-      "seconds": 0.07151795784011483,
+      "seconds": 0.07184233283624053,
       "digest": "4009bd4ec1e860cca30ac72d13667a6bb3ff4cd58c86834bb881b9183700736e"
      },
      "tree, stated findings": {
-      "seconds": 0.056812709197402,
+      "seconds": 0.057419583201408386,
       "digest": "691460585215cf2e5b9eb985f1726447920b9292ce3a4be51dff82132b5fc1d0"
      },
      "tree, coded only (joint)": {
-      "seconds": 0.06707599991932511,
+      "seconds": 0.06601745821535587,
       "digest": "1e482a655a57595c3c328949904f93656152504f9fdbf6c769bcdcbae6aa6d95"
      },
      "graph, stated findings": {
-      "seconds": 0.0715416669845581,
+      "seconds": 0.0707669579423964,
       "digest": "f9e109f0b70ce2791bc35075f096a5e3ed901b52245be604df20bb0e2dfea4fd"
      },
      "graph, coded only (joint)": {
-      "seconds": 0.07655158312991261,
+      "seconds": 0.07533220807090402,
       "digest": "c4729d2c13f29021d674f67b3da58d19b0df1e569fa26b2ae1c41f7a918a9ef2"
      },
      "event frequency, coded only (1.3)": {
-      "seconds": 0.02363083278760314,
+      "seconds": 0.02411354100331664,
       "digest": "4aeaaace65d0c42a1ed5b74847ad28b3bdf2568a6e1e1d016099bdb02e4ec78e"
      },
      "blank, stated findings": {
-      "seconds": 0.01104658329859376,
+      "seconds": 0.011005749925971031,
       "digest": "fe5de3b7b3e19e3585c154bd047fc40be988a8a5a8d64057f74f625058c99fa1"
      },
      "blank, coded only (1.3)": {
-      "seconds": 0.01937316684052348,
+      "seconds": 0.01764141721650958,
       "digest": "d448547d0d815bcedd603ff87bc0383d1c81c6c41ad68509d43e7501db2a1c7b"
      }
     }
@@ -7309,7 +7309,7 @@
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
-  "demos/mockups/trajectory/app.js": "73f11d0a36f6cd828cc89dbafa1d5867ae573d5b9a00a18dc1e3c9a93787980a",
+  "demos/mockups/trajectory/app.js": "4dc9bdbe04167c45e023729b5ab60cc4b484303a18ae8a7aff8daffea6679149",
   "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
   "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
