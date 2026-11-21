@@ -170,7 +170,8 @@ const DEFINITIONS = `
     const before = state.freeText;
     state.freeText = freeText;
     try {
-      const r = storeRequest({...defaultDef(), ...def}, freeText, [...state.patients.keys()], options);
+      // D52: D49's translation pinned (the page point windows, indexAnchor false), so this report keeps recording what it measured.
+      const r = storeRequest({...defaultDef(), ...def}, freeText, [...state.patients.keys()], {indexAnchor: false, ...options});
       if (late) r.windows = Object.fromEntries(Object.keys(r.windows).map(pid => [pid, lateOne(pid, def.window, freeText)]));
       return r;
     } catch (e) { if (e instanceof StoreRefusal) return {refused: e.code}; throw e; }
