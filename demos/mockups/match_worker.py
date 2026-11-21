@@ -11,9 +11,7 @@ not answered within the time limit is killed (503 MATCH_TIME_LIMIT).
 A spare child is kept built and waiting, so after a kill the next match goes to it at once and the replacement is
 built off the request path (about 1.1 s). No build ever runs on a request's path: if a flood has used the spare before
 its replacement is ready, a match is refused at once (503 BUSY). A match waits at most `lock_wait` seconds for the child (503 BUSY), and
-every kill is reported to `on_event` (the server logs `match_killed`, with no body or address). Since D52b (review, M1) a
-child that answers with an internal failure (any exception, a MemoryError among them) is killed too and never reused;
-the request is still answered as an internal error.
+every kill is reported to `on_event` (the server logs `match_killed`, with no body or address).
 
 The child is this file run as its own program (`python -I match_worker.py COHORT ROOT`), so nothing of the
 parent's main module is imported again. It runs `store_trajectory.TrajectoryStore` itself, unchanged, so its
@@ -260,27 +258,21 @@ class IsolatedMatcher:
                     # No worker is built yet (a flood outran the spare's rebuild): refuse now rather than build one
                     # on this request's path, so a match is answered or refused within its wait plus the time limit.
                     raise store_trajectory.Unavailable('BUSY')
-            child, answer, failure, internal = self._active, None, 'MATCH_TIME_LIMIT', False
+            child, answer, failure = self._active, None, 'MATCH_TIME_LIMIT'
             try:
                 child.process.stdin.write(json.dumps(spec) + '\n')
                 child.process.stdin.flush()
                 answer = child.read(self.time_limit)
-                if answer is not None and answer.get('internal'):
-                    # D52b review, M1: an internal failure (a MemoryError among them) may leave the child's memory or
-                    # state spoiled, so it is never reused either; the request is answered INTERNAL_ERROR as before.
-                    answer, failure, internal = None, 'MATCH_WORKER_INTERNAL', True
             except Exception:  # noqa: BLE001 - a dead child, a broken pipe, or something that is not an answer
                 failure = 'MATCH_WORKER_FAILED'
             finally:
-                if answer is None:  # timed out, failed after the write, or failed inside: the child is never reused
+                if answer is None:  # timed out or failed after the write: the child is never reused
                     child.kill()
                     self._active = self._take_spare()
                     self.kills += 1
                     self.on_event('match_killed', reason=failure)
                     self._refill()
             if answer is None:
-                if internal:
-                    raise RuntimeError('INTERNAL_ERROR')
                 raise store_trajectory.Unavailable(failure)
         finally:
             self._lock.release()

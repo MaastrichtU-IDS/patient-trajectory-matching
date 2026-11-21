@@ -778,31 +778,6 @@ class HostedWorkerFloodTests(unittest.TestCase):
         finally:
             client.close()
 
-    def test_an_internal_failure_kills_the_worker_too(self):
-        # D52b review, M1: a child answering `internal` (any exception, a MemoryError among them) is never reused.
-        import match_worker
-        matcher = match_worker.IsolatedMatcher(store_trajectory.COHORT, time_limit=5).start()
-        events = []
-        matcher.on_event = lambda event, **fields: events.append((event, fields))
-        try:
-            pids = sorted(p['patient_id'] for p in json.loads(store_trajectory.COHORT.read_text())['patients'])
-            from test_store_trajectory import requests
-            light = list(requests(pids).values())[0]
-            self.assertIn('results', matcher.match(light))
-            child = matcher._active
-            with mock.patch.object(match_worker._Child, 'read', return_value={'internal': True}):
-                with self.assertRaises(RuntimeError) as caught:
-                    matcher.match(light)
-            self.assertEqual(str(caught.exception), 'INTERNAL_ERROR')
-            self.assertIsNotNone(child.process.poll(), 'the worker is killed, never reused')
-            self.assertEqual((matcher.kills, events[-1]), (1, ('match_killed', {'reason': 'MATCH_WORKER_INTERNAL'})))
-            deadline = time.time() + 10
-            while matcher._spare is None and time.time() < deadline:
-                time.sleep(0.1)
-            self.assertIn('results', matcher.match(light))
-        finally:
-            matcher.close()
-
     def test_a_failure_after_the_write_kills_the_worker_and_is_named(self):
         import match_worker
         matcher = match_worker.IsolatedMatcher(store_trajectory.COHORT, time_limit=5).start()

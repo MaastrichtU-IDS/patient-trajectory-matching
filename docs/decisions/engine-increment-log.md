@@ -68,7 +68,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | E0b | E0 retried: the same normaliser and wrapper (e53ac3b), the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id (refusals by name, listed and left out, at most 0.1%), E0's rules as amended on fresh seeds 5201 to 5300, under rules fixed before measuring | **Shipped as an option**, off by default. Every rule met on seeds 5201 to 5300: 0 misses and 0 refusals in 84,781 narrowed mentions (median 33 days against 1,172); 0 contradictions; 171 results more decided and none less (Blank `exact` 1 to 168 of 1,102, the truth oracle 256; Sequence, Tree and Graph none); coded only identical; four planted defects caught. A held-out wording test is required before any default |
 | D51 | Is 1.1 Nth and count slower since f9e087e (D48b's d44b count rebind missed at 1.078 in one pair)? That request alone beside the two controls, main against f9e087e at 300,000 and 14 workers, 8 ABBA pairs, under a decision rule fixed before measuring | **Decided: outcome (i), no slowdown.** Median normalised ratio 1.000 over 8 pairs (0.957 to 1.019), none above 1.05; raw 0.947 to 1.009. Answers equal f9e087e's. The d44b miss is attributed to variance: process-level shifts of about 5% on this request occur in either direction. The committed d44b verdict stands as the historical measurement |
 | D52 | The index anchor as a hidden step of the query (P2, D46's option (c)): the translator writes an event-placed index period as a hidden step with relations from it (`index_anchor_v1`), the server narrows each base window to the hull of the periods the store's records allow (`index_hull_v1`), the shapes it cannot write kept as D49's point windows with a P2 note, under rules fixed before measuring | Measured; **not shipped** (record only; retry base f783bd0; D52b queued). Rule 6 missed as written (Event frequency p95 10.22 s at 300,000 against 10 s; the narrowing 8.2 to 13.1% of the candidates' medians against 10%); every other rule met: soundness 0 failing in 200,400 cases, census 0 unexplained of 4,927 changes, coded-only usefulness met, parity 781 of 1,248. Under stated findings (reported) Sequence, Tree and Graph are mostly unresolved |
-| D52b | D52 retried: the same code (retry base f783bd0) with the server's narrowing cached per snapshot and hidden-step key (a bounded LRU of validated keys), on fresh seeds, rule 6's bars unchanged with the first run ruled apart, under rules fixed before measuring | Rules committed and amended after the review; not yet measured |
+| D52b | D52 retried: the same code (retry base f783bd0) with the server's narrowing cached per snapshot and hidden-step key (a bounded LRU of validated keys), on fresh seeds, rule 6's bars unchanged with the first run ruled apart, under rules fixed before measuring | Measured; **not shipped** (record only; retry base 309c1b0). Rule 6 missed as written (Event frequency p95 10.83 s and Blank 10.35 s at 300,000 against 10 s; Event frequency's first run above 10 s in 3 pairs); every other rule met; the cache cut the narrowing from 0.70 s to 0.20 s, so the remaining cost is in matching. Next: a design study, no code |
 
 ## D1 Package with hatchling, in place
 
@@ -5851,7 +5851,7 @@ The largest transitions: exact → possible 1,319; excluded → none 894; possib
 
 ## D52b D52 retried: the same code, with the server's narrowing cached per snapshot and hidden-step key, on fresh seeds, under rules fixed before measuring
 
-*Status:* **rules committed; not yet measured.**
+*Status:* **measured; not shipped** (record only; retry base 309c1b0, branch `d52b-retry-base`). Rule 6, the latency rule, missed as written: at 300,000 Event frequency's p95 was 10.83 s and Blank's 10.35 s against 10 s, and Event frequency's first run passed 10 s in 3 pairs (Blank's in 1). Every other rule held, and the cache's own bound was met (2.4 to 4.0%). Next: a design study of the hidden step's matching cost, no code.
 
 **Why.** D52 (retry base f783bd0) met every rule but rule 6. At 300,000, Event frequency's p95 was 10.22 s against the 10 s bar, and the narrowing took 0.70 s per request, 8.2 to 13.1% of the candidates' medians against a 10% bound. A narrowing's ranges depend only on the snapshot and on the hidden step's concept, occurrence, N and the kinds its candidates leave out, never on a request's offsets or windows, and a snapshot is immutable. So they need computing only once per snapshot and key. The coordinator's decision, as delegate, after D52's measurement: D52 lands as a record only, and D52b follows with the cache.
 
@@ -6025,3 +6025,27 @@ The medians are 1.3 to 1.5 times D49's, against references whose own p95 is abou
 - Prune on the anchor's narrowed hull before matching (the window-based pruning reads the hull already, so the remaining cost is per patient in the engine).
 - Give the hidden step's candidates a tighter time range: its occurrence's own envelope rather than every event of the concept.
 - Move the bar's measurement to 8 workers, or accept a higher absolute bar for event-anchored periods. Either is a change to the rule, not to the code, and the owner's to make.
+
+**Decision: D52b does not ship** (the coordinator, as delegate; option 1). It lands as a record:
+- *The retry base:* 309c1b0, branch `d52b-retry-base`.
+- *Reverted on this branch,* so `main` keeps D49's translation: every code, tool, test and page change, `index_hull.py`, the server's and the hosted worker's changes, the pins and the parity tables.
+- *D45's latency verdict* is current again, since `store_trajectory.py` is main's.
+- *Frozen as `HISTORICAL`,* with sign-off as delegate: D52b's six reports.
+- *Kept:* this entry, and a note in `docs/execution-store.md`.
+
+*The diagnosis.* The remaining cost is in matching the hidden step, not in the narrowing. The cache cut the narrowing from 0.70 s to 0.20 s per request, yet Event frequency's p95 rose from 10.22 s (D52) to 10.83 s, and Blank's passed the bar too. The hidden step brings:
+- candidates on every patient;
+- windows from birth, under which the window-based pruning prunes little;
+- uncertain first and last targets for D30, D31 and D35 to decide.
+
+The medians run 1.3 to 1.5 times D49's.
+
+*Two measured misses with an unknown saving call for a study before another build.* **Next: a design study (no code)** of the hidden step's matching cost, for the coordinator's decision. It covers:
+- tighter candidate ranges from the occurrence's own envelope;
+- pruning on the narrowed hull;
+- where the time goes at 300,000: profile Event frequency and Blank on the kept build, in one process, `nice`, outside the lock;
+- an estimated saving for each option.
+
+*Not recorded here:* a change to the bar (an absolute bar for event-anchored periods, or the bar at 8 workers). That is the owner's decision, which the coordinator puts to the owner together with the stated-findings trade-off. Until then **P2 stays a documented limitation**: about 3% of event-anchored answers depend on where in its anchor's recorded range the period starts (D46 rule 8).
+
+*Hosted, carried to main separately if wanted:* D52b's review found that a hosted child answering `internal` was reused. The fix (kill it, as on a timeout) is reverted with D52b, so main keeps the old behaviour. It is a candidate for a small hosting change of its own.

@@ -28,11 +28,7 @@ engine refuses gets their code (`StoreRefused`, `by: store`). Times must be whol
 so no string or float reaches the conversion to the store's clock.
 
 The windows are the page's (it places each patient's index period by its own rule, over its own reconciled view of
-the records). The store takes windows as input; it reads no generator truth itself. Since D52 a period placed by an
-event is a hidden step of the query, and the page sends a constant base window with an `index` block naming the step
-and its offsets; the server narrows each base window to the hull of the periods the store's records allow
-(`index_hull.py`, `index_hull_v1`), which never changes what the request matches, and answers with the narrowed windows
-and the reason for each patient it excluded (`index`).
+the records). The store takes windows as input; it reads no generator truth itself.
 """
 from __future__ import annotations
 
@@ -58,8 +54,7 @@ SYNTHETIC_DATASET = 'synthetic-paediatric-rare-v0'
 CODE = re.compile(r'[A-Z][A-Z0-9_]*')
 MINUTE = 60_000_000
 TIME_LIMIT = 10 ** 9  # minutes, about 1,900 years: far beyond any window or gap the page writes
-REQUEST_KEYS = {'query', 'conditions', 'windows', 'index', 'index_anchor'}
-WORKERS = 1  # the server matches on one worker; D52's narrowing runs its queries on as many DuckDB threads (review, S3)
+REQUEST_KEYS = {'query', 'conditions', 'windows'}
 BUILD_WAIT = 120  # seconds a request waits for the startup build
 HOW_TO_BUILD = ['python demos/mockups/synthetic/generate.py',
                 'python -m pip install -r patterns/requirements-store.lock.txt',
@@ -140,22 +135,6 @@ def check_request(spec, patient_ids):
             if relative is not None:
                 require(isinstance(relative, dict) and isinstance(relative.get('baseline'), dict), 'RELATIVE_MUST_HAVE_A_BASELINE')
                 _minutes(relative['baseline'].get('within'), 'TIME_MUST_BE_WHOLE_MINUTES')
-    index = spec.get('index')
-    if index is not None:  # D52: the hidden steps that place the period, and their offsets (index_hull.py)
-        require(isinstance(index, dict) and set(index) == {'rule', 'start', 'end'} and index['rule'] == 'index_anchor_v1',
-                'INDEX_MUST_NAME_ITS_RULE_AND_SIDES')
-        steps = {s.get('id') for s in query.get('steps', []) if isinstance(s, dict)}
-        for side in ('start', 'end'):
-            x = index[side]
-            if x is not None:
-                require(isinstance(x, dict) and set(x) == {'step', 'offset'} and x['step'] in steps, 'INDEX_SIDE_MUST_NAME_A_STEP')
-                _minutes(x['offset'], 'TIME_MUST_BE_WHOLE_MINUTES')
-        require(index['start'] is not None or index['end'] is not None, 'INDEX_SIDE_MUST_NAME_A_STEP')
-    point = spec.get('index_anchor')
-    if point is not None:  # D52: a period kept as D49's point window, and why (echoed in the answer for the page)
-        require(isinstance(point, dict) and set(point) == {'mode', 'reason'} and point['mode'] == 'point'
-                and isinstance(point['reason'], str) and CODE.fullmatch(point['reason']), 'INDEX_ANCHOR_MUST_BE_A_POINT_AND_A_REASON')
-        require(index is None, 'INDEX_ANCHOR_AND_INDEX_TOGETHER')
     require(isinstance(windows, dict), 'WINDOWS_MUST_BE_AN_OBJECT')
     for pid, w in windows.items():
         require(pid in patient_ids, 'UNKNOWN_WINDOW_PATIENT')
@@ -293,17 +272,9 @@ class TrajectoryStore:
                                                'end': self.births[pid] + w['end'] * MINUTE}
                   for pid, w in windows.items()}
         started = time.perf_counter()
-        index, narrowed = spec.get('index'), None
         try:
             with self._lock:
-                if index is not None:  # D52: each base window narrowed to the hull of the periods the records allow
-                    import index_hull
-                    micros, reasons, _ = index_hull.narrow(store, store_parity.to_micros(query), conditions, index, micros, MINUTE,
-                                                           threads=WORKERS)
-                    narrowed = {'rule': index_hull.RULE, 'reasons': reasons,
-                                'windows': {pid: None if w is None else [self._minutes(pid, w['start']), self._minutes(pid, w['end'])]
-                                            for pid, w in micros.items()}}
-                result = sc.match(store, store_parity.to_micros(query), micros, workers=WORKERS,
+                result = sc.match(store, store_parity.to_micros(query), micros,
                                   conditions=store_parity.conditions_micros(conditions))
         except ValueError as error:  # StoreError and the engine's TrajectoryError are ValueErrors with a code
             code = refusal_code(error)
@@ -311,15 +282,10 @@ class TrajectoryStore:
                 raise
             raise StoreRefused(code) from None
         elapsed = round((time.perf_counter() - started) * 1000)
-        out = {'profile': PROFILE, 'snapshot_id': result['snapshot_id'], 'context_id': result['context_id'],
-               'match_profile': result['profile'], 'store_profile': store.manifest.get('profile'),
-               'conditions_profile': (conditions or {}).get('profile'), 'counts': result['counts'],
-               'elapsed_ms': elapsed, 'results': [self._patient(r) for r in result['results']]}
-        if narrowed is not None:
-            out['index'] = narrowed
-        if spec.get('index_anchor') is not None:
-            out['index_anchor'] = spec['index_anchor']
-        return out
+        return {'profile': PROFILE, 'snapshot_id': result['snapshot_id'], 'context_id': result['context_id'],
+                'match_profile': result['profile'], 'store_profile': store.manifest.get('profile'),
+                'conditions_profile': (conditions or {}).get('profile'), 'counts': result['counts'],
+                'elapsed_ms': elapsed, 'results': [self._patient(r) for r in result['results']]}
 
     def _patient(self, r):
         """A store result with its binding described and its times in minutes from birth; every other field as is."""
