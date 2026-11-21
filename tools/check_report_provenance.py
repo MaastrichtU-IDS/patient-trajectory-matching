@@ -123,15 +123,14 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # added files (`patterns/mention_time.py`, `synthetic_mentions.py`, `test_synthetic_mentions.py`) make false on
               # any later tree. D53's regeneration showed every other figure equal. Kept as D49's record of its own tree, as
               # committed on main at 34af272 (coordinator's sign-off as delegate, D53, under the conflicting-provisions rule).
-              # Since D52, superseded for the current tree by `verification/d52-anchor-census-report.json`, which checks that
-              # the page's translator with `indexAnchor: false` writes D49's requests and accounts for every request that moves.
               'verification/d49-flip-census-report.json',
-              # D52 changes `demos/mockups/store_trajectory.py` (the `index` block and the narrowing; a request without it
-              # takes the same path, by a call counter), which D45's coded-default latency verdict binds. It records D45's
-              # verdict, last re-measured and met under D48b on 2026-11-20; for the current tree
-              # `verification/d52-anchor-latency-verdict.json` supersedes it, its reference arm being the requests that
-              # verdict timed (coordinator's sign-off as delegate, D52 Q8).
-              'verification/d45-coded-default-latency-verdict.json'}
+              # D52 did not ship (rule 6, its latency rule, missed as written), so its code is not in the tree; its six
+              # reports are kept as frozen records of that decision, measured on the retry base f783bd0 (branch
+              # d52-retry-base), whose translator, server narrowing (`index_hull.py`) and tools they bind (coordinator's
+              # sign-off as delegate). D52b retries it.
+              'verification/d52-anchor-worlds-report.json', 'verification/d52-anchor-defects-report.json',
+              'verification/d52-anchor-reference-report.json', 'verification/d52-anchor-census-report.json',
+              'verification/d52-anchor-usefulness-report.json', 'verification/d52-anchor-latency-verdict.json'}
 
 
 def digests(path):
