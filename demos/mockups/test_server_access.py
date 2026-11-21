@@ -778,6 +778,38 @@ class HostedWorkerFloodTests(unittest.TestCase):
         finally:
             client.close()
 
+    def test_a_worker_that_answers_internal_is_killed_and_never_reused(self):
+        # D52b's review: a child that answered `internal` (a MemoryError, say) was reused, and stayed broken until a
+        # time limit. Now it is killed like a timed-out one, the kill is logged, and the request is a plain 500.
+        import match_worker
+        from test_store_trajectory import requests
+        events = []
+        out = io.StringIO()
+        with mock.patch.object(sys, 'stdout', out):
+            client = Client(server.serve('127.0.0.1', 0, hosted=True, match_time_limit=5, log_format='json'))
+        try:
+            wait_ready(client)
+            matcher = client.httpd.registry.first('synthetic-trajectory').matcher
+            matcher.on_event = lambda event, **fields: events.append((event, fields))
+            pids = sorted(p['patient_id'] for p in json.loads(store_trajectory.COHORT.read_text())['patients'])
+            light = list(requests(pids).values())[0]
+            child = matcher._active
+            real_read = match_worker._Child.read
+            with mock.patch.object(match_worker._Child, 'read',
+                                   lambda self, timeout: (real_read(self, timeout), {'internal': True})[1]):
+                status, body, _ = client.call('/api/trajectory-store/match', body=light)
+            self.assertEqual((status, body), (500, {'error': 'INTERNAL_ERROR'}))
+            self.assertIsNotNone(child.process.poll(), 'the worker that answered internal is killed')
+            self.assertIsNot(matcher._active, child, 'and never reused')
+            self.assertEqual(events[0], ('match_killed', {'reason': 'MATCH_WORKER_INTERNAL'}))
+            self.assertEqual(matcher.kills, 1)
+            deadline = time.time() + 15
+            while client.call('/api/ready')[0] != 200 and time.time() < deadline:
+                time.sleep(0.2)
+            self.assertEqual(client.call('/api/trajectory-store/match', body=light)[0], 200)  # the spare answers
+        finally:
+            client.close()
+
     def test_a_failure_after_the_write_kills_the_worker_and_is_named(self):
         import match_worker
         matcher = match_worker.IsolatedMatcher(store_trajectory.COHORT, time_limit=5).start()

@@ -274,6 +274,15 @@ class IsolatedMatcher:
                     self._refill()
             if answer is None:
                 raise store_trajectory.Unavailable(failure)
+            if not ({'ok', 'refused', 'unavailable'} & set(answer)):
+                # An internal failure in the child (MemoryError included) may have left it broken: kill it and
+                # never reuse it, as after a time limit; the request is still answered as an internal error
+                # (D52b's review; the fix re-applied after D52b's code was reverted).
+                child.kill()
+                self._active = self._take_spare()
+                self.kills += 1
+                self.on_event('match_killed', reason='MATCH_WORKER_INTERNAL')
+                self._refill()
         finally:
             self._lock.release()
         if 'ok' in answer:

@@ -4908,6 +4908,18 @@ the lows it found are fixed too.
   - *Workflow:* before activating the image workflow, the pinned action SHAs and the releases named beside them are
     to be checked; this is a first-deploy step.
 
+**Follow-up, from D52b's review (2026-11-21).**
+- *The defect:* the hosted matcher reused a child after it answered `internal` (a MemoryError included). A child
+  that ran out of memory then stayed broken until a later request hit the time limit.
+- *Where it came from:* D52b's review found it and D52b fixed it, but that fix was reverted with the rest of D52b's
+  code (D52b is a record only).
+- *Re-applied here, on its own:*
+  - `match_worker.IsolatedMatcher` now kills a child after an `internal` answer and never reuses it, as after a
+    time limit.
+  - The kill is logged as `match_killed` with reason `MATCH_WORKER_INTERNAL`.
+  - The spare takes over, and the request is still answered as `500 INTERNAL_ERROR`.
+- *Test:* `test_server_access`, "a worker that answers internal is killed and never reused".
+
 ## E0 Letter mentions timed from their letter's text: a deterministic normaliser and the converter's option `normalised_v1`, under rules fixed before measuring
 
 *Status:* measured; **not shipped** (option (a), the coordinator as delegate): rule 1 missed as written (4 misses of 84,755, each a truth id the generator reuses that the scorer resolved to the wrong event); every other rule met. Reverted to main; the measured state is the retry base **e53ac3b** (09a6900 before the rebase onto 9da7240, the same files but for D50 in this log); E0b queued. The owner approved "the date normaliser first"; the coordinator briefed E0 as the owner's delegate.
