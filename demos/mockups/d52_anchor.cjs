@@ -53,7 +53,7 @@ const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join
 const shaText = text => crypto.createHash('sha256').update(text).digest('hex');
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
-const BASE = arg('--base', '34af272');  // main before D52 (updated at the rebase onto D53, recorded in the log)
+const BASE = arg('--base', '5f9fffb');  // main before D52: the merge of D53 (34af272 until the rebase, recorded in the log)
 const SMOKE = process.env.D52_SMOKE === '1';
 const DEV_SEED = 5501;
 

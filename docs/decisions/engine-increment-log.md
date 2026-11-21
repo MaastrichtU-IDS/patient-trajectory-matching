@@ -5630,7 +5630,7 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
   - `test_engine_parity.cjs` ran with its D52 block, which checks translation and constructed answers only;
   - the mockup unit suites ran.
 
-**Pre-committed rules** (committed with this entry, before any measurement of D52; "main" is 34af272, to become the main after D53 at the rebase, recorded then).
+**Pre-committed rules** (committed with this entry, before any measurement of D52; "main" was 34af272 as committed, and is **5f9fffb**, D53's merge, since the rebase onto it, which is also the census's `--base`).
 1. **Soundness: the anchor's uncertainty is covered.**
    - `python tools/d52_measure.py worlds --cases 200000 --seed d52-rule --output verification/d52-anchor-worlds-report.json` checks tiny patients on an integer grid, many to a snapshot (see the tool's docstring). Each request is rewritten by `index_anchor_reference.rewrite_sides` and answered by `store_conditions.match` over the base windows (H1) and over `index_hull.narrow`'s (H3). Every claim is judged against a per-world period computed without the rewrite. *The truth* is the page's window rule applied in each world, under Q2's reading for relations from `START`: the start unclamped there, clamped at birth for where steps fall (as amended, S4). An Nth event ranks coded events only, with or without coded only (M1).
    - **0 failing cases** in both forms. H1 and H3 are equal wherever both are decided (not `unresolved`, not excluded) and neither by a window-reading rule. At least 1,000 decided cases with an uncertain anchor per shape (six shapes).
@@ -5688,8 +5688,9 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 7. **No change on the store and engine path** (structural). `git diff <main>` names no file under `patterns/`, nor `tools/scaling_build_worker.py`, `store_parity.py` or the generator. The 300 recorded digests are unchanged (the suites).
 8. **Regeneration: only what goes stale.**
    - D46's three reports, D47's three, `d49-flip-usefulness-report.json` and E0b's three are regenerated with their own tools, pinned to `indexAnchor: false`. **Every figure must be equal** apart from timings and artifact digests; a figure that differs is reported, not frozen away.
+   - *Since the rebase onto D53* (5f9fffb): D53's three reports (`d53-coded-start-{census,usefulness,trace}-report.json`) bind `store_request.js`, `app.js`, `option_sweep.js` and the pinned tools, so they are stale too. They are regenerated with `d53_coded_start.cjs census`, `usefulness` and `trace` (its default seeds). D53's tool translates through D47's pinned definitions, so its store requests are D49's on both sides: **every figure must be equal** apart from timings and digests.
    - `verification/d45-coded-default-latency-verdict.json` is frozen as `HISTORICAL` (signed off, Q8), superseded by D52's latency verdict, whose reference arm is the request it timed.
-   - `verification/d49-flip-census-report.json`: frozen as `HISTORICAL` by D53, which lands first (the coordinator's ruling: its rule 2.1 is a point-in-time claim against 0a17003). After the rebase D52 checks that it is frozen, and adds to its `HISTORICAL` comment that D52's census supersedes it for the current tree (the consistency read, below).
+   - `verification/d49-flip-census-report.json`: frozen as `HISTORICAL` by D53 (the coordinator's ruling: its rule 2.1 is a point-in-time claim against 0a17003); checked after the rebase, and D52 adds to its `HISTORICAL` comment that D52's census supersedes it for the current tree.
    - `results/build.py` runs if its inputs move.
    - One job under the bench lock covers rules 1 to 6 and the regeneration.
 9. **Gates:**
@@ -5744,3 +5745,15 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
     - at least 44 were `none` against `not_comparable` for coverage, mostly on gene-step requests, where the facts had mirrored the plain coverage rule and not the gene profile's recorders; the structural test replaced those facts;
     - the rest were changes in the engine's own answer under an unchanged admission verdict, which the first version wrongly closed to the anchor classes;
   - the census then left 0 unexplained among 4,612 of 26,112 changed results: every change with main equal to the pinned request, 86 point periods (51 in the sweep), structural checks met.
+
+**Rebased onto D53** (main 5f9fffb, 2026-11-21). The log's appended sections conflicted, and both were kept. "Main" and the census's `--base` are now 5f9fffb. D53 froze `verification/d49-flip-census-report.json` (checked), and D52 adds to its `HISTORICAL` comment that D52's census supersedes it. D53's three reports are added to rule 8's regeneration (above).
+
+Re-run after the rebase, on development data only:
+- the mockup suites;
+- the D52 tools' tests;
+- `test_engine_parity.cjs`, its D53 block included;
+- the reference smoke: 658 requests and 27,456 windows, 0 mismatches;
+- the usefulness smoke, with the same figures as before;
+- the census on cohort 5501: 0 unexplained of 4,612 changed;
+- the worlds harness: 0 failing in 4,000;
+- the parity test on cohort 5501: passes.
