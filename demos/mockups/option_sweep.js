@@ -6,7 +6,7 @@
    (shared/core.js, trajectory/app.js and a translator loaded into a node:vm context with the cohort in `state`):
    - optionSweepDefinitions() lists {name, def, freeText} in the grid's order;
    - optionSweepCases(options) translates each with the context's own `storeRequest` (and `options`, none by default),
-     as {name, query, conditions, windows}, or {name, refused: code} for a refusal by name ('UNNAMED: ...' otherwise). */
+     as {name, query, conditions, windows} (and since D52 the `index` block of a period placed by an event), or {name, refused: code} for a refusal by name ('UNNAMED: ...' otherwise). */
 function optionSweepDefinitions() {
   const subjects = {
     'any seizure': {concept: 'seizure', occ: 'any'}, 'first seizure': {concept: 'seizure', occ: 'first'},
@@ -71,8 +71,8 @@ function optionSweepCases(options) {
     const before = state.freeText;
     state.freeText = freeText;
     try {
-      const {query, conditions, windows} = storeRequest(def, freeText, pids, options);
-      return {name, query, conditions, windows};
+      const {query, conditions, windows, index} = storeRequest(def, freeText, pids, options);
+      return {name, query, conditions, windows, ...(index ? {index} : {})};  // D52: the hidden step's index block
     } catch (e) {
       return {name, refused: e instanceof StoreRefusal ? e.code : 'UNNAMED: ' + e.message};
     } finally { state.freeText = before; }

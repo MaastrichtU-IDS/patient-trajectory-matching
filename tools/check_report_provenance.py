@@ -127,10 +127,16 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # D52 did not ship (rule 6, its latency rule, missed as written), so its code is not in the tree; its six
               # reports are kept as frozen records of that decision, measured on the retry base f783bd0 (branch
               # d52-retry-base), whose translator, server narrowing (`index_hull.py`) and tools they bind (coordinator's
-              # sign-off as delegate). D52b retries it.
+              # sign-off as delegate). D52b retries it; its reports supersede them for its tree.
               'verification/d52-anchor-worlds-report.json', 'verification/d52-anchor-defects-report.json',
               'verification/d52-anchor-reference-report.json', 'verification/d52-anchor-census-report.json',
-              'verification/d52-anchor-usefulness-report.json', 'verification/d52-anchor-latency-verdict.json'}
+              'verification/d52-anchor-usefulness-report.json', 'verification/d52-anchor-latency-verdict.json',
+              # D52b changes `demos/mockups/store_trajectory.py` (the `index` block and the cached narrowing; a request without
+              # it takes the same path, by a call counter), which D45's coded-default latency verdict binds. It records D45's
+              # verdict, last re-measured and met under D48b on 2026-11-20; for the current tree
+              # `verification/d52b-anchor-latency-verdict.json` supersedes it, its reference arm being the requests that
+              # verdict timed (coordinator's sign-off as delegate, D52 Q8, carried to D52b).
+              'verification/d45-coded-default-latency-verdict.json'}
 
 
 def digests(path):
