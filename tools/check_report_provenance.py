@@ -142,7 +142,7 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # `index_simplify_v1`; a request without it takes the same path, by a call counter), which D45's
               # coded-default latency verdict binds. It records D45's verdict, last re-measured and met under D48b on
               # 2026-11-20; for the current tree `verification/d52c-anchor-latency-verdict.json` supersedes it, its
-              # reference arm being the requests that verdict timed (proposed for the coordinator's sign-off, as D52 Q8).
+              # reference arm being the requests that verdict timed (coordinator's sign-off as delegate, D52c checkpoint; as D52 Q8).
               'verification/d45-coded-default-latency-verdict.json'}
 
 

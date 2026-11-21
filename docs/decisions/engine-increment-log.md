@@ -6066,7 +6066,7 @@ The medians run 1.3 to 1.5 times D49's.
 
 ## D52c D52b retried with the hidden step simplified after the narrowing (`index_simplify_v1`: implied order, merge, existential anchor) and the narrowing's cache filled at the server's start, on fresh seeds, under rules fixed before measuring
 
-*Status:* **code checkpoint: rules and code committed, nothing measured** (for the coordinator's review before any measurement).
+*Status:* **code checkpoint: rules and code committed, nothing measured** (bdb8d35; an independent review is running before any measurement). At the checkpoint the coordinator, as delegate, signed off D45's latency-verdict freeze and the 13 regenerations of rule 8, and accepted the two disclosed deviations from the brief (c3 stated on relations; the direction of the `admission` class).
 
 **Why.** D52b (retry base 309c1b0) met every rule but rule 6. At 300,000, Event frequency's p95 was 10.83 s and Blank's 10.35 s against 10 s, and Event frequency's first run passed 10 s in 3 pairs (up to 12.02 s). Its diagnosis put the cost in matching the hidden step, not in the narrowing. The design study that followed (`~/ptm-local/design/d52c-anchor-cost/study.md`, no repository change; one process, one worker, `nice`, outside the lock) traced about 90% of the added time to the engine:
 - `@index_start` is `first seizure`, and its target is uncertain for about half the patients. A user step can bind the same events, so the hidden step is coupled and goes to D31's envelope search (`_envelope_search`): 10.37 s of Blank's 17.48 s engine time at one worker, and 9.43 s of Event frequency's 15.25 s.
@@ -6157,7 +6157,7 @@ Its prototypes, measured against D52b's answers per patient: c1 saves 1.8 to 3.3
 8. **Regeneration: only what goes stale.**
    - D52c's six reports are new (`d52c-anchor-{worlds,defects,reference,census,usefulness}-report.json`, `d52c-anchor-latency-verdict.json`).
    - *Stale by D52c's change to `trajectory/app.js`* (the provenance gate lists them at this checkpoint): D46's three, D47's three, `d49-flip-usefulness-report.json`, D53's three and E0b's three (13), as D52 regenerated them. Regenerated with their own tools, pinned to `indexAnchor: false` as committed: **every figure must be equal** apart from timings and artifact digests; a figure that differs is reported, not frozen away.
-   - **Proposed for the coordinator's sign-off:** `verification/d45-coded-default-latency-verdict.json` frozen as `HISTORICAL` (it binds `store_trajectory.py`, which D52c changes), superseded for the current tree by `verification/d52c-anchor-latency-verdict.json`, whose reference arm is the request it timed (D52 Q8, carried to D52b and D52c). Frozen in this commit, so the gate reads it frozen; undone if the sign-off is refused.
+   - **Signed off by the coordinator as delegate at the checkpoint:** `verification/d45-coded-default-latency-verdict.json` frozen as `HISTORICAL` (it binds `store_trajectory.py`, which D52c changes), superseded for the current tree by `verification/d52c-anchor-latency-verdict.json`, whose reference arm is the request it timed (D52 Q8, carried to D52b and D52c). Frozen since the code checkpoint, so the gate reads it frozen.
    - D52's and D52b's six reports stay frozen as records of their retry bases.
    - `results/build.py` runs if its inputs move.
    - The provenance gate decides; any further freeze is listed for sign-off.
