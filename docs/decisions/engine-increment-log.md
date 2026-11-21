@@ -67,6 +67,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | E0 | Letter mentions timed from their letter's text: a deterministic normaliser (`patterns/mention_time.py`) and the synthetic converter's option `normalised_v1` in a wrapper no build loads (`patterns/synthetic_mentions.py`), the generator's gold mentions otherwise kept, under rules fixed before measuring | **Not shipped** (record only; retry base e53ac3b; E0b queued). Rule 1 missed as written: 4 of 84,755 narrowed ranges miss the true day the scorer reads, each a truth id the generator reuses, resolved to a measurement while the confirmed diagnosis lies inside. Every other rule met: 0 contradictions, 0 results less decided and 146 more (Blank `exact` 2 to 133 of 1,101; the truth oracle 231), coded only identical, four planted defects caught; narrowed mentions median 33 days against 1,176. As written not shipped; the coordinator decides |
 | E0b | E0 retried: the same normaliser and wrapper (e53ac3b), the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id (refusals by name, listed and left out, at most 0.1%), E0's rules as amended on fresh seeds 5201 to 5300, under rules fixed before measuring | **Shipped as an option**, off by default. Every rule met on seeds 5201 to 5300: 0 misses and 0 refusals in 84,781 narrowed mentions (median 33 days against 1,172); 0 contradictions; 171 results more decided and none less (Blank `exact` 1 to 168 of 1,102, the truth oracle 256; Sequence, Tree and Graph none); coded only identical; four planted defects caught. A held-out wording test is required before any default |
 | D51 | Is 1.1 Nth and count slower since f9e087e (D48b's d44b count rebind missed at 1.078 in one pair)? That request alone beside the two controls, main against f9e087e at 300,000 and 14 workers, 8 ABBA pairs, under a decision rule fixed before measuring | **Decided: outcome (i), no slowdown.** Median normalised ratio 1.000 over 8 pairs (0.957 to 1.019), none above 1.05; raw 0.947 to 1.009. Answers equal f9e087e's. The d44b miss is attributed to variance: process-level shifts of about 5% on this request occur in either direction. The committed d44b verdict stands as the historical measurement |
+| D52 | The index anchor as a hidden step of the query (P2, D46's option (c)): the translator writes an event-placed index period as a hidden step with relations from it (`index_anchor_v1`), the server narrows each base window to the hull of the periods the store's records allow (`index_hull_v1`), the shapes it cannot write kept as D49's point windows with a P2 note, under rules fixed before measuring | Measured; **not shipped** (record only; retry base f783bd0; D52b queued). Rule 6 missed as written (Event frequency p95 10.22 s at 300,000 against 10 s; the narrowing 8.2 to 13.1% of the candidates' medians against 10%); every other rule met: soundness 0 failing in 200,400 cases, census 0 unexplained of 4,927 changes, coded-only usefulness met, parity 781 of 1,248. Under stated findings (reported) Sequence, Tree and Graph are mostly unresolved |
 
 ## D1 Package with hatchling, in place
 
@@ -5511,3 +5512,338 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 *Follow-ups.*
 - The C026 grouping difference between the page and the store (queued at the checkpoint).
 - The patient-first page's display under "Coded records only": its inspector and the hovered item's own time still show the item as every record and mention make it. Only the other patient's times in the tooltip follow the coded form (S3).
+
+## D52 The index anchor as a hidden step of the query (P2, D46's option (c)): the store places an event's index period from its own records in every world, the server narrows each base window to the hull of the possible periods, under rules fixed before measuring
+
+*Status:* **measured; not shipped** (record only; retry base f783bd0, branch `d52-retry-base`; D52b follows). Rule 6, the latency rule, missed as written: at 300,000 Event frequency's p95 was 10.22 s against the 10 s bar, and the narrowing took 8.2 to 13.1% of the candidates' medians against a 10% bound. Every other rule held: soundness 0 failing in 200,400 small cases, the census 0 unexplained of 4,927 changed results, usefulness under coded only met, parity 781 of 1,248.
+
+**The problem (P2).** The trajectory page sends the store each index period as exact times, though the event that places it is often known only within a range: a day, a registry month, a letter's "about 3 weeks ago". So the store's answers are sound for the window it is given, not for "the period from the true first seizure". D46 measured the size of this on the page's cohort: with each anchor moved to the latest time its record allows, 397 of 13,824 event-anchored answers change, about 3% (D46 rule 8). D46 queued option (c) as the next increment for P2, and the owner approved this direction ("go with what you recommend", 2026-11-20). The coordinator brief, as the owner's delegate, follows.
+
+**The design** (`~/ptm-local/design/d52-anchor-step/design.md`, at the checkpoint before code, with an addendum on what development changed). The coordinator's decisions at that checkpoint, as delegate:
+- **Q1, H3.** The translator writes the rewrite with constant base windows. The server narrows each window to the hull of the periods the store's records allow (`index_hull.py`) and keeps `excluded`, with a reason.
+- **Q2.** A relation from the period's start is measured from the event plus its offset, unclamped. This is stated, flagged, and shown on the page.
+- **Q3.** Unsupported shapes are refused, each with a named code and a page message.
+- **Q4.** Medicine anchors other than the first are allowed, under the existing `medication records` cause.
+- **Q5.** Periods bounded by two events are supported.
+- **Q6.** Usefulness under stated findings is reported only; usefulness under coded only is ruled.
+- **Q7.** The latency levels: ratio and p95 bars as in rule 6, the 0-call structural checks, and a 10% micro bound on the narrowing at 300,000.
+- **Q8.** Freeze `verification/d45-coded-default-latency-verdict.json` (signed off). Pin the D46, D47, D49 and E0b tools to `indexAnchor: false` and regenerate them, with equal figures.
+- **Q9.** Seeds 5501 (development only), 5511 to 5520 (reference), and 5521 to 5550, extended in order to 5620 (usefulness). D53 holds 5301 to 5400.
+
+**The rule `index_anchor_v1`** (`trajectory/store_request.js`; the block at its end states it).
+- *Hidden steps.* An event bound becomes a hidden step: `@index_start` for the start's event, `@index_end` for the end's when it is another. Its occurrence is the bound's: `first` and `last` natively, and an Nth or Nth-from-last with N > 1 as D32's derived occurrence.
+- *Offsets.* Each side's offset from its step is summed in days, as `windowFor` sums them, and rounded once to grid minutes.
+- *Eligibility, as relations.* With the end placed by an event:
+  - followed to the end: hidden step → `END`, min kQ, where `END` is the last contact;
+  - not born after the end: `START` → hidden step, min −kQ;
+  - with a constant start C ≥ 0: `START` → hidden step, min 1 − kQ;
+  - two hidden steps: start step → end step, min kP − kQ + 1;
+  - with a constant end: start step → `END`, min kP + 1.
+- *The scope.* The query's scope is `any`, because a query's scope binds every step, the hidden ones too. Each user step X gets relations instead:
+  - `from_start` and `within`: `START` → X, min 0 (the clamp at birth, or the constant start), and start step → X, min kP;
+  - `within` also: end step → X, max kQ (with a constant end, X → `END`, min 0);
+  - `after`: end step → X, min kQ (with a constant end, `END` → X, min 0).
+- *User relations.* A user relation from `START` or `END` reads from the hidden step, with its bounds and its relaxation's maximum shifted, and its id kept.
+- *Base windows.* Each patient gets a constant base window: 0 (or the constant start) to the last contact (or the constant end). It is `null` only where the page's static checks fail whatever the event's time. A request so rewritten carries an `index` block naming each side's step and offset.
+- *Kept as D49's point window,* marked `index_anchor: {mode: 'point', reason}` (as amended after the review, S2; refused by name as first committed), after the earlier refusals, with the reasons:
+  - `INDEX_ANCHOR_ANY_UNSUPPORTED`;
+  - `INDEX_ANCHOR_GENE_UNSUPPORTED`;
+  - `FREE_TEXT_COUNT_UNSUPPORTED` (an Nth event over stated findings);
+  - `INDEX_PERIOD_COUNT_UNSUPPORTED`;
+  - `INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED`;
+  - `FREE_TEXT_CODED_ONLY_UNSUPPORTED` for a hidden step that is not derived, when "coded only" is refused on request.
+- `options.indexAnchor: false` writes D49's request exactly. `STORE_INDEX_ANCHOR = true`.
+
+**The narrowing `index_hull_v1`** (`demos/mockups/index_hull.py`; called by `store_trajectory.py` for a request with an `index` block, and by the tools on the command line before `store_parity.py match`).
+- *The anchor's range.* For each patient and hidden step, the step's candidates are the events whose concept closure holds the step's concept, with no kind the request leaves out. They give the anchor's possible range by an order statistic of their recorded start bounds:
+  - `first` is [least `start_lo`, least `start_hi`] (D30's envelope);
+  - `last` is the greatest of each;
+  - an Nth takes the Nth smallest of each, and an Nth-from-last the Nth greatest.
+- *The narrowed window* is [max(base start, lo + start offset), min(base end, hi + end offset)].
+- *Why it cannot change what a request matches* (design §2): a `START` of 0, or of any time after birth up to the period's earliest start, gives the same clamp; an `END` of the last contact, or of any time between the period's latest end and the last contact, gives the same eligibility.
+- *Exclusions.* A patient with no candidate (fewer than N) is excluded as `INDEX_ANCHOR_NOT_RECORDED`, and one whose narrowed start is after its narrowed end as `INDEX_NO_POSSIBLE_PERIOD`. That happens only when, in every world, the period ends before birth, after the last contact, or before it starts.
+- *Threads.* Its queries can run on as many DuckDB threads as the request's workers, and the store's own setting is restored after.
+
+**The page** (`trajectory/app.js`):
+- An indexed answer's hidden steps are kept out of the steps. The period shown is the store's hull, "periods between …", and the drawer adds a row for the period's event as the store bound it, with the period in the witness's choice of times. The timeline draws that period.
+- `excluded` reads the server's reason.
+- The store banner states the new placement and Q2's note.
+- A point period's answer carries the P2 note ("index period placed at the anchor's recorded time; uncertainty in the anchor's time is not accounted for") with its reason (as amended, S2), and the declared difference `index anchor`.
+
+**What changes, and what does not.**
+- *Changed:*
+  - `trajectory/store_request.js` and `trajectory/app.js`;
+  - `store_trajectory.py` (the `index` field and the narrowing; requests without it unchanged, by a call counter);
+  - `option_sweep.js` (a case keeps its `index` block);
+  - `test_store_parity.cjs`:
+    - the narrowing before matching;
+    - the closed list gains `index-anchor`, with a predicate checked per patient;
+    - hidden steps in the replay's candidates;
+    - the D52 refusal probes;
+    - the D52 point table (as amended: "at least 2 febrile seizures in the index period" keeps its period, now a point period);
+    - a development-cohort switch (`STORE_PARITY_COHORT`) that skips only the tables pinned to the committed cohort;
+  - `test_engine_parity.cjs` (a D52 block);
+  - the pins in `d46_windows.cjs`, `d47_page.cjs`, `d49_flip.cjs` and `e0_requests.cjs`;
+  - `docs/execution-store.md` and `demos/mockups/README.md`;
+  - a CI line.
+- *New:*
+  - `demos/mockups/index_hull.py`;
+  - `demos/mockups/index_anchor_reference.py`, an independent rewrite and narrowing;
+  - `demos/mockups/d52_anchor.cjs` (`reference`, `census`, `usefulness`, `requests`);
+  - `tools/d52_measure.py` (`worlds`, `defects`, `reference-check`, `facts`);
+  - `tools/benchmark_index_anchor.py`;
+  - `demos/mockups/test_index_anchor.py` (12 tests) and `tools/test_d52_tools.py` (6).
+- *Unchanged:*
+  - every file under `patterns/`;
+  - `tools/scaling_build_worker.py`;
+  - `store_parity.py`;
+  - the generator;
+  - the manifest schema.
+
+  No file a build loads changes, so the kept D44 builds stay reusable.
+
+**Disclosed: development before these rules** (none ruled). These ran on the development seed 5501 and the harness's labels `dev-5501` unless named otherwise.
+- *The worlds harness found a flaw in the design, and the rule changed.* Its first run failed 74 of 3,000 cases. The design kept the page's scope with START = 0, but a query's scope binds the hidden steps too: a prenatal anchor, or under H3 any anchor outside the hull, was wrongly excluded. The scope became `any`, with relations on the user steps (above), and the harness then found 0 failing cases in 6,000.
+  - One H1/H3 difference remained: `unresolved` against a decided `none`, where the narrower window let the engine decide. So the equality check compares cases where both forms are decided.
+  - A rewrite with a backwards one-step period gave the store an `INVALID_BOUNDS` relation. Such a request now writes two one-sided relations; every patient is excluded anyway.
+- *The planted defects,* 3,000 cases each, failing cases:
+  - `offset_dropped` 82;
+  - `eligibility_dropped` 150;
+  - `end_not_strict` 16;
+  - `within_open` 140;
+  - `after_as_from_start` 98;
+  - `clamp_dropped` 20;
+  - `hull_from_hi` 28;
+  - `nth_off_by_one` 77.
+- *The reference smoke* (seed 5501): 490 requests and 0 mismatches (62 refused alike); 20,544 windows and 0 mismatches.
+- *The census on cohort 5501* (in full, `--cohort`): 3,111 of 19,200 event-anchored results changed. 3 were left unexplained, all `unresolved` because a hidden step shares a concept family with a user step (`OCCURRENCE_TIME_COUPLED`, `STEP_CONDITION_UNCERTAIN`). The class `coupled` was added, verified by the reason and the relatedness of the concepts, and the rerun left 0 unexplained.
+- *The usefulness smoke* (seed 5501), under coded only (unresolved of candidates):
+  - Sequence 0 of 4; Tree 0 of 3; Graph 0 of 3; Event frequency 0 of 9; Blank 0 of 38.
+  - Under stated findings, Sequence is `unresolved` for 3 of 4 candidates, and Tree and Graph for 3 of 3 (`OCCURRENCE_ORDER_UNCERTAIN`: the hidden first seizure, ranging from birth through the letter mentions, can bind the user steps' events). Blank is 33 exact of 39 (0 of 35 with D49's windows).
+  - The probe "Blank under the 3rd seizure" was always `none` on both sides, since the first seizure cannot follow the third. It was replaced by Event frequency under the 3rd seizure (coded only: exact 5, none 3, unresolved 1 of 9).
+  - The run was repeated after the scope change (the first item), with the same figures.
+- *The parity test on cohort 5501* (`STORE_PARITY_COHORT`): passed with the pinned tables skipped. There was no `UNEXPLAINED` and the replay held. Its sweep tally: 398 answered; the translator refused `FREE_TEXT_COUNT_UNSUPPORTED` 59, `FREE_TEXT_HEDGED_UNSUPPORTED` 31, `INDEX_ANCHOR_ANY_UNSUPPORTED` 24, `INDEX_PERIOD_COUNT_UNSUPPORTED` 19 and `NTH_STEP_HAS_NO_END` 2; the store refused 28.
+- *The latency tool* ran end to end on the kept 1,000-patient build (one worker, 2 pairs, 2 and 1 runs). Ratios were 0.9 to 1.7, and the structural counters read as required.
+- *The narrowing at 300,000* (kept build, one process, `nice`): 3.4 s single-threaded per request, one query over 52M events. A brief probe at 4 and 14 DuckDB threads gave 1.1 to 1.2 s and 0.45 to 0.56 s. So the narrowing runs on the request's worker count, and the micro bound is measured that way (rule 6).
+- *The page's cohort, unruled:*
+  - the server answered the Sequence template under coded only once, to check the page's reading of an indexed answer; counts seen were exact 2, possible 2, none 11, not comparable 27, excluded 6;
+  - `test_engine_parity.cjs` ran with its D52 block, which checks translation and constructed answers only;
+  - the mockup unit suites ran.
+
+**Pre-committed rules** (committed with this entry, before any measurement of D52; "main" was 34af272 as committed, and is **5f9fffb**, D53's merge, since the rebase onto it, which is also the census's `--base`).
+1. **Soundness: the anchor's uncertainty is covered.**
+   - `python tools/d52_measure.py worlds --cases 200000 --seed d52-rule --output verification/d52-anchor-worlds-report.json` checks tiny patients on an integer grid, many to a snapshot (see the tool's docstring). Each request is rewritten by `index_anchor_reference.rewrite_sides` and answered by `store_conditions.match` over the base windows (H1) and over `index_hull.narrow`'s (H3). Every claim is judged against a per-world period computed without the rewrite. *The truth* is the page's window rule applied in each world, under Q2's reading for relations from `START`: the start unclamped there, clamped at birth for where steps fall (as amended, S4). An Nth event ranks coded events only, with or without coded only (M1).
+   - **0 failing cases** in both forms. H1 and H3 are equal wherever both are decided (not `unresolved`, not excluded) and neither by a window-reading rule. At least 1,000 decided cases with an uncertain anchor per shape (six shapes).
+   - *Planted defects:* `python tools/d52_measure.py defects --cases 12000 --seed d52-defects-rule --output verification/d52-anchor-defects-report.json` (12,000 cases each as amended; 6,000 before). Each of the nine (the eight above and `nth_counts_mentions`, M1) must fail at least one case.
+2. **Reference differential** (`node demos/mockups/d52_anchor.cjs reference --output verification/d52-anchor-reference-report.json`). On the page's cohort and seeds 5511 to 5520, for every census definition with an event bound that D49's translation answers (the cross grid included, S1), under its settings:
+   - this tree's request equals `index_anchor_reference.py`'s byte for byte, or both keep D49's point window with one reason (the request otherwise D49's);
+   - `index_hull.py`'s windows and reasons equal the reference's narrowing over the converted ingest;
+   - **0 mismatches** in each.
+3. **Movement census** (`node demos/mockups/d52_anchor.cjs census --output verification/d52-anchor-census-report.json`; the page's cohort; main's page from git at the base). It covers the templates and the Blank template under D46's twelve period rules and D52's four added shapes, the cross grid (S1), both settings, and all 561 sweep definitions.
+   - *Structural:*
+     - `indexAnchor: false` reproduces main's request;
+     - a definition with no event bound has a byte-identical request and 0 rewrite calls;
+     - nothing answered on main is refused here, and nothing refused on main changes;
+     - a point period (`point_window`, S2) is main's request byte for byte, with a reason fitting its shape; its results are therefore main's. *Reported:* how many, by reason and group, and how many sweep definitions;
+     - the rewritten request is byte-identical with the page's anchors at their latest and with the index view emptied.
+   - *Classes, through the pinned request* (as amended, M2). The pinned request P is main's request with only its scope written as D52 writes it (scope `any`, the scope as relations), over main's point windows. Each step of M → P → H that changed needs a class verified on its facts:
+     - M → P: `admission_scope` (the excluded records main's scope admits over the point window differ from those `any` admits, and a side's reason is `ADMISSION_EXCLUDED_RECORDS`), or `search`;
+     - P → H: `eligibility_gained`, `no_anchor_on_page`, `excluded_here` (each on its facts); `coverage_hull` where both sides are `none` before the coverage rule (a `none`, or a `not_comparable` for coverage, which the store makes only of a `none`), so the change is that rule's verdict over the point window against the hull alone; `admission_hull` (the excluded records admitted over the point window and over the hull differ, and a side's reason is `ADMISSION_EXCLUDED_RECORDS`); `clamp`, `coupled`, `search`; and only where the change is not the coverage rule's alone and neither side is excluded, the anchor: `anchor_moved` (the page's point outside the store's range) or `anchor_uncertain` (a range wider than a point), with `eligibility_partial` beside it, never alone.
+     A step that changed with no class is unexplained: the identity rule. A certain anchor at the page's point explains nothing.
+   - **Met only if** every structural check holds, 0 results are unexplained, and nothing fails without a code.
+   - *Reported:* transitions by class and setting, the new refusals by code, the sweep as offered on both sides, and the P2 comparison.
+4. **Usefulness** (the owner's counting rule; `node demos/mockups/d52_anchor.cjs usefulness --output verification/d52-anchor-usefulness-report.json`).
+   - *Cohorts:* seeds 5521 to 5550, then in order to 5620 while a ruled template has fewer than 30 candidates.
+   - *Ruled:* the five templates under "Coded records only", as the page sends them and narrowed by the server's rule. Each needs at least 30 candidates (a patient with a window sent and a store candidate) and **at most 30% of the distinct child types unresolved**.
+   - *Coverage:* none of the five refused.
+   - *Reported:*
+     - all candidates and the count without C001;
+     - the four templates under stated findings, with the same bar (Q6);
+     - D49's translation on the same seeds, beside;
+     - Event frequency under the 3rd seizure for 12 months;
+     - the patients the server excluded, by reason.
+5. **Page parity.** Both `.cjs` tests pass: every difference has a cause from the closed list (now with `index-anchor`), there is no `UNEXPLAINED`, and the replay holds.
+   - The refusal table and the D52 point table (S2) are pinned in this commit. These are the translator's own outputs on fixed definitions.
+   - The template table is unchanged.
+   - The sweep tally is pinned **from the census report's `sweep_as_offered.here`, before the parity test runs** in the job.
+   - The differences table (`EXPECTED`) is re-pinned from the test's run under the lock:
+     - no row of a trajectory with a constant period moves ("Dravet syndrome, then valproate");
+     - "at least 2 febrile seizures in the index period" (now a point period) does not move;
+     - every other moved row names `index-anchor` (its predicate checked per patient) or causes that held before.
+   - The new totals are reported.
+6. **Latency** (`node demos/mockups/d52_anchor.cjs requests --output ~/ptm-local/d52/requests.json`, then `python tools/benchmark_index_anchor.py --requests-file ~/ptm-local/d52/requests.json --snapshot 300000=~/ptm-local/scaling-d44/size-300000/store/da8cc2192f73ae712d4ae60279ce025f104dd6df808946b04e7ff6d8adac6ea6 --output verification/d52-anchor-latency-verdict.json`). D45's design: two request sets in one tree.
+   - *Arms.* The candidate arm is the rewritten request, with the narrowing inside the timed path. The reference arm is the same definition with D49's point windows.
+   - *Controls:* requests D52 leaves byte-identical. At the page's size, Sequence and Blank from birth to 6 years. At 300,000, D43b's `1.1 sequence` and the plain sequence.
+   - *Protocol:* **8 ABBA pairs**.
+     - At the page's size: the server's class, 1 untimed and 20 timed runs.
+     - At 300,000: 14 workers ruled, 8 workers reported, 3 runs; the stand-ins named in the tool.
+   - *Bars,* each normalised by the controls' geometric mean in the same pair:
+     - **at most 2.0 in every pair**, or **as the median over the pairs** for the count requests (Event frequency, both periods; D51);
+     - candidate p95 **at most 2 s** at the page's size and **10 s** at 300,000;
+     - one answer digest per arm;
+     - the protocol followed.
+   - *Structural (0-call):* the narrowing's call counter and the translator's rewrite read 0 for every reference and control, and more than 0 for every candidate.
+   - *Micro bound:* the narrowing's own time per candidate request at 300,000, in one process on 14 DuckDB threads (median of 3), at most **10%** of the candidate's 14-worker median. The server runs the narrowing on its own worker count too (`store_trajectory.WORKERS`, 1; S3), so the page's size times what the server runs.
+   - The kept build's record must equal this tree (`build_check`).
+7. **No change on the store and engine path** (structural). `git diff <main>` names no file under `patterns/`, nor `tools/scaling_build_worker.py`, `store_parity.py` or the generator. The 300 recorded digests are unchanged (the suites).
+8. **Regeneration: only what goes stale.**
+   - D46's three reports, D47's three, `d49-flip-usefulness-report.json` and E0b's three are regenerated with their own tools, pinned to `indexAnchor: false`. **Every figure must be equal** apart from timings and artifact digests; a figure that differs is reported, not frozen away.
+   - *Since the rebase onto D53* (5f9fffb): D53's three reports (`d53-coded-start-{census,usefulness,trace}-report.json`) bind `store_request.js`, `app.js`, `option_sweep.js` and the pinned tools, so they are stale too. They are regenerated with `d53_coded_start.cjs census`, `usefulness` and `trace` (its default seeds). D53's tool translates through D47's pinned definitions, so its store requests are D49's on both sides: **every figure must be equal** apart from timings and digests.
+   - `verification/d45-coded-default-latency-verdict.json` is frozen as `HISTORICAL` (signed off, Q8), superseded by D52's latency verdict, whose reference arm is the request it timed.
+   - `verification/d49-flip-census-report.json`: frozen as `HISTORICAL` by D53 (the coordinator's ruling: its rule 2.1 is a point-in-time claim against 0a17003); checked after the rebase, and D52 adds to its `HISTORICAL` comment that D52's census supersedes it for the current tree.
+   - `results/build.py` runs if its inputs move.
+   - One job under the bench lock covers rules 1 to 6 and the regeneration.
+9. **Gates:**
+   - all suites;
+   - `tools/check_report_provenance.py` at 0 stale;
+   - `check_test_counts --write`, then the check;
+   - `check_manifest`;
+   - both `.cjs` parity tests;
+   - `~/.claude-pcx/ci-local.sh`;
+   - `results/build.py --check`.
+
+   Tests that build a store skip without DuckDB.
+10. **Defaults.** `STORE_CODED_ONLY`, `STORE_GENE_CODED_ONLY` and `STORE_INDEX_ANCHOR` are `true`, each declared once.
+
+**Ship rule.** D52 ships if rules 1 to 10 hold. Stated-findings usefulness is reported (Q6). A miss is reported and investigated, never tuned away, and no bar changes after measuring.
+
+**Consistency read** (the rules against the change list and against what the committed reports run; D48b's protocol rule).
+- *Rule 7 against the change list.* No `patterns/` file changes, so it can hold. `store_trajectory.py` changes, which is the server, not the store; rule 7 does not name it, and rule 6's structural check covers its unchanged path.
+- *D49's census (`d49_flip.cjs census`) cannot regenerate as met.* Its rule 2.1 runs `git diff 0a17003 -- patterns store_parity.py store_trajectory.py synthetic`, and D52 changes `store_trajectory.py`, so 2.1 would read not met by construction. The requests it times are unchanged: the pin, and rule 3's structural check that `indexAnchor: false` reproduces main's request. It is frozen by D53 (rule 8), and D52's census supersedes it for the current tree. D49's usefulness report runs no such check, and is regenerated.
+- *D46's census* sends its sweep with `codedOnly: null`, merged with the pin. D47's rule 1 (store requests equal a4d2010's) holds through the pin. E0b's tools read the translator through `e0_requests.cjs`, which is pinned too.
+- *`option_sweep.js` changes* only by keeping a case's `index` block, so the pinned tools, whose requests carry none, write identical cases.
+- *`test_store_parity.cjs`* grows its closed list by one cause with a per-patient predicate (its clamp case named, S4) and gains the D52 point table; its parity trajectories are unchanged (the period-count trajectory, changed as first committed, is a point period as amended). Its D38 no-change differential now takes the narrowed cases.
+- *The order with D53.* D53 regenerates the same D46, D47, D49 and E0b reports first. D52 rebases after it, and its "main" and the census's `--base` become D53's merge, recorded at the rebase.
+
+**Independent review of 6625744, and amendments before any measurement** (the coordinator's fixes, as delegate; the reviewer's repros are in `/tmp/d52-review/`). The rules and the rule text above are as amended; the first version is in 6625744 (with the D49 census freeze moved to D53 in 9eda44b).
+- *Confirmed sound:* the rewrite for every shape; the narrowing's `START` and `END` bounds and its exclusions, apart from M1; the worlds harness's independence; the pins; the latency tool's guards.
+- **M1, must-fix: the narrowing counted letter mentions for an Nth hidden step.** D32's Nth ranks coded records only, so under `codedOnly: 'derived'` (profile 1.1, no exclusion) a mention made the "3rd" x day 20 instead of 30, `END` was narrowed to 20, and the result was a wrong `none` (H1 `exact`).
+  - Fixed: `index_hull.ranges` (and the reference's `anchor_range`) leave mentions out of a derived hidden step's candidates whatever `exclude_kinds` says.
+  - The harness no longer forces coded only for an Nth event; its truth ranks coded events only.
+  - The review's repro is a test, and `nth_counts_mentions` is a ninth planted defect (rule 1).
+- **M2, must-fix: `anchor_uncertain` was assigned on a necessary condition** (`hi > lo`, which day precision alone meets), so the identity rule was nearly vacuous.
+  - Fixed: every changed result is explained through the pinned request (rule 3): main's request with only its scope written as D52 writes it, over main's point windows.
+  - The anchor classes are assigned only on the pinned request → D52 step, only where the change is not the coverage rule's alone (both sides `none` before that rule), and never for a certain anchor at the page's point. `eligibility_partial` is never an explanation alone.
+  - The census's coverage facts, which mirrored only the plain profile's recorders, are replaced by that structural test. The admission facts stay.
+- **S1.** The reference and the census gain a cross grid: D52's four added shapes and three more rewritten shapes (12 months up to the last seizure; a month before the 2nd-to-last febrile seizure to 10 years; the last valproate start, 6 months before it to it), × the four scopes × {alone, a relation from `START` with a maximum (so its `extend_max`), a relation from `END`}, both settings.
+- **S2, the coordinator's decision as delegate, reversing Q3 in part.** The shapes the rewrite cannot write are not refused. They keep D49's request (`indexAnchor: false`, the point window), marked `index_anchor: {mode: 'point', reason: <code>}`.
+  - The server checks the marker and echoes it, and the page shows a P2 note.
+  - The census verifies a point period by identity with main's request (class `point_window`), and reports how many there are, by reason, and how many in the sweep.
+  - `FREE_TEXT_CODED_ONLY_UNSUPPORTED` (a hidden step under "coded only" refused on request) takes the same path, so D52 refuses nothing.
+  - The parity trajectory changed in 6625744 ("at least 2 febrile seizures in the index period") is restored, as a point period.
+- **S3.** The server runs the narrowing on its own worker count (`store_trajectory.WORKERS`, 1), so the page-size arm times what the server runs.
+- **S4.** Rule 1 names its truth: the page's window rule under Q2's unclamped reading for relations from `START`. The parity cause's predicate names the clamp case.
+- *Nits.*
+  - For a medicine's last or Nth start, the drawer and the README say it is the last or Nth record (often a refill), not a course's start.
+  - `INDEX_NO_POSSIBLE_PERIOD` is reworded.
+  - The timeline labels the witness period "one possible period".
+- *Disclosed: development runs for the amendments* (seed 5501 and the harness's development labels only):
+  - the worlds harness found 0 failing cases in 6,000 with Nth events with and without coded only;
+  - the nine defects at 3,000 cases each (development seed): `offset_dropped` 22, `eligibility_dropped` 337, `end_not_strict` 16, `within_open` 32, `after_as_from_start` 166, `clamp_dropped` 30, `hull_from_hi` 26, `nth_off_by_one` 47, `nth_counts_mentions` 1 (7 on another development label). `nth_counts_mentions` is rare, so the ruled run takes 12,000 cases per defect;
+  - the reference smoke: 658 requests (86 point periods alike) and 27,456 windows, 0 mismatches;
+  - the census on cohort 5501 first left 51 changes unexplained:
+    - at least 44 were `none` against `not_comparable` for coverage, mostly on gene-step requests, where the facts had mirrored the plain coverage rule and not the gene profile's recorders; the structural test replaced those facts;
+    - the rest were changes in the engine's own answer under an unchanged admission verdict, which the first version wrongly closed to the anchor classes;
+  - the census then left 0 unexplained among 4,612 of 26,112 changed results: every change with main equal to the pinned request, 86 point periods (51 in the sweep), structural checks met.
+
+**Rebased onto D53** (main 5f9fffb, 2026-11-21). The log's appended sections conflicted, and both were kept. "Main" and the census's `--base` are now 5f9fffb. D53 froze `verification/d49-flip-census-report.json` (checked), and D52 adds to its `HISTORICAL` comment that D52's census supersedes it. D53's three reports are added to rule 8's regeneration (above).
+
+Re-run after the rebase, on development data only:
+- the mockup suites;
+- the D52 tools' tests;
+- `test_engine_parity.cjs`, its D53 block included;
+- the reference smoke: 658 requests and 27,456 windows, 0 mismatches;
+- the usefulness smoke, with the same figures as before;
+- the census on cohort 5501: 0 unexplained of 4,612 changed;
+- the worlds harness: 0 failing in 4,000;
+- the parity test on cohort 5501: passes.
+
+**Measurement** (after the rules, the review's amendments and the rebase; two parts under the bench lock on 2026-11-21, on bd42eea; logs in `~/ptm-local/d52/`; the page's cohort checked against the committed seed).
+- *Part A*, 01:05 to 02:59 (`d52-job.sh`): rules 1 to 4 and 6, and the regenerations. Every step ran once.
+- *Part B*, 03:00 to 03:03 (`d52-jobB.sh` and `d52-jobB2.sh`): `test_engine_parity.cjs`; `test_store_parity.cjs` with its differences printed; then, after re-pinning, `test_store_parity.cjs` again.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 Soundness (`verification/d52-anchor-worlds-report.json`, `-defects-report.json`) | 200,400 cases (seed `d52-rule`, 451 s): **0 failing** under either window form; **0 H1/H3 differences** where both are decided. Decided cases with an uncertain anchor, per shape: constant + event 23,298; event + constant 16,016; event + span 20,844; one event twice 10,889; span + event 19,003; two events 26,520. Planted defects at 12,000 cases each, all caught: `offset_dropped` 375, `eligibility_dropped` 1,034, `end_not_strict` 48, `within_open` 372, `after_as_from_start` 302, `clamp_dropped` 60, `hull_from_hi` 146, `nth_off_by_one` 216, `nth_counts_mentions` 17 | met |
+| 2 Reference (`verification/d52-anchor-reference-report.json`) | The page's cohort and seeds 5511 to 5520: 7,238 requests (946 point periods with matching reasons) and 302,016 narrowed windows: **0 mismatches** in each | met |
+| 3 Census (`verification/d52-anchor-census-report.json`) | 771 definitions. *Structural:* every check met (see below). *Changed results:* **4,927 of 26,112** results of 544 rewritten definitions answered on both sides changed (28 were refused alike by the store), **0 unexplained** (see below). *Sweep as offered:* 449 answered on both sides, with the same refusals. The P2 comparison: D46 measured 397 of 13,824 changes with anchors at their latest; here 4,927 of 26,112 against main's point windows, over a wider grid that also changes eligibility and coverage | met |
+| 4 Usefulness (`verification/d52-anchor-usefulness-report.json`) | Seeds 5521 to 5550, no extension. Under "Coded records only": Sequence 0 of 16 child types unresolved (216 candidates; 186 without C001), Tree 0 of 7 (140; 110), Graph 0 of 7 (140; 110), **Event frequency 3 of 16** (3 of 291 candidates unresolved, `STEP_CONDITION_UNCERTAIN`; 3 of 261 without C001), Blank 0 of 44 (1,187; 1,157). None refused. Reported (see below): stated findings, D49's translation beside, the Nth probe, and the server's exclusions | met |
+| 5 Page parity | Both `.cjs` tests pass. The refusal table, the D52 point table and the template table hold as pinned. The sweep tally is 449, unchanged, from the census. The differences table, re-pinned from the run under the lock: rows of 24 trajectories moved (479 rows, 66 differences gone). The constant-period trajectory and the point-period trajectory did not move. Every other moved row names `index-anchor` or only causes it held before, checked mechanically against the previous table: 0 violations. **781 of 1,248** agree (849 before). The 467 differences: count timing 16, coverage 229, index anchor 413, letter mentions 112, measurement records 5, medication records 74, occurrence envelope 9, order uncertain 38, record reconciliation 103. No `UNEXPLAINED`, the replay holds, D38's no-change differential holds (485 requests) | met |
+| 6 Latency (`verification/d52-anchor-latency-verdict.json`) | See below | **not met** |
+| 7 No change on the store and engine path | `git diff 5f9fffb` names no file under `patterns/`, nor the build worker, `store_parity.py` or the generator; the suites pass | met |
+| 8 Regeneration | D46's three, D47's three, D49's usefulness, E0b's three and D53's three reports regenerated with the pin: **every figure equal**, apart from timings (`view_cost`, `elapsed_s`) and digests. `d45-coded-default-latency-verdict.json` frozen as `HISTORICAL` (signed off). D49's census frozen by D53, with D52's supersession note. `results/build.py --check`: unchanged | met |
+| 9 Gates | Below | met |
+| 10 Defaults | The three constants are `true`, each declared once | met |
+
+*Rule 3, structural checks:*
+- the pin reproduces main's request for all 771 definitions;
+- the definitions with no event bound are byte-identical, with 0 rewrite calls;
+- nothing was newly refused, and no refusal on main changed;
+- **86 point periods** (51 in the sweep: `FREE_TEXT_COUNT_UNSUPPORTED` 37, `INDEX_ANCHOR_ANY_UNSUPPORTED` 28, `INDEX_PERIOD_COUNT_UNSUPPORTED` 19, `INDEX_ANCHOR_GENE_UNSUPPORTED` 2), each equal to main's request with a fitting reason;
+- the rewritten request was unchanged under both perturbations in all 572 rewritten definitions.
+
+*Rule 3, changed results.* Main equalled the pinned request for 4,908 of them, and the pinned request equalled D52 for 19 (`admission_scope`). The classes:
+
+| Class | Results |
+|---|---|
+| `anchor_uncertain` | 1,735 |
+| `eligibility_gained` | 1,415 |
+| `anchor_uncertain` + `eligibility_partial` | 730 |
+| `anchor_moved` | 448 |
+| `anchor_uncertain` + `coupled` | 282 |
+| `anchor_uncertain` + `clamp` | 87 |
+| `no_anchor_on_page` | 63 |
+| `coverage_hull` | 62 |
+| `coupled` + `no_anchor_on_page` | 23 |
+| `anchor_uncertain` + `coupled` + `eligibility_partial` | 20 |
+| `admission_scope` | 19 |
+| `clamp` | 12 |
+| `anchor_uncertain` + `clamp` + `eligibility_partial` | 11 |
+| smaller combinations | 20 |
+
+The largest transitions: exact → possible 1,319; excluded → none 894; possible → exact 785; excluded → not comparable 335; exact → none 256; possible → unresolved 246; relaxed possible → relaxed exact 206; excluded → possible 204.
+
+*Rule 4, reported:*
+- **Under stated findings (Q6), the bar is missed:** Sequence 7 of 16 child types unresolved (124 of 216 candidates), Tree 7 of 7 (113 of 140), Graph 7 of 7 (114 of 140), all `OCCURRENCE_ORDER_UNCERTAIN`: the hidden first seizure ranges from birth through letter mentions and can bind the user steps' events. Blank is 3 of 44 (4 of 1,200), with **1,021 exact** against 0 under D49's windows.
+- *D49's translation beside,* `exact` counts against D52's: Sequence 15 against 41, Tree 11 against 34, Graph 6 against 24, Event frequency 172 against 172, Blank 584 against 1,077. D49 had 0 unresolved on every template.
+- *Event frequency under the 3rd seizure* (coded only): 264 candidates, 151 exact, 50 unresolved (49 `OCCURRENCE_TIME_COUPLED`).
+- *The server's exclusions under coded only:* 253 patients per default-period template (no coded seizure); 610 for the 3rd seizure (fewer than three), and 2 with no possible period.
+
+*Rule 6, latency.* 8 ABBA pairs; the protocol, answers, the structural 0-call checks and the build check were all met.
+- **At the page's size: met.** Normalised ratios: Sequence 1.11, Tree 1.10, Graph 1.13, Event frequency 1.20, Blank 1.52, Event frequency under the 3rd seizure 1.25 (medians; every pair at most 1.60). Candidate p95s were 30 to 90 ms.
+- **At 300,000 (14 workers):** the ratios are met, at most 1.76 in any pair. Normalised medians: Event frequency 1.40, Blank 1.35, Sequence without its rise 1.63, Tree without its gene and rise steps 1.52, Graph without them 1.55, Event frequency under the 3rd seizure 1.19.
+  - **The p95 bar missed on Event frequency: 10.22 s against 10 s** (median 8.45 s; reference p95 7.48 s, median 6.16 s). The other candidate p95s were at most 9.47 s (Blank).
+- **The micro bound missed:** the narrowing at 300,000 takes 0.70 to 0.71 s per request on 14 DuckDB threads, which is 8.2% (Blank), 8.5% (Event frequency), 11.0%, 11.0%, 11.2% and 13.1% of the candidates' medians. Four of six are above 10%.
+- 8 workers (reported): candidate p95 up to 11.02 s (Event frequency); raw ratios 1.07 to 1.77.
+- Peak memory at 14 workers: 8.13 GB in the candidate arm against 7.50 GB.
+
+*Gates* (on the final tree):
+- every suite;
+- provenance 0 stale (56 reports);
+- `check_test_counts --write`, then the check;
+- `check_manifest`;
+- both `.cjs` parity tests;
+- `~/.claude-pcx/ci-local.sh`;
+- `results/build.py --check`.
+
+**Verdict: rules 1 to 5 and 7 to 10 hold; rule 6 is not met as written.** Under the ship rule D52 does not ship as committed. Under D48b's protocol the decision is the coordinator's, and the conflicting-provisions rule cannot apply to a measured bar. The misses are reported, not tuned away.
+
+*Investigation of the misses* (no measurement beyond the job):
+- *What costs the time.* The added time is the narrowing's 0.7 s plus the wider work the hidden step brings: a step with candidates on every patient, and windows from birth. The narrowing is about a quarter of the added median time for Event frequency (2.3 s added, 0.71 s of it narrowing). Without it, the candidate's p95 would be about 9.5 s.
+- *Why the narrowing need not run per request.* Its ranges depend only on the hidden step's concept, occurrence and N and on the request's `exclude_kinds`, not on the offsets or the windows, and the snapshot is immutable. So the server could compute them once per snapshot and step specification and reuse them; later requests would then pay only the Python narrowing of the windows. Computing ranges per (concept, occurrence, kinds) at the server's first use is a contained change to `index_hull.py` and the server, which no build loads. It is a candidate follow-up, measured as a retry (a "D52b").
+- *The absolute bar.* Event frequency's reference p95 is already 7.48 s (D45 measured 7.47 s). That leaves 2.5 s of headroom under the D21 target, which the rewrite exceeds by 0.22 s at p95.
+
+**Decision: D52 does not ship** (the coordinator, as delegate; the D43 and D48 precedent: a measured bar missed). It lands as a record:
+- *The retry base.* The measured state is f783bd0, branch `d52-retry-base`.
+- *Reverted on this branch,* so `main` keeps D49's translation: every code, tool, test and page change; `index_hull.py` and the server's changes; the pins; the parity tables; the regenerated reports (restored to main's, as their figures were equal); and D45's latency verdict, current again.
+- *Frozen as `HISTORICAL`,* with sign-off as delegate: D52's six reports (worlds, defects, reference, census, usefulness, latency verdict).
+- *Kept:* this entry, and a note in `docs/execution-store.md`'s P2 section.
+
+*What it showed:*
+- The rewrite is sound and the census explains every change.
+- The cost at 300,000 is about 1.2 to 1.8 times D49's request. Of that, 0.7 s per request is the narrowing, which a cache keyed on the snapshot and the hidden step's specification can remove from all but the first request.
+- **Under stated findings the trade-off is material** (reported, Q6; for the owner):
+  - Sequence has 7 of 16 child types unresolved, and Tree and Graph 7 of 7. A first seizure that letter mentions date from birth leaves its order uncertain.
+  - Blank is 1,021 exact of 1,200 candidates, against 0 with D49's point windows.
+
+*Follow-up: D52b,* the same code plus the narrowing cache, with fresh rules.
