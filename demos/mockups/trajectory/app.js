@@ -643,6 +643,9 @@ const STORE_NOTE = {
   RELAXATION_ORDER_UNCERTAIN: 'a relaxed match was left undecided because the first or last event is uncertain',
   RELAXATION_OCCURRENCE_COUPLED: 'a relaxed match was left undecided because an Nth occurrence shares events with another step',
   EXCLUDED_RECORDS_MAY_MAKE_EXACT: 'excluded records could make the match exact',
+  // D52c: the server matched the period's event as any record of its concept (index_simplify_v1, c3); where this patient's
+  // records leave which one is first open in a way a single record cannot settle, a possible match may in fact be exact.
+  ANCHOR_ORDER_MAY_MAKE_EXACT: 'which record is the period\'s first event is uncertain, and that could make the match exact',
 };
 const STORE_STATUS = {not_comparable: 'incomparable'};
 const storeSteps = r => Object.entries(r).filter(([k, v]) => k.endsWith('_steps') && Array.isArray(v)).flatMap(([, v]) => v);
@@ -716,7 +719,9 @@ function fromStore(answer, def) {
    store's: `win` is the hull of the periods its records allow (index_hull_v1); `period` is the period in the witness's
    choice of times, from the hidden step's witness time and its offset; `anchor` is what the hidden step bound. A patient
    the server could not place is excluded with its reason. The hidden steps are not steps of the trajectory, so they are
-   kept out of `best`. */
+   kept out of `best`. D52c: where the server matched the period's event as any record of its concept (`index.simplify`
+   names the step `existential`), it bound no record as the first and gave no witness time for it: the page shows only
+   the hull (`hullOnly`), never a bound anchor or a witnessed period. */
 const INDEX_STEP = id => id.startsWith('@index_');
 function fromStoreIndexed(answer, def) {
   const opts = relaxOptions(def);
@@ -724,6 +729,7 @@ function fromStoreIndexed(answer, def) {
   const reasonDict = CODED_ONLY_PROFILES.includes(answer.conditions_profile) ? {...STORE_REASON, ...STORE_REASON_CODED_ONLY} : STORE_REASON;
   const sides = indexSides(def.window);
   const ix = answer.index;
+  const hullOnly = !!(ix.simplify && ix.simplify.existential);
   return answer.results.map(r => {
     const pid = r.patient_id, view = evidenceFor(pid);
     const hull = ix.windows[pid];
@@ -732,7 +738,7 @@ function fromStoreIndexed(answer, def) {
       const own = indexStaticReason(def, state.patients.get(pid));
       return {pid, win: own ? {reason: own} : win, backend: 'store', store: r, truncated: false, status: 'excluded', reason: own || win.reason};
     }
-    const base = {pid, win, backend: 'store', store: r, truncated: false, indexed: true};
+    const base = {pid, win, backend: 'store', store: r, truncated: false, indexed: true, hullOnly};
     const m = r.relaxed_match, u = r.unverified_match, keys = r.relaxations || (m && m.relaxations) || [];
     const reasons = [];
     if (r.reason) reasons.push(reasonText(reasonDict, r.reason, storeSteps(r).map(st => INDEX_STEP(st) ? 'the period\'s event' : st)));
@@ -748,7 +754,7 @@ function fromStoreIndexed(answer, def) {
       for (const id of anchor.keys()) best.bind.delete(id);
       const at = side => side.step ? (witness && witness[side.step] != null ? (witness[side.step] + side.offset) / GRID : null) : constantDay(side.constant, state.patients.get(pid));
       const s = at(sides.start), e = at(sides.end);
-      if (s != null && e != null) period = {start: Math.max(0, s), end: e};
+      if (s != null && e != null && !hullOnly) period = {start: Math.max(0, s), end: e};
     }
     return {...base, status: STORE_STATUS[r.status] || r.status, certainty: r.certainty, cost: r.cost === undefined ? 0 : +r.cost,
             relaxations: r.status === 'relaxed' ? keys.flatMap(textOf) : [], relaxKeys: keys.length ? new Set(keys.flatMap(k => k.split('+'))) : null,
@@ -1057,10 +1063,13 @@ function renderDetail() {
     if (c.measure) { const e = c.at ?? c.e, l = c.at ?? c.l; if (Number.isFinite(e)) markers.push({e, l, tag: id}); } else highlight.set(c.item.id, id);
   }
   const width = $('#detail-body').clientWidth || drawer.clientWidth - 36;
-  const svg = timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: r.indexed ? r.period : r.win && !r.win.reason ? r.win : null,
+  const hullShown = r.indexed && r.hullOnly && r.win && !r.win.reason;
+  const svg = timelineSVG(r.pid, {width, minDay: 0, maxDay: Math.max(view.snapshot, 400), window: hullShown ? r.win : r.indexed ? r.period : r.win && !r.win.reason ? r.win : null,
                                   lens: state.lens, highlight, markers, title: `Timeline for ${r.pid}`});
-  // D52: the store's period is one possible period (the witness's), not the period.
-  const out = [r.indexed ? svg.replace(/>window (start|end) · /g, '>one possible period, $1 · ') : svg];
+  // D52: the store's period is one possible period (the witness's), not the period; D52c: or, where the store bound no
+  // record as the period's event, the hull of the periods its records allow.
+  const out = [hullShown ? svg.replace(/>window (start|end) · /g, '>periods\' hull, $1 · ')
+               : r.indexed ? svg.replace(/>window (start|end) · /g, '>one possible period, $1 · ') : svg];
   out.push(`<p>${chip(r.status, r.cost)} ${r.status === 'relaxed' ? esc(`by ${r.relaxations.join('; ')}${r.certainty === 'possible' ? '; times still uncertain' : ''}`) : esc(r.backend === 'store' ? '' : r.reason || '')}</p>`);
   if (r.backend === 'store') out.push(storeDetail(r));
   else if (r.best) {
@@ -1103,7 +1112,7 @@ function storeDetail(r) {
     const rows = r.anchor && r.anchor.size ? [...r.anchor].map(([id, c]) => `<tr><td>${id === '@index_end' ? 'The period\'s end event' : 'The period\'s event'}</td><td>${esc(c.what || '—')}</td><td>${c.derived ? '— (no record holds this point)' : timeText(c)}</td><td>${c.at != null ? esc(ageText(c.at)) : ''}</td></tr>`).join('') : '';
     const records = [state.def.window.start, state.def.window.end].some(b => b.kind === 'event' && ['medication', 'drug_class'].includes(state.concepts[b.event]?.kind)
       && !(b.which === 'first' || (b.which === 'nth' && Math.max(1, +b.n || 1) === 1)));
-    out.push(`<p class="hint">Index period, placed by the store: the periods its records allow run between ${esc(spanText(r.win))}${r.period ? `; one possible period, in the witness's choice of times, ${esc(spanText(r.period))}` : ''}.${records ? ' For a medicine, the store counts its records: the last (or Nth) start is the last (or Nth) order or dispensing, often a refill, not the start of a course.' : ''}</p>`
+    out.push(`<p class="hint">Index period, placed by the store: the periods its records allow run between ${esc(spanText(r.win))}${r.period ? `; one possible period, in the witness's choice of times, ${esc(spanText(r.period))}` : ''}.${r.hullOnly ? ' The store decided this match over every time its records allow for the period\'s first event without binding one record as that event, so the timeline shows the hull of the periods, not one period.' : ''}${records ? ' For a medicine, the store counts its records: the last (or Nth) start is the last (or Nth) order or dispensing, often a refill, not the start of a course.' : ''}</p>`
       + (rows ? `<table class="tj-table"><thead><tr><th>Index</th><th>Store record</th><th>Recorded</th><th>Witness</th></tr></thead><tbody>${rows}</tbody></table>` : ''));
   }
   const page = pageAnswerFor(r.pid);

@@ -29,6 +29,9 @@ and the kinds its candidates leave out), so `ranges` computes it once per snapsh
 when another snapshot is asked); `cache=False` computes it afresh. The command line's `narrow` also narrows each case
 without the cache and records whether the two are identical (`index_result.cache`), which D52b's census and reference rule.
 
+D52c: the server fills the cache for the page's template anchors (`PREFILL`) when its store opens (`prefill`), before
+it reports ready, and simplifies the narrowed request afterwards (`index_simplify.py`).
+
 Called by `store_trajectory.py` on every request with an `index` block (and never otherwise: `CALLS` counts), and by the
 parity test and D52's tools through `narrow` on the command line, before `store_parity.py match`.
 """
@@ -54,6 +57,9 @@ CALLS = {'narrow': 0, 'range_queries': 0, 'range_hits': 0}  # D52 rule 6: `narro
 CACHE_MAX_KEYS = int(os.environ.get('PTM_INDEX_CACHE_KEYS') or 64)
 CACHE_MAX_ROWS = int(os.environ.get('PTM_INDEX_CACHE_ROWS') or 1_500_000)
 _CACHE = {'snapshot': None, 'ranges': OrderedDict(), 'rows': 0, 'known': None}
+# D52c: the page's template anchors (the first seizure, under "Coded records only" and under stated findings), whose ranges
+# the server computes when its store opens (`prefill`); the census checks every template's key is here.
+PREFILL = (('seizure', 1, False, ('mention',)), ('seizure', 1, False, ()))
 MAX_K = 50  # the greatest N of an Nth hidden step the narrowing takes (review, M1)
 MAX_CONCEPT_CHARS = 200
 
@@ -171,24 +177,15 @@ def _range_query(store, key):
     return {pid: (n, lo, hi) for pid, n, lo, hi in store.query(RANGE_SQL.format(kinds=kind_sql, lo=lo, hi=hi), [concept, *kinds])}
 
 
-def ranges(store, query, conditions, index, threads=None, cache=True):
-    """{step id: {patient id: (count, lo, hi)}} on the store's clock; lo and hi None when there are fewer than k.
-
-    The request is validated first (`validate`), so nothing malformed or unknown reaches SQL or the cache. D52b: the ranges
-    of a key are computed once per snapshot and reused by every later request naming the same key (`_CACHE`, emptied
-    when another snapshot is asked; least recently used keys evicted past CACHE_MAX_KEYS keys or CACHE_MAX_ROWS rows; a
-    key whose ranges alone pass the row cap is computed but not kept). `cache=False` computes them afresh and neither
-    reads nor fills the cache. A snapshot is immutable, so a cached range is the range. The ranges returned may be the
-    cache's own dictionaries: callers read them and never change them. With `threads`, a computation runs on that many
-    DuckDB threads (a request matched on that many workers; the store's own setting is restored after)."""
-    validate(store, query, conditions, index)
-    keys = step_keys(query, conditions, index)
+def _fill(store, keys, threads=None, cache=True):
+    """{key: ranges} for the keys the cache does not hold (all of them with `cache=False`), computed on `threads` DuckDB
+    threads, and kept in the cache (with `cache`) within its bounds, least recently used out first."""
     cached = _CACHE['ranges']
     if cache and _CACHE['snapshot'] != (store.snapshot_id, _DEFECT):
         _CACHE['snapshot'] = (store.snapshot_id, _DEFECT)
         cached.clear()
         _CACHE['rows'] = 0
-    missing = sorted({key for key in keys.values() if not (cache and key in cached)})
+    missing = [key for key in keys if not (cache and key in cached)]
     computed = {}
     if missing:
         before = None
@@ -209,6 +206,33 @@ def ranges(store, query, conditions, index, threads=None, cache=True):
             while cached and (len(cached) > CACHE_MAX_KEYS or _CACHE['rows'] > CACHE_MAX_ROWS):
                 _, gone = cached.popitem(last=False)
                 _CACHE['rows'] -= len(gone)
+    return computed
+
+
+def prefill(store, keys=None, threads=None):
+    """D52c (pre-registered): fill the cache for the page's template anchors (`PREFILL`) when the store opens, as the
+    server does at its start and a hosted worker when it is built. A key whose concept or kinds the snapshot does not
+    hold is skipped (validated as a request's would be). Returns the keys now cached."""
+    concepts, kinds = _known(store)
+    wanted = [k for k in (PREFILL if keys is None else keys) if k[0] in concepts and set(k[3]) <= kinds | {MENTION}]
+    _fill(store, wanted, threads)
+    return [list(k) for k in wanted if k in _CACHE['ranges']]
+
+
+def ranges(store, query, conditions, index, threads=None, cache=True):
+    """{step id: {patient id: (count, lo, hi)}} on the store's clock; lo and hi None when there are fewer than k.
+
+    The request is validated first (`validate`), so nothing malformed or unknown reaches SQL or the cache. D52b: the ranges
+    of a key are computed once per snapshot and reused by every later request naming the same key (`_CACHE`, emptied
+    when another snapshot is asked; least recently used keys evicted past CACHE_MAX_KEYS keys or CACHE_MAX_ROWS rows; a
+    key whose ranges alone pass the row cap is computed but not kept). `cache=False` computes them afresh and neither
+    reads nor fills the cache. A snapshot is immutable, so a cached range is the range. The ranges returned may be the
+    cache's own dictionaries: callers read them and never change them. With `threads`, a computation runs on that many
+    DuckDB threads (a request matched on that many workers; the store's own setting is restored after)."""
+    validate(store, query, conditions, index)
+    keys = step_keys(query, conditions, index)
+    computed = _fill(store, sorted(set(keys.values())), threads, cache)
+    cached = _CACHE['ranges']
     out = {}
     for sid, key in keys.items():
         if key in computed:

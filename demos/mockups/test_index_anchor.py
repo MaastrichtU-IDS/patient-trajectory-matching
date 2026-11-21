@@ -1,5 +1,6 @@
 """D52: the index anchor as a hidden step. The rewrite's reference (`index_anchor_reference.py`), the server's narrowing
-(`index_hull.py`), the server's request check, and the worlds harness on a few snapshots (`tools/d52_measure.py`).
+(`index_hull.py`), the server's request check, and the worlds harness on a few snapshots (`tools/d52_measure.py`); D52c:
+the server's simplification (`index_simplify.py`) and its pre-fill.
 
 Tests that build a store skip without DuckDB.
 """
@@ -368,9 +369,145 @@ class StoreTests(unittest.TestCase):
         clean = m.worlds(400, 'unit-test', quiet=True)
         self.assertEqual(clean['failing_cases'], 0, clean['examples'])
         self.assertEqual(clean['h1_h3_mismatches'], 0, clean['mismatch_examples'])
+        self.assertEqual(clean['h3_h3s_mismatches'], 0, clean['h3_h3s_examples'])  # D52c
         planted = m.worlds(1200, 'unit-test-defect', defect='eligibility_dropped', quiet=True)
         self.assertGreater(planted['failing_cases'], 0)
 
+
+@unittest.skipUnless(HAVE_DUCKDB, 'needs DuckDB')
+class SimplifyTests(unittest.TestCase):
+    """D52c: `index_simplify.py` (index_simplify_v1) on tiny snapshots: what each rewrite applies to and refuses, the mapping
+    back, the server's path and its pre-fill."""
+
+    @classmethod
+    def setUpClass(cls):
+        import random
+        import d52_measure as m
+        from patterns import execution_store as es
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.ingest, cls.statics = m.tiny_ingest(random.Random('d52c-unit'), 'unit', 20)
+        cls.store = es.open_store(es.build(cls.ingest, Path(cls.tmp.name) / 's'))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.store.close()
+        cls.tmp.cleanup()
+
+    def simplify(self, steps, relations, index=None, relaxations=(), conditions=None, scope='any'):
+        import index_hull as hull
+        import index_simplify as simp
+        query = {'profile': 'trajectory-graph-1.0', 'scope': scope, 'steps': steps, 'relations': relations,
+                 'relaxations': list(relaxations), 'budget': '1', 'search_budget': 40000}
+        index = index or {'rule': 'index_anchor_v1', 'start': {'step': '@index_start', 'offset': 0}, 'end': {'step': '@index_start', 'offset': 3}}
+        windows = {pid: {'start': 0, 'end': s['last']} for pid, s in self.statics.items()}
+        narrowed, _, found = hull.narrow(self.store, query, conditions, index, windows)
+        return simp.simplify(self.store, query, conditions, index, narrowed, found), query, narrowed
+
+    H = {'id': '@index_start', 'concept': 'x', 'occurrence': 'first'}
+    FOLLOWED = {'id': 'index:followed', 'kind': 'after', 'from': '@index_start', 'to': 'END', 'min': 3}
+    BORN = {'id': 'index:born', 'kind': 'after', 'from': 'START', 'to': '@index_start', 'min': -3}
+
+    def scope_start(self, step, lo=0, hi=None):
+        r = {'id': f'index:scope-start:{step}', 'kind': 'after', 'from': '@index_start', 'to': step, 'min': lo}
+        return {**r, 'max': hi} if hi is not None else r
+
+    def test_the_templates_shapes_each_get_their_rewrites(self):
+        # Blank, Tree, Graph: a first x like the anchor; c1 drops the implied relation, c2 merges the anchor into it.
+        s, _, _ = self.simplify([{'id': 'A', 'concept': 'x', 'occurrence': 'first'}, self.H],
+                                [self.scope_start('A'), self.FOLLOWED, self.BORN])
+        self.assertEqual((s['record']['dropped'], s['record']['merged'], s['record']['existential']),
+                         (['index:scope-start:A'], {'@index_start': 'A'}, None))
+        self.assertEqual([st['id'] for st in s['query']['steps']], ['A'])
+        self.assertEqual([(r['id'], r['from'], r['to']) for r in s['query']['relations']],
+                         [('index:followed', 'A', 'END'), ('index:born', 'START', 'A')])
+        # Event frequency: any x (c1) and a first y bounding the anchor from above: c3, the born relation implied.
+        s, _, _ = self.simplify([{'id': 'A', 'concept': 'x', 'occurrence': 'any'}, {'id': 'B', 'concept': 'y', 'occurrence': 'first'}, self.H],
+                                [self.scope_start('A'), self.scope_start('B'), self.FOLLOWED, self.BORN])
+        self.assertEqual(s['record']['dropped'], ['index:scope-start:A'])
+        self.assertEqual((s['record']['existential'], s['record']['implied']), ('@index_start', ['index:born']))
+        self.assertEqual(next(st for st in s['query']['steps'] if st['id'] == '@index_start')['occurrence'], 'any')
+        # A step whose concept is the anchor's ancestor is not implied (z can be y); one below it is.
+        s, _, _ = self.simplify([{'id': 'A', 'concept': 'z', 'occurrence': 'any'}, {**self.H, 'concept': 'z'}],
+                                [self.scope_start('A'), self.FOLLOWED, self.BORN])
+        self.assertEqual(s['record']['dropped'], ['index:scope-start:A'])  # z is below z
+        s, _, _ = self.simplify([{'id': 'A', 'concept': 'z', 'occurrence': 'any'}, self.H], [self.scope_start('A'), self.FOLLOWED, self.BORN])
+        self.assertEqual(s['record']['dropped'], [])
+
+    def test_what_each_rewrite_leaves_alone(self):
+        A = {'id': 'A', 'concept': 'y', 'occurrence': 'any'}
+        # c1: a positive minimum, a maximum, or a relaxation widening the step out of the anchor's family.
+        for rel, relax in [(self.scope_start('A', 1), ()), (self.scope_start('A', 0, 5), ()),
+                           (self.scope_start('A'), [{'id': 'node:A', 'kind': 'widen_concept', 'step': 'A', 'concept': 'z', 'cost': '0.5'}])]:
+            s, _, _ = self.simplify([{**A, 'concept': 'x'}, self.H], [rel, self.FOLLOWED, self.BORN], relaxations=relax)
+            self.assertEqual(s['record']['dropped'], [], rel)
+        # c2: an X -> X relation that does not hold at one time (the period starts after its event), or a relaxation naming X.
+        s, _, _ = self.simplify([{'id': 'A', 'concept': 'x', 'occurrence': 'first'}, self.H], [self.scope_start('A', 1), self.FOLLOWED, self.BORN])
+        self.assertEqual(s['record']['merged'], {})
+        # c3: a lower bound from a user step (`within`: a maximum), two hidden steps, an Nth event, a scope not `any`.
+        s, _, _ = self.simplify([A, self.H], [self.scope_start('A', 0, 3), self.FOLLOWED, self.BORN])
+        self.assertIsNone(s['record']['existential'])
+        two = {'rule': 'index_anchor_v1', 'start': {'step': '@index_start', 'offset': 0}, 'end': {'step': '@index_end', 'offset': 0}}
+        s, _, _ = self.simplify([A, self.H, {'id': '@index_end', 'concept': 'y', 'occurrence': 'first'}],
+                                [self.scope_start('A'), {'id': 'index:ordered', 'kind': 'after', 'from': '@index_start', 'to': '@index_end', 'min': 1}],
+                                index=two)
+        self.assertIsNone(s['record']['existential'])
+        s, _, _ = self.simplify([A, {**self.H, 'occurrence': 'any'}], [self.scope_start('A'), self.FOLLOWED],
+                                conditions={'profile': 'execution-store-conditions-1.1', 'steps': {'@index_start': {'occurrence': {'nth': 2}}}})
+        self.assertIsNone(s['record']['existential'])
+        s, _, _ = self.simplify([A, self.H], [self.scope_start('A'), self.FOLLOWED, self.BORN], scope='from_start')
+        self.assertIsNone(s['record']['existential'])
+
+    def test_the_answer_is_mapped_back(self):
+        import index_simplify as simp
+        merged = {'rule': simp.RULE, 'dropped': [], 'merged': {'@index_start': 'A'}, 'existential': None, 'implied': []}
+        r = {'patient_id': 'p', 'status': 'not_comparable', 'binding': {'A': 'e1'}, 'witness': {'A': 5}, 'excluded_steps': ['A']}
+        out = simp.map_result(r, merged, ['A', '@index_start'], frozenset())
+        self.assertEqual((out['binding'], out['witness'], out['excluded_steps']),
+                         ({'A': 'e1', '@index_start': 'e1'}, {'A': 5, '@index_start': 5}, ['A', '@index_start']))
+        exist = {**merged, 'merged': {}, 'existential': '@index_start'}
+        r = {'patient_id': 'p', 'status': 'possible', 'certainty': 'possible', 'binding': {'A': 'e1', '@index_start': 'e2'},
+             'witness': {'A': 5, '@index_start': 4}}
+        self.assertEqual(simp.map_result(r, exist, ['A', '@index_start'], frozenset())['binding'], {'A': 'e1'})
+        weak = simp.map_result(r, exist, ['A', '@index_start'], frozenset({'p'}))
+        self.assertEqual((weak['note'], weak['witness']), (simp.NOTE, {'A': 5}))
+        relaxed = simp.map_result({'patient_id': 'p', 'status': 'relaxed', 'certainty': 'possible', 'binding': {}, 'complete': True},
+                                  exist, ['A', '@index_start'], frozenset({'p'}))
+        self.assertEqual((relaxed['complete'], relaxed['note']), (False, simp.NOTE))
+
+    def test_the_server_simplifies_maps_back_and_fills_its_cache_at_start(self):
+        import json
+        import index_hull as hull
+        import store_trajectory as st
+        cohort = json.loads(st.COHORT.read_text())
+        pids = [p['patient_id'] for p in cohort['patients']]
+        query = {'profile': 'trajectory-graph-1.0', 'scope': 'any',
+                 'steps': [{'id': 'A', 'concept': 'seizure', 'occurrence': 'first'}, {'id': '@index_start', 'concept': 'seizure', 'occurrence': 'first'}],
+                 'relations': [{'id': 'index:scope-start:A', 'kind': 'after', 'from': '@index_start', 'to': 'A', 'min': 0},
+                               {'id': 'index:followed', 'kind': 'after', 'from': '@index_start', 'to': 'END', 'min': 1440}],
+                 'relaxations': [], 'budget': '0', 'search_budget': 40000}
+        index = {'rule': 'index_anchor_v1', 'start': {'step': '@index_start', 'offset': 0}, 'end': {'step': '@index_start', 'offset': 1440}}
+        windows = {pid: {'start': 0, 'end': 10 ** 7} for pid in pids}
+        with tempfile.TemporaryDirectory() as tmp:
+            server = st.TrajectoryStore(root=tmp).start()
+            try:
+                status = server.status()
+                self.assertIsInstance(status['prefill_s'], float)
+                self.assertIn(['seizure', 1, False, ('mention',)], status['prefill_keys'])
+                hits = hull.CALLS['range_hits']
+                answer = server.match({'query': query, 'conditions': {'profile': 'execution-store-conditions-1.3', 'steps': {},
+                                                                       'exclude_kinds': ['mention']}, 'windows': windows, 'index': index})
+                self.assertGreater(hull.CALLS['range_hits'], hits, 'the first request finds its range cached')
+                self.assertEqual(answer['index']['simplify']['merged'], {'@index_start': 'A'})
+                for r in answer['results']:
+                    if 'binding' in r:
+                        self.assertEqual(r['binding']['@index_start'], r['binding']['A'])
+                # The existential form: the hidden step's binding is dropped.
+                q3 = {**query, 'steps': [{'id': 'A', 'concept': 'seizure', 'occurrence': 'any'}, query['steps'][1]]}
+                answer = server.match({'query': q3, 'windows': windows, 'index': index})
+                self.assertEqual(answer['index']['simplify']['existential'], '@index_start')
+                self.assertTrue(all('@index_start' not in r.get('binding', {}) for r in answer['results']))
+            finally:
+                server.close()
 
 if __name__ == '__main__':
     unittest.main()

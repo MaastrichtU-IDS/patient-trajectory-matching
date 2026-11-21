@@ -119,5 +119,80 @@ class TruthTests(unittest.TestCase):
         self.assertTrue(self.judge({'status': 'excluded'}, 3))
 
 
+class SimplifyPlantedCaseTests(unittest.TestCase):
+    """D52c: three planted defects of `index_simplify` too rare for the random harness at its ruled size, each shown on a
+    constructed case: the simplification is sound on it, and the defect makes the worlds check fail it."""
+
+    def setUp(self):
+        try:
+            import duckdb  # noqa: F401
+        except ImportError:
+            self.skipTest('the store needs DuckDB')
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.coverage = [{'source': s, 'lo': 0, 'hi': 12, 'basis': 'declared'} for s in ('ehr', 'reg')]
+
+    def patient(self, events, excluded=None):
+        p = {'patient_id': 'p0', 'clock_id': 'clock_p0', 'coverage': self.coverage,
+             'events': [{'event_id': f'e{k}', 'kind': 'condition', 'source': 'ehr', 'evidence': {}, **e} for k, e in enumerate(events)]}
+        if excluded:
+            p['excluded'] = excluded
+        return p
+
+    def spec(self, end_offset, start_offset=0):
+        steps = [{'id': '@index_start', 'concept': 'x', 'occurrence': 'first', 'derived': None, 'bound': {'event': 'x'}}]
+        return ({'step': '@index_start', 'offset': start_offset}, {'step': '@index_start', 'offset': end_offset}, steps)
+
+    def query(self, steps, relations=(), relaxations=(), scope='from_start'):
+        return {'profile': 'trajectory-graph-1.0', 'scope': scope, 'steps': list(steps), 'relations': list(relations),
+                'relaxations': list(relaxations), 'budget': '1', 'search_budget': 40000}
+
+    def run_case(self, patient, last, spec, query, defect=None):
+        res, record = m.one_case(self.tmp.name + ('/' + (defect or 'sound')), [patient], {'p0': {'last': last, 'c_end': 0, 'c_start': 0}},
+                                 spec, query, None, defect)
+        return res['p0'], record
+
+    def test_c3_withdraws_the_possible_claim_where_the_first_event_is_exact_through_different_events(self):
+        # A (y) binds e0, which is also an x; the first x is at most e0 and at most 3 (e1) in every world, so the query is
+        # exact with A = e0, though no single x is: an `any` step answers `possible`, whose "no exact" claim is false.
+        p = self.patient([{'concepts': ['x', 'y'], 'start': [2, 5]}, {'concepts': ['x'], 'start': [1, 3]}])
+        q = self.query([{'id': 'A', 'concept': 'y', 'occurrence': 'any'}])
+        sound, record = self.run_case(p, 8, self.spec(5), q)
+        self.assertEqual(record['existential'], '@index_start')
+        result, wrong, _ = sound['H3s']
+        self.assertEqual(result['status'], 'possible')
+        self.assertIn('ANCHOR_ORDER_MAY_MAKE_EXACT', result['note'])
+        self.assertEqual(wrong, [])
+        planted, _ = self.run_case(p, 8, self.spec(5), q, 'exist_claims_unguarded')
+        self.assertTrue(planted['H3s'][1], 'unguarded, the possible claim is false')
+
+    def test_c3_reads_the_excluded_records_in_its_born_check(self):
+        # The period [x - 5, x - 3]. An excluded x at 1 may be the first x, ending the period before birth: c3 must not apply.
+        p = self.patient([{'concepts': ['x'], 'start': [8, 8]}, {'concepts': ['y'], 'start': [4, 4]}],
+                         excluded=[{'source': 'ehr', 'concept': 'x', 'start': [1, 1], 'reason': 'NOT_ADMITTED'}])
+        q = self.query([{'id': 'A', 'concept': 'y', 'occurrence': 'any'}])
+        sound, record = self.run_case(p, 12, self.spec(-3, -5), q)
+        self.assertIsNone(record['existential'])
+        self.assertEqual(sound['H3s'][1] + sound['H3s'][2], [])
+        planted, record = self.run_case(p, 12, self.spec(-3, -5), q, 'exist_excluded_unchecked')
+        self.assertEqual(record['existential'], '@index_start')
+        self.assertEqual(planted['H3s'][0]['status'], 'exact')
+        self.assertTrue(planted['H3s'][2], 'over the whole source the exact claim is false')
+
+    def test_c1_reads_the_concepts_a_relaxation_widens_a_step_to(self):
+        # A (x) widened to z may bind the y at 4 before the first x (3 to 5): the relation from the anchor is not implied
+        # under the relaxation, so c1 keeps it; dropped, the relaxed match is claimed where no world has it.
+        p = self.patient([{'concepts': ['x'], 'start': [3, 5]}, {'concepts': ['y'], 'start': [4, 4]}])
+        q = self.query([{'id': 'A', 'concept': 'x', 'occurrence': 'any'}],
+                       [{'id': 'edge:E', 'kind': 'after', 'from': 'END', 'to': 'A', 'min': -8, 'max': -6}],
+                       [{'id': 'node:A', 'kind': 'widen_concept', 'step': 'A', 'concept': 'z', 'cost': '0.5'}])
+        sound, record = self.run_case(p, 12, self.spec(5), q)
+        self.assertEqual(record['dropped'], [])
+        self.assertEqual(sound['H3s'][1], [])
+        planted, record = self.run_case(p, 12, self.spec(5), q, 'drop_wider_concept')
+        self.assertEqual(record['dropped'], ['index:scope-start:A'])
+        self.assertTrue(planted['H3s'][1], 'the relaxed match is claimed where no world has it')
+
 if __name__ == '__main__':
     unittest.main()

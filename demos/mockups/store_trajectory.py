@@ -32,7 +32,11 @@ the records). The store takes windows as input; it reads no generator truth itse
 event is a hidden step of the query, and the page sends a constant base window with an `index` block naming the step
 and its offsets; the server narrows each base window to the hull of the periods the store's records allow
 (`index_hull.py`, `index_hull_v1`), which never changes what the request matches, and answers with the narrowed windows
-and the reason for each patient it excluded (`index`).
+and the reason for each patient it excluded (`index`). Since D52c the narrowed request is simplified before it is matched
+(`index_simplify.py`, `index_simplify_v1`: implied order relations dropped, a hidden step merged into an identical user
+step, or a `first` hidden step bounded only from above matched as an `any` step), each rewrite giving the same truth value
+in every world, and the answer is mapped back (`index.simplify` says what was done); and the narrowing's ranges for the
+page's template anchors are computed when the store opens (`prefill_s`), before the server reports ready.
 """
 from __future__ import annotations
 
@@ -185,6 +189,8 @@ class TrajectoryStore:
         self._scratch = None
         self._thread = None
         self.built_s = None
+        self.prefill_s = None  # D52c: the narrowing's cache filled for the page's template anchors at the start
+        self.prefill_keys = []
 
     def start(self):
         if self._thread is None:
@@ -231,6 +237,14 @@ class TrajectoryStore:
         self.births = store_parity.birth_micros(cohort)
         self.events = self._describe_all(store)
         self.patients = len(ids)
+        # D52c (pre-registered): the narrowing's ranges (and the simplification's facts) for the page's template anchors,
+        # before the store is offered, so readiness waits for them and no user request pays them (reported: prefill_s).
+        filled = time.perf_counter()
+        import index_hull
+        import index_simplify
+        self.prefill_keys = index_hull.prefill(store, threads=WORKERS)
+        index_simplify.prefill(store, sorted({k[0] for k in index_hull.PREFILL}))
+        self.prefill_s = round(time.perf_counter() - filled, 3)
         self._store = store
         self.built_s = round(time.perf_counter() - started, 2)
 
@@ -280,7 +294,7 @@ class TrajectoryStore:
         return {'profile': PROFILE, 'available': True, 'snapshot_id': store.snapshot_id,
                 'store_profile': store.manifest.get('profile'), 'dataset_id': store.manifest.get('dataset_id'),
                 'patients': self.patients, 'conditions_profiles': sc.profiles(),
-                'built_s': self.built_s,
+                'built_s': self.built_s, 'prefill_s': self.prefill_s, 'prefill_keys': self.prefill_keys,
                 'series': True, 'per_patient': True}
 
     def match(self, spec):
@@ -296,15 +310,22 @@ class TrajectoryStore:
         index, narrowed = spec.get('index'), None
         try:
             with self._lock:
+                sent = store_parity.to_micros(query)
+                matched, simplified = sent, None
                 if index is not None:  # D52: each base window narrowed to the hull of the periods the records allow
                     import index_hull
-                    micros, reasons, _ = index_hull.narrow(store, store_parity.to_micros(query), conditions, index, micros, MINUTE,
-                                                           threads=WORKERS)
+                    import index_simplify
+                    micros, reasons, found = index_hull.narrow(store, sent, conditions, index, micros, MINUTE, threads=WORKERS)
+                    # D52c: the narrowed request simplified (index_simplify_v1), matched, and its answer mapped back.
+                    simplified = index_simplify.simplify(store, sent, conditions, index, micros, found)
+                    matched = simplified['query']
                     narrowed = {'rule': index_hull.RULE, 'reasons': reasons,
                                 'windows': {pid: None if w is None else [self._minutes(pid, w['start']), self._minutes(pid, w['end'])]
-                                            for pid, w in micros.items()}}
-                result = sc.match(store, store_parity.to_micros(query), micros, workers=WORKERS,
-                                  conditions=store_parity.conditions_micros(conditions))
+                                            for pid, w in micros.items()},
+                                'simplify': index_simplify.describe(simplified)}
+                result = sc.match(store, matched, micros, workers=WORKERS, conditions=store_parity.conditions_micros(conditions))
+                if simplified is not None:
+                    result = index_simplify.apply(result, simplified, sent)
         except ValueError as error:  # StoreError and the engine's TrajectoryError are ValueErrors with a code
             code = refusal_code(error)
             if code is None:

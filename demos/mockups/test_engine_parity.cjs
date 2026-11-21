@@ -412,6 +412,22 @@ try {
   assert.deepEqual(page[0].win, {start: 1, end: 800});
   assert.equal(page[1].status, 'excluded');
   assert.ok(/holds no record of the period's event/.test(page[1].reason));
+  // D52c: where the server matched the period's event as any record of its concept (index_simplify_v1, c3), it binds no
+  // record as the first and gives no witness for it; the page shows the hull only, never an anchor or a witnessed period,
+  // and reads the note that withdraws a possible match's claim.
+  const hull = read(`(() => {
+    const answer = {conditions_profile: 'execution-store-conditions-1.3', index: {rule: 'index_hull_v1', reasons: {},
+      windows: {C001: [1440, 1440 * 800]}, simplify: {rule: 'index_simplify_v1', dropped: ['index:scope-start:A'], merged: {},
+      existential: '@index_start', implied: ['index:born'], weak_patients: 1}}, results: [
+      {patient_id: 'C001', status: 'possible', note: 'ANCHOR_ORDER_MAY_MAKE_EXACT', binding: {A: {kind: 'condition', start: [14400, 14400]}},
+       witness: {A: 14400}}]};
+    return fromStore(answer, state.def).map(x => ({hullOnly: x.hullOnly, period: x.period, win: x.win, reason: x.reason,
+                                                   anchor: x.anchor ? [...x.anchor.keys()] : null})); })()`);
+  assert.equal(hull[0].hullOnly, true);
+  assert.equal(hull[0].period, null);
+  assert.deepEqual(hull[0].anchor, []);
+  assert.deepEqual(hull[0].win, {start: 1, end: 800});
+  assert.ok(/period's first event is uncertain/.test(hull[0].reason));
   // The census's classes through the pinned request (D52 review, M2), on constructed results.
   const ir = {ranges: {'@index_start': {P: [2, 100, 100], Q: [2, 100, 160]}}, windows: {P: {start: 100, end: 900}, Q: {start: 100, end: 960}},
               base_windows: {P: {start: 0, end: 2000}, Q: {start: 0, end: 2000}}, reasons: {}};
@@ -458,5 +474,5 @@ try {
   assert.deepEqual(pt, {index_anchor: {mode: 'point', reason: 'INDEX_ANCHOR_ANY_UNSUPPORTED'}, same: true});
   console.log('D52: the rewrite of the default period (one hidden step, scope any, eligibility from the step), D49\'s request on '
               + 'request, a constant period untouched, a point period marked; the page\'s reading of an indexed answer; the census\'s '
-              + 'classes through the pinned request and the point reasons\' shapes.');
+              + 'classes through the pinned request and the point reasons\' shapes; D52c: an existential anchor shown as the hull only.');
 }

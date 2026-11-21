@@ -36,6 +36,16 @@ page's size, each request runs once untimed before its timed runs; that first ru
 apart (review, S1): at 14 workers each candidate's first run at most 10 s in every pair, and its ratio to the reference's
 first run, normalised by the controls' first runs in the same pair, at most 2.0 in every pair.
 
+D52c (profile 1.2): the candidate's timed path at 300,000 is the server's: the narrowing, `index_simplify.simplify`
+(`index_simplify_v1`), the match of the simplified request and the answer mapped back (`index_simplify.apply`); at the
+page's size the server's own `match` does the same. Pre-registered: each arm's process fills the narrowing's cache (and
+the simplification's facts) for the page's template anchors when its store opens, as the server does at its start
+(`index_hull.prefill`, `index_simplify.prefill`; at the page's size inside `TrajectoryStore`'s build), before its first
+request; the fill's time is reported per process (`prefill_seconds`) and is in no timed run. The S1 first-run rule is
+unchanged. The micro bound's steady state is the narrowing and the simplification together (reported apart too). Ruled
+too (rule 3b at 300,000, `--identity-worker`): on every patient of each candidate request, the answer with the
+simplification equals the answer without it but in the declared classes (`index_simplify.compare`).
+
     python tools/benchmark_index_anchor.py --requests-file REQUESTS.json --snapshot 300000=SNAPSHOT_DIR [--output FILE]
 """
 from __future__ import annotations
@@ -59,8 +69,8 @@ for p in (str(ROOT), str(ROOT / 'tools'), str(MOCKUPS)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-PROFILE = 'index-anchor-latency-1.1'  # D52b: the narrowing's cache, a first run untimed at 300,000
-OUTPUT = 'verification/d52b-anchor-latency-verdict.json'
+PROFILE = 'index-anchor-latency-1.2'  # D52c: the simplification in the timed path; the cache filled at each process's start
+OUTPUT = 'verification/d52c-anchor-latency-verdict.json'
 RATIO_BAR, PAGE_P95_BAR, SCALE_P95_BAR = 2.0, 2.0, 10.0
 MICRO_SHARE = 0.10
 RULED_WORKERS = 14
@@ -69,7 +79,8 @@ COUNT_REQUESTS = ('event frequency', 'event frequency under the 3rd seizure for 
 SCALE_CONTROLS = ('1.1 sequence', 'plain sequence')
 MINUTE = 60_000_000
 ARTIFACTS = ('tools/benchmark_index_anchor.py', 'tools/benchmark_coded_default.py', 'tools/benchmark_count_requests.py',
-             'demos/mockups/d52_anchor.cjs', 'demos/mockups/index_hull.py', 'demos/mockups/store_trajectory.py',
+             'demos/mockups/d52_anchor.cjs', 'demos/mockups/index_hull.py', 'demos/mockups/index_simplify.py',
+             'demos/mockups/store_trajectory.py',
              'demos/mockups/store_parity.py', 'demos/mockups/trajectory/store_request.js', 'patterns/store_conditions.py',
              'patterns/store_conditions_coded.py', 'patterns/store_conditions_gene.py', 'patterns/store_conditions_relative.py',
              'patterns/store_conditions_counts.py', 'patterns/execution_store.py', 'patterns/trajectory_graph.py',
@@ -140,7 +151,7 @@ def page_worker(args):
     import index_hull
     data = json.loads(Path(args.requests_file).read_text())
     ts = bcd.trajectory_store(args.snapshot)
-    out = {'requests': {}, 'worker_peak_rss_bytes': 0}
+    out = {'requests': {}, 'worker_peak_rss_bytes': 0, 'prefill_seconds': ts.prefill_s}
     try:
         for name, spec in page_requests(data, args.arm).items():
             calls = index_hull.CALLS['narrow']
@@ -160,6 +171,28 @@ def page_worker(args):
     return out
 
 
+def prefill(store, threads):
+    """D52c (pre-registered): the server's start, the narrowing's cache and the simplification's facts filled for the page's
+    template anchors; its seconds and keys."""
+    import index_hull
+    import index_simplify
+    started = time.perf_counter()
+    keys = index_hull.prefill(store, threads=threads)
+    index_simplify.prefill(store, sorted({k[0] for k in index_hull.PREFILL}))
+    return time.perf_counter() - started, keys
+
+
+def candidate_answer(store, r, windows, workers):
+    """The candidate's request as the server answers it (D52c): narrowed, simplified, matched, mapped back."""
+    import index_hull
+    import index_simplify
+    from patterns import store_conditions as sc
+    w, _, found = index_hull.narrow(store, r['query'], r['raw_conditions'], r['index'], windows, MINUTE, threads=workers)
+    s = index_simplify.simplify(store, r['query'], r['raw_conditions'], r['index'], w, found)
+    answer = sc.match(store, s['query'], w, detail='decided', workers=workers, conditions=r['conditions'])
+    return index_simplify.apply(answer, s, r['query']), s, w
+
+
 def scale_worker(args):
     import benchmark_coded_default as bcd
     import benchmark_count_requests as bcr
@@ -171,31 +204,35 @@ def scale_worker(args):
     try:
         pool = es.get_pool(store, args.arm_workers)
         pool.warm()
+        # D52c: the server's start fills the cache before any request, in both arms (one tree, as the server runs it).
+        filled, keys = prefill(store, args.arm_workers)
         facts = scale_facts(store)
         d43b = bcr.windows_of(store)
         base = base_windows(facts)
-        out = {'pool_start_seconds': pool.start_seconds, 'requests': {}, 'patients': len(facts[0])}
+        out = {'pool_start_seconds': pool.start_seconds, 'prefill_seconds': filled, 'prefill_keys': keys,
+               'requests': {}, 'patients': len(facts[0])}
         for name, r in scale_requests(data, args.arm).items():
             windows = d43b if r.get('control') else base if r.get('index') else reference_windows(r['spec'], facts)
             row = {'seconds': [], 'digests': [], 'narrow_calls': 0, 'patients_with_window': sum(1 for w in windows.values() if w)}
-            # D52b: one untimed run first, as at the page's size (the server's first request after it starts fills the
-            # narrowing's cache, and DuckDB's); its time is recorded as the first-request cost.
+            # D52b: one untimed run first, as at the page's size (since D52c the cache is filled at the process's start;
+            # DuckDB's own caches and the store's per-snapshot ones fill here); its time is recorded as the first-request cost.
+            calls = index_hull.CALLS['narrow']
             started = time.perf_counter()
-            w = windows
             if r.get('index'):
-                w, _, _ = index_hull.narrow(store, r['query'], r['raw_conditions'], r['index'], windows, MINUTE, threads=args.arm_workers)
-            first = sc.match(store, r['query'], w, detail='decided', workers=args.arm_workers, conditions=r['conditions'])
+                first = candidate_answer(store, r, windows, args.arm_workers)[0]
+            else:
+                first = sc.match(store, r['query'], windows, detail='decided', workers=args.arm_workers, conditions=r['conditions'])
             row['first_run_seconds'] = time.perf_counter() - started
+            row['narrow_calls'] += index_hull.CALLS['narrow'] - calls
             row['first_digest'] = bcr.answer_digest(first)
             del first
             for _ in range(args.runs):
                 calls = index_hull.CALLS['narrow']
                 started = time.perf_counter()
-                w = windows
                 if r.get('index'):
-                    w, _, _ = index_hull.narrow(store, r['query'], r['raw_conditions'], r['index'], windows, MINUTE,
-                                                threads=args.arm_workers)
-                answer = sc.match(store, r['query'], w, detail='decided', workers=args.arm_workers, conditions=r['conditions'])
+                    answer = candidate_answer(store, r, windows, args.arm_workers)[0]
+                else:
+                    answer = sc.match(store, r['query'], windows, detail='decided', workers=args.arm_workers, conditions=r['conditions'])
                 row['seconds'].append(time.perf_counter() - started)
                 row['digests'].append(bcr.answer_digest(answer))
                 row['narrow_calls'] += index_hull.CALLS['narrow'] - calls
@@ -214,6 +251,7 @@ def micro_worker(args):
     request's (the cache empty; its queries on the ruled number of DuckDB threads, 14, as the match runs on 14 workers),
     reported, and the steady state's, the median of 3 later requests (the cache filled), ruled."""
     import index_hull
+    import index_simplify
     from patterns import execution_store as es
     data = json.loads(Path(args.requests_file).read_text())
     store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
@@ -225,19 +263,67 @@ def micro_worker(args):
             if not r.get('index'):
                 continue
             index_hull.clear_cache()
+            index_simplify.clear_cache()
             started = time.perf_counter()
             index_hull.narrow(store, r['query'], r['raw_conditions'], r['index'], base, MINUTE, threads=RULED_WORKERS)
             cold = time.perf_counter() - started
-            times = []
+            started = time.perf_counter()
+            index_simplify.prefill(store, sorted({k[0] for k in index_hull.PREFILL}))
+            cold_facts = time.perf_counter() - started
+            times, narrowing, simplifying = [], [], []
             for _ in range(3):
                 started = time.perf_counter()
-                index_hull.narrow(store, r['query'], r['raw_conditions'], r['index'], base, MINUTE, threads=RULED_WORKERS)
-                times.append(time.perf_counter() - started)
+                w, _, found = index_hull.narrow(store, r['query'], r['raw_conditions'], r['index'], base, MINUTE, threads=RULED_WORKERS)
+                middle = time.perf_counter()
+                index_simplify.simplify(store, r['query'], r['raw_conditions'], r['index'], w, found)
+                done = time.perf_counter()
+                times.append(done - started)
+                narrowing.append(middle - started)
+                simplifying.append(done - middle)
             # D52b review, S3 (reported): the memory the cache holds with this one key (the page's anchor for the request).
-            out[name] = {'narrow_seconds': statistics.median(times), 'runs': times, 'first_request_seconds': cold,
+            # D52c: the steady state ruled is the narrowing and the simplification together; each is reported apart.
+            out[name] = {'narrow_seconds': statistics.median(times), 'runs': times,
+                         'narrowing_only_seconds': statistics.median(narrowing), 'simplification_only_seconds': statistics.median(simplifying),
+                         'first_request_seconds': cold, 'simplification_facts_first_seconds': cold_facts,
                          'cache_keys': len(index_hull._CACHE['ranges']), 'cache_rows': index_hull._CACHE['rows'],
                          'cache_bytes': index_hull.cache_bytes()}
     finally:
+        store.close()
+    return out
+
+
+def identity_worker(args):
+    """D52c (rule 3b at 300,000, ruled): each candidate request at the ruled worker count, matched with and without the
+    simplification on the same narrowed windows; per patient, the answers equal but in the declared classes
+    (`index_simplify.compare`). Untimed; one process."""
+    import index_hull
+    import index_simplify
+    from patterns import execution_store as es
+    from patterns import store_conditions as sc
+    data = json.loads(Path(args.requests_file).read_text())
+    store = es.open_store(args.snapshot, 1, 'files', args.memory_limit)
+    try:
+        pool = es.get_pool(store, RULED_WORKERS)
+        pool.warm()
+        prefill(store, RULED_WORKERS)
+        facts = scale_facts(store)
+        base = base_windows(facts)
+        out = {}
+        for name, r in scale_requests(data, 'candidate').items():
+            if not r.get('index'):
+                continue
+            with_it, s, w = candidate_answer(store, r, base, RULED_WORKERS)
+            without = sc.match(store, r['query'], w, detail='decided', workers=RULED_WORKERS, conditions=r['conditions'])
+            res = index_simplify.compare(store, r['query'], r['raw_conditions'], w, s, without, with_it)
+            res.pop('classes')
+            res['unexplained_count'] = len(res['unexplained'])
+            res['unexplained'] = res['unexplained'][:10]
+            res['record'] = index_simplify.describe(s)
+            out[name] = res
+            print(f'identity {name}: {res["changed"]} of {res["results"]} changed {res["by_class"]}, '
+                  f'{res["unexplained_count"]} unexplained', file=sys.stderr, flush=True)
+    finally:
+        es.close_pools()
         store.close()
     return out
 
@@ -357,12 +443,15 @@ def main_run(args):
                                           args.scale_runs, SCALE_RUNS_MIN, args.repeats, ruled_run=RULED_WORKERS in args.workers)
         first_runs = first_run_check(scale_records, list(data['scale']), list(SCALE_CONTROLS), ruled, SCALE_P95_BAR)
         micro_raw = _run(args, '--micro-worker', ['--snapshot', args.snapshot_path], args.budget_seconds)
+        identity_raw = _run(args, '--identity-worker', ['--snapshot', args.snapshot_path], args.budget_seconds)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     micro = {name: {**m, 'candidate_p50_seconds_at_14': scale['requests'][name]['candidate_p50_seconds'],
                     'share': m['narrow_seconds'] / scale['requests'][name]['candidate_p50_seconds']}
              for name, m in micro_raw.items() if name != 'wall_seconds'}
     micro_met = all(m['share'] <= MICRO_SHARE for m in micro.values()) and len(micro) == len(data['scale'])
+    identity = {name: x for name, x in identity_raw.items() if name != 'wall_seconds'}
+    identity_met = len(identity) == len(data['scale']) and all(x['unexplained_count'] == 0 for x in identity.values())
     rewrites = data.get('control_rewrite_calls', {})
     structural = {'translator_rewrite_calls_for_controls': rewrites, 'translator_met': bool(rewrites) and all(v == 0 for v in rewrites.values()),
                   'page_narrowing_met': all(v['met'] for v in page['structural_narrowing'].values()),
@@ -370,12 +459,12 @@ def main_run(args):
     structural['met'] = structural['translator_met'] and structural['page_narrowing_met'] and structural['scale_narrowing_met']
     ok = lambda s: s['protocol']['met'] and all(r['met'] for r in s['requests'].values())
     verdict = {'page': ok(page), 'scale': ok(scale), 'scale_first_runs': first_runs['met'], 'structural': structural['met'],
-               'micro_bound': micro_met, 'build': build['met']}
+               'micro_bound': micro_met, 'build': build['met'], 'simplification_identity': identity_met}
     verdict['met'] = all(verdict.values())
     report = {
-        'profile': PROFILE, 'rule': 'D52 rule 6 (decision log)',
-        'arms': {'candidate': 'the request as the page writes it, the index period a hidden step (the server narrows; at 300,000 '
-                              'the narrowing is inside the timed request)',
+        'profile': PROFILE, 'rule': 'D52c rule 6 (D52b\'s rule 6, D52\'s as amended) and rule 3b at 300,000 (decision log)',
+        'arms': {'candidate': 'the request as the page writes it, the index period a hidden step (the server narrows and simplifies; '
+                              'at 300,000 the narrowing, the simplification and the mapping back are inside the timed request)',
                  'reference': "the same definition with D49's point windows (indexAnchor false)"},
         'order': 'ABBA: the reference first in even pairs', 'repeats': args.repeats,
         'requests_file': {'sha256': hashlib.sha256(Path(args.requests_file).read_bytes()).hexdigest(),
@@ -391,6 +480,13 @@ def main_run(args):
                   'stand_ins': ("last contact: the patient's latest coverage end; birth: the patient's floor (earliest event "
                                 'start); reference windows: the earliest start of the first (third) coded seizure for the period')},
         'micro': {'share_bar': MICRO_SHARE, 'scale_one_process_14_threads': micro, 'met': micro_met}, 'structural': structural,
+        'prefill': {'rule': ('pre-registered (D52c): each process fills the narrowing\'s cache and the simplification\'s facts for '
+                             'the page\'s template anchors when its store opens, before its first request, in both arms; not timed'),
+                    'page_seconds': {a: [r[a]['prefill_seconds'] for r in page_records] for a in ('reference', 'candidate')},
+                    'scale_seconds': {a: {str(n): [r[a]['prefill_seconds'] for r in scale_records if r['workers'] == n] for n in args.workers}
+                                      for a in ('reference', 'candidate')}},
+        'simplification_identity': {'rule': 'D52c rule 3b at 300,000: per patient, with and without index_simplify_v1, equal but in the declared classes',
+                                    'requests': identity, 'met': identity_met},
         'build': build, 'verdict': verdict, 'seconds': time.monotonic() - started,
         'artifacts': {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in ARTIFACTS},
         'contains_patient_level_data': False,
@@ -414,14 +510,15 @@ def main(argv=None):
     parser.add_argument('--memory-limit', default='4GB')
     parser.add_argument('--budget-seconds', type=float, default=3600)
     parser.add_argument('--output', type=Path, default=ROOT / OUTPUT)
-    for hidden in ('--page-worker', '--scale-worker', '--micro-worker'):
+    for hidden in ('--page-worker', '--scale-worker', '--micro-worker', '--identity-worker'):
         parser.add_argument(hidden, action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--arm', choices=('reference', 'candidate'), help=argparse.SUPPRESS)
     parser.add_argument('--runs', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--arm-workers', type=int, default=1, help=argparse.SUPPRESS)
     parser.add_argument('--worker-output', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
-    for flag, fn in (('page_worker', page_worker), ('scale_worker', scale_worker), ('micro_worker', micro_worker)):
+    for flag, fn in (('page_worker', page_worker), ('scale_worker', scale_worker), ('micro_worker', micro_worker),
+                     ('identity_worker', identity_worker)):
         if getattr(args, flag):
             args.worker_output.write_text(json.dumps(fn(args)))
             return 0

@@ -11,7 +11,10 @@ It shares no code with `trajectory/store_request.js` or `index_hull.py`:
   translator's `indexPointReason`), or None;
 - `anchor_range(events, concept, ancestors, occurrence, derived, exclude_kinds)` computes a hidden step's possible
   range over a converted patient's events with dictionaries and loops (no SQL): the order-statistic bound of
-  `index_hull_v1`; `narrow(...)` narrows a base window with it.
+  `index_hull_v1`; `narrow(...)` narrows a base window with it;
+- D52c: `simplify(query, conditions, index, windows, ranges, facts_of)` simplifies a narrowed request
+  (`index_simplify_v1`: c1, c2, c3 and c3's weak patients), written apart from `index_simplify.py`, over facts
+  (`simplify_facts`) read from the converted patients by loops.
 
 As `index_reference.py` (D46), it mirrors the rule: it catches a divergence between two implementations, not a flaw in
 the rule. The worlds harness (`tools/d52_measure.py`) checks the rule itself against a per-world window.
@@ -19,6 +22,7 @@ the rule. The worlds harness (`tools/d52_measure.py`) checks the rule itself aga
 from __future__ import annotations
 
 from datetime import date
+import json
 import math
 
 UNITS = {'second': 1 / 86400, 'minute': 1 / 1440, 'hour': 1 / 24, 'day': 1, 'week': 7, 'month': 30.44, 'year': 365.25}
@@ -291,3 +295,143 @@ def narrow(base, index, ranges):
     if s > e:
         return None, 'INDEX_NO_POSSIBLE_PERIOD'
     return {'start': s, 'end': e}, None
+
+
+# D52c: the simplification (`index_simplify_v1`), without SQL, written apart from `index_simplify.py`.
+
+SIMPLIFY_RULE = 'index_simplify_v1'
+
+
+def descendants(ancestors, concept):
+    """Every concept whose closure holds `concept` (itself included)."""
+    return {c for c in set(ancestors) | {concept} if concept in closure(ancestors, c)}
+
+
+def simplify_facts(patients, ancestors, concept):
+    """Over converted patients ({patient_id, events, excluded?}): the facts the simplification reads, by loops."""
+    below = descendants(ancestors, concept)
+    meets = set()
+    for d in below:
+        meets |= closure(ancestors, d)
+    excluded, linked, multi = {}, set(), set()
+    for p in patients:
+        los = [x['start'][0] for x in p.get('excluded', []) if concept in closure(ancestors, x['concept'])]
+        if los:
+            excluded[p['patient_id']] = min(los)
+        names = []
+        for e in p['events']:
+            names.append(e.get('start_var', e['event_id'] + '.s'))
+            if 'end' in e:
+                names.append(e.get('end_var', e['event_id'] + '.f'))
+        if len(names) != len(set(names)):
+            linked.add(p['patient_id'])
+        if any(len(set(e['concepts'])) > 1 for e in p['events']):
+            multi.add(p['patient_id'])
+    return {'below': below, 'meets': meets, 'excluded': excluded, 'linked': linked, 'multi': multi}
+
+
+def simplify(query, conditions, index, windows, ranges, facts_of):
+    """(query, record, weak): the request simplified (c1, c2, c3; decision log, D52c). `windows` are the narrowed
+    windows, `ranges` {step: {patient: (lo, hi, count)}} (anchor_range's), and `facts_of(concept)` gives
+    `simplify_facts` for a hidden step's concept. Any unit, as long as windows, ranges and bounds share it."""
+    q = json.loads(json.dumps(query))
+    cond = (conditions or {}).get('steps') or {}
+    relax = list(q.get('relaxations', [])) + list((conditions or {}).get('relaxations', []))
+    hidden = []
+    for side in ('start', 'end'):
+        if index.get(side) and index[side]['step'] not in hidden:
+            hidden.append(index[side]['step'])
+    kinds = {s['id']: s for s in q['steps']}
+    users = [s['id'] for s in q['steps'] if s['id'] not in hidden]
+    names_relation = lambda rid: any(x.get('relation') == rid for x in relax)
+    names_step = lambda sid: any(x.get('step') == sid for x in relax)
+    widened = lambda sid: [kinds[sid]['concept']] + [x['concept'] for x in relax if x.get('step') == sid and 'concept' in x]
+    record = {'rule': SIMPLIFY_RULE, 'dropped': [], 'merged': {}, 'existential': None, 'implied': []}
+    for h in hidden:  # c1
+        if kinds[h].get('occurrence') != 'first' or h in cond:
+            continue
+        below = facts_of(kinds[h]['concept'])['below']
+        kept = []
+        for r in q['relations']:
+            x = r['to']
+            drop = (r['kind'] == 'after' and r['from'] == h and x in users and r.get('max') is None
+                    and (r.get('min') is None or r['min'] <= 0) and not names_relation(r['id']))
+            if drop:
+                c = cond.get(x, {})
+                drop = all(k in ('unit', 'eq', 'gt', 'ge', 'lt', 'le', 'count') for k in c) \
+                    and all(w in below for w in widened(x))
+            if drop:
+                record['dropped'].append(r['id'])
+            else:
+                kept.append(r)
+        q['relations'] = kept
+    for h in hidden:  # c2
+        occ = kinds[h].get('occurrence')
+        if occ not in ('first', 'last') or h in cond:
+            continue
+        match = [u for u in users if kinds[u]['concept'] == kinds[h]['concept'] and kinds[u].get('occurrence') == occ
+                 and u not in cond and not names_step(u)]
+        if not match:
+            continue
+        x = match[0]
+        new, fine = [], True
+        for r in q['relations']:
+            a = x if r['from'] == h else r['from']
+            b = x if r['to'] == h else r['to']
+            if a == b:
+                lo, hi = r.get('min'), r.get('max')
+                if r['kind'] != 'after' or names_relation(r['id']) or (lo is not None and lo > 0) or (hi is not None and hi < 0):
+                    fine = False
+                continue
+            new.append(dict(r, **{'from': a, 'to': b}))
+        if fine:
+            q['relations'] = new
+            q['steps'] = [s for s in q['steps'] if s['id'] != h]
+            record['merged'][h] = x
+    weak = set()
+    left = [h for h in hidden if h not in record['merged']]
+    if len(hidden) == 1 and len(left) == 1 and kinds[left[0]].get('occurrence') == 'first' and left[0] not in cond \
+            and q.get('scope', 'any') == 'any':
+        h = left[0]
+        f = facts_of(kinds[h]['concept'])
+        checked, ys, fine = [], set(), True
+        for r in q['relations']:
+            if r['from'] != h and r['to'] != h:
+                continue
+            if r['kind'] != 'after' or names_relation(r['id']) or r.get('max') is not None:
+                fine = False
+            elif r['from'] == h and (r['to'] in users or r['to'] == 'END'):
+                if r['to'] != 'END':
+                    ys.add(r['to'])
+            elif r['to'] == h and r['from'] in ('START', 'END') and r.get('min') is not None:
+                checked.append(r)
+            else:
+                fine = False
+        if fine:
+            for pid, w in windows.items():
+                if w is None:
+                    continue
+                lo = ranges[h].get(pid, (None, None, 0))[0]
+                if lo is None:
+                    fine = False
+                    break
+                if pid in f['excluded']:
+                    lo = min(lo, f['excluded'][pid])
+                for r in checked:
+                    if lo < (w['start'] if r['from'] == 'START' else w['end']) + r['min']:
+                        fine = False
+                if not fine:
+                    break
+        if fine:
+            q['relations'] = [r for r in q['relations'] if r not in checked]
+            for s in q['steps']:
+                if s['id'] == h:
+                    s['occurrence'] = 'any'
+            record['existential'] = h
+            record['implied'] = [r['id'] for r in checked]
+            windowed = {pid for pid, w in windows.items() if w is not None}
+            if any(c in f['meets'] for y in ys for c in widened(y)):
+                weak = windowed
+            else:
+                weak = windowed & (f['linked'] | f['multi'])
+    return q, record, weak

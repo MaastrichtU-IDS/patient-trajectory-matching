@@ -9,6 +9,14 @@
    (usefulness), 5701 for development; the census and the reference also rule that the narrowing with the cache equals it
    without.
 
+   D52c (index_simplify_v1, the server's simplification after the narrowing) runs them again on fresh seeds: 5911-5920
+   (reference), 5921-5950 extended in order to 6020 (usefulness), 5901 for development. Every narrowed request is
+   simplified (index_simplify.py simplify) before it is matched, as the server does. The reference also rules the
+   simplification against index_anchor_reference.py's; the census rules, on every patient of every rewritten definition,
+   the answer with the simplification against the answer without it (index_simplify.py compare: equal except in the
+   declared classes, each verified on its facts), explains each changed result through main -> pinned -> D52b's form ->
+   D52c's, and checks that every template's hidden-step key is one the server fills its cache with at start.
+
      node demos/mockups/d52_anchor.cjs reference [--output REPORT.json]
        Rule 2: on the page's cohort and seeds 5711-5720, every census definition under its settings, translated here,
        against index_anchor_reference.py (requests byte for byte, or one refusal code), and index_hull.py's narrowed
@@ -57,9 +65,9 @@ const sha = file => crypto.createHash('sha256').update(fs.readFileSync(path.join
 const shaText = text => crypto.createHash('sha256').update(text).digest('hex');
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
-const BASE = arg('--base', '9b50317');  // main before D52b: the merge of D52's record (D52 used 5f9fffb; recorded in the log)
+const BASE = arg('--base', 'c977303');  // main before D52c (D52's census used 5f9fffb, D52b's 9b50317; recorded in the log)
 const SMOKE = process.env.D52_SMOKE === '1';
-const DEV_SEED = 5701;  // D52b (5501 for D52)
+const DEV_SEED = 5901;  // D52c (5501 for D52, 5701 for D52b)
 
 const FILES = {core: 'demos/mockups/shared/core.js', app: 'demos/mockups/trajectory/app.js',
                translator: 'demos/mockups/trajectory/store_request.js', sweep: 'demos/mockups/option_sweep.js'};
@@ -176,7 +184,7 @@ const outcome = r => r.refused ? `refused ${r.refused}` : r.index ? 'rewritten' 
 const SETTINGS = [['coded only', 'off'], ['stated findings', 'present']];
 
 const ARTIFACTS = ['demos/mockups/d52_anchor.cjs', 'demos/mockups/option_sweep.js', 'demos/mockups/store_parity.py',
-  'demos/mockups/index_hull.py', 'demos/mockups/index_anchor_reference.py', 'tools/d52_measure.py',
+  'demos/mockups/index_hull.py', 'demos/mockups/index_simplify.py', 'demos/mockups/index_anchor_reference.py', 'tools/d52_measure.py',
   'demos/mockups/trajectory/store_request.js', 'demos/mockups/trajectory/app.js', 'demos/mockups/shared/core.js',
   'demos/mockups/synthetic/generate.py', 'patterns/store_conditions.py', 'patterns/store_conditions_coded.py',
   'patterns/store_conditions_gene.py', 'patterns/store_conditions_relative.py', 'patterns/store_conditions_counts.py',
@@ -192,21 +200,27 @@ const generate = (seed, file) => run(['demos/mockups/synthetic/generate.py', '--
 const build = (cohortPath, dir) => run([path.join(here, 'store_parity.py'), 'build', cohortPath, dir]).trim();
 
 /* The store's answers to a list of cases ({name, query, conditions, windows, index?}): each case with an index block
-   narrowed first (index_hull.py narrow), refusals by code (store_parity.py sweep), then the answered ones matched. */
-function answer(snapshot, cohortPath, cases) {
-  const narrowed = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', snapshot], JSON.stringify({cohort: cohortPath, cases}))).cases;
+   narrowed first (index_hull.py narrow) and simplified (index_simplify.py simplify, D52c), refusals by code
+   (store_parity.py sweep), then the answered ones matched. With `compare`, each simplified case is also matched without
+   the simplification and compared per patient (index_simplify.py compare). */
+function answer(snapshot, cohortPath, cases, compare = false) {
+  const narrowedOnly = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', snapshot], JSON.stringify({cohort: cohortPath, cases}))).cases;
+  const narrowed = JSON.parse(run([path.join(here, 'index_simplify.py'), 'simplify', snapshot], JSON.stringify({cohort: cohortPath, cases: narrowedOnly}))).cases;
   const swept = JSON.parse(run([path.join(here, 'store_parity.py'), 'sweep', snapshot], JSON.stringify({cohort: cohortPath, cases: narrowed})));
   const answered = narrowed.filter(c => !swept[c.name].error);
   const results = answered.length ? JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort: cohortPath, cases: answered}))) : {};
-  return {narrowed: Object.fromEntries(narrowed.map(c => [c.name, c])), swept, results};
+  const simplified = answered.filter(c => c.simplify_result);
+  const compared = compare && simplified.length
+    ? JSON.parse(run([path.join(here, 'index_simplify.py'), 'compare', snapshot], JSON.stringify({cohort: cohortPath, cases: simplified}))) : {};
+  return {narrowed: Object.fromEntries(narrowed.map(c => [c.name, c])), swept, results, compared};
 }
 
-/* Rule 4: usefulness. Fresh seeds, declared in D52b before any measurement: 5721 to 5750, then 5751, 5752, ... in order
-   to 5820 while a ruled template has fewer than 30 candidates pooled (the stop reads candidate counts only). */
-// D52b's fresh seeds (D52's were 5511 to 5620; D53's 5301 to 5400).
-const SEEDS = Array.from({length: 30}, (_, i) => 5721 + i);
-const EXTEND = Array.from({length: 70}, (_, i) => 5751 + i);
-const REFERENCE_SEEDS = Array.from({length: 10}, (_, i) => 5711 + i);
+/* Rule 4: usefulness. Fresh seeds, declared in D52c before any measurement: 5921 to 5950, then 5951, 5952, ... in order
+   to 6020 while a ruled template has fewer than 30 candidates pooled (the stop reads candidate counts only). */
+// D52c's fresh seeds (D52's were 5511 to 5620, D52b's 5711 to 5820; D53's 5301 to 5400).
+const SEEDS = Array.from({length: 30}, (_, i) => 5921 + i);
+const EXTEND = Array.from({length: 70}, (_, i) => 5951 + i);
+const REFERENCE_SEEDS = Array.from({length: 10}, (_, i) => 5911 + i);
 const MINIMUM = 30, SHARE = 0.3;
 const RULED = ['sequence', 'tree', 'graph', 'event frequency', 'blank'];
 const RULED_NAMES = RULED.map(n => `${n}, coded only`);
@@ -309,10 +323,10 @@ function usefulness(output) {
                       refused_under_stated_findings: Object.fromEntries(Object.entries(refusals).filter(([k]) => k.endsWith(', stated findings')))};
     coverage.met = RULED_NAMES.every(n => !(n in refusals));
     const report = {
-      profile: 'd52b-anchor-usefulness-1.0',
-      rule: ('D52b rule 4, D52\'s rule 4 (the owner\'s counting rule): each page template under "Coded records only", translated by this '
+      profile: 'd52c-anchor-usefulness-1.0',
+      rule: ('D52c rule 4, D52\'s rule 4 (the owner\'s counting rule): each page template under "Coded records only", translated by this '
              + 'tree\'s page translator with no options (the index anchor as a hidden step; profile 1.3, the joint profile for '
-             + 'Tree and Graph) and narrowed by index_hull.py, pooled over the declared seeds: at least 30 patients with a '
+             + 'Tree and Graph), narrowed by index_hull.py and simplified by index_simplify.py, pooled over the declared seeds: at least 30 patients with a '
              + 'window sent and a store candidate, and at most 30% of the distinct child types (PLAN keys; C001 is reference) '
              + 'with a candidate unresolved (a type is unresolved when any of its candidates is); none of the five refused. '
              + 'Reported: all candidates and the count without C001; the templates under stated findings with the same bar; '
@@ -321,7 +335,7 @@ function usefulness(output) {
       setting: {window: 'from the first seizure, 24 months (the page\'s own)', scope: 'from_start',
                 free_text: 'off (Coded records only), ruled; present (stated findings), reported',
                 translator: 'trajectory/store_request.js as committed (STORE_INDEX_ANCHOR true), no options; beside it the same with indexAnchor false (D49\'s request)',
-                store: 'store_parity.py build; index_hull.py narrow; store_parity.py match (store_conditions.match)'},
+                store: 'store_parity.py build; index_hull.py narrow; index_simplify.py simplify; store_parity.py match (store_conditions.match)'},
       bar, coverage, met: RULED_NAMES.every(n => bar[n].met) && coverage.met,
       stated_findings_reported: stated, d49_translation_beside: beside,
       templates: pooled, shares_three_ways: readings, by_plan_key: byKey,
@@ -385,20 +399,25 @@ function reference(output) {
       fs.writeFileSync(file, JSON.stringify({cohort: cohortPath, rows}));
       per[label] = JSON.parse(run(['tools/d52_measure.py', 'reference-check', snapshot, file]));
       console.error(`${label}: ${per[label].requests} requests, ${per[label].request_mismatches} request mismatches, `
-                    + `${per[label].windows} windows, ${per[label].window_mismatches} window mismatches`);
+                    + `${per[label].windows} windows, ${per[label].window_mismatches} window mismatches, `
+                    + `${per[label].simplify_requests} simplified (${per[label].simplify_applied} applied), ${per[label].simplify_mismatches} mismatches`);
     }
     const total = k => Object.values(per).reduce((a, x) => a + x[k], 0);
     const report = {
-      profile: 'd52b-anchor-reference-1.0',
-      rule: ('D52b rule 2, D52\'s rule 2: on the page\'s cohort and seeds 5711 to 5720, every census definition with an event bound that '
+      profile: 'd52c-anchor-reference-1.0',
+      rule: ('D52c rule 2, D52\'s rule 2: on the page\'s cohort and seeds 5911 to 5920, every census definition with an event bound that '
              + 'D49\'s translation answers, under its settings: this tree\'s request equals index_anchor_reference.py\'s byte '
-             + 'for byte, or both refuse with one code; and index_hull.py\'s narrowed windows and reasons equal the '
-             + 'reference\'s narrowing over the converted ingest (no SQL). 0 mismatches in each'),
+             + 'for byte, or both refuse with one code; index_hull.py\'s narrowed windows and reasons equal the '
+             + 'reference\'s narrowing over the converted ingest (no SQL); the narrowing with the cache equals it without (D52b); '
+             + 'and index_simplify.py\'s simplification (query, record, weak patients) equals the reference\'s (D52c). 0 mismatches in each'),
       cohorts: per, requests: total('requests'), request_mismatches: total('request_mismatches'),
       windows: total('windows'), window_mismatches: total('window_mismatches'),
       cache_identity: {requests: total('cache_requests'), not_identical: total('cache_not_identical')},
+      simplification: {requests: total('simplify_requests'), mismatches: total('simplify_mismatches'), applied: total('simplify_applied'),
+                       by_rule: Object.fromEntries(['c1', 'c2', 'c3'].map(k => [k, Object.values(per).reduce((a, x) => a + x.simplify_by_rule[k], 0)]))},
       met: total('request_mismatches') === 0 && total('window_mismatches') === 0 && total('requests') > 0
-           && total('cache_not_identical') === 0 && total('cache_requests') > 0,
+           && total('cache_not_identical') === 0 && total('cache_requests') > 0
+           && total('simplify_mismatches') === 0 && total('simplify_applied') > 0,
       seconds: Math.round((Date.now() - t0) / 1000),
       artifacts: artifacts(), contains_patient_level_data: false, ...(SMOKE ? {smoke: true, seed: DEV_SEED} : {}),
     };
@@ -587,7 +606,7 @@ function census(output) {
       if (r.mine.index && !r.main.refused) r.pinnedName = nameOf(pinned(r.main, r.def));
     }
     const cases = [...requests.entries()].map(([key, name]) => ({name, ...JSON.parse(key)}));
-    const a = answer(snapshot, cohortPath, cases);
+    const a = answer(snapshot, cohortPath, cases, true);
     const unnamed = Object.entries(a.swept).filter(([, x]) => x.error === 'UNNAMED').map(([n, x]) => `${n}: ${x.message}`);
     const pids = cohort.patients.map(p => p.patient_id);
     // D52b: every narrowed request, with the cache and without it, identical (ruled); how many reused a cached range.
@@ -595,6 +614,45 @@ function census(output) {
     const cacheIdentity = {requests: cached.length, hits: cached.filter(c => c.hit).length,
                            not_identical: cached.filter(c => !c.identical_without_cache).length};
     cacheIdentity.met = cacheIdentity.requests > 0 && cacheIdentity.hits > 0 && cacheIdentity.not_identical === 0;
+    // D52c (rule 3b, ruled): on every patient of every simplified request, the answer with index_simplify_v1 equals the
+    // answer without it but in the declared classes, each verified on its facts (index_simplify.py compare).
+    const simplification = {requests: 0, applied: 0, by_rule: {c1: 0, c2: 0, c3: 0}, results: 0, changed: 0, by_class: {},
+                            unexplained: [], unexplained_count: 0, bindings_differ: 0, refused: []};
+    for (const [name, x] of Object.entries(a.compared)) {
+      if (x.error) { simplification.refused.push(`${name}: ${x.error}`); continue; }
+      simplification.requests += 1;
+      const rec = x.record;
+      if (rec.dropped.length || Object.keys(rec.merged).length || rec.existential) simplification.applied += 1;
+      if (rec.dropped.length) simplification.by_rule.c1 += 1;
+      if (Object.keys(rec.merged).length) simplification.by_rule.c2 += 1;
+      if (rec.existential) simplification.by_rule.c3 += 1;
+      simplification.results += x.results; simplification.changed += x.changed; simplification.bindings_differ += x.bindings_differ;
+      for (const [k, v] of Object.entries(x.by_class)) bump(simplification.by_class, k, v);
+      simplification.unexplained_count += x.unexplained.length;
+      for (const u of x.unexplained.slice(0, 5)) if (simplification.unexplained.length < 30) simplification.unexplained.push({request: name, ...u});
+    }
+    simplification.met = simplification.requests > 0 && simplification.applied > 0 && simplification.unexplained_count === 0
+                         && !simplification.refused.length;
+    // D52c (pre-registered pre-fill): every template's hidden-step key, under both settings, is one the server fills its
+    // narrowing's cache with when its store opens (index_hull.PREFILL).
+    const prefill = JSON.parse(run(['-c', 'import json, sys; sys.path.insert(0, "demos/mockups"); import index_hull; print(json.dumps(index_hull.PREFILL))']));
+    const keyOf = (req, sid) => {
+      const st = req.query.steps.find(s => s.id === sid), cond = ((req.conditions || {}).steps || {})[sid];
+      const kinds = new Set((req.conditions || {}).exclude_kinds || []);
+      if (st.occurrence === 'first' || st.occurrence === 'last') return [st.concept, 1, st.occurrence === 'last', [...kinds].sort()];
+      const [[which, k]] = Object.entries(cond.occurrence);
+      kinds.add('mention');
+      return [st.concept, k, which === 'nth_last', [...kinds].sort()];
+    };
+    const prefillCheck = {template_keys: [], not_prefilled: []};
+    for (const r of rows.filter(x => x.group === 'template' && x.mine.index)) {
+      for (const sid of new Set(['start', 'end'].map(s => r.mine.index[s] && r.mine.index[s].step).filter(Boolean))) {
+        const key = keyOf(r.mine, sid);
+        prefillCheck.template_keys.push(`${r.name}: ${JSON.stringify(key)}`);
+        if (!prefill.some(k => same(k, key))) prefillCheck.not_prefilled.push(`${r.name}: ${JSON.stringify(key)}`);
+      }
+    }
+    prefillCheck.met = prefillCheck.template_keys.length > 0 && !prefillCheck.not_prefilled.length;
     const facts = new Map();  // window+setting -> page facts (main's page)
     const pageOf = (def, freeText) => {
       const key = JSON.stringify([def.window, freeText]);
@@ -618,11 +676,15 @@ function census(output) {
       const hidden = r.mine.query.steps.filter(x => x.id.startsWith('@index_')).map(x => x.concept);
       const users = r.def.nodes.map(n => n.concept);
       const related = inContext(ctx.here, `${JSON.stringify(hidden)}.some(h => ${JSON.stringify(users)}.some(u => related(u, h)))`);
+      const cmp = a.compared[r.mineName] || {};
       for (const pid of pids) {
         compared += 1;
-        const m = a.results[r.mainName][pid], h = a.results[r.mineName][pid], p = a.results[r.pinnedName][pid];
-        if (resultKey(m) === resultKey(h)) continue;
-        changed.push({row: r, pid, m, p, h, page: page[pid], ir, index: r.mine.index, hasStartMax, related});
+        // D52c: `hs` is this tree's answer (simplified), `h` the same request without the simplification (D52b's form).
+        const m = a.results[r.mainName][pid], hs = a.results[r.mineName][pid], p = a.results[r.pinnedName][pid];
+        const h = cmp.without ? cmp.without[pid] : hs;
+        if (resultKey(m) === resultKey(hs) && resultKey(h) === resultKey(hs)) continue;
+        changed.push({row: r, pid, m, p, h, hs, simplifiedClasses: (cmp.classes || {})[pid] || [], page: page[pid], ir,
+                      index: r.mine.index, hasStartMax, related});
       }
     }
     // Admission for the changed results (tools/d52_measure.py facts): main's scope over the point window, `any` over the
@@ -647,17 +709,23 @@ function census(output) {
       if (!c.pid) { unexplained.push({definition: c.row.name, store_refusal: c.store_refusal}); continue; }
       const f = factsOf[String(k++)];
       const {classes, unexplained: gaps} = classesOf({...c, facts: f});
-      bump(byTransition, `${statusText(c.m)} -> ${statusText(c.h)}`);
+      // D52c: the last step of the chain, D52b's form -> this tree's, by index_simplify.py compare's verified classes.
+      if (resultKey(c.h) !== resultKey(c.hs)) {
+        if (c.simplifiedClasses.length) classes.push(...c.simplifiedClasses.map(x => `simplified_${x}`));
+        else gaps.push('D52b form -> D52c');
+      }
+      bump(byTransition, `${statusText(c.m)} -> ${statusText(c.hs)}`);
       bump(bySetting, c.row.freeText);
-      bump(byStep, resultKey(c.m) === resultKey(c.p) ? 'pinned equals main' : resultKey(c.p) === resultKey(c.h) ? 'pinned equals D52' : 'differs from both');
+      bump(byStep, (resultKey(c.m) === resultKey(c.p) ? 'pinned equals main' : resultKey(c.p) === resultKey(c.h) ? 'pinned equals D52' : 'differs from both')
+                   + (resultKey(c.h) === resultKey(c.hs) ? '' : '; simplified'));
       // Identity: a step of the chain that changed with no verified class is unexplained.
-      if (gaps.length) unexplained.push({definition: c.row.name, patient_id: c.pid, steps: gaps, classes, main: c.m, pinned: c.p, here: c.h, facts: f,
+      if (gaps.length) unexplained.push({definition: c.row.name, patient_id: c.pid, steps: gaps, classes, main: c.m, pinned: c.p, d52b_form: c.h, here: c.hs, facts: f,
                                          windows: {main: c.row.main.windows[c.pid], hull: c.ir.windows[c.pid]}});
-      bump(byClass, classes.join(' + ') || 'none');
+      bump(byClass, [...new Set(classes)].sort().join(' + ') || 'none');
     }
     const report = {
-      profile: 'd52b-anchor-census-1.0',
-      rule: ('D52b rule 3, D52\'s rule 3 with the cache\'s identity, on the page\'s cohort (as amended after the review): the templates and the Blank template under D46\'s '
+      profile: 'd52c-anchor-census-1.0',
+      rule: ('D52c rule 3, D52b\'s rule 3 (D52\'s with the cache\'s identity) with the simplification, on the page\'s cohort: the templates and the Blank template under D46\'s '
              + 'twelve period rules and D52\'s four added shapes, the cross grid of the added shapes with the probes (both settings), '
              + 'and every option-sweep definition (its own setting); main\'s translator (from git at the base) against this '
              + 'tree\'s. Structural: indexAnchor false reproduces main\'s request; a definition with no event bound has a '
@@ -665,24 +733,30 @@ function census(output) {
              + 'a point period is main\'s request with a reason fitting its shape; the rewritten request is byte-identical with '
              + 'the page\'s anchors at their latest and with the index view emptied. Every changed result of a rewritten '
              + 'definition answered on both sides is explained through the pinned request (main\'s request with D52\'s scope '
-             + 'writing, over main\'s point windows): each step of main -> pinned -> D52 that changed needs a class verified on '
-             + 'its facts, or the result is unexplained'),
+             + 'writing, over main\'s point windows): each step of main -> pinned -> D52b\'s form -> D52c\'s (simplified) that changed '
+             + 'needs a class verified on its facts, or the result is unexplained. D52c, ruled: the narrowing with the cache equals it '
+             + 'without; on every patient of every simplified request the answer with index_simplify_v1 equals the answer without it '
+             + 'but in the declared classes (decided, undecided_both, admission, claim_withdrawn), each verified on its facts; '
+             + 'every template\'s hidden-step key under both settings is in index_hull.PREFILL'),
       base: BASE, cohort: {children: pids.length, sha256: shaText(cohortText), page_cohort: cohortPath === COHORT},
       definitions: rows.length, rewritten_answered_on_both: eventCases, results_compared: compared,
       results_changed: changed.filter(c => c.pid).length, store_refused_alike: refusedAlike,
       structural, point_window: point, sweep_as_offered: sweepAsOffered, cache_identity: cacheIdentity,
+      simplification, prefill: prefillCheck,
       changed_by_class: byClass, changed_by_transition: byTransition, changed_by_setting: bySetting, changed_by_chain: byStep,
       unexplained: unexplained.slice(0, 50), unexplained_count: unexplained.length,
       p2_comparison: {d46_uncertainty_census: '397 of 13,824 event-anchored results changed with each anchor at its latest',
                       here: `${changed.filter(c => c.pid).length} of ${compared} results of rewritten definitions changed against main's point windows`},
       unnamed: unnamed.slice(0, 20),
-      met: structural.met && !unexplained.length && !unnamed.length && cacheIdentity.met,
+      met: structural.met && !unexplained.length && !unnamed.length && cacheIdentity.met && simplification.met && prefillCheck.met,
       seconds: Math.round((Date.now() - t0) / 1000),
       artifacts: artifacts(), contains_patient_level_data: false, ...(SMOKE ? {smoke: true} : {}),
     };
     write(output, report);
     console.error(`census: ${report.results_changed} of ${compared} changed; unexplained ${unexplained.length}; point periods ${point.definitions} `
-                  + `(${point.sweep_definitions} in the sweep); structural ${structural.met ? 'met' : 'MISSED'}; chain ${JSON.stringify(byStep)}; classes ${JSON.stringify(byClass)}`);
+                  + `(${point.sweep_definitions} in the sweep); structural ${structural.met ? 'met' : 'MISSED'}; chain ${JSON.stringify(byStep)}; classes ${JSON.stringify(byClass)}; `
+                  + `simplification ${simplification.changed} of ${simplification.results} changed, ${simplification.unexplained_count} unexplained ${JSON.stringify(simplification.by_class)} `
+                  + `(rules ${JSON.stringify(simplification.by_rule)}); prefill ${prefillCheck.met ? 'met' : 'MISSED'}`);
   } finally {
     fs.rmSync(work, {recursive: true, force: true});
   }
@@ -720,7 +794,7 @@ function requests(output) {
     scale[name] = {candidate: {query: p.candidate.query, conditions: p.candidate.conditions, index: p.candidate.index},
                    reference: {query: p.reference.query, conditions: p.reference.conditions}};
   }
-  const report = {profile: 'd52b-anchor-requests-1.0', cohort_sha256: shaText(cohortText), translator_sha256: sha(FILES.translator),
+  const report = {profile: 'd52c-anchor-requests-1.0', cohort_sha256: shaText(cohortText), translator_sha256: sha(FILES.translator),
                   page, page_controls: controls, control_rewrite_calls: calls, scale, contains_patient_level_data: false};
   write(output, report);
 }

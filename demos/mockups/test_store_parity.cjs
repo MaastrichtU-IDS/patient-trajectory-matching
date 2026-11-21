@@ -332,10 +332,25 @@ const snapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.
 const names = vm.runInContext('Object.keys(CASES)', context);
 const cases = names.map(name => vm.runInContext(`storeCase(${JSON.stringify(name)}, {...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context));
 if (process.env.STORE_PARITY_CASES) fs.writeFileSync(process.env.STORE_PARITY_CASES, JSON.stringify({cohort, cases}));  // diagnostics
-// D52: each case whose period is a hidden step has its base windows narrowed by the server's rule first (index_hull.py).
-const narrowed = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', snapshot], JSON.stringify({cohort, cases}))).cases;
+// D52: each case whose period is a hidden step has its base windows narrowed by the server's rule first (index_hull.py),
+// and since D52c the narrowed request simplified as the server does (index_simplify.py, index_simplify_v1).
+const narrowedOnly = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', snapshot], JSON.stringify({cohort, cases}))).cases;
+const narrowed = JSON.parse(run([path.join(here, 'index_simplify.py'), 'simplify', snapshot], JSON.stringify({cohort, cases: narrowedOnly}))).cases;
 const indexOf = Object.fromEntries(narrowed.filter(c => c.index_result).map(c => [c.name, {ir: c.index_result, index: c.index}]));
 const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases: narrowed})));
+/* D52c: the simplification against the request without it, on every patient of every simplified parity case: equal but
+   in the declared classes, each verified on its facts (index_simplify.py compare); the store results it changed are the
+   only rows of the differences table that may move with it (rule 5). */
+const simplifiedCases = narrowed.filter(c => c.simplify_result);
+const simplifyCompare = simplifiedCases.length
+  ? JSON.parse(run([path.join(here, 'index_simplify.py'), 'compare', snapshot], JSON.stringify({cohort, cases: simplifiedCases}))) : {};
+const simplifyChanged = {};
+for (const [name, x] of Object.entries(simplifyCompare)) {
+  assert.ok(!x.error, `${name}: the request without the simplification is refused (${x.error})`);
+  assert.deepEqual(x.unexplained, [], `${name}: a result the simplification changed with no verified class`);
+  for (const [pid, classes] of Object.entries(x.classes)) (simplifyChanged[name] = simplifyChanged[name] || {})[pid] = classes;
+}
+if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({simplifyChanged}, null, 1));
 fs.rmSync(scratch, {recursive: true, force: true});
 
 const STATUS = {incomparable: 'not_comparable'};
@@ -1077,8 +1092,10 @@ const SWEEP_CASES = (() => {
 })();
 const sweepScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-sweep-'));
 const sweepSnapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(sweepScratch, 'store')]).trim();
-// D52: a sweep case whose period is a hidden step is narrowed by the server's rule first, as the page's server does.
-const sweepRun = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', sweepSnapshot], JSON.stringify({cohort, cases: SWEEP_CASES.filter(c => !c.refused)}))).cases;
+// D52: a sweep case whose period is a hidden step is narrowed by the server's rule first, as the page's server does, and
+// since D52c simplified (index_simplify.py).
+const sweepNarrowed = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', sweepSnapshot], JSON.stringify({cohort, cases: SWEEP_CASES.filter(c => !c.refused)}))).cases;
+const sweepRun = JSON.parse(run([path.join(here, 'index_simplify.py'), 'simplify', sweepSnapshot], JSON.stringify({cohort, cases: sweepNarrowed}))).cases;
 const sweepStore = JSON.parse(run([path.join(here, 'store_parity.py'), 'sweep', sweepSnapshot], JSON.stringify({cohort, cases: sweepRun})));
 fs.rmSync(sweepScratch, {recursive: true, force: true});
 const sweepTally = {answered: 0, translator: {}, store: {}}, unnamed = [];
