@@ -19,7 +19,8 @@ START of 0, or of a time no later than the period's earliest start (when that is
 and an END of last contact, or of a time between the period's latest end and last contact, gives the same eligibility.
 Only coverage (`window_overlap_source_concepts_v1`), D44's admission scope and pruning read the narrower window.
 
-A patient gets no window (`excluded`) with a reason:
+A patient gets no window (`excluded`) with a reason (since D52c only when no excluded record of a hidden step's concept
+could change it; otherwise its base window, named INDEX_EXCLUDED_RECORDS; see `narrow`):
 - INDEX_ANCHOR_NOT_RECORDED: a hidden step has no candidate (fewer than N, for an Nth occurrence);
 - INDEX_NO_POSSIBLE_PERIOD: the narrowed start is after the narrowed end, which happens only when, in every world, the
   period ends before birth, ends after last contact, or ends before it starts.
@@ -70,7 +71,7 @@ class IndexRefused(ValueError):
     def __init__(self, code, detail=''):
         super().__init__(f'{code}: {detail}' if detail else code)
         self.code = code
-_DEFECT = None  # a planted defect (tools/d52_measure.py defects only): 'hull_from_hi', 'nth_off_by_one', 'nth_counts_mentions'
+_DEFECT = None  # a planted defect (tools/d52_measure.py defects only): 'hull_from_hi', 'nth_off_by_one', 'nth_counts_mentions', 'excluded_ignored' (D52c)
 
 RANGE_SQL = """
     WITH f AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo, e.start_hi FROM events e
@@ -268,9 +269,21 @@ def cache_bytes():
 def narrow(store, query, conditions, index, windows, offset_unit=1, threads=None, cache=True):
     """(windows, reasons, found): each base window (a patient id's {start, end} on the store's clock, or None) narrowed;
     `reasons` names each patient the narrowing excluded; `found` is `ranges` (with `threads` and `cache`). Offsets in the
-    index block are multiplied by `offset_unit` (the server passes minutes, so 60,000,000)."""
+    index block are multiplied by `offset_unit` (the server passes minutes, so 60,000,000).
+
+    D52c (review M2): a patient the store's kept records alone would exclude (INDEX_ANCHOR_NOT_RECORDED or
+    INDEX_NO_POSSIBLE_PERIOD) who holds excluded records of a hidden step's concept, enough with its kept candidates for
+    the step's N, keeps its base window and is named INDEX_EXCLUDED_RECORDS in `reasons`: an excluded record may place a
+    period, so the store matches it and its excluded-records rule (D18) answers, `not_comparable` for
+    ADMISSION_EXCLUDED_RECORDS naming the step (or for coverage, if no source covers a step over that window), never
+    `excluded`."""
     CALLS['narrow'] += 1
     found = ranges(store, query, conditions, index, threads, cache)
+    keys = step_keys(query, conditions, index)
+    excluded = {}
+    if _DEFECT != 'excluded_ignored':
+        import index_simplify
+        excluded = {sid: index_simplify.excluded_records(store, key[0]) for sid, key in keys.items()}
     out, reasons = {}, {}
     for pid, w in windows.items():
         if w is None:
@@ -290,7 +303,12 @@ def narrow(store, query, conditions, index, windows, offset_unit=1, threads=None
                 start = max(start, (hi if _DEFECT == 'hull_from_hi' else lo) + x['offset'] * offset_unit)
             else:
                 end = min(end, hi + x['offset'] * offset_unit)
-        if missing:
+        steps = {index[side]['step'] for side in ('start', 'end') if index.get(side)}
+        held = {sid: (excluded.get(sid) or {}).get(pid, (None, None, 0))[2] for sid in steps}
+        if (missing or start > end) and any(held.values()) and all(
+                found[sid].get(pid, (0, None, None))[0] + held[sid] >= keys[sid][1] for sid in steps):
+            out[pid], reasons[pid] = {'start': w['start'], 'end': w['end']}, 'INDEX_EXCLUDED_RECORDS'
+        elif missing:
             out[pid], reasons[pid] = None, 'INDEX_ANCHOR_NOT_RECORDED'
         elif start > end:
             out[pid], reasons[pid] = None, 'INDEX_NO_POSSIBLE_PERIOD'

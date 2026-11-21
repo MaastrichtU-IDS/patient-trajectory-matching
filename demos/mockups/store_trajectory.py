@@ -191,6 +191,7 @@ class TrajectoryStore:
         self.built_s = None
         self.prefill_s = None  # D52c: the narrowing's cache filled for the page's template anchors at the start
         self.prefill_keys = []
+        self.prefill_error = None  # D52c review, S1: a failed pre-fill is reported; the store is still offered
 
     def start(self):
         if self._thread is None:
@@ -239,11 +240,16 @@ class TrajectoryStore:
         self.patients = len(ids)
         # D52c (pre-registered): the narrowing's ranges (and the simplification's facts) for the page's template anchors,
         # before the store is offered, so readiness waits for them and no user request pays them (reported: prefill_s).
+        # A failure here takes nothing down (review, S1): it is named in the status (`prefill_error`), the store is
+        # offered, and a request computes its ranges and facts on first use, as before D52c.
         filled = time.perf_counter()
-        import index_hull
-        import index_simplify
-        self.prefill_keys = index_hull.prefill(store, threads=WORKERS)
-        index_simplify.prefill(store, sorted({k[0] for k in index_hull.PREFILL}))
+        try:
+            import index_hull
+            import index_simplify
+            self.prefill_keys = index_hull.prefill(store, threads=WORKERS)
+            index_simplify.prefill(store, sorted({k[0] for k in index_hull.PREFILL}))
+        except Exception:  # noqa: BLE001 - the status names the failure; no detail leaves the server
+            self.prefill_keys, self.prefill_error = [], 'PREFILL_FAILED'
         self.prefill_s = round(time.perf_counter() - filled, 3)
         self._store = store
         self.built_s = round(time.perf_counter() - started, 2)
@@ -295,6 +301,7 @@ class TrajectoryStore:
                 'store_profile': store.manifest.get('profile'), 'dataset_id': store.manifest.get('dataset_id'),
                 'patients': self.patients, 'conditions_profiles': sc.profiles(),
                 'built_s': self.built_s, 'prefill_s': self.prefill_s, 'prefill_keys': self.prefill_keys,
+                **({'prefill_error': self.prefill_error} if self.prefill_error else {}),
                 'series': True, 'per_patient': True}
 
     def match(self, spec):

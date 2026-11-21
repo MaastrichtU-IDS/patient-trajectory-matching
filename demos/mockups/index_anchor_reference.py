@@ -278,23 +278,32 @@ def anchor_range(events, concept, ancestors, occurrence, derived=None, exclude_k
     return los[k - 1], his[k - 1], len(family)
 
 
-def narrow(base, index, ranges):
+def narrow(base, index, ranges, excluded=None):
     """(window, reason): a base window (any unit) narrowed by the hidden steps' ranges ({step: (lo, hi, count)}, in the
-    same unit, offsets alike); None with 'INDEX_ANCHOR_NOT_RECORDED' or 'INDEX_NO_POSSIBLE_PERIOD'."""
+    same unit, offsets alike); None with 'INDEX_ANCHOR_NOT_RECORDED' or 'INDEX_NO_POSSIBLE_PERIOD'. D52c (review M2):
+    `excluded` gives each hidden step (its excluded records' count, its N); a patient so excluded who holds excluded
+    records of a step, enough with its kept candidates for every step's N, keeps its base window instead, with the reason
+    'INDEX_EXCLUDED_RECORDS'."""
     if base is None:
         return None, None
-    for side in ('start', 'end'):
-        x = index.get(side)
-        if x and ranges[x['step']][0] is None:
-            return None, 'INDEX_ANCHOR_NOT_RECORDED'
-    s, e = base['start'], base['end']
-    if index.get('start'):
-        s = max(s, ranges[index['start']['step']][0] + index['start']['offset'])
-    if index.get('end'):
-        e = min(e, ranges[index['end']['step']][1] + index['end']['offset'])
-    if s > e:
-        return None, 'INDEX_NO_POSSIBLE_PERIOD'
-    return {'start': s, 'end': e}, None
+    steps = sorted({index[side]['step'] for side in ('start', 'end') if index.get(side)})
+    reason, s, e = None, base['start'], base['end']
+    if any(ranges[sid][0] is None for sid in steps):
+        reason = 'INDEX_ANCHOR_NOT_RECORDED'
+    else:
+        if index.get('start'):
+            s = max(s, ranges[index['start']['step']][0] + index['start']['offset'])
+        if index.get('end'):
+            e = min(e, ranges[index['end']['step']][1] + index['end']['offset'])
+        if s > e:
+            reason = 'INDEX_NO_POSSIBLE_PERIOD'
+    if reason is None:
+        return {'start': s, 'end': e}, None
+    ex = excluded or {}
+    if any(ex.get(sid, (0, 1))[0] for sid in steps) and all(
+            ranges[sid][2] + ex.get(sid, (0, 1))[0] >= ex.get(sid, (0, 1))[1] for sid in steps):
+        return {'start': base['start'], 'end': base['end']}, 'INDEX_EXCLUDED_RECORDS'
+    return None, reason
 
 
 # D52c: the simplification (`index_simplify_v1`), without SQL, written apart from `index_simplify.py`.
@@ -412,11 +421,11 @@ def simplify(query, conditions, index, windows, ranges, facts_of):
                 if w is None:
                     continue
                 lo = ranges[h].get(pid, (None, None, 0))[0]
+                if pid in f['excluded']:
+                    lo = f['excluded'][pid] if lo is None else min(lo, f['excluded'][pid])
                 if lo is None:
                     fine = False
                     break
-                if pid in f['excluded']:
-                    lo = min(lo, f['excluded'][pid])
                 for r in checked:
                     if lo < (w['start'] if r['from'] == 'START' else w['end']) + r['min']:
                         fine = False

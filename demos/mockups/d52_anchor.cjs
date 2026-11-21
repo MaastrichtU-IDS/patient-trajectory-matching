@@ -225,6 +225,7 @@ const MINIMUM = 30, SHARE = 0.3;
 const RULED = ['sequence', 'tree', 'graph', 'event frequency', 'blank'];
 const RULED_NAMES = RULED.map(n => `${n}, coded only`);
 const NTH_PROBE = 'the 3rd seizure for 12 months';
+const COLD_PROBE = 'the last valproate start, 6 months before it to it';  // D52c review S2: a key outside index_hull.PREFILL
 const planKeys = seed => JSON.parse(run(['-c', 'import json, sys; sys.path.insert(0, "demos/mockups/synthetic"); '
   + 'import generate as g; print(json.dumps({c.pid: c.key for c in g.build(int(sys.argv[1]))}))', String(seed)]));
 
@@ -502,6 +503,10 @@ function classesOf(c) {
         if (s0 > e0) mine.push('excluded_here');
       }
     }
+    // D52c (review M2): a patient the kept records alone would exclude, who holds an excluded record of a hidden step's
+    // concept, is matched over its base window, and the store's excluded-records (or coverage) rule answers.
+    if (ir.reasons[pid] === 'INDEX_EXCLUDED_RECORDS' && ['not_comparable', 'unresolved'].includes(h.status)
+        && [ADMISSION, ...COVERAGE_REASONS].includes(h.reason)) mine.push('excluded_records_period');
     // Coverage: a `not_comparable` for coverage is the store's `none` turned by its coverage rule (D18), so where both
     // sides are `none` before that rule, the change is the rule's verdict over the point window against the hull alone.
     const preNone = r => r.status === 'none' || (r.status === 'not_comparable' && COVERAGE_REASONS.includes(r.reason));
@@ -788,7 +793,9 @@ function requests(output) {
   const strip = (def, gone) => inContext(context, `withoutNodes(${JSON.stringify(def)}, new Set(${JSON.stringify(gone)}))`);
   const shapes = {'event frequency': t['event frequency'], 'blank': t.blank, 'sequence without its rise': strip(t.sequence, ['C']),
                   'tree without its gene and rise steps': strip(t.tree, ['B', 'D']), 'graph without its gene and rise steps': strip(t.graph, ['C', 'E']),
-                  [`event frequency under ${NTH_PROBE}`]: nth};
+                  [`event frequency under ${NTH_PROBE}`]: nth,
+                  // D52c (review S2): an anchor the server does not pre-fill, so a request without counts runs a cold key.
+                  'blank under the last valproate start, 6 months before it to it': {...t.blank, window: rules[COLD_PROBE]}};
   for (const [name, def] of Object.entries(shapes)) {
     const p = pair(def);
     scale[name] = {candidate: {query: p.candidate.query, conditions: p.candidate.conditions, index: p.candidate.index},

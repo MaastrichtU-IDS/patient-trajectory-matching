@@ -304,7 +304,7 @@ class StoreTests(unittest.TestCase):
         i2 = {'start': {'step': '@index_start', 'offset': 0}, 'end': {'step': '@index_end', 'offset': 1}}
         hull.narrow(Recorder(), one, {'steps': {}, 'exclude_kinds': ['mention']}, i1, {'P': {'start': 0, 'end': 1}}, cache=False)
         hull.narrow(Recorder(), two, {'steps': {}, 'exclude_kinds': ['mention']}, i2, {'Q': {'start': 3, 'end': 4}}, cache=False)
-        x_queries = [q for q in sent if q[1][0] == 'x']
+        x_queries = [q for q in sent if 'WITH f AS' in q[0] and q[1][0] == 'x']  # the range queries (D52c also reads facts)
         self.assertEqual(len(x_queries), 2)
         self.assertEqual(x_queries[0], x_queries[1])
         self.assertEqual(x_queries[0][1], ['x', 'mention'])
@@ -506,6 +506,96 @@ class SimplifyTests(unittest.TestCase):
                 answer = server.match({'query': q3, 'windows': windows, 'index': index})
                 self.assertEqual(answer['index']['simplify']['existential'], '@index_start')
                 self.assertTrue(all('@index_start' not in r.get('binding', {}) for r in answer['results']))
+            finally:
+                server.close()
+
+class ReviewTests(unittest.TestCase):
+    """D52c review: rule 3b's classes refuse contradictions (M1, S3); the shared note (nit)."""
+
+    REC = {'rule': 'index_simplify_v1', 'dropped': ['index:scope-start:A'], 'merged': {}, 'existential': '@index_start', 'implied': []}
+
+    def classify(self, u, s, weak=frozenset({'p'}), excluded=None, h1=None):
+        import index_simplify as simp
+        return simp.classify({'patient_id': 'p', **u}, {'patient_id': 'p', **s}, self.REC, weak,
+                             {'p': (0, 0, 1)} if excluded is None else excluded, h1 and {'patient_id': 'p', **h1})
+
+    def test_the_reviewers_three_contradictions_are_flagged(self):
+        import index_simplify as simp
+        note = {'note': simp.NOTE}
+        # A complete `none` against a `possible` with the note: not a withdrawn claim, a contradiction.
+        self.assertEqual(self.classify({'status': 'none', 'complete': True}, {'status': 'possible', **note}), [])
+        # `exact` against `none` where excluded records exist: not D18's difference.
+        self.assertEqual(self.classify({'status': 'exact'}, {'status': 'none', 'complete': True}), [])
+        # `unresolved` against `exact`, where the unsimplified request over the base windows says `none`: not `decided`.
+        self.assertEqual(self.classify({'status': 'unresolved'}, {'status': 'exact'}, h1={'status': 'none', 'complete': True}), [])
+
+    def test_the_classes_still_explain_what_they_should(self):
+        import index_simplify as simp
+        self.assertEqual(self.classify({'status': 'unresolved'}, {'status': 'exact'}, h1={'status': 'unresolved'}), ['decided'])
+        self.assertEqual(self.classify({'status': 'possible'}, {'status': 'possible', 'note': simp.NOTE}), ['claim_withdrawn'])
+        self.assertEqual(self.classify({'status': 'relaxed', 'relaxations': ['x'], 'cost': '1', 'certainty': 'possible', 'complete': True},
+                                       {'status': 'relaxed', 'relaxations': ['x'], 'cost': '1', 'certainty': 'possible', 'complete': False,
+                                        'note': simp.NOTE}), ['claim_withdrawn'])
+        adm = {'status': 'not_comparable', 'reason': 'ADMISSION_EXCLUDED_RECORDS', 'excluded_steps': ['@index_start']}
+        self.assertEqual(self.classify(adm, {'status': 'exact'}, weak=frozenset()), ['admission'])
+        # a withdrawn claim that also changes another field is not explained
+        self.assertEqual(self.classify({'status': 'possible'}, {'status': 'possible', 'note': simp.NOTE, 'reason': 'X'}), [])
+        # matches beside two `unresolved` results must agree
+        beside = lambda c: {'status': 'unresolved', 'relaxed_match': {'relaxations': ['x'], 'cost': '1', 'certainty': c}}
+        self.assertEqual(self.classify(beside('possible'), beside('exact'), weak=frozenset()), [])
+        self.assertIn('undecided_both', self.classify({'status': 'unresolved'}, beside('exact'), weak=frozenset()))
+
+    def test_every_checker_honours_the_note(self):
+        import index_simplify as simp
+        from patterns import trajectory_graph_worlds as tw
+        self.assertEqual(simp.NOTE, tw.ANCHOR_ORDER_MAY_MAKE_EXACT)
+        self.assertFalse(tw.claims_no_exact({'status': 'possible', 'note': simp.NOTE}, False))
+        self.assertTrue(tw.claims_no_exact({'status': 'possible'}, False))
+
+
+@unittest.skipUnless(HAVE_DUCKDB, 'needs DuckDB')
+class ExcludedRecordsNarrowingTests(unittest.TestCase):
+    """D52c review, M2: the narrowing never excludes a patient an excluded record of a hidden step could place; S1: a
+    failed pre-fill takes nothing down."""
+
+    def test_a_patient_with_only_an_excluded_record_is_matched_and_not_comparable(self):
+        import d52_measure as m
+        p = {'patient_id': 'p0', 'clock_id': 'c', 'coverage': [{'source': 'ehr', 'lo': 0, 'hi': 12, 'basis': 'declared'}],
+             'events': [{'event_id': 'e0', 'kind': 'condition', 'source': 'ehr', 'concepts': ['y'], 'start': [4, 4], 'evidence': {}}],
+             'excluded': [{'source': 'ehr', 'concept': 'x', 'start': [2, 2], 'reason': 'NOT_ADMITTED'}]}
+        steps = [{'id': '@index_start', 'concept': 'x', 'occurrence': 'first', 'derived': None, 'bound': {'event': 'x'}}]
+        spec = ({'step': '@index_start', 'offset': 0}, {'step': '@index_start', 'offset': 3}, steps)
+        q = {'profile': 'trajectory-graph-1.0', 'scope': 'from_start', 'steps': [{'id': 'A', 'concept': 'y', 'occurrence': 'any'}],
+             'relations': [], 'relaxations': [], 'budget': '0', 'search_budget': 40000}
+        # Another patient's x in the same source, so the coverage rule finds the source records x and D18's rule answers
+        # (with no source recording x at all, the coverage rule's NO_SOURCE_RECORDS_CONCEPT comes first: also not comparable).
+        other = {'patient_id': 'p1', 'clock_id': 'c1', 'coverage': p['coverage'],
+                 'events': [{'event_id': 'e0', 'kind': 'condition', 'source': 'ehr', 'concepts': ['x'], 'start': [3, 3], 'evidence': {}}]}
+        statics = {'p0': {'last': 12, 'c_end': 0, 'c_start': 0}, 'p1': {'last': 12, 'c_end': 0, 'c_start': 0}}
+        with tempfile.TemporaryDirectory() as tmp:
+            alone, _ = m.one_case(tmp + '/c', [p], {'p0': statics['p0']}, spec, q, None)
+            self.assertEqual((alone['p0']['H3s'][0]['status'], alone['p0']['H3s'][0]['reason']), ('not_comparable', 'NO_SOURCE_RECORDS_CONCEPT'))
+            res, _ = m.one_case(tmp + '/a', [p, other], statics, spec, q, None)
+            r, kept, whole = res['p0']['H3s']
+            self.assertEqual((r['status'], r.get('reason')), ('not_comparable', 'ADMISSION_EXCLUDED_RECORDS'))
+            self.assertIn('@index_start', r['excluded_steps'])
+            self.assertEqual(kept + whole, [])
+            # the harness's shape (D52c development, 142 of 12,000 cases): excluded on kept records alone, a period over
+            # the whole source; the planted defect `excluded_ignored` brings it back, and the whole-source check fails it.
+            res, _ = m.one_case(tmp + '/b', [p, other], statics, spec, q, None, 'excluded_ignored')
+            r, kept, whole = res['p0']['H3']
+            self.assertEqual(r['status'], 'excluded')
+            self.assertTrue(whole)
+
+    def test_the_server_offers_the_store_when_its_prefill_fails(self):
+        import index_hull as hull
+        import store_trajectory as st
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(hull, 'prefill', side_effect=RuntimeError('boom')):
+            server = st.TrajectoryStore(root=tmp).start()
+            try:
+                status = server.status()
+                self.assertTrue(status['available'])
+                self.assertEqual((status['prefill_error'], status['prefill_keys']), ('PREFILL_FAILED', []))
             finally:
                 server.close()
 

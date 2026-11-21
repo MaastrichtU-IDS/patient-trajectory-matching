@@ -70,7 +70,8 @@ CODED = 'execution-store-conditions-1.3'
 WINDOW_RULES = ('NO_SOURCE_COVERAGE', 'NO_SOURCE_RECORDS_CONCEPT', 'ADMISSION_EXCLUDED_RECORDS')
 SHAPES = ('event+span', 'span+event', 'two events', 'one event twice', 'event+constant', 'constant+event')
 MAX_WORLDS = 4000
-HULL_DEFECTS = ('hull_from_hi', 'nth_off_by_one', 'nth_counts_mentions')  # index_hull's planted defects
+# index_hull's planted defects; D52c (review M2): `excluded_ignored`, the narrowing excluding on kept records alone.
+HULL_DEFECTS = ('hull_from_hi', 'nth_off_by_one', 'nth_counts_mentions', 'excluded_ignored')
 # index_simplify's planted defects (D52c) run by `defects`; its three others are too rare for the random cases at the
 # ruled size and are each shown on a constructed case instead (tools/test_d52_tools.py, `one_case`).
 SIMPLIFY_DEFECTS = ('drop_positive_min', 'merge_positive_offset', 'exist_with_lower_bound', 'exist_born_unchecked')
@@ -319,11 +320,8 @@ def anchored_question():
 
 
 def claims_no_exact(m, whole, result=None):
-    """`trajectory_graph_worlds.claims_no_exact`, and D52c: ANCHOR_ORDER_MAY_MAKE_EXACT withdraws the claim too."""
-    import index_simplify
+    """`trajectory_graph_worlds.claims_no_exact`, which since D52c honours ANCHOR_ORDER_MAY_MAKE_EXACT itself."""
     from patterns import trajectory_graph_worlds as tw
-    if index_simplify.NOTE in (m.get('note') or '').split('; '):
-        return False
     return tw.claims_no_exact(m, whole, result)
 
 
@@ -433,14 +431,8 @@ def run_snapshot(root, label, k, patients=30, requests=20, defect=None):
                     wrong = check(r, query, patient, spec, statics[pid], Anchored, hz, mentions)
                     if whole is not None:
                         mix[(form, 'whole source')] += 1
-                        if r['status'] == 'excluded':
-                            # D52's narrowing places a period from the store's kept records only (INDEX_ANCHOR_NOT_RECORDED,
-                            # INDEX_NO_POSSIBLE_PERIOD); an excluded record that could place one is counted, not judged.
-                            if check(r, query, whole, spec, statics[pid], Anchored, hz, mentions, whole=True):
-                                mix[(form, 'excluded, a period over the whole source')] += 1
-                        else:
-                            wrong += [f'{w} (whole source)' for w in
-                                      check(r, query, whole, spec, statics[pid], Anchored, hz, mentions, whole=True)]
+                        wrong += [f'{w} (whole source)' for w in
+                                  check(r, query, whole, spec, statics[pid], Anchored, hz, mentions, whole=True)]
                     if wrong:
                         fails.append({'snapshot': k, 'request': j, 'patient': pid, 'form': form, 'shape': shape,
                                       'rules': rules, 'wrong': wrong})
@@ -482,7 +474,9 @@ def one_case(root, patients, statics, spec, query, conditions, defect=None):
               'patients': patients}
     start, end, steps = spec
     coded = conditions is not None
-    with es.open_store(es.build(ingest, Path(root) / 'case')) as store, patch.object(simp, '_DEFECT', defect):
+    with es.open_store(es.build(ingest, Path(root) / 'case')) as store, \
+            patch.object(simp, '_DEFECT', defect if defect in SIMPLIFY_DEFECTS + CASE_DEFECTS else None), \
+            patch.object(hull, '_DEFECT', defect if defect in HULL_DEFECTS else None):
         bases = {p['patient_id']: base_window(start, end, statics[p['patient_id']]) for p in patients}
         out = ref.rewrite_sides({'query': query, 'conditions': conditions, 'windows': bases}, start, end, steps,
                                 [{'id': s['id']} for s in query['steps']], bases)
@@ -500,8 +494,7 @@ def one_case(root, patients, statics, spec, query, conditions, defect=None):
         for form, answer in (('H3', h3), ('H3s', h3s)):
             r = next(x for x in answer['results'] if x['patient_id'] == pid)
             res[pid][form] = (r, check(r, query, kept, spec, statics[pid], Anchored, hz, mentions),
-                              check(r, query, whole, spec, statics[pid], Anchored, hz, mentions, whole=True)
-                              if r['status'] != 'excluded' else [])
+                              check(r, query, whole, spec, statics[pid], Anchored, hz, mentions, whole=True))
     return res, s['record']
 
 
@@ -622,7 +615,14 @@ def reference_check(snapshot, rows_file):
                                                      (derived.get(st['id']) or {}).get('occurrence'), kinds)
                 rw = {sid: (lo, hi, n) for sid, (lo, hi, n) in rng.items()}
                 idx = {side: None if x is None else {'step': x['step'], 'offset': x['offset'] * MINUTE} for side, x in theirs['index'].items() if side in ('start', 'end')}
-                want, why = ref.narrow(w, idx, rw)
+                # D52c (review M2): each hidden step's excluded records (by the closure) and its N.
+                ex = {}
+                for st in theirs['query']['steps']:
+                    if st['id'] in rng:
+                        occ = (derived.get(st['id']) or {}).get('occurrence')
+                        held = sum(1 for x in ingest[pid].get('excluded', []) if st['concept'] in ref.closure(ancestors, x['concept']))
+                        ex[st['id']] = (held, list(occ.values())[0] if occ else 1)
+                want, why = ref.narrow(w, idx, rw, ex)
                 ref_windows[pid] = want
                 for sid, (lo, hi, n) in rng.items():
                     ref_ranges.setdefault(sid, {})[pid] = (lo, hi, n)

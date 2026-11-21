@@ -49,7 +49,7 @@ sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
 
 RULE = 'index_simplify_v1'
-NOTE = 'ANCHOR_ORDER_MAY_MAKE_EXACT'
+NOTE = 'ANCHOR_ORDER_MAY_MAKE_EXACT'  # = trajectory_graph_worlds.ANCHOR_ORDER_MAY_MAKE_EXACT, which every checker honours
 ANCHORS = ('START', 'END')
 VALUE_KEYS = {'unit', 'eq', 'gt', 'ge', 'lt', 'le'}  # execution_store._VALUE_KEYS: a value condition keeps real events
 STEP_LISTS = ('excluded_steps', 'uncovered_steps', 'unrecorded_steps', 'uncertain_steps')
@@ -60,7 +60,8 @@ DEFECTS = ('drop_positive_min', 'drop_wider_concept', 'merge_positive_offset', '
            'exist_born_unchecked', 'exist_excluded_unchecked', 'exist_claims_unguarded')
 _DEFECT = None
 # Per snapshot: each validated concept's descendants (`below`) and the concepts whose families meet its own (`meets`),
-# its excluded records' least start per patient (`excluded`), and the patients with shared variables or an event with
+# its excluded records per patient (`excluded`: least start, greatest start, how many; also read by the narrowing, review
+# M2), and the patients with shared variables or an event with
 # two direct concepts (`linked`, `multi`). Keys are concepts the narrowing has validated (index_hull.validate), so the
 # cache holds at most one entry per concept of the snapshot.
 _FACTS = {'snapshot': None, 'concepts': {}, 'linked': None}
@@ -85,13 +86,21 @@ def _facts(store, concept=None):
         meets = frozenset(a for a, in store.query(
             '''SELECT DISTINCT b.ancestor FROM concept_closure a JOIN concept_closure b ON b.concept = a.concept
                WHERE a.ancestor = ?''', [concept]))
-        excluded = dict(store.query(
-            '''SELECT p.patient_id, min(x.start_lo) FROM excluded_records x JOIN concept_closure cc ON cc.concept = x.concept
-               JOIN patients p USING (patient_idx) WHERE cc.ancestor = ? GROUP BY p.patient_id''', [concept]))
+        excluded = {pid: (lo, hi, int(n)) for pid, lo, hi, n in store.query(
+            '''SELECT p.patient_id, min(x.start_lo), max(x.start_hi), sum(x.n) FROM excluded_records x
+               JOIN concept_closure cc ON cc.concept = x.concept JOIN patients p USING (patient_idx)
+               WHERE cc.ancestor = ? GROUP BY p.patient_id''', [concept])}
         _FACTS['concepts'][concept] = (below, meets, excluded)
     else:
         CALLS['facts_hits'] += 1
     return _FACTS['concepts'][concept], _FACTS['linked']
+
+
+def excluded_records(store, concept):
+    """{patient id: (least start_lo, greatest start_hi, count)} of the store's excluded records of `concept`'s family (a
+    validated concept), cached per snapshot."""
+    (_, _, excluded), _ = _facts(store, concept)
+    return excluded
 
 
 def prefill(store, concepts):
@@ -218,11 +227,12 @@ def simplify(store, query, conditions, index, windows, found):
                 if w is None:
                     continue
                 lo = ranges.get(pid, (0, None, None))[1]
+                if _DEFECT != 'exist_excluded_unchecked' and pid in excluded:
+                    # Review M2: a window the narrowing kept for excluded records alone has no kept candidate.
+                    lo = excluded[pid][0] if lo is None else min(lo, excluded[pid][0])
                 if lo is None:
                     ok = False
                     break
-                if _DEFECT != 'exist_excluded_unchecked':
-                    lo = min(lo, excluded.get(pid, lo))
                 if any(lo < w['start' if r['from'] == 'START' else 'end'] + r['min'] for r in implied):
                     ok = False
                     break
@@ -321,36 +331,140 @@ def _notes(r):
     return out
 
 
-def classify(u, s, record, weak, excluded_of):
+WITHDRAWING = ('EXACT_SEARCH_STOPPED', NOTE)  # notes that withdraw a `possible` claim that no binding is exact
+
+
+def claims(r):
+    """What a result decides (review M1), on one patient's records: `up` the unrelaxed query possible (True) or impossible
+    (False); `exact` the unrelaxed query exact (True) or not exact (False); `sets` {relaxation set: 'exact', 'not_exact' or
+    'possible'} for a set claimed reachable; `none_complete` every set within the budget impossible; `cheaper` (cost, set)
+    when every set cheaper than a complete relaxed result's is impossible. A match beside `unresolved` claims its set's
+    certainty only; `unresolved`, `not_comparable` and `excluded` decide nothing else."""
+    out = {'up': None, 'exact': None, 'sets': {}, 'none_complete': False, 'cheaper': None}
+    status = r['status']
+    notes = set((r.get('note') or '').split('; '))
+    if status == 'exact':
+        out.update(up=True, exact=True)
+    elif status == 'possible':
+        out['up'] = True
+        if not notes & set(WITHDRAWING):
+            out['exact'] = False
+    elif status == 'none':
+        out['up'] = False
+        out['none_complete'] = r.get('complete', True) is not False
+    elif status == 'relaxed':
+        out['up'] = False
+        key = tuple(r.get('relaxations') or ())
+        stopped = r.get('complete') is False
+        out['sets'][key] = 'exact' if r.get('certainty') == 'exact' else 'possible' if stopped or notes & set(WITHDRAWING) else 'not_exact'
+        if not stopped:
+            out['cheaper'] = (float(r.get('cost', 0)), key)
+    if status == 'unresolved' and 'relaxed_match' in r:
+        m = r['relaxed_match']
+        mnotes = set((m.get('note') or '').split('; '))
+        withdrawn = mnotes & set(WITHDRAWING) or r.get('reason') == 'SEARCH_BUDGET_EXHAUSTED'
+        out['sets'][tuple(m.get('relaxations') or ())] = 'exact' if m.get('certainty') == 'exact' else 'possible' if withdrawn else 'not_exact'
+    return out
+
+
+def contradicts(a, b):
+    """Whether a decided claim of `a` contradicts one of `b`'s, read one way; `compatible` reads both."""
+    ca, cb = claims(a), claims(b)
+    if ca['up'] is not None and cb['up'] is not None and ca['up'] != cb['up']:
+        return True
+    if ca['exact'] is not None and cb['exact'] is not None and ca['exact'] != cb['exact']:
+        return True
+    if ca['up'] is True and cb['none_complete']:
+        return True
+    for key, how in ca['sets'].items():
+        if cb['none_complete']:
+            return True
+        if cb['cheaper'] is not None and cb['cheaper'][1] != key and float(_set_cost(a, key)) < cb['cheaper'][0]:
+            return True
+        other = cb['sets'].get(key)
+        if other is not None and {how, other} == {'exact', 'not_exact'}:
+            return True
+    return False
+
+
+def _set_cost(r, key):
+    if r['status'] == 'relaxed':
+        return r.get('cost', 0)
+    m = r.get('relaxed_match') or {}
+    return m.get('cost', 0)
+
+
+def compatible(a, b):
+    """No decided claim of either result contradicts the other's (review M1)."""
+    return not contradicts(a, b) and not contradicts(b, a)
+
+
+def _without_note(r, complete=None):
+    out = json.loads(json.dumps(r))
+    for m in (out, *(out[k] for k in BESIDE if k in out)):
+        notes = [n for n in (m.get('note') or '').split('; ') if n and n != NOTE]
+        if notes:
+            m['note'] = '; '.join(notes)
+        else:
+            m.pop('note', None)
+    if complete is not None:
+        out['complete'] = complete
+    return out
+
+
+D18_FIELDS = ('complete', 'note', 'excluded_steps')
+
+
+def _only_d18(u, s):
+    """Whether two results differ only as D18's excluded-records rule makes them differ: one side `not_comparable` or
+    `unresolved` for ADMISSION_EXCLUDED_RECORDS, or the same claims with a `possible` made incomplete and noted
+    EXCLUDED_RECORDS_MAY_MAKE_EXACT (`excluded_steps` beside)."""
+    if any(r['status'] in ('not_comparable', 'unresolved') and r.get('reason') == 'ADMISSION_EXCLUDED_RECORDS' for r in (u, s)):
+        return True
+    strip = lambda r: {k: v for k, v in json.loads(claim_key(r)).items() if k not in D18_FIELDS}
+    marked = any('EXCLUDED_RECORDS_MAY_MAKE_EXACT' in _notes(r) for r in (u, s))
+    return marked and strip(u) == strip(s)
+
+
+def classify(u, s, record, weak, excluded_of, h1=None):
     """The classes that explain a changed result (`u` without the simplification, `s` with it, mapped back), each verified
-    on its facts; an empty list leaves it unexplained.
+    on its facts; an empty list leaves it unexplained. Every class first needs `compatible(u, s)`: no decided claim of
+    either contradicts the other's (review M1); and each `decided` result's claims must be compatible with the
+    unsimplified request over the base windows (`h1`, the same truth by D52's argument) where `u` decides nothing, so a
+    claim is never checked against silence alone (review S3).
     - `decided`: c1 or c3 applied, and the result without it was undecided where the one with it decides: `unresolved`
       (it claims nothing itself), or a `none` or `relaxed` whose relaxation search did not complete (`complete: false`,
       claiming only that the unrelaxed query is impossible), against a `none` or `relaxed` (a `relaxed` for a `relaxed`);
-    - `undecided_both`: both `unresolved`, so only the matches beside them (each sound by the engine's rules) differ;
-    - `admission`: c3 applied, the store holds excluded records of the anchor's concept for the patient, and a side names
-      ADMISSION_EXCLUDED_RECORDS or excluded steps (an `any` step's excluded-records rule against a `first` step's, D18);
-    - `claim_withdrawn`: c3 applied, the patient is weak, and the result with it carries ANCHOR_ORDER_MAY_MAKE_EXACT."""
+    - `undecided_both`: c1 or c3 applied, both `unresolved`; the matches beside them must be compatible (the first check);
+    - `admission`: c3 applied, the store holds excluded records of the anchor's concept for the patient, and the two differ
+      only as D18's rule makes them differ (`_only_d18`): an `any` step's excluded-records rule against a `first` step's;
+    - `claim_withdrawn`: c3 applied, the patient is weak, and the result with it equals the one without it but for
+      ANCHOR_ORDER_MAY_MAKE_EXACT (and `complete` on a relaxed result)."""
+    if not compatible(u, s):
+        return []
     out = []
     order_or_exist = bool(record['dropped'] or record['existential'])
     open_search = u.get('complete') is False and s.get('complete') is not False and (
         (u['status'] == 'none' and s['status'] in ('none', 'relaxed')) or (u['status'] == 'relaxed' and s['status'] == 'relaxed'))
-    if order_or_exist and ((u['status'] == 'unresolved' and s['status'] != 'unresolved') or open_search):
+    if order_or_exist and ((u['status'] == 'unresolved' and s['status'] != 'unresolved') or open_search) \
+            and (h1 is None or compatible(h1, s)):
         out.append('decided')
     if u['status'] == 'unresolved' and s['status'] == 'unresolved' and order_or_exist:
         out.append('undecided_both')
     pid = u['patient_id']
-    if record['existential'] and pid in excluded_of and any(
-            r.get('reason') == 'ADMISSION_EXCLUDED_RECORDS' or 'excluded_steps' in r for r in (u, s)):
+    if record['existential'] and pid in excluded_of and _only_d18(u, s):
         out.append('admission')
     if record['existential'] and pid in weak and NOTE in _notes(s):
-        out.append('claim_withdrawn')
+        same = _without_note(s, u.get('complete') if s['status'] == 'relaxed' else None)
+        if claim_key(same) == claim_key(_without_note(u)):
+            out.append('claim_withdrawn')
     return out
 
 
-def compare(store, query, conditions, windows, simplified, answer_u, answer_s):
-    """Per patient: (changed, by class, each changed patient's classes, unexplained) between the answer without the simplification (`answer_u`) and the
-    answer with it mapped back (`answer_s`), and how many bindings differ (reported only)."""
+def compare(store, query, conditions, windows, simplified, answer_u, answer_s, answer_h1=None):
+    """Per patient: (changed, by class, each changed patient's classes, unexplained) between the answer without the
+    simplification (`answer_u`) and the answer with it mapped back (`answer_s`), with the unsimplified request over the
+    base windows (`answer_h1`) for `decided` (review S3), and how many bindings differ (reported only)."""
     record, weak = simplified['record'], simplified['weak']
     h = record['existential']
     excluded = {}
@@ -358,6 +472,7 @@ def compare(store, query, conditions, windows, simplified, answer_u, answer_s):
         concept = next(s['concept'] for s in query['steps'] if s['id'] == h)
         (_, _, excluded), _ = _facts(store, concept)
     by_s = {r['patient_id']: r for r in answer_s['results']}
+    by_h1 = {r['patient_id']: r for r in answer_h1['results']} if answer_h1 is not None else {}
     out = {'results': 0, 'changed': 0, 'by_class': {}, 'classes': {}, 'unexplained': [], 'bindings_differ': 0}
     for u in answer_u['results']:
         s = by_s[u['patient_id']]
@@ -367,7 +482,7 @@ def compare(store, query, conditions, windows, simplified, answer_u, answer_s):
         if claim_key(u) == claim_key(s):
             continue
         out['changed'] += 1
-        classes = classify(u, s, record, weak, excluded)
+        classes = classify(u, s, record, weak, excluded, by_h1.get(u['patient_id']))
         key = ' + '.join(classes) or 'none'
         out['by_class'][key] = out['by_class'].get(key, 0) + 1
         out['classes'][u['patient_id']] = classes
@@ -439,13 +554,16 @@ def compare_cases(snapshot, cases, cohort):
             sr = case['simplify_result']
             s = {'query': store_parity.to_micros(case['query']), 'conditions': case['conditions'],
                  'record': {k: sr[k] for k in ('rule', 'dropped', 'merged', 'existential', 'implied')}, 'weak': frozenset(sr['weak'])}
+            base = {pid: None if w is None else {'start': births[pid] + w['start'] * minute, 'end': births[pid] + w['end'] * minute}
+                    for pid, w in case['index_result']['base_windows'].items()}
             try:
                 a_u = sc.match(store, u_q, windows, conditions=store_parity.conditions_micros(u_c))
+                a_h1 = sc.match(store, u_q, base, conditions=store_parity.conditions_micros(u_c))
                 a_s = apply(sc.match(store, s['query'], windows, conditions=store_parity.conditions_micros(s['conditions'])), s, u_q)
             except ValueError as error:
                 out[case['name']] = {'error': getattr(error, 'code', None) or str(error).split(':')[0]}
                 continue
-            res = compare(store, u_q, u_c, windows, s, a_u, a_s)
+            res = compare(store, u_q, u_c, windows, s, a_u, a_s, a_h1)
             res['record'] = s['record']
             res['without'] = {r['patient_id']: keep(r) for r in a_u['results']}
             res['with'] = {r['patient_id']: keep(r) for r in a_s['results']}

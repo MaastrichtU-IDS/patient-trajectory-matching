@@ -76,6 +76,8 @@ MICRO_SHARE = 0.10
 RULED_WORKERS = 14
 PAGE_RUNS_MIN, SCALE_RUNS_MIN, REPEATS_MIN = 20, 3, 8
 COUNT_REQUESTS = ('event frequency', 'event frequency under the 3rd seizure for 12 months')
+# D52c (review S2): the requests whose anchor the server does not pre-fill, so their first run is the cold path S1 rules.
+COLD_REQUESTS = ('event frequency under the 3rd seizure for 12 months', 'blank under the last valproate start, 6 months before it to it')
 SCALE_CONTROLS = ('1.1 sequence', 'plain sequence')
 MINUTE = 60_000_000
 ARTIFACTS = ('tools/benchmark_index_anchor.py', 'tools/benchmark_coded_default.py', 'tools/benchmark_count_requests.py',
@@ -99,15 +101,19 @@ FIRST_SQL = """
     WITH s AS (SELECT DISTINCT e.patient_idx, e.event_id, e.start_lo FROM events e
                JOIN event_concepts ec USING (patient_idx, event_id)
                JOIN concept_closure cc ON cc.concept = ec.concept
-               WHERE cc.ancestor = 'seizure' AND e.kind <> 'mention')
-    SELECT p.patient_id, list_sort(list(s.start_lo))[{k}] FROM s JOIN patients p USING (patient_idx) GROUP BY p.patient_id"""
+               WHERE cc.ancestor = ? AND e.kind <> 'mention')
+    SELECT p.patient_id, list_sort(list(s.start_lo), '{order}')[{k}] FROM s JOIN patients p USING (patient_idx) GROUP BY p.patient_id"""
+# The anchors the scale requests name (concept, k, from the end): the first and third seizure; D52c (review S2): the last
+# valproate start, an anchor outside the server's pre-fill, so a request without counts runs a cold key too.
+ANCHORS = (('seizure', 1, False), ('seizure', 3, False), ('valproate', 1, True))
 
 
 def scale_facts(store):
-    """(last contact stand-ins, floors, first and third coded seizures' earliest starts), by patient id."""
+    """(last contact stand-ins, floors, each anchor's coded earliest starts by its order statistic), by patient id."""
     last = dict(store.query('SELECT p.patient_id, max(c.hi) FROM coverage c JOIN patients p USING (patient_idx) GROUP BY ALL'))
     floor = dict(store.query('SELECT p.patient_id, min(e.start_lo) FROM events e JOIN patients p USING (patient_idx) GROUP BY ALL'))
-    nth = {k: {pid: t for pid, t in store.query(FIRST_SQL.format(k=k)) if t is not None} for k in (1, 3)}
+    nth = {key: {pid: t for pid, t in store.query(FIRST_SQL.format(k=key[1], order='DESC' if key[2] else 'ASC'), [key[0]])
+                 if t is not None} for key in ANCHORS}
     return last, floor, nth
 
 
@@ -116,12 +122,14 @@ def reference_windows(spec, facts):
     contact."""
     last, _, nth = facts
     index = spec['candidate']['index']
-    hidden = ((spec['candidate']['conditions'] or {}).get('steps') or {}).get('@index_start')
-    k = hidden['occurrence']['nth'] if hidden else 1
+    step = next(s for s in spec['candidate']['query']['steps'] if s['id'] == index['start']['step'])
+    hidden = ((spec['candidate']['conditions'] or {}).get('steps') or {}).get(step['id'])
+    k = list(hidden['occurrence'].values())[0] if hidden else 1
+    from_end = step['occurrence'] == 'last' or bool(hidden and 'nth_last' in hidden['occurrence'])
     start_off, end_off = index['start']['offset'] * MINUTE, index['end']['offset'] * MINUTE
     out = {}
     for pid in last:
-        t = nth[k].get(pid)
+        t = nth[(step['concept'], k, from_end)].get(pid)
         out[pid] = None if t is None or t + end_off > last[pid] else {'start': t + start_off, 'end': t + end_off}
     return out
 

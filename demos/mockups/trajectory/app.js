@@ -628,7 +628,9 @@ const STORE_REASON = {
   OCCURRENCE_ORDER_UNCERTAIN: 'the records leave it uncertain which event is the first or last, and the match depends on it',
   SEARCH_BUDGET_EXHAUSTED: 'the search stopped at its budget before deciding',
   // D52: the server places the period from the store's records (index_hull_v1); a patient it cannot place is excluded.
-  INDEX_ANCHOR_NOT_RECORDED: 'the store holds no record of the period\'s event',
+  // D52c (review M2): never where the store holds an excluded record of the event; that patient is matched and is not
+  // comparable for it (ADMISSION_EXCLUDED_RECORDS).
+  INDEX_ANCHOR_NOT_RECORDED: 'the store holds no record of the period\'s event, kept or excluded',
   INDEX_NO_POSSIBLE_PERIOD: 'no period the store\'s records allow both starts before it ends and ends between birth and the last contact',
 };
 // D49: FILTERED under "Coded records only": the patient holds no coded record for some step (D39's candidate refinement).

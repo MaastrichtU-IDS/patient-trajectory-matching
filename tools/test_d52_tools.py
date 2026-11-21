@@ -75,11 +75,19 @@ class VerdictTests(unittest.TestCase):
         self.assertFalse(ratio['requests']['blank']['every_normalised_at_most_ratio_bar'])  # 9 / 4 = 2.25
 
     def test_reference_windows_follow_the_page_rule_over_literal_records(self):
-        facts = ({'P': 100 * b.MINUTE, 'Q': 5 * b.MINUTE}, {'P': 0, 'Q': 0}, {1: {'P': 10 * b.MINUTE, 'Q': 1 * b.MINUTE}, 3: {}})
-        spec = {'candidate': {'conditions': None, 'index': {'start': {'offset': 0}, 'end': {'offset': 20}}}}
+        facts = ({'P': 100 * b.MINUTE, 'Q': 5 * b.MINUTE}, {'P': 0, 'Q': 0},
+                 {('seizure', 1, False): {'P': 10 * b.MINUTE, 'Q': 1 * b.MINUTE}, ('seizure', 3, False): {},
+                  ('valproate', 1, True): {'P': 50 * b.MINUTE}})
+        index = {'start': {'step': '@index_start', 'offset': 0}, 'end': {'step': '@index_start', 'offset': 20}}
+        q = lambda occ, concept='seizure': {'steps': [{'id': '@index_start', 'concept': concept, 'occurrence': occ}]}
+        spec = {'candidate': {'query': q('first'), 'conditions': None, 'index': index}}
         self.assertEqual(b.reference_windows(spec, facts), {'P': {'start': 10 * b.MINUTE, 'end': 30 * b.MINUTE}, 'Q': None})
-        nth = {'candidate': {'conditions': {'steps': {'@index_start': {'occurrence': {'nth': 3}}}}, 'index': spec['candidate']['index']}}
+        nth = {'candidate': {'query': q('any'), 'conditions': {'steps': {'@index_start': {'occurrence': {'nth': 3}}}}, 'index': index}}
         self.assertEqual(b.reference_windows(nth, facts), {'P': None, 'Q': None})
+        # D52c: the last valproate start (review S2's cold anchor), by the greatest earliest start.
+        last = {'candidate': {'query': q('last', 'valproate'), 'conditions': None,
+                              'index': {'start': {'step': '@index_start', 'offset': -10}, 'end': {'step': '@index_start', 'offset': 0}}}}
+        self.assertEqual(b.reference_windows(last, facts), {'P': {'start': 40 * b.MINUTE, 'end': 50 * b.MINUTE}, 'Q': None})
         self.assertEqual(b.base_windows(facts), {'P': {'start': 0, 'end': 100 * b.MINUTE}, 'Q': {'start': 0, 'end': 5 * b.MINUTE}})
 
 
