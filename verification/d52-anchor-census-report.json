@@ -1,0 +1,166 @@
+{
+ "profile": "d52-anchor-census-1.0",
+ "rule": "D52 rule 3 on the page's cohort (as amended after the review): the templates and the Blank template under D46's twelve period rules and D52's four added shapes, the cross grid of the added shapes with the probes (both settings), and every option-sweep definition (its own setting); main's translator (from git at the base) against this tree's. Structural: indexAnchor false reproduces main's request; a definition with no event bound has a byte-identical request and 0 rewrite calls; nothing answered on main is refused, nothing refused on main changes; a point period is main's request with a reason fitting its shape; the rewritten request is byte-identical with the page's anchors at their latest and with the index view emptied. Every changed result of a rewritten definition answered on both sides is explained through the pinned request (main's request with D52's scope writing, over main's point windows): each step of main -> pinned -> D52 that changed needs a class verified on its facts, or the result is unexplained",
+ "base": "5f9fffb",
+ "cohort": {
+  "children": 48,
+  "sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+  "page_cohort": true
+ },
+ "definitions": 771,
+ "rewritten_answered_on_both": 544,
+ "results_compared": 26112,
+ "results_changed": 4927,
+ "store_refused_alike": 28,
+ "structural": {
+  "pin_differs_from_main": [],
+  "no_event_bound_changed": [],
+  "no_event_bound_rewrite_calls": 0,
+  "refused_here_answered_on_main": [],
+  "refused_on_main_changed": [],
+  "point_not_main_request": [],
+  "point_reason_not_fitting": [],
+  "perturbed_differs": [],
+  "perturbations_checked": 572,
+  "met": true
+ },
+ "point_window": {
+  "definitions": 86,
+  "sweep_definitions": 51,
+  "by_reason": {
+   "FREE_TEXT_COUNT_UNSUPPORTED": 37,
+   "INDEX_ANCHOR_ANY_UNSUPPORTED": 28,
+   "INDEX_ANCHOR_GENE_UNSUPPORTED": 2,
+   "INDEX_PERIOD_COUNT_UNSUPPORTED": 19
+  },
+  "by_group": {
+   "blank": 11,
+   "cross": 24,
+   "sweep": 51
+  }
+ },
+ "sweep_as_offered": {
+  "main": {
+   "answered": 449,
+   "translator": {
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 14,
+    "VALUE_RELAXATION_MUST_WIDEN": 14
+   }
+  },
+  "here": {
+   "answered": 449,
+   "translator": {
+    "FREE_TEXT_COUNT_UNSUPPORTED": 51,
+    "NTH_STEP_HAS_NO_END": 2,
+    "FREE_TEXT_HEDGED_UNSUPPORTED": 31
+   },
+   "store": {
+    "INVALID_FACTOR": 14,
+    "VALUE_RELAXATION_MUST_WIDEN": 14
+   }
+  }
+ },
+ "changed_by_class": {
+  "eligibility_gained": 1415,
+  "anchor_uncertain": 1735,
+  "anchor_uncertain + coupled": 282,
+  "coverage_hull": 62,
+  "anchor_moved": 448,
+  "anchor_moved + coupled": 6,
+  "no_anchor_on_page": 63,
+  "coupled + no_anchor_on_page": 23,
+  "anchor_uncertain + eligibility_partial": 730,
+  "anchor_uncertain + coupled + eligibility_partial": 20,
+  "anchor_moved + anchor_uncertain": 8,
+  "anchor_uncertain + clamp + eligibility_partial": 11,
+  "anchor_moved + anchor_uncertain + coupled": 1,
+  "anchor_uncertain + clamp": 87,
+  "clamp": 12,
+  "coupled": 2,
+  "clamp + coverage_hull": 3,
+  "admission_scope": 19
+ },
+ "changed_by_transition": {
+  "excluded -> not_comparable": 335,
+  "possible -> exact": 785,
+  "possible -> unresolved": 246,
+  "relaxed/possible -> none": 53,
+  "not_comparable -> none": 61,
+  "excluded -> none": 894,
+  "excluded -> possible": 204,
+  "exact -> possible": 1319,
+  "none -> unresolved": 20,
+  "exact -> unresolved": 29,
+  "exact -> none": 256,
+  "possible -> none": 68,
+  "none -> not_comparable": 21,
+  "excluded -> unresolved": 23,
+  "excluded -> exact": 29,
+  "none -> possible": 110,
+  "relaxed/exact -> possible": 11,
+  "relaxed/exact -> none": 19,
+  "relaxed/possible -> possible": 9,
+  "relaxed/possible -> relaxed/exact": 206,
+  "none -> relaxed/possible": 70,
+  "relaxed/exact -> relaxed/possible": 98,
+  "exact -> relaxed/exact": 3,
+  "exact -> relaxed/possible": 2,
+  "possible -> relaxed/possible": 2,
+  "none -> exact": 5,
+  "excluded -> relaxed/possible": 16,
+  "relaxed/possible -> unresolved": 16,
+  "unresolved -> exact": 2,
+  "relaxed/exact -> unresolved": 2,
+  "unresolved -> possible": 1,
+  "not_comparable -> unresolved": 4,
+  "unresolved -> unresolved": 1,
+  "unresolved -> not_comparable": 2,
+  "not_comparable -> possible": 1,
+  "relaxed/possible -> relaxed/possible": 4
+ },
+ "changed_by_setting": {
+  "off": 1700,
+  "present": 3227
+ },
+ "changed_by_chain": {
+  "pinned equals main": 4908,
+  "pinned equals D52": 19
+ },
+ "unexplained": [],
+ "unexplained_count": 0,
+ "p2_comparison": {
+  "d46_uncertainty_census": "397 of 13,824 event-anchored results changed with each anchor at its latest",
+  "here": "4927 of 26112 results of rewritten definitions changed against main's point windows"
+ },
+ "unnamed": [],
+ "met": true,
+ "seconds": 130,
+ "artifacts": {
+  "demos/mockups/d52_anchor.cjs": "40137bcb725991236a83e6fbc3d9f54e970ccc8b4006871a014694fb8ecfb1be",
+  "demos/mockups/option_sweep.js": "b4b66e9e323b17fb4909cdc6e47d5832e497e639d6c23b9aa871814d3be6616c",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/index_hull.py": "1c36d1426d1bd37f533bf81b596d078d50e54049d2bacf269b94775c754d0a3b",
+  "demos/mockups/index_anchor_reference.py": "a1a6027e783662d4d7d787ea089c4e8773cc76848bda42a20e2ef1dcad589069",
+  "tools/d52_measure.py": "1f7e4267dd645a3198d088572f55ff94d1bd53e0f2d26cf399379ae3785b022f",
+  "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
+  "demos/mockups/trajectory/app.js": "73f11d0a36f6cd828cc89dbafa1d5867ae573d5b9a00a18dc1e3c9a93787980a",
+  "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false
+}

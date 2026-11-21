@@ -67,7 +67,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | E0 | Letter mentions timed from their letter's text: a deterministic normaliser (`patterns/mention_time.py`) and the synthetic converter's option `normalised_v1` in a wrapper no build loads (`patterns/synthetic_mentions.py`), the generator's gold mentions otherwise kept, under rules fixed before measuring | **Not shipped** (record only; retry base e53ac3b; E0b queued). Rule 1 missed as written: 4 of 84,755 narrowed ranges miss the true day the scorer reads, each a truth id the generator reuses, resolved to a measurement while the confirmed diagnosis lies inside. Every other rule met: 0 contradictions, 0 results less decided and 146 more (Blank `exact` 2 to 133 of 1,101; the truth oracle 231), coded only identical, four planted defects caught; narrowed mentions median 33 days against 1,176. As written not shipped; the coordinator decides |
 | E0b | E0 retried: the same normaliser and wrapper (e53ac3b), the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id (refusals by name, listed and left out, at most 0.1%), E0's rules as amended on fresh seeds 5201 to 5300, under rules fixed before measuring | **Shipped as an option**, off by default. Every rule met on seeds 5201 to 5300: 0 misses and 0 refusals in 84,781 narrowed mentions (median 33 days against 1,172); 0 contradictions; 171 results more decided and none less (Blank `exact` 1 to 168 of 1,102, the truth oracle 256; Sequence, Tree and Graph none); coded only identical; four planted defects caught. A held-out wording test is required before any default |
 | D51 | Is 1.1 Nth and count slower since f9e087e (D48b's d44b count rebind missed at 1.078 in one pair)? That request alone beside the two controls, main against f9e087e at 300,000 and 14 workers, 8 ABBA pairs, under a decision rule fixed before measuring | **Decided: outcome (i), no slowdown.** Median normalised ratio 1.000 over 8 pairs (0.957 to 1.019), none above 1.05; raw 0.947 to 1.009. Answers equal f9e087e's. The d44b miss is attributed to variance: process-level shifts of about 5% on this request occur in either direction. The committed d44b verdict stands as the historical measurement |
-| D52 | The index anchor as a hidden step of the query (P2, D46's option (c)): the translator writes an event-placed index period as a hidden step with relations from it (`index_anchor_v1`), the server narrows each base window to the hull of the periods the store's records allow (`index_hull_v1`), the shapes it cannot write kept as D49's point windows with a P2 note, under rules fixed before measuring | Rules committed and amended after the review; not yet measured |
+| D52 | The index anchor as a hidden step of the query (P2, D46's option (c)): the translator writes an event-placed index period as a hidden step with relations from it (`index_anchor_v1`), the server narrows each base window to the hull of the periods the store's records allow (`index_hull_v1`), the shapes it cannot write kept as D49's point windows with a P2 note, under rules fixed before measuring | Measured: rules 1 to 5 and 7 to 10 met; **rule 6 not met** (Event frequency p95 10.22 s at 300,000 against 10 s; the narrowing 8 to 13% of the candidates' medians against 10%); soundness 0 failing in 200,400 cases; census 0 unexplained of 4,927 changes; coded-only usefulness met; parity 781 of 1,248. Decision pending |
 
 ## D1 Package with hatchling, in place
 
@@ -5515,7 +5515,7 @@ These are request-specific shifts at the level of a whole process, not run-to-ru
 
 ## D52 The index anchor as a hidden step of the query (P2, D46's option (c)): the store places an event's index period from its own records in every world, the server narrows each base window to the hull of the possible periods, under rules fixed before measuring
 
-*Status:* **rules committed; not yet measured.**
+*Status:* **measured; rule 6 (latency) not met as written; every other rule met.** The decision is the coordinator's. Soundness: 0 failing in 200,400 small cases with the anchor's uncertainty covered. Census: 0 unexplained of 4,927 changed results. Usefulness under coded only: met. At 300,000, Event frequency's p95 is 10.22 s against the 10 s bar, and the narrowing takes 8 to 13% of the candidates' medians against a 10% bound.
 
 **The problem (P2).** The trajectory page sends the store each index period as exact times, though the event that places it is often known only within a range: a day, a registry month, a letter's "about 3 weeks ago". So the store's answers are sound for the window it is given, not for "the period from the true first seizure". D46 measured the size of this on the page's cohort: with each anchor moved to the latest time its record allows, 397 of 13,824 event-anchored answers change, about 3% (D46 rule 8). D46 queued option (c) as the next increment for P2, and the owner approved this direction ("go with what you recommend", 2026-11-20). The coordinator brief, as the owner's delegate, follows.
 
@@ -5757,3 +5757,78 @@ Re-run after the rebase, on development data only:
 - the census on cohort 5501: 0 unexplained of 4,612 changed;
 - the worlds harness: 0 failing in 4,000;
 - the parity test on cohort 5501: passes.
+
+**Measurement** (after the rules, the review's amendments and the rebase; two parts under the bench lock on 2026-11-21, on bd42eea; logs in `~/ptm-local/d52/`; the page's cohort checked against the committed seed).
+- *Part A*, 01:05 to 02:59 (`d52-job.sh`): rules 1 to 4 and 6, and the regenerations. Every step ran once.
+- *Part B*, 03:00 to 03:03 (`d52-jobB.sh` and `d52-jobB2.sh`): `test_engine_parity.cjs`; `test_store_parity.cjs` with its differences printed; then, after re-pinning, `test_store_parity.cjs` again.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 Soundness (`verification/d52-anchor-worlds-report.json`, `-defects-report.json`) | 200,400 cases (seed `d52-rule`, 451 s): **0 failing** under either window form; **0 H1/H3 differences** where both are decided. Decided cases with an uncertain anchor, per shape: constant + event 23,298; event + constant 16,016; event + span 20,844; one event twice 10,889; span + event 19,003; two events 26,520. Planted defects at 12,000 cases each, all caught: `offset_dropped` 375, `eligibility_dropped` 1,034, `end_not_strict` 48, `within_open` 372, `after_as_from_start` 302, `clamp_dropped` 60, `hull_from_hi` 146, `nth_off_by_one` 216, `nth_counts_mentions` 17 | met |
+| 2 Reference (`verification/d52-anchor-reference-report.json`) | The page's cohort and seeds 5511 to 5520: 7,238 requests (946 point periods with matching reasons) and 302,016 narrowed windows: **0 mismatches** in each | met |
+| 3 Census (`verification/d52-anchor-census-report.json`) | 771 definitions. *Structural:* every check met (see below). *Changed results:* **4,927 of 26,112** results of 544 rewritten definitions answered on both sides changed (28 were refused alike by the store), **0 unexplained** (see below). *Sweep as offered:* 449 answered on both sides, with the same refusals. The P2 comparison: D46 measured 397 of 13,824 changes with anchors at their latest; here 4,927 of 26,112 against main's point windows, over a wider grid that also changes eligibility and coverage | met |
+| 4 Usefulness (`verification/d52-anchor-usefulness-report.json`) | Seeds 5521 to 5550, no extension. Under "Coded records only": Sequence 0 of 16 child types unresolved (216 candidates; 186 without C001), Tree 0 of 7 (140; 110), Graph 0 of 7 (140; 110), **Event frequency 3 of 16** (3 of 291 candidates unresolved, `STEP_CONDITION_UNCERTAIN`; 3 of 261 without C001), Blank 0 of 44 (1,187; 1,157). None refused. Reported (see below): stated findings, D49's translation beside, the Nth probe, and the server's exclusions | met |
+| 5 Page parity | Both `.cjs` tests pass. The refusal table, the D52 point table and the template table hold as pinned. The sweep tally is 449, unchanged, from the census. The differences table, re-pinned from the run under the lock: rows of 24 trajectories moved (479 rows, 66 differences gone). The constant-period trajectory and the point-period trajectory did not move. Every other moved row names `index-anchor` or only causes it held before, checked mechanically against the previous table: 0 violations. **781 of 1,248** agree (849 before). The 467 differences: count timing 16, coverage 229, index anchor 413, letter mentions 112, measurement records 5, medication records 74, occurrence envelope 9, order uncertain 38, record reconciliation 103. No `UNEXPLAINED`, the replay holds, D38's no-change differential holds (485 requests) | met |
+| 6 Latency (`verification/d52-anchor-latency-verdict.json`) | See below | **not met** |
+| 7 No change on the store and engine path | `git diff 5f9fffb` names no file under `patterns/`, nor the build worker, `store_parity.py` or the generator; the suites pass | met |
+| 8 Regeneration | D46's three, D47's three, D49's usefulness, E0b's three and D53's three reports regenerated with the pin: **every figure equal**, apart from timings (`view_cost`, `elapsed_s`) and digests. `d45-coded-default-latency-verdict.json` frozen as `HISTORICAL` (signed off). D49's census frozen by D53, with D52's supersession note. `results/build.py --check`: unchanged | met |
+| 9 Gates | Below | met |
+| 10 Defaults | The three constants are `true`, each declared once | met |
+
+*Rule 3, structural checks:*
+- the pin reproduces main's request for all 771 definitions;
+- the definitions with no event bound are byte-identical, with 0 rewrite calls;
+- nothing was newly refused, and no refusal on main changed;
+- **86 point periods** (51 in the sweep: `FREE_TEXT_COUNT_UNSUPPORTED` 37, `INDEX_ANCHOR_ANY_UNSUPPORTED` 28, `INDEX_PERIOD_COUNT_UNSUPPORTED` 19, `INDEX_ANCHOR_GENE_UNSUPPORTED` 2), each equal to main's request with a fitting reason;
+- the rewritten request was unchanged under both perturbations in all 572 rewritten definitions.
+
+*Rule 3, changed results.* Main equalled the pinned request for 4,908 of them, and the pinned request equalled D52 for 19 (`admission_scope`). The classes:
+
+| Class | Results |
+|---|---|
+| `anchor_uncertain` | 1,735 |
+| `eligibility_gained` | 1,415 |
+| `anchor_uncertain` + `eligibility_partial` | 730 |
+| `anchor_moved` | 448 |
+| `anchor_uncertain` + `coupled` | 282 |
+| `anchor_uncertain` + `clamp` | 87 |
+| `no_anchor_on_page` | 63 |
+| `coverage_hull` | 62 |
+| `coupled` + `no_anchor_on_page` | 23 |
+| `anchor_uncertain` + `coupled` + `eligibility_partial` | 20 |
+| `admission_scope` | 19 |
+| `clamp` | 12 |
+| `anchor_uncertain` + `clamp` + `eligibility_partial` | 11 |
+| smaller combinations | 20 |
+
+The largest transitions: exact → possible 1,319; excluded → none 894; possible → exact 785; excluded → not comparable 335; exact → none 256; possible → unresolved 246; relaxed possible → relaxed exact 206; excluded → possible 204.
+
+*Rule 4, reported:*
+- **Under stated findings (Q6), the bar is missed:** Sequence 7 of 16 child types unresolved (124 of 216 candidates), Tree 7 of 7 (113 of 140), Graph 7 of 7 (114 of 140), all `OCCURRENCE_ORDER_UNCERTAIN`: the hidden first seizure ranges from birth through letter mentions and can bind the user steps' events. Blank is 3 of 44 (4 of 1,200), with **1,021 exact** against 0 under D49's windows.
+- *D49's translation beside,* `exact` counts against D52's: Sequence 15 against 41, Tree 11 against 34, Graph 6 against 24, Event frequency 172 against 172, Blank 584 against 1,077. D49 had 0 unresolved on every template.
+- *Event frequency under the 3rd seizure* (coded only): 264 candidates, 151 exact, 50 unresolved (49 `OCCURRENCE_TIME_COUPLED`).
+- *The server's exclusions under coded only:* 253 patients per default-period template (no coded seizure); 610 for the 3rd seizure (fewer than three), and 2 with no possible period.
+
+*Rule 6, latency.* 8 ABBA pairs; the protocol, answers, the structural 0-call checks and the build check were all met.
+- **At the page's size: met.** Normalised ratios: Sequence 1.11, Tree 1.10, Graph 1.13, Event frequency 1.20, Blank 1.52, Event frequency under the 3rd seizure 1.25 (medians; every pair at most 1.60). Candidate p95s were 30 to 90 ms.
+- **At 300,000 (14 workers):** the ratios are met, at most 1.76 in any pair. Normalised medians: Event frequency 1.40, Blank 1.35, Sequence without its rise 1.63, Tree without its gene and rise steps 1.52, Graph without them 1.55, Event frequency under the 3rd seizure 1.19.
+  - **The p95 bar missed on Event frequency: 10.22 s against 10 s** (median 8.45 s; reference p95 7.48 s, median 6.16 s). The other candidate p95s were at most 9.47 s (Blank).
+- **The micro bound missed:** the narrowing at 300,000 takes 0.70 to 0.71 s per request on 14 DuckDB threads, which is 8.2% (Blank), 8.5% (Event frequency), 11.0%, 11.0%, 11.2% and 13.1% of the candidates' medians. Four of six are above 10%.
+- 8 workers (reported): candidate p95 up to 11.02 s (Event frequency); raw ratios 1.07 to 1.77.
+- Peak memory at 14 workers: 8.13 GB in the candidate arm against 7.50 GB.
+
+*Gates* (on the final tree):
+- every suite;
+- provenance 0 stale (56 reports);
+- `check_test_counts --write`, then the check;
+- `check_manifest`;
+- both `.cjs` parity tests;
+- `~/.claude-pcx/ci-local.sh`;
+- `results/build.py --check`.
+
+**Verdict: rules 1 to 5 and 7 to 10 hold; rule 6 is not met as written.** Under the ship rule D52 does not ship as committed. Under D48b's protocol the decision is the coordinator's, and the conflicting-provisions rule cannot apply to a measured bar. The misses are reported, not tuned away.
+
+*Investigation of the misses* (no measurement beyond the job):
+- *What costs the time.* The added time is the narrowing's 0.7 s plus the wider work the hidden step brings: a step with candidates on every patient, and windows from birth. The narrowing is about a quarter of the added median time for Event frequency (2.3 s added, 0.71 s of it narrowing). Without it, the candidate's p95 would be about 9.5 s.
+- *Why the narrowing need not run per request.* Its ranges depend only on the hidden step's concept, occurrence and N and on the request's `exclude_kinds`, not on the offsets or the windows, and the snapshot is immutable. So the server could compute them once per snapshot and step specification and reuse them; later requests would then pay only the Python narrowing of the windows. Computing ranges per (concept, occurrence, kinds) at the server's first use is a contained change to `index_hull.py` and the server, which no build loads. It is a candidate follow-up, measured as a retry (a "D52b").
+- *The absolute bar.* Event frequency's reference p95 is already 7.48 s (D45 measured 7.47 s). That leaves 2.5 s of headroom under the D21 target, which the rewrite exceeds by 0.22 s at p95.

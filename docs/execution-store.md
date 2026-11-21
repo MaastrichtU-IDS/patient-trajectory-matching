@@ -601,7 +601,14 @@ Each patient gets a constant base window: birth (or the constant start) to the l
 
 *An Nth event* ranks coded records only (D32's derived occurrence), with or without "coded only": the narrowing leaves letter mentions out of its candidates too. *A medicine's last or Nth start* is its last or Nth record (an order or a dispensing, often a refill), not a course's start, as for a step.
 
-No store or engine file changes, and no file a build loads: the kept builds stay reusable (D34). Measurement and status: decision log, D52.
+No store or engine file changes, and no file a build loads: the kept builds stay reusable (D34).
+
+*Measured* (decision log, D52; 2026-11-21):
+- *Soundness:* 0 failing in 200,400 small cases, against a period placed in each world without the rewrite.
+- *Census:* 4,927 of 26,112 results of rewritten page definitions change against the page's point windows, each explained; 86 definitions keep a point period.
+- *Usefulness under coded only:* 0 to 3 of each template's child types unresolved. Under stated findings, Sequence, Tree and Graph are mostly unresolved: a first seizure that letter mentions date from birth leaves its order uncertain.
+- *Latency:* within the ratio bars at both sizes, but at 300,000 Event frequency's p95 is 10.22 s (bar 10 s), and the narrowing costs about 0.7 s per request (8 to 13% of the median).
+- *Status:* decision pending.
 
 ## Match output
 
