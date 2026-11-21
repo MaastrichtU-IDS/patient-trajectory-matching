@@ -142,10 +142,16 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # start, did not ship either (rule 3, the census's identity check, missed as written by its class text; every
               # other rule met), so its code is not in the tree; its six reports are kept as frozen records of that
               # decision, measured on the retry base (branch d52c-retry-base), whose translator, narrowing, simplification and
-              # tools they bind (listed for the coordinator's sign-off as delegate).
+              # tools they bind (coordinator's sign-off as delegate, 2026-11-21). D52d retries it.
               'verification/d52c-anchor-worlds-report.json', 'verification/d52c-anchor-defects-report.json',
               'verification/d52c-anchor-reference-report.json', 'verification/d52c-anchor-census-report.json',
-              'verification/d52c-anchor-usefulness-report.json', 'verification/d52c-anchor-latency-verdict.json'}
+              'verification/d52c-anchor-usefulness-report.json', 'verification/d52c-anchor-latency-verdict.json',
+              # D52d changes `demos/mockups/store_trajectory.py` (D52c's code: the `index` block, the cached narrowing and
+              # `index_simplify_v1`; a request without it takes the same path, by a call counter), which D45's coded-default
+              # latency verdict binds. It records D45's verdict, last re-measured and met under D48b on 2026-11-20; for the
+              # current tree `verification/d52d-anchor-latency-verdict.json` supersedes it, its reference arm being the
+              # requests that verdict timed (coordinator's sign-off as delegate at D52c's checkpoint, carried to D52d).
+              'verification/d45-coded-default-latency-verdict.json'}
 
 
 def digests(path):

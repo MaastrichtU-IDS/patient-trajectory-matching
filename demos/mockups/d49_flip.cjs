@@ -82,7 +82,8 @@ const DEFINITIONS = `
   var translateOne = (def, freeText, options) => {
     const before = state.freeText;
     state.freeText = freeText;
-    try { return storeRequest({...defaultDef(), ...def}, freeText, [...state.patients.keys()], options); }
+    // D52: D49's translation pinned (the page point windows, indexAnchor false), so this report keeps recording what it measured.
+    try { return storeRequest({...defaultDef(), ...def}, freeText, [...state.patients.keys()], {indexAnchor: false, ...options}); }
     catch (e) { if (e instanceof StoreRefusal) return {refused: e.code}; return {refused: 'UNNAMED: ' + e.message}; }
     finally { state.freeText = before; }
   };
