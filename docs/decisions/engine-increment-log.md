@@ -68,6 +68,7 @@ This log records each decision, the alternatives and the reasoning, in the order
 | E0b | E0 retried: the same normaliser and wrapper (e53ac3b), the scorer and the oracle naming a mention's truth event by its concept where the generator reuses an id (refusals by name, listed and left out, at most 0.1%), E0's rules as amended on fresh seeds 5201 to 5300, under rules fixed before measuring | **Shipped as an option**, off by default. Every rule met on seeds 5201 to 5300: 0 misses and 0 refusals in 84,781 narrowed mentions (median 33 days against 1,172); 0 contradictions; 171 results more decided and none less (Blank `exact` 1 to 168 of 1,102, the truth oracle 256; Sequence, Tree and Graph none); coded only identical; four planted defects caught. A held-out wording test is required before any default |
 | D51 | Is 1.1 Nth and count slower since f9e087e (D48b's d44b count rebind missed at 1.078 in one pair)? That request alone beside the two controls, main against f9e087e at 300,000 and 14 workers, 8 ABBA pairs, under a decision rule fixed before measuring | **Decided: outcome (i), no slowdown.** Median normalised ratio 1.000 over 8 pairs (0.957 to 1.019), none above 1.05; raw 0.947 to 1.009. Answers equal f9e087e's. The d44b miss is attributed to variance: process-level shifts of about 5% on this request occur in either direction. The committed d44b verdict stands as the historical measurement |
 | D52 | The index anchor as a hidden step of the query (P2, D46's option (c)): the translator writes an event-placed index period as a hidden step with relations from it (`index_anchor_v1`), the server narrows each base window to the hull of the periods the store's records allow (`index_hull_v1`), the shapes it cannot write kept as D49's point windows with a P2 note, under rules fixed before measuring | Measured; **not shipped** (record only; retry base f783bd0; D52b queued). Rule 6 missed as written (Event frequency p95 10.22 s at 300,000 against 10 s; the narrowing 8.2 to 13.1% of the candidates' medians against 10%); every other rule met: soundness 0 failing in 200,400 cases, census 0 unexplained of 4,927 changes, coded-only usefulness met, parity 781 of 1,248. Under stated findings (reported) Sequence, Tree and Graph are mostly unresolved |
+| D52b | D52 retried: the same code (retry base f783bd0) with the server's narrowing cached per snapshot and hidden-step key (a bounded LRU of validated keys), on fresh seeds, rule 6's bars unchanged with the first run ruled apart, under rules fixed before measuring | Measured; **not shipped** (record only; retry base 309c1b0). Rule 6 missed as written (Event frequency p95 10.83 s and Blank 10.35 s at 300,000 against 10 s; Event frequency's first run above 10 s in 3 pairs); every other rule met; the cache cut the narrowing from 0.70 s to 0.20 s, so the remaining cost is in matching. Next: a design study, no code |
 
 ## D1 Package with hatchling, in place
 
@@ -5847,3 +5848,204 @@ The largest transitions: exact → possible 1,319; excluded → none 894; possib
   - Blank is 1,021 exact of 1,200 candidates, against 0 with D49's point windows.
 
 *Follow-up: D52b,* the same code plus the narrowing cache, with fresh rules.
+
+## D52b D52 retried: the same code, with the server's narrowing cached per snapshot and hidden-step key, on fresh seeds, under rules fixed before measuring
+
+*Status:* **measured; not shipped** (record only; retry base 309c1b0, branch `d52b-retry-base`). Rule 6, the latency rule, missed as written: at 300,000 Event frequency's p95 was 10.83 s and Blank's 10.35 s against 10 s, and Event frequency's first run passed 10 s in 3 pairs (Blank's in 1). Every other rule held, and the cache's own bound was met (2.4 to 4.0%). Next: a design study of the hidden step's matching cost, no code.
+
+**Why.** D52 (retry base f783bd0) met every rule but rule 6. At 300,000, Event frequency's p95 was 10.22 s against the 10 s bar, and the narrowing took 0.70 s per request, 8.2 to 13.1% of the candidates' medians against a 10% bound. A narrowing's ranges depend only on the snapshot and on the hidden step's concept, occurrence, N and the kinds its candidates leave out, never on a request's offsets or windows, and a snapshot is immutable. So they need computing only once per snapshot and key. The coordinator's decision, as delegate, after D52's measurement: D52 lands as a record only, and D52b follows with the cache.
+
+**The change** (on the retry base; D52's code otherwise byte-identical).
+- *`demos/mockups/index_hull.py`:*
+  - `step_keys` gives each hidden step's range key (concept, k, whether it counts from the end, the kinds left out, mentions always for a derived step).
+  - `_range_query` computes one key's ranges by D52's SQL.
+  - `ranges` keeps them in `_CACHE`, per snapshot. The cache is emptied whenever another snapshot id is asked (or a planted defect is set), and every later request naming the key reuses them.
+  - `cache=False` computes them afresh and neither reads nor fills the cache.
+  - Counters: `range_queries` and `range_hits`.
+  - The command line's `narrow` also narrows each case without the cache, and records whether the two are identical (`index_result.cache`).
+- *`demos/mockups/d52_anchor.cjs`:*
+  - fresh seeds: development 5701, reference 5711 to 5720, usefulness 5721 to 5750 extended in order to 5820 (D52 held 5501 to 5620, D53 5301 to 5400);
+  - the census and the reference rule the cache's identity;
+  - report profiles `d52b-…`.
+- *`tools/d52_measure.py`:* the reference check also narrows without the cache and counts differences; seed labels `d52b-rule` and `d52b-defects-rule`.
+- *`tools/benchmark_index_anchor.py`* (profile 1.1, verdict `verification/d52b-anchor-latency-verdict.json`):
+  - at 300,000, as at the page's size, each request runs once untimed before its timed runs, its time recorded as the first-request cost (the server's first request after it starts fills the narrowing's cache, and DuckDB's);
+  - the micro bound is measured on the cache path: the first request's narrowing (cache empty) reported, the steady state's (median of 3 later requests) ruled.
+- *Tests:* a cache test in `test_index_anchor.py` (a hit per key, other keys computed, the uncached path untouched, another snapshot empties the cache, identity throughout).
+- *`tools/check_report_provenance.py`:* D52's six reports frozen as `HISTORICAL` here as on the record (they bind the narrowing and tools D52b changes).
+- *Unchanged:* every file under `patterns/`, `store_parity.py`, the build worker, the generator; the translator, the page, the server's `store_trajectory.py` and the parity tests as on the retry base.
+
+**Pre-committed rules** (committed with this entry, before any measurement of D52b; "main" was 5f9fffb as committed, and is **9b50317**, the merge of D52's record (whose code is 5f9fffb's), since the rebase onto it, which is also the census's `--base`). D52's rules as amended, with the commands' outputs renamed `d52b-…`, on fresh seeds:
+1. **Soundness** (D52's rule 1): `tools/d52_measure.py worlds --cases 200000 --seed d52b-rule` and `defects --cases 12000 --seed d52b-defects-rule`.
+   - 0 failing cases in both window forms (the narrowed form through the cache).
+   - H1 and H3 equal where both are decided.
+   - At least 1,000 decided cases with an uncertain anchor per shape.
+   - Each of the nine planted defects caught.
+2. **Reference** (D52's rule 2) on the page's cohort and seeds 5711 to 5720: 0 mismatches in requests and in windows. **New, ruled: the narrowing with the cache equals it without, for every rewritten request** (0 differences).
+3. **Census** (D52's rule 3 as amended): structural checks, the point periods, and every changed result explained through the pinned request, 0 unexplained. **New, ruled: every narrowed request equals its narrowing without the cache, and some requests reused a cached range** (the cache was exercised).
+4. **Usefulness** (D52's rule 4) on seeds 5721 to 5750, extended in order to 5820: the five templates under coded only, at least 30 candidates and at most 30% of child types unresolved. Reported: stated findings, D49's translation beside, the Nth probe, the exclusions.
+5. **Page parity** (D52's rule 5): both `.cjs` tests pass. The tables pinned on the retry base are expected unchanged: the cache cannot change a narrowing (rule 3's identity). A row that moves is reported and explained, not tuned away.
+6. **Latency** (D52's rule 6, **its bars unchanged**):
+   - 8 ABBA pairs;
+   - normalised ratio at most 2.0 in every pair, or as the median over the pairs for the count requests;
+   - candidate p95 at most 2 s at the page's size and 10 s at 300,000 (14 workers);
+   - one digest per arm;
+   - the structural 0-call checks;
+   - the build check.
+
+   *Changed in the protocol, disclosed:*
+   - at 300,000 each request runs once untimed first. The first-request times are reported per process, beside the p95 of the timed runs;
+   - **the micro bound is ruled on the steady state**: the narrowing's own time per candidate request, median of 3 after the cache is filled, at most 10% of the candidate's 14-worker median. The first request's narrowing (cache empty, 14 DuckDB threads) is reported;
+   - **the first run is ruled apart** (as amended, S1): at 14 workers each candidate's first run at most 10 s in every pair, and its ratio to the reference's first run, normalised by the controls' first runs in the same pair, at most 2.0 in every pair;
+   - *reported:* the cache's keys, rows and estimated bytes at 300,000 (S3).
+7. **No change on the store and engine path**: `git diff <main>` names no file under `patterns/`, `store_parity.py`, the build worker or the generator.
+8. **Regeneration.**
+   - D52b's reports are new.
+   - The reports D52 regenerated (D46, D47, D49's usefulness, E0b, D53), committed on the retry base with figures equal to main's, are regenerated again only if the provenance gate finds them stale. D52b changes no file they bind, so none is expected.
+   - The provenance gate decides; any freeze is listed for sign-off.
+9. **Gates:**
+   - all suites;
+   - provenance 0 stale;
+   - `check_test_counts --write`, then the check;
+   - `check_manifest`;
+   - both `.cjs` parity tests;
+   - `~/.claude-pcx/ci-local.sh`;
+   - `results/build.py --check`.
+10. **Defaults:** the three constants are `true`.
+
+**Ship rule.** D52b ships if rules 1 to 10 hold. A miss is reported and investigated, never tuned away.
+
+**Consistency read** (rules against the change list, and against what the committed reports run, including the base-anchored checks D53 added to the checklist).
+- *Rule 7:* D52b changes no file under `patterns/`; the cache is in `index_hull.py`, which no build loads.
+- *Rules 2 and 3* run the cache through the same command-line narrowing the census and the parity test use. The identity is computed per request, not assumed.
+- *Base-anchored claims in regenerated reports.* D46's, D47's and D53's tools compare against fixed bases (28a3cbf, a4d2010, 34af272) and pass through D47's pinned definitions. D49's census, the one with a `git diff` against its base, is frozen (D53). D52b changes none of the files those tools bind, so the reports stay current (rule 8). D52b's census runs against main (5f9fffb, or the main after D52's record, whose code is identical).
+- *Rule 6's protocol change* (an untimed first run at 300,000) is named in the rule and applies to both arms. Its bars are D52's.
+- *D52's six reports* bind files D52b changes. They are frozen here as on the record branch, so the gate stays at 0 stale on either branch.
+
+**Disclosed: development runs before these rules** (seed 5701, the harness's development labels, and the kept builds; none ruled).
+- *The reference smoke* (seed 5701): 658 requests and 27,456 windows, 0 mismatches; 572 narrowings identical with and without the cache.
+- *The census on cohort 5701:* 0 unexplained of 4,029 changed; 538 narrowed requests, 528 of them reusing a cached range, 0 differing from the uncached narrowing.
+- *The worlds harness:* 0 failing in 4,000 cases.
+- *The unit tests,* the cache test included.
+- *The latency tool* end to end on the kept 1,000-patient build (one worker, 2 pairs). The narrowing's first request took 9 to 11 ms; the steady state took 0.3 ms, 0.2 to 0.4% of the candidates' medians.
+- *One probe on the kept 300,000 build* (one process, `nice`, outside the lock): Event frequency's narrowing took 3.18 s on its first request at one DuckDB thread, and 0.153 to 0.156 s in the steady state (the Python loop over 299,850 windows), about 1.8% of D52's candidate median for that request.
+
+**Independent review of 658c8d4 (the cache), and amendments before any measurement** (the coordinator's fixes, as delegate; the reviewer's repro is `/tmp/d52b-review/grow.py`). The reviewer found the key complete, the invalidation right, and no concurrency hazard.
+- **M1, must-fix: the cache was unbounded and filled before validation (a hosted denial of service).** The narrowing runs before `store_conditions.match`, so unknown concepts, any N and any `exclude_kinds` were cached: the repro held 250 entries and 50 MB from crafted requests. Fixed in `index_hull.py`:
+  - *A bounded LRU:* at most `CACHE_MAX_KEYS` keys (64; `PTM_INDEX_CACHE_KEYS`) and `CACHE_MAX_ROWS` patient rows (1,500,000; `PTM_INDEX_CACHE_ROWS`), the least recently used evicted first. A key whose ranges alone pass the row cap is computed but not kept.
+    - About 240 bytes a row on the kept 1,000-patient build, so a 300,000-patient key is about 70 MB and the default cap about 360 MB.
+    - The hosted worker serves the 48-child cohort, a few kilobytes a key.
+  - *Only validated keys* are computed or cached (`validate`), before any of the narrowing's SQL:
+    - the hidden step's form: a step of the query; a concept string of at most 200 characters; occurrence `first`, `last`, or `any` with an occurrence condition {nth | nth_last: k}, k an integer from 2 to 50;
+    - the concept is in the snapshot's closure;
+    - every kind `exclude_kinds` names is one the snapshot holds.
+  - *Refused by name,* where a malformed request used to surface as an internal error: `INDEX_STEP_MALFORMED`, `INDEX_OCCURRENCE_UNSUPPORTED`, `INDEX_CONCEPT_UNKNOWN`, `INDEX_EXCLUDE_KINDS_UNKNOWN`. The server answers each as the store's refusal (`by: store`).
+  - *Hosted mode* (`match_worker.py`): checked. After D50's fixes a child that timed out, or failed after the write, was killed. A child that answered `internal` (any exception, a MemoryError among them) was **not**, and was reused. Fixed: it is killed and never reused (`match_killed`, reason `MATCH_WORKER_INTERNAL`), and the request is still answered as an internal error. Test: `test_server_access.py`, `test_an_internal_failure_kills_the_worker_too`.
+  - *Tests* (`test_index_anchor.py`):
+    - the repro's growth is bounded: crafted concepts refused with no SQL, and every valid N kept within the key cap, least recently used out first;
+    - the row cap;
+    - the named refusals.
+- **S1, rule 6: a ruled first-request bound.** The untimed first run removed exactly the cold cost D52 missed on. *Rule 6, amended* (`first_run_check`), at 300,000 and 14 workers:
+  - each candidate's **first run** at most **10 s in every pair**;
+  - that first run over the reference's first run, normalised by the controls' first runs in the same pair, at most **2.0 in every pair**.
+
+  The steady-state timed runs keep their bars, and the cold narrowing at 14 threads stays reported.
+- **S2.** *Stated:* the cached-against-uncached identity (rules 2 and 3) tests staleness and mutation only. The key's completeness rests on `_range_query` reading nothing but the key. *Test:* its parameters are `store` and `key` only. Two requests sharing a key, and differing in offsets, windows, other steps, relations and an end step, send the same SQL with the same parameters.
+- **S3.** Covered by M1's bounds. *Reported in rule 6* (`micro`): the cache's keys, rows and estimated bytes at 300,000 with the page's anchors.
+- *Nits:*
+  - a derived step is now read from its occurrence (`any`, with the condition `hidden_steps` checks), not from the presence of a condition entry;
+  - the ranges returned may be the cache's own dictionaries, and callers never change them (stated in `ranges`).
+- *Disclosed: development runs for the amendments* (development data only):
+  - the unit tests (the new cache tests included);
+  - `test_server_access.py` (30 tests);
+  - the latency tool end to end on the kept 1,000-patient build: every first run within its bars; 815 rows and 194,378 bytes for a key.
+
+**Rebased onto D52's record** (main 9b50317, 2026-11-21). The record had reverted D52's code on main, so D52b was rebuilt on 9b50317 rather than replayed:
+- the code, tools, tests and page of the pre-rebase head (1ac0b54, branch `d52b-pre-rebase`) were taken as they stood, D52's code at f783bd0 plus D52b's changes;
+- the regenerated D46, D47, D49-usefulness, D53 and E0b reports were taken as committed on the retry base, since they bind only files D52b shares with D52, and the gate finds them current;
+- the log keeps main's D52 entry (its record) and appends this one;
+- the provenance gate's `HISTORICAL` keeps the record's six D52 reports and freezes D45's latency verdict again (D52b changes `store_trajectory.py`; signed off, Q8).
+
+"Main" and the census's `--base` are 9b50317.
+
+**Measurement** (after the rules, the review's amendments and the rebuild on 9b50317; two parts under the bench lock on 2026-11-21, on 2ca1bdf; logs in `~/ptm-local/d52b/`; the page's cohort checked against the committed seed).
+- *Part A*, 04:39 to 06:41 (`d52b-job.sh`): rules 1 to 4 and 6. No regeneration was needed: the gate found every committed report current.
+- *Part B*, 06:42 to 06:44 (`d52b-jobB.sh`): both parity tests, unchanged from the retry base.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 Soundness | 200,400 cases (`d52b-rule`, 437 s): **0 failing**, **0 H1/H3 differences**. Decided cases with an uncertain anchor per shape: 10,147 to 26,637. Nine planted defects at 12,000 cases each, all caught: `offset_dropped` 336, `eligibility_dropped` 923, `end_not_strict` 76, `within_open` 344, `after_as_from_start` 338, `clamp_dropped` 82, `hull_from_hi` 115, `nth_off_by_one` 363, `nth_counts_mentions` 22 | met |
+| 2 Reference | Page's cohort and seeds 5711 to 5720: 7,238 requests (946 point periods with matching reasons) and 302,016 windows, **0 mismatches**. **Cache identity: 6,292 narrowings, 0 different without the cache** | met |
+| 3 Census | Structural checks met; 86 point periods (51 in the sweep). **4,927 of 26,112** results changed, **0 unexplained** (main equals the pinned request for 4,908; 19 `admission_scope`): D52's figures exactly, as the cache cannot change a narrowing. **Cache identity: 538 narrowed requests, 528 reusing a cached range, 0 different without the cache** | met |
+| 4 Usefulness | Seeds 5721 to 5750, no extension. Coded only (child types unresolved): Sequence 0 of 16 (198 candidates; 168 without C001), Tree 0 of 7 (132; 102), Graph 0 of 7 (132; 102), **Event frequency 1 of 16** (1 of 300; `STEP_CONDITION_UNCERTAIN`), Blank 0 of 44 (1,170; 1,140). None refused. Reported (see below): stated findings, D49 beside, the Nth probe | met |
+| 5 Page parity | Both `.cjs` tests pass with the tables pinned on the retry base, none moved: **781 of 1,248**, the same 467 differences by cause, no `UNEXPLAINED`, the replay holds; sweep tally 449 | met |
+| 6 Latency (`verification/d52b-anchor-latency-verdict.json`) | See below | **not met** |
+| 7 No change on the store and engine path | No file under `patterns/`, `store_parity.py`, the build worker or the generator differs from 9b50317 | met |
+| 8 Regeneration | None needed; D45's latency verdict frozen (signed off); D52's six reports frozen as on main; provenance 0 stale | met |
+| 9 Gates | Below | met |
+| 10 Defaults | `true` | met |
+
+*Rule 4, reported:*
+- *Stated findings:* Sequence 7 of 16 child types unresolved (117 of 199), Tree 7 of 7 (109 of 132), Graph 7 of 7 (111 of 132); Blank 2 of 44 (3 of 1,189) with 1,010 exact (D49: 1).
+- *`exact` with D49's translation beside, under coded only:* Sequence 21 against 48, Tree 19 against 43, Graph 12 against 25, Event frequency 186 against 186, Blank 559 against 1,074.
+- *Event frequency under the 3rd seizure:* 280 candidates, 163 exact, 45 unresolved (44 `OCCURRENCE_TIME_COUPLED`).
+
+*Rule 6, latency.* 8 ABBA pairs; the protocol, the answers, the structural 0-call checks and the build check were all met.
+- **Page's size: met.** Normalised medians 1.03 to 1.26 (Blank), every pair at most 1.29; candidate p95 30 to 80 ms.
+- **Micro bound: met.** The steady-state narrowing at 300,000 took 0.19 to 0.20 s per request, 2.4 to 4.0% of the candidates' medians. The first request's narrowing took 0.69 to 0.77 s at 14 DuckDB threads. The cache held one key of 246,060 rows, about 59 MB.
+- **300,000, steady state (timed runs after the untimed first): the ratios are met, the p95 bar is not.** Every pair is at most 1.66 normalised (medians: Event frequency 1.34, Blank 1.30, Sequence 1.52, Tree 1.38, Graph 1.44, the Nth probe 1.10).
+  - **Event frequency's candidate p95 was 10.83 s and Blank's 10.35 s, against 10 s.** Medians 7.87 and 8.29 s; references' p95 6.72 and 6.65 s.
+  - The others were at most 7.24 s.
+- **300,000, first runs (S1): not met.**
+  - **Event frequency's first run passed 10 s in 3 pairs** (9.40 to 12.02 s), and Blank's in 1 (10.74 s, in the same pair as Event frequency's 12.02 s).
+  - Their normalised first-run ratios were met: at most 1.50 and 1.44.
+  - The other four were met.
+- 8 workers (reported): candidate p95 up to 10.62 s (Blank).
+- Peak memory at 14 workers: 8.05 GB in the candidate arm against 7.57 GB.
+
+*Gates* (on the final tree):
+- every suite;
+- provenance 0 stale;
+- `check_test_counts --write`, then the check;
+- `check_manifest`;
+- both `.cjs` parity tests (part B);
+- `~/.claude-pcx/ci-local.sh`;
+- `results/build.py --check`.
+
+**Verdict: rules 1 to 5 and 7 to 10 hold; rule 6 is not met as written,** so under the ship rule D52b does not ship as committed. The decision is the coordinator's.
+
+*What the miss shows.* The cache did what it was for: the narrowing went from 0.70 s to 0.20 s per request, and the micro bound is met. But the p95 bar missed by more than in D52 (10.83 s against 10.22 s for Event frequency, now Blank too). So the cost that matters is the matching itself, not the narrowing.
+- A hidden step with candidates on every patient.
+- Windows that start at birth, so the window-based pruning prunes little.
+- Uncertain targets for D30, D31 and D35 to decide.
+
+The medians are 1.3 to 1.5 times D49's, against references whose own p95 is about 6.7 s. That leaves 3.3 s of headroom under the D21 target, which the tail exceeds.
+
+*Options for a further retry, none measured:*
+- Prune on the anchor's narrowed hull before matching (the window-based pruning reads the hull already, so the remaining cost is per patient in the engine).
+- Give the hidden step's candidates a tighter time range: its occurrence's own envelope rather than every event of the concept.
+- Move the bar's measurement to 8 workers, or accept a higher absolute bar for event-anchored periods. Either is a change to the rule, not to the code, and the owner's to make.
+
+**Decision: D52b does not ship** (the coordinator, as delegate; option 1). It lands as a record:
+- *The retry base:* 309c1b0, branch `d52b-retry-base`.
+- *Reverted on this branch,* so `main` keeps D49's translation: every code, tool, test and page change, `index_hull.py`, the server's and the hosted worker's changes, the pins and the parity tables.
+- *D45's latency verdict* is current again, since `store_trajectory.py` is main's.
+- *Frozen as `HISTORICAL`,* with sign-off as delegate: D52b's six reports.
+- *Kept:* this entry, and a note in `docs/execution-store.md`.
+
+*The diagnosis.* The remaining cost is in matching the hidden step, not in the narrowing. The cache cut the narrowing from 0.70 s to 0.20 s per request, yet Event frequency's p95 rose from 10.22 s (D52) to 10.83 s, and Blank's passed the bar too. The hidden step brings:
+- candidates on every patient;
+- windows from birth, under which the window-based pruning prunes little;
+- uncertain first and last targets for D30, D31 and D35 to decide.
+
+The medians run 1.3 to 1.5 times D49's.
+
+*Two measured misses with an unknown saving call for a study before another build.* **Next: a design study (no code)** of the hidden step's matching cost, for the coordinator's decision. It covers:
+- tighter candidate ranges from the occurrence's own envelope;
+- pruning on the narrowed hull;
+- where the time goes at 300,000: profile Event frequency and Blank on the kept build, in one process, `nice`, outside the lock;
+- an estimated saving for each option.
+
+*Not recorded here:* a change to the bar (an absolute bar for event-anchored periods, or the bar at 8 workers). That is the owner's decision, which the coordinator puts to the owner together with the stated-findings trade-off. Until then **P2 stays a documented limitation**: about 3% of event-anchored answers depend on where in its anchor's recorded range the period starts (D46 rule 8).
+
+*Hosted, carried to main separately if wanted:* D52b's review found that a hosted child answering `internal` was reused. The fix (kill it, as on a timeout) is reverted with D52b, so main keeps the old behaviour. It is a candidate for a small hosting change of its own.

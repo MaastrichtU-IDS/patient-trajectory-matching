@@ -130,7 +130,14 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # sign-off as delegate). D52b retries it.
               'verification/d52-anchor-worlds-report.json', 'verification/d52-anchor-defects-report.json',
               'verification/d52-anchor-reference-report.json', 'verification/d52-anchor-census-report.json',
-              'verification/d52-anchor-usefulness-report.json', 'verification/d52-anchor-latency-verdict.json'}
+              'verification/d52-anchor-usefulness-report.json', 'verification/d52-anchor-latency-verdict.json',
+              # D52b, D52 retried with the server's narrowing cached, did not ship either (rule 6, its latency rule, missed
+              # as written), so its code is not in the tree; its six reports are kept as frozen records of that decision,
+              # measured on the retry base 309c1b0 (branch d52b-retry-base), whose translator, cached narrowing and tools
+              # they bind (coordinator's sign-off as delegate).
+              'verification/d52b-anchor-worlds-report.json', 'verification/d52b-anchor-defects-report.json',
+              'verification/d52b-anchor-reference-report.json', 'verification/d52b-anchor-census-report.json',
+              'verification/d52b-anchor-usefulness-report.json', 'verification/d52b-anchor-latency-verdict.json'}
 
 
 def digests(path):

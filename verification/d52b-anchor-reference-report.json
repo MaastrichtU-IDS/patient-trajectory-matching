@@ -1,0 +1,149 @@
+{
+ "profile": "d52b-anchor-reference-1.0",
+ "rule": "D52b rule 2, D52's rule 2: on the page's cohort and seeds 5711 to 5720, every census definition with an event bound that D49's translation answers, under its settings: this tree's request equals index_anchor_reference.py's byte for byte, or both refuse with one code; and index_hull.py's narrowed windows and reasons equal the reference's narrowing over the converted ingest (no SQL). 0 mismatches in each",
+ "cohorts": {
+  "page": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5711": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5712": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5713": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5714": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5715": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5716": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5717": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5718": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5719": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  },
+  "seed 5720": {
+   "requests": 658,
+   "request_mismatches": 0,
+   "point_alike": 86,
+   "windows": 27456,
+   "window_mismatches": 0,
+   "cache_requests": 572,
+   "cache_not_identical": 0,
+   "examples": []
+  }
+ },
+ "requests": 7238,
+ "request_mismatches": 0,
+ "windows": 302016,
+ "window_mismatches": 0,
+ "cache_identity": {
+  "requests": 6292,
+  "not_identical": 0
+ },
+ "met": true,
+ "seconds": 78,
+ "artifacts": {
+  "demos/mockups/d52_anchor.cjs": "f775cba8f232006e65583af94b53c0797f2ba6a9e73280d8ec6d82efa968b0aa",
+  "demos/mockups/option_sweep.js": "b4b66e9e323b17fb4909cdc6e47d5832e497e639d6c23b9aa871814d3be6616c",
+  "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
+  "demos/mockups/index_hull.py": "3bfdb432bc5385afe22267840a9433004152e78454c9d40e1708d9f18a641faa",
+  "demos/mockups/index_anchor_reference.py": "a1a6027e783662d4d7d787ea089c4e8773cc76848bda42a20e2ef1dcad589069",
+  "tools/d52_measure.py": "062ab7e8988160136b28192e5c81c16a1ffc45314c2039f1f6158712aec1952e",
+  "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
+  "demos/mockups/trajectory/app.js": "73f11d0a36f6cd828cc89dbafa1d5867ae573d5b9a00a18dc1e3c9a93787980a",
+  "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
+  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
+  "patterns/store_conditions_relative.py": "5f7b32e5bf740a6b50998c3ca29df79a8a068ad6abe930670b901392ff88fee5",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false
+}
