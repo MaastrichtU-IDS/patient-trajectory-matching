@@ -5967,3 +5967,61 @@ The largest transitions: exact → possible 1,319; excluded → none 894; possib
 - the provenance gate's `HISTORICAL` keeps the record's six D52 reports and freezes D45's latency verdict again (D52b changes `store_trajectory.py`; signed off, Q8).
 
 "Main" and the census's `--base` are 9b50317.
+
+**Measurement** (after the rules, the review's amendments and the rebuild on 9b50317; two parts under the bench lock on 2026-11-21, on 2ca1bdf; logs in `~/ptm-local/d52b/`; the page's cohort checked against the committed seed).
+- *Part A*, 04:39 to 06:41 (`d52b-job.sh`): rules 1 to 4 and 6. No regeneration was needed: the gate found every committed report current.
+- *Part B*, 06:42 to 06:44 (`d52b-jobB.sh`): both parity tests, unchanged from the retry base.
+
+| Rule | Measured | Verdict |
+|---|---|---|
+| 1 Soundness | 200,400 cases (`d52b-rule`, 437 s): **0 failing**, **0 H1/H3 differences**. Decided cases with an uncertain anchor per shape: 10,147 to 26,637. Nine planted defects at 12,000 cases each, all caught: `offset_dropped` 336, `eligibility_dropped` 923, `end_not_strict` 76, `within_open` 344, `after_as_from_start` 338, `clamp_dropped` 82, `hull_from_hi` 115, `nth_off_by_one` 363, `nth_counts_mentions` 22 | met |
+| 2 Reference | Page's cohort and seeds 5711 to 5720: 7,238 requests (946 point periods with matching reasons) and 302,016 windows, **0 mismatches**. **Cache identity: 6,292 narrowings, 0 different without the cache** | met |
+| 3 Census | Structural checks met; 86 point periods (51 in the sweep). **4,927 of 26,112** results changed, **0 unexplained** (main equals the pinned request for 4,908; 19 `admission_scope`): D52's figures exactly, as the cache cannot change a narrowing. **Cache identity: 538 narrowed requests, 528 reusing a cached range, 0 different without the cache** | met |
+| 4 Usefulness | Seeds 5721 to 5750, no extension. Coded only (child types unresolved): Sequence 0 of 16 (198 candidates; 168 without C001), Tree 0 of 7 (132; 102), Graph 0 of 7 (132; 102), **Event frequency 1 of 16** (1 of 300; `STEP_CONDITION_UNCERTAIN`), Blank 0 of 44 (1,170; 1,140). None refused. Reported (see below): stated findings, D49 beside, the Nth probe | met |
+| 5 Page parity | Both `.cjs` tests pass with the tables pinned on the retry base, none moved: **781 of 1,248**, the same 467 differences by cause, no `UNEXPLAINED`, the replay holds; sweep tally 449 | met |
+| 6 Latency (`verification/d52b-anchor-latency-verdict.json`) | See below | **not met** |
+| 7 No change on the store and engine path | No file under `patterns/`, `store_parity.py`, the build worker or the generator differs from 9b50317 | met |
+| 8 Regeneration | None needed; D45's latency verdict frozen (signed off); D52's six reports frozen as on main; provenance 0 stale | met |
+| 9 Gates | Below | met |
+| 10 Defaults | `true` | met |
+
+*Rule 4, reported:*
+- *Stated findings:* Sequence 7 of 16 child types unresolved (117 of 199), Tree 7 of 7 (109 of 132), Graph 7 of 7 (111 of 132); Blank 2 of 44 (3 of 1,189) with 1,010 exact (D49: 1).
+- *`exact` with D49's translation beside, under coded only:* Sequence 21 against 48, Tree 19 against 43, Graph 12 against 25, Event frequency 186 against 186, Blank 559 against 1,074.
+- *Event frequency under the 3rd seizure:* 280 candidates, 163 exact, 45 unresolved (44 `OCCURRENCE_TIME_COUPLED`).
+
+*Rule 6, latency.* 8 ABBA pairs; the protocol, the answers, the structural 0-call checks and the build check were all met.
+- **Page's size: met.** Normalised medians 1.03 to 1.26 (Blank), every pair at most 1.29; candidate p95 30 to 80 ms.
+- **Micro bound: met.** The steady-state narrowing at 300,000 took 0.19 to 0.20 s per request, 2.4 to 4.0% of the candidates' medians. The first request's narrowing took 0.69 to 0.77 s at 14 DuckDB threads. The cache held one key of 246,060 rows, about 59 MB.
+- **300,000, steady state (timed runs after the untimed first): the ratios are met, the p95 bar is not.** Every pair is at most 1.66 normalised (medians: Event frequency 1.34, Blank 1.30, Sequence 1.52, Tree 1.38, Graph 1.44, the Nth probe 1.10).
+  - **Event frequency's candidate p95 was 10.83 s and Blank's 10.35 s, against 10 s.** Medians 7.87 and 8.29 s; references' p95 6.72 and 6.65 s.
+  - The others were at most 7.24 s.
+- **300,000, first runs (S1): not met.**
+  - **Event frequency's first run passed 10 s in 3 pairs** (9.40 to 12.02 s), and Blank's in 1 (10.74 s, in the same pair as Event frequency's 12.02 s).
+  - Their normalised first-run ratios were met: at most 1.50 and 1.44.
+  - The other four were met.
+- 8 workers (reported): candidate p95 up to 10.62 s (Blank).
+- Peak memory at 14 workers: 8.05 GB in the candidate arm against 7.57 GB.
+
+*Gates* (on the final tree):
+- every suite;
+- provenance 0 stale;
+- `check_test_counts --write`, then the check;
+- `check_manifest`;
+- both `.cjs` parity tests (part B);
+- `~/.claude-pcx/ci-local.sh`;
+- `results/build.py --check`.
+
+**Verdict: rules 1 to 5 and 7 to 10 hold; rule 6 is not met as written,** so under the ship rule D52b does not ship as committed. The decision is the coordinator's.
+
+*What the miss shows.* The cache did what it was for: the narrowing went from 0.70 s to 0.20 s per request, and the micro bound is met. But the p95 bar missed by more than in D52 (10.83 s against 10.22 s for Event frequency, now Blank too). So the cost that matters is the matching itself, not the narrowing.
+- A hidden step with candidates on every patient.
+- Windows that start at birth, so the window-based pruning prunes little.
+- Uncertain targets for D30, D31 and D35 to decide.
+
+The medians are 1.3 to 1.5 times D49's, against references whose own p95 is about 6.7 s. That leaves 3.3 s of headroom under the D21 target, which the tail exceeds.
+
+*Options for a further retry, none measured:*
+- Prune on the anchor's narrowed hull before matching (the window-based pruning reads the hull already, so the remaining cost is per patient in the engine).
+- Give the hidden step's candidates a tighter time range: its occurrence's own envelope rather than every event of the concept.
+- Move the bar's measurement to 8 workers, or accept a higher absolute bar for event-anchored periods. Either is a change to the rule, not to the code, and the owner's to make.

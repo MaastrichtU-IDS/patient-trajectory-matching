@@ -1,0 +1,176 @@
+{
+ "profile": "d52b-defects-1.0",
+ "seed": "d52b-defects-rule",
+ "cases_per_defect": 12000,
+ "defects": {
+  "offset_dropped": {
+   "cases": 12000,
+   "failing_cases": 336,
+   "h1_h3_mismatches": 65,
+   "example": [
+    {
+     "snapshot": 0,
+     "request": 0,
+     "patient": "0-002",
+     "form": "H1",
+     "shape": "span+event",
+     "wrong": [
+      "none, but the unrelaxed query is possible"
+     ]
+    }
+   ]
+  },
+  "eligibility_dropped": {
+   "cases": 12000,
+   "failing_cases": 923,
+   "h1_h3_mismatches": 0,
+   "example": [
+    {
+     "snapshot": 0,
+     "request": 0,
+     "patient": "0-003",
+     "form": "H1",
+     "shape": "two events",
+     "wrong": [
+      "exact, but its binding fails in some world"
+     ]
+    }
+   ]
+  },
+  "end_not_strict": {
+   "cases": 12000,
+   "failing_cases": 76,
+   "h1_h3_mismatches": 0,
+   "example": [
+    {
+     "snapshot": 1,
+     "request": 18,
+     "patient": "1-018",
+     "form": "H1",
+     "shape": "event+constant",
+     "wrong": [
+      "exact, but its binding fails in some world"
+     ]
+    }
+   ]
+  },
+  "within_open": {
+   "cases": 12000,
+   "failing_cases": 344,
+   "h1_h3_mismatches": 0,
+   "example": [
+    {
+     "snapshot": 0,
+     "request": 10,
+     "patient": "0-008",
+     "form": "H1",
+     "shape": "event+constant",
+     "wrong": [
+      "relaxed exact by ['x0'], which its binding does not reach"
+     ]
+    }
+   ]
+  },
+  "after_as_from_start": {
+   "cases": 12000,
+   "failing_cases": 338,
+   "h1_h3_mismatches": 0,
+   "example": [
+    {
+     "snapshot": 0,
+     "request": 3,
+     "patient": "0-001",
+     "form": "H1",
+     "shape": "event+span",
+     "wrong": [
+      "exact, but its binding fails in some world"
+     ]
+    }
+   ]
+  },
+  "clamp_dropped": {
+   "cases": 12000,
+   "failing_cases": 82,
+   "h1_h3_mismatches": 0,
+   "example": [
+    {
+     "snapshot": 1,
+     "request": 3,
+     "patient": "1-012",
+     "form": "H1",
+     "shape": "constant+event",
+     "wrong": [
+      "exact, but its binding fails in some world"
+     ]
+    }
+   ]
+  },
+  "hull_from_hi": {
+   "cases": 12000,
+   "failing_cases": 115,
+   "h1_h3_mismatches": 66,
+   "example": [
+    {
+     "snapshot": 0,
+     "request": 0,
+     "patient": "0-013",
+     "form": "H3",
+     "shape": "one event twice",
+     "wrong": [
+      "none, but the unrelaxed query is possible"
+     ]
+    }
+   ]
+  },
+  "nth_off_by_one": {
+   "cases": 12000,
+   "failing_cases": 363,
+   "h1_h3_mismatches": 132,
+   "example": [
+    {
+     "snapshot": 0,
+     "request": 0,
+     "patient": "0-005",
+     "form": "H3",
+     "shape": "one event twice",
+     "wrong": [
+      "excluded, but some world places a period"
+     ]
+    }
+   ]
+  },
+  "nth_counts_mentions": {
+   "cases": 12000,
+   "failing_cases": 22,
+   "h1_h3_mismatches": 10,
+   "example": [
+    {
+     "snapshot": 1,
+     "request": 6,
+     "patient": "1-001",
+     "form": "H3",
+     "shape": "event+span",
+     "wrong": [
+      "none, but the unrelaxed query is possible"
+     ]
+    }
+   ]
+  }
+ },
+ "rule": "D52b rule 1 (D52's): each planted defect fails at least one case",
+ "met": true,
+ "artifacts": {
+  "tools/d52_measure.py": "062ab7e8988160136b28192e5c81c16a1ffc45314c2039f1f6158712aec1952e",
+  "demos/mockups/index_anchor_reference.py": "a1a6027e783662d4d7d787ea089c4e8773cc76848bda42a20e2ef1dcad589069",
+  "demos/mockups/index_hull.py": "3bfdb432bc5385afe22267840a9433004152e78454c9d40e1708d9f18a641faa",
+  "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
+  "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
+  "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
+  "patterns/store_conditions_counts.py": "db08318aeb4050f71bb372356b05b8eb433c62a0fcd50938c8ba1df3dcbb9fcf",
+  "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182",
+  "patterns/trajectory_graph_worlds.py": "c6c75b29e2206ee7743efa1c903c84d9806c6eb60fa1a29039376fb21bfbcdac",
+  "patterns/trajectory_times.py": "07e01e290f48839a89bb15b0fad041c9021c1cec709d8dd128b15ecee375233b",
+  "patterns/temporal_stn.py": "e0daa63c5c10fab8bcc089e0fa615c2d48f177bdc38b8057e27a2f480ddafe9e"
+ },
+ "contains_patient_level_data": false
+}
