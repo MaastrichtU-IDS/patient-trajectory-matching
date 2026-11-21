@@ -6242,7 +6242,7 @@ Its prototypes, measured against D52b's answers per patient: c1 saves 1.8 to 3.3
 
 ## D52d D52c retried: the same code, with rule 3b's `decided` class granted for c2 too, on fresh seeds, under rules fixed before measuring
 
-*Status:* **code checkpoint: the one change and the rules committed, nothing measured** (for the coordinator's inline check of the rule and classifier diffs).
+*Status:* **checked at the checkpoint, nothing measured yet**: the coordinator, as delegate, checked the rule and classifier diffs inline (the two-way compatibility guard kept, the H1-contradiction case refused by the new test, the seeds fresh). Rebased onto main 261f72f, the merge of D52c's record (PR #179), whose code is c977303's; the census's `--base` stays c977303 for that reason.
 
 **Why.** D52c (retry base `d52c-retry-base`, 3935523) met every rule but rule 3, which missed as written: rule 3b's census arm left 20 of 24,480 changed results unexplained. All 20 were changed by c2 alone (the hidden first seizure merged into A, the first seizure, in "first seizure then a febrile seizure" under the scopes `any` and `within`, 10 patients each): 6 `unresolved` (`OCCURRENCE_ORDER_UNCERTAIN`) became `possible`, and 4 incomplete `none` or `relaxed` became complete `relaxed`. Each was compatible, both ways, with the unsimplified answer and with H1 over the base windows; the committed class text granted `decided` only where c1 or c3 applied. The coordinator, as delegate, accepted D52c's record (the miss depends on the data, so the conflicting-provisions rule does not cover it), signed off the freeze of D52c's six reports, and asked for D52d: D52c's code with this one change, on fresh seeds.
 
