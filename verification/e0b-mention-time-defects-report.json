@@ -151,7 +151,7 @@
  "met": true,
  "artifacts": {
   "tools/e0_measure.py": "c1cd6a6db1643fe5e75cdd534b0cdee341defd58a609391fb728c5bd6f345966",
-  "demos/mockups/e0_requests.cjs": "e4381a461a9a32cfa064c246a8b72978edd9a047a9c1b116f29770e3760ec9a0",
+  "demos/mockups/e0_requests.cjs": "0e6bd32361af5b502af7ca1236e6136b4a383a03b533384ac67ff1341332585f",
   "patterns/mention_time.py": "bb779fdf0559560fed0fd33113fada4bdb52d495520c011986b2c3932cc9c982",
   "patterns/synthetic_mentions.py": "6231d82f9992367b1846b0a17ce81330cc6b3f2a7272fbeb78319a8b9c4f844e",
   "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
@@ -159,8 +159,8 @@
   "demos/mockups/store_parity.py": "45c8de14a85b6fad4b42ef0fbce067f051a402338eb613c3200c2b49dc904bed",
   "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
   "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
-  "demos/mockups/trajectory/app.js": "4dc9bdbe04167c45e023729b5ab60cc4b484303a18ae8a7aff8daffea6679149",
-  "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
+  "demos/mockups/trajectory/app.js": "2348c1ff8970ca905970ec8f721b3a8ab85423925791c4a67aea0b255478b9da",
+  "demos/mockups/trajectory/store_request.js": "e68a067840085773139868aa76fc3a517b03803bf69589756637e8ad054f1d21",
   "patterns/execution_store.py": "f0d4f571a84c813f2bcbec93252c2120d791bcf8da5fecae1f076a078cb1abff",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/trajectory_graph.py": "0e983c63310d769f0cef26c0f2637cc7b77a6fe85eeec4353e275951f8276182"

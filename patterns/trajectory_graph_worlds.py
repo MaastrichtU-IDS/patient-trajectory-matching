@@ -40,20 +40,16 @@ import math
 
 INF = math.inf
 MAY_MAKE_EXACT = 'EXCLUDED_RECORDS_MAY_MAKE_EXACT'
-# D52c: the server's existential anchor (index_simplify_v1, c3) withdraws a `possible` claim that no binding is exact
-# for a patient whose records could make the first event exact through different records in different worlds.
-ANCHOR_ORDER_MAY_MAKE_EXACT = 'ANCHOR_ORDER_MAY_MAKE_EXACT'
 
 
 def claims_no_exact(m, whole, result=None):
     """Whether a `possible` result, or a match beside `unresolved` with certainty `possible`, still claims that no binding
-    of its set is exact (D44): unless its note says the exact search stopped or (D52c) that the uncertain first event of
-    an existential anchor may make it exact, or, over the whole source (`whole`), that
+    of its set is exact (D44): unless its note says the exact search stopped, or, over the whole source (`whole`), that
     a record the store left out may make it exact. With `result` (the `unresolved` result `m` stands beside; D48b), also
     unless `m` is the relaxed match beside an `unresolved` result whose reason is `SEARCH_BUDGET_EXHAUSTED`: its own exact
     search may have stopped, and nothing says so. A `relaxed` result is read by `stopped_relaxed`, not here."""
     notes = set((m.get('note') or '').split('; '))
-    if 'EXACT_SEARCH_STOPPED' in notes or ANCHOR_ORDER_MAY_MAKE_EXACT in notes or (whole and MAY_MAKE_EXACT in notes):
+    if 'EXACT_SEARCH_STOPPED' in notes or (whole and MAY_MAKE_EXACT in notes):
         return False
     if result is not None and result['status'] == 'unresolved' and m is result.get('relaxed_match') \
             and result.get('reason') == 'SEARCH_BUDGET_EXHAUSTED':
