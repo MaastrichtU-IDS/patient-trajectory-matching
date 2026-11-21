@@ -25,7 +25,10 @@ const {execFileSync} = require('node:child_process');
 
 const here = __dirname, root = path.resolve(here, '../..');
 const python = process.env.PYTHON || 'python';
-const cohort = path.join(here, 'data/synthetic-paediatric-rare.json');
+// A development cohort (STORE_PARITY_COHORT, diagnostics only, D52): every rule runs, but the tables pinned to the
+// committed cohort (the differences, the sweep tally) are printed instead of compared.
+const DEV_COHORT = process.env.STORE_PARITY_COHORT;
+const cohort = DEV_COHORT ? path.resolve(DEV_COHORT) : path.join(here, 'data/synthetic-paediatric-rare.json');
 // D44: the child's stdin is a regular file holding `input` (empty without one), never a pipe. Once, the `sweep` child sat
 // in its read of stdin for about 30 minutes and passed on a rerun. A read of a regular file ends at the file's end
 // whatever any other process holds open, so no read can wait on a writer; and a call that still hangs fails after
@@ -103,6 +106,7 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     'the second-to-last seizure, then levetiracetam': {scope: 'any', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'seizure', occ: 'nth_last', n: 2}, {id: 'B', concept: 'levetiracetam', occ: 'any'}],
       edges: [{from: 'A', to: 'B', rel: 'after', min: -12, max: 12, unit: 'month'}]},
+    // D52: a count "in the index period" keeps D49's point window (INDEX_PERIOD_COUNT_UNSUPPORTED, the point table below).
     'at least 2 febrile seizures in the index period': {scope: 'within', window, freeText: 'off',
       nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []},
     // D33: the page's three rise templates, with the page's own window, scope and free-text setting. The tree and graph
@@ -148,19 +152,26 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
       const pids = [...state.patients.keys()], byId = nodeById(def);
       // The page's own call (D49): no options. Rises (D36), gene steps (D38), "coded only" as the store's profile 1.3
       // (D39) and gene steps under it as the joint profile (D42) are all the translator's defaults since D49.
-      const {query, conditions, windows} = storeRequest(def, state.freeText, pids);
+      const {query, conditions, windows, index} = storeRequest(def, state.freeText, pids);
       const own = (conditions || {steps: {}}).steps;
       const wanted = {};
       for (const n of def.nodes) wanted['step:' + n.id] = {concept: n.concept, ...(own[n.id] && own[n.id].unit ? {condition: own[n.id]} : {}),
         ...(own[n.id] && own[n.id].relative ? {relative: own[n.id].relative} : {}), ...(own[n.id] && own[n.id].gene ? {gene: true} : {})};
+      // D52: the hidden steps that place an event's period (the replay binds them as the store does).
+      for (const st of query.steps) if (st.id.startsWith('@index_')) wanted['step:' + st.id] = {concept: st.concept};
       for (const x of query.relaxations) if (x.kind === 'widen_concept') wanted[x.id] = {concept: x.concept};
       for (const x of (conditions || {}).relaxations || []) {
         if (x.kind === 'widen_value') wanted[x.id] = {concept: byId[x.step].concept, condition: x.condition};
         else if (x.kind === 'widen_factor') wanted[x.id] = {concept: byId[x.step].concept, relative: {...own[x.step].relative, factor: x.factor}};
         else if (x.concept) wanted[x.id] = {concept: x.concept};
       }
-      return {name, query, conditions, windows, candidates: wanted};
+      return {name, query, conditions, windows, ...(index ? {index} : {}), candidates: wanted};
     });
+  };
+  // D52 (review, S2): why a period placed by an event keeps D49's point window, or null when it is rewritten.
+  var pointOf = function (def, freeText, options) {
+    const r = storeRequest(def, freeText, [...state.patients.keys()].slice(0, 1), options);
+    return r.index_anchor ? r.index_anchor.reason : r.index ? 'rewritten' : 'the D49 request';
   };
   var refusalOf = function (def, freeText, options) {
     try { storeRequest(def, freeText, [...state.patients.keys()].slice(0, 1), options); return null; } catch (e) { if (e.code) return e.code; throw e; }
@@ -184,6 +195,20 @@ vm.runInContext(fs.readFileSync(path.join(here, 'shared/core.js'), 'utf8') + '\n
     for (const n of def.nodes) add('step:' + n.id, plain(n), new Set());
     for (const o of relaxOptions(def)) if (o.key.startsWith('node:')) add(o.key, plain(byId[o.key.slice(5)]), new Set([o.key]));
     return out;
+  }); };
+  // D52: the page's own placement for a patient (its reason, its anchors and last contact, in grid minutes), for the
+  // declared cause "index anchor".
+  var pageIndex = function (name, pid) { return withFreeText(name, () => {
+    const def = {...defaultDef(), ...CASES[name]}, q = {freeText: state.freeText, knownByIndex: false};
+    const w = windowFor(evidenceFor(pid), {...q, window: def.window}), anchors = {};
+    for (const side of ['start', 'end']) {
+      const b = def.window[side];
+      if (b.kind !== 'event') continue;
+      const d = eventDay(indexViewFor(pid), q, b.event, b.which, b.n);
+      anchors[side] = d == null ? null : toGrid(d);
+    }
+    const p = state.patients.get(pid);
+    return {reason: w.reason || null, anchors, last: toGrid(dayOf(p, p.follow_up.last_contact))};
   }); };
   var occurrenceOf = function (name, key) {
     const def = {...defaultDef(), ...CASES[name]}, n = nodeById(def)[key.split(':')[1]];
@@ -242,8 +267,34 @@ function storeList(events, occ) {
   const picked = occ === 'first' ? sorted.slice(0, 1) : occ === 'last' ? latest.slice(-1) : sorted;
   return picked.map(e => ({t: t(e), kind: e[5], id: e[4]}));
 }
-function causes(name, pid, pageStatus, storeResult, storeCands, pageReason) {
-  if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return ['coverage'];
+/* D52: the store places an event's period from its own records (a hidden step), the page at one time. Declared for a
+   patient only when that can differ: the page or the store (and not both) cannot place the period; a hidden step's
+   possible range is not exactly the page's point; some worlds end the period after the last contact (or before birth,
+   or before it starts); or the period's start may fall before birth (a gap from the start is measured from the event
+   plus its offset, unclamped; D52, Q2). */
+function indexAnchorDiffers(name, pid, storeResult, ir, index) {
+  if (!ir) return false;
+  const page = vm.runInContext(`pageIndex(${JSON.stringify(name)}, ${JSON.stringify(pid)})`, context);
+  if (!!page.reason !== (storeResult.status === 'excluded')) return true;
+  if (storeResult.status === 'excluded') return false;
+  const range = step => (ir.ranges[step] || {})[pid] || [0, null, null];
+  const bound = step => step === '@index_start' ? 'start' : 'end';
+  for (const step of new Set(['start', 'end'].filter(x => index[x]).map(x => index[x].step))) {
+    const [, lo, hi] = range(step), at = page.anchors[bound(step)];
+    if (lo === null || at === null || at === undefined || lo !== hi || at !== lo) return true;
+  }
+  const base = ir.base_windows[pid], side = (x, c) => index[x] ? [range(index[x].step)[1] + index[x].offset, range(index[x].step)[2] + index[x].offset] : [c, c];
+  const S = side('start', base.start), E = side('end', base.end);
+  // Eligibility in some worlds only: the period may end after the last contact or before birth, or before it starts.
+  const partial = (index.end && (E[1] > page.last || E[0] < 0)) || (!(index.start && index.end && index.start.step === index.end.step) && S[1] >= E[0]);
+  // The clamp (D52, Q2): the period's start may fall before birth, where a gap from it is measured from the event plus
+  // its offset (the store) and from birth (the page).
+  const clamp = !!index.start && S[0] < 0;
+  return partial || clamp;
+}
+function causes(name, pid, pageStatus, storeResult, storeCands, pageReason, ir, index) {
+  const anchor = indexAnchorDiffers(name, pid, storeResult, ir, index);
+  if (COVERAGE.includes(storeResult.reason) && pageStatus === 'none') return anchor ? ['coverage', 'index-anchor'] : ['coverage'];
   const page = vm.runInContext(`pageCandidates(${JSON.stringify(name)}, ${JSON.stringify(pid)}, true)`, context);
   const out = new Set();
   // D33: the page's own observability check for a measurement after an earlier step (binding-specific, page-only).
@@ -271,6 +322,7 @@ function causes(name, pid, pageStatus, storeResult, storeCands, pageReason) {
     const records = onlyStore.some(x => x.kind !== 'mention') || onlyPage.some(x => !x.mention);
     if (records) out.add(kind === 'medicine' ? 'medication-records' : 'record-reconciliation');
   }
+  if (anchor) out.add('index-anchor');
   return out.size ? [...out].sort() : ['UNEXPLAINED'];
 }
 
@@ -280,7 +332,10 @@ const snapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.
 const names = vm.runInContext('Object.keys(CASES)', context);
 const cases = names.map(name => vm.runInContext(`storeCase(${JSON.stringify(name)}, {...defaultDef(), ...CASES[${JSON.stringify(name)}]})`, context));
 if (process.env.STORE_PARITY_CASES) fs.writeFileSync(process.env.STORE_PARITY_CASES, JSON.stringify({cohort, cases}));  // diagnostics
-const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases})));
+// D52: each case whose period is a hidden step has its base windows narrowed by the server's rule first (index_hull.py).
+const narrowed = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', snapshot], JSON.stringify({cohort, cases}))).cases;
+const indexOf = Object.fromEntries(narrowed.filter(c => c.index_result).map(c => [c.name, {ir: c.index_result, index: c.index}]));
+const store = JSON.parse(run([path.join(here, 'store_parity.py'), 'match', snapshot], JSON.stringify({cohort, cases: narrowed})));
 fs.rmSync(scratch, {recursive: true, force: true});
 
 const STATUS = {incomparable: 'not_comparable'};
@@ -313,7 +368,8 @@ for (const name of names) {
       assert.ok(store[name + '#with_candidate'].includes(r.pid), `${name} ${r.pid}: unresolved without a candidate`);
     }
     if (a === b) { agree += 1; continue; }
-    const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates'], r.reason);
+    const why = causes(name, r.pid, STATUS[r.status] || r.status, store[name][r.pid], store[name + '#candidates'], r.reason,
+                       (indexOf[name] || {}).ir, (indexOf[name] || {}).index);
     found[name][r.pid] = `${why.join('+')}: page ${a}, store ${b}`;
     for (const w of why) summary[w] = (summary[w] || 0) + 1;
   }
@@ -321,126 +377,209 @@ for (const name of names) {
 if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify(found, null, 1));
 
 /* Every difference on the committed seed, with its cause. A new difference, a vanished one or a changed cause fails:
-   regenerate the cohort, read the new causes, and update this table and the README together. */
+   regenerate the cohort, read the new causes, and update this table and the README together. Re-pinned in D52 (rule 5)
+   from the test's run under the bench lock: the store places an event's period from its own records (`index-anchor`). */
 const EXPECTED = {
   "febrile seizure, then a sodium-channel blocker": {
-    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C004: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C008: "letter-mentions+medication-records+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C021: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C023: "letter-mentions+medication-records: page exact, store possible",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0+node:A, store relaxed possible node:A",
-    C044: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C045: "letter-mentions+medication-records+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C004: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C008: "index-anchor+letter-mentions+medication-records+record-reconciliation: page relaxed exact node:A, store none",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store none",
+    C021: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page exact, store unresolved",
+    C024: "index-anchor: page excluded, store none",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store none",
+    C038: "index-anchor+letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0+node:A, store none",
+    C044: "index-anchor+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C045: "index-anchor+letter-mentions+medication-records+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
   },
   "first seizure branching to a blocker and to stiripentol": {
-    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C004: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C021: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C023: "letter-mentions+medication-records: page exact, store possible",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C044: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C004: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store none",
+    C021: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page exact, store unresolved",
+    C024: "index-anchor: page excluded, store none",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store none",
+    C044: "index-anchor+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
   },
   "a seizure while taking the first blocker": {
-    C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C008: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
-    C021: "letter-mentions+medication-records: page exact, store possible",
-    C023: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C036: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
-    C038: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C044: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
-    C045: "letter-mentions+medication-records: page exact, store possible",
+    C001: "index-anchor+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C004: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C008: "index-anchor+letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C016: "index-anchor: page excluded, store none",
+    C021: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C023: "index-anchor+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C024: "index-anchor: page excluded, store none",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
+    C037: "index-anchor: page excluded, store none",
+    C038: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C044: "index-anchor+letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C045: "index-anchor+letter-mentions+medication-records: page exact, store possible",
   },
   "Dravet syndrome, then valproate": {
     C001: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
     C029: "letter-mentions+medication-records: page exact, store possible",
   },
   "levetiracetam, then the last recorded seizure": {
-    C003: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
-    C008: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C010: "letter-mentions+medication-records+record-reconciliation: page none, store possible",
-    C026: "letter-mentions+medication-records: page exact, store possible",
-    C030: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C033: "letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0, store relaxed possible edge:0",
-    C038: "letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0, store relaxed possible edge:0",
-    C045: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C048: "letter-mentions+medication-records: page relaxed exact edge:0, store relaxed possible edge:0",
+    C003: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page none, store unresolved",
+    C008: "index-anchor+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C010: "index-anchor+letter-mentions+medication-records+record-reconciliation: page none, store possible",
+    C016: "index-anchor: page excluded, store none",
+    C024: "index-anchor: page excluded, store none",
+    C026: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C030: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C033: "index-anchor+letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0, store relaxed possible edge:0",
+    C037: "index-anchor: page excluded, store none",
+    C038: "index-anchor+letter-mentions+medication-records+record-reconciliation: page relaxed exact edge:0, store relaxed possible edge:0",
+    C045: "index-anchor+letter-mentions+medication-records+record-reconciliation: page exact, store possible",
+    C048: "index-anchor+letter-mentions+medication-records: page relaxed exact edge:0, store none",
   },
   "status epilepticus within 6 months of the period start": {
-    C002: "letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
-    C009: "letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
-    C014: "letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
-    C023: "letter-mentions+record-reconciliation: page relaxed exact edge:0, store possible",
-    C033: "letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C001: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C002: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C003: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C004: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C006: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C014: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C015: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C016: "index-anchor: page excluded, store relaxed possible node:A",
+    C017: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C018: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C019: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C022: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C023: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact edge:0, store possible",
+    C024: "index-anchor: page excluded, store relaxed possible node:A",
+    C025: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C027: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C028: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C029: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C031: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C032: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C033: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C034: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C036: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C037: "index-anchor: page excluded, store relaxed possible node:A",
+    C038: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C039: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C040: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
+    C042: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:A, store relaxed possible node:A",
+    C044: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C047: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C048: "index-anchor+letter-mentions: page relaxed exact node:A, store relaxed possible node:A",
   },
   "two seizures then a febrile seizure": {
-    C001: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
-    C004: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
-    C005: "letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
-    C008: "letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
-    C017: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
-    C021: "letter-mentions: page relaxed exact node:C, store possible",
-    C023: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
-    C026: "letter-mentions: page none, store relaxed possible node:C",
-    C027: "letter-mentions+record-reconciliation: page exact, store possible",
-    C028: "letter-mentions+record-reconciliation: page none, store possible",
-    C030: "letter-mentions: page none, store relaxed possible node:C",
-    C031: "letter-mentions+record-reconciliation: page none, store possible",
-    C036: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
-    C044: "letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
-    C045: "letter-mentions: page none, store relaxed possible node:C",
+    C001: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C004: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C005: "index-anchor+letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
+    C008: "index-anchor+letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
+    C016: "index-anchor: page excluded, store possible",
+    C017: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C021: "index-anchor+letter-mentions: page relaxed exact node:C, store possible",
+    C023: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C024: "index-anchor: page excluded, store possible",
+    C026: "index-anchor+letter-mentions: page none, store relaxed possible node:C",
+    C027: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C028: "index-anchor+letter-mentions+record-reconciliation: page none, store possible",
+    C030: "index-anchor+letter-mentions: page none, store relaxed possible node:C",
+    C031: "index-anchor+letter-mentions+record-reconciliation: page none, store possible",
+    C036: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C037: "index-anchor: page excluded, store possible",
+    C043: "index-anchor+letter-mentions+record-reconciliation: page none, store relaxed possible node:C",
+    C044: "index-anchor+letter-mentions+record-reconciliation: page relaxed exact node:C, store possible",
+    C045: "index-anchor+letter-mentions: page none, store relaxed possible node:C",
   },
   "a blocker, then at least 8 seizures a month within 60 days": {
-    C001: "letter-mentions+medication-records: page exact, store possible",
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C014: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records: page exact, store possible",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C023: "letter-mentions+medication-records: page exact, store possible",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records: page exact, store possible",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C045: "letter-mentions+medication-records: page exact, store possible",
-    C048: "coverage: page none, store not_comparable",
+    C001: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "coverage+index-anchor: page none, store not_comparable",
+    C015: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C019: "coverage+index-anchor: page none, store not_comparable",
+    C020: "coverage+index-anchor: page none, store not_comparable",
+    C023: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C025: "coverage+index-anchor: page none, store not_comparable",
+    C026: "coverage+index-anchor: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
+    C030: "coverage+index-anchor: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
+    C033: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C036: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
+    C045: "index-anchor+letter-mentions+medication-records: page exact, store possible",
+    C048: "coverage+index-anchor: page none, store not_comparable",
   },
-  "at most 2 seizures a month inside the period": {},
+  "at most 2 seizures a month inside the period": {
+    C016: "index-anchor: page excluded, store not_comparable",
+    C017: "index-anchor: page exact, store possible",
+    C018: "index-anchor: page exact, store possible",
+    C022: "index-anchor: page exact, store possible",
+    C023: "index-anchor: page exact, store possible",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C032: "index-anchor: page exact, store possible",
+    C034: "index-anchor: page exact, store possible",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C039: "index-anchor: page exact, store possible",
+  },
   "weight at most 9 kg inside the period": {
-    C006: "measurement-records: page none, store not_comparable",
-    C019: "measurement-records: page relaxed exact node:A, store unresolved  node:A",
-    C022: "measurement-records: page none, store not_comparable",
-    C028: "measurement-records: page none, store not_comparable",
+    C002: "index-anchor: page exact, store possible",
+    C006: "index-anchor+measurement-records: page none, store not_comparable",
+    C009: "index-anchor: page exact, store possible",
+    C010: "index-anchor+measurement-records: page none, store not_comparable",
+    C014: "index-anchor: page none, store relaxed possible node:A",
+    C016: "index-anchor: page excluded, store none",
+    C017: "index-anchor: page exact, store possible",
+    C019: "index-anchor+measurement-records: page relaxed exact node:A, store unresolved  node:A",
+    C022: "index-anchor+measurement-records: page none, store not_comparable",
+    C024: "index-anchor: page excluded, store relaxed possible node:A",
+    C028: "index-anchor+measurement-records: page none, store not_comparable",
+    C029: "index-anchor: page exact, store possible",
+    C037: "index-anchor: page excluded, store relaxed possible node:A",
+    C044: "index-anchor: page exact, store possible",
   },
   "the event-frequency template": {
-    C004: "count-timing+medication-records+record-reconciliation: page possible, store exact",
-    C008: "count-timing+record-reconciliation: page relaxed exact count:A, store exact",
-    C015: "count-timing+medication-records+record-reconciliation: page exact, store possible",
-    C023: "count-timing+record-reconciliation: page none, store relaxed possible count:A",
+    C004: "count-timing+index-anchor+medication-records+record-reconciliation: page possible, store exact",
+    C008: "count-timing+index-anchor+record-reconciliation: page relaxed exact count:A, store exact",
+    C014: "index-anchor: page excluded, store none",
+    C015: "count-timing+index-anchor+medication-records+record-reconciliation: page exact, store possible",
+    C016: "index-anchor: page excluded, store none",
+    C023: "count-timing+index-anchor+record-reconciliation: page none, store relaxed possible count:A",
+    C024: "index-anchor: page excluded, store none",
+    C037: "index-anchor: page excluded, store none",
   },
   "the second seizure, then a sodium-channel blocker": {
-    C008: "occurrence-envelope+record-reconciliation: page exact, store possible",
-    C023: "occurrence-envelope+record-reconciliation: page none, store possible",
+    C001: "index-anchor+medication-records+occurrence-envelope+record-reconciliation: page exact, store unresolved",
+    C004: "index-anchor+medication-records+occurrence-envelope+record-reconciliation: page exact, store unresolved",
+    C008: "index-anchor+occurrence-envelope+record-reconciliation: page exact, store unresolved",
+    C014: "index-anchor: page excluded, store none",
+    C016: "index-anchor: page excluded, store none",
+    C023: "index-anchor+occurrence-envelope+record-reconciliation: page none, store unresolved",
+    C024: "index-anchor: page excluded, store none",
+    C037: "index-anchor: page excluded, store none",
   },
   "the second-to-last seizure, then levetiracetam": {
+    C014: "index-anchor: page excluded, store none",
+    C016: "index-anchor: page excluded, store none",
     C022: "medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
+    C024: "index-anchor: page excluded, store none",
     C032: "medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
     C033: "medication-records+occurrence-envelope: page none, store exact",
+    C037: "index-anchor: page excluded, store none",
     C038: "medication-records+occurrence-envelope+record-reconciliation: page none, store exact",
     C048: "medication-records+occurrence-envelope: page none, store exact",
   },
@@ -459,322 +598,305 @@ const EXPECTED = {
     C043: "count-timing+record-reconciliation: page none, store relaxed possible node:A",
   },
   "the sequence template (a rise)": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C014: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+medication-records+record-reconciliation: page none, store relaxed possible node:A+node:C",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "coverage+index-anchor: page none, store not_comparable",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C019: "coverage+index-anchor: page none, store not_comparable",
+    C020: "coverage+index-anchor: page none, store not_comparable",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page possible, store unresolved",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C025: "coverage+index-anchor: page none, store not_comparable",
+    C026: "coverage+index-anchor: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
+    C030: "coverage+index-anchor: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
+    C033: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
+    C048: "coverage+index-anchor: page none, store not_comparable",
   },
   "the tree template without its gene step": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C014: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+medication-records+record-reconciliation: page none, store relaxed possible node:D",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "coverage+index-anchor: page none, store not_comparable",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C019: "coverage+index-anchor: page none, store not_comparable",
+    C020: "coverage+index-anchor: page none, store not_comparable",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page possible, store unresolved",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C025: "coverage+index-anchor: page none, store not_comparable",
+    C026: "coverage+index-anchor: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
+    C030: "coverage+index-anchor: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
+    C033: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
+    C048: "coverage+index-anchor: page none, store not_comparable",
   },
   "the graph template without its gene step": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C014: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "coverage+index-anchor: page none, store not_comparable",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C019: "coverage+index-anchor: page none, store not_comparable",
+    C020: "coverage+index-anchor: page none, store not_comparable",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page possible, store unresolved",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C025: "coverage+index-anchor: page none, store not_comparable",
+    C026: "coverage+index-anchor: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
+    C030: "coverage+index-anchor: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
+    C033: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
+    C048: "coverage+index-anchor: page none, store not_comparable",
   },
-  // D37: the Blank template. Letter mentions range from birth in the store, so its first seizure is rarely certain.
   "the blank template (the first seizure)": {
-    C001: "letter-mentions+record-reconciliation: page exact, store possible",
-    C002: "letter-mentions: page exact, store possible",
-    C003: "letter-mentions+record-reconciliation: page exact, store possible",
-    C004: "letter-mentions+record-reconciliation: page exact, store possible",
-    C005: "letter-mentions+record-reconciliation: page exact, store possible",
-    C006: "letter-mentions+record-reconciliation: page exact, store possible",
-    C008: "letter-mentions+record-reconciliation: page exact, store possible",
-    C009: "letter-mentions: page exact, store possible",
-    C010: "letter-mentions+record-reconciliation: page exact, store possible",
-    C014: "letter-mentions: page exact, store possible",
-    C015: "letter-mentions+record-reconciliation: page exact, store possible",
-    C017: "letter-mentions: page exact, store possible",
-    C018: "letter-mentions+record-reconciliation: page exact, store possible",
-    C019: "letter-mentions+record-reconciliation: page exact, store possible",
-    C020: "letter-mentions+record-reconciliation: page exact, store possible",
-    C021: "letter-mentions+record-reconciliation: page exact, store possible",
-    C022: "letter-mentions+record-reconciliation: page exact, store possible",
-    C023: "letter-mentions: page exact, store possible",
-    C025: "letter-mentions+record-reconciliation: page exact, store possible",
-    C026: "letter-mentions+record-reconciliation: page exact, store possible",
-    C027: "letter-mentions+record-reconciliation: page exact, store possible",
-    C028: "letter-mentions+record-reconciliation: page exact, store possible",
-    C029: "letter-mentions: page exact, store possible",
-    C030: "letter-mentions+record-reconciliation: page exact, store possible",
-    C031: "letter-mentions+record-reconciliation: page exact, store possible",
-    C032: "letter-mentions+record-reconciliation: page exact, store possible",
-    C033: "letter-mentions: page exact, store possible",
-    C034: "letter-mentions+record-reconciliation: page exact, store possible",
-    C035: "letter-mentions+record-reconciliation: page exact, store possible",
-    C036: "letter-mentions+record-reconciliation: page exact, store possible",
-    C038: "letter-mentions+record-reconciliation: page exact, store possible",
-    C039: "letter-mentions+record-reconciliation: page exact, store possible",
-    C040: "letter-mentions+record-reconciliation: page exact, store possible",
-    C041: "letter-mentions+record-reconciliation: page exact, store possible",
-    C042: "letter-mentions+record-reconciliation: page exact, store possible",
-    C043: "letter-mentions+record-reconciliation: page exact, store possible",
-    C044: "letter-mentions+record-reconciliation: page exact, store possible",
-    C045: "letter-mentions+record-reconciliation: page exact, store possible",
-    C047: "letter-mentions+record-reconciliation: page exact, store possible",
-    C048: "letter-mentions+record-reconciliation: page exact, store possible",
+    C014: "index-anchor+letter-mentions: page exact, store possible",
+    C016: "index-anchor: page excluded, store possible",
+    C018: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C024: "index-anchor: page excluded, store possible",
+    C034: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C035: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
+    C037: "index-anchor: page excluded, store possible",
+    C039: "index-anchor+letter-mentions+record-reconciliation: page exact, store possible",
   },
-  // D38: the tree and graph templates with their gene step.
   "the tree template": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C009: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C014: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C018: "coverage: page none, store not_comparable",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C034: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C039: "coverage: page none, store not_comparable",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "coverage+index-anchor: page none, store not_comparable",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C019: "coverage+index-anchor: page none, store not_comparable",
+    C020: "coverage+index-anchor: page none, store not_comparable",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page possible, store unresolved",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C025: "coverage+index-anchor: page none, store not_comparable",
+    C026: "coverage+index-anchor: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
+    C030: "coverage+index-anchor: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
+    C033: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
+    C048: "coverage+index-anchor: page none, store not_comparable",
   },
   "the graph template": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C009: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C014: "coverage: page none, store not_comparable",
-    C015: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C018: "coverage: page none, store not_comparable",
-    C019: "coverage: page none, store not_comparable",
-    C020: "coverage: page none, store not_comparable",
-    C025: "coverage: page none, store not_comparable",
-    C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
-    C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
-    C033: "coverage: page none, store not_comparable",
-    C034: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "letter-mentions+medication-records+record-reconciliation: page exact, store possible",
-    C039: "coverage: page none, store not_comparable",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
-    C048: "coverage: page none, store not_comparable",
+    C001: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page possible, store unresolved",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "coverage+index-anchor: page none, store not_comparable",
+    C015: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C019: "coverage+index-anchor: page none, store not_comparable",
+    C020: "coverage+index-anchor: page none, store not_comparable",
+    C023: "index-anchor+letter-mentions+medication-records+order-uncertain: page possible, store unresolved",
+    C024: "index-anchor: page excluded, store not_comparable",
+    C025: "coverage+index-anchor: page none, store not_comparable",
+    C026: "coverage+index-anchor: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
+    C030: "coverage+index-anchor: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
+    C033: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C036: "index-anchor+letter-mentions+medication-records+order-uncertain+record-reconciliation: page exact, store unresolved",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
+    C048: "coverage+index-anchor: page none, store not_comparable",
   },
-  // D39: the templates under "coded only", letter mentions left out of every step on both sides.
   "the sequence template, coded only": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "index-anchor: page excluded, store not_comparable",
+    C016: "index-anchor: page excluded, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
+    C024: "index-anchor: page excluded, store not_comparable",
     C025: "coverage: page none, store not_comparable",
     C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
     C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "record-reconciliation: page exact, store possible",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
   "the tree template without its gene step, coded only": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "index-anchor: page excluded, store not_comparable",
+    C016: "index-anchor: page excluded, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
+    C024: "index-anchor: page excluded, store not_comparable",
     C025: "coverage: page none, store not_comparable",
     C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
     C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "record-reconciliation: page exact, store possible",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
   "the graph template without its gene step, coded only": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C015: "medication-records: page exact, store possible",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "index-anchor: page excluded, store not_comparable",
+    C015: "index-anchor+medication-records: page exact, store possible",
+    C016: "index-anchor: page excluded, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
+    C024: "index-anchor: page excluded, store not_comparable",
     C025: "coverage: page none, store not_comparable",
     C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
     C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "medication-records+record-reconciliation: page exact, store possible",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
   "the blank template, coded only": {
-    C001: "record-reconciliation: page exact, store possible",
-    C003: "record-reconciliation: page exact, store possible",
-    C004: "record-reconciliation: page exact, store possible",
-    C006: "record-reconciliation: page exact, store possible",
-    C008: "record-reconciliation: page exact, store possible",
-    C018: "record-reconciliation: page exact, store possible",
-    C023: "record-reconciliation: page exact, store possible",
-    C027: "record-reconciliation: page exact, store possible",
-    C031: "record-reconciliation: page exact, store possible",
-    C034: "record-reconciliation: page exact, store possible",
-    C036: "record-reconciliation: page exact, store possible",
-    C039: "record-reconciliation: page exact, store possible",
-    C041: "record-reconciliation: page exact, store possible",
-    C042: "record-reconciliation: page exact, store possible",
-    C047: "record-reconciliation: page exact, store possible",
+    C014: "index-anchor: page excluded, store none",
+    C016: "index-anchor: page excluded, store none",
+    C024: "index-anchor: page excluded, store none",
+    C037: "index-anchor: page excluded, store none",
   },
-  // D42: the tree and graph templates under "coded only", gene step included (the joint profile).
   "the tree template, coded only": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C018: "coverage: page none, store not_comparable",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "index-anchor: page excluded, store not_comparable",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C018: "coverage+index-anchor: page none, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
+    C024: "index-anchor: page excluded, store not_comparable",
     C025: "coverage: page none, store not_comparable",
     C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
     C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
-    C034: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "record-reconciliation: page exact, store possible",
-    C039: "coverage: page none, store not_comparable",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
+    C034: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C039: "coverage+index-anchor: page none, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
   "the graph template, coded only": {
-    C002: "coverage: page none, store not_comparable",
-    C003: "coverage: page none, store not_comparable",
-    C005: "coverage: page none, store not_comparable",
-    C006: "coverage: page none, store not_comparable",
-    C008: "coverage: page none, store not_comparable",
-    C010: "coverage: page none, store not_comparable",
-    C015: "medication-records: page exact, store possible",
-    C018: "coverage: page none, store not_comparable",
+    C002: "coverage+index-anchor: page none, store not_comparable",
+    C003: "coverage+index-anchor: page none, store not_comparable",
+    C005: "coverage+index-anchor: page none, store not_comparable",
+    C006: "coverage+index-anchor: page none, store not_comparable",
+    C008: "coverage+index-anchor: page none, store not_comparable",
+    C010: "coverage+index-anchor: page none, store not_comparable",
+    C014: "index-anchor: page excluded, store not_comparable",
+    C015: "index-anchor+medication-records: page exact, store possible",
+    C016: "index-anchor: page excluded, store not_comparable",
+    C018: "coverage+index-anchor: page none, store not_comparable",
     C019: "coverage: page none, store not_comparable",
     C020: "coverage: page none, store not_comparable",
+    C024: "index-anchor: page excluded, store not_comparable",
     C025: "coverage: page none, store not_comparable",
     C026: "coverage: page none, store not_comparable",
-    C028: "coverage: page none, store not_comparable",
+    C028: "coverage+index-anchor: page none, store not_comparable",
     C030: "coverage: page none, store not_comparable",
-    C031: "coverage: page none, store not_comparable",
+    C031: "coverage+index-anchor: page none, store not_comparable",
     C033: "coverage: page none, store not_comparable",
-    C034: "coverage: page none, store not_comparable",
-    C035: "coverage: page none, store not_comparable",
-    C036: "medication-records+record-reconciliation: page exact, store possible",
-    C039: "coverage: page none, store not_comparable",
-    C040: "coverage: page none, store not_comparable",
-    C041: "coverage: page none, store not_comparable",
-    C042: "coverage: page none, store not_comparable",
-    C043: "coverage: page none, store not_comparable",
+    C034: "coverage+index-anchor: page none, store not_comparable",
+    C035: "coverage+index-anchor: page none, store not_comparable",
+    C037: "index-anchor: page excluded, store not_comparable",
+    C039: "coverage+index-anchor: page none, store not_comparable",
+    C040: "coverage+index-anchor: page none, store not_comparable",
+    C041: "coverage+index-anchor: page none, store not_comparable",
+    C042: "coverage+index-anchor: page none, store not_comparable",
+    C043: "coverage+index-anchor: page none, store not_comparable",
     C048: "coverage: page none, store not_comparable",
   },
 };
@@ -785,13 +907,14 @@ for (const name of names) {
   const unexplained = Object.entries(found[name]).filter(([, why]) => why.startsWith('UNEXPLAINED'));
   assert.deepEqual(unexplained, [], `${name}: differences with no named cause`);
   // The tables come from the sandbox's realm, so compare their contents.
-  assert.deepEqual(JSON.parse(JSON.stringify(found[name])), EXPECTED[name], `${name}: the differences changed`);
+  if (!DEV_COHORT) assert.deepEqual(JSON.parse(JSON.stringify(found[name])), EXPECTED[name], `${name}: the differences changed`);
 }
-assert.deepEqual(Object.keys(EXPECTED).sort(), [...names].sort());
+if (!DEV_COHORT) assert.deepEqual(Object.keys(EXPECTED).sort(), [...names].sort());
 assert.ok(matched > 0, 'nothing matched in the store: the comparison would be vacuous');
 // Every cause comes from the closed list the D32 rules fix.
 const CAUSES = ['coverage', 'letter-mentions', 'record-reconciliation', 'medication-records', 'measurement-records',
-                'order-uncertain', 'occurrence-envelope', 'count-timing', 'relative-baseline', 'measurement-observability'];
+                'order-uncertain', 'occurrence-envelope', 'count-timing', 'relative-baseline', 'measurement-observability',
+                'index-anchor'];  // D52: the store places an event's period from its own records
 assert.deepEqual(Object.keys(summary).filter(c => !CAUSES.includes(c)), [], 'a cause outside the closed list');
 // Every page feature the store does not express is refused by its code, never translated approximately.
 const REFUSALS = vm.runInContext(`(() => {
@@ -878,6 +1001,37 @@ assert.deepEqual(JSON.parse(JSON.stringify(REFUSALS)), {
   'gene step (tree template), coded only, the store option refused on request (D49)': 'GENE_WITH_CODED_ONLY_UNSUPPORTED',
   'a count alone, coded only, the store option refused on request (D49)': null,  // D32's reading: a count is coded only
 });
+/* D52: the index period as a hidden step (rewritten), or, for a shape the rewrite cannot write, D49's point window with
+   its reason (review, S2; the page then says the anchor's uncertainty is not accounted for). */
+const POINTS = vm.runInContext(`(() => {
+  const d = name => ({...defaultDef(), ...clone(TEMPLATES[name])});
+  return {
+    'a period from the first diagnosis (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}}}, 'off'),
+    'a period from the first SCN1A result (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'gene:SCN1A', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 1, unit: 'year'}}}, 'off'),
+    'a period from the 3rd seizure, stated findings (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'present'),
+    'a period from the 3rd seizure, coded only (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'nth', n: 3, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 12, unit: 'month'}}}, 'off'),
+    'a period from a date to the first seizure (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'date', date: '2020-01-01'}, end: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a period from 1 year of age to the last seizure (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'age', amount: 1, unit: 'year'}, end: {kind: 'event', event: 'seizure', which: 'last', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a period from the first seizure to the first antiseizure start (D52)': pointOf({...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: 'seizure', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'event', event: 'antiseizure', which: 'first', n: 1, offset: 0, unit: 'month'}}}, 'off'),
+    'a count alone, coded only, point windows on request (D52)': pointOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off', {indexAnchor: false}),
+    'the blank template, coded only, point windows on request (D52)': pointOf({...defaultDef(), ...clone(BLANK)}, 'off', {indexAnchor: false}),
+    'a count in the index period, coded only (D52)': pointOf({...defaultDef(), nodes: [{id: 'A', concept: 'febrile_seizure', occ: 'count', n: 2, within: 'period'}], edges: []}, 'off'),
+    'a count within 6 months, coded only, the store option refused on request (D52)': pointOf({...defaultDef(), nodes: [{id: 'A', concept: 'seizure', occ: 'count', n: 3, within: {amount: 6, unit: 'month'}}], edges: []}, 'off', {codedOnly: null}),
+  };
+})()`, context);
+assert.deepEqual(JSON.parse(JSON.stringify(POINTS)), {
+  'a period from the first diagnosis (D52)': 'INDEX_ANCHOR_ANY_UNSUPPORTED',
+  'a period from the first SCN1A result (D52)': 'INDEX_ANCHOR_GENE_UNSUPPORTED',
+  'a period from the 3rd seizure, stated findings (D52)': 'FREE_TEXT_COUNT_UNSUPPORTED',
+  'a period from the 3rd seizure, coded only (D52)': 'rewritten',
+  'a period from a date to the first seizure (D52)': 'INDEX_DATE_START_WITH_EVENT_END_UNSUPPORTED',
+  'a period from 1 year of age to the last seizure (D52)': 'rewritten',
+  'a period from the first seizure to the first antiseizure start (D52)': 'rewritten',
+  'a count alone, coded only, point windows on request (D52)': 'the D49 request',
+  'the blank template, coded only, point windows on request (D52)': 'the D49 request',
+  'a count in the index period, coded only (D52)': 'INDEX_PERIOD_COUNT_UNSUPPORTED',
+  'a count within 6 months, coded only, the store option refused on request (D52)': 'FREE_TEXT_CODED_ONLY_UNSUPPORTED',
+});
 
 /* D37, rule 1: every page template, under each free-text option, is answered by the store or refused by a named code.
    An answered one must be a parity trajectory above (same window, scope, steps, constraints and free-text setting), so
@@ -923,7 +1077,8 @@ const SWEEP_CASES = (() => {
 })();
 const sweepScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-sweep-'));
 const sweepSnapshot = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(sweepScratch, 'store')]).trim();
-const sweepRun = SWEEP_CASES.filter(c => !c.refused);
+// D52: a sweep case whose period is a hidden step is narrowed by the server's rule first, as the page's server does.
+const sweepRun = JSON.parse(run([path.join(here, 'index_hull.py'), 'narrow', sweepSnapshot], JSON.stringify({cohort, cases: SWEEP_CASES.filter(c => !c.refused)}))).cases;
 const sweepStore = JSON.parse(run([path.join(here, 'store_parity.py'), 'sweep', sweepSnapshot], JSON.stringify({cohort, cases: sweepRun})));
 fs.rmSync(sweepScratch, {recursive: true, force: true});
 const sweepTally = {answered: 0, translator: {}, store: {}}, unnamed = [];
@@ -945,7 +1100,8 @@ if (process.env.STORE_PARITY_PRINT) console.log(JSON.stringify({sweepTally, case
 // The store's two refusals here are page options with no meaning in its language: a rise "to at least 1 times" the
 // baseline (INVALID_FACTOR: a factor must exceed 1), and the page's relaxation of "at most -1" to "at most -1.1",
 // which narrows instead of widening (VALUE_RELAXATION_MUST_WIDEN). The page shows each as a labelled fallback.
-assert.deepEqual(sweepTally, {
+if (DEV_COHORT) console.log('sweep tally (development cohort): ' + JSON.stringify(sweepTally));
+else assert.deepEqual(sweepTally, {
   // D49: "coded only" is the store's profile 1.3 by default, and a gene step under it the joint profile, so the 157
   // coded-only and the 7 gene refusals are answered or refused by the store (D45's joint sweep: 449 answered; before
   // D49, 293 answered, FREE_TEXT_CODED_ONLY_UNSUPPORTED 157, GENE_WITH_CODED_ONLY_UNSUPPORTED 7, INVALID_FACTOR 10,
@@ -962,13 +1118,13 @@ console.log(`Option sweep: ${SWEEP_CASES.length} page definitions; ${sweepTally.
    (no gene reports), every field equal except the snapshot's and the context's identifiers and the labels' copy. */
 // D42: the parity and sweep requests, written for the differential against main's code (d42_no_change.py) when asked.
 if (process.env.STORE_PARITY_DUMP_CASES)
-  fs.writeFileSync(process.env.STORE_PARITY_DUMP_CASES, JSON.stringify({cohort, cases: [...cases, ...sweepRun]}));
+  fs.writeFileSync(process.env.STORE_PARITY_DUMP_CASES, JSON.stringify({cohort, cases: [...narrowed, ...sweepRun]}));
 const changeScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'store-gene-no-change-'));
 const noChange = (() => {
   try {
     const wrapper = run([path.join(here, 'store_parity.py'), 'build', cohort, path.join(changeScratch, 'wrapper')]).trim();
     const main = run([path.join(here, 'gene_no_change.py'), 'build-main', cohort, path.join(changeScratch, 'main')]).trim();
-    return JSON.parse(run([path.join(here, 'gene_no_change.py'), 'compare', wrapper, main], JSON.stringify({cohort, cases: [...cases, ...sweepRun]})));
+    return JSON.parse(run([path.join(here, 'gene_no_change.py'), 'compare', wrapper, main], JSON.stringify({cohort, cases: [...narrowed, ...sweepRun]})));
   } finally { fs.rmSync(changeScratch, {recursive: true, force: true}); }
 })();
 assert.deepEqual(noChange.differences, [], 'a request without a gene step answered differently on the wrapper\'s build');

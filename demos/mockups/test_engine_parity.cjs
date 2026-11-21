@@ -367,3 +367,96 @@ try {
   console.log(`D53 patient-first under coded only reads no note: ${Object.keys(offFull).length} comparisons (${rows} rows; 3 measures, 2 references) `
               + `the same without letter mentions; under stated findings ${statedDiffer} differ.`);
 }
+
+/* D52: the index anchor as a hidden step. The translator's rewrite on the page's cohort, the page's reading of an
+   indexed answer, and the census's pure parts (d52_anchor.cjs), on constructed results. */
+{
+  const d52 = require('./d52_anchor.cjs');
+  const ctx = d52.pageContext(cohortText, 'here');
+  const read = code => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, ctx));
+  // The page's default period (the first seizure, 24 months), Blank, coded only: one hidden step, the scope `any` with
+  // its relations, eligibility from the hidden step; D49's request on request; a constant period is not rewritten.
+  const r = read(`(() => { state.freeText = 'off'; const before = INDEX_REWRITES.calls;
+    const mine = storeRequest({...defaultDef(), ...clone(BLANK)}, 'off', [...state.patients.keys()]);
+    const pin = storeRequest({...defaultDef(), ...clone(BLANK)}, 'off', [...state.patients.keys()], {indexAnchor: false});
+    const constant = {...defaultDef(), ...clone(BLANK), window: {start: {kind: 'birth'}, end: {kind: 'age', amount: 6, unit: 'year'}}};
+    const mid = INDEX_REWRITES.calls;
+    const c1 = storeRequest(constant, 'off', [...state.patients.keys()]), c2 = storeRequest(constant, 'off', [...state.patients.keys()], {indexAnchor: false});
+    return {mine, pin, calls: [mid - before, INDEX_REWRITES.calls - mid], constantSame: JSON.stringify(c1) === JSON.stringify(c2)}; })()`);
+  assert.deepEqual(r.calls, [1, 0]);
+  assert.ok(r.constantSame);
+  assert.deepEqual(r.mine.query.steps.map(s => s.id), ['A', '@index_start']);
+  assert.equal(r.mine.query.scope, 'any');
+  assert.deepEqual(r.mine.index, {rule: 'index_anchor_v1', start: {step: '@index_start', offset: 0}, end: {step: '@index_start', offset: 1052006}});
+  assert.deepEqual(r.mine.query.relations.map(x => [x.id, x.from, x.to, x.min, x.max]),
+    [['index:scope:A', 'START', 'A', 0, undefined], ['index:scope-start:A', '@index_start', 'A', 0, undefined],
+     ['index:followed', '@index_start', 'END', 1052006, undefined], ['index:born', 'START', '@index_start', -1052006, undefined]].map(a => a.map(v => v === undefined ? undefined : v)));
+  assert.equal(r.pin.index, undefined);
+  assert.equal(r.pin.query.scope, 'from_start');
+  // Every base window starts at birth and ends at last contact; the page's anchor plays no part.
+  const C001 = read(`state.patients.get('C001').follow_up.last_contact`);
+  assert.deepEqual(r.mine.windows.C001, {start: 0, end: read(`toGrid(dayOf(state.patients.get('C001'), ${JSON.stringify(C001)}))`)});
+  // The page reads an indexed answer: the hidden step is kept out of the steps, the period placed from its witness.
+  const page = read(`(() => {
+    state.def = {...defaultDef(), ...clone(BLANK)};
+    const answer = {conditions_profile: 'execution-store-conditions-1.3', index: {rule: 'index_hull_v1', reasons: {C002: 'INDEX_ANCHOR_NOT_RECORDED'},
+      windows: {C001: [1440, 1440 * 800], C002: null}}, results: [
+      {patient_id: 'C001', status: 'exact', binding: {A: {kind: 'condition', start: [14400, 14400]}, '@index_start': {kind: 'condition', start: [14400, 14400]}},
+       witness: {A: 14400, '@index_start': 14400}},
+      {patient_id: 'C002', status: 'excluded', reason: 'NO_INDEX_WINDOW'}]};
+    return fromStore(answer, state.def).map(x => ({status: x.status, win: x.win, period: x.period, steps: x.best ? [...x.best.bind.keys()] : null,
+                                                   anchor: x.anchor ? [...x.anchor.keys()] : null, reason: x.reason})); })()`);
+  assert.deepEqual(page[0].steps, ['A']);
+  assert.deepEqual(page[0].anchor, ['@index_start']);
+  assert.deepEqual(page[0].period, {start: 10, end: 10 + 1052006 / 1440});
+  assert.deepEqual(page[0].win, {start: 1, end: 800});
+  assert.equal(page[1].status, 'excluded');
+  assert.ok(/holds no record of the period's event/.test(page[1].reason));
+  // The census's classes through the pinned request (D52 review, M2), on constructed results.
+  const ir = {ranges: {'@index_start': {P: [2, 100, 100], Q: [2, 100, 160]}}, windows: {P: {start: 100, end: 900}, Q: {start: 100, end: 960}},
+              base_windows: {P: {start: 0, end: 2000}, Q: {start: 0, end: 2000}}, reasons: {}};
+  const index = {start: {step: '@index_start', offset: 0}, end: {step: '@index_start', offset: 800}};
+  const same3 = {main: {admitted: []}, pinned: {admitted: []}, hull: {admitted: []}};
+  const one = (pid, m, p, h, at, extra = {}) => d52.classesOf({m, p, h, pid, ir, index, facts: same3,
+    page: {reason: null, anchors: {start: at}, last: 2000}, hasStartMax: false, ...extra});
+  const E = {status: 'exact'}, P = {status: 'possible'};
+  // A certain anchor at the page's point explains nothing: the change is unexplained.
+  assert.deepEqual(one('P', P, P, E, 100), {classes: [], unexplained: ['pinned -> D52']});
+  assert.deepEqual(one('Q', P, P, E, 100), {classes: ['anchor_uncertain'], unexplained: []});
+  assert.deepEqual(one('P', P, P, E, 90), {classes: ['anchor_moved'], unexplained: []});
+  // Both sides `none` before the coverage rule: the change is that rule's verdict over the point window against the hull,
+  // never the anchor; a change of the engine's own answer is the anchor's.
+  const NC = {status: 'not_comparable', reason: 'NO_SOURCE_COVERAGE'};
+  assert.deepEqual(one('Q', {status: 'none'}, {status: 'none'}, NC, 100), {classes: ['coverage_hull'], unexplained: []});
+  assert.deepEqual(one('P', NC, NC, {status: 'none', reason: 'FILTERED'}, 100), {classes: ['coverage_hull'], unexplained: []});
+  assert.deepEqual(one('Q', NC, NC, P, 100), {classes: ['anchor_uncertain'], unexplained: []});
+  // Main to the pinned request: only D44's admission scope, verified on its facts.
+  const ADM = {status: 'not_comparable', reason: 'ADMISSION_EXCLUDED_RECORDS'};
+  assert.deepEqual(one('Q', P, ADM, ADM, 100), {classes: [], unexplained: ['main -> pinned']});
+  assert.deepEqual(one('Q', P, ADM, ADM, 100, {facts: {...same3, pinned: {admitted: [['A', 1, 2]]}, hull: {admitted: [['A', 1, 2]]}}}),
+                   {classes: ['admission_scope'], unexplained: []});
+  assert.deepEqual(one('Q', E, E, {status: 'unresolved', reason: 'OCCURRENCE_ORDER_UNCERTAIN'}, 100, {related: true}),
+                   {classes: ['anchor_uncertain', 'coupled'], unexplained: []});
+  assert.deepEqual(d52.classesOf({m: {status: 'excluded'}, p: {status: 'excluded'}, h: P, pid: 'P', ir, index, hasStartMax: false, facts: same3,
+    page: {reason: 'not followed to the end of the window (last contact at 2y)', anchors: {start: 100}, last: 2000}}), {classes: ['eligibility_gained'], unexplained: []});
+  assert.deepEqual(one('Q', E, E, P, 100, {page: {reason: null, anchors: {start: 100}, last: 850}}),
+                   {classes: ['anchor_uncertain', 'eligibility_partial'], unexplained: []});
+  // The pinned request: main's, its scope written as relations, the same windows.
+  const pin = d52.pinned({query: {scope: 'within', relations: [{id: 'edge:0'}], steps: []}, conditions: null, windows: {P: {start: 1, end: 2}}}, {nodes: [{id: 'A'}]});
+  assert.deepEqual(pin.query.relations.map(x => [x.id, x.from, x.to]), [['edge:0', undefined, undefined], ['index:scope:A', 'START', 'A'], ['index:scope-end:A', 'A', 'END']]);
+  assert.equal(pin.query.scope, 'any');
+  // D52's point reasons fit their shapes only (review, S2), and a point period is D49's request, marked.
+  const w = (start, end) => ({window: {start, end}, nodes: []});
+  const ev = (event, which = 'first', n = 1) => ({kind: 'event', event, which, n, offset: 0, unit: 'month'});
+  assert.ok(d52.pointFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('@any_diagnosis'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(!d52.pointFits('INDEX_ANCHOR_ANY_UNSUPPORTED', w(ev('seizure'), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  assert.ok(d52.pointFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'present', {}));
+  assert.ok(!d52.pointFits('FREE_TEXT_COUNT_UNSUPPORTED', w(ev('seizure', 'nth', 3), {kind: 'span', amount: 1, unit: 'year'}), 'off', {}));
+  const pt = read(`(() => { state.freeText = 'off'; const def = {...defaultDef(), ...clone(BLANK), window: {start: {kind: 'event', event: '@any_diagnosis', which: 'first', n: 1, offset: 0, unit: 'month'}, end: {kind: 'span', amount: 2, unit: 'year'}}};
+    const mine = storeRequest(def, 'off', [...state.patients.keys()]), pin = storeRequest(def, 'off', [...state.patients.keys()], {indexAnchor: false});
+    const {index_anchor, ...rest} = mine; return {index_anchor, same: JSON.stringify(rest) === JSON.stringify(pin)}; })()`);
+  assert.deepEqual(pt, {index_anchor: {mode: 'point', reason: 'INDEX_ANCHOR_ANY_UNSUPPORTED'}, same: true});
+  console.log('D52: the rewrite of the default period (one hidden step, scope any, eligibility from the step), D49\'s request on '
+              + 'request, a constant period untouched, a point period marked; the page\'s reading of an indexed answer; the census\'s '
+              + 'classes through the pinned request and the point reasons\' shapes.');
+}

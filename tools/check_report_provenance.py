@@ -137,7 +137,13 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # they bind (coordinator's sign-off as delegate).
               'verification/d52b-anchor-worlds-report.json', 'verification/d52b-anchor-defects-report.json',
               'verification/d52b-anchor-reference-report.json', 'verification/d52b-anchor-census-report.json',
-              'verification/d52b-anchor-usefulness-report.json', 'verification/d52b-anchor-latency-verdict.json'}
+              'verification/d52b-anchor-usefulness-report.json', 'verification/d52b-anchor-latency-verdict.json',
+              # D52c changes `demos/mockups/store_trajectory.py` (the `index` block, the cached narrowing and
+              # `index_simplify_v1`; a request without it takes the same path, by a call counter), which D45's
+              # coded-default latency verdict binds. It records D45's verdict, last re-measured and met under D48b on
+              # 2026-11-20; for the current tree `verification/d52c-anchor-latency-verdict.json` supersedes it, its
+              # reference arm being the requests that verdict timed (proposed for the coordinator's sign-off, as D52 Q8).
+              'verification/d45-coded-default-latency-verdict.json'}
 
 
 def digests(path):
