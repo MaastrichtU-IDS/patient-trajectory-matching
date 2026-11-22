@@ -37,7 +37,7 @@
 <main>
   <div class="eyebrow">PATIENT TRAJECTORY MATCHING · ROADMAP</div>
   <h1>What exists and what comes next</h1>
-  <p class="note">As of 17 November 2026. This is a research codebase, not a product: the completion register records full-product completion as false, and nothing here is a clinical claim. Scale evidence is synthetic data on one machine. Each item names the decisions (D-numbers in <code>docs/decisions/engine-increment-log.md</code>) or documents behind it.</p>
+  <p class="note">As of 22 November 2026. This is a research codebase, not a product: the completion register records full-product completion as false, and nothing here is a clinical claim. Scale evidence is synthetic data on one machine. Each item names the decisions (D-numbers in <code>docs/decisions/engine-increment-log.md</code>) or documents behind it.</p>
   <p><a href="../">← all mockups</a> · <a href="../results/">results and evidence</a> · plain-language summary: <code>docs/decisions/briefing-2026-11.md</code></p>
 
   <div class="legend" aria-label="Status labels">
@@ -84,9 +84,30 @@
     <div class="item"><h3>Store query page (stage 1 of the mockups on the store)</h3>
       <p>A mockup page builds trajectories on the MIMIC-IV demo's item classes, with value conditions and relaxations, and runs them in the execution store on the server. The server sends back aggregate counts only and refuses any snapshot that is not the open demo; tests check both. The server checks that the store holds the open demo's own patients, not just its label. Counts alone are not disclosure control, so it serves only the open demo. On the synthetic cohort, built by the converter itself emitting measurement values (D32), the store and the trajectory page agree on 555 of 672 patient results over fourteen trajectories, four of them with Nth occurrences and counts; each of the other 117 has a named cause from a closed list (letter mentions, merged records, medication courses, unitless measurements, uncertain first or last targets, the store's coverage rule, and, for Nth and counts, the store's envelope and its exact count timing against the page's record ranked N and its runs).</p>
       <p class="ref">D29 · <code>demos/mockups/README.md</code> · mockup: <a href="../store-query/">Store query</a></p></div>
-    <div class="item"><h3>The store under the trajectory page (stage 2 of the mockups on the store)</h3>
-      <p>The trajectory page matches in the execution store by default (D37). The server builds the synthetic cohort into a store at startup, with the converter emitting measurement values, and answers the page's own translated query per patient, which is allowed because the data are synthetic. The page says which backend answered and shows the store's statuses and reasons as given. What the store cannot express is refused by name and matched in the browser instead, labelled "in-browser fallback" with the code: hedged free text, counts over stated free text, "coded records only" where the store would still read letter mentions (D37), and gene steps under coded only (D38). Since D38 gene steps run on the store: the first genetic report that is not negative, timed by its recording, across reclassification, from the classification a converter wrapper keeps in each result's evidence. Four of the five page templates are answered by the store at the page's default setting (Sequence, Tree, Graph and Blank); an option sweep over 561 page definitions finds every one answered (293) or refused by a named code. The parity test is clean: 687 of 960 results agree over twenty trajectories (D38 added Tree and Graph with their gene step), and every difference has a declared cause (letter mentions, merged records and medication courses are page shortcuts that use the synthetic truth and are not ported; coverage, unitless values, Nth and count timing are the store's rules). Since D39 the store can also leave letter mentions out of every step ("coded records only", profile 1.3), soundly; the translator writes it when asked, but by default the page still refuses it where letter mentions would be read, because D39 missed its usefulness bar on Event frequency (11 of 16 child types with an undecided count). Since D42 gene steps can also run under "coded only" (a joint profile of D38 and D39, through D39's shared hooks), sound on every check and useful (Tree and Graph 0 of 7 child types unresolved over 30 cohorts); the translator writes it only when asked, since "coded only" itself stays off by default. D43 built a sound way for the store to decide the counts behind Event frequency's undecided results (0 of 16 child types left unresolved in its test), but it did not ship: its latency rule missed as written, and the rule timed a path the change does not run. D43b retried it in the store's worker pool and timed count requests themselves: sound and useful again, but two Event frequency requests were too slow at 300,000 patients, so it did not ship either. D43c pruned the costly witness search without changing any answer and shipped: count requests at 300,000 patients now take 1.2 to 1.7 times what they took without it, and the page's store answers decide those counts. "Coded only" stays off by default. D44 built a fix to how the store marks a match beside an undecided result where records it left out could make it exact, sound on every check, but did not ship it (one latency rule missed within this machine's noise); D44b shipped it under a control-normalised rule, with no change to the page's answers' statuses. The parity test gives 859 of 1,248 over twenty-six trajectories, every difference declared. D45 measured turning "coded only" on by default, with gene steps under it, and found it ready (sound, no undecided template over 30 fresh cohorts, p95 at most 7.5 s at 300,000 patients); D49 turned it on, the owner's decision: under "Coded records only" all five page templates and 449 of 561 sweep definitions are now answered by the store, nothing else the page sends changes, and the evidence options read "Coded records only", "Coded records + findings stated in clinical notes" and "Coded records + uncertain findings in clinical notes". Static hosting still matches in the browser. Stage 3, retiring the browser path, waits for the hosting decision.</p>
-      <p class="ref">D29, D32, D36, D37, D38, D39, D42, D43, D43b, D43c, D44, D44b, D45, D49 · <code>demos/mockups/README.md</code> · mockup: <a href="../trajectory/">Define a trajectory</a></p></div>
+    <div class="item"><h3>The store answers the trajectory page</h3>
+      <p>The trajectory page asks the execution store for its answers by default. The store takes in what the page can ask for: Nth occurrences, counts, gene steps and measurement values. It refuses the rest by name, and the page then matches in the browser, labelled "in-browser fallback" with the reason. On the synthetic cohort the page and the store agree on most results, and every difference has a named cause.</p>
+      <p class="ref">D37 to D44b · <code>demos/mockups/README.md</code> · mockup: <a href="../trajectory/">Define a trajectory</a></p></div>
+    <div class="item"><h3>"Coded records only" is the default</h3>
+      <p>Under this setting nothing reads clinical notes, in the store or in the page's own search. All five page templates are answered by the store. The evidence options now read "Coded records only", "Coded records + findings stated in clinical notes" and "Coded records + uncertain findings in clinical notes". The owner chose this default after a readiness check found it sound and useful.</p>
+      <p class="ref">D45, D49, D53</p></div>
+    <div class="item"><h3>No page uses the synthetic truth</h3>
+      <p>The page no longer reads the generator's hidden truth to group records into events or to place index periods. It uses a stated grouping rule, <code>reconcile_v1</code>, and records it cannot place are listed rather than guessed. Its timeline, inspector, own search and the patient-first page follow the same rule.</p>
+      <p class="ref">D46, D47</p></div>
+    <div class="item"><h3>Uncertain anchor dates are accounted for</h3>
+      <p>The index anchor, such as the first seizure, is now a hidden step of the query. The server narrows each window to the hull of the dates the records allow, then simplifies the hidden step. At 300,000 patients the 95th-percentile time is 7.8 s for Event frequency and 8.5 s for Blank, against a 10 s target. Shapes it cannot rewrite keep a point window, with a note. Trade-off under findings stated in notes: Sequence, Tree and Graph are mostly unresolved, while Blank becomes mostly exact.</p>
+      <p class="ref">D52, D52b, D52c, D52d</p></div>
+    <div class="item"><h3>No unresolved searches in the benchmark</h3>
+      <p>A search that has spent 1,000 steps checks once whether its steps' time ranges admit any choice at all, and stops complete when they do not. Every search that decided before decides as it did. At the default budget the benchmark has no unresolved result at scale.</p>
+      <p class="ref">D48b (D48 first)</p></div>
+    <div class="item"><h3>Hosting on ids3, built but not deployed</h3>
+      <p>A plan and draft manifests are written for the ids3 cluster. Sign-in uses Keycloak, with the owner approving each new account. Access is per dataset: synthetic data public, the MIMIC demo for approved users, and full MIMIC-IV refused for now. The design went through three review rounds and was hardened for security. Nothing is deployed.</p>
+      <p class="ref">D50 · <code>docs/hosting-plan.md</code> · <code>deploy/ids3/ptm/dev/</code></p></div>
+    <div class="item"><h3>Letter dates read from the letter's wording</h3>
+      <p>An option, off by default, times a letter mention from the wording of its own sentence ("at 8 months", "last week") instead of from birth to the letter. Under findings stated in notes, Blank's exact results go from 1 to 168 of 1,102. It is sound on the generator's own wording only, so it needs a held-out wording test before it could become the default.</p>
+      <p class="ref">E0, E0b</p></div>
+    <div class="item"><h3>Measurement protocol</h3>
+      <p>Speed changes are judged with control-normalised timing, so slow drift across a session does not count as a change. Count requests are judged by the median over pairs, which a follow-up check found settles the Nth and count slowdown question as no slowdown. When two committed rules conflict, the record says which one governs, and the older report is frozen as historical.</p>
+      <p class="ref">D44, D51, D48b, D53</p></div>
     <div class="item"><h3>Faster builds and checks</h3>
       <p>Writing canonical rows a column at a time cut the 1,000,000-patient build by 12.0% and its content check by 38%, with identical content digests (snapshot identifiers change with the builder), under a rule set before measuring.</p>
       <p>A change to matching alone no longer forces the scaling report's 1,000,000-patient build: each build records every repository file it loaded or read, and a later run may reuse the kept snapshots when a small probe build records the same (D34; first used at scale by D35, again by D36: 1,740 s each, against 9,197 s). The engine was split so that a build loads no matching code, with results unchanged.</p>
@@ -115,6 +136,18 @@
     <div class="item"><h3>More source shapes</h3>
       <p>Sources whose time constraints link events to each other, beyond what per-event bounds express. These need the engine to take constraints between events.</p>
       <p class="ref">D22</p></div>
+    <div class="item"><h3>Text extraction and linking</h3>
+      <p>Reading clinical text and linking each mention to the coded record it restates, so that stated findings stop counting twice. This is the extraction study's next piece.</p>
+      <p class="ref">E0b follow-ups · extraction study</p></div>
+    <div class="item"><h3>The generator reuses truth ids</h3>
+      <p>The synthetic generator gives one truth id to two events in places. Scorers have to work around it by concept; fixing the generator removes the workaround.</p>
+      <p class="ref">E0b</p></div>
+    <div class="item"><h3>One course's stop grouped differently</h3>
+      <p>For patient C026's prednisolone course the page and the store group the stop record differently, under every setting. Making them agree is queued.</p>
+      <p class="ref">D53</p></div>
+    <div class="item"><h3>The count tool's subset defect</h3>
+      <p>The count-latency tool crashes after its timed runs when it is given a subset of requests, and loses its report. The fix needs the bar to apply only when its request runs, and results to be written as the run goes.</p>
+      <p class="ref">D51</p></div>
     <div class="item"><h3>Interface mockups A and C</h3>
       <p>Sketching a trajectory directly, and a live cohort funnel.</p>
       <p class="ref"><a href="../">mockups</a></p></div>
@@ -137,9 +170,10 @@
   <h2><span class="badge b-you">? Needs a decision from the project</span></h2>
   <p class="lede">Not engineering choices; these need the project's owners or reviewers.</p>
   <div class="grid">
-    <div class="item"><h3>Hosting and deployment</h3><p>Where the store and matcher run, and who operates them. Nothing is deployed. Retiring the trajectory page's browser path (stage 3 of the mockups on the store) waits for this decision.</p><p class="ref">D29, D37</p></div>
+    <div class="item"><h3>Hosting and deployment</h3><p>The plan and manifests are built. We are waiting on the owner to name a backup Keycloak admin and to give the go-ahead to open the services-repo PR. The admin's Keycloak and Vault steps follow. Retiring the trajectory page's browser path (stage 3) waits for deployment.</p><p class="ref">D50</p></div>
+    <div class="item"><h3>Stated findings with uncertain anchors</h3><p>Keep the new behaviour (Sequence, Tree and Graph mostly unresolved, Blank mostly exact), or return to point windows.</p><p class="ref">D52 to D52d</p></div>
     <div class="item"><h3>Clinical review</h3><p>The MIMIC store indexes the source's own item classes, not clinical concepts. Clinical mappings wait for a qualified reviewer.</p></div>
-    <div class="item"><h3>Full MIMIC-IV</h3><p>Whether the credentialed data-use agreement allows what the demo reports commit; until then only aggregate counts.</p><p class="ref">D17</p></div>
+    <div class="item"><h3>Full MIMIC-IV</h3><p>Conditions accepted on 2026-11-20: each user's PhysioNet credentialing is verified and recorded, a storage and backup review comes first, and credentialed users see per-patient results. It is still not hosted; reports commit aggregate counts only.</p><p class="ref">D17, D50</p></div>
     <div class="item"><h3>Publishing</h3><p>Whether and when to publish the package, and its import name before that.</p><p class="ref">D1–D3</p></div>
   </div>
 </main>
