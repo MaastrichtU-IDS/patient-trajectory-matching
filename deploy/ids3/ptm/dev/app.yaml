@@ -48,7 +48,7 @@ spec:
         - name: server
           # PINNED: a version tag AND its digest, never `latest`. Deploy a new build by a reviewed one-line change
           # here (hosting plan, "The image"). REPLACE both parts at the first publish.
-          image: ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:0.1.0@sha256:REPLACE_WITH_THE_PUBLISHED_DIGEST
+          image: ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:0.1.0@sha256:6595e73ea6c639b837bd316906886249fe3c8e65f53488932301e6920c08a7b4
           imagePullPolicy: IfNotPresent
           ports:
             - { containerPort: 8080, name: http }

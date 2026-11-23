@@ -23,6 +23,23 @@ PR #153: the target is now ids3 (owner decisions of 2026-11-17 to 2026-11-20, re
   per-patient results. Until then no credentialed data on hosting, and the aggregate-only endpoint is not disclosure
   control.
 
+## Phase 1 (owner's decision, 2026-11-23)
+
+The owner approved phase 1:
+- the synthetic-only public demo at `ptm.k8s.semanticscience.org`, with no sign-in, no Keycloak and no secrets;
+- **the image public** on GHCR (`ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:0.1.0`, deployed by
+  digest).
+
+The server runs with no realm and serves only the public synthetic cohort. Every hosted bound in this plan stays:
+- the front door's rate limits, per-client match limits, body limit and HSTS;
+- the CSP;
+- the child-process matcher with its time limit and search budget;
+- the NetworkPolicies and JSON logs.
+
+`allow-keycloak-egress.yaml`, `vault.yaml` and the realm checklist are kept for **phase 2 (sign-in)**, which is
+deferred. Phase 2 adds the realm `ids-apps`, the `PTM_OIDC_*` settings and the two files back into the kustomization.
+Everything below describes the full design; the parts about accounts and tokens apply from phase 2.
+
 ## 1. Architecture
 
 ```
