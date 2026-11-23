@@ -31,3 +31,4 @@ jobs:
       - run: python -m unittest -v tools.test_d51_count_investigation
       - run: python -m unittest -v tools.test_e0_measure
       - run: python -m unittest -v tools.test_d52_tools
+      - run: python -m unittest -v tools.test_d54_census

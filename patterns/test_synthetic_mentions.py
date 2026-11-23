@@ -290,14 +290,10 @@ class StoreTests(unittest.TestCase):
 
 
 def score(cohort, ingest):
-    """(misses, counts): narrowed mentions whose range misses the truth day (D30's test of the bound). The generator
-    reuses truth event ids, so where a mention's truth id names several events its truth event is the one that carries
-    its concept (E0b; for a gene concept, the genetic test of that gene), as `tools/e0_measure.py` names it; exactly one
-    is required here."""
+    """(misses, counts): narrowed mentions whose range misses the truth day (D30's test of the bound). A mention's truth
+    id names exactly one truth event, required here: the generator's ids are unique since D54 (E0b named the event by
+    its concept where the generator had reused an id; `tools/e0_measure.py` keeps that as a guard)."""
     misses, counts = [], {'mentions': 0, 'narrowed': 0}
-
-    def carries(event, concept):
-        return event['concept'] == concept or (concept.startswith('gene:') and event.get('gene') == concept[5:])
     for p, converted in zip(sorted(cohort['patients'], key=lambda p: p['patient_id']), ingest['patients']):
         events = {}
         for x in p['truth']['events']:
@@ -314,9 +310,8 @@ def score(cohort, ingest):
             record_id, i = e['event_id'].split('/', 1)[1].split('#m')
             m = records[record_id]['mentions'][int(i)]
             same = events[m['truth_event_id']]
-            found = same if len(same) == 1 else [x for x in same if carries(x, m['concept'])]
-            assert len(found) == 1, (e['event_id'], found)
-            day = found[0]['day']
+            assert len(same) == 1, (e['event_id'], same)
+            day = same[0]['day']
             lo = si.micros((birth + timedelta(days=day)).isoformat(timespec='minutes'))
             if not (e['start'][0] <= lo + DAY - 1 and lo <= e['start'][1]):
                 misses.append(e['event_id'])
