@@ -447,10 +447,10 @@ found one medium and nine low issues, all fixed:
 
 - **Dev: the synthetic cohort only.** No MIMIC data of any kind in the image, the ConfigMaps or a volume. The image
   workflow checks this before publishing.
-- **The MIMIC-IV demo** (open data, ODbL; tier `approved`, aggregates only) is allowed by policy but not configured:
-  it needs a delivery route for a prepared store (a read-only volume populated by the admin, or object storage with
-  a credential in Vault), the attribution and citation footer the Cloud Run plan listed, and the page's note that
-  counts-only is not disclosure control. Its content gate admits only the open demo's 100 patients.
+- **The MIMIC-IV demo** (open data, ODbL; tier `approved`, aggregates only): phase 2. It is fetched from PhysioNet
+  at start, checked against pinned sums and built into the pod; it is never in the image ("Phase 2: delivering the
+  MIMIC-IV demo", below). Its content gate admits only the open demo's 100 patients, and the page carries the
+  attribution and the note that counts-only is not disclosure control.
 - **Full MIMIC-IV** only after the storage and backup access review: where the store lives, who can read the volume
   and its backups (cluster admins can read any Secret and any hostpath volume), encryption at rest, and retention.
   Then a backend, the `mimic-iv` kind enabled with role `dataset:mimic-iv:read`, per-patient results for credentialed
@@ -459,6 +459,188 @@ found one medium and nine low issues, all fixed:
 - **The aggregate-only endpoint is not disclosure control** (D29: differencing isolated one patient's value in 17
   queries). It is acceptable for the open demo only; the role tier exists because credentialed data need credentialed
   users, not because counts protect anyone.
+
+### Phase 2: delivering the MIMIC-IV demo (draft, 2026-11-23)
+
+The owner wants the MIMIC-IV demo for approved users in phase 2: tier `approved`, aggregate counts only.
+
+**Why it is not in the image.** The demo is open data (ODbL 1.0, no credentialing), but the image is public. Baking
+the demo in would hand it to anyone who pulls the image, and the policy is approved users only.
+
+**How the pod gets it.** The server fetches it at start (`demos/mockups/mimic_demo_fetch.py`, registry setting
+`"fetch": "physionet:mimic-iv-demo-2.2"`):
+1. **Download** the four `icu/` files the store's ingest reads (chartevents, d_items, icustays, inputevents; 6.4 MB)
+   and PhysioNet's `SHA256SUMS.txt`, from `https://physionet.org/files/mimic-iv-demo/2.2/`. The fetch goes through the
+   egress proxy (`HTTPS_PROXY`), with a 60 s timeout and a 64 MiB cap per file, 300 s for the whole download, and no
+   redirects followed (`PHYSIONET_REDIRECT`): the files come from the pinned address only.
+2. **Check** every file against the sha256 pinned in the module. The pins are the authority; three of them are also
+   in `data/mimic-inputevents-demo-pin.json`, and the chartevents pin was added from PhysioNet's sums on 2026-11-23.
+   PhysioNet's published sums must agree with the pins, or nothing is used.
+3. **Build** the store with the existing ingest (`patterns.mimic_store_ingest --chartevents`, one worker) in a child
+   process at the lowest CPU priority, with an address-space limit of 1600 MiB (`BUILD_MAX_MIB`, RLIMIT_AS), so a
+   runaway build fails by itself (`STORE_BUILD_FAILED`) instead of getting the pod OOM-killed. A build that is not
+   the pinned snapshot is never published (`SNAPSHOT_ID_NOT_PINNED`). The downloads are then deleted; `d_items` is
+   kept for the catalogue's labels.
+4. The store service opens the snapshot through its **content gate**: exactly the open demo's 100 subjects, by a
+   pinned digest, and exactly the pinned snapshot id (`expected_snapshot_id`). It opens nothing until the fetch has
+   finished: before that it answers `STORE_BUILDING` and remembers nothing.
+
+**Behaviour while building or on failure.**
+- **Readiness does not wait for it.** A fetched dataset is optional, so the public synthetic cohort serves from the
+  first seconds.
+- **Until the build ends,** the demo's routes answer `503 STORE_BUILDING`.
+- **If a step fails,** they answer `503` with its code:
+  - `PHYSIONET_UNREACHABLE`, `PHYSIONET_REDIRECT`, `FETCH_DEADLINE_EXCEEDED`;
+  - `PHYSIONET_SUMS_DISAGREE`, `CHECKSUM_MISMATCH`, `FILE_TOO_LARGE`;
+  - `STORE_BUILD_FAILED`, `STORE_BUILD_TIMED_OUT`, `SNAPSHOT_ID_NOT_PINNED`.
+
+  These are a fixed list (`mimic_demo_fetch.FETCH_ERRORS`); any other failure is answered as
+  `MIMIC_DEMO_FETCH_FAILED`, so no other exception text reaches a response.
+- **Retries:** three attempts, at start, then after 1 and 10 minutes. After that the dataset stays unavailable until
+  the pod restarts.
+- **Logging:** each attempt is logged as a `mimic_demo_fetch` event, with the outcome, the code and the duration.
+- `/api/datasets` shows an approved caller the demo with `ready: false` until it is built.
+
+**Measured.**
+- *Build* (one worker, an M4 Pro, the demo's real files): 493 s and 1.23 GB peak resident; the store is 47 MB on
+  disk.
+- *End to end* (`mimic_demo_fetch.py`, from the development machine on 2026-11-23): fetched from physionet.org, every
+  check passed, built in 522 s at 1.27 GB peak. The store opened through the content gate under the real pin: 100
+  patients, dictionary labels present.
+- *Build memory:* can DuckDB's `memory_limit` and threads bring the peak under 1 GB? Measured with one worker and
+  one DuckDB thread, the build already passes them, and every run took about 495 s with the same snapshot id:
+
+  | DuckDB `memory_limit` | Peak resident |
+  |---|---|
+  | 256MB | 1.30 GB |
+  | 512MB | 1.23 GB |
+  | the store's default, 4GB | 1.27 GB |
+
+  The peak is in the ingest's Python stages (the claim route), not in DuckDB, so no DuckDB setting brings it under
+  1 GB. Lowering it would mean changing `patterns/`, which needs its own measured engine increment.
+  - The build uses `512MB`, which keeps DuckDB's share bounded at no cost in time.
+  - In a Linux container (one CPU, Python 3.11, DuckDB confined to one worker thread and one async thread as in
+    the match workers, `MALLOC_ARENA_MAX=2`), the build child peaked at 858 MiB resident and 1228 MiB of
+    address space, in 538 s, with the pinned snapshot id. macOS's figures above are higher for the same
+    build; the pod runs Linux. Its limit, `BUILD_MAX_MIB` = 1600, is that address space times 1.3; the build passes under it with
+    the same snapshot id. The pod's memory limit is in "The phase 2 security review" below.
+  - With the volume, the build happens only at the first start, after the volume is lost, or after an ingest change
+    alters the pinned snapshot id; routine restarts reuse the store.
+  - The cluster's CPU may be slower than the M4 Pro.
+**Kept across restarts (a persistent volume).** A rebuild at every start would cost a ten-minute demo outage and a
+memory peak on every restart and rollout, so the store lives on a small PVC (`pvc.yaml`: `ptm-mimic-demo`, 1Gi,
+Longhorn, RWO, mounted at `/var/lib/ptm-mimic-demo`).
+- **At start,** `mimic_demo_fetch.prepare` reuses the store on the volume only if it passes every check:
+  - it opens with every table's content re-derived from its files (`verify='content'`);
+  - it is exactly the snapshot id pinned in the module (`0282b797…`, measured from the build of the pinned files);
+  - `d_items` matches its pinned sha256.
+
+  The store service's content gate then applies again. A verified store is ready in seconds (measured on a real
+  demo store under the real pins: 2 to 3 s, content verification included); anything else is fetched, checked and
+  built as above. **Nothing on the volume is trusted on its word.**
+- **Publishing:** a new build is made in a scratch directory on the volume and moved into place only once complete,
+  so no reader ever sees a half-built store.
+- **Changing the ingest:** a change that alters the snapshot id fails closed. The build is never published
+  (`SNAPSHOT_ID_NOT_PINNED`) and the store service would refuse it anyway, so the demo stays unavailable until the pin
+  is updated with the change.
+- **Leftovers:** an interrupted run's scratch directories (`mimic-demo-incoming-*`) and set-aside stores
+  (`.stale-*`) are removed at the next start, before anything else.
+- **Fallback:** without the PVC (the registry's `store` under `/tmp`), the store goes to the emptyDir and is rebuilt
+  at every start.
+- **Why RWO and `Recreate`:** RWO because Longhorn's RWX volumes are NFS-backed, where the pod's `fsGroup` does not
+  apply, so uid 10001 could not write without a root chown step. RWO in turn means `strategy: Recreate`: a new pod on
+  another node could not attach the volume while the old one held it. A rollout therefore has a short gap, of
+  seconds, where phase 1 had none.
+- **Not `longhorn-retain`:** the store is rebuildable from PhysioNet.
+
+**Security consequence of the volume.** The PVC holds MIMIC-IV demo data. The data are open (ODbL), but the policy
+serves them to approved users only, so who can read the volume now matters, as it will for full MIMIC-IV:
+- *Cluster admins* (any kubeconfig, `kubectl port-forward`) can read every volume.
+- *The Longhorn UI* can snapshot, attach and clone volumes. It sits behind oauth2-proxy and the `ids3` realm, and
+  admits only holders of the role `longhorn-admins` (`ids3/platform/longhorn/oauth2-proxy.yaml`).
+- *Backups:* Longhorn has no backup target configured today (`ids3/platform/longhorn/README.md`), so no copy leaves
+  the node. Once a backup target exists, its backups carry the demo too, and who can read the target becomes part of
+  this question.
+
+For the open demo this is acceptable and recorded here. For full MIMIC-IV it is exactly the storage and backup access
+review the owner asked for, and must be settled first.
+
+**Egress.** The services repo's egress proxy (`ids3/platform/egress-proxy/configmap.yaml`) has no destination
+allowlist on port 3128: any HTTPS destination is allowed for cluster pods and forwarded to the university parent proxy
+`proxy.unimaas.nl`. So `physionet.org` needs **no services-repo change**. The admin confirms only that the university
+proxy lets `physionet.org` through, which held from the development machine on 2026-11-23. The namespace's
+`restrict-egress` policy already allows the egress proxy.
+
+**Attribution.** The store query page now carries the attribution PhysioNet asks for:
+- the dataset citation, Johnson et al. (2023), MIMIC-IV Clinical Database Demo (version 2.2), PhysioNet,
+  https://doi.org/10.13026/dp1f-ex47;
+- the licence, Open Database License v1.0, linked to PhysioNet's licence page;
+- PhysioNet's standard citation, Pollard et al. (2026), Nature Health;
+- the note that aggregate counts are not disclosure control.
+
+The counts the page shows are produced works of the database. If the store itself (a derived database) were ever
+published, ODbL's share-alike would apply; it is not published, since it lives only in the pod.
+
+**The phase 2 security review (2026-11-23).** An independent reviewer reviewed `9bcd327` (D50 has the record): no
+critical or high finding; three medium and six low, all fixed.
+- **M1, startup race:** the startup report opened the store before the fetch had finished, and the failure was
+  remembered. Now nothing opens a fetched store before its fetch is done (the store service's gate), it opens only
+  the pinned snapshot, and a build that is not that snapshot is never published.
+- **M2, admin OTP through a provider:** see `deploy/ids3/ptm/dev/KEYCLOAK-REALM.md`, section 5.
+- **M3, one MIMIC request held the store for 73.7 s:** hosted, the demo's matches now run in child processes killed
+  at the 2 s time limit (`match_worker.IsolatedStoreQuery`), at a search budget of 1,000, with at most 6 steps, 8
+  relations, 4 relaxations and a cost budget of 1. Measured at one DuckDB thread: the page's examples 0.10 to 0.26 s
+  (answers unchanged by the clamp); within the caps, the costliest of 75 adversarial shapes 1.23 s; beyond them,
+  8 relaxations cost 5 s to over 40 s. The store query page explains each refusal.
+- **Pod memory, with the MIMIC workers (L2).** Measured in a Linux container:
+
+  | Process | Peak resident | Address-space limit |
+  |---|---|---|
+  | server, with both stores open | about 230 MiB (180 with the synthetic store, plus 48 for the demo's) | none |
+  | synthetic match worker (×2: active and spare) | 145 MiB each | 400 MiB |
+  | MIMIC match worker (×2: active and spare), over 132 matches (the examples and the worst in-cap shapes, repeated) | 404 MiB each | 600 MiB (545 measured) |
+  | demo build child (first start only) | 858 MiB | 1,600 MiB (1,228 measured, ×1.3) |
+
+  The build ends before the store opens, and the MIMIC workers start only after that, so the two never overlap.
+  - *Measured:* about 1,330 MiB while building (server without the demo's store, two synthetic workers, the
+    build) and about 1,330 MiB while serving (server and all four workers).
+  - *The limits alone* (the re-check's low 2: no process can push the pod over even at its own limit):
+    - while building, 1,600 + 2 × 400 + the server (about 180) = 2,580 MiB;
+    - while serving, 2 × 600 + 2 × 400 + the server (about 230) = 2,230 MiB.
+  - **The pod's limit is therefore 3Gi** (3,072 MiB): 16% above the first sum and 27% above the second. 2Gi fits
+    neither, and no lower setting would help. The build's own limit cannot go much below its measured 1,228 MiB,
+    and even a single MIMIC worker leaves the build phase at 2,580 MiB. So the MIMIC workers keep their spare, and
+    their limit is 600 MiB (all 132 matches passed under it).
+  - The server itself has no limit; its 180 to 230 MiB are measured. The request stays 512Mi, since scheduling
+    needs only what the pod uses, and that is re-measured on the cluster after the first deploy.
+- **Lows:** leftovers removed at start (L1); the build's address-space limit (L2); Google does not trust email
+  (L3); no `offline_access`, no default group, forensic events audited (L4); no redirects and a 300 s download
+  deadline (L5); fetch failures named from a fixed list (L6).
+
+**The re-check (of `a3d994a`, 2026-11-23).** The reviewer confirmed M1 and M3 fixed, run through `main()` itself and
+with the reviewer's own shapes, and M2 fixed for identity-provider logins. One medium and five lows, all addressed:
+- **Medium, password reset gave admin access without the old OTP.** Keycloak's default reset flow ends in "Reset -
+  Conditional OTP", whose unconfigured `reset-otp` only adds "Configure OTP". So a mailbox holder could set a
+  password, enrol their own OTP and reach the console. The realm now binds its own reset flow, which denies holders
+  of the admin-capable roles after the link is followed and before anything changes, and has no OTP reset. Admins
+  recover through another admin (`KEYCLOAK-REALM.md`, section 5); `check_realm.py` checks the denial.
+- **Low 1:** the admin-capable roles now include `manage-clients`, `manage-identity-providers` and `impersonation`,
+  in the OTP conditions and the reset denial. `check_realm.py` refuses any other granted `realm-management` role
+  but `view-*` and `query-*`.
+- **Low 2:** the per-process limits alone fit the pod: MIMIC workers at 600 MiB, the pod at 3Gi (above).
+- **The reviewer's shapes, re-run on the fixed tree:** the 73.7 s shape is refused (`TOO_MANY_RELAXATIONS`); the
+  in-cap shapes answered in 0.2 to 1.8 s, and one (four zero-cost widenings, any occurrences, gaps of 1 to 2 h)
+  passed 2 s and was killed at the limit, as designed. So within the caps the time limit, not the caps, is the
+  bound.
+- **Low 3:** a fetched store's gate is closed in every state but `ready`, before the fetch starts included.
+- **Low 4:** the download's deadline is checked after every read of at most 64 KiB (`read1`), so a server that
+  trickles bytes cannot hold it past the deadline by more than one socket read.
+- **Low 5, accepted: an approved client can occupy the MIMIC worker.** There is one active MIMIC worker, so while
+  one approved user's match runs (at most 2 s) the others wait, up to 3 s in all, then get `503 BUSY`. A client
+  that sends costly matches back to back can keep it busy. This is inherent to one worker. It is bounded by the
+  front door's `ptm-match-inflight`, one match in flight per client address on every match path (the MIMIC demo's
+  included), so one client holds the worker for one match at a time; the spare takes over at once after a kill.
+  Only approved users can reach the route at all, and each kill is logged (`match_killed`).
 
 ## 8. Deploying
 

@@ -667,13 +667,99 @@ class HostedStoreBoundTests(unittest.TestCase):
         self.assertEqual(server.hosted_request(missing)['query']['search_budget'], server.HOSTED_SEARCH_BUDGET)
         self.assertEqual(self.client.call('/api/limits')[1],
                          {'hosted': True, 'search_budget': server.HOSTED_SEARCH_BUDGET, 'match_time_limit_s': 1.0,
-                          'max_steps': server.HOSTED_MAX_STEPS, 'max_relaxations': server.HOSTED_MAX_RELAXATIONS})
+                          'max_steps': server.HOSTED_MAX_STEPS, 'max_relaxations': server.HOSTED_MAX_RELAXATIONS,
+                          'store_query': {'search_budget': server.HOSTED_STORE_SEARCH_BUDGET,
+                                          'max_steps': server.HOSTED_STORE_MAX_STEPS,
+                                          'max_relations': server.HOSTED_STORE_MAX_RELATIONS,
+                                          'max_relaxations': server.HOSTED_STORE_MAX_RELAXATIONS,
+                                          'max_budget': '1'}})
 
     def test_a_hosted_realm_needs_the_client_id(self):
         realm = access.OidcVerifier(ISSUER, 'http://127.0.0.1:9/certs', AUDIENCE)  # no client id
         with self.assertRaises(ValueError) as caught:
             server.serve('127.0.0.1', 0, trajectory_store=False, hosted=True, verifier=realm)
         self.assertEqual(str(caught.exception), 'HOSTED_REALM_NEEDS_PTM_OIDC_CLIENT_ID')
+
+
+class HostedMimicBoundTests(unittest.TestCase):
+    """The phase 2 security review's M3: one crafted MIMIC demo request held the store, in-process and under its lock,
+    for 73.7 s. Hosted, its matches now run in child processes killed at the time limit, at a lower search budget,
+    and the request's shape is capped (steps, relations, relaxations, cost budget)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = mock.patch.dict(os.environ, {'no_proxy': '127.0.0.1,localhost', 'NO_PROXY': '127.0.0.1,localhost'})
+        cls.env.start()
+        cls.tmp = tempfile.TemporaryDirectory()
+        tmp = Path(cls.tmp.name)
+        demo = msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', tmp / 'demo')
+        with es.open_store(demo) as store:
+            ids = {pid for pid, in store.query('SELECT patient_id FROM patients')}
+        cls.pin = (len(ids), store_query.subjects_digest(ids))
+        (tmp / 'datasets.json').write_text(json.dumps({'datasets': [registry(demo.parent)['datasets'][-1]]}))
+        cls.realm = Realm()
+        cls.keys = KeyServer(cls.realm)
+        verifier = access.OidcVerifier(ISSUER, cls.keys.uri, AUDIENCE, client_id='ptm-mockups')
+        cls.client = Client(server.serve('127.0.0.1', 0, demo_pin=cls.pin, datasets_file=tmp / 'datasets.json',
+                                         verifier=verifier, hosted=True, match_time_limit=2.0))
+        wait_ready(cls.client)
+        cls.token = cls.realm.token(realm_access={'roles': ['approved']})
+        cls.dataset = cls.client.httpd.registry.get('mimic-iv-demo')
+        cls.demo = demo
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.client.close()
+        cls.keys.close()
+        cls.tmp.cleanup()
+        cls.env.stop()
+
+    def match(self, body):
+        return self.client.call('/api/datasets/mimic-iv-demo/match', self.token, body)[:2]
+
+    def test_matches_run_in_the_child_with_the_in_process_answers(self):
+        self.assertIsInstance(self.dataset.matcher, server.match_worker.IsolatedStoreQuery)
+        local = store_query.StoreService(self.demo, pin=self.pin)
+        strip = lambda b: {k: v for k, v in b.items() if k != 'timing'}  # noqa: E731
+        with mock.patch.object(self.dataset.service, 'match', side_effect=AssertionError('matched in-process')):
+            status, body = self.match(mimic_query())
+        self.assertEqual(status, 200, body)
+        self.assertEqual(strip(body), strip(local.match(mimic_query())))
+
+    def test_a_match_past_the_time_limit_is_killed_and_the_next_is_answered(self):
+        matcher = self.dataset.matcher
+        kills = matcher.kills
+        with mock.patch.object(matcher, 'time_limit', 0.0005):  # every match is now too slow
+            self.assertEqual(self.match(mimic_query()), (503, {'error': 'MATCH_TIME_LIMIT'}))
+        self.assertEqual(matcher.kills, kills + 1)
+        deadline = time.time() + 60
+        while matcher.state() != 'ready' and time.time() < deadline:  # the spare has taken over; its own spare builds
+            time.sleep(0.1)
+        self.assertEqual(self.match(mimic_query())[0], 200)
+
+    def test_hosted_caps_on_the_request_shape(self):
+        def steps(n, **extra):
+            return [{'id': 'ABCDEF'[i], 'concept': mimic_query()['steps'][1]['concept'], 'occurrence': 'any', **extra}
+                    for i in range(n)]
+        if server.HOSTED_STORE_MAX_STEPS < len(store_query.STEP_IDS):
+            self.assertEqual(self.match(mimic_query(steps=steps(server.HOSTED_STORE_MAX_STEPS + 1))),
+                             (400, {'error': 'TOO_MANY_STEPS'}))
+        relation = mimic_query()['relations'][0]
+        self.assertEqual(self.match(mimic_query(relations=[relation] * (server.HOSTED_STORE_MAX_RELATIONS + 1))),
+                         (400, {'error': 'TOO_MANY_RELATIONS'}))
+        widened = {'widen_concept': {'concept': 'x', 'cost': '0.25'}}
+        n = server.HOSTED_STORE_MAX_RELAXATIONS + 1
+        many = mimic_query(steps=steps(min(n, 6), **widened),
+                           relations=[{**relation, 'from': 'A', 'to': 'B', 'extend_max': {'max': {'amount': 2, 'unit': 'day'},
+                                                                                            'cost': '0.25'}}] * max(0, n - 6))
+        self.assertEqual(self.match(many), (400, {'error': 'TOO_MANY_RELAXATIONS'}))
+        self.assertEqual(self.match(mimic_query(budget='1.5')), (400, {'error': 'RELAXATION_BUDGET_ABOVE_HOSTED_MAX'}))
+        self.assertEqual(self.match(mimic_query(budget='1'))[0], 200)
+        self.assertEqual(self.match({'steps': 'not a list'}), (400, {'error': 'REQUEST_FIELDS'}))  # the store's own check
+
+    def test_the_child_runs_at_the_hosted_search_budget(self):
+        self.assertEqual(self.dataset.service.search_budget, server.HOSTED_STORE_SEARCH_BUDGET)
+        self.assertEqual(json.loads(self.dataset.matcher.config)['search_budget'], server.HOSTED_STORE_SEARCH_BUDGET)
 
 
 @unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')

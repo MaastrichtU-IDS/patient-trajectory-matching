@@ -1,6 +1,6 @@
 # Keycloak: the shared user realm (checklist for the realm admin)
 
-DRAFT, nothing created yet. One open realm for all the owner's user-facing apps, on the platform Keycloak
+Not created yet (phase 2). One open realm for all the owner's user-facing apps, on the platform Keycloak
 (<https://keycloak.k8s.semanticscience.org>), **separate from the infrastructure realm `ids3`**. ptm is its first
 client; other apps add their own clients to the same realm. Because the realm is shared, this file belongs beside
 `ids3/platform/keycloak/` in the services repo rather than under one project; it sits here until that PR is written.
@@ -20,6 +20,34 @@ settle before starting:
 
 Switch the realm selector (top left) to `ids-apps` before every step after the first. Work done in `master` or `ids3`
 has no effect here.
+
+## Two ways to set it up
+
+**(A) Import the realm file, then add what a file must not hold.** `deploy/ids3/keycloak/ids-apps-realm.json` holds
+sections 1 to 5 below as code. It contains no secret and no user, and its provider client ids are placeholders.
+It is generated: edit `deploy/ids3/keycloak/gen_realm.py` and re-run it, never the JSON by hand; `test_datasets`
+fails if the committed file differs from the generator's output by a byte (`gen_realm.py --check` says the same).
+`deploy/ids3/keycloak/check_realm.py` checks it offline against these sections and against Keycloak 26's import
+format (the representation classes of the platform's version, 26.8.1).
+1. Admin console of the `master` realm → realm selector → **Create realm** → **Resource file**: upload
+   `ids-apps-realm.json` → Create. The realm name comes from the file.
+2. **Identity providers** → for each of `github`, `google` and `orcid`: replace the `REPLACE_WITH_…` client id with
+   the one the owner registered, and enter the **client secret** (section 4 gives the redirect URI to register).
+   Save. A provider whose secret is missing simply fails at login; nothing else breaks.
+3. **Realm settings → Email → Test connection.** Section 1 explains the SMTP egress check.
+4. **Users:** give the owner (`OWNER_EMAIL`) and `BACKUP_ADMIN` the client role `realm-management` → `realm-admin`
+   (section 5). The file creates no user.
+5. Check that the browser flow is `browser with admin OTP` (Authentication → Flows), and that each identity
+   provider's "Post login flow" is `post broker admin OTP`, and that the reset credentials flow is `reset
+   credentials, not for admins`. An admin login asks for OTP, whether by password or through a provider; a non-admin
+   login does not.
+6. Section 6 (the registration notice) is a platform change, outside the file.
+7. Verify as in section 7.
+
+If the import is refused, or a setting differs after import, follow (B) for that part. The file is the reference
+for the values either way.
+
+**(B) Manual steps:** sections 1 to 5 below, in the admin console.
 
 ## 1. Realm
 
@@ -47,7 +75,9 @@ has no effect here.
       (ORCID often returns no email; see section 4).
 - [ ] **Realm settings → Events → User events settings:** save events **on**, expiration 90 days, include at least
       `REGISTER`, `LOGIN`, `LOGIN_ERROR`, `UPDATE_EMAIL`, `VERIFY_EMAIL`, `IDENTITY_PROVIDER_LINK_ACCOUNT`,
-      `REMOVE_FEDERATED_IDENTITY`, `DELETE_ACCOUNT`. **Admin events:** save on, include representation off (so role
+      `REMOVE_FEDERATED_IDENTITY`, `DELETE_ACCOUNT`, and for admin forensics `UPDATE_TOTP`, `REMOVE_TOTP`,
+      `UPDATE_CREDENTIAL`, `REMOVE_CREDENTIAL`, `UPDATE_PASSWORD`, `RESET_PASSWORD`, `SEND_RESET_PASSWORD`,
+      `IDENTITY_PROVIDER_LOGIN`, `IDENTITY_PROVIDER_FIRST_LOGIN`. **Admin events:** save on, include representation off (so role
       and group changes are recorded without copying user details), expiration 1 year: this is the record of who
       was approved and who was granted a dataset role, and when.
 
@@ -102,13 +132,25 @@ Each provider needs an OAuth app registered with the provider by the owner, usin
 identity-provider form (its database), never into git or this repo. Keycloak's outbound calls to the providers
 already go through the egress-proxy (`KC_SPI_CONNECTIONS_HTTP_CLIENT_DEFAULT_PROXY_MAPPINGS` in `keycloak.yaml`).
 
+What the owner registers with each provider:
+
+| Provider | Where to register | Redirect / callback URI to enter | Notes |
+|---|---|---|---|
+| GitHub | GitHub → Settings → Developer settings → OAuth Apps (or an org's OAuth App) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/github/endpoint` | Homepage URL `https://ptm.k8s.semanticscience.org` |
+| Google | Google Cloud console → APIs & Services → Credentials → OAuth client ID, type "Web application" | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/google/endpoint` | Consent screen: scopes `openid`, `email`, `profile` |
+| ORCID | ORCID → Developer tools (public API client) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/orcid/endpoint` | ORCID usually returns no email; Keycloak then asks for one and verifies it |
+
+Each yields a client id and a client secret. They go into the identity-provider form in Keycloak, not into git.
+
 - [ ] **GitHub** (built-in provider, alias `github`): scope `user:email`. Trust email **off**.
-- [ ] **Google** (built-in, alias `google`): Trust email may be **on** (Google returns verified addresses only).
+- [ ] **Google** (built-in, alias `google`): Trust email **off** too (security review of phase 2): every address is
+      verified by Keycloak itself, whatever the provider claims.
 - [ ] **ORCID** (OpenID Connect v1.0 provider, alias `orcid`): discovery
       `https://orcid.org/.well-known/openid-configuration`, client authentication "client secret sent as post",
       scope `openid`. Trust email **off**; ORCID usually returns no email, so first login asks for one and Verify
       email applies.
-- [ ] For each: Sync mode `import`; First login flow `first broker login`; Hide on login page off.
+- [ ] For each: Sync mode `import`; First login flow `first broker login`; **Post login flow `post broker admin
+      OTP`** (section 5); Hide on login page off.
 - [ ] **Authentication → first broker login** (keep the built-in flow): Review profile `missing`; "Create user if
       unique"; on a clash, "Confirm link existing account" then "Verify existing account by email" **or**
       re-authentication. Never auto-link by email: with Trust email off, an attacker controlling an unverified
@@ -122,10 +164,48 @@ already go through the egress-proxy (`KC_SPI_CONNECTIONS_HTTP_CLIENT_DEFAULT_PRO
 - [ ] Give the owner (`OWNER_EMAIL`) and `BACKUP_ADMIN` realm administration: Users → user → Role mapping → assign
       client role `realm-management` → `realm-admin`. They administer at
       `https://keycloak.k8s.semanticscience.org/admin/ids-apps/console/`, with no `master` realm access.
-- [ ] **Authentication → Flows → duplicate `browser`** as `browser with admin OTP`. In its conditional OTP subflow,
-      add "Condition - user role" with role `realm-management.realm-admin`, and set the OTP form **Required** under
-      that condition. Bind it as the browser flow. Admins must then enrol an authenticator (Required action
-      "Configure OTP" is triggered automatically) and use it at every login; other users are not asked.
+- [ ] **The admin-capable roles** (security review of phase 2 and its re-check): every `realm-management` role
+      that can grant `approved` or a `dataset:*` role, change who may sign in, or act as another user:
+      `realm-admin` (which includes all the others), `manage-users` (membership and role mappings),
+      `manage-realm` (roles, groups and flows), `manage-clients`, `manage-identity-providers` and
+      `impersonation`. Their holders must use OTP at every login and cannot reset their credentials by email.
+- [ ] **Nobody holds any other `realm-management` role except read-only ones** (`view-*`, `query-*`). Before
+      granting any other, add it to the list above: to `ADMIN_ROLES` in `deploy/ids3/keycloak/gen_realm.py` (the OTP
+      conditions and the reset denial) and in `deploy/ids3/keycloak/check_realm.py`, which checks the import for
+      exactly this. If fine-grained admin
+      permissions are ever enabled, any role they let assign `approved` or `dataset:*` joins the list too.
+- [ ] **Authentication → Flows → duplicate `browser`** as `browser with admin OTP`. Under the username/password form,
+      add one CONDITIONAL subflow per admin-capable role, in the order above, each ending in the OTP form
+      (Required). Subflow *k* has "Condition - user role" for role *k*, plus the same condition with *negate* on for
+      each role before it, so an admin is asked once (conditions within a subflow are ANDed).
+
+      Bind it as the browser flow. Admins then enrol an authenticator (the "Configure OTP" required action is
+      triggered automatically) and use it at every login; other users are not asked.
+- [ ] **The same after an identity-provider login** (security review of phase 2, M2). Without it, an admin who
+      linked GitHub, Google or ORCID could sign in through the provider and skip OTP. Create a top-level flow
+      `post broker admin OTP` with the same CONDITIONAL subflows, and set it as **Post login flow** on all three
+      providers.
+- [ ] **Admins keep local credentials and do not link identity providers.** An admin account signs in with its
+      username, a strong local password and OTP. The post-broker flow covers a linked provider anyway, but an
+      unlinked admin account has no provider in its trust chain at all.
+- [ ] **No reset by email for admins** (the re-check's medium). Keycloak's default "reset credentials" flow ends in
+      "Reset - Conditional OTP", whose `reset-otp` step, unconfigured, only adds "Configure OTP" and succeeds. So
+      whoever controlled an admin's mailbox could set a new password, enrol their own authenticator and reach the
+      admin console: OTP did **not** stand in the way. The realm therefore binds its own **Reset credentials** flow,
+      `reset credentials, not for admins`:
+      1. "Choose user", then "Send reset email" (the link is mailed to everyone alike, so the form does not reveal
+         who is an admin);
+      2. one CONDITIONAL subflow per admin-capable role: "Condition - user role" for that role, then **Deny
+         access**, so following the link as an admin changes nothing;
+      3. "Reset password", for everyone else. There is no OTP reset step: nobody resets OTP by email.
+
+      Ordinary users keep self-service password reset. `RESET_PASSWORD`, `SEND_RESET_PASSWORD`, `UPDATE_TOTP` and
+      `REMOVE_TOTP` stay audited.
+- [ ] **How an admin recovers:** through another admin. The owner and `BACKUP_ADMIN` can each reset the other's
+      password (Users → user → Credentials → Reset password, temporary) and remove a lost authenticator (Credentials
+      → delete the OTP credential, so "Configure OTP" is asked at the next login), in the admin console. That is
+      why a backup admin must exist before the realm goes live. If both are locked out, the platform admin
+      recovers from the `master` realm.
 - [ ] Optionally also enable WebAuthn (passkeys) as an alternative second factor for admins.
 - [ ] Required actions enabled: Verify Email, Configure OTP, Update Password, Terms and Conditions (enable when the
       owner provides the text; default off).
@@ -192,4 +272,6 @@ Until the listener exists, the owner finds new accounts in Users, sorted by crea
       dev today).
 - [ ] Link GitHub to the same account from the account console; sign in with GitHub; same user.
 - [ ] An admin login asks for OTP.
+- [ ] "Forgot password" for the test account resets its password; for an admin account, following the mailed link
+      is denied and the password and authenticator are unchanged.
 - [ ] The registration notice reached the owner (once section 6 is built).

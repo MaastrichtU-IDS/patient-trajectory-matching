@@ -11,6 +11,7 @@
 !demos/mockups/access.py
 !demos/mockups/datasets.py
 !demos/mockups/match_worker.py
+!demos/mockups/mimic_demo_fetch.py
 !demos/mockups/store_query.py
 !demos/mockups/store_trajectory.py
 !demos/mockups/store_parity.py

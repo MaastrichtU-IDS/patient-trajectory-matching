@@ -66,6 +66,33 @@ class RegistryTests(unittest.TestCase):
         self.refused({'datasets': [entry(access='everyone')]}, 'ACCESS_MUST_BE_PUBLIC_APPROVED_OR_ROLE')
         self.refused({'datasets': [mimic(store=7)]}, 'DATASET_SETTING_MUST_BE_A_PATH')
 
+    def test_a_fetched_store_names_the_one_known_source_and_its_build_path(self):
+        ok = mimic(store='/tmp/demo/build/store', fetch='physionet:mimic-iv-demo-2.2')
+        self.assertEqual(datasets.parse({'datasets': [ok]})[0].settings['fetch'], 'physionet:mimic-iv-demo-2.2')
+        self.refused({'datasets': [mimic(store='/tmp/demo/build/store', fetch='https://example.org/x')]},
+                     'UNKNOWN_FETCH_SOURCE')
+        self.refused({'datasets': [mimic(store='/tmp/demo/store', fetch='physionet:mimic-iv-demo-2.2')]},
+                     'FETCHED_STORE_MUST_END_IN_BUILD_STORE')
+        self.refused({'datasets': [entry(fetch='physionet:mimic-iv-demo-2.2')]}, 'DATASET_FIELDS')  # not synthetic
+
+    def test_the_realm_file_matches_the_checklist(self):
+        # deploy/ids3/keycloak/ids-apps-realm.json: settings and wiring (the Keycloak format keys need its sources).
+        sys.path.insert(0, str(HERE.parents[1] / 'deploy/ids3/keycloak'))
+        import check_realm
+        realm = json.loads((HERE.parents[1] / 'deploy/ids3/keycloak/ids-apps-realm.json').read_text())
+        self.assertEqual(check_realm.check(realm), [])
+        broken = json.loads(json.dumps(realm))
+        broken['identityProviders'][0]['config']['clientSecret'] = 'x'
+        broken['clients'][0]['redirectUris'].append('https://ptm.k8s.semanticscience.org/*')
+        self.assertEqual(len(check_realm.check(broken)), 3)
+
+    def test_the_realm_file_is_what_its_generator_writes(self):
+        # deploy/ids3/keycloak/gen_realm.py is the source; the committed JSON must be its output, byte for byte.
+        sys.path.insert(0, str(HERE.parents[1] / 'deploy/ids3/keycloak'))
+        import gen_realm
+        self.assertEqual((HERE.parents[1] / 'deploy/ids3/keycloak/ids-apps-realm.json').read_text(), gen_realm.render(),
+                         're-generate with python deploy/ids3/keycloak/gen_realm.py')
+
     def test_a_registry_file_and_the_flags(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'datasets.json'
@@ -93,7 +120,10 @@ class RegistryTests(unittest.TestCase):
             lines.append(line)
         document = json.loads(textwrap.dedent('\n'.join(lines)))
         parsed = datasets.parse(document)
-        self.assertEqual([(e.id, e.policy.access) for e in parsed], [('synthetic-paediatric-rare', 'public')])
+        self.assertEqual([(e.id, e.policy.access, e.results) for e in parsed],  # phase 2 draft
+                         [('synthetic-paediatric-rare', 'public', 'per_patient'),
+                          ('mimic-iv-demo', 'approved', 'aggregate')])
+        self.assertEqual(parsed[1].settings['fetch'], datasets.FETCH_SOURCE)
         # Each dataset's match route sits under the tighter match rate limit (ingress-match.yaml, review M1).
         match_ingress = (HERE.parents[1] / 'deploy/ids3/ptm/dev/ingress-match.yaml').read_text()
         for e in parsed:

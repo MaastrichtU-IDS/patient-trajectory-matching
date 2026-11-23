@@ -290,6 +290,15 @@ what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/h
   page gets a new access token without signing in again. Sign-out revokes the refresh token and ends the realm
   session. The index lists only the datasets the caller may use, and says when an account
   awaits approval. Without a realm none of this appears.
+- **A fetched dataset** (phase 2 draft): a MIMIC-IV demo entry with `"fetch": "physionet:mimic-iv-demo-2.2"` is
+  downloaded from PhysioNet at start (`mimic_demo_fetch.py`). Each file is checked against pinned sums, and the store
+  is built in a low-priority child process. The dataset answers `503 STORE_BUILDING`, or the failure's code, until
+  the store is built, and readiness does not wait for it. The store service opens nothing before then, and only the
+  pinned snapshot after. The store query page shows the demo's citation, the ODbL licence and PhysioNet's citation.
+- **The MIMIC-IV demo, hosted** (security review of phase 2): its matches run in child processes too
+  (`match_worker.IsolatedStoreQuery`, with a spare), killed at the same time limit, at a search budget of 1,000, and
+  requests are capped at 6 steps, 8 relations, 4 relaxations and a relaxation cost budget of 1. Locally it matches
+  in-process as before.
 - **Dependencies.** The token check needs `requirements-hosting.lock.txt` (the store lock plus PyJWT and
   cryptography); it is imported only when a realm is configured.
 - **Tests.** `test_access.py` covers the token check against keys generated in the test: expired, wrong-issuer,

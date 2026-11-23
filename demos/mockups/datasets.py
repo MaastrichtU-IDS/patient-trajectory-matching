@@ -21,6 +21,9 @@ Kinds, each served by an existing backend whose own rules stay in force:
   exist (docs/hosting-plan.md, section 7). The tier is reserved so the policy and the realm role are in place.
 - Kind-specific settings: `cohort` (synthetic, optional: another cohort file of the generator's dataset) and `store`
   (required), `d_items` (optional) for the MIMIC demo. Unknown fields are refused.
+- `fetch` (MIMIC demo only, hosting): `"physionet:mimic-iv-demo-2.2"`, the one source known. The server downloads,
+  checks and builds the store at start into `store`, which must end in `/build/store` (mimic_demo_fetch.py). Such a
+  dataset is optional: it answers 503 until built, and never holds readiness back.
 
 Without a registry file the server builds the registry from its flags, as before D50: the synthetic cohort, and the
 MIMIC demo when a store is named.
@@ -36,6 +39,7 @@ import threading
 from access import Policy
 
 ID = re.compile(r'[a-z0-9][a-z0-9-]{0,62}')
+FETCH_SOURCE = 'physionet:mimic-iv-demo-2.2'  # the open demo, fetched and built at start (mimic_demo_fetch.py)
 SYNTHETIC_ID = 'synthetic-paediatric-rare'
 MIMIC_DEMO_ID = 'mimic-iv-demo'
 
@@ -52,7 +56,7 @@ class Kind:
 
 KINDS = {
     'synthetic-trajectory': Kind(Policy('public'), 'per_patient', True, frozenset({'cohort'}), page='trajectory/'),
-    'mimic-demo-aggregate': Kind(Policy('approved'), 'aggregate', True, frozenset({'store', 'd_items'}),
+    'mimic-demo-aggregate': Kind(Policy('approved'), 'aggregate', True, frozenset({'store', 'd_items', 'fetch'}),
                                  frozenset({'store'}), page='store-query/'),
     'mimic-iv': Kind(Policy('role', 'dataset:mimic-iv:read'), 'per_patient', False, frozenset()),
 }
@@ -104,6 +108,12 @@ def parse(document):
         settings = {k: raw[k] for k in kind.settings if k in raw}
         if not all(isinstance(v, str) and v for v in settings.values()):
             raise RegistryError('DATASET_SETTING_MUST_BE_A_PATH')
+        if 'fetch' in settings:
+            # Fetched at start (mimic_demo_fetch.py): the one source known, built where `store` says.
+            if settings['fetch'] != FETCH_SOURCE:
+                raise RegistryError('UNKNOWN_FETCH_SOURCE')
+            if not settings['store'].endswith('/build/store'):
+                raise RegistryError('FETCHED_STORE_MUST_END_IN_BUILD_STORE')
         seen.add(raw['id'])
         entries.append(Entry(raw['id'], raw['kind'], raw['title'], policy, raw['results'], settings))
     return entries
@@ -137,7 +147,61 @@ class Dataset:
         self.entry = entry
         self.service = service
         self._opening = False
-        self.matcher = None  # hosted synthetic datasets: a match_worker.IsolatedMatcher (server.py sets it)
+        # Hosted: the matches' child processes (match_worker), set by server.py. The synthetic dataset's start with
+        # it; the MIMIC demo's (IsolatedStoreQuery) by `on_open`, once the server's own service has opened the store.
+        self.matcher = None
+        self.on_open = None
+        # A fetched dataset (setting `fetch`): None until started, then 'pending', 'ready' or 'failed' (fetch_error).
+        self.fetch_state = None
+        self.fetch_error = None
+
+    def fetch_gate(self):
+        """The store service's gate for a fetched store: None once its fetch is done ('ready'), and closed in every
+        other state, before the fetch has started included (the phase 2 re-check, low 3); the code to answer
+        meanwhile."""
+        if self.fetch_state == 'ready':
+            return None
+        return self.fetch_error or 'STORE_BUILDING'
+
+    def _opened(self):
+        """After a background open: start what needs an open, checked store (the hosted MIMIC matcher)."""
+        if self.on_open is not None and self.service.store is not None:
+            self.on_open(self)
+
+    @property
+    def optional(self):
+        """A fetched dataset never holds readiness back: if its source is unreachable, the others still serve."""
+        return 'fetch' in self.entry.settings
+
+    def start_fetch(self, fetch_and_build, on_event, attempts=(0, 60, 600)):
+        """Fetch and build the store on a background thread (`attempts`: seconds to wait before each try), then open
+        it through the store service, whose content gate still applies."""
+        import threading
+        import time
+        self.fetch_state = 'pending'
+
+        def run():
+            dest = Path(self.entry.settings['store']).parents[1]
+            for wait in attempts:
+                time.sleep(wait)
+                started = time.monotonic()
+                try:
+                    result = fetch_and_build(dest)
+                except Exception as error:  # noqa: BLE001 - a named failure, or any other, leaves no store
+                    from mimic_demo_fetch import FETCH_ERRORS
+                    self.fetch_error = str(error) if str(error) in FETCH_ERRORS else 'MIMIC_DEMO_FETCH_FAILED'
+                    on_event('mimic_demo_fetch', dataset=self.id, ok=False, error=self.fetch_error,
+                             seconds=round(time.monotonic() - started, 1))
+                    continue
+                how = result[1] if isinstance(result, tuple) else 'built'  # 'reused': a verified store on the volume
+                on_event('mimic_demo_fetch', dataset=self.id, ok=True, how=how,
+                         seconds=round(time.monotonic() - started, 1))
+                self.fetch_state, self.fetch_error = 'ready', None
+                self.service.status()  # open now, for the first time (the gate was closed): the content gate decides
+                self._opened()
+                return
+            self.fetch_state = 'failed'
+        threading.Thread(target=run, name=f'fetch-{self.id}', daemon=True).start()
 
     id = property(lambda self: self.entry.id)
     kind = property(lambda self: self.entry.kind)
@@ -166,15 +230,24 @@ class Dataset:
             if service._store is None:
                 return 'failed'
             return self.matcher.state() if self.matcher is not None else 'ready'
+        if self.fetch_state in ('pending', 'failed'):
+            return self.fetch_state
         if not service.opened and not self._opening:
             return 'idle'
-        return service.state()
+        state = service.state()
+        if state == 'ready' and self.on_open is not None:  # hosted: ready once its match workers are
+            return self.matcher.state() if self.matcher is not None else 'pending'
+        return state
 
     def open_in_background(self):
         """Open a MIMIC store now, on its own thread (hosted: so that readiness covers it)."""
         if self.kind == 'mimic-demo-aggregate' and not self._opening:
             self._opening = True
-            threading.Thread(target=self.service.status, name=f'open-{self.id}', daemon=True).start()
+
+            def run():
+                self.service.status()
+                self._opened()
+            threading.Thread(target=run, name=f'open-{self.id}', daemon=True).start()
 
 
 class Registry:

@@ -31,6 +31,53 @@ public on GHCR.
 Sign-in is phase 2 (the sections below marked "phase 2"). It needs the realm, the `PTM_OIDC_*` settings in
 `configmap.yaml` and those two files listed in the kustomization.
 
+## Phase 2 (DRAFT on branch `feature/phase2-signin-mimic-demo`, not deployed)
+
+**Changes from phase 1:**
+- **Configmap:** the realm settings (`PTM_OIDC_ISSUER`, `PTM_OIDC_JWKS_URI`, `PTM_OIDC_AUDIENCE`,
+  `PTM_OIDC_CLIENT_ID`, `PTM_APPROVED_ROLE`).
+- **Kustomization:** `allow-keycloak-egress.yaml` listed again.
+- **Registry:** the dataset `mimic-iv-demo` at tier `approved`, aggregate counts. It is fetched from PhysioNet at start
+  and built into the emptyDir; it is never in the image.
+- **Ingress:** its match path added to `ingress-match.yaml`.
+- **Pod:** memory limit 3Gi (phase 1: 1Gi). The measured peak is about 1.3 GiB, but the limit is sized so the
+  per-process address-space limits alone fit it: while the demo's store is built, the build child (1,600 MiB) and
+  the two synthetic workers (400 each) plus the server, 2,580 MiB; while serving, the two MIMIC workers (600 each)
+  and the two synthetic workers plus the server, 2,230 MiB. Hosted, the demo's matches run in those workers with the
+  2 s time limit and capped request sizes (security review of phase 2).
+- **Volume:** `pvc.yaml`, a 1Gi Longhorn RWO volume for the demo's store, kept across restarts. A store on it is
+  reused only when it verifies (content re-derived, the pinned snapshot id, the pinned d_items). The RWO volume
+  makes the Deployment `strategy: Recreate`, so rollouts have a gap of a few seconds.
+- **Realm:** `ids-apps` as code, in `deploy/ids3/keycloak/ids-apps-realm.json`.
+
+**Image:** phase 2 needs a new image, because the fetch module and the page's attribution are new code. After this
+branch merges, push tag `mockups-v0.2.0` and put its digest into `app.yaml`. Until then the draft `app.yaml` still
+names the phase-1 image `0.1.0`, which cannot fetch the demo.
+
+**What the owner must do before phase 2:**
+- [ ] Name the backup realm admin for `ids-apps`.
+- [ ] Decide who sets up the realm (the platform admin, or a realm admin).
+- [ ] Register the three OAuth apps, with these redirect / callback URIs:
+  - GitHub: `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/github/endpoint`;
+  - Google (web application): `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/google/endpoint`;
+  - ORCID: `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/orcid/endpoint`.
+
+  Hand each client id and secret to the realm admin out of band.
+
+**What the admin must do before phase 2:**
+- [ ] **Realm:** import `ids-apps-realm.json` (`KEYCLOAK-REALM.md`, "Two ways", route A), or follow the manual
+      steps. Then enter the three providers' client ids and secrets, give the owner and the backup admin
+      `realm-admin`, and confirm the platform Keycloak can send mail through `smtp.maastrichtuniversity.nl:25`.
+- [ ] **Egress:** confirm the university parent proxy lets `physionet.org` through. The cluster's egress proxy needs
+      no change: port 3128 has no destination allowlist.
+- [ ] **Readiness of the demo:** after the first phase-2 rollout, the demo answers `503 STORE_BUILDING` for about ten
+      minutes while it builds onto the volume; the logs show a `mimic_demo_fetch` event (`how: built`). Later
+      restarts reuse it in seconds (`how: reused`). The public dataset is unaffected throughout.
+- [ ] **Volume:** the Longhorn RWO PVC `ptm-mimic-demo` binds. It holds MIMIC-IV demo data, so access to Longhorn
+      volumes, snapshots and any future backup target now matters (hosting plan, "Security consequence of the
+      volume").
+- [ ] **Later, a platform change:** the registration-notice provider (`KEYCLOAK-REALM.md`, section 6).
+
 **URL once deployed:** <https://ptm.k8s.semanticscience.org>
 
 **Data on dev: synthetic only** (owner, 2026-11-20). No MIMIC data of any kind is in the image, the ConfigMaps or

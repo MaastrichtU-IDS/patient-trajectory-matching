@@ -1,18 +1,23 @@
 # ids3/projects/ptm/dev/kustomization.yaml (DRAFT in patient-trajectory-matching: deploy/ids3/ptm/dev/)
 # project=ptm env=dev -> namespace ptm-dev (created by the projects ApplicationSet).
-# PHASE 1 (owner's decision, 2026-11-23): the synthetic-only public demo, no sign-in, no secret.
-# _base adds the restrict-egress NetworkPolicy; allow-traefik-ingress.yaml admits only Traefik to the pod.
+# PHASE 2 DRAFT (not deployed): sign-in through the realm `ids-apps`, and the MIMIC-IV demo for approved users.
+# Phase 1 (live since 2026-11-23) is this file without allow-keycloak-egress.yaml.
+# _base adds the restrict-egress NetworkPolicy; allow-keycloak-egress.yaml unions the one cross-namespace exception
+# (the realm's keys from platform/keycloak); allow-traefik-ingress.yaml admits only Traefik to the pod. The MIMIC-IV
+# demo is fetched from physionet.org through the egress-proxy, which restrict-egress already allows.
 # middleware.yaml holds the Traefik rate limits, body limit and HSTS the two Ingresses name; ingress-match.yaml puts
 # the match routes under a tighter rate limit. No PVC, no database, no migration.
 #
-# Not listed in phase 1, kept for phase 2 (README, "Phase 2"): allow-keycloak-egress.yaml (only for the realm's
-# key fetch, with no realm configured) and vault.yaml (no secret exists). Add them here when phase 2 lands.
+# vault.yaml stays unlisted: phase 2 still has no secret (the browser client is public, the realm's keys are
+# public, the demo is open data).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../_base
+  - allow-keycloak-egress.yaml
   - allow-traefik-ingress.yaml
   - configmap.yaml
+  - pvc.yaml
   - app.yaml
   - middleware.yaml
   - ingress.yaml

@@ -35,6 +35,12 @@ const REFUSALS = {
   DURING_NEEDS_AN_INTERVAL_STEP: '"Happens while" needs an infusion item as its first step.',
   EXTEND_MAX_MUST_WIDEN: 'The relaxed latest gap must be larger than the latest gap.',
   THRESHOLD_NOT_A_PLAIN_DECIMAL: 'Thresholds must be plain decimals such as 65 or 37.5.',
+  // On a hosted copy (security review of phase 2, M3): its caps on a query's size, and its time limit.
+  TOO_MANY_RELATIONS: 'This hosted copy allows at most 8 relations per query.',
+  TOO_MANY_RELAXATIONS: 'This hosted copy allows at most 4 relaxations per query.',
+  RELAXATION_BUDGET_ABOVE_HOSTED_MAX: 'This hosted copy allows a relaxation budget of at most 1.',
+  MATCH_TIME_LIMIT: 'The query ran past this hosted copy\'s time limit and was stopped. Try fewer relaxations or relations.',
+  BUSY: 'The server is busy with other queries. Try again in a moment.',
 };
 const OPS = {lower: [['', 'no lower bound'], ['ge', 'at least (≥)'], ['gt', 'above (>)']],
              upper: [['', 'no upper bound'], ['le', 'at most (≤)'], ['lt', 'below (<)']]};

@@ -4923,6 +4923,82 @@ the lows it found are fixed too.
   - The spare takes over, and the request is still answered as `500 INTERNAL_ERROR`.
 - *Test:* `test_server_access`, "a worker that answers internal is killed and never reused".
 
+**Phase 2 draft and its security review (2026-11-23).** Phase 1 is live (services PR #744, merged by the owner).
+Phase 2 adds sign-in (the `ids-apps` realm as code, `deploy/ids3/keycloak/`) and the MIMIC-IV demo for approved
+users, fetched from PhysioNet at start and kept on a verified volume (docs/hosting-plan.md, "Phase 2"). Nothing is
+deployed and no services-repo PR is open. An independent reviewer, arranged by the coordinator, reviewed `9bcd327`:
+no critical or high finding; three medium and six low, all fixed.
+- **M1, a startup race.** `main()`'s startup report called the MIMIC service's `status()` before the fetch had
+  placed and checked the store. The service opens once and remembers a failure, so the demo stayed unavailable
+  after a successful fetch, and that first open verified files only, with no snapshot pin. Fixed:
+  - the report prints a fetched dataset's fetch state and opens nothing;
+  - `StoreService` takes a `gate`: while the fetch is not done it opens nothing, remembers nothing and answers
+    `STORE_BUILDING` (or the fetch's failure);
+  - it opens only the pinned snapshot (`expected_snapshot_id=mimic_demo_fetch.SNAPSHOT_ID`), and a fresh build that
+    is not that snapshot is never published (`SNAPSHOT_ID_NOT_PINNED`), so an ingest change fails closed.
+  - *Tests* (`test_mimic_demo_fetch`): `main()` itself is run with the fetch held back; the store service opens no
+    other snapshot.
+- **M2, admin OTP bypassed through an identity provider.** The browser flow asked admins for OTP, but a login
+  through GitHub, Google or ORCID did not. Fixed in the realm: a `post broker admin OTP` flow on all three providers,
+  and OTP in both flows for holders of `manage-users` or `manage-realm` (everyone who can grant `approved` or a
+  `dataset:*` role; `realm-admin` includes both). Admins keep local credentials and link no provider; the reset by
+  email is a recorded residual. `IDENTITY_PROVIDER_LINK_ACCOUNT` and the forensic events are audited, and
+  `check_realm.py` checks both flows.
+- **M3, an approved user could block the pod.** One crafted MIMIC request took 73.7 s in-process, under the store
+  lock; `check_size` did not apply, since the store query's `steps` and `relations` are top-level. Fixed:
+  - hosted, MIMIC matches run in child processes killed at the 2 s time limit (`match_worker.IsolatedStoreQuery`,
+    with an active child and a spare, as for the synthetic store), started once the server's own service has opened
+    and checked the store; the server never matches MIMIC in-process when hosted;
+  - the search budget is clamped to 1,000;
+  - caps on the request: 6 steps, 8 relations, 4 relaxations (step widenings, value widenings and gap extensions
+    together), a relaxation cost budget of 1 (400 above each).
+  - *Measured* on the demo store at one DuckDB thread (an M4 Pro): the page's three examples take 0.10 to 0.26 s,
+    with the same answers at a search budget of 1,000 as at 40,000. The cost is in the relaxation sets, not the
+    search: shapes like the reviewer's (6 dense steps, 8 relaxations, budget 2) took 5 s to over 40 s at either
+    budget. Within the caps, 75 adversarial shapes (zero-cost relaxations, so every subset is tried; dense items,
+    `during` on an infusion, every window and scope) took at most 1.23 s.
+  - *Tests* (`test_server_access`, hosted MIMIC): answers through the child equal the in-process ones; a match past
+    the time limit is killed and the next is answered; the caps; the child's search budget.
+- **L1:** an interrupted run's scratch and set-aside directories are removed at the next start.
+- **L2:** the build child has an address-space limit, `BUILD_MAX_MIB` = 1600 (measured 1228 MiB of
+  address space and 858 MiB resident, in a Linux container, times 1.3); the build passes under it with the
+  pinned snapshot id.
+  - *Pod memory, with M3's workers* (each MIMIC worker 386 MiB resident and 535 MiB of address space after 78
+    cases, limit 700 MiB): about 1,330 MiB while building and 1,290 MiB while serving, which never overlap, since
+    the MIMIC workers start after the build. The limit stayed 2Gi, about 35% above either (superseded by the
+    re-check below: 600 MiB workers, a 3Gi pod).
+- **L3:** Google no longer trusts email. **L4:** no `offline_access` scope; `check_realm.py` requires no default
+  group; forensic events are audited.
+- **L5:** the fetch follows no redirects and has a 300 s deadline for the whole download. **L6:** fetch failures are
+  named from a fixed list; anything else is `MIMIC_DEMO_FETCH_FAILED`.
+- **The re-check (of `a3d994a`).** M1 and M3 confirmed fixed (through `main()` itself, and with the reviewer's own
+  shapes); M2 confirmed fixed for identity-provider logins. One medium and five lows remained, all addressed:
+  - *Medium, password reset gave admin access without the old OTP:* Keycloak's default reset flow ends in "Reset -
+    Conditional OTP", and an unconfigured `reset-otp` only adds "Configure OTP". The realm now binds
+    `reset credentials, not for admins`: choose the user, mail the link to all alike, then deny the holders of each
+    admin-capable role before `reset-password`; no OTP reset. Admins recover through another admin (the owner and
+    the backup admin reset each other in the console). `check_realm.py` checks the denial, and the checklist's wrong
+    sentence (that OTP stood in the way) is corrected.
+  - *Low 1:* the admin-capable roles are realm-admin, manage-users, manage-realm, manage-clients,
+    manage-identity-providers and impersonation, in both OTP flows and the reset denial; `check_realm.py` refuses
+    any other granted realm-management role but `view-*`/`query-*`. Mutations of the realm (a denial dropped or
+    moved after `reset-password`, `reset-otp` added, the default reset flow, an OTP subflow dropped, a
+    `manage-events` grant) are each caught.
+  - *Low 2:* the MIMIC worker's limit is 600 MiB. 132 matches, the page's examples and the worst in-cap shapes
+    repeated, all passed under it in a Linux container (545 MiB of address space, 404 MiB resident at most). The
+    limits alone did not fit 2Gi: 2 × 600 + 2 × 400 + the server (about 230) is 2,230 MiB while serving, and
+    1,600 + 2 × 400 + the server (about 180) is 2,580 MiB while building. A single MIMIC worker would not fix the
+    build phase, so the spare stays and **the pod's limit is 3Gi** (16% and 27% headroom). The measured peak is
+    about 1.3 GiB.
+  - *Low 3:* `fetch_gate` is closed unless the fetch state is `ready`. *Low 4:* the download checks its deadline
+    after every read of at most 64 KiB (`read1`). Tests: a trickling server is stopped near the deadline; the gate
+    is closed before the fetch starts.
+  - *The reviewer's scripts, re-run on the fixed tree:* `main_race.py` (an empty volume, and a stale pin) and
+    `m3.py` behave as fixed: the 73.7 s shape is refused, the in-cap shapes answered in 0.2 to 1.8 s, and one
+    passed 2 s and was killed at the limit.
+  - *Low 5, accepted and documented:* one approved client can occupy the single active MIMIC worker for a match at
+    a time. This is bounded by the front door's one match in flight per client address and by the 2 s limit.
+
 ## E0 Letter mentions timed from their letter's text: a deterministic normaliser and the converter's option `normalised_v1`, under rules fixed before measuring
 
 *Status:* measured; **not shipped** (option (a), the coordinator as delegate): rule 1 missed as written (4 misses of 84,755, each a truth id the generator reuses that the scorer resolved to the wrong event); every other rule met. Reverted to main; the measured state is the retry base **e53ac3b** (09a6900 before the rebase onto 9da7240, the same files but for D50 in this log); E0b queued. The owner approved "the date normaliser first"; the coordinator briefed E0 as the owner's delegate.

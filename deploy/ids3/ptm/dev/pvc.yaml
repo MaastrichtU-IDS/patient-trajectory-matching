@@ -1,0 +1,24 @@
+# ids3/projects/ptm/dev/pvc.yaml (phase 2)
+# The MIMIC-IV demo's built store, kept across restarts and rollouts. The server fetches and builds it only when the
+# volume holds no store it can verify: one that opens with every table's content re-derived from its files, as the
+# snapshot id pinned in mimic_demo_fetch.py, with the pinned d_items. A verified store is ready in seconds; a build
+# takes about ten minutes. Without this volume (the registry pointing into /tmp), the store is rebuilt at every start.
+#
+# Longhorn RWO (ext4, so the pod's fsGroup applies and uid 10001 can write; Longhorn's RWX is NFS-backed, where
+# fsGroup does not apply). RWO is why app.yaml uses `strategy: Recreate`: a new pod on another node could not attach
+# the volume while the old one holds it. Not `longhorn-retain`: the store is rebuildable from PhysioNet, so deleting
+# the namespace may take it.
+#
+# SECURITY: this volume holds MIMIC-IV demo data. The data are open (ODbL), but the policy serves them to approved
+# users only, so who can read Longhorn volumes, their snapshots and (once a backup target exists) their backups now
+# matters, as it will for full MIMIC-IV (hosting plan, "Phase 2: delivering the MIMIC-IV demo").
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ptm-mimic-demo
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi

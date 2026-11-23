@@ -164,12 +164,22 @@ def read_d_items(path):
 class StoreService:
     """One configured snapshot, opened lazily and shared by the server's threads under a lock."""
 
-    def __init__(self, path=None, d_items=None, pin=(DEMO_PATIENTS, DEMO_SUBJECTS_SHA256)):
+    def __init__(self, path=None, d_items=None, pin=(DEMO_PATIENTS, DEMO_SUBJECTS_SHA256), gate=None,
+                 expected_snapshot_id=None, search_budget=SEARCH_BUDGET):
         """`pin` is (patient count, digest of the sorted patient ids) the store must hold: the open demo's. Tests on
-        the synthetic fixture pass the fixture's own; the server always uses the default."""
+        the synthetic fixture pass the fixture's own; the server always uses the default.
+
+        `gate` (a store fetched at start): a callable that returns None once the store may be opened, else the code
+        to answer meanwhile (STORE_BUILDING, or the fetch's failure). Until then nothing is opened and nothing is
+        remembered, so the first open is of the finished store (security review of phase 2, M1).
+        `expected_snapshot_id`: the only snapshot the store may be (es.open_store refuses any other).
+        `search_budget`: the store's search budget per request (hosted: lower, security review of phase 2, M3)."""
         self.path = None if path in (None, '') else Path(path)
         self.d_items = None if d_items in (None, '') else Path(d_items)
         self.pin = pin
+        self.gate = gate
+        self.expected_snapshot_id = expected_snapshot_id
+        self.search_budget = search_budget
         self.lock = threading.Lock()
         self.store = None
         self.error = None
@@ -177,9 +187,13 @@ class StoreService:
 
     # The store is opened once; a failure is remembered and reported, never retried per request. Nothing is
     # served unless every check passes: `self.store` is set last, and a store opened by a failed attempt is closed.
+    # A gated store is not opened at all, and nothing is remembered, while its gate is closed.
     def _open(self):
         if self.opened:
             return
+        waiting = self.gate() if self.gate is not None else None
+        if waiting:
+            raise Unavailable(waiting)
         self.opened = True
         if self.path is None:
             self.error = 'STORE_NOT_CONFIGURED'
@@ -195,7 +209,7 @@ class StoreService:
             except ImportError:
                 raise Unavailable('STORE_SUPPORT_NOT_INSTALLED')
             self.es, self.tg = es, tg
-            store = es.open_store(snapshot, verify='files')
+            store = es.open_store(snapshot, verify='files', expected_snapshot_id=self.expected_snapshot_id)
             check_open_dataset(store.manifest)
             check_open_content(store, self.pin)  # the decisive check: the demo's own patients
             self.dataset = dataset
@@ -459,7 +473,7 @@ class StoreService:
             out_relations.append(rel)
         query = {'profile': self.tg.PROFILE_ID, 'scope': spec['scope'], 'steps': out_steps,
                  'relations': out_relations, 'relaxations': relaxations, 'budget': budget,
-                 'search_budget': SEARCH_BUDGET}
+                 'search_budget': self.search_budget}
         conds = None
         if conditions:
             conds = {'profile': self.es.CONDITIONS_PROFILE, 'steps': conditions}

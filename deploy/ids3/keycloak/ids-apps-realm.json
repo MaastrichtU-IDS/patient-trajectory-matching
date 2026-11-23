@@ -1,0 +1,1359 @@
+{
+  "realm": "ids-apps",
+  "enabled": true,
+  "displayName": "Semantic Science apps",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "rememberMe": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 10,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "passwordPolicy": "length(12) and notUsername and notEmail and passwordHistory(3)",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "smtpServer": {
+    "host": "smtp.maastrichtuniversity.nl",
+    "port": "25",
+    "from": "info-ids@maastrichtuniversity.nl",
+    "fromDisplayName": "Semantic Science apps",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "eventsEnabled": true,
+  "eventsExpiration": 7776000,
+  "enabledEventTypes": [
+    "REGISTER",
+    "LOGIN",
+    "LOGIN_ERROR",
+    "UPDATE_EMAIL",
+    "VERIFY_EMAIL",
+    "IDENTITY_PROVIDER_LINK_ACCOUNT",
+    "REMOVE_FEDERATED_IDENTITY",
+    "DELETE_ACCOUNT",
+    "UPDATE_TOTP",
+    "REMOVE_TOTP",
+    "UPDATE_CREDENTIAL",
+    "REMOVE_CREDENTIAL",
+    "UPDATE_PASSWORD",
+    "RESET_PASSWORD",
+    "SEND_RESET_PASSWORD",
+    "IDENTITY_PROVIDER_LOGIN",
+    "IDENTITY_PROVIDER_FIRST_LOGIN"
+  ],
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
+  "attributes": {
+    "adminEventsExpiration": "31536000"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "approved",
+        "description": "Approved by the owner; required by every non-public dataset."
+      },
+      {
+        "name": "dataset:mimic-iv:read",
+        "description": "Full MIMIC-IV: granted only after the owner has verified and recorded the user's own PhysioNet credentialing. Assigned to nobody until the storage and backup access review."
+      },
+      {
+        "name": "default-roles-ids-apps",
+        "description": "The roles every new account gets: the account console only.",
+        "composite": true,
+        "composites": {
+          "client": {
+            "account": [
+              "view-profile",
+              "manage-account"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "default-roles-ids-apps",
+    "composite": true,
+    "clientRole": false
+  },
+  "groups": [
+    {
+      "name": "approved",
+      "path": "/approved",
+      "realmRoles": [
+        "approved"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "ptm-mockups",
+      "name": "Patient trajectory matching (mockups)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": true,
+      "rootUrl": "https://ptm.k8s.semanticscience.org",
+      "baseUrl": "/",
+      "redirectUris": [
+        "https://ptm.k8s.semanticscience.org/",
+        "https://ptm.k8s.semanticscience.org/store-query/"
+      ],
+      "webOrigins": [
+        "https://ptm.k8s.semanticscience.org"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://ptm.k8s.semanticscience.org/##https://ptm.k8s.semanticscience.org/store-query/",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "client.use.lightweight.access.token.enabled": "false"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "name": "ptm-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "ptm-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "github",
+      "displayName": "GitHub",
+      "providerId": "github",
+      "enabled": true,
+      "trustEmail": false,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "postBrokerLoginFlowAlias": "post broker admin OTP",
+      "config": {
+        "clientId": "REPLACE_WITH_GITHUB_CLIENT_ID",
+        "defaultScope": "user:email",
+        "syncMode": "IMPORT",
+        "guiOrder": "1"
+      }
+    },
+    {
+      "alias": "google",
+      "displayName": "Google",
+      "providerId": "google",
+      "enabled": true,
+      "trustEmail": false,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "postBrokerLoginFlowAlias": "post broker admin OTP",
+      "config": {
+        "clientId": "REPLACE_WITH_GOOGLE_CLIENT_ID",
+        "syncMode": "IMPORT",
+        "guiOrder": "2"
+      }
+    },
+    {
+      "alias": "orcid",
+      "displayName": "ORCID",
+      "providerId": "oidc",
+      "enabled": true,
+      "trustEmail": false,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "postBrokerLoginFlowAlias": "post broker admin OTP",
+      "config": {
+        "clientId": "REPLACE_WITH_ORCID_CLIENT_ID",
+        "issuer": "https://orcid.org",
+        "authorizationUrl": "https://orcid.org/oauth/authorize",
+        "tokenUrl": "https://orcid.org/oauth/token",
+        "userInfoUrl": "https://orcid.org/oauth/userinfo",
+        "jwksUrl": "https://orcid.org/oauth/jwks",
+        "useJwksUrl": "true",
+        "validateSignature": "true",
+        "clientAuthMethod": "client_secret_post",
+        "defaultScope": "openid",
+        "syncMode": "IMPORT",
+        "pkceEnabled": "false",
+        "guiOrder": "3"
+      }
+    }
+  ],
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "browserFlow": "browser with admin OTP",
+  "resetCredentialsFlow": "reset credentials, not for admins",
+  "authenticatorConfig": [
+    {
+      "alias": "holds realm-admin",
+      "config": {
+        "condUserRole": "realm-management.realm-admin",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "holds manage-users",
+      "config": {
+        "condUserRole": "realm-management.manage-users",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "holds manage-realm",
+      "config": {
+        "condUserRole": "realm-management.manage-realm",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "holds manage-clients",
+      "config": {
+        "condUserRole": "realm-management.manage-clients",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "holds manage-identity-providers",
+      "config": {
+        "condUserRole": "realm-management.manage-identity-providers",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "holds impersonation",
+      "config": {
+        "condUserRole": "realm-management.impersonation",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "does not hold realm-admin",
+      "config": {
+        "condUserRole": "realm-management.realm-admin",
+        "negate": "true"
+      }
+    },
+    {
+      "alias": "does not hold manage-users",
+      "config": {
+        "condUserRole": "realm-management.manage-users",
+        "negate": "true"
+      }
+    },
+    {
+      "alias": "does not hold manage-realm",
+      "config": {
+        "condUserRole": "realm-management.manage-realm",
+        "negate": "true"
+      }
+    },
+    {
+      "alias": "does not hold manage-clients",
+      "config": {
+        "condUserRole": "realm-management.manage-clients",
+        "negate": "true"
+      }
+    },
+    {
+      "alias": "does not hold manage-identity-providers",
+      "config": {
+        "condUserRole": "realm-management.manage-identity-providers",
+        "negate": "true"
+      }
+    },
+    {
+      "alias": "admins reset through another admin",
+      "config": {
+        "denyErrorMessage": "Administrators cannot reset their credentials by email. Ask another administrator to reset them in the admin console."
+      }
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "browser with admin OTP",
+      "description": "Browser login; OTP for admin-capable users.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-cookie"
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 25,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "identity-provider-redirector"
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "admin OTP forms"
+        }
+      ]
+    },
+    {
+      "alias": "admin OTP forms",
+      "description": "Username and password, then OTP for admin-capable users.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-username-password-form"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "browser OTP: realm-admin"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "browser OTP: manage-users"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 40,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "browser OTP: manage-realm"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 50,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "browser OTP: manage-clients"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 60,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "browser OTP: manage-identity-providers"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 70,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "browser OTP: impersonation"
+        }
+      ]
+    },
+    {
+      "alias": "browser OTP: realm-admin",
+      "description": "OTP for holders of realm-management/realm-admin.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "browser OTP: manage-users",
+      "description": "OTP for holders of realm-management/manage-users who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "browser OTP: manage-realm",
+      "description": "OTP for holders of realm-management/manage-realm who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "browser OTP: manage-clients",
+      "description": "OTP for holders of realm-management/manage-clients who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 22,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "browser OTP: manage-identity-providers",
+      "description": "OTP for holders of realm-management/manage-identity-providers who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-identity-providers"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 22,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 23,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "browser OTP: impersonation",
+      "description": "OTP for holders of realm-management/impersonation who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds impersonation"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 22,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 23,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 24,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-identity-providers"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "post broker admin OTP",
+      "description": "After an identity-provider login: OTP for admin-capable users.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "post broker OTP: realm-admin"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "post broker OTP: manage-users"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 40,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "post broker OTP: manage-realm"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 50,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "post broker OTP: manage-clients"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 60,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "post broker OTP: manage-identity-providers"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 70,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "post broker OTP: impersonation"
+        }
+      ]
+    },
+    {
+      "alias": "post broker OTP: realm-admin",
+      "description": "OTP for holders of realm-management/realm-admin.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "post broker OTP: manage-users",
+      "description": "OTP for holders of realm-management/manage-users who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "post broker OTP: manage-realm",
+      "description": "OTP for holders of realm-management/manage-realm who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "post broker OTP: manage-clients",
+      "description": "OTP for holders of realm-management/manage-clients who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 22,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "post broker OTP: manage-identity-providers",
+      "description": "OTP for holders of realm-management/manage-identity-providers who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-identity-providers"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 22,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 23,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "post broker OTP: impersonation",
+      "description": "OTP for holders of realm-management/impersonation who hold none of the roles before it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds impersonation"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 21,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 22,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 23,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 24,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "does not hold manage-identity-providers"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "auth-otp-form"
+        }
+      ]
+    },
+    {
+      "alias": "reset credentials, not for admins",
+      "description": "Password reset by email for ordinary users only.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "reset-credentials-choose-user"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "reset-credential-email"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "reset denied: realm-admin"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 31,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "reset denied: manage-users"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 32,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "reset denied: manage-realm"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 33,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "reset denied: manage-clients"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 34,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "reset denied: manage-identity-providers"
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 35,
+          "authenticatorFlow": true,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false,
+          "flowAlias": "reset denied: impersonation"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 90,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "reset-password"
+        }
+      ]
+    },
+    {
+      "alias": "reset denied: realm-admin",
+      "description": "No reset by email for holders of realm-management/realm-admin.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds realm-admin"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "deny-access-authenticator",
+          "authenticatorConfig": "admins reset through another admin"
+        }
+      ]
+    },
+    {
+      "alias": "reset denied: manage-users",
+      "description": "No reset by email for holders of realm-management/manage-users.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-users"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "deny-access-authenticator",
+          "authenticatorConfig": "admins reset through another admin"
+        }
+      ]
+    },
+    {
+      "alias": "reset denied: manage-realm",
+      "description": "No reset by email for holders of realm-management/manage-realm.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-realm"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "deny-access-authenticator",
+          "authenticatorConfig": "admins reset through another admin"
+        }
+      ]
+    },
+    {
+      "alias": "reset denied: manage-clients",
+      "description": "No reset by email for holders of realm-management/manage-clients.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-clients"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "deny-access-authenticator",
+          "authenticatorConfig": "admins reset through another admin"
+        }
+      ]
+    },
+    {
+      "alias": "reset denied: manage-identity-providers",
+      "description": "No reset by email for holders of realm-management/manage-identity-providers.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds manage-identity-providers"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "deny-access-authenticator",
+          "authenticatorConfig": "admins reset through another admin"
+        }
+      ]
+    },
+    {
+      "alias": "reset denied: impersonation",
+      "description": "No reset by email for holders of realm-management/impersonation.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "holds impersonation"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "deny-access-authenticator",
+          "authenticatorConfig": "admins reset through another admin"
+        }
+      ]
+    }
+  ],
+  "requiredActions": [
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10,
+      "config": {}
+    },
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 20,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "providerId": "UPDATE_PROFILE",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 40,
+      "config": {}
+    },
+    {
+      "alias": "TERMS_AND_CONDITIONS",
+      "name": "Terms and Conditions",
+      "providerId": "TERMS_AND_CONDITIONS",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 50,
+      "config": {}
+    },
+    {
+      "alias": "webauthn-register",
+      "name": "Webauthn Register",
+      "providerId": "webauthn-register",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 60,
+      "config": {}
+    }
+  ]
+}
