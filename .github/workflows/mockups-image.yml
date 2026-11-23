@@ -1,20 +1,29 @@
-# DRAFT GitHub Actions workflow, NOT active: it lives outside .github/workflows/ on purpose. Move it to
-# .github/workflows/mockups-image.yml when the owner approves publishing the image (hosting plan, section 2).
+# The mockups image for the ids3 cluster (docs/hosting-plan.md, D50). Activated 2026-11-23 for phase 1 (the owner's
+# approval: image public; synthetic-only demo, no sign-in).
 #
 # Builds deploy/ids3/mockups.Dockerfile with buildx (so the allow-list beside it applies), starts the image read-only
 # and checks it: health during the build, readiness, the anonymous dataset list, no MIMIC store configured, no MIMIC
-# file or variable in the image, the engine route off and no Python source served. Only for a tag
-# `mockups-vX.Y.Z` does a second job, the only one allowed to write packages, push those same checked bits as
-# `X.Y.Z` (never `latest`) and print the digest for the services-repo PR.
+# file or variable in the image, the engine route off and no Python source served. On a pull request touching the
+# image's inputs it does only that. Only for a tag `mockups-vX.Y.Z` does a second job, the only one allowed to write
+# packages, push those same checked bits as `X.Y.Z` (never `latest`) and print the digest for the services-repo PR.
 #
-# Hardening (security review of D50, L7): every action pinned by commit SHA (the release named beside it); the tag
-# reaches shell only through `env:` and is validated against ^[0-9]+\.[0-9]+\.[0-9]+$ before use; `packages: write`
-# only on the publish job.
+# Hardening (security review of D50, L7): every action pinned by commit SHA, each checked on 2026-11-23 against the
+# release named beside it (`gh api repos/<action>/git/ref/tags/<tag>`, annotated tags dereferenced); the tag reaches
+# shell only through `env:` and is validated against ^[0-9]+\.[0-9]+\.[0-9]+$ before use; `packages: write` only on
+# the publish job.
 name: mockups image
 
 on:
   push:
     tags: ['mockups-v*']
+  pull_request:        # build and check only, when the image's inputs change
+    paths:
+      - .github/workflows/mockups-image.yml
+      - deploy/ids3/**
+      - demos/mockups/**
+      - patterns/**
+      - schemas/**
+      - ontology/**
   workflow_dispatch:   # build and check without publishing
 
 permissions:
@@ -62,7 +71,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           ref="$IMAGE:$VERSION"
-          docker run -d --name m --read-only --tmpfs /tmp:size=256m -p 8080:8080 "$ref"
+          docker run -d --name m --read-only --tmpfs /tmp:size=512m -p 8080:8080 "$ref"
           for i in $(seq 1 30); do curl -fsS localhost:8080/api/health && break; sleep 1; done
           for i in $(seq 1 60); do curl -fsS localhost:8080/api/ready && break; sleep 1; done
           curl -fsS localhost:8080/api/datasets | python3 -c "import json,sys; d=json.load(sys.stdin); assert [x['id'] for x in d['datasets']]==['synthetic-paediatric-rare'], d; assert not d['caller']['owner'], d"
