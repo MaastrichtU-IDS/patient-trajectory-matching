@@ -1,6 +1,6 @@
 # Keycloak: the shared user realm (checklist for the realm admin)
 
-DRAFT, nothing created yet. One open realm for all the owner's user-facing apps, on the platform Keycloak
+Not created yet (phase 2). One open realm for all the owner's user-facing apps, on the platform Keycloak
 (<https://keycloak.k8s.semanticscience.org>), **separate from the infrastructure realm `ids3`**. ptm is its first
 client; other apps add their own clients to the same realm. Because the realm is shared, this file belongs beside
 `ids3/platform/keycloak/` in the services repo rather than under one project; it sits here until that PR is written.
@@ -20,6 +20,30 @@ settle before starting:
 
 Switch the realm selector (top left) to `ids-apps` before every step after the first. Work done in `master` or `ids3`
 has no effect here.
+
+## Two ways to set it up
+
+**(A) Import the realm file, then add what a file must not hold.** `deploy/ids3/keycloak/ids-apps-realm.json` holds
+sections 1 to 5 below as code. It contains no secret and no user, and its provider client ids are placeholders.
+`deploy/ids3/keycloak/check_realm.py` checks it offline against these sections and against Keycloak 26's import
+format (the representation classes of the platform's version, 26.8.1).
+1. Admin console of the `master` realm → realm selector → **Create realm** → **Resource file**: upload
+   `ids-apps-realm.json` → Create. The realm name comes from the file.
+2. **Identity providers** → for each of `github`, `google` and `orcid`: replace the `REPLACE_WITH_…` client id with
+   the one the owner registered, and enter the **client secret** (section 4 gives the redirect URI to register).
+   Save. A provider whose secret is missing simply fails at login; nothing else breaks.
+3. **Realm settings → Email → Test connection.** Section 1 explains the SMTP egress check.
+4. **Users:** give the owner (`OWNER_EMAIL`) and `BACKUP_ADMIN` the client role `realm-management` → `realm-admin`
+   (section 5). The file creates no user.
+5. Check that the browser flow is `browser with admin OTP` (Authentication → Flows): an admin login asks for OTP,
+   and a non-admin login does not.
+6. Section 6 (the registration notice) is a platform change, outside the file.
+7. Verify as in section 7.
+
+If the import is refused, or a setting differs after import, follow (B) for that part. The file is the reference
+for the values either way.
+
+**(B) Manual steps:** sections 1 to 5 below, in the admin console.
 
 ## 1. Realm
 
@@ -101,6 +125,16 @@ Each provider needs an OAuth app registered with the provider by the owner, usin
 `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/<alias>/endpoint`. Client secrets go into Keycloak's
 identity-provider form (its database), never into git or this repo. Keycloak's outbound calls to the providers
 already go through the egress-proxy (`KC_SPI_CONNECTIONS_HTTP_CLIENT_DEFAULT_PROXY_MAPPINGS` in `keycloak.yaml`).
+
+What the owner registers with each provider:
+
+| Provider | Where to register | Redirect / callback URI to enter | Notes |
+|---|---|---|---|
+| GitHub | GitHub → Settings → Developer settings → OAuth Apps (or an org's OAuth App) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/github/endpoint` | Homepage URL `https://ptm.k8s.semanticscience.org` |
+| Google | Google Cloud console → APIs & Services → Credentials → OAuth client ID, type "Web application" | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/google/endpoint` | Consent screen: scopes `openid`, `email`, `profile` |
+| ORCID | ORCID → Developer tools (public API client) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/orcid/endpoint` | ORCID usually returns no email; Keycloak then asks for one and verifies it |
+
+Each yields a client id and a client secret. They go into the identity-provider form in Keycloak, not into git.
 
 - [ ] **GitHub** (built-in provider, alias `github`): scope `user:email`. Trust email **off**.
 - [ ] **Google** (built-in, alias `google`): Trust email may be **on** (Google returns verified addresses only).

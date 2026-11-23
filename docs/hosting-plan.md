@@ -447,10 +447,10 @@ found one medium and nine low issues, all fixed:
 
 - **Dev: the synthetic cohort only.** No MIMIC data of any kind in the image, the ConfigMaps or a volume. The image
   workflow checks this before publishing.
-- **The MIMIC-IV demo** (open data, ODbL; tier `approved`, aggregates only) is allowed by policy but not configured:
-  it needs a delivery route for a prepared store (a read-only volume populated by the admin, or object storage with
-  a credential in Vault), the attribution and citation footer the Cloud Run plan listed, and the page's note that
-  counts-only is not disclosure control. Its content gate admits only the open demo's 100 patients.
+- **The MIMIC-IV demo** (open data, ODbL; tier `approved`, aggregates only): phase 2. It is fetched from PhysioNet
+  at start, checked against pinned sums and built into the pod; it is never in the image ("Phase 2: delivering the
+  MIMIC-IV demo", below). Its content gate admits only the open demo's 100 patients, and the page carries the
+  attribution and the note that counts-only is not disclosure control.
 - **Full MIMIC-IV** only after the storage and backup access review: where the store lives, who can read the volume
   and its backups (cluster admins can read any Secret and any hostpath volume), encryption at rest, and retention.
   Then a backend, the `mimic-iv` kind enabled with role `dataset:mimic-iv:read`, per-patient results for credentialed
@@ -459,6 +459,71 @@ found one medium and nine low issues, all fixed:
 - **The aggregate-only endpoint is not disclosure control** (D29: differencing isolated one patient's value in 17
   queries). It is acceptable for the open demo only; the role tier exists because credentialed data need credentialed
   users, not because counts protect anyone.
+
+### Phase 2: delivering the MIMIC-IV demo (draft, 2026-11-23)
+
+The owner wants the MIMIC-IV demo for approved users in phase 2: tier `approved`, aggregate counts only.
+
+**Why it is not in the image.** The demo is open data (ODbL 1.0, no credentialing), but the image is public. Baking
+the demo in would hand it to anyone who pulls the image, and the policy is approved users only.
+
+**How the pod gets it.** The server fetches it at start (`demos/mockups/mimic_demo_fetch.py`, registry setting
+`"fetch": "physionet:mimic-iv-demo-2.2"`):
+1. **Download** the four `icu/` files the store's ingest reads (chartevents, d_items, icustays, inputevents; 6.4 MB)
+   and PhysioNet's `SHA256SUMS.txt`, from `https://physionet.org/files/mimic-iv-demo/2.2/`. The fetch goes through the
+   egress proxy (`HTTPS_PROXY`), with a 60 s timeout and a 64 MiB cap per file.
+2. **Check** every file against the sha256 pinned in the module. The pins are the authority; three of them are also
+   in `data/mimic-inputevents-demo-pin.json`, and the chartevents pin was added from PhysioNet's sums on 2026-11-23.
+   PhysioNet's published sums must agree with the pins, or nothing is used.
+3. **Build** the store with the existing ingest (`patterns.mimic_store_ingest --chartevents`, one worker) in a child
+   process at the lowest CPU priority, into the pod's emptyDir. The downloads are then deleted; `d_items` is kept for
+   the catalogue's labels.
+4. The store service opens the snapshot through its **content gate**: exactly the open demo's 100 subjects, by a
+   pinned digest.
+
+**Behaviour while building or on failure.**
+- **Readiness does not wait for it.** A fetched dataset is optional, so the public synthetic cohort serves from the
+  first seconds.
+- **Until the build ends,** the demo's routes answer `503 STORE_BUILDING`.
+- **If a step fails,** they answer `503` with its code:
+  - `PHYSIONET_UNREACHABLE`;
+  - `PHYSIONET_SUMS_DISAGREE`;
+  - `CHECKSUM_MISMATCH`;
+  - `FILE_TOO_LARGE`;
+  - `STORE_BUILD_FAILED`;
+  - `STORE_BUILD_TIMED_OUT`.
+- **Retries:** three attempts, at start, then after 1 and 10 minutes. After that the dataset stays unavailable until
+  the pod restarts.
+- **Logging:** each attempt is logged as a `mimic_demo_fetch` event, with the outcome, the code and the duration.
+- `/api/datasets` shows an approved caller the demo with `ready: false` until it is built.
+
+**Measured.**
+- *Build* (one worker, an M4 Pro, the demo's real files): 493 s and 1.23 GB peak resident; the store is 47 MB on
+  disk.
+- *End to end* (`mimic_demo_fetch.py`, from the development machine on 2026-11-23): fetched from physionet.org, every
+  check passed, built in 522 s at 1.27 GB peak. The store opened through the content gate under the real pin: 100
+  patients, dictionary labels present.
+- *Pod sizing:* about 1.7 GB in all during the build (the server, two match workers and the build), so the phase-2
+  pod's memory limit is 2Gi and its emptyDir 1Gi. The cluster's CPU may be slower.
+- *Cost:* every pod start rebuilds the store, the demo being unavailable for about ten minutes each time.
+- *If restarts or memory become a problem:* a one-shot Job could build the store into a small PVC, with its own
+  memory limit, and the Deployment would mount it read-only. That adds a PVC and a Job to manage; it is not drafted.
+
+**Egress.** The services repo's egress proxy (`ids3/platform/egress-proxy/configmap.yaml`) has no destination
+allowlist on port 3128: any HTTPS destination is allowed for cluster pods and forwarded to the university parent proxy
+`proxy.unimaas.nl`. So `physionet.org` needs **no services-repo change**. The admin confirms only that the university
+proxy lets `physionet.org` through, which held from the development machine on 2026-11-23. The namespace's
+`restrict-egress` policy already allows the egress proxy.
+
+**Attribution.** The store query page now carries the attribution PhysioNet asks for:
+- the dataset citation, Johnson et al. (2023), MIMIC-IV Clinical Database Demo (version 2.2), PhysioNet,
+  https://doi.org/10.13026/dp1f-ex47;
+- the licence, Open Database License v1.0, linked to PhysioNet's licence page;
+- PhysioNet's standard citation, Pollard et al. (2026), Nature Health;
+- the note that aggregate counts are not disclosure control.
+
+The counts the page shows are produced works of the database. If the store itself (a derived database) were ever
+published, ODbL's share-alike would apply; it is not published, since it lives only in the pod.
 
 ## 8. Deploying
 

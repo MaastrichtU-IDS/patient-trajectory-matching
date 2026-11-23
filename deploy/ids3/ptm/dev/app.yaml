@@ -87,12 +87,15 @@ spec:
           # Each match worker opens DuckDB with one worker thread and one async thread (match_worker.confine_duckdb),
           # so its address space does not grow with the CPUs: measured in a Linux container at about 145 MiB resident
           # and 268 MiB of address space at one, four and six CPUs, inside its 400 MiB limit (PTM_MATCH_WORKER_MAX_MIB).
+          # Phase 2: the MIMIC-IV demo's store is built at start in a child process (mimic_demo_fetch.py) at the lowest
+          # CPU priority: about 8 minutes on one core and about 1.2 GB peak resident (measured on an M4 Pro, one
+          # worker), on top of the above. Hence 2Gi. Phase 1 needed 1Gi.
           resources:
-            requests: { cpu: 100m, memory: 384Mi }
-            limits: { cpu: "1", memory: 1Gi }
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { cpu: "1", memory: 2Gi }
       volumes:
         - name: tmp
-          emptyDir: { sizeLimit: 512Mi }
+          emptyDir: { sizeLimit: 1Gi }   # phase 2: also the MIMIC-IV demo's store, built at start
         - name: datasets
           configMap: { name: ptm-mockups-datasets }
       terminationGracePeriodSeconds: 10

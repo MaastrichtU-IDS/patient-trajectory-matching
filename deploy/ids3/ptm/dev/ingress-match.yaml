@@ -36,3 +36,6 @@ spec:
           - path: /api/datasets/synthetic-paediatric-rare/match
             pathType: Exact
             backend: { service: { name: ptm-mockups, port: { number: 8080 } } }
+          - path: /api/datasets/mimic-iv-demo/match
+            pathType: Exact
+            backend: { service: { name: ptm-mockups, port: { number: 8080 } } }

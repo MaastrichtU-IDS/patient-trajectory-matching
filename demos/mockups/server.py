@@ -76,6 +76,7 @@ from patterns import trajectory_graph as engine  # noqa: E402
 import access  # noqa: E402
 import datasets  # noqa: E402
 import match_worker  # noqa: E402
+import mimic_demo_fetch  # noqa: E402
 import store_query  # noqa: E402
 import store_trajectory  # noqa: E402
 
@@ -311,7 +312,7 @@ class Handler(SimpleHTTPRequestHandler):
         """{"ready": bool}: 200 once every started dataset is ready. Never opens a store (hosted, MIMIC stores open at
         startup; locally one not yet used is idle and does not hold readiness back). The owner also gets the counts."""
         states = [d.state() for d in self.registry.datasets]
-        ready = all(state in ('ready', 'idle') for state in states)
+        ready = all(state in ('ready', 'idle') or d.optional for d, state in zip(self.registry.datasets, states))
         value = {'ready': ready}
         try:
             if self.caller().kind == 'owner':
@@ -377,9 +378,13 @@ class Handler(SimpleHTTPRequestHandler):
                         lambda: matcher.match(hosted_request(check_size(data, hosted)), wait=self.queue_left())))
                 return self.gated_body(lambda data: self.trajectory_answer(
                     lambda: service.match(hosted_request(check_size(data, hosted)) if hosted else check_size(data))))
+            if dataset.fetch_state in ('pending', 'failed'):
+                return self.send_json(503, {'error': dataset.fetch_error or 'STORE_BUILDING'})
             return self.gated_body(lambda data: self.store_answer(lambda: service.match(check_size(data, hosted))))
         if dataset.kind == 'synthetic-trajectory':
             return self.trajectory_answer(service.status)
+        if dataset.fetch_state in ('pending', 'failed'):  # fetched at start: not built yet, or its source failed
+            return self.send_json(503, {'error': dataset.fetch_error or 'STORE_BUILDING'})
         return self.store_answer(service.status if operation == 'status' else service.catalogue)
 
     # ------------------------------------------------------------ POST
@@ -645,7 +650,7 @@ def _int_env(name, default):
 def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None,
           trajectory_store=True, trajectory_store_root=None, trajectory_cohort=None, *, datasets_file=None,
           verifier=None, max_body=None, match_concurrency=None, log_format=None, max_threads=None, hosted=False,
-          match_time_limit=None):
+          match_time_limit=None, fetch_and_build=None):
     """The server. Datasets come from `datasets_file` or PTM_DATASETS, else from the flags: the synthetic cohort
     (`trajectory_cohort`, by default the page's) unless `trajectory_store` is false, built on a background thread
     under `trajectory_store_root` or PTM_TRAJECTORY_STORE_ROOT (else a temporary directory; `server_close()` removes
@@ -704,6 +709,8 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
             if match_time_limit:         # hosted: matches in a child process with a hard time limit
                 dataset.matcher = match_worker.IsolatedMatcher(
                     dataset.service.cohort_path, root, match_time_limit, memory_mib=worker_mib, on_event=log_event).start()
+        elif dataset.optional:
+            dataset.start_fetch(fetch_and_build or mimic_demo_fetch.fetch_and_build, log_event)  # fetched and built now
         elif hosted:
             dataset.open_in_background()  # hosted: opened now, so readiness covers it; locally at first use
     httpd.trajectory_store = first_synthetic.service if first_synthetic else None

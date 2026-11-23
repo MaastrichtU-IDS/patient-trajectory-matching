@@ -31,6 +31,43 @@ public on GHCR.
 Sign-in is phase 2 (the sections below marked "phase 2"). It needs the realm, the `PTM_OIDC_*` settings in
 `configmap.yaml` and those two files listed in the kustomization.
 
+## Phase 2 (DRAFT on branch `feature/phase2-signin-mimic-demo`, not deployed)
+
+**Changes from phase 1:**
+- **Configmap:** the realm settings (`PTM_OIDC_ISSUER`, `PTM_OIDC_JWKS_URI`, `PTM_OIDC_AUDIENCE`,
+  `PTM_OIDC_CLIENT_ID`, `PTM_APPROVED_ROLE`).
+- **Kustomization:** `allow-keycloak-egress.yaml` listed again.
+- **Registry:** the dataset `mimic-iv-demo` at tier `approved`, aggregate counts. It is fetched from PhysioNet at start
+  and built into the emptyDir; it is never in the image.
+- **Ingress:** its match path added to `ingress-match.yaml`.
+- **Pod:** memory limit 2Gi and emptyDir 1Gi, for the demo's build.
+- **Realm:** `ids-apps` as code, in `deploy/ids3/keycloak/ids-apps-realm.json`.
+
+**Image:** phase 2 needs a new image, because the fetch module and the page's attribution are new code. After this
+branch merges, push tag `mockups-v0.2.0` and put its digest into `app.yaml`. Until then the draft `app.yaml` still
+names the phase-1 image `0.1.0`, which cannot fetch the demo.
+
+**What the owner must do before phase 2:**
+- [ ] Name the backup realm admin for `ids-apps`.
+- [ ] Decide who sets up the realm (the platform admin, or a realm admin).
+- [ ] Register the three OAuth apps, with these redirect / callback URIs:
+  - GitHub: `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/github/endpoint`;
+  - Google (web application): `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/google/endpoint`;
+  - ORCID: `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/orcid/endpoint`.
+
+  Hand each client id and secret to the realm admin out of band.
+
+**What the admin must do before phase 2:**
+- [ ] **Realm:** import `ids-apps-realm.json` (`KEYCLOAK-REALM.md`, "Two ways", route A), or follow the manual
+      steps. Then enter the three providers' client ids and secrets, give the owner and the backup admin
+      `realm-admin`, and confirm the platform Keycloak can send mail through `smtp.maastrichtuniversity.nl:25`.
+- [ ] **Egress:** confirm the university parent proxy lets `physionet.org` through. The cluster's egress proxy needs
+      no change: port 3128 has no destination allowlist.
+- [ ] **Readiness of the demo:** after the first phase-2 rollout, the demo answers `503 STORE_BUILDING` for about ten
+      minutes while it builds; the logs show a `mimic_demo_fetch` event when it is done. The public dataset is
+      unaffected throughout.
+- [ ] **Later, a platform change:** the registration-notice provider (`KEYCLOAK-REALM.md`, section 6).
+
 **URL once deployed:** <https://ptm.k8s.semanticscience.org>
 
 **Data on dev: synthetic only** (owner, 2026-11-20). No MIMIC data of any kind is in the image, the ConfigMaps or
