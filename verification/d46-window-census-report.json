@@ -2,7 +2,7 @@
  "profile": "d46-window-census-1.0",
  "rule": "D46 rule 4: on the page's cohort, each patient's window under main's page (grouped by truth) and this tree's (rule reconcile_v1), for the seven period rules under stated findings and coded only, each moved window classified by the anchors that place it; the store's results for the page templates and every answered option-sweep definition under both windows, each changed result classified by its window's class and its transition. Met only if every changed result has a moved window (unexplained 0). Rule 8, reported: the store's results with every event anchor at the latest time its most precise record allows",
  "base": "28a3cbf",
- "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+ "cohort_sha256": "e49da508a67091801de4f6f9eb39f89b5e4a01ac1d49432b01c4488e6cb3e8d5",
  "patients": 48,
  "setting": {
   "sweep": "the option sweep before D49's flip (translator option codedOnly: null, its pre-D49 default: D37's refusal of coded only, D32's reading for derived-only definitions, D38's gene refusal), so the window figures stay reproducible; d49-flip-census-report.json covers the flip",
@@ -3844,12 +3844,12 @@
   "rule": "reported, not ruled (D46 rule 7): node, one process, after the census",
   "index_view_here": {
    "repeats": 21,
-   "median_ms_all_patients": 38.22416599999997,
+   "median_ms_all_patients": 37.19104099999822,
    "patients": 48
   },
   "evidence_view_on_main": {
    "repeats": 21,
-   "median_ms_all_patients": 17.24704199998814,
+   "median_ms_all_patients": 16.95320799999172,
    "patients": 48
   }
  },
@@ -3920,7 +3920,7 @@
   "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
   "demos/mockups/trajectory/app.js": "4dc9bdbe04167c45e023729b5ab60cc4b484303a18ae8a7aff8daffea6679149",
   "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
-  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/synthetic/generate.py": "4a26cfa1f3f7fc17a1c58f8d1ea527a3e306ef11d26b4f1239da4cb11b8d3804",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
   "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",

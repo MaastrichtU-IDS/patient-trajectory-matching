@@ -105,6 +105,9 @@
     <div class="item"><h3>Letter dates read from the letter's wording</h3>
       <p>An option, off by default, times a letter mention from the wording of its own sentence ("at 8 months", "last week") instead of from birth to the letter. Under findings stated in notes, Blank's exact results go from 1 to 168 of 1,102. It is sound on the generator's own wording only, so it needs a held-out wording test before it could become the default.</p>
       <p class="ref">E0, E0b</p></div>
+    <div class="item"><h3>Unique ids in the synthetic generator</h3>
+      <p>Every truth event and data-quality case now has its own id, and every link resolves; the generator checks both. Only the ids that had collided changed. No store, page or matching result moved, so scorers no longer need to work around reused ids.</p>
+      <p class="ref">D54 (E0b's follow-up)</p></div>
     <div class="item"><h3>Measurement protocol</h3>
       <p>Speed changes are judged with control-normalised timing, so slow drift across a session does not count as a change. Count requests are judged by the median over pairs, which a follow-up check found settles the Nth and count slowdown question as no slowdown. When two committed rules conflict, the record says which one governs, and the older report is frozen as historical.</p>
       <p class="ref">D44, D51, D48b, D53</p></div>
@@ -139,9 +142,6 @@
     <div class="item"><h3>Text extraction and linking</h3>
       <p>Reading clinical text and linking each mention to the coded record it restates, so that stated findings stop counting twice. This is the extraction study's next piece.</p>
       <p class="ref">E0b follow-ups · extraction study</p></div>
-    <div class="item"><h3>The generator reuses truth ids</h3>
-      <p>The synthetic generator gives one truth id to two events in places. Scorers have to work around it by concept; fixing the generator removes the workaround.</p>
-      <p class="ref">E0b</p></div>
     <div class="item"><h3>One course's stop grouped differently</h3>
       <p>For patient C026's prednisolone course the page and the store group the stop record differently, under every setting. Making them agree is queued.</p>
       <p class="ref">D53</p></div>

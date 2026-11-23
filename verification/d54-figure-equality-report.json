@@ -1,0 +1,251 @@
+{
+ "profile": "d54-figure-equality-1.0",
+ "rule": "D54 rule 5: every figure of each regenerated report equals main's committed one but cohort digests, artifact digests, timings, the figures enumerated as computed from truth or case ids (reported with their direction), and the scaling report's build and run figures outside the store's content and the queries' answers; every met-like flag equal; no other or structural difference; and every compared report regenerated on this tree (each generator digest it records is this tree's).",
+ "base": "8ecbbcd",
+ "generator_sha256": "4a26cfa1f3f7fc17a1c58f8d1ea527a3e306ef11d26b4f1239da4cb11b8d3804",
+ "reports": {
+  "concept-measure-benchmark": {
+   "leaves": 70,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 1
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d46-window-census-report": {
+   "leaves": 2267,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 1,
+    "timing": 2
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d46-window-reference-report": {
+   "leaves": 527,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 11
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d46-window-usefulness-report": {
+   "leaves": 4020,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 30
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d47-page-census-report": {
+   "leaves": 1597,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 1,
+    "timing": 3
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d47-page-reference-report": {
+   "leaves": 128,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 11
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d47-page-usefulness-report": {
+   "leaves": 4886,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 30
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d49-flip-usefulness-report": {
+   "leaves": 2450,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 30
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d52d-anchor-census-report": {
+   "leaves": 163,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 1,
+    "timing": 1
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d52d-anchor-reference-report": {
+   "leaves": 192,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "timing": 1
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d52d-anchor-usefulness-report": {
+   "leaves": 6202,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 30,
+    "timing": 1
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d53-coded-start-census-report": {
+   "leaves": 82,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 1,
+    "timing": 1
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d53-coded-start-trace-report": {
+   "leaves": 430,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 40
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "d53-coded-start-usefulness-report": {
+   "leaves": 2231,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 1,
+    "cohort_digest": 30
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "e0b-mention-time-soundness-report": {
+   "leaves": 365,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 2
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "e0b-mention-time-defects-report": {
+   "leaves": 121,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 2
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "e0b-mention-time-arms-report": {
+   "leaves": 3776,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 2,
+    "timing": 837,
+    "cohort_digest": 30
+   },
+   "other": 0,
+   "listed": {}
+  },
+  "execution-store-scaling-report": {
+   "leaves": 4089,
+   "generator_current": true,
+   "differing": {
+    "artifact_digest": 2,
+    "build_or_run_figure": 59,
+    "timing": 1396,
+    "structure": 5
+   },
+   "other": 5,
+   "listed": {
+    "structure": [
+     {
+      "path": "sizes/[0]/build_reused/snapshot_id",
+      "main": "e73234dff77df27b2bd96db8b4d09183f426700abb91bcaca7d9b481cf799d61",
+      "here": "<absent>"
+     },
+     {
+      "path": "sizes/[1]/build_reused/snapshot_id",
+      "main": "094b54377b5ff6dbb773fd81a8766b5726a7842c6d3bf272ae2641ba33c73c52",
+      "here": "<absent>"
+     },
+     {
+      "path": "sizes/[2]/build_reused/snapshot_id",
+      "main": "d5313f8c808e24f876d74236315c4ba6d97035622058ae952bf538f5b6d21ad0",
+      "here": "<absent>"
+     },
+     {
+      "path": "sizes/[3]/build_reused/snapshot_id",
+      "main": "da8cc2192f73ae712d4ae60279ce025f104dd6df808946b04e7ff6d8adac6ea6",
+      "here": "<absent>"
+     },
+     {
+      "path": "sizes/[4]/build_reused/snapshot_id",
+      "main": "ca48bd21317415740810b61394dc3d8ce61105eda03668176ba8b99f6d8f6258",
+      "here": "<absent>"
+     }
+    ]
+   }
+  }
+ },
+ "other_total": 5,
+ "not_current": [],
+ "met": false,
+ "artifacts": {
+  "tools/d54_census.py": "76288f70846116f540b18a10640c888133fe3c2bb06af2e9d42356d3d1ed1fd8",
+  "demos/mockups/synthetic/generate.py": "4a26cfa1f3f7fc17a1c58f8d1ea527a3e306ef11d26b4f1239da4cb11b8d3804",
+  "patterns/synthetic_ingest.py": "d378756c60efcac713b3ad7283511f7f7bdb63c797e225aa1b364279dc015108",
+  "patterns/series_values.py": "6c0ed200c4271b29d1601fedd188391e0442b9ed739d0e68a1893db2b5baf2ab",
+  "verification/concept-measure-benchmark.json": "ed6e53ca862105045980c8089c99277fb6ce8bb9e8d990fa0c7e2f60e9e6535c",
+  "verification/d46-window-census-report.json": "8611ecc0ad1c37f6440dd320ef4296ae2cd2cefcdf6d9e1c91034b553dce0840",
+  "verification/d46-window-reference-report.json": "2b3736e73a6224713b72cbef7fd9635be1073e2677a54ec094850d29db2e2597",
+  "verification/d46-window-usefulness-report.json": "175900a8e9e481f6278797dd8c3976f7eaff6b017c16a9a235412399712ad3f1",
+  "verification/d47-page-census-report.json": "a4bc454b6135ee31ad0ee8162c3956ac6434747c59128087022471208c2d814b",
+  "verification/d47-page-reference-report.json": "ff130fa4bf44fadec0d57dd0d14c552f768a16814c3bbd1f90e8cf20cd44caf8",
+  "verification/d47-page-usefulness-report.json": "77a10fa66653cd9439a3b708f5673ac0172e6224b41e06f938cc43381c8bbf85",
+  "verification/d49-flip-usefulness-report.json": "1dff8e00db1dd65a5eeffce6e564a29b965d17a5180cf737870d2e0999341a46",
+  "verification/d52d-anchor-census-report.json": "715f873beed9c099b41a110ffc22eca34873fc3ea3f9837aa0e9d224e437e38e",
+  "verification/d52d-anchor-reference-report.json": "972c3c0c32c611db718210746d1df8288c8b5d3ff1bf883326f0d616c2e8b0d1",
+  "verification/d52d-anchor-usefulness-report.json": "0847221a6da46424707027b83d2857446be15239bc52ac133347897dd39a1f2f",
+  "verification/d53-coded-start-census-report.json": "70a3d3d28003416bc878e91bc7ee0e2ed46814f2e5f6c5a03f9f64d003a45d45",
+  "verification/d53-coded-start-trace-report.json": "54df216f57ca5fd758b4c021ade1b331a087bee05483edb50820361bd2b94e4e",
+  "verification/d53-coded-start-usefulness-report.json": "8099f7b024e7ecbf6dc507277d9ed8bdfefc3b20503922b69fbbb481805bc5f0",
+  "verification/e0b-mention-time-soundness-report.json": "bb50a095e44bb7b3b47b671ddfc9f33e84b53320371390738196d2db36910847",
+  "verification/e0b-mention-time-defects-report.json": "b32b5a5e4dc1fbe793c544fb2a50ba24601ccc8f2e2e6e776faf75a31be593d5",
+  "verification/e0b-mention-time-arms-report.json": "211a9b64d715c44c2d5aa7a1df75dc3fb35498216657278e287f42ecc7320329",
+  "verification/execution-store-scaling-report.json": "9a868624a24d539dbf9d671f6d1cd720db433685de4da7c44820dfdacf444d26"
+ },
+ "contains_patient_level_data": false,
+ "synthetic_patient_ids": "generator ids only, in listed paths"
+}

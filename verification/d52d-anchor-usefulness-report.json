@@ -2505,7 +2505,7 @@
  "per_seed": {
   "6121": {
    "children": 48,
-   "cohort_sha256": "b3de0b00499b7c91fe1e050e7bb7f42847f284420580e1e77af1675b3e15edd2",
+   "cohort_sha256": "cc3cf62f059e4d3bd5cc3ae99d71bdbf08deb4cff174e2395abe40bb158d78d4",
    "snapshot_id": "8c0d4311ddd7e2e31d5fc2252a98c7fb79aec48c9bd2fb9575b2137cf1da6d92",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -2780,7 +2780,7 @@
   },
   "6122": {
    "children": 48,
-   "cohort_sha256": "d5e491a0a234f411d9b3db7207c40aa34e4fe0324937cb044208300907b3e744",
+   "cohort_sha256": "1650338969a8519a28ba4169f3aaef994ea9feb2b8964dcb52c508a5b536e4e8",
    "snapshot_id": "6050858f1e3ea87ab40303699bc02ec65e573461ce494d293f02213e6dec36fd",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -3037,7 +3037,7 @@
   },
   "6123": {
    "children": 48,
-   "cohort_sha256": "d61232d828dd32809ce3978f9337242806e43d63496fa338c12e23fe3964fd8b",
+   "cohort_sha256": "57f13df02f8b15a276a73016c9b69bead2a4c07c3bb385bdda523eae5fb8a116",
    "snapshot_id": "2c15031e2342960ee39a08dbf7ae66fadaea1e7abedd2c0f8598b8c4d85ffe59",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -3297,7 +3297,7 @@
   },
   "6124": {
    "children": 48,
-   "cohort_sha256": "50ee10d7f9257fd660a62d2997a21ca7df470d00c9bf046df9b5a59d11d472d9",
+   "cohort_sha256": "525fc70f192479aaa177e06d4682b04816aec4a2d20df06979793b4bdd525cf3",
    "snapshot_id": "e79343084fbfd00c0c89572345000268814ddcaae276294a88508ebbf5107388",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -3553,7 +3553,7 @@
   },
   "6125": {
    "children": 48,
-   "cohort_sha256": "c1cb1df7ac04acbabdac477c1022c7e98594235a0db24f3e020b6c55f9361a87",
+   "cohort_sha256": "1f7a0acaf82ec3e99fa6f134ad6729f94f3a686839538c2d84810ea8ac050d2d",
    "snapshot_id": "a028e3ebede720f1c8957ae2dc01063865ea7add023987bfb70e5db554fd85db",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -3815,7 +3815,7 @@
   },
   "6126": {
    "children": 48,
-   "cohort_sha256": "8e1cf6c6f643abeb95452bf5dacbeee094cda85198442f59a7ba03f9e791a026",
+   "cohort_sha256": "66e365ed3c1b5eb244ee313b0dc704b3d52f11138dfdb01684e0eb33e6c69db2",
    "snapshot_id": "1e69575e4cc3347e8c62a414af95112327d9105bd7131937841a031e21ecfa7e",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -4075,7 +4075,7 @@
   },
   "6127": {
    "children": 48,
-   "cohort_sha256": "80453f9419fb74088e2daa5d6b10de200d6459b5c74ac8136238dfb1c8dbcd4e",
+   "cohort_sha256": "423373cb02cf85e08e12031e316949d95548bcde81b144a9f47c3e6e53973864",
    "snapshot_id": "52dbc56ee2de4b1ca8550aed00aac051712447325e6e4d3f46cb97b077e488b8",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -4350,7 +4350,7 @@
   },
   "6128": {
    "children": 48,
-   "cohort_sha256": "b6ab51a773180f5ea245ea79a116269142462758318287a600bc857ec6549814",
+   "cohort_sha256": "efdfd19bfb0fac0c8922c133b670ccd2e265d597ebdeee3b767fe92adda70319",
    "snapshot_id": "d92df8d43995573c95f6abfaeb1321fb175ba0a6c155896e31a3f35f31b32672",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -4608,7 +4608,7 @@
   },
   "6129": {
    "children": 48,
-   "cohort_sha256": "245229e102d4e4f130e34684b633c668153452d7e974bc9d0b671b0591716808",
+   "cohort_sha256": "9b173f16e737147013fc27526becfabf277c9b6b889a36ff83e819cb5aa3d78c",
    "snapshot_id": "e4d284d83523a490ceb3cc643bc1456e05ccf4204e71d22b398565656edeb02a",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -4875,7 +4875,7 @@
   },
   "6130": {
    "children": 48,
-   "cohort_sha256": "ce1d4153d6632fee825318b81006bb33724241bca77914d6fdc013b8ea8f9c69",
+   "cohort_sha256": "7174d1a4135e5aef3bc1212afcafe9e88a5afd4073f41407a36ec08221727bff",
    "snapshot_id": "254a5c8c1e4d4c810970b9b3249a816e5f1de35a49cdfc2bec545963a433b97b",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -5140,7 +5140,7 @@
   },
   "6131": {
    "children": 48,
-   "cohort_sha256": "4a56e3dc0f82d25be37f7081074b60e26ae68e8bea91eb0066b66bc875224aba",
+   "cohort_sha256": "41263884e0c86ca28abef5720d64fb266c4a114d6f7aed4529403afa74192d55",
    "snapshot_id": "327a477cddbc36a5ab92a09d32623de0485605f2b9d8722dc0ee1019ffe64578",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -5401,7 +5401,7 @@
   },
   "6132": {
    "children": 48,
-   "cohort_sha256": "6910d1e4330e6464853f1deb11bbaabd06efd57a8f7e578a77244d5ae1283e07",
+   "cohort_sha256": "46b3edfbace7ee38579790654c7efc69d94d025f85f18ccb167bcf20aad39dbc",
    "snapshot_id": "2c0864f34fcf6329a5fec6bf41d1d14c567837739cb5f9f72580908353683aa5",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -5675,7 +5675,7 @@
   },
   "6133": {
    "children": 48,
-   "cohort_sha256": "5b3a612011f9e720fac73026ca6dfa2406abce763c26203d41ab577ba04ea5a2",
+   "cohort_sha256": "72f3ede961d8ba9c4cb54523f609965c719ed00f3643bf6866e6d3fd041951d7",
    "snapshot_id": "0fa09c257f7608476e0076ddac925af355da193ca047fa60bf629ebe46d32ca6",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -5941,7 +5941,7 @@
   },
   "6134": {
    "children": 48,
-   "cohort_sha256": "6bf858e62b07bd8161307b0dde5bb66311c85da8a8b9d01aacd0b3df9b93854e",
+   "cohort_sha256": "c5f1fcad42e9648230ca6fe68e77c707fa8bb8c9dbcbdcaa3704c6d42260143c",
    "snapshot_id": "41ec882abd5177fd6d278a7056745e6bd7df6624029811703e5191f2d66163e3",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -6222,7 +6222,7 @@
   },
   "6135": {
    "children": 48,
-   "cohort_sha256": "4c617909c74f829a8a15a16cbd9b52d0472b6ebef48510bebb2676b442ba2af8",
+   "cohort_sha256": "1f9a16b06fc93543956ac76db19411c8822ab65b456b91a81fe2b94c3ab5b8f9",
    "snapshot_id": "9efaa22a6570cdf5fe3f90907d97bd06e710a65f22d7f8ce2fab628681dba689",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -6491,7 +6491,7 @@
   },
   "6136": {
    "children": 48,
-   "cohort_sha256": "2f27c32c2182e99593770ab69a32595c45bb8d8b9fd8a57c72f12fb3efa8c115",
+   "cohort_sha256": "976b1a1ac62167e50e91a4c7b0c58a06cdcce9f8b66824967c67c77ce78905a1",
    "snapshot_id": "4126120f3cf54f52fbeeb6d72daeb33f3a079a65942c1c4a45f59fa4f917c59f",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -6757,7 +6757,7 @@
   },
   "6137": {
    "children": 48,
-   "cohort_sha256": "c5831c3b48e58df65e065373c12ee79ae109da866c42ab62686cd7ee9159a5d6",
+   "cohort_sha256": "915c9f002c913accbef82968fed8969f54090a5fd916d466af085385a298986f",
    "snapshot_id": "88f4f7dab737c0410092f6852dfefdf1a72f75ff251da5bd813d744b71495d4a",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -7028,7 +7028,7 @@
   },
   "6138": {
    "children": 48,
-   "cohort_sha256": "9ac354083f33c89c05e8fd829a81d6e635b10c02bcfc54da262cfcfe6a604f04",
+   "cohort_sha256": "6841f72eccf8df6b05fd951306cd284cb787a816ab33a56096891845e6775052",
    "snapshot_id": "912ac37977b5be8fac187186ae54f8bcc598a093345c72cc30a59894ef085283",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -7298,7 +7298,7 @@
   },
   "6139": {
    "children": 48,
-   "cohort_sha256": "08c243d1f0c9355da11de73ab793c05facd5ba1f153010eb67d8c890e8f9d878",
+   "cohort_sha256": "2b7e5d022af9c0678945ea199241e5b0b248378c387e7fa8461d68cc1584d202",
    "snapshot_id": "2933ddd4b3e7463e7c6827eb32e51ec287d293491fbded74f53d23ec03bc3559",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -7564,7 +7564,7 @@
   },
   "6140": {
    "children": 48,
-   "cohort_sha256": "dc0bd52a516a595e0b252200851fb6388a5c6bdbb97b43ca112d5913315918b2",
+   "cohort_sha256": "541984f68d54766c5eb5af75258e30bbe07a5b2ba7337635ac9569bcae891458",
    "snapshot_id": "19c6f21be9f9c74a28af94bf18d53aa201a056b75beddeaa86aae22895aef5f1",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -7829,7 +7829,7 @@
   },
   "6141": {
    "children": 48,
-   "cohort_sha256": "f99438bba66929dadb12fb1d5faeada1e11a01bb81d7de1d6615f2e1fd569dc3",
+   "cohort_sha256": "db546487ffdc43940c76cd92cff909a2c7715b0483ecfae7f699620b1698e6a9",
    "snapshot_id": "d534470a9d10469002033e3fa9c0bd044f2d142d01a3c0d72c170db29d1b3849",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -8103,7 +8103,7 @@
   },
   "6142": {
    "children": 48,
-   "cohort_sha256": "5c5b6e41d7fc8f129d4685504dfe621f932ad6c814561b54494b29dd50a1b00b",
+   "cohort_sha256": "941656d8e4c0fa9137ef9665b8ea98eac31e3b981b0e4a494296aa793243dbf0",
    "snapshot_id": "0d9d096ac4eb479aabbf2d0bea4d9929c07875b97987d849ff567f65f35c303d",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -8378,7 +8378,7 @@
   },
   "6143": {
    "children": 48,
-   "cohort_sha256": "8c69e847a66e66afcfc7d253172cc1ae7beb6a5939ae83432b3f58a4952d3517",
+   "cohort_sha256": "ef3f70653287f9fad41a7fa93f116b01b353586ecf0f73391d44109495b487c3",
    "snapshot_id": "2fc57491878f61c80a8e6e0861b496aebc68e73ab2d104df74247915d2689e88",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -8624,7 +8624,7 @@
   },
   "6144": {
    "children": 48,
-   "cohort_sha256": "11321494329e8f8146d637bdd1615efae30b7b62a3671c0508c5fe398cb70e7e",
+   "cohort_sha256": "21044dd83707e630bac1456a996b736009b5023e69f073eaaf76b90a852e4b40",
    "snapshot_id": "cbee1a87a1b2a53b8afae53d711641908f9ae854ceda36497b209213a1200600",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -8893,7 +8893,7 @@
   },
   "6145": {
    "children": 48,
-   "cohort_sha256": "00c270f57cac8c0d39ac1ebc99368e5d277e135213f7d609c5060ead47c5d48d",
+   "cohort_sha256": "d5497ff1be4b42e098b6341f351580434a4ca1125694ce6f19418ad2d7b04a3f",
    "snapshot_id": "83f7f8df51a5df671585aa7db25418acc8267450c387ab1ba330a2f32ca238db",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -9169,7 +9169,7 @@
   },
   "6146": {
    "children": 48,
-   "cohort_sha256": "3e9d3cabf65e67decc8164b7c92b37b30783f325df3f64596aec9d8f76946867",
+   "cohort_sha256": "8eaa3426452e15b18b42018768eaa57c957aa213bfc597e14b00280bc8fa1c4e",
    "snapshot_id": "8d8824f048a2e1f58e33a71bb4c80de3d53dca19fea3dd06922e8317f979750e",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -9442,7 +9442,7 @@
   },
   "6147": {
    "children": 48,
-   "cohort_sha256": "c99c0b6507fd9fd16dd01818ec4f4d546d2fe33f123f654f9f93bad5a3c6cd35",
+   "cohort_sha256": "6b7f23d9a30ded4763823682968a738f29f37a616e31e37e97e6dca9daded0e0",
    "snapshot_id": "fdb0904c25b1ddf71a3e1450b333ac950e6bb14e3a2b4f7713f7a551f8a301cf",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -9720,7 +9720,7 @@
   },
   "6148": {
    "children": 48,
-   "cohort_sha256": "3ca04848dfa467812ff8b7d0dd0c840a1139ac027622e74125f7e4cbc268c48e",
+   "cohort_sha256": "600f2f22f51347152e7a4f1ed1c551fa1ab756ea4f496c8ab60df45681c0ebfd",
    "snapshot_id": "d9bf06acf5463d772528fb414be821cc0203a03a7210374e61f52d5f55ddff99",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -9998,7 +9998,7 @@
   },
   "6149": {
    "children": 48,
-   "cohort_sha256": "513a8213e8851c5da5c55d2de707618f6a68b335122862c65b6a9886d2a87600",
+   "cohort_sha256": "fc3a857167c428a1e9de87aa972c2ab49cbdbe3a629adb6df2f3eee23c8c86e1",
    "snapshot_id": "ad4ca9ceee4f72ade4041f029c314d84603634d7d83e3680192e58e784bed734",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -10271,7 +10271,7 @@
   },
   "6150": {
    "children": 48,
-   "cohort_sha256": "91e1f72fc2b39a4de43ffc4e2e9e487df4238bd30128459ce67edd364f70619b",
+   "cohort_sha256": "d4eab663828aa536d57717468c9aed5dec3a982e0700b47381044dc67eba5136",
    "snapshot_id": "227056eac56112292272f4c09af85ba6e2f96e57c189c444d649001dd744b56c",
    "store_refused": {},
    "excluded_by_the_server": {
@@ -10542,7 +10542,7 @@
    }
   }
  },
- "seconds": 151,
+ "seconds": 146,
  "artifacts": {
   "demos/mockups/d52_anchor.cjs": "1db90baa7b29fbd6cb29ccd82a4b5e1d95c38e057934f24639e0159565700153",
   "demos/mockups/option_sweep.js": "b4b66e9e323b17fb4909cdc6e47d5832e497e639d6c23b9aa871814d3be6616c",
@@ -10554,7 +10554,7 @@
   "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
   "demos/mockups/trajectory/app.js": "4dc9bdbe04167c45e023729b5ab60cc4b484303a18ae8a7aff8daffea6679149",
   "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
-  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/synthetic/generate.py": "4a26cfa1f3f7fc17a1c58f8d1ea527a3e306ef11d26b4f1239da4cb11b8d3804",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
   "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",

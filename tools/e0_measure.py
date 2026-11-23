@@ -6,10 +6,11 @@ truth.
     python tools/e0_measure.py defects [--committed] [--seeds 5201-5230] [--output FILE]
     python tools/e0_measure.py arms [--seeds 5201-5230] [--extend 5231-5300] [--output FILE]
 
-E0b (decision log): the generator reuses truth event ids, so a mention's truth id can name several events. The scorer
-and the oracle T name a mention's truth event by its concept among them (`truth_event`), and refuse by name when they
-cannot (`REFUSALS`); a refused narrowed mention is listed and left out of rule 1, at most `MAX_EXCLUDED_SHARE` of the
-narrowed ones. E0 read the truth by id alone, which is why its rule 1 missed four times.
+E0b (decision log): the generator reused truth event ids, so a mention's truth id could name several events. The
+scorer and the oracle T name a mention's truth event by its concept among them (`truth_event`), and refuse by name when
+they cannot (`REFUSALS`); a refused narrowed mention is listed and left out of rule 1, at most `MAX_EXCLUDED_SHARE` of
+the narrowed ones. E0 read the truth by id alone, which is why its rule 1 missed four times. Since D54 the generator's
+ids are unique, so an id names one event; `truth_event` keeps the rule as a guard.
 
 This tool scores; it is the only E0 code that reads the generator's truth. The normaliser (`patterns/mention_time.py`)
 and the wrapper (`patterns/synthetic_mentions.py`) never do.
@@ -158,8 +159,9 @@ def carries(event, concept, ancestors):
 
 def truth_event(patient, record, i, ancestors):
     """The truth event of a letter's i-th mention (E0b). An id that names one event names that event, whatever its
-    concept (the generator links, for one, its French letter's febrile status epilepticus to a febrile seizure). The
-    generator reuses ids, so an id may name several events: then the one that carries the mention's concept. Refused by
+    concept (the generator links, for one, its French letter's febrile status epilepticus to a febrile seizure). Before
+    D54 the generator reused ids, so an id could name several events: then the one that carries the mention's concept
+    (kept as a guard; unique ids never reach it). Refused by
     name (`Refused`) when no event has the id (TRUTH_EVENT_MISSING), or, among several, none carries the concept
     (TRUTH_EVENT_CONCEPT_NONE) or several do (TRUTH_EVENT_AMBIGUOUS)."""
     m = record['mentions'][i]

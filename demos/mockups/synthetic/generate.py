@@ -11,6 +11,10 @@ Every child here is invented. Each one has two layers:
   wrong. Every deliberate departure from a clean capture is listed in ``quality`` with the
   records and truth event it touches, so nothing in the data is wrong by accident.
 
+Ids are unique and every link resolves (checked at serialise, D54): a truth event id names one event of its child, a
+data-quality case id one case, a record id one record in the cohort; every `truth_event_id` (on a record, a mention or a
+case) names a truth event of the child, and every record a case names is in the child's records.
+
 Three times are kept apart on every record, because they answer different questions:
 ``occurred`` (when it happened, as bounds with a precision), ``recorded_at`` (when the
 source wrote it down) and ``available_at`` (when a researcher's system could first see it).
@@ -247,6 +251,7 @@ class Child:
         self.sex, self.birth, self.ga, self.scripted = sex, birth, ga_weeks, scripted
         self.truth, self.records, self.quality = [], [], []
         self.record_seq = 0  # never decremented: records are removed later, and ids must not be reused
+        self.held = {}  # the ids each numbered list holds (`next_id`)
         self.visits, self.encounters = [], {}
         self.snapshot_day = (SNAPSHOT - birth).days
         self.last_contact = self.snapshot_day - rng.randint(5, 70)
@@ -258,9 +263,31 @@ class Child:
         self.head_brake = 0.0
         self.referral = None
 
+    def next_id(self, items, key, letter):
+        """The next id for a numbered list (the truth, `T`; the data-quality cases, `Q`): its length plus one, unless an
+        item already holds that number, then the lowest number no item holds (D54). Both lists lose items after they are
+        numbered (truth events past the snapshot; `dravet-negative-fr`'s diagnosis cases), so the length alone could
+        name an item that is still there. Unique by pigeonhole (the items hold as many distinct ids as there are items,
+        one of them the length plus one, so a lower number is free), and only an item that would have collided gets
+        anything but the length plus one: a lower number is never a later item's length plus one.
+
+        The numbers held are cached per list, and the cache is rebuilt whenever its size differs from the list's length,
+        which is what a removal leaves. That is sound because items are only ever appended by `event` and `case`, each
+        right after taking its id here, and only ever removed by filtering the list; a list replaced by another of the same length holding other
+        ids would leave the cache stale, and nothing here does that."""
+        held = self.held.get(key)
+        n = len(items) + 1
+        if held is None or len(held) != n - 1:  # items were removed since the last id
+            cut = len(self.pid) + 2  # the number after '<pid>-T' or '<pid>-Q'
+            held = self.held[key] = {int(x[key][cut:]) for x in items}
+        if n in held:
+            n = next(i for i in range(1, n) if i not in held)
+        held.add(n)
+        return f'{self.pid}-{letter}{n:03d}'
+
     # Truth
     def event(self, cid, day, **kw):
-        ev = {'event_id': f'{self.pid}-T{len(self.truth) + 1:03d}', 'concept': cid,
+        ev = {'event_id': self.next_id(self.truth, 'event_id', 'T'), 'concept': cid,
               'kind': CONCEPTS[cid]['kind'], 'day': int(day)}
         ev.update({k: v for k, v in kw.items() if v is not None})
         self.truth.append(ev)
@@ -285,7 +312,7 @@ class Child:
 
     def case(self, kind, records=(), truth=None, detail=''):
         assert kind in QUALITY_KINDS, kind
-        self.quality.append({'case_id': f'{self.pid}-Q{len(self.quality) + 1:03d}', 'kind': kind,
+        self.quality.append({'case_id': self.next_id(self.quality, 'case_id', 'Q'), 'kind': kind,
                              'record_ids': [r['record_id'] for r in records],
                              'truth_event_id': truth['event_id'] if truth else None, 'detail': detail})
 
@@ -1260,7 +1287,30 @@ def build(seed=SEED):
             child.case('free-text-only', [fr], dx, 'Dravet syndrome named only in free text: the French discharge '
                        'summary and later clinic letters; never coded')
     scripted_edge_cases(children)
+    for child in children:
+        prune_case_records(child)
     return children
+
+
+def prune_case_records(c):
+    """A case names records by id, and a record can be removed after its case was made (C001's coded developmental
+    delay, which the reference child's letters only hedge). The missing id is dropped from the case, and the case too if
+    it named records and none is left (D54). Run after the child's last case, so no case is renumbered."""
+    if len(c.records) == c.record_seq:  # no record was removed (`record_seq` counts every record made)
+        return
+    present = {r['record_id'] for r in c.records}
+    kept = []
+    for q in c.quality:
+        ids = [rid for rid in q['record_ids'] if rid in present]
+        if len(ids) == len(q['record_ids']):
+            kept.append(q)
+        elif ids:
+            kept.append(dict(q, record_ids=ids))
+    c.quality = kept
+
+
+class IdError(ValueError):
+    """A duplicated id or a link that resolves to nothing (raised, not asserted, so that `python -O` keeps the check)."""
 
 
 def check_record_ids(children):
@@ -1269,12 +1319,39 @@ def check_record_ids(children):
     for c in children:
         for r in c.records:
             rid = r['record_id']
-            assert rid not in seen, f'duplicate record_id {rid}: {seen[rid]} and {c.pid} {r["source"]}/{r["kind"]}'
+            if rid in seen:
+                raise IdError(f'duplicate record_id {rid}: {seen[rid]} and {c.pid} {r["source"]}/{r["kind"]}')
             seen[rid] = f'{c.pid} {r["source"]}/{r["kind"]}'
+
+
+def check_links(children):
+    """Per child, truth event ids and case ids are unique, and every link resolves to exactly one target: a record's,
+    a mention's and a case's `truth_event_id` to a truth event, a case's `record_ids` to records (D54)."""
+    for c in children:
+        events, cases = [e['event_id'] for e in c.truth], [q['case_id'] for q in c.quality]
+        for kind, ids in (('truth event id', events), ('case id', cases)):
+            if len(set(ids)) != len(ids):
+                raise IdError(f'{c.pid}: duplicate {kind} {sorted(i for i in set(ids) if ids.count(i) > 1)}')
+        events, records = set(events), {r['record_id'] for r in c.records}
+        for r in c.records:
+            link = r['truth_event_id']
+            if link is not None and link not in events:
+                raise IdError(f'{c.pid}: {r["record_id"]} links to no truth event {link}')
+            for m in r.get('mentions', ()):
+                link = m['truth_event_id']
+                if link is not None and link not in events:
+                    raise IdError(f'{c.pid}: {r["record_id"]} has a mention linked to no truth event {link}')
+        for q in c.quality:
+            if q['truth_event_id'] is not None and q['truth_event_id'] not in events:
+                raise IdError(f'{c.pid}: {q["case_id"]} links to no truth event {q["truth_event_id"]}')
+            missing = [rid for rid in q['record_ids'] if rid not in records]
+            if missing:
+                raise IdError(f'{c.pid}: {q["case_id"]} names records not in the chart {missing}')
 
 
 def serialise(children, seed):
     check_record_ids(children)
+    check_links(children)
     patients = []
     for c in sorted(children, key=lambda c: c.pid):
         c.records.sort(key=lambda r: (r['occurred']['earliest'], r['record_id']))

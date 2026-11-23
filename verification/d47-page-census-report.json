@@ -2,7 +2,7 @@
  "profile": "d47-page-census-1.0",
  "rule": "D47 rule 4: on the page's cohort, the page's own search (matchPatient) under main's view (grouped by the generator's truth) and this tree's (reconcile_v1), for the five templates under stated findings, coded only and hedged findings, and every option-sweep definition under its own setting and under hedged findings. Each changed result is classified by the regroupings that make its step candidates differ, each verified on the two views. Met only if no changed result is unexplained, and the windows and the store requests are the same on both sides for every case",
  "base": "a4d2010",
- "cohort_sha256": "65c39afa945975c344878b109dbb2ce07955a2b904e001afe145d7a0c1d5c8f1",
+ "cohort_sha256": "e49da508a67091801de4f6f9eb39f89b5e4a01ac1d49432b01c4488e6cb3e8d5",
  "patients": 48,
  "cases": 1106,
  "compared": 53088,
@@ -4088,17 +4088,17 @@
  "store_requests_differing": 0,
  "unexplained": 0,
  "first_unexplained": [],
- "elapsed_s": 10.464,
+ "elapsed_s": 10.157,
  "view_cost": {
   "rule": "reported, not ruled (D47 rule 7): node, one process, after the census",
   "here": {
    "repeats": 21,
-   "median_ms_all_patients": 38.420374999999694,
+   "median_ms_all_patients": 38.46020900000076,
    "patients": 48
   },
   "main": {
    "repeats": 21,
-   "median_ms_all_patients": 17.257417000000714,
+   "median_ms_all_patients": 16.86358299999847,
    "patients": 48
   }
  },
@@ -4110,7 +4110,7 @@
   "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
   "demos/mockups/trajectory/app.js": "4dc9bdbe04167c45e023729b5ab60cc4b484303a18ae8a7aff8daffea6679149",
   "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
-  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c"
+  "demos/mockups/synthetic/generate.py": "4a26cfa1f3f7fc17a1c58f8d1ea527a3e306ef11d26b4f1239da4cb11b8d3804"
  },
  "contains_patient_level_data": false,
  "synthetic_patient_ids": "generator ids only (as the parity test pins them)"
