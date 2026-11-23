@@ -471,27 +471,31 @@ the demo in would hand it to anyone who pulls the image, and the policy is appro
 `"fetch": "physionet:mimic-iv-demo-2.2"`):
 1. **Download** the four `icu/` files the store's ingest reads (chartevents, d_items, icustays, inputevents; 6.4 MB)
    and PhysioNet's `SHA256SUMS.txt`, from `https://physionet.org/files/mimic-iv-demo/2.2/`. The fetch goes through the
-   egress proxy (`HTTPS_PROXY`), with a 60 s timeout and a 64 MiB cap per file.
+   egress proxy (`HTTPS_PROXY`), with a 60 s timeout and a 64 MiB cap per file, 300 s for the whole download, and no
+   redirects followed (`PHYSIONET_REDIRECT`): the files come from the pinned address only.
 2. **Check** every file against the sha256 pinned in the module. The pins are the authority; three of them are also
    in `data/mimic-inputevents-demo-pin.json`, and the chartevents pin was added from PhysioNet's sums on 2026-11-23.
    PhysioNet's published sums must agree with the pins, or nothing is used.
 3. **Build** the store with the existing ingest (`patterns.mimic_store_ingest --chartevents`, one worker) in a child
-   process at the lowest CPU priority, into the pod's emptyDir. The downloads are then deleted; `d_items` is kept for
-   the catalogue's labels.
+   process at the lowest CPU priority, with an address-space limit of 1600 MiB (`BUILD_MAX_MIB`, RLIMIT_AS), so a
+   runaway build fails by itself (`STORE_BUILD_FAILED`) instead of getting the pod OOM-killed. A build that is not
+   the pinned snapshot is never published (`SNAPSHOT_ID_NOT_PINNED`). The downloads are then deleted; `d_items` is
+   kept for the catalogue's labels.
 4. The store service opens the snapshot through its **content gate**: exactly the open demo's 100 subjects, by a
-   pinned digest.
+   pinned digest, and exactly the pinned snapshot id (`expected_snapshot_id`). It opens nothing until the fetch has
+   finished: before that it answers `STORE_BUILDING` and remembers nothing.
 
 **Behaviour while building or on failure.**
 - **Readiness does not wait for it.** A fetched dataset is optional, so the public synthetic cohort serves from the
   first seconds.
 - **Until the build ends,** the demo's routes answer `503 STORE_BUILDING`.
 - **If a step fails,** they answer `503` with its code:
-  - `PHYSIONET_UNREACHABLE`;
-  - `PHYSIONET_SUMS_DISAGREE`;
-  - `CHECKSUM_MISMATCH`;
-  - `FILE_TOO_LARGE`;
-  - `STORE_BUILD_FAILED`;
-  - `STORE_BUILD_TIMED_OUT`.
+  - `PHYSIONET_UNREACHABLE`, `PHYSIONET_REDIRECT`, `FETCH_DEADLINE_EXCEEDED`;
+  - `PHYSIONET_SUMS_DISAGREE`, `CHECKSUM_MISMATCH`, `FILE_TOO_LARGE`;
+  - `STORE_BUILD_FAILED`, `STORE_BUILD_TIMED_OUT`, `SNAPSHOT_ID_NOT_PINNED`.
+
+  These are a fixed list (`mimic_demo_fetch.FETCH_ERRORS`); any other failure is answered as
+  `MIMIC_DEMO_FETCH_FAILED`, so no other exception text reaches a response.
 - **Retries:** three attempts, at start, then after 1 and 10 minutes. After that the dataset stays unavailable until
   the pod restarts.
 - **Logging:** each attempt is logged as a `mimic_demo_fetch` event, with the outcome, the code and the duration.
@@ -515,8 +519,11 @@ the demo in would hand it to anyone who pulls the image, and the policy is appro
   The peak is in the ingest's Python stages (the claim route), not in DuckDB, so no DuckDB setting brings it under
   1 GB. Lowering it would mean changing `patterns/`, which needs its own measured engine increment.
   - The build uses `512MB`, which keeps DuckDB's share bounded at no cost in time.
-  - The pod's limit stays 2Gi: about 1.24 GiB for the build, plus about 470 MiB for the server and its two match
-    workers, leaves roughly 16% headroom.
+  - In a Linux container (one CPU, Python 3.11, DuckDB confined to one worker thread and one async thread as in
+    the match workers, `MALLOC_ARENA_MAX=2`), the build child peaked at 858 MiB resident and 1228 MiB of
+    address space, in 538 s, with the pinned snapshot id. macOS's figures above are higher for the same
+    build; the pod runs Linux. Its limit, `BUILD_MAX_MIB` = 1600, is that address space times 1.3; the build passes under it with
+    the same snapshot id. The pod's memory limit is in "The phase 2 security review" below.
   - With the volume, the build happens only at the first start, after the volume is lost, or after an ingest change
     alters the pinned snapshot id; routine restarts reuse the store.
   - The cluster's CPU may be slower than the M4 Pro.
@@ -533,8 +540,11 @@ Longhorn, RWO, mounted at `/var/lib/ptm-mimic-demo`).
   built as above. **Nothing on the volume is trusted on its word.**
 - **Publishing:** a new build is made in a scratch directory on the volume and moved into place only once complete,
   so no reader ever sees a half-built store.
-- **Changing the ingest:** a change that alters the snapshot id leaves the new build served (it is built from
-  checked files) but rebuilt at every start, until the pin is updated.
+- **Changing the ingest:** a change that alters the snapshot id fails closed. The build is never published
+  (`SNAPSHOT_ID_NOT_PINNED`) and the store service would refuse it anyway, so the demo stays unavailable until the pin
+  is updated with the change.
+- **Leftovers:** an interrupted run's scratch directories (`mimic-demo-incoming-*`) and set-aside stores
+  (`.stale-*`) are removed at the next start, before anything else.
 - **Fallback:** without the PVC (the registry's `store` under `/tmp`), the store goes to the emptyDir and is rebuilt
   at every start.
 - **Why RWO and `Recreate`:** RWO because Longhorn's RWX volumes are NFS-backed, where the pod's `fsGroup` does not
@@ -570,6 +580,37 @@ proxy lets `physionet.org` through, which held from the development machine on 2
 
 The counts the page shows are produced works of the database. If the store itself (a derived database) were ever
 published, ODbL's share-alike would apply; it is not published, since it lives only in the pod.
+
+**The phase 2 security review (2026-11-23).** An independent reviewer reviewed `9bcd327` (D50 has the record): no
+critical or high finding; three medium and six low, all fixed.
+- **M1, startup race:** the startup report opened the store before the fetch had finished, and the failure was
+  remembered. Now nothing opens a fetched store before its fetch is done (the store service's gate), it opens only
+  the pinned snapshot, and a build that is not that snapshot is never published.
+- **M2, admin OTP through a provider:** see `deploy/ids3/ptm/dev/KEYCLOAK-REALM.md`, section 5.
+- **M3, one MIMIC request held the store for 73.7 s:** hosted, the demo's matches now run in child processes killed
+  at the 2 s time limit (`match_worker.IsolatedStoreQuery`), at a search budget of 1,000, with at most 6 steps, 8
+  relations, 4 relaxations and a cost budget of 1. Measured at one DuckDB thread: the page's examples 0.10 to 0.26 s
+  (answers unchanged by the clamp); within the caps, the costliest of 75 adversarial shapes 1.23 s; beyond them,
+  8 relaxations cost 5 s to over 40 s. The store query page explains each refusal.
+- **Pod memory, with the MIMIC workers (L2).** Measured in a Linux container:
+
+  | Process | Peak resident | Address-space limit |
+  |---|---|---|
+  | server, with both stores open | about 230 MiB (180 with the synthetic store, plus 48 for the demo's) | none |
+  | synthetic match worker (×2: active and spare) | 145 MiB each | 400 MiB |
+  | MIMIC match worker (×2: active and spare), after 78 matches (the examples and the 75 shapes) | 386 MiB each | 700 MiB (535 measured, ×1.3) |
+  | demo build child (first start only) | 858 MiB | 1,600 MiB (1,228 measured, ×1.3) |
+
+  The build ends before the store opens, and the MIMIC workers start only after that, so the two never overlap.
+  - *While building:* server (without the demo's store), two synthetic workers and the build, about 1,330 MiB.
+  - *While serving:* server and all four workers, about 1,290 MiB.
+  - **The pod's limit stays 2Gi**, about 35% above either peak.
+  - The address-space limits bound each process, but address space is not resident memory (386 MiB resident
+    against 535 MiB of address space for a MIMIC worker). Only all four workers at their limits at once would pass
+    2Gi, and each match is cut at 2 s. The outcome would be an OOM restart of the pod, not a hang.
+- **Lows:** leftovers removed at start (L1); the build's address-space limit (L2); Google does not trust email
+  (L3); no `offline_access`, no default group, forensic events audited (L4); no redirects and a 300 s download
+  deadline (L5); fetch failures named from a fixed list (L6).
 
 ## 8. Deploying
 

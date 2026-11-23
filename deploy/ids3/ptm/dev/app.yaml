@@ -91,8 +91,11 @@ spec:
           # so its address space does not grow with the CPUs: measured in a Linux container at about 145 MiB resident
           # and 268 MiB of address space at one, four and six CPUs, inside its 400 MiB limit (PTM_MATCH_WORKER_MAX_MIB).
           # Phase 2: when the volume holds no verified store, the MIMIC-IV demo's store is built in a child process
-          # (mimic_demo_fetch.py) at the lowest CPU priority, with DuckDB's memory limited (BUILD_MEMORY_LIMIT): see
-          # the hosting plan for the measured peak, on top of the above.
+          # (mimic_demo_fetch.py) at the lowest CPU priority: 858 MiB peak resident in a Linux container, address
+          # space limited to 1,600 MiB (BUILD_MAX_MIB). Once it is open, two MIMIC match workers (active and spare,
+          # match_worker.IsolatedStoreQuery) serve its matches: 386 MiB resident each, limited to 700 MiB
+          # (PTM_STORE_WORKER_MAX_MIB). The build ends before they start, so the peak is about 1.3 GiB either way:
+          # the hosting plan, "The phase 2 security review", has the arithmetic.
           resources:
             requests: { cpu: 100m, memory: 512Mi }
             limits: { cpu: "1", memory: 2Gi }
