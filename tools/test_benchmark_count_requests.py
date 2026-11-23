@@ -377,5 +377,84 @@ class PoolCodeTests(unittest.TestCase):
                 self.assertTrue(Path(out['code']).resolve().is_relative_to(root.resolve()))
 
 
+class SubsetRunTests(unittest.TestCase):
+    """A `--requests` subset that leaves out the absolute bar's request: a report, the bar not applicable, never met."""
+
+    SUBSET = [n for n in NAMES if n != bc.ABSOLUTE_BAR['request']]
+
+    def test_the_subset_verdict_marks_the_bar_not_applicable_and_is_not_met(self):
+        stats = bc.statistics_of(records(1.0, names=self.SUBSET), self.SUBSET)
+        protocol = bc.protocol_check([14], self.SUBSET, 4, 3, None)
+        out = bc.verdict_of(stats, self.SUBSET, protocol=protocol, answers=MET, identity=SAME)
+        absolute = out['rule_4_1']['absolute']
+        self.assertIs(absolute['applicable'], False)
+        self.assertIsNone(absolute['met'])
+        self.assertIn('not applicable', absolute['note'])
+        self.assertFalse(out['protocol']['every_request_run'])
+        self.assertFalse(out['met'])
+        json.dumps(out)  # a report can be written
+
+    def test_a_subset_never_reports_met_even_when_every_other_check_holds(self):
+        stats = bc.statistics_of(records(1.0, names=self.SUBSET), self.SUBSET)
+        out = bc.verdict_of(stats, self.SUBSET, protocol={'met': False}, answers=MET, identity=SAME)
+        self.assertTrue(out['rule_4_1']['met'])
+        self.assertFalse(out['met'])
+
+    def test_a_full_run_still_reads_the_bar(self):
+        out = bc.verdict_of(bc.statistics_of(records(1.0), NAMES), NAMES, protocol=MET, answers=MET, identity=SAME)
+        self.assertTrue(out['rule_4_1']['absolute']['met'])
+        self.assertNotIn('applicable', out['rule_4_1']['absolute'])
+        self.assertTrue(out['met'])
+        slow = bc.verdict_of(bc.statistics_of(records(1.0), NAMES), NAMES,
+                             absolute={'request': bc.ABSOLUTE_BAR['request'], 'p95_seconds': 1.0}, protocol=MET,
+                             answers=MET, identity=SAME)
+        self.assertFalse(slow['rule_4_1']['met'])
+
+
+class PartialRecordsTests(unittest.TestCase):
+    def args(self, tmp):
+        return argparse.Namespace(repeats=2, workers=[14], output=Path(tmp) / 'out.json')
+
+    def codes(self):
+        return {'reference': {'root': Path('ref')}, 'candidate': {'root': Path('cand')}}
+
+    def test_records_are_written_after_each_run_and_survive_an_error(self):
+        calls = []
+
+        def run_side(root, args, n, keep):
+            calls.append(root)
+            if len(calls) == 4:
+                raise RuntimeError('injected')
+            return run({'1.1 sequence': (1.0, 1.0, 1.0)}, 'candidate')
+
+        real = bc.run_side
+        bc.run_side = run_side
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                args = self.args(tmp)
+                with self.assertRaises(RuntimeError):
+                    bc.collect_records(args, self.codes(), Path(tmp))
+                saved = json.loads(bc.partial_path(args.output).read_text())
+        finally:
+            bc.run_side = real
+        self.assertTrue(saved['partial'])
+        self.assertEqual([r['repeat'] for r in saved['records']], [0, 1])
+        self.assertIn('reference', saved['records'][0])
+        self.assertIn('candidate', saved['records'][0])
+        self.assertIn('candidate', saved['records'][1])  # the finished side of the run in progress is kept
+        self.assertNotIn('reference', saved['records'][1])
+
+    def test_a_clean_run_returns_every_record(self):
+        real = bc.run_side
+        bc.run_side = lambda root, args, n, keep: run({'1.1 sequence': (1.0, 1.0, 1.0)}, 'candidate')
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                records_, _ = bc.collect_records(self.args(tmp), self.codes(), Path(tmp))
+                self.assertEqual(len(records_), 2)
+                self.assertEqual(len(json.loads(bc.partial_path(Path(tmp) / 'out.json').read_text())['records']), 2)
+        finally:
+            bc.run_side = real
+
+
 if __name__ == '__main__':
     unittest.main()

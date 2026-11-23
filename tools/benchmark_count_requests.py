@@ -634,10 +634,14 @@ def verdict_of(stats, requests, ruled=RULED_WORKERS, ratio_bar=RATIO_BAR, absolu
         by, gmean = normalised_of(stats, requests, ruled)
         ratios = {name: {'ratio_by_repeat': at[name]['ratio_by_repeat'], 'normalised_by_repeat': by[name],
                          'every_pair_at_most': all(r <= ratio_bar for r in by[name])} for name in counted}
-    p95 = at[absolute['request']]['candidate']['p95_seconds']
-    rule_41 = {'ratio_bar': ratio_bar, 'ratios': ratios,
-               'absolute': {**absolute, 'candidate_p95_seconds': p95, 'met': p95 <= absolute['p95_seconds']}}
-    rule_41['met'] = all(r['every_pair_at_most'] for r in ratios.values()) and rule_41['absolute']['met']
+    if absolute['request'] in requests:
+        p95 = at[absolute['request']]['candidate']['p95_seconds']
+        absolute_out = {**absolute, 'candidate_p95_seconds': p95, 'met': p95 <= absolute['p95_seconds']}
+    else:  # a subset run: the bar's request was not run, so the bar is not applicable (the protocol check still fails)
+        absolute_out = {**absolute, 'applicable': False, 'candidate_p95_seconds': None, 'met': None,
+                        'note': f"{absolute['request']} not run; the absolute bar is not applicable"}
+    rule_41 = {'ratio_bar': ratio_bar, 'ratios': ratios, 'absolute': absolute_out}
+    rule_41['met'] = all(r['every_pair_at_most'] for r in ratios.values()) and absolute_out['met'] is not False
     rule_42b = {'bar': no_count_bar, 'requests': {
         name: {'ratio_median_pooled': at[name]['ratio_median_pooled'], 'ratio_by_repeat': at[name]['ratio_by_repeat'],
                'met': at[name]['ratio_median_pooled'] <= no_count_bar} for name in plain}}
@@ -756,6 +760,45 @@ def identity_check(records, other, names):
     return out
 
 
+def partial_path(output):
+    return Path(output).with_name(Path(output).name + '.partial.json')
+
+
+def write_partial(args, records, current=None):
+    """Everything measured so far, written after each side's run: a crash loses at most the run in progress."""
+    done = list(records) + ([current] if current and len(current) > 3 else [])
+    path = partial_path(args.output)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({'partial': True, 'records': done}, indent=1) + '\n')
+
+
+def collect_records(args, codes, scratch):
+    """The paired runs, ABBA. After every side's run the records so far are written to `partial_path(args.output)`,
+    and on an error as well (the error is then raised), so a crash keeps what was measured."""
+    records, kept = [], {}
+    rec = None
+    try:
+        for repeat in range(args.repeats):
+            order = ('reference', 'candidate') if repeat % 2 == 0 else ('candidate', 'reference')
+            for n in args.workers:
+                rec = {'workers': n, 'repeat': repeat, 'order': order}
+                for side in order:
+                    print(f'count latency repeat {repeat} workers {n} {side} ...', file=sys.stderr, flush=True)
+                    keep = scratch / 'answers' / f'{side}-{n}' if repeat == 0 else None
+                    rec[side] = run_side(codes[side]['root'], args, n, keep)
+                    if keep is not None:
+                        kept[(side, n)] = keep
+                    print('  ' + '; '.join(f'{name} {statistics.median(r["seconds"]):.2f} s'
+                                           for name, r in rec[side]['requests'].items()), file=sys.stderr, flush=True)
+                    write_partial(args, records, rec)
+                records.append(rec)
+                rec = None
+    except BaseException:
+        write_partial(args, records, rec)
+        raise
+    return records, kept
+
+
 def paired(args):
     from tools.benchmark_matcher import extract_ref
     size, _, args.snapshot_path = args.snapshot.partition('=')
@@ -771,20 +814,7 @@ def paired(args):
         started = time.monotonic()
         print('structural check (rule 4.2a) ...', file=sys.stderr, flush=True)
         structural = structural_check(args.reference, args.snapshot_path)
-        records, kept = [], {}
-        for repeat in range(args.repeats):
-            order = ('reference', 'candidate') if repeat % 2 == 0 else ('candidate', 'reference')
-            for n in args.workers:
-                rec = {'workers': n, 'repeat': repeat, 'order': order}
-                for side in order:
-                    print(f'count latency repeat {repeat} workers {n} {side} ...', file=sys.stderr, flush=True)
-                    keep = scratch / 'answers' / f'{side}-{n}' if repeat == 0 else None
-                    rec[side] = run_side(codes[side]['root'], args, n, keep)
-                    if keep is not None:
-                        kept[(side, n)] = keep
-                    print('  ' + '; '.join(f'{name} {statistics.median(r["seconds"]):.2f} s'
-                                           for name, r in rec[side]['requests'].items()), file=sys.stderr, flush=True)
-                records.append(rec)
+        records, kept = collect_records(args, codes, scratch)
         stats = statistics_of(records, args.requests)
         ruled = RULED_WORKERS if RULED_WORKERS in args.workers else args.workers[0]  # (another count: a trial run)
         digests = {side: {name: sorted({d for rec in records for d in rec[side]['requests'][name]['digests']})

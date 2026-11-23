@@ -151,7 +151,13 @@ HISTORICAL = {'verification/v24-release-manifest.json', 'verification/v25-releas
               # latency verdict binds. It records D45's verdict, last re-measured and met under D48b on 2026-11-20; for the
               # current tree `verification/d52d-anchor-latency-verdict.json` supersedes it, its reference arm being the
               # requests that verdict timed (coordinator's sign-off as delegate at D52c's checkpoint, carried to D52d).
-              'verification/d45-coded-default-latency-verdict.json'}
+              'verification/d45-coded-default-latency-verdict.json',
+              # D55 fixes the count-latency tool (`tools/benchmark_count_requests.py`: a bar whose request was not run is
+              # not applicable, and per-run records are flushed as they are measured), which three verdicts bind. Each is a
+              # historical measurement of its own increment, as committed on main at 8ecbbcd: tool changed by the subset
+              # fix; the verdict stands as measured (coordinator's sign-off as delegate, D55's brief). No benchmark re-run.
+              'verification/d44b-count-latency-verdict.json', 'verification/d51-count-investigation.json',
+              'verification/d52d-anchor-latency-verdict.json'}
 
 
 def digests(path):
