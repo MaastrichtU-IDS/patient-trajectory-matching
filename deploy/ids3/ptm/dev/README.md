@@ -117,7 +117,7 @@ Phase 2 (sign-in; not needed now):
 
 ### Cluster (phase 1)
 
-- [ ] Traefik's `kubernetescrd` provider is on, so the four Middlewares in `middleware.yaml` load (first use in this
+- [ ] Traefik's `kubernetescrd` provider is on, so the five Middlewares in `middleware.yaml` load (first use in this
       repo). `kubectl -n ptm-dev get middlewares.traefik.io` after sync.
 - [ ] `allow-traefik-ingress.yaml`: its front-door addresses are copied from `ids3/platform/minio-data/netpol.yaml`;
       confirm they are current, and that the kubelet's probes still pass after it lands (see its header).
