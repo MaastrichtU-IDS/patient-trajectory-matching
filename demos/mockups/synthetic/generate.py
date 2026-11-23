@@ -269,16 +269,21 @@ class Child:
         numbered (truth events past the snapshot; `dravet-negative-fr`'s diagnosis cases), so the length alone could
         name an item that is still there. Unique by pigeonhole (the items hold as many distinct ids as there are items,
         one of them the length plus one, so a lower number is free), and only an item that would have collided gets
-        anything but the length plus one: a lower number is never a later item's length plus one."""
+        anything but the length plus one: a lower number is never a later item's length plus one.
+
+        The numbers held are cached per list, and the cache is rebuilt whenever its size differs from the list's length,
+        which is what a removal leaves. That is sound because items are only ever appended by `event` and `case`, each
+        right after taking its id here, and only ever removed by filtering the list; a list replaced by another of the same length holding other
+        ids would leave the cache stale, and nothing here does that."""
         held = self.held.get(key)
-        if held is None or len(held) != len(items):  # items were removed since the last id
-            held = self.held[key] = {x[key] for x in items}
-        name = lambda n: f'{self.pid}-{letter}{n:03d}'
         n = len(items) + 1
-        if name(n) in held:
-            n = next(i for i in range(1, n) if name(i) not in held)
-        held.add(name(n))
-        return name(n)
+        if held is None or len(held) != n - 1:  # items were removed since the last id
+            cut = len(self.pid) + 2  # the number after '<pid>-T' or '<pid>-Q'
+            held = self.held[key] = {int(x[key][cut:]) for x in items}
+        if n in held:
+            n = next(i for i in range(1, n) if i not in held)
+        held.add(n)
+        return f'{self.pid}-{letter}{n:03d}'
 
     # Truth
     def event(self, cid, day, **kw):
@@ -1291,6 +1296,8 @@ def prune_case_records(c):
     """A case names records by id, and a record can be removed after its case was made (C001's coded developmental
     delay, which the reference child's letters only hedge). The missing id is dropped from the case, and the case too if
     it named records and none is left (D54). Run after the child's last case, so no case is renumbered."""
+    if len(c.records) == c.record_seq:  # no record was removed (`record_seq` counts every record made)
+        return
     present = {r['record_id'] for r in c.records}
     kept = []
     for q in c.quality:
@@ -1302,13 +1309,18 @@ def prune_case_records(c):
     c.quality = kept
 
 
+class IdError(ValueError):
+    """A duplicated id or a link that resolves to nothing (raised, not asserted, so that `python -O` keeps the check)."""
+
+
 def check_record_ids(children):
     """Record ids must be unique across the dataset; the converter keys on source/record_id."""
     seen = {}
     for c in children:
         for r in c.records:
             rid = r['record_id']
-            assert rid not in seen, f'duplicate record_id {rid}: {seen[rid]} and {c.pid} {r["source"]}/{r["kind"]}'
+            if rid in seen:
+                raise IdError(f'duplicate record_id {rid}: {seen[rid]} and {c.pid} {r["source"]}/{r["kind"]}')
             seen[rid] = f'{c.pid} {r["source"]}/{r["kind"]}'
 
 
@@ -1318,17 +1330,23 @@ def check_links(children):
     for c in children:
         events, cases = [e['event_id'] for e in c.truth], [q['case_id'] for q in c.quality]
         for kind, ids in (('truth event id', events), ('case id', cases)):
-            assert len(set(ids)) == len(ids), f'{c.pid}: duplicate {kind} {sorted(i for i in set(ids) if ids.count(i) > 1)}'
+            if len(set(ids)) != len(ids):
+                raise IdError(f'{c.pid}: duplicate {kind} {sorted(i for i in set(ids) if ids.count(i) > 1)}')
         events, records = set(events), {r['record_id'] for r in c.records}
         for r in c.records:
-            links = [r.get('truth_event_id')] + [m.get('truth_event_id') for m in r.get('mentions', [])]
-            missing = [t for t in links if t is not None and t not in events]
-            assert not missing, f'{c.pid}: {r["record_id"]} links to no truth event {missing}'
+            link = r['truth_event_id']
+            if link is not None and link not in events:
+                raise IdError(f'{c.pid}: {r["record_id"]} links to no truth event {link}')
+            for m in r.get('mentions', ()):
+                link = m['truth_event_id']
+                if link is not None and link not in events:
+                    raise IdError(f'{c.pid}: {r["record_id"]} has a mention linked to no truth event {link}')
         for q in c.quality:
-            assert q['truth_event_id'] is None or q['truth_event_id'] in events, \
-                f'{c.pid}: {q["case_id"]} links to no truth event {q["truth_event_id"]}'
+            if q['truth_event_id'] is not None and q['truth_event_id'] not in events:
+                raise IdError(f'{c.pid}: {q["case_id"]} links to no truth event {q["truth_event_id"]}')
             missing = [rid for rid in q['record_ids'] if rid not in records]
-            assert not missing, f'{c.pid}: {q["case_id"]} names records not in the chart {missing}'
+            if missing:
+                raise IdError(f'{c.pid}: {q["case_id"]} names records not in the chart {missing}')
 
 
 def serialise(children, seed):

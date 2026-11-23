@@ -102,7 +102,7 @@ class IdTests(unittest.TestCase):
                          [('C901-Q002', [b['record_id']]), ('C901-Q003', [])])
 
     def test_serialise_refuses_a_duplicate_id_and_a_dangling_link(self):
-        for plant in ('truth', 'case', 'record link', 'mention link', 'case record'):
+        for plant in ('truth', 'case', 'record link', 'mention link', 'case link', 'case record'):
             children = generate.build(BASE)
             c = next(c for c in children if c.key == 'reference')
             if plant == 'truth':
@@ -113,9 +113,11 @@ class IdTests(unittest.TestCase):
                 next(r for r in c.records if r['truth_event_id'])['truth_event_id'] = 'C001-T999'
             elif plant == 'mention link':
                 next(m for r in c.records for m in r.get('mentions', []) if m['truth_event_id'])['truth_event_id'] = 'C001-T999'
+            elif plant == 'case link':
+                next(q for q in c.quality if q['truth_event_id'])['truth_event_id'] = 'C001-T999'
             else:
                 next(q for q in c.quality if q['record_ids'])['record_ids'].append('C001-R9999')
-            with self.subTest(plant=plant), self.assertRaises(AssertionError):
+            with self.subTest(plant=plant), self.assertRaises(generate.IdError):
                 generate.serialise(children, BASE)
 
 

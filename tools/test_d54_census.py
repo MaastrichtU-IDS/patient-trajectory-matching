@@ -3,6 +3,7 @@ an id, a link or a dangling removal, and catches anything else. Constructed pati
 import copy
 from pathlib import Path
 import sys
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,18 @@ def patient():
                 {'case_id': 'C001-Q003', 'kind': 'recorded-late', 'record_ids': ['C001-R0009'], 'truth_event_id': 'C001-T001'}]}
 
 
+def unique(p):
+    """`patient()` from main's generator with unique truth ids (the census's strict reference): each link names its event."""
+    q = copy.deepcopy(p)
+    for i, e in enumerate(q['truth']['events'], 1):
+        e['event_id'] = f'C001-U{i:04d}'
+    q['records'][0]['truth_event_id'] = 'C001-U0003'  # the weight's measurement
+    q['records'][1]['mentions'][0]['truth_event_id'] = 'C001-U0001'
+    for case, link in zip(q['quality'], ('C001-U0003', 'C001-U0001', 'C001-U0001')):
+        case['truth_event_id'] = link
+    return q
+
+
 def fixed(p):
     """This tree's form of `patient()`: the weight renumbered (and its record's link), the second case renumbered, the
     dangling case dropped."""
@@ -43,9 +56,10 @@ def fixed(p):
 class CompareTests(unittest.TestCase):
     def test_the_fix_is_accepted_and_counted(self):
         p = patient()
-        problems, counts = dc.compare_patient(p, fixed(p))
+        problems, counts = dc.compare_patient(p, fixed(p), unique(p))
         self.assertEqual(problems, [])
         self.assertEqual((counts['truth_ids_changed'], counts['case_ids_changed'], counts['cases_dropped']), (1, 1, 1))
+        self.assertEqual(counts['links_checked'], 5)  # 2 record links, 1 mention, 2 cases
         defects = dc.defects(p)
         self.assertEqual((defects['truth'], defects['case'], defects['dangling_case_records']),
                          ({'C001-T002'}, {'C001-Q001'}, ['C001-Q003']))
@@ -59,6 +73,7 @@ class CompareTests(unittest.TestCase):
             'a mention field': lambda q: q['records'][1]['mentions'][0].update(concept='febrile_seizure'),
             'a link to another event': lambda q: q['records'][1]['mentions'][0].update(truth_event_id='C001-T003'),
             'a unique link moved': lambda q: q['quality'][1].update(truth_event_id='C001-T003'),
+            'a link removed': lambda q: q['quality'][1].update(truth_event_id=None),
             'a case field': lambda q: q['quality'][1].update(kind='misspelling'),
             'a case dropped that named a present record': lambda q: q['quality'].pop(0),
             'a patient field': lambda q: q.update(sex='M'),
@@ -68,15 +83,62 @@ class CompareTests(unittest.TestCase):
             q = fixed(p)
             plant(q)
             with self.subTest(plant=name):
-                self.assertNotEqual(dc.compare_patient(p, q)[0], [])
+                self.assertNotEqual(dc.compare_patient(p, q, unique(p))[0], [])
 
-    def test_a_link_on_a_reused_id_may_name_either_event_and_no_other(self):
+    def test_a_link_on_a_reused_id_must_name_the_same_event(self):
+        """Strict (the review's S1): main's T002 named the diagnosis and the weight; the measurement's record named the
+        weight (main's generator with unique ids says so), so naming the diagnosis here is caught."""
         p = patient()
         q = fixed(p)
         q['records'][0]['truth_event_id'] = 'C001-T002'  # the diagnosis, which also held T002 on main
-        self.assertEqual(dc.compare_patient(p, q)[0], [])
-        q['records'][0]['truth_event_id'] = 'C001-T001'
-        self.assertNotEqual(dc.compare_patient(p, q)[0], [])
+        self.assertNotEqual(dc.compare_patient(p, q, unique(p))[0], [])
+        q['records'][0]['truth_event_id'] = 'C001-T003'
+        self.assertEqual(dc.compare_patient(p, q, unique(p))[0], [])
+
+
+class CensusTests(unittest.TestCase):
+    """The census as a whole, over fake generators (the review's M1): all met only with no problem and every seed counted."""
+
+    def run_census(self, old, new):
+        fake = lambda c: types.SimpleNamespace(build=lambda seed: None, serialise=lambda children, seed: copy.deepcopy(c))
+        real = dc.generators, dc.synthetic_ingest
+        dc.generators = lambda base: {'main': fake(old), 'unique': fake(self.uniq), 'here': fake(new), 'digests': {}}
+        # As the real converter: it reads records, not truth links or cases.
+        dc.synthetic_ingest = lambda cohort: [[(r['record_id'], r.get('value')) for r in p['records']] for p in cohort['patients']]
+        try:
+            return dc.census([1, 2], 'base')
+        finally:
+            dc.generators, dc.synthetic_ingest = real
+
+    def setUp(self):
+        p = patient()
+        self.old, self.new, self.uniq = ({'schema': 's', 'patients': [x]} for x in (p, fixed(p), unique(p)))
+
+    def test_the_fix_is_all_met(self):
+        r = self.run_census(self.old, self.new)
+        self.assertTrue(r['all_met'], r['problems'])
+        self.assertEqual((r['seeds'], r['totals']['patients_changed'], r['totals']['converter_output_identical']), (2, 2, 2))
+
+    def test_an_extra_case_is_not_all_met(self):
+        new = copy.deepcopy(self.new)
+        new['patients'][0]['quality'].append({'case_id': 'C001-Q004', 'kind': 'k', 'record_ids': [], 'truth_event_id': None})
+        r = self.run_census(self.old, new)
+        self.assertFalse(r['all_met'])
+        self.assertFalse(r['met']['2.3 every difference an id, a link naming the same event, or a dangling removal'])
+
+    def test_other_patients_are_not_all_met_and_the_seed_still_counts(self):
+        new = copy.deepcopy(self.new)
+        new['patients'][0]['patient_id'] = 'C002'
+        r = self.run_census(self.old, new)
+        self.assertFalse(r['all_met'])
+        self.assertEqual((r['seeds'], r['totals']['converter_output_identical']), (2, 2))
+
+    def test_a_different_converter_output_is_not_all_met(self):
+        new = copy.deepcopy(self.new)
+        new['patients'][0]['records'][0]['value'] = 4.1
+        r = self.run_census(self.old, new)
+        self.assertFalse(r['all_met'])
+        self.assertFalse(r['met']['2.5 converter output identical'])
 
     def test_rule_5_classes(self):
         c = dc.classify
