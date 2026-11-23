@@ -9,27 +9,11 @@ data:
   # The dataset registry: the file from ConfigMap ptm-mockups-datasets (below), mounted by app.yaml.
   PTM_DATASETS: /etc/ptm/datasets.json
 
-  # ── Authentication (platform Keycloak, shared user realm) ────────────────
-  # Realm `ids-apps`: the owner's shared, open realm for user-facing apps (KEYCLOAK-REALM.md). It is NOT the
-  # infrastructure realm ids3.
-  # PTM_OIDC_ISSUER is the browser-facing URL and must equal the `iss` Keycloak stamps into tokens.
-  # PTM_OIDC_JWKS_URI is the server-side key fetch, in-cluster, deliberately a different address (the
-  # sulo-schema-builder pattern); allow-keycloak-egress.yaml opens it. Deriving one from the other 401s everything.
-  # It is plain HTTP: Keycloak's Service has no TLS in-cluster (TLS ends at the front door). Risk: whoever can rewrite
-  # pod-to-pod traffic could substitute keys and forge tokens. Mitigations: the egress policy admits only Keycloak's
-  # pod on :8080, the traffic stays on one node, redirects are refused, only RSA signing keys are taken, and keys not
-  # refreshed for an hour are dropped. Stronger option: set this to the public https URL,
-  #   https://keycloak.k8s.semanticscience.org/realms/ids-apps/protocol/openid-connect/certs
-  # which the server then fetches through the egress-proxy (HTTPS_PROXY below) with TLS checked end to end;
-  # allow-keycloak-egress.yaml is then unnecessary (hosting plan, section 3).
-  PTM_OIDC_ISSUER: https://keycloak.k8s.semanticscience.org/realms/ids-apps
-  PTM_OIDC_JWKS_URI: http://keycloak.platform.svc.cluster.local:8080/realms/ids-apps/protocol/openid-connect/certs
-  # Every access token must name this audience (an "Included Custom Audience" mapper on the ptm-mockups client).
-  PTM_OIDC_AUDIENCE: ptm-api
-  # The public browser client (PKCE, no secret); served to the page by GET /api/auth-config.
-  PTM_OIDC_CLIENT_ID: ptm-mockups
-  # The realm role the `approved` group grants. Datasets above "public" need it; role-gated datasets need it too.
-  PTM_APPROVED_ROLE: approved
+  # ── Authentication: none in phase 1 (owner's decision, 2026-11-23) ─────
+  # No PTM_OIDC_* setting: the server runs with no realm and serves public datasets only (the registry below holds
+  # only the public synthetic cohort, and a non-public dataset without a realm would refuse startup on this bind).
+  # Phase 2 adds the realm `ids-apps`: PTM_OIDC_ISSUER, PTM_OIDC_JWKS_URI, PTM_OIDC_AUDIENCE, PTM_OIDC_CLIENT_ID and
+  # PTM_APPROVED_ROLE, with allow-keycloak-egress.yaml (README, "Phase 2"; KEYCLOAK-REALM.md).
 
   # ── Limits ───────────────────────────────────────────────────────────────
   # Largest request body the server reads, in bytes (local default 20 MiB). Hosted, the only bodies are the pages'

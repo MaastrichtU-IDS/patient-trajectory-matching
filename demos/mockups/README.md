@@ -305,6 +305,9 @@ what it may return. The hosting design is in [docs/hosting-plan.md](../../docs/h
 
 ## Deployment
 
+**Phase 1 (owner's decision, 2026-11-23):** the synthetic-only public demo, with no sign-in. The image is public on
+GHCR (`mockups:0.1.0`, tag `mockups-v0.1.0`). Sign-in, the realm and any non-public dataset are deferred to phase 2.
+
 The target is the ids3 cluster, at `ptm.k8s.semanticscience.org`, with the synthetic cohort only on dev
 ([docs/hosting-plan.md](../../docs/hosting-plan.md); the draft manifests are in
 [`deploy/ids3/ptm/dev/`](../../deploy/ids3/ptm/dev/)). Nothing is deployed yet.

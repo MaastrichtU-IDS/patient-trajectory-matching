@@ -6,8 +6,30 @@ owner's shared Keycloak realm. Source: <https://github.com/MaastrichtU-IDS/patie
 (`docs/hosting-plan.md` is the design). Project `ptm`, env `dev` → namespace **`ptm-dev`** (created by the projects
 ApplicationSet).
 
-DRAFT, kept in the app repo under `deploy/ids3/ptm/dev/` until it is copied into `ids3/projects/ptm/dev/` in a
-services-repo PR. Nothing has been deployed.
+Kept in the app repo under `deploy/ids3/ptm/dev/` and copied into `ids3/projects/ptm/dev/` by a services-repo PR.
+
+## Phase 1 (owner's decision, 2026-11-23)
+
+**What is deployed now:** the synthetic-only public demo, with no sign-in, no Keycloak and no secret. The image is
+public on GHCR.
+- **The server.** It runs with no realm (no `PTM_OIDC_*` setting) and serves the public synthetic cohort only. Every
+  hosted bound stays on:
+  - the rate limits and the per-client match limits at the front door;
+  - the body limit and HSTS;
+  - the CSP;
+  - the child-process matcher with its time limit and search budget;
+  - the NetworkPolicies;
+  - JSON logs.
+- **In the kustomization:** `_base`, `allow-traefik-ingress.yaml`, `configmap.yaml`, `app.yaml`, `middleware.yaml`,
+  `ingress.yaml`, `ingress-match.yaml`.
+
+**Kept for phase 2 and not in the kustomization:**
+- `allow-keycloak-egress.yaml`: the realm's key fetch, with no realm configured;
+- `vault.yaml`: no secret exists;
+- `KEYCLOAK-REALM.md`: the realm checklist.
+
+Sign-in is phase 2 (the sections below marked "phase 2"). It needs the realm, the `PTM_OIDC_*` settings in
+`configmap.yaml` and those two files listed in the kustomization.
 
 **URL once deployed:** <https://ptm.k8s.semanticscience.org>
 
@@ -18,12 +40,16 @@ any volume.
 
 - **ptm-mockups** — `ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:<version>@sha256:<digest>`
   (built from `deploy/ids3/mockups.Dockerfile`), :8080, one replica, behind the Ingress. Python standard-library
-  HTTP server; DuckDB for the store; PyJWT and cryptography for the token check. The synthetic store is built at
-  start (about 1.3 s) into an `emptyDir`, and the root filesystem is read-only.
+  HTTP server; DuckDB for the store; PyJWT and cryptography for the token check (idle in phase 1). The synthetic store
+  is built at start (about 1.3 s) into an `emptyDir`, and the root filesystem is read-only; matches run in a child
+  process with a spare (match_worker.py).
 - No database, no PVC, no migration, no sidecar.
-- **Keycloak** — not deployed here: the shared user realm `ids-apps` on the platform Keycloak, set up by `KEYCLOAK-REALM.md`.
+- **Keycloak** (phase 2) — not deployed here: the shared user realm `ids-apps` on the platform Keycloak, set up by
+  `KEYCLOAK-REALM.md`. Not used in phase 1.
 
-## Auth wiring
+## Auth wiring (phase 2)
+
+In phase 1 there is no sign-in: `GET /api/auth-config` answers `{"enabled": false}` and the pages show no sign-in.
 
 The page signs users in with the public client `ptm-mockups` (authorization code + PKCE S256, no secret) and sends
 the access token as a bearer token. The server verifies each token itself, offline, against the realm's public keys:
@@ -73,20 +99,23 @@ hosting plan, section 5.
 
 ## Owner checklist (project owner)
 
+Phase 1:
+- [x] Publish the image: tag `mockups-v0.1.0` in the app repo (the image workflow); the digest is in `app.yaml`, and
+      the package is public. Never `latest`.
+- [ ] **To deploy a new build:** a services-repo PR that changes only that image line.
+- [ ] **After deploy:** verify as below; read memory use in SigNoz after a day and adjust `resources`.
+
+Phase 2 (sign-in; not needed now):
 - [ ] Name the backup realm admin for `ids-apps`.
 - [ ] Register the OAuth apps at ORCID, GitHub and Google (redirect URIs in `KEYCLOAK-REALM.md`, section 4) and hand
       their client ids and secrets to the realm admin out of band; they go into Keycloak, not Vault, not git.
-- [ ] Publish the image: push a tag `mockups-vX.Y.Z` in the app repo (the image workflow, hosting plan section 2),
-      read the digest from the workflow log, and put `X.Y.Z@sha256:<digest>` into `app.yaml`. Never `latest`.
-- [ ] **To deploy a new build:** a services-repo PR that changes only that image line.
 - [ ] Approve users by adding them to group `approved`. Grant `dataset:mimic-iv:read` only after verifying and
       recording the user's own PhysioNet credentialing (`KEYCLOAK-REALM.md`, section 2) — and only once full
       MIMIC-IV hosting has passed its storage and backup access review.
-- [ ] **After deploy:** verify as below; read memory use in SigNoz after a day and adjust `resources`.
 
-## Admin checklist (cluster, Keycloak, Vault) — before merging
+## Admin checklist — before merging
 
-### Cluster
+### Cluster (phase 1)
 
 - [ ] Traefik's `kubernetescrd` provider is on, so the four Middlewares in `middleware.yaml` load (first use in this
       repo). `kubectl -n ptm-dev get middlewares.traefik.io` after sync.
@@ -95,11 +124,11 @@ hosting plan, section 5.
 - [ ] `ingress-match.yaml` reuses `ptm-mockups-tls` without a second cert-manager annotation; confirm Traefik serves
       the certificate on the match paths (`curl -sI -X POST https://ptm.k8s.semanticscience.org/api/store/match`).
 - [ ] Traefik sees the client's own address (it is the front door since 2026-09-24), so the rate limit is per client.
-- [ ] GHCR: the package `patient-trajectory-matching/mockups` is pulled through the Harbor `ghcr.io` mirror; making
-      it public removes the dependency on the mirror's credentials. No `imagePullSecrets` configured.
+- [ ] GHCR: the package `patient-trajectory-matching/mockups` is public, so the node pulls it with or without the
+      Harbor `ghcr.io` mirror. No `imagePullSecrets` configured.
 - [ ] The certificate: `kubectl -n ptm-dev get certificate` → `READY=True` within a minute or two of the first sync.
 
-### Keycloak
+### Keycloak (phase 2 only; nothing to do for phase 1)
 
 - [ ] Everything in `KEYCLOAK-REALM.md`, sections 1 to 5 (realm, roles and the `approved` group, client
       `ptm-mockups` with the `ptm-api` audience mapper, identity providers, admin OTP).
@@ -107,7 +136,7 @@ hosting plan, section 5.
       Keycloak, `KEYCLOAK-REALM.md` section 6. Not needed for the first deploy; until it exists the owner checks
       new accounts in the admin console.
 
-### Vault (only when the first secret arrives; nothing to do for the first deploy)
+### Vault (only when the first secret arrives; nothing to do for phase 1)
 
 UI at <https://vault.k8s.semanticscience.org> (Token login, or OIDC as a `vault-admins` member).
 
@@ -154,7 +183,8 @@ curl -sI https://ptm.k8s.semanticscience.org/ | grep -i -E 'strict-transport|con
 curl -s -o /dev/null -w '%{http_code}\n' https://ptm.k8s.semanticscience.org/server.py              # 404
 curl -s https://ptm.k8s.semanticscience.org/api/datasets    # the synthetic dataset only, caller anonymous
 curl -s https://ptm.k8s.semanticscience.org/api/store/status   # no MIMIC store configured
-curl -s https://ptm.k8s.semanticscience.org/api/auth-config # issuer and client id
+curl -s https://ptm.k8s.semanticscience.org/api/auth-config # phase 1: {"enabled": false}
+curl -s https://ptm.k8s.semanticscience.org/api/limits      # hosted, search budget 1000, time limit 2
 ```
 
 | Symptom | Cause |
