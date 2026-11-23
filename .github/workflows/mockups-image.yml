@@ -70,19 +70,27 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          set -Eeuo pipefail
           ref="$IMAGE:$VERSION"
-          docker run -d --name m --read-only --tmpfs /tmp:size=512m -p 8080:8080 "$ref"
-          for i in $(seq 1 30); do curl -fsS localhost:8080/api/health && break; sleep 1; done
-          for i in $(seq 1 60); do curl -fsS localhost:8080/api/ready && break; sleep 1; done
+          name=mockups-check   # Docker refuses a one-character container name
+          trap 'echo "--- container log ---"; docker logs "$name" 2>&1 | tail -80 || true' ERR
+          docker run -d --name "$name" --read-only --tmpfs /tmp:size=512m -p 8080:8080 "$ref"
+          wait_for() {  # wait_for <path> <seconds>: fail the step if it never answers 200
+            for i in $(seq 1 "$2"); do curl -fsS "localhost:8080$1" && return 0; sleep 1; done
+            echo "$1 did not answer 200 within $2 s" >&2; return 1
+          }
+          wait_for /api/health 30
+          wait_for /api/ready 120   # the synthetic store, the match worker and its spare
+          echo
           curl -fsS localhost:8080/api/datasets | python3 -c "import json,sys; d=json.load(sys.stdin); assert [x['id'] for x in d['datasets']]==['synthetic-paediatric-rare'], d; assert not d['caller']['owner'], d"
           curl -fsS localhost:8080/api/store/status | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['available'] is False, d"
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' localhost:8080/api/trajectory-graph/match)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/server.py)" = 404
           curl -fsSI localhost:8080/ | grep -qi '^content-security-policy:'
           curl -fsS localhost:8080/api/limits | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['hosted'] and d['search_budget']==1000 and d['match_time_limit_s']==2, d"
-          test -z "$(docker exec m sh -c 'find / -xdev \( -iname "*mimic*" -a \( -name "*.duckdb" -o -name "*.parquet" -o -name "*.csv.gz" \) \) 2>/dev/null')"
-          test -z "$(docker exec m env | grep -i '^PTM_MIMIC' || true)"
-          docker rm -f m
+          test -z "$(docker exec "$name" sh -c 'find / -xdev \( -iname "*mimic*" -a \( -name "*.duckdb" -o -name "*.parquet" -o -name "*.csv.gz" \) \) 2>/dev/null')"
+          test -z "$(docker exec "$name" env | grep -i '^PTM_MIMIC' || true)"
+          docker rm -f "$name"
           docker save "$ref" -o image.tar
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: github.ref_type == 'tag'
