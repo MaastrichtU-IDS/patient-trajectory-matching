@@ -156,8 +156,10 @@ class Dataset:
         self.fetch_error = None
 
     def fetch_gate(self):
-        """None once a fetched store may be opened; else the code to answer meanwhile (the store service's gate)."""
-        if self.fetch_state in (None, 'ready'):
+        """The store service's gate for a fetched store: None once its fetch is done ('ready'), and closed in every
+        other state, before the fetch has started included (the phase 2 re-check, low 3); the code to answer
+        meanwhile."""
+        if self.fetch_state == 'ready':
             return None
         return self.fetch_error or 'STORE_BUILDING'
 

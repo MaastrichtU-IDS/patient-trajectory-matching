@@ -160,6 +160,55 @@ class FetchTests(unittest.TestCase):
             fetcher.fetch(Path(self.tmp.name) / 'd', base=self.standin.base, pins=PINS, allow_http=True, deadline_s=0)
         self.assertEqual(str(caught.exception), 'FETCH_DEADLINE_EXCEEDED')
 
+    def test_a_trickling_server_cannot_hold_the_download_past_its_deadline(self):
+        import http.server
+
+        class Trickle(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header('Content-Length', '1000')
+                self.end_headers()
+                try:
+                    for _ in range(1000):  # a byte every 0.1 s: never idle long enough for the socket timeout
+                        self.wfile.write(b'x')
+                        self.wfile.flush()
+                        time.sleep(0.1)
+                except OSError:
+                    pass
+
+            def log_message(self, *args):
+                pass
+
+        class Quick(HTTPServer):
+            def server_bind(self):
+                socketserver.TCPServer.server_bind(self)
+        trickling = Quick(('127.0.0.1', 0), Trickle)
+        threading.Thread(target=trickling.serve_forever, daemon=True).start()
+        try:
+            started = time.monotonic()
+            with self.assertRaises(fetcher.FetchError) as caught:
+                fetcher.get(f'http://127.0.0.1:{trickling.server_address[1]}/x', allow_http=True,
+                            deadline=time.monotonic() + 1)
+            self.assertEqual(str(caught.exception), 'FETCH_DEADLINE_EXCEEDED')
+            self.assertLess(time.monotonic() - started, 5, 'stopped near the deadline, not after 100 s')
+        finally:
+            trickling.shutdown()
+            trickling.server_close()
+
+    def test_the_fetch_gate_is_closed_until_the_fetch_is_done(self):
+        import datasets
+        entry = datasets.parse({'datasets': [{
+            'id': 'mimic-iv-demo', 'kind': 'mimic-demo-aggregate', 'title': 'MIMIC-IV demo', 'access': 'approved',
+            'results': 'aggregate', 'store': '/x/build/store', 'fetch': 'physionet:mimic-iv-demo-2.2'}]})[0]
+        dataset = datasets.Dataset(entry, None)
+        self.assertEqual(dataset.fetch_gate(), 'STORE_BUILDING', 'closed before the fetch has started')
+        dataset.fetch_state = 'pending'
+        self.assertEqual(dataset.fetch_gate(), 'STORE_BUILDING')
+        dataset.fetch_state, dataset.fetch_error = 'failed', 'CHECKSUM_MISMATCH'
+        self.assertEqual(dataset.fetch_gate(), 'CHECKSUM_MISMATCH')
+        dataset.fetch_state, dataset.fetch_error = 'ready', None
+        self.assertIsNone(dataset.fetch_gate())
+
     def test_leftovers_of_an_interrupted_run_are_removed(self):
         dest = Path(self.tmp.name)
         for name in ('mimic-demo-incoming-abc', '.stale-mimic-demo-incoming-def'):

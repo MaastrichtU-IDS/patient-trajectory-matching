@@ -112,7 +112,9 @@ HOSTED_STORE_MAX_RELATIONS = 8
 HOSTED_STORE_MAX_RELAXATIONS = 4
 HOSTED_STORE_COST_BUDGET = Fraction(1)
 HOSTED_STORE_SEARCH_BUDGET = 1000
-HOSTED_STORE_WORKER_MAX_MIB = 700  # the MIMIC worker's RLIMIT_AS, PTM_STORE_WORKER_MAX_MIB: 535 MiB measured, x1.3
+# The MIMIC worker's RLIMIT_AS (PTM_STORE_WORKER_MAX_MIB): 545 MiB of address space at most, measured in a Linux
+# container over 132 matches (the page's examples and the worst in-cap shapes, repeated), all answered under 600.
+HOSTED_STORE_WORKER_MAX_MIB = 600
 PROBE_RESERVE = 4                # threads beyond PTM_MAX_THREADS for /api/health and /api/ready only
 PROBE_ROUTES = frozenset({'/api/health', '/api/ready'})
 SECURITY_HEADERS = (('X-Content-Type-Options', 'nosniff'), ('Referrer-Policy', 'no-referrer'),

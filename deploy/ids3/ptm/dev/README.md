@@ -40,9 +40,11 @@ Sign-in is phase 2 (the sections below marked "phase 2"). It needs the realm, th
 - **Registry:** the dataset `mimic-iv-demo` at tier `approved`, aggregate counts. It is fetched from PhysioNet at start
   and built into the emptyDir; it is never in the image.
 - **Ingress:** its match path added to `ingress-match.yaml`.
-- **Pod:** memory limit 2Gi: about 1.3 GiB peak, either while the demo's store is built (the build child 858 MiB,
-  limited to 1,600 MiB) or while its two match workers serve it (386 MiB each, limited to 700 MiB). Hosted, the
-  demo's matches run in those workers with the 2 s time limit and capped request sizes (security review of phase 2).
+- **Pod:** memory limit 3Gi (phase 1: 1Gi). The measured peak is about 1.3 GiB, but the limit is sized so the
+  per-process address-space limits alone fit it: while the demo's store is built, the build child (1,600 MiB) and
+  the two synthetic workers (400 each) plus the server, 2,580 MiB; while serving, the two MIMIC workers (600 each)
+  and the two synthetic workers plus the server, 2,230 MiB. Hosted, the demo's matches run in those workers with the
+  2 s time limit and capped request sizes (security review of phase 2).
 - **Volume:** `pvc.yaml`, a 1Gi Longhorn RWO volume for the demo's store, kept across restarts. A store on it is
   reused only when it verifies (content re-derived, the pinned snapshot id, the pinned d_items). The RWO volume
   makes the Deployment `strategy: Recreate`, so rollouts have a gap of a few seconds.

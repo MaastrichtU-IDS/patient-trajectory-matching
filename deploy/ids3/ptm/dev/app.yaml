@@ -93,12 +93,14 @@ spec:
           # Phase 2: when the volume holds no verified store, the MIMIC-IV demo's store is built in a child process
           # (mimic_demo_fetch.py) at the lowest CPU priority: 858 MiB peak resident in a Linux container, address
           # space limited to 1,600 MiB (BUILD_MAX_MIB). Once it is open, two MIMIC match workers (active and spare,
-          # match_worker.IsolatedStoreQuery) serve its matches: 386 MiB resident each, limited to 700 MiB
-          # (PTM_STORE_WORKER_MAX_MIB). The build ends before they start, so the peak is about 1.3 GiB either way:
-          # the hosting plan, "The phase 2 security review", has the arithmetic.
+          # match_worker.IsolatedStoreQuery) serve its matches: about 400 MiB resident each, limited to 600 MiB
+          # (PTM_STORE_WORKER_MAX_MIB). Measured, the peak is about 1.3 GiB. The limit is sized so the per-process
+          # limits alone fit: while building, 1,600 + 2 x 400 + the server (~180) = 2,580 MiB; while serving,
+          # 2 x 600 + 2 x 400 + the server (~230) = 2,230 MiB; 3Gi leaves 16% and 27%. The hosting plan, "The phase 2
+          # security review", has the arithmetic.
           resources:
             requests: { cpu: 100m, memory: 512Mi }
-            limits: { cpu: "1", memory: 2Gi }
+            limits: { cpu: "1", memory: 3Gi }
       volumes:
         - name: tmp
           emptyDir: { sizeLimit: 512Mi }

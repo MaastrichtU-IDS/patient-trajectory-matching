@@ -4965,12 +4965,39 @@ no critical or high finding; three medium and six low, all fixed.
   pinned snapshot id.
   - *Pod memory, with M3's workers* (each MIMIC worker 386 MiB resident and 535 MiB of address space after 78
     cases, limit 700 MiB): about 1,330 MiB while building and 1,290 MiB while serving, which never overlap, since
-    the MIMIC workers start after the build. The limit stays 2Gi, about 35% above either; the arithmetic is in the
-    hosting plan.
+    the MIMIC workers start after the build. The limit stayed 2Gi, about 35% above either (superseded by the
+    re-check below: 600 MiB workers, a 3Gi pod).
 - **L3:** Google no longer trusts email. **L4:** no `offline_access` scope; `check_realm.py` requires no default
   group; forensic events are audited.
 - **L5:** the fetch follows no redirects and has a 300 s deadline for the whole download. **L6:** fetch failures are
   named from a fixed list; anything else is `MIMIC_DEMO_FETCH_FAILED`.
+- **The re-check (of `a3d994a`).** M1 and M3 confirmed fixed (through `main()` itself, and with the reviewer's own
+  shapes); M2 confirmed fixed for identity-provider logins. One medium and five lows remained, all addressed:
+  - *Medium, password reset gave admin access without the old OTP:* Keycloak's default reset flow ends in "Reset -
+    Conditional OTP", and an unconfigured `reset-otp` only adds "Configure OTP". The realm now binds
+    `reset credentials, not for admins`: choose the user, mail the link to all alike, then deny the holders of each
+    admin-capable role before `reset-password`; no OTP reset. Admins recover through another admin (the owner and
+    the backup admin reset each other in the console). `check_realm.py` checks the denial, and the checklist's wrong
+    sentence (that OTP stood in the way) is corrected.
+  - *Low 1:* the admin-capable roles are realm-admin, manage-users, manage-realm, manage-clients,
+    manage-identity-providers and impersonation, in both OTP flows and the reset denial; `check_realm.py` refuses
+    any other granted realm-management role but `view-*`/`query-*`. Mutations of the realm (a denial dropped or
+    moved after `reset-password`, `reset-otp` added, the default reset flow, an OTP subflow dropped, a
+    `manage-events` grant) are each caught.
+  - *Low 2:* the MIMIC worker's limit is 600 MiB. 132 matches, the page's examples and the worst in-cap shapes
+    repeated, all passed under it in a Linux container (545 MiB of address space, 404 MiB resident at most). The
+    limits alone did not fit 2Gi: 2 × 600 + 2 × 400 + the server (about 230) is 2,230 MiB while serving, and
+    1,600 + 2 × 400 + the server (about 180) is 2,580 MiB while building. A single MIMIC worker would not fix the
+    build phase, so the spare stays and **the pod's limit is 3Gi** (16% and 27% headroom). The measured peak is
+    about 1.3 GiB.
+  - *Low 3:* `fetch_gate` is closed unless the fetch state is `ready`. *Low 4:* the download checks its deadline
+    after every read of at most 64 KiB (`read1`). Tests: a trickling server is stopped near the deadline; the gate
+    is closed before the fetch starts.
+  - *The reviewer's scripts, re-run on the fixed tree:* `main_race.py` (an empty volume, and a stale pin) and
+    `m3.py` behave as fixed: the 73.7 s shape is refused, the in-cap shapes answered in 0.2 to 1.8 s, and one
+    passed 2 s and was killed at the limit.
+  - *Low 5, accepted and documented:* one approved client can occupy the single active MIMIC worker for a match at
+    a time. This is bounded by the front door's one match in flight per client address and by the 2 s limit.
 
 ## E0 Letter mentions timed from their letter's text: a deterministic normaliser and the converter's option `normalised_v1`, under rules fixed before measuring
 

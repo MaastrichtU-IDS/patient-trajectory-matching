@@ -44,6 +44,7 @@ PINS = {
 MAX_FILE = 64 * 1024 * 1024   # bytes; the largest file, chartevents, is 5.5 MB
 TIMEOUT = 60                  # seconds per request
 FETCH_DEADLINE = 300          # seconds for the whole download (security review of phase 2, L5)
+CHUNK = 1 << 16               # bytes per read, the deadline checked after each
 BUILD_TIMEOUT = 1800          # seconds for the store build
 # The build child's address-space limit (RLIMIT_AS, Linux), so a runaway build fails by itself instead of getting the
 # whole pod OOM-killed (security review L2): 1,228 MiB of address space measured in a Linux container, times 1.3
@@ -98,18 +99,29 @@ def get(url, limit=MAX_FILE, opener=None, allow_http=False, deadline=None):
     timeout = TIMEOUT if deadline is None else min(TIMEOUT, deadline - time.monotonic())
     if timeout <= 0:
         raise FetchError('FETCH_DEADLINE_EXCEEDED')
+    chunks, size = [], 0
     try:
         with (opener or default_opener()).open(url, timeout=timeout) as response:
-            data = response.read(limit + 1)
+            # Read in chunks, each at most one socket read (read1) of at most `timeout` seconds, checking the
+            # deadline after each: a server that trickles bytes cannot hold the download past it by more than one
+            # read (the phase 2 re-check, low 4).
+            while size <= limit:
+                chunk = response.read1(min(CHUNK, limit + 1 - size))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+                if deadline is not None and time.monotonic() > deadline:
+                    raise FetchError('FETCH_DEADLINE_EXCEEDED')
     except FetchError:
         raise
     except (urllib.error.URLError, OSError, ValueError):
         raise FetchError('PHYSIONET_UNREACHABLE') from None
     if deadline is not None and time.monotonic() > deadline:
         raise FetchError('FETCH_DEADLINE_EXCEEDED')
-    if len(data) > limit:
+    if size > limit:
         raise FetchError('FILE_TOO_LARGE')
-    return data
+    return b''.join(chunks)
 
 
 def published_sums(text):

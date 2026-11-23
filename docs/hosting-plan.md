@@ -598,19 +598,49 @@ critical or high finding; three medium and six low, all fixed.
   |---|---|---|
   | server, with both stores open | about 230 MiB (180 with the synthetic store, plus 48 for the demo's) | none |
   | synthetic match worker (×2: active and spare) | 145 MiB each | 400 MiB |
-  | MIMIC match worker (×2: active and spare), after 78 matches (the examples and the 75 shapes) | 386 MiB each | 700 MiB (535 measured, ×1.3) |
+  | MIMIC match worker (×2: active and spare), over 132 matches (the examples and the worst in-cap shapes, repeated) | 404 MiB each | 600 MiB (545 measured) |
   | demo build child (first start only) | 858 MiB | 1,600 MiB (1,228 measured, ×1.3) |
 
   The build ends before the store opens, and the MIMIC workers start only after that, so the two never overlap.
-  - *While building:* server (without the demo's store), two synthetic workers and the build, about 1,330 MiB.
-  - *While serving:* server and all four workers, about 1,290 MiB.
-  - **The pod's limit stays 2Gi**, about 35% above either peak.
-  - The address-space limits bound each process, but address space is not resident memory (386 MiB resident
-    against 535 MiB of address space for a MIMIC worker). Only all four workers at their limits at once would pass
-    2Gi, and each match is cut at 2 s. The outcome would be an OOM restart of the pod, not a hang.
+  - *Measured:* about 1,330 MiB while building (server without the demo's store, two synthetic workers, the
+    build) and about 1,330 MiB while serving (server and all four workers).
+  - *The limits alone* (the re-check's low 2: no process can push the pod over even at its own limit):
+    - while building, 1,600 + 2 × 400 + the server (about 180) = 2,580 MiB;
+    - while serving, 2 × 600 + 2 × 400 + the server (about 230) = 2,230 MiB.
+  - **The pod's limit is therefore 3Gi** (3,072 MiB): 16% above the first sum and 27% above the second. 2Gi fits
+    neither, and no lower setting would help. The build's own limit cannot go much below its measured 1,228 MiB,
+    and even a single MIMIC worker leaves the build phase at 2,580 MiB. So the MIMIC workers keep their spare, and
+    their limit is 600 MiB (all 132 matches passed under it).
+  - The server itself has no limit; its 180 to 230 MiB are measured. The request stays 512Mi, since scheduling
+    needs only what the pod uses, and that is re-measured on the cluster after the first deploy.
 - **Lows:** leftovers removed at start (L1); the build's address-space limit (L2); Google does not trust email
   (L3); no `offline_access`, no default group, forensic events audited (L4); no redirects and a 300 s download
   deadline (L5); fetch failures named from a fixed list (L6).
+
+**The re-check (of `a3d994a`, 2026-11-23).** The reviewer confirmed M1 and M3 fixed, run through `main()` itself and
+with the reviewer's own shapes, and M2 fixed for identity-provider logins. One medium and five lows, all addressed:
+- **Medium, password reset gave admin access without the old OTP.** Keycloak's default reset flow ends in "Reset -
+  Conditional OTP", whose unconfigured `reset-otp` only adds "Configure OTP". So a mailbox holder could set a
+  password, enrol their own OTP and reach the console. The realm now binds its own reset flow, which denies holders
+  of the admin-capable roles after the link is followed and before anything changes, and has no OTP reset. Admins
+  recover through another admin (`KEYCLOAK-REALM.md`, section 5); `check_realm.py` checks the denial.
+- **Low 1:** the admin-capable roles now include `manage-clients`, `manage-identity-providers` and `impersonation`,
+  in the OTP conditions and the reset denial. `check_realm.py` refuses any other granted `realm-management` role
+  but `view-*` and `query-*`.
+- **Low 2:** the per-process limits alone fit the pod: MIMIC workers at 600 MiB, the pod at 3Gi (above).
+- **The reviewer's shapes, re-run on the fixed tree:** the 73.7 s shape is refused (`TOO_MANY_RELAXATIONS`); the
+  in-cap shapes answered in 0.2 to 1.8 s, and one (four zero-cost widenings, any occurrences, gaps of 1 to 2 h)
+  passed 2 s and was killed at the limit, as designed. So within the caps the time limit, not the caps, is the
+  bound.
+- **Low 3:** a fetched store's gate is closed in every state but `ready`, before the fetch starts included.
+- **Low 4:** the download's deadline is checked after every read of at most 64 KiB (`read1`), so a server that
+  trickles bytes cannot hold it past the deadline by more than one socket read.
+- **Low 5, accepted: an approved client can occupy the MIMIC worker.** There is one active MIMIC worker, so while
+  one approved user's match runs (at most 2 s) the others wait, up to 3 s in all, then get `503 BUSY`. A client
+  that sends costly matches back to back can keep it busy. This is inherent to one worker. It is bounded by the
+  front door's `ptm-match-inflight`, one match in flight per client address on every match path (the MIMIC demo's
+  included), so one client holds the worker for one match at a time; the spare takes over at once after a kill.
+  Only approved users can reach the route at all, and each kill is logged (`match_killed`).
 
 ## 8. Deploying
 
