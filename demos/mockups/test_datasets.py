@@ -86,6 +86,13 @@ class RegistryTests(unittest.TestCase):
         broken['clients'][0]['redirectUris'].append('https://ptm.k8s.semanticscience.org/*')
         self.assertEqual(len(check_realm.check(broken)), 3)
 
+    def test_the_realm_file_is_what_its_generator_writes(self):
+        # deploy/ids3/keycloak/gen_realm.py is the source; the committed JSON must be its output, byte for byte.
+        sys.path.insert(0, str(HERE.parents[1] / 'deploy/ids3/keycloak'))
+        import gen_realm
+        self.assertEqual((HERE.parents[1] / 'deploy/ids3/keycloak/ids-apps-realm.json').read_text(), gen_realm.render(),
+                         're-generate with python deploy/ids3/keycloak/gen_realm.py')
+
     def test_a_registry_file_and_the_flags(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'datasets.json'

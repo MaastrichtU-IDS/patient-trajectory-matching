@@ -25,6 +25,8 @@ has no effect here.
 
 **(A) Import the realm file, then add what a file must not hold.** `deploy/ids3/keycloak/ids-apps-realm.json` holds
 sections 1 to 5 below as code. It contains no secret and no user, and its provider client ids are placeholders.
+It is generated: edit `deploy/ids3/keycloak/gen_realm.py` and re-run it, never the JSON by hand; `test_datasets`
+fails if the committed file differs from the generator's output by a byte (`gen_realm.py --check` says the same).
 `deploy/ids3/keycloak/check_realm.py` checks it offline against these sections and against Keycloak 26's import
 format (the representation classes of the platform's version, 26.8.1).
 1. Admin console of the `master` realm → realm selector → **Create realm** → **Resource file**: upload
@@ -168,8 +170,9 @@ Each yields a client id and a client secret. They go into the identity-provider 
       `manage-realm` (roles, groups and flows), `manage-clients`, `manage-identity-providers` and
       `impersonation`. Their holders must use OTP at every login and cannot reset their credentials by email.
 - [ ] **Nobody holds any other `realm-management` role except read-only ones** (`view-*`, `query-*`). Before
-      granting any other, add it to the list above: to the OTP conditions, the reset denial and `ADMIN_ROLES` in
-      `deploy/ids3/keycloak/check_realm.py`, which checks the import for exactly this. If fine-grained admin
+      granting any other, add it to the list above: to `ADMIN_ROLES` in `deploy/ids3/keycloak/gen_realm.py` (the OTP
+      conditions and the reset denial) and in `deploy/ids3/keycloak/check_realm.py`, which checks the import for
+      exactly this. If fine-grained admin
       permissions are ever enabled, any role they let assign `approved` or `dataset:*` joins the list too.
 - [ ] **Authentication → Flows → duplicate `browser`** as `browser with admin OTP`. Under the username/password form,
       add one CONDITIONAL subflow per admin-capable role, in the order above, each ending in the OTP form
