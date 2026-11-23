@@ -21,6 +21,11 @@ which is discarded, so nothing the store or a library prints can corrupt an answ
 child. The child limits its own address space (RLIMIT_AS, `memory_mib`; glibc malloc arenas capped at 2). Its build
 goes into a scratch directory of its own under the server's store root, removed when the child is killed or the
 server closes. Locally (no time limit) the server matches in-process as before.
+
+The MIMIC-IV demo's matches are bounded the same way when hosted (security review of phase 2, M3):
+`IsolatedStoreQuery` runs `store_query.StoreService` in children of its own (`python -I match_worker.py --store-query
+CONFIG SCRATCH`), with the same content gate, snapshot pin and the hosted search budget, once the server's own
+service has opened and checked the store. Its children only read the store; nothing is built.
 """
 from __future__ import annotations
 
@@ -56,8 +61,9 @@ def confine_duckdb():
     duckdb.connect = connect
 
 
-def child_main(cohort, root):
-    """The child's loop: build the store, report, then answer one request per line until stdin closes."""
+def _child_setup():
+    """The protocol stream with fd 1 pointed at stderr, the address-space limit, and DuckDB confined. Returns `send`,
+    or None after reporting a limit that could not be set."""
     proto = os.fdopen(os.dup(1), 'w', buffering=1)
     os.dup2(2, 1)
     sys.stdout = sys.stderr
@@ -72,10 +78,60 @@ def child_main(cohort, root):
             resource.setrlimit(resource.RLIMIT_AS, (limit << 20, limit << 20))
         except (ImportError, ValueError, OSError):
             send({'ready': False, 'error': 'WORKER_MEMORY_LIMIT_FAILED'})
-            return
+            return None
     sys.path.insert(0, str(HERE.parents[1]))
     sys.path.insert(0, str(HERE))
     confine_duckdb()
+    return send
+
+
+def _quiet():
+    """Started: from here on nothing the child writes to fd 1 or 2 is kept (the start's stderr file is for a failed
+    start only, which the parent reads for the exception's class name)."""
+    null = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(null, 1)
+    os.dup2(null, 2)
+
+
+def store_query_child_main(config):
+    """The MIMIC demo's child: open the store through store_query.StoreService (every check of the server's own),
+    report, then answer one aggregate match per line until stdin closes."""
+    send = _child_setup()
+    if send is None:
+        return
+    import store_query
+    try:
+        config = json.loads(config)
+        pin = tuple(config['pin']) if config.get('pin') else (store_query.DEMO_PATIENTS, store_query.DEMO_SUBJECTS_SHA256)
+        service = store_query.StoreService(config['store'], config.get('d_items'), pin=pin,
+                                           expected_snapshot_id=config.get('expected_snapshot_id'),
+                                           search_budget=int(config['search_budget']))
+        status = service.status()
+    except MemoryError:
+        send({'ready': False, 'error': 'WORKER_OUT_OF_MEMORY'})
+        return
+    _quiet()
+    send({'ready': bool(status.get('available')), 'error': status.get('error')})
+    for line in sys.stdin:
+        try:
+            send({'ok': service.match(json.loads(line))})
+        except store_query.QueryError as error:
+            send({'refused': str(error)})
+        except store_query.Unavailable as error:
+            send({'unavailable': str(error)})
+        except store_query.AggregateRuleViolation:
+            send({'violation': True})
+        except Exception:  # noqa: BLE001 - named in the parent, with no detail
+            send({'internal': True})
+    if service.store is not None:
+        service.store.close()
+
+
+def child_main(cohort, root):
+    """The child's loop: build the store, report, then answer one request per line until stdin closes."""
+    send = _child_setup()
+    if send is None:
+        return
     import store_trajectory
     try:
         store = store_trajectory.TrajectoryStore(cohort, root).start()
@@ -83,11 +139,7 @@ def child_main(cohort, root):
     except MemoryError:
         send({'ready': False, 'error': 'WORKER_OUT_OF_MEMORY'})
         return
-    # Started: from here on nothing the child writes to fd 1 or 2 is kept (the start's stderr file is for a failed
-    # start only, which the parent reads for the exception's class name).
-    null = os.open(os.devnull, os.O_WRONLY)
-    os.dup2(null, 1)
-    os.dup2(null, 2)
+    _quiet()
     send({'ready': bool(status.get('available')), 'error': status.get('error')})
     for line in sys.stdin:
         try:
@@ -157,16 +209,37 @@ class IsolatedMatcher:
 
     # ---------------------------------------------------------------- children
 
-    def _launch(self):
-        """A new child with its store built, or store_trajectory.Unavailable."""
+    # What differs between the synthetic store's children and the MIMIC demo's (IsolatedStoreQuery).
+    ANSWERS = frozenset({'ok', 'refused', 'unavailable'})  # a child that gave one of these is reused
+
+    def _command(self, scratch):
+        return [sys.executable, '-I', str(Path(__file__).resolve()), self.cohort, str(scratch)]
+
+    def _unavailable(self, code):
         import store_trajectory
+        return store_trajectory.Unavailable(code)
+
+    def _result(self, answer):
+        """The child's answer as the in-process store's result or exception."""
+        import store_trajectory
+        if 'ok' in answer:
+            return answer['ok']
+        if 'refused' in answer:
+            error = (store_trajectory.StoreRefused if answer.get('by') == 'store' else store_trajectory.RequestError)
+            raise error(answer['refused'])
+        if 'unavailable' in answer:
+            raise store_trajectory.Unavailable(answer['unavailable'])
+        raise RuntimeError('INTERNAL_ERROR')
+
+    def _launch(self):
+        """A new child with its store built (or opened), or Unavailable('MATCH_WORKER_FAILED')."""
         self.root.mkdir(parents=True, exist_ok=True)
         scratch = Path(tempfile.mkdtemp(prefix='ptm-match-worker-', dir=self.root))
         env = {**os.environ, 'MALLOC_ARENA_MAX': '2', 'PTM_MATCH_WORKER_MAX_MIB': str(self.memory_mib or 0)}
         start_log = scratch / 'start.stderr'
         with open(start_log, 'wb') as log:
             process = subprocess.Popen(
-                [sys.executable, '-I', str(Path(__file__).resolve()), self.cohort, str(scratch)],
+                self._command(scratch),
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=log, text=True, bufsize=1, env=env)
         child = _Child(process, scratch)
         try:
@@ -184,7 +257,7 @@ class IsolatedMatcher:
             child.kill()
             self._last_error = reason
             self.on_event('match_worker_start_failed', reason=reason)
-            raise store_trajectory.Unavailable('MATCH_WORKER_FAILED')
+            raise self._unavailable('MATCH_WORKER_FAILED')
         self._started_once, self._last_error = True, None
         return child
 
@@ -196,11 +269,10 @@ class IsolatedMatcher:
             self._building = True
 
         def build():
-            import store_trajectory
             child = None
             try:
                 child = self._launch()
-            except store_trajectory.Unavailable:
+            except RuntimeError:  # Unavailable, of either store
                 pass
             with self._spare_lock:
                 self._building = False
@@ -219,12 +291,11 @@ class IsolatedMatcher:
     def start(self):
         """Build the first child and a spare now, in the background, so no match waits for a build."""
         def first():
-            import store_trajectory
             with self._lock:
                 if self._active is None and not self._closed:
                     try:
                         self._active = self._launch()
-                    except store_trajectory.Unavailable:
+                    except RuntimeError:  # Unavailable, of either store
                         pass
             self._refill()
         threading.Thread(target=first, name='ptm-match-worker-start', daemon=True).start()
@@ -245,9 +316,8 @@ class IsolatedMatcher:
     def match(self, spec, wait=None):
         """The child's answer to `spec`. Waits for the child at most `wait` seconds (default `lock_wait`), then raises
         Unavailable('BUSY'); a match still running after `time_limit` seconds is killed (MATCH_TIME_LIMIT)."""
-        import store_trajectory
         if not self._lock.acquire(timeout=self.lock_wait if wait is None else wait):
-            raise store_trajectory.Unavailable('BUSY')  # 503: the child is held by earlier matches
+            raise self._unavailable('BUSY')  # 503: the child is held by earlier matches
         try:
             if self._active is None or not self._active.alive():
                 if self._active is not None:
@@ -257,7 +327,7 @@ class IsolatedMatcher:
                 if self._active is None:
                     # No worker is built yet (a flood outran the spare's rebuild): refuse now rather than build one
                     # on this request's path, so a match is answered or refused within its wait plus the time limit.
-                    raise store_trajectory.Unavailable('BUSY')
+                    raise self._unavailable('BUSY')
             child, answer, failure = self._active, None, 'MATCH_TIME_LIMIT'
             try:
                 child.process.stdin.write(json.dumps(spec) + '\n')
@@ -273,8 +343,8 @@ class IsolatedMatcher:
                     self.on_event('match_killed', reason=failure)
                     self._refill()
             if answer is None:
-                raise store_trajectory.Unavailable(failure)
-            if not ({'ok', 'refused', 'unavailable'} & set(answer)):
+                raise self._unavailable(failure)
+            if not (self.ANSWERS & set(answer)):
                 # An internal failure in the child (MemoryError included) may have left it broken: kill it and
                 # never reuse it, as after a time limit; the request is still answered as an internal error
                 # (D52b's review; the fix re-applied after D52b's code was reverted).
@@ -285,14 +355,7 @@ class IsolatedMatcher:
                 self._refill()
         finally:
             self._lock.release()
-        if 'ok' in answer:
-            return answer['ok']
-        if 'refused' in answer:
-            error = (store_trajectory.StoreRefused if answer.get('by') == 'store' else store_trajectory.RequestError)
-            raise error(answer['refused'])
-        if 'unavailable' in answer:
-            raise store_trajectory.Unavailable(answer['unavailable'])
-        raise RuntimeError('INTERNAL_ERROR')
+        return self._result(answer)
 
     def close(self):
         with self._spare_lock:
@@ -306,5 +369,38 @@ class IsolatedMatcher:
                 self._active = None
 
 
+class IsolatedStoreQuery(IsolatedMatcher):
+    """The MIMIC demo's aggregate matches (store_query.StoreService), each bounded by `time_limit` seconds, in children
+    of their own. `config`: {"store", "d_items", "pin", "expected_snapshot_id", "search_budget"}."""
+
+    ANSWERS = frozenset({'ok', 'refused', 'unavailable', 'violation'})
+
+    def __init__(self, config, root=None, time_limit=2.0, memory_mib=0, lock_wait=3.0, on_event=None):
+        super().__init__(config.get('store'), root, time_limit, memory_mib, lock_wait, on_event)
+        self.config = json.dumps(config)
+
+    def _command(self, scratch):
+        return [sys.executable, '-I', str(Path(__file__).resolve()), '--store-query', self.config, str(scratch)]
+
+    def _unavailable(self, code):
+        import store_query
+        return store_query.Unavailable(code)
+
+    def _result(self, answer):
+        import store_query
+        if 'ok' in answer:
+            return answer['ok']
+        if 'refused' in answer:
+            raise store_query.QueryError(answer['refused'])
+        if 'unavailable' in answer:
+            raise store_query.Unavailable(answer['unavailable'])
+        if 'violation' in answer:
+            raise store_query.AggregateRuleViolation()
+        raise RuntimeError('INTERNAL_ERROR')
+
+
 if __name__ == '__main__':
-    child_main(sys.argv[1], sys.argv[2])
+    if sys.argv[1] == '--store-query':
+        store_query_child_main(sys.argv[2])
+    else:
+        child_main(sys.argv[1], sys.argv[2])

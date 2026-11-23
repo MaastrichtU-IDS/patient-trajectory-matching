@@ -77,12 +77,14 @@ class FetchTests(unittest.TestCase):
         self.built.append(sorted(p.name for p in icu.iterdir()))
         store = Path(output) / 'store' / 'snap'
         store.mkdir(parents=True)
-        (store / 'manifest.json').write_text('{}')
+        (store / 'manifest.json').write_text(json.dumps({'snapshot_id': self.built_id}))
         return Path(output) / 'store'
 
-    def run_fetch(self):
+    built_id = 'fake-snapshot'
+
+    def run_fetch(self, snapshot_id='fake-snapshot'):
         return fetcher.fetch_and_build(self.tmp.name, base=self.standin.base, pins=PINS, build_store=self.fake_build,
-                                       allow_http=True)
+                                       allow_http=True, snapshot_id=snapshot_id)
 
     def failure(self):
         with self.assertRaises(fetcher.FetchError) as caught:
@@ -120,6 +122,56 @@ class FetchTests(unittest.TestCase):
         self.assertEqual(fetcher.PINS['icu/inputevents.csv.gz'], pinned['inputevents']['file_sha256'])
         self.assertEqual(fetcher.PINS['icu/icustays.csv.gz'], pinned['icustays']['file_sha256'])
         self.assertEqual(fetcher.PINS['icu/d_items.csv.gz'], pinned['d_items']['file_sha256'])
+
+    def test_a_build_that_is_not_the_pinned_snapshot_is_never_published(self):
+        with self.assertRaises(fetcher.FetchError) as caught:
+            self.run_fetch(snapshot_id='another-snapshot')
+        self.assertEqual(str(caught.exception), 'SNAPSHOT_ID_NOT_PINNED')
+        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), [], 'nothing published or left behind')
+
+    def test_redirects_are_refused_and_the_download_has_a_deadline(self):
+        import http.server
+        standin = self.standin
+
+        class Redirect(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(302)
+                self.send_header('Location', standin.base + 'SHA256SUMS.txt')
+                self.send_header('Content-Length', '0')
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        class Quick(HTTPServer):
+            def server_bind(self):
+                socketserver.TCPServer.server_bind(self)
+        redirecting = Quick(('127.0.0.1', 0), Redirect)
+        threading.Thread(target=redirecting.serve_forever, daemon=True).start()
+        try:
+            with self.assertRaises(fetcher.FetchError) as caught:
+                fetcher.fetch(Path(self.tmp.name) / 'd', base=f'http://127.0.0.1:{redirecting.server_address[1]}/',
+                              pins=PINS, allow_http=True)
+            self.assertEqual(str(caught.exception), 'PHYSIONET_REDIRECT')
+        finally:
+            redirecting.shutdown()
+            redirecting.server_close()
+        with self.assertRaises(fetcher.FetchError) as caught:
+            fetcher.fetch(Path(self.tmp.name) / 'd', base=self.standin.base, pins=PINS, allow_http=True, deadline_s=0)
+        self.assertEqual(str(caught.exception), 'FETCH_DEADLINE_EXCEEDED')
+
+    def test_leftovers_of_an_interrupted_run_are_removed(self):
+        dest = Path(self.tmp.name)
+        for name in ('mimic-demo-incoming-abc', '.stale-mimic-demo-incoming-def'):
+            (dest / name / 'build').mkdir(parents=True)
+        (dest / 'keep.txt').write_text('x')
+        self.run_fetch()  # through fetch_and_build: prepare's clearing is tested on its own below
+        fetcher.clear_leftovers(dest)
+        self.assertEqual(sorted(p.name for p in dest.iterdir()), ['build', 'd_items.csv.gz', 'keep.txt'])
+        with mock.patch.object(fetcher, 'reusable', lambda *a: dest / 'build' / 'store'):
+            (dest / 'mimic-demo-incoming-ghi').mkdir()
+            fetcher.prepare(dest)
+        self.assertFalse((dest / 'mimic-demo-incoming-ghi').exists(), 'prepare clears leftovers first')
 
     def test_a_build_failure_is_named(self):
         def failing(icu, output):
@@ -189,7 +241,7 @@ class PersistedStoreTests(unittest.TestCase):
             def fake_build(icu, output):
                 snap = Path(output) / 'store' / 'fresh'
                 snap.mkdir(parents=True)
-                (snap / 'manifest.json').write_text('{}')
+                (snap / 'manifest.json').write_text(json.dumps({'snapshot_id': '0' * 64}))
                 return Path(output) / 'store'
             store, how = fetcher.prepare(dest, base=standin.base, pins=PINS, build_store=fake_build, allow_http=True,
                                          snapshot_id='0' * 64)
@@ -243,32 +295,105 @@ class ServedTests(unittest.TestCase):
             finally:
                 client.close()
 
-    def test_a_built_store_is_served_through_the_content_gate(self):
+    @staticmethod
+    def fixture_pin(tmp):
+        """(pin, snapshot id) of the synthetic MIMIC fixture, which stands in for the demo's store."""
         from test_store_query import FIXTURE
         from patterns import execution_store as es
+        from patterns import mimic_store_ingest as msi
+        with es.open_store(msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', Path(tmp) / 'pin')) as store:
+            ids = {pid for pid, in store.query('SELECT patient_id FROM patients')}
+            snapshot_id = store.manifest['snapshot_id']
+        return (len(ids), store_query.subjects_digest(ids)), snapshot_id
+
+    @staticmethod
+    def with_pin(pin):
+        real = store_query.StoreService
+        return mock.patch.object(server.store_query, 'StoreService',
+                                 lambda path=None, d_items=None, **k: real(path, d_items, **{**k, 'pin': pin}))
+
+    def test_a_built_store_is_served_through_the_content_gate(self):
+        from test_store_query import FIXTURE
         from patterns import mimic_store_ingest as msi
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / 'demo' / 'build' / 'store'
 
             def arrive(dest):  # the synthetic MIMIC fixture stands in for the demo's store
                 return msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', target).parent
-            with es.open_store(msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', Path(tmp) / 'pin')) as store:
-                ids = {pid for pid, in store.query('SELECT patient_id FROM patients')}
-            pin = (len(ids), store_query.subjects_digest(ids))
-            real = store_query.StoreService
-            gate = mock.patch.object(server.store_query, 'StoreService',
-                                     lambda path=None, d_items=None, **k: real(path, d_items, pin=pin))
-            with gate:
+            pin, snapshot_id = self.fixture_pin(tmp)
+            with self.with_pin(pin), mock.patch.object(fetcher, 'SNAPSHOT_ID', snapshot_id):
                 client = Client(server.serve('127.0.0.1', 0, datasets_file=self.registry(tmp), fetch_and_build=arrive))
             try:
                 dataset = client.httpd.registry.get('mimic-iv-demo')
+                self.assertEqual(dataset.service.expected_snapshot_id, snapshot_id)
                 deadline = time.time() + 60
                 while dataset.state() != 'ready' and time.time() < deadline:
                     time.sleep(0.1)
                 status, body, _ = client.call('/api/datasets/mimic-iv-demo/status')
-                self.assertEqual((status, body['available'], body['patients']), (200, True, len(ids)))
+                self.assertEqual((status, body['available'], body['patients'], body['snapshot_id']),
+                                 (200, True, pin[0], snapshot_id))
             finally:
                 client.close()
+
+    def test_the_store_service_opens_no_other_snapshot(self):
+        from test_store_query import FIXTURE
+        from patterns import mimic_store_ingest as msi
+        with tempfile.TemporaryDirectory() as tmp:
+            pin, snapshot_id = self.fixture_pin(tmp)
+            store = msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', Path(tmp) / 'demo' / 'build' / 'store').parent
+            other = store_query.StoreService(store, pin=pin, expected_snapshot_id='0' * 64).status()
+            self.assertEqual((other['available'], other['error']), (False, 'SNAPSHOT_UNREADABLE'))
+            self.assertTrue(store_query.StoreService(store, pin=pin, expected_snapshot_id=snapshot_id).status()['available'])
+
+    def test_the_start_path_opens_the_fetched_store_only_once_it_is_ready(self):
+        """The phase 2 security review's M1: main()'s startup report opened the store before the fetch had placed
+        and checked it, and the failure was remembered for good. Run main() itself, with the fetch held back."""
+        import io
+        from test_store_query import FIXTURE
+        from patterns import mimic_store_ingest as msi
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'demo' / 'build' / 'store'
+            pin, snapshot_id = self.fixture_pin(tmp)
+            release, started, out = threading.Event(), {}, io.StringIO()
+
+            def held_back(dest):  # mimic_demo_fetch.prepare, standing in: the store arrives only when released
+                release.wait(60)
+                return msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', target).parent, 'built'
+            real_serve = server.serve
+
+            def serve(*args, **kwargs):
+                started['httpd'] = real_serve(*args, **kwargs)
+                return started['httpd']
+            argv = ['server.py', '--port', '0', '--datasets', str(self.registry(tmp)), '--no-trajectory-store']
+            with self.with_pin(pin), mock.patch.object(fetcher, 'SNAPSHOT_ID', snapshot_id), \
+                    mock.patch.object(fetcher, 'prepare', held_back), mock.patch.object(server, 'serve', serve), \
+                    mock.patch.object(server.signal, 'signal'), mock.patch.object(sys, 'argv', argv), \
+                    mock.patch.object(sys, 'stdout', out):
+                thread = threading.Thread(target=server.main, daemon=True)
+                thread.start()
+                try:
+                    deadline = time.time() + 30
+                    while 'store query page:' not in out.getvalue() and time.time() < deadline:
+                        time.sleep(0.05)
+                    self.assertIn('store query page: MIMIC-IV demo pending', out.getvalue())
+                    dataset = started['httpd'].registry.get('mimic-iv-demo')
+                    service = dataset.service
+                    self.assertEqual((service.opened, service.error), (False, None), 'nothing opened, nothing remembered')
+                    with self.assertRaises(store_query.Unavailable) as caught:
+                        service.status()  # any open meanwhile is refused, and not remembered either
+                    self.assertEqual(str(caught.exception), 'STORE_BUILDING')
+                    self.assertFalse(service.opened)
+                    release.set()
+                    deadline = time.time() + 60
+                    while dataset.state() != 'ready' and time.time() < deadline:
+                        time.sleep(0.1)
+                    status = service.status()
+                    self.assertEqual((status['available'], status['snapshot_id']), (True, snapshot_id))
+                finally:
+                    release.set()
+                    if 'httpd' in started:
+                        started['httpd'].shutdown()
+                    thread.join(30)
 
 
 if __name__ == '__main__':

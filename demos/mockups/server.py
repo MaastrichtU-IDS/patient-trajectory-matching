@@ -101,6 +101,18 @@ HOSTED_SEARCH_BUDGET = 1000      # clamped server-side; a search that reaches it
 HOSTED_MATCH_TIME_LIMIT = 2.0    # seconds; a store match still running is killed (match_worker.py)
 MAX_MATCH_TIME_LIMIT = 30.0      # PTM_MATCH_TIME_LIMIT above this (or not a finite number) is refused at startup
 HOSTED_WORKER_MAX_MIB = 400      # the match worker's address-space limit (RLIMIT_AS), PTM_MATCH_WORKER_MAX_MIB
+# Hosted bounds on the MIMIC-IV demo's requests (security review of phase 2, M3), measured on the demo store at one
+# DuckDB thread (docs/hosting-plan.md, "The phase 2 security review"). The page's examples use at most 2 steps, 1
+# relation, 2 relaxations and a cost budget of 1, in 0.10 to 0.26 s, with the same answers at a search budget of 1,000
+# as at 40,000. The cost is in the relaxation sets (every subset is tried when relaxations cost 0), not in the search:
+# within these caps the costliest of 75 adversarial shapes took 1.23 s; past them, 8 relaxations took 5 to over 40 s.
+# Its matches also run in child processes with the time limit above (match_worker.IsolatedStoreQuery).
+HOSTED_STORE_MAX_STEPS = 6       # the page's own maximum (steps A to F)
+HOSTED_STORE_MAX_RELATIONS = 8
+HOSTED_STORE_MAX_RELAXATIONS = 4
+HOSTED_STORE_COST_BUDGET = Fraction(1)
+HOSTED_STORE_SEARCH_BUDGET = 1000
+HOSTED_STORE_WORKER_MAX_MIB = 700  # the MIMIC worker's RLIMIT_AS, PTM_STORE_WORKER_MAX_MIB: 535 MiB measured, x1.3
 PROBE_RESERVE = 4                # threads beyond PTM_MAX_THREADS for /api/health and /api/ready only
 PROBE_ROUTES = frozenset({'/api/health', '/api/ready'})
 SECURITY_HEADERS = (('X-Content-Type-Options', 'nosniff'), ('Referrer-Policy', 'no-referrer'),
@@ -306,7 +318,11 @@ class Handler(SimpleHTTPRequestHandler):
         if not self.hosted:
             return {'hosted': False}
         return {'hosted': True, 'search_budget': HOSTED_SEARCH_BUDGET, 'match_time_limit_s': self.match_time_limit or None,
-                'max_steps': HOSTED_MAX_STEPS, 'max_relaxations': HOSTED_MAX_RELAXATIONS}
+                'max_steps': HOSTED_MAX_STEPS, 'max_relaxations': HOSTED_MAX_RELAXATIONS,
+                'store_query': {'search_budget': HOSTED_STORE_SEARCH_BUDGET, 'max_steps': HOSTED_STORE_MAX_STEPS,
+                                'max_relations': HOSTED_STORE_MAX_RELATIONS,
+                                'max_relaxations': HOSTED_STORE_MAX_RELAXATIONS,
+                                'max_budget': str(HOSTED_STORE_COST_BUDGET)}}
 
     def ready(self):
         """{"ready": bool}: 200 once every started dataset is ready. Never opens a store (hosted, MIMIC stores open at
@@ -380,7 +396,14 @@ class Handler(SimpleHTTPRequestHandler):
                     lambda: service.match(hosted_request(check_size(data, hosted)) if hosted else check_size(data))))
             if dataset.fetch_state in ('pending', 'failed'):
                 return self.send_json(503, {'error': dataset.fetch_error or 'STORE_BUILDING'})
-            return self.gated_body(lambda data: self.store_answer(lambda: service.match(check_size(data, hosted))))
+            if hosted:  # never in-process: in a child with the time limit, once the store is open and checked
+                matcher = dataset.matcher
+                if matcher is None:
+                    failed = service.opened and not service.lock.locked() and service.store is None
+                    return self.send_json(503, {'error': service.error if failed and service.error else 'STORE_BUILDING'})
+                return self.gated_body(lambda data: self.store_answer(
+                    lambda: matcher.match(check_store_size(data), wait=self.queue_left())))
+            return self.gated_body(lambda data: self.store_answer(lambda: service.match(data)))
         if dataset.kind == 'synthetic-trajectory':
             return self.trajectory_answer(service.status)
         if dataset.fetch_state in ('pending', 'failed'):  # fetched at start: not built yet, or its source failed
@@ -517,6 +540,32 @@ def check_size(data, hosted=False):
     return data
 
 
+def check_store_size(data):
+    """`data`, a hosted store-query (MIMIC demo) request, after checking its shape against the hosted caps: steps,
+    relations, the relaxations declared on them, and the relaxation cost budget. Anything malformed is left to the
+    store's own checks, which refuse it by name."""
+    if not isinstance(data, dict):
+        return data
+    steps = data.get('steps') if isinstance(data.get('steps'), list) else []
+    relations = data.get('relations') if isinstance(data.get('relations'), list) else []
+    if len(steps) > HOSTED_STORE_MAX_STEPS:
+        raise SizeError('TOO_MANY_STEPS')
+    if len(relations) > HOSTED_STORE_MAX_RELATIONS:
+        raise SizeError('TOO_MANY_RELATIONS')
+    relaxations = sum(1 for part, keys in ((steps, ('widen_value', 'widen_concept')),
+                                           (relations, ('extend_max', 'extend_grace')))
+                      for x in part if isinstance(x, dict) for key in keys if x.get(key) is not None)
+    if relaxations > HOSTED_STORE_MAX_RELAXATIONS:
+        raise SizeError('TOO_MANY_RELAXATIONS')
+    try:
+        too_costly = Fraction(data.get('budget', '1')) > HOSTED_STORE_COST_BUDGET
+    except (TypeError, ValueError, ZeroDivisionError):
+        too_costly = False  # malformed: the store refuses it by name
+    if too_costly:
+        raise SizeError('RELAXATION_BUDGET_ABOVE_HOSTED_MAX')
+    return data
+
+
 def hosted_request(data):
     """A hosted synthetic-store request: the relaxation cost budget at most 1 (the page's own maximum; 400 above it)
     and the search budget clamped to HOSTED_SEARCH_BUDGET, so a search the clamp stops is the engine's own
@@ -610,6 +659,7 @@ class Server(ThreadingHTTPServer):
                 dataset.service.close()
             if dataset.matcher is not None:
                 dataset.matcher.close()
+            dataset.on_open = None  # a fetch finishing after close starts no workers
 
 
 def log_event(event, **fields):
@@ -647,6 +697,16 @@ def _int_env(name, default):
     return number
 
 
+def start_store_matcher(dataset, root, time_limit, memory_mib):
+    """The MIMIC demo's match workers, opening the store the server's own service has just opened and checked."""
+    service = dataset.service
+    config = {'store': str(service.path), 'd_items': str(service.d_items) if service.d_items else None,
+              'pin': list(service.pin), 'expected_snapshot_id': service.expected_snapshot_id,
+              'search_budget': service.search_budget}
+    dataset.matcher = match_worker.IsolatedStoreQuery(config, root, time_limit, memory_mib=memory_mib,
+                                                      on_event=log_event).start()
+
+
 def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, demo_pin=None,
           trajectory_store=True, trajectory_store_root=None, trajectory_cohort=None, *, datasets_file=None,
           verifier=None, max_body=None, match_concurrency=None, log_format=None, max_threads=None, hosted=False,
@@ -672,6 +732,7 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
         raise ValueError('HOSTED_REALM_NEEDS_PTM_OIDC_CLIENT_ID')  # so that `azp` is always checked when hosted
     match_time_limit = match_time_limit_from(match_time_limit, hosted)
     worker_mib = _int_env('PTM_MATCH_WORKER_MAX_MIB', HOSTED_WORKER_MAX_MIB if hosted else 0)
+    store_worker_mib = _int_env('PTM_STORE_WORKER_MAX_MIB', HOSTED_STORE_WORKER_MAX_MIB if hosted else 0)
     pin = {'pin': demo_pin} if demo_pin else {}
     built = []
     for entry in entries:
@@ -679,10 +740,20 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
             cohort = entry.settings.get('cohort') or trajectory_cohort or store_trajectory.COHORT
             service = store_trajectory.TrajectoryStore(cohort, root)
         else:
+            # A fetched store must be the pinned snapshot (mimic_demo_fetch.SNAPSHOT_ID); hosted, a lower search budget.
+            fetched = 'fetch' in entry.settings
             service = store_query.StoreService(entry.settings['store'],
                                                entry.settings.get('d_items') or (mimic_d_items if not datasets_file else None),
-                                               **pin)
-        built.append(datasets.Dataset(entry, service))
+                                               **pin, expected_snapshot_id=mimic_demo_fetch.SNAPSHOT_ID if fetched else None,
+                                               search_budget=HOSTED_STORE_SEARCH_BUDGET if hosted else store_query.SEARCH_BUDGET)
+        dataset = datasets.Dataset(entry, service)
+        if entry.kind == 'mimic-demo-aggregate':
+            if 'fetch' in entry.settings:
+                service.gate = dataset.fetch_gate  # nothing is opened, or remembered, before the fetch is done (M1)
+            if match_time_limit:  # hosted: matches in child processes with the time limit, once the store is open (M3)
+                dataset.on_open = partial(start_store_matcher, root=root, time_limit=match_time_limit,
+                                          memory_mib=store_worker_mib)
+        built.append(dataset)
     registry = datasets.Registry(built)
     default_gate = HOSTED_MATCH_CONCURRENCY if hosted else 0
     gate_size = match_concurrency if match_concurrency is not None else _int_env('PTM_MATCH_CONCURRENCY', default_gate)
@@ -750,9 +821,15 @@ def main():
                                            or 'none'), flush=True)
 
     def report():  # the stores' states, once known, without holding up requests (/api/health answers meanwhile)
-        status = server.store.status()
-        print(f"store query page: {'MIMIC-IV demo store ' + status['snapshot_id'][:12] if status['available'] else status['error']}",
-              flush=True)
+        mimic = server.registry.first('mimic-demo-aggregate')
+        if mimic is not None and mimic.optional:
+            # Fetched at start: its state only. Opening it here would race the fetch (security review of phase 2,
+            # M1); the fetch logs its outcome (mimic_demo_fetch) and opens the store itself when done.
+            print(f'store query page: MIMIC-IV demo {mimic.fetch_state}, fetched and checked at start', flush=True)
+        else:
+            status = server.store.status()
+            print(f"store query page: {'MIMIC-IV demo store ' + status['snapshot_id'][:12] if status['available'] else status['error']}",
+                  flush=True)
         if server.trajectory_store is not None:
             status = server.trajectory_store.status()
             built = f"synthetic store {status['snapshot_id'][:12]} (built in {status['built_s']} s)" if status['available'] else status['error']

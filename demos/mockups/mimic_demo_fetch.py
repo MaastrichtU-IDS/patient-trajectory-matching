@@ -43,15 +43,25 @@ PINS = {
 }
 MAX_FILE = 64 * 1024 * 1024   # bytes; the largest file, chartevents, is 5.5 MB
 TIMEOUT = 60                  # seconds per request
+FETCH_DEADLINE = 300          # seconds for the whole download (security review of phase 2, L5)
 BUILD_TIMEOUT = 1800          # seconds for the store build
+# The build child's address-space limit (RLIMIT_AS, Linux), so a runaway build fails by itself instead of getting the
+# whole pod OOM-killed (security review L2): 1,228 MiB of address space measured in a Linux container, times 1.3
+# (the hosting plan, "Phase 2").
+BUILD_MAX_MIB = 1600
+# The named failures; anything else is reported as MIMIC_DEMO_FETCH_FAILED (security review L6).
+FETCH_ERRORS = frozenset({'NOT_HTTPS', 'PHYSIONET_UNREACHABLE', 'PHYSIONET_REDIRECT', 'FILE_TOO_LARGE',
+                          'PHYSIONET_SUMS_DISAGREE', 'CHECKSUM_MISMATCH', 'FETCH_DEADLINE_EXCEEDED',
+                          'STORE_BUILD_FAILED', 'STORE_BUILD_TIMED_OUT', 'SNAPSHOT_ID_NOT_PINNED'})
 # DuckDB's memory limit for the build. Measured (one worker, one thread, M4 Pro): the peak resident set is 1.30 GB at
 # 256MB, 1.23 GB at 512MB and 1.27 GB at the store's default 4GB, all in about 495 s and with the same snapshot id.
 # The peak is in the ingest's Python stages, not in DuckDB, so no limit brings it under 1 GB; 512MB keeps DuckDB's
 # share bounded at no cost in time.
 BUILD_MEMORY_LIMIT = '512MB'
-# The snapshot the build produces from the pinned files (measured 2026-11-23). A store found on a persistent volume is
-# reused only if it opens, content-verified, as exactly this snapshot. A build that yields another id (a change to the
-# ingest) is still served, being built from checked files, but is rebuilt at every start until this pin is updated.
+# The snapshot the build produces from the pinned files (measured 2026-11-23, the same at every DuckDB memory limit).
+# A store found on a persistent volume is reused only if it opens, content-verified, as exactly this snapshot; a fresh
+# build is published only if it is this snapshot; and the store service opens nothing else (expected_snapshot_id).
+# A change to the ingest that alters the id therefore fails closed (SNAPSHOT_ID_NOT_PINNED) until this pin is updated.
 SNAPSHOT_ID = '0282b797d9356681f2484a1c59de30718cb5989f2a8190a32233b9a409aa4c78'
 ATTRIBUTION = {
     'dataset': 'MIMIC-IV Clinical Database Demo (version 2.2)',
@@ -69,15 +79,34 @@ class FetchError(RuntimeError):
     """A named failure: the message is the code."""
 
 
-def get(url, limit=MAX_FILE, opener=None, allow_http=False):
-    """The body at `url` (https only, unless `allow_http`: tests on loopback), at most `limit` bytes."""
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        raise FetchError('PHYSIONET_REDIRECT')  # the files are read from the pinned address only
+
+
+def default_opener():
+    """urllib with the environment's proxies (the egress proxy) and no redirects."""
+    return urllib.request.build_opener(_NoRedirect)
+
+
+def get(url, limit=MAX_FILE, opener=None, allow_http=False, deadline=None):
+    """The body at `url` (https only, unless `allow_http`: tests on loopback), at most `limit` bytes, before the
+    monotonic `deadline` if one is given."""
+    import time
     if not (url.startswith('https://') or allow_http and url.startswith('http://')):
         raise FetchError('NOT_HTTPS')
+    timeout = TIMEOUT if deadline is None else min(TIMEOUT, deadline - time.monotonic())
+    if timeout <= 0:
+        raise FetchError('FETCH_DEADLINE_EXCEEDED')
     try:
-        with (opener or urllib.request.build_opener()).open(url, timeout=TIMEOUT) as response:
+        with (opener or default_opener()).open(url, timeout=timeout) as response:
             data = response.read(limit + 1)
+    except FetchError:
+        raise
     except (urllib.error.URLError, OSError, ValueError):
         raise FetchError('PHYSIONET_UNREACHABLE') from None
+    if deadline is not None and time.monotonic() > deadline:
+        raise FetchError('FETCH_DEADLINE_EXCEEDED')
     if len(data) > limit:
         raise FetchError('FILE_TOO_LARGE')
     return data
@@ -93,14 +122,18 @@ def published_sums(text):
     return out
 
 
-def fetch(dest, base=BASE, pins=PINS, opener=None, allow_http=False):
-    """Download the pinned files into `dest` (`dest/icu/...`), each checked; raises FetchError."""
+def fetch(dest, base=BASE, pins=PINS, opener=None, allow_http=False, deadline_s=FETCH_DEADLINE):
+    """Download the pinned files into `dest` (`dest/icu/...`), each checked, all within `deadline_s` seconds; raises
+    FetchError."""
+    import time
     dest = Path(dest)
-    sums = published_sums(get(base + 'SHA256SUMS.txt', 1024 * 1024, opener, allow_http).decode('utf-8', 'replace'))
+    deadline = time.monotonic() + deadline_s
+    sums = published_sums(get(base + 'SHA256SUMS.txt', 1024 * 1024, opener, allow_http, deadline)
+                          .decode('utf-8', 'replace'))
     if any(sums.get(path) != digest for path, digest in pins.items()):
         raise FetchError('PHYSIONET_SUMS_DISAGREE')
     for path, digest in pins.items():
-        data = get(base + path, MAX_FILE, opener, allow_http)
+        data = get(base + path, MAX_FILE, opener, allow_http, deadline)
         if hashlib.sha256(data).hexdigest() != digest:
             raise FetchError('CHECKSUM_MISMATCH')
         target = dest / path
@@ -118,7 +151,7 @@ def build(icu_dir, output, timeout=BUILD_TIMEOUT, memory_limit=None):
                       memory_limit or BUILD_MEMORY_LIMIT]
     try:
         done = subprocess.run(command, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout,
-                              env={**os.environ, 'MALLOC_ARENA_MAX': '2'})
+                              env={**os.environ, 'MALLOC_ARENA_MAX': '2', 'PTM_BUILD_MAX_MIB': str(BUILD_MAX_MIB)})
     except subprocess.TimeoutExpired:
         raise FetchError('STORE_BUILD_TIMED_OUT') from None
     if done.returncode != 0:
@@ -132,6 +165,13 @@ def build(icu_dir, output, timeout=BUILD_TIMEOUT, memory_limit=None):
 def build_child(icu_dir, output, memory_limit):
     """The `--build` mode: the ingest's streamed build of the demo with chartevents, as `mimic_store_ingest
     --chartevents` does, with the DuckDB memory limit the CLI does not expose."""
+    limit = os.environ.get('PTM_BUILD_MAX_MIB', '')
+    if limit.isdigit() and sys.platform.startswith('linux'):  # hosting is Linux; macOS does not enforce RLIMIT_AS
+        import resource
+        resource.setrlimit(resource.RLIMIT_AS, (int(limit) << 20, int(limit) << 20))
+    sys.path.insert(0, str(HERE))
+    import match_worker
+    match_worker.confine_duckdb()  # one worker thread and one async thread per DuckDB database, as in the matchers
     sys.path.insert(0, str(ROOT))
     from patterns import mimic_store_ingest as msi
     msi.stream_build(Path(icu_dir), DATASET_ID, Path(output) / 'store', workers=1, threads=1, memory_limit=memory_limit)
@@ -158,16 +198,39 @@ def reusable(dest, snapshot_id=SNAPSHOT_ID, pins=PINS):
         return None
 
 
+def clear_leftovers(dest):
+    """Remove what an interrupted run left under `dest`: scratch directories and stores set aside (security review
+    L1). Nothing in them is ever served."""
+    dest = Path(dest)
+    if dest.is_dir():
+        for leftover in list(dest.glob('mimic-demo-incoming-*')) + list(dest.glob('.stale-*')):
+            shutil.rmtree(leftover, ignore_errors=True)
+
+
 def prepare(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_http=False, snapshot_id=SNAPSHOT_ID):
     """The demo's store at `dest/build/store`, and `(store, how)`: 'reused' when a verified store is already there
     (a persistent volume across restarts), else 'built' by fetching, checking and building."""
+    clear_leftovers(dest)
     store = reusable(dest, snapshot_id, pins)
     if store is not None:
         return store, 'reused'
-    return fetch_and_build(dest, base, pins, opener, build_store, allow_http), 'built'
+    return fetch_and_build(dest, base, pins, opener, build_store, allow_http, snapshot_id), 'built'
 
 
-def fetch_and_build(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_http=False):
+def built_snapshot_id(store):
+    """The snapshot id a fresh build's manifest names (its content is checked again when the store service opens it,
+    with expected_snapshot_id)."""
+    manifests = list(Path(store).glob('*/manifest.json'))
+    if len(manifests) != 1:
+        raise FetchError('STORE_BUILD_FAILED')
+    try:
+        return json.loads(manifests[0].read_text())['snapshot_id']
+    except (ValueError, KeyError, OSError):
+        raise FetchError('STORE_BUILD_FAILED') from None
+
+
+def fetch_and_build(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_http=False,
+                    snapshot_id=SNAPSHOT_ID):
     """Fetch, check and build into `dest`: the store at `dest/build/store`, and `dest/d_items.csv.gz` for the item
     labels. Everything is made in a scratch directory under `dest` and moved into place only once complete, so a
     reader never sees a half-built store and a failure leaves nothing behind. (Two pods sharing the volume may both
@@ -177,7 +240,9 @@ def fetch_and_build(dest, base=BASE, pins=PINS, opener=None, build_store=build, 
     scratch = Path(tempfile.mkdtemp(prefix='mimic-demo-incoming-', dir=dest))
     try:
         icu = fetch(scratch / 'download', base, pins, opener, allow_http)
-        build_store(icu, scratch / 'build')
+        store = build_store(icu, scratch / 'build')
+        if snapshot_id is not None and built_snapshot_id(store) != snapshot_id:
+            raise FetchError('SNAPSHOT_ID_NOT_PINNED')  # never published: the store service would refuse it anyway
         shutil.copyfile(icu / 'd_items.csv.gz', scratch / 'd_items.csv.gz')  # the catalogue's item labels
         stale = dest / f'.stale-{scratch.name}'
         if (dest / 'build').exists():  # an older or unverifiable store: set aside, then removed

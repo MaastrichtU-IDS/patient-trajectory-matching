@@ -147,10 +147,24 @@ class Dataset:
         self.entry = entry
         self.service = service
         self._opening = False
-        self.matcher = None  # hosted synthetic datasets: a match_worker.IsolatedMatcher (server.py sets it)
+        # Hosted: the matches' child processes (match_worker), set by server.py. The synthetic dataset's start with
+        # it; the MIMIC demo's (IsolatedStoreQuery) by `on_open`, once the server's own service has opened the store.
+        self.matcher = None
+        self.on_open = None
         # A fetched dataset (setting `fetch`): None until started, then 'pending', 'ready' or 'failed' (fetch_error).
         self.fetch_state = None
         self.fetch_error = None
+
+    def fetch_gate(self):
+        """None once a fetched store may be opened; else the code to answer meanwhile (the store service's gate)."""
+        if self.fetch_state in (None, 'ready'):
+            return None
+        return self.fetch_error or 'STORE_BUILDING'
+
+    def _opened(self):
+        """After a background open: start what needs an open, checked store (the hosted MIMIC matcher)."""
+        if self.on_open is not None and self.service.store is not None:
+            self.on_open(self)
 
     @property
     def optional(self):
@@ -172,7 +186,8 @@ class Dataset:
                 try:
                     result = fetch_and_build(dest)
                 except Exception as error:  # noqa: BLE001 - a named failure, or any other, leaves no store
-                    self.fetch_error = str(error) if str(error).isupper() else 'MIMIC_DEMO_FETCH_FAILED'
+                    from mimic_demo_fetch import FETCH_ERRORS
+                    self.fetch_error = str(error) if str(error) in FETCH_ERRORS else 'MIMIC_DEMO_FETCH_FAILED'
                     on_event('mimic_demo_fetch', dataset=self.id, ok=False, error=self.fetch_error,
                              seconds=round(time.monotonic() - started, 1))
                     continue
@@ -180,7 +195,8 @@ class Dataset:
                 on_event('mimic_demo_fetch', dataset=self.id, ok=True, how=how,
                          seconds=round(time.monotonic() - started, 1))
                 self.fetch_state, self.fetch_error = 'ready', None
-                self.service.status()  # open now: the content gate decides
+                self.service.status()  # open now, for the first time (the gate was closed): the content gate decides
+                self._opened()
                 return
             self.fetch_state = 'failed'
         threading.Thread(target=run, name=f'fetch-{self.id}', daemon=True).start()
@@ -216,13 +232,20 @@ class Dataset:
             return self.fetch_state
         if not service.opened and not self._opening:
             return 'idle'
-        return service.state()
+        state = service.state()
+        if state == 'ready' and self.on_open is not None:  # hosted: ready once its match workers are
+            return self.matcher.state() if self.matcher is not None else 'pending'
+        return state
 
     def open_in_background(self):
         """Open a MIMIC store now, on its own thread (hosted: so that readiness covers it)."""
         if self.kind == 'mimic-demo-aggregate' and not self._opening:
             self._opening = True
-            threading.Thread(target=self.service.status, name=f'open-{self.id}', daemon=True).start()
+
+            def run():
+                self.service.status()
+                self._opened()
+            threading.Thread(target=run, name=f'open-{self.id}', daemon=True).start()
 
 
 class Registry:
