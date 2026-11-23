@@ -6,7 +6,8 @@
 # (the realm's keys from platform/keycloak); allow-traefik-ingress.yaml admits only Traefik to the pod. The MIMIC-IV
 # demo is fetched from physionet.org through the egress-proxy, which restrict-egress already allows.
 # middleware.yaml holds the Traefik rate limits, body limit and HSTS the two Ingresses name; ingress-match.yaml puts
-# the match routes under a tighter rate limit. No PVC, no database, no migration.
+# the match routes under a tighter rate limit. pvc.yaml holds the MIMIC-IV demo's built store; no database, no
+# migration.
 #
 # vault.yaml stays unlisted: phase 2 still has no secret (the browser client is public, the realm's keys are
 # public, the demo is open data).

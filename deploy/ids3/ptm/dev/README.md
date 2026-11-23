@@ -50,9 +50,9 @@ Sign-in is phase 2 (the sections below marked "phase 2"). It needs the realm, th
   makes the Deployment `strategy: Recreate`, so rollouts have a gap of a few seconds.
 - **Realm:** `ids-apps` as code, in `deploy/ids3/keycloak/ids-apps-realm.json`.
 
-**Image:** phase 2 needs a new image, because the fetch module and the page's attribution are new code. After this
-branch merges, push tag `mockups-v0.2.0` and put its digest into `app.yaml`. Until then the draft `app.yaml` still
-names the phase-1 image `0.1.0`, which cannot fetch the demo.
+**Image:** phase 2 needs a new image, because the fetch module and the page's attribution are new code. Published
+from tag `mockups-v0.2.0` (main dee2f58, workflow run 45249895398): `0.2.0@sha256:b95f12e815bb916e369507b5316bdab06f0060e90171c8b4a3c69645a08cfc55`, pinned in `app.yaml`. The package
+is public; an anonymous pull by digest and an anonymous resolution of the tag both gave that digest.
 
 **What the owner must do before phase 2:**
 - [ ] Name the backup realm admin for `ids-apps`.

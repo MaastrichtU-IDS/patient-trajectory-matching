@@ -48,8 +48,9 @@ spec:
       containers:
         - name: server
           # PINNED: a version tag AND its digest, never `latest`. Deploy a new build by a reviewed one-line change
-          # here (hosting plan, "The image"). REPLACE both parts at the first publish.
-          image: ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:0.1.0@sha256:6595e73ea6c639b837bd316906886249fe3c8e65f53488932301e6920c08a7b4
+          # here (hosting plan, "The image"). Published from tag mockups-v0.2.0 of the app repo (main dee2f58,
+          # workflow run 45249895398; check and publish passed; pulled anonymously by digest).
+          image: ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:0.2.0@sha256:b95f12e815bb916e369507b5316bdab06f0060e90171c8b4a3c69645a08cfc55
           imagePullPolicy: IfNotPresent
           ports:
             - { containerPort: 8080, name: http }
