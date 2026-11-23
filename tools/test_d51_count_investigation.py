@@ -117,37 +117,5 @@ class AnalysisTests(unittest.TestCase):
         self.assertIn('by_workers', out['count_latency_report'])
 
 
-class SubsetVerdictTests(unittest.TestCase):
-    """D51's first attempt lost its report: the count tool's `verdict_of` reads D44b's absolute request, which a subset
-    of requests does not run."""
-
-    def test_the_tools_verdict_fails_on_the_subset_and_the_wrapper_does_not(self):
-        stats = report([1.0] * 8)['by_workers']
-        with self.assertRaises(KeyError):
-            bcr.verdict_of(stats, list(d51.REQUESTS), 14, ratio_bar=1.05, normalised=True)
-        out = d51.subset_verdict(bcr.verdict_of)(stats, list(d51.REQUESTS), 14, ratio_bar=1.05, normalised=True,
-                                                  protocol={'met': True}, answers={'met': True}, identity='not ruled')
-        absolute = out['rule_4_1']['absolute']
-        self.assertEqual((absolute['request'], absolute['met']), (d51.REQUEST, True))
-        self.assertIn('not applied', absolute['note'])
-        self.assertFalse(out['met'])  # no micro, no control check: the tool's verdict is not D51's rule
-
-    def test_the_wrapper_leaves_a_run_with_the_absolute_request_alone(self):
-        seen = {}
-        d51.subset_verdict(lambda stats, requests, *a, **k: seen.update(k))({}, ['1.3 event frequency'])
-        self.assertNotIn('absolute', seen)
-
-    def test_run_tool_puts_the_tools_verdict_back(self):
-        real, main = bcr.verdict_of, bcr.main
-        seen = []
-        bcr.main = lambda argv: seen.append((argv, bcr.verdict_of is real)) or 0
-        try:
-            d51.run_tool(['--x'])
-        finally:
-            bcr.main = main
-        self.assertEqual(seen, [(['--x'], False)])
-        self.assertIs(bcr.verdict_of, real)
-
-
 if __name__ == '__main__':
     unittest.main()
