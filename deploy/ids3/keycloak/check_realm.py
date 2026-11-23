@@ -8,7 +8,8 @@ the admin-OTP flow is wired (every flow alias, execution and authenticator confi
 With --keycloak-src, a directory holding Keycloak's representation sources (`<Name>.java` for Realm, Client,
 IdentityProvider, Group, Role, Roles, ProtocolMapper, AuthenticationFlow, AuthenticationExecutionExport,
 AbstractAuthenticationExecution, AuthenticatorConfig, RequiredActionProvider, from
-core/src/main/java/org/keycloak/representations/idm/<Name>Representation.java at the platform's tag, 26.8.1):
+core/src/main/java/org/keycloak/representations/idm/<Name>Representation.java at the platform's tag, 26.8.1, and
+optionally EventType.java from server-spi-private/src/main/java/org/keycloak/events/):
 every key used is a field of the representation it belongs to. This is a format check only: whether Keycloak
 accepts the import is known only by importing it (KEYCLOAK-REALM.md, "Import").
 """
@@ -30,6 +31,32 @@ def fields(src, *names):
                               text, re.M))
         out |= set(re.findall(r'@JsonProperty\("(\w+)"\)', text))
     return out
+
+
+ADMIN_ROLES = {'realm-management.manage-users', 'realm-management.manage-realm'}  # realm-admin includes both
+AUDITED = {'REGISTER', 'LOGIN_ERROR', 'IDENTITY_PROVIDER_LINK_ACCOUNT', 'UPDATE_TOTP', 'REMOVE_TOTP', 'UPDATE_PASSWORD',
+           'RESET_PASSWORD', 'IDENTITY_PROVIDER_LOGIN', 'IDENTITY_PROVIDER_FIRST_LOGIN'}
+
+
+def otp_roles(alias, flows, configs):
+    """The roles whose holders a flow sends to the OTP form: for each conditional subflow under `alias` that holds
+    `auth-otp-form`, its non-negated role conditions (a subflow with one positive condition covers that role)."""
+    by_alias = {c['alias']: c['config'] for c in configs}
+    covered = set()
+    if alias not in flows:
+        return covered
+    for e in flows[alias]['authenticationExecutions']:
+        if not e.get('authenticatorFlow'):
+            continue
+        sub = flows.get(e['flowAlias'], {'authenticationExecutions': []})['authenticationExecutions']
+        if e['requirement'] == 'CONDITIONAL' and any(x.get('authenticator') == 'auth-otp-form' for x in sub):
+            positive = [by_alias[x['authenticatorConfig']]['condUserRole'] for x in sub
+                        if x.get('authenticator') == 'conditional-user-role'
+                        and by_alias[x['authenticatorConfig']].get('negate') != 'true']
+            if len(positive) == 1:
+                covered.add(positive[0])
+        covered |= otp_roles(e['flowAlias'], flows, configs)
+    return covered
 
 
 def check(realm, src=None):
@@ -71,7 +98,7 @@ def check(realm, src=None):
         need(p['config']['clientId'].startswith('REPLACE_WITH_'), f'{alias}: client id must be a placeholder')
         need('clientSecret' not in p['config'], f'{alias}: no secret')
         need(p['firstBrokerLoginFlowAlias'] == 'first broker login', f'{alias}: first broker login flow')
-    need(not idps['github']['trustEmail'] and not idps['orcid']['trustEmail'], 'GitHub and ORCID must not trust email')
+    need(not any(p['trustEmail'] for p in idps.values()), 'no provider may trust email')
     flows = {f['alias']: f for f in realm['authenticationFlows']}
     configs = {c['alias'] for c in realm['authenticatorConfig']}
     need(realm['browserFlow'] in flows, 'the browser flow is defined')
@@ -81,8 +108,16 @@ def check(realm, src=None):
                 need(e['flowAlias'] in flows, f'flow {e["flowAlias"]} is defined')
             if 'authenticatorConfig' in e:
                 need(e['authenticatorConfig'] in configs, f'authenticator config {e["authenticatorConfig"]} exists')
-    cond = next(c for c in realm['authenticatorConfig'] if c['alias'] == 'realm admins')
-    need(cond['config']['condUserRole'] == 'realm-management.realm-admin', 'OTP for realm admins')
+    # OTP for everyone who can change membership or grant roles, in the browser flow and after every provider login.
+    for name, flow in [('browser flow', realm['browserFlow'])] + [(f'{a}: post-broker flow', p.get('postBrokerLoginFlowAlias'))
+                                                                    for a, p in idps.items()]:
+        covered = otp_roles(flow, flows, realm['authenticatorConfig'])
+        need(ADMIN_ROLES <= covered, f'{name}: OTP must cover {sorted(ADMIN_ROLES - covered)}')
+    need(not realm.get('defaultGroups'), 'no default group')
+    scopes = set(client['defaultClientScopes']) | set(client.get('optionalClientScopes', []))
+    need('offline_access' not in scopes, 'no offline_access scope on ptm-mockups')
+    events = set(realm['enabledEventTypes'])
+    need(AUDITED <= events, f'audited events missing: {sorted(AUDITED - events)}')
     actions = {a['alias']: a['enabled'] for a in realm['requiredActions']}
     need(actions.get('VERIFY_EMAIL') and actions.get('CONFIGURE_TOTP'), 'required actions')
 
@@ -112,6 +147,10 @@ def check(realm, src=None):
             known(c, fields(src, 'AuthenticatorConfig'), f'authenticator config {c["alias"]}')
         for a in realm['requiredActions']:
             known(a, fields(src, 'RequiredActionProvider'), f'required action {a["alias"]}')
+        if (src / 'EventType.java').is_file():
+            event_types = set(re.findall(r'^\s+([A-Z_]+)\(', (src / 'EventType.java').read_text(), re.M))
+            unknown = set(realm['enabledEventTypes']) - event_types
+            need(not unknown, f'event types not in Keycloak 26: {sorted(unknown)}')
     return problems
 
 
