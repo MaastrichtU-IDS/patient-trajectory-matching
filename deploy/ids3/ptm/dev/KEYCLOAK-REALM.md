@@ -36,8 +36,9 @@ format (the representation classes of the platform's version, 26.8.1).
 4. **Users:** give the owner (`OWNER_EMAIL`) and `BACKUP_ADMIN` the client role `realm-management` → `realm-admin`
    (section 5). The file creates no user.
 5. Check that the browser flow is `browser with admin OTP` (Authentication → Flows), and that each identity
-   provider's "Post login flow" is `post broker admin OTP`. An admin login asks for OTP, whether by password or
-   through a provider; a non-admin login does not.
+   provider's "Post login flow" is `post broker admin OTP`, and that the reset credentials flow is `reset
+   credentials, not for admins`. An admin login asks for OTP, whether by password or through a provider; a non-admin
+   login does not.
 6. Section 6 (the registration notice) is a platform change, outside the file.
 7. Verify as in section 7.
 
@@ -161,31 +162,47 @@ Each yields a client id and a client secret. They go into the identity-provider 
 - [ ] Give the owner (`OWNER_EMAIL`) and `BACKUP_ADMIN` realm administration: Users → user → Role mapping → assign
       client role `realm-management` → `realm-admin`. They administer at
       `https://keycloak.k8s.semanticscience.org/admin/ids-apps/console/`, with no `master` realm access.
-- [ ] **Who must use OTP:** everyone who can change group membership or grant roles, which means `approved` and
-      the `dataset:*` roles. That is holders of `realm-management` → `manage-users`, which governs membership and
-      role mappings, or `manage-realm`, which governs the roles and groups themselves. `realm-admin` includes both.
-      If fine-grained admin permissions are ever enabled, any role they let assign `approved` or `dataset:*` must be
-      added to the conditions.
+- [ ] **The admin-capable roles** (security review of phase 2 and its re-check): every `realm-management` role
+      that can grant `approved` or a `dataset:*` role, change who may sign in, or act as another user:
+      `realm-admin` (which includes all the others), `manage-users` (membership and role mappings),
+      `manage-realm` (roles, groups and flows), `manage-clients`, `manage-identity-providers` and
+      `impersonation`. Their holders must use OTP at every login and cannot reset their credentials by email.
+- [ ] **Nobody holds any other `realm-management` role except read-only ones** (`view-*`, `query-*`). Before
+      granting any other, add it to the list above: to the OTP conditions, the reset denial and `ADMIN_ROLES` in
+      `deploy/ids3/keycloak/check_realm.py`, which checks the import for exactly this. If fine-grained admin
+      permissions are ever enabled, any role they let assign `approved` or `dataset:*` joins the list too.
 - [ ] **Authentication → Flows → duplicate `browser`** as `browser with admin OTP`. Under the username/password form,
-      add two CONDITIONAL subflows, each ending in the OTP form (Required):
-      1. "Condition - user role" `realm-management.manage-users`;
-      2. "Condition - user role" `realm-management.manage-realm` **and** "Condition - user role"
-         `realm-management.manage-users` with *negate* on, so nobody is asked twice.
+      add one CONDITIONAL subflow per admin-capable role, in the order above, each ending in the OTP form
+      (Required). Subflow *k* has "Condition - user role" for role *k*, plus the same condition with *negate* on for
+      each role before it, so an admin is asked once (conditions within a subflow are ANDed).
 
       Bind it as the browser flow. Admins then enrol an authenticator (the "Configure OTP" required action is
       triggered automatically) and use it at every login; other users are not asked.
 - [ ] **The same after an identity-provider login** (security review of phase 2, M2). Without it, an admin who
       linked GitHub, Google or ORCID could sign in through the provider and skip OTP. Create a top-level flow
-      `post broker admin OTP` with the same two CONDITIONAL subflows, and set it as **Post login flow** on all three
+      `post broker admin OTP` with the same CONDITIONAL subflows, and set it as **Post login flow** on all three
       providers.
 - [ ] **Admins keep local credentials and do not link identity providers.** An admin account signs in with its
       username, a strong local password and OTP. The post-broker flow covers a linked provider anyway, but an
       unlinked admin account has no provider in its trust chain at all.
-- [ ] **Residual: password reset by email.** "Forgot password" mails a reset link, so whoever controls an admin's
-      mailbox can set a new password. OTP still stands between that and the admin console, which is why admins
-      rely on OTP plus a strong local password, and why `RESET_PASSWORD`, `SEND_RESET_PASSWORD` and `UPDATE_TOTP` /
-      `REMOVE_TOTP` are audited events. Turning "Forgot password" off for the whole realm would cost every user the
-      reset, so it stays on.
+- [ ] **No reset by email for admins** (the re-check's medium). Keycloak's default "reset credentials" flow ends in
+      "Reset - Conditional OTP", whose `reset-otp` step, unconfigured, only adds "Configure OTP" and succeeds. So
+      whoever controlled an admin's mailbox could set a new password, enrol their own authenticator and reach the
+      admin console: OTP did **not** stand in the way. The realm therefore binds its own **Reset credentials** flow,
+      `reset credentials, not for admins`:
+      1. "Choose user", then "Send reset email" (the link is mailed to everyone alike, so the form does not reveal
+         who is an admin);
+      2. one CONDITIONAL subflow per admin-capable role: "Condition - user role" for that role, then **Deny
+         access**, so following the link as an admin changes nothing;
+      3. "Reset password", for everyone else. There is no OTP reset step: nobody resets OTP by email.
+
+      Ordinary users keep self-service password reset. `RESET_PASSWORD`, `SEND_RESET_PASSWORD`, `UPDATE_TOTP` and
+      `REMOVE_TOTP` stay audited.
+- [ ] **How an admin recovers:** through another admin. The owner and `BACKUP_ADMIN` can each reset the other's
+      password (Users → user → Credentials → Reset password, temporary) and remove a lost authenticator (Credentials
+      → delete the OTP credential, so "Configure OTP" is asked at the next login), in the admin console. That is
+      why a backup admin must exist before the realm goes live. If both are locked out, the platform admin
+      recovers from the `master` realm.
 - [ ] Optionally also enable WebAuthn (passkeys) as an alternative second factor for admins.
 - [ ] Required actions enabled: Verify Email, Configure OTP, Update Password, Terms and Conditions (enable when the
       owner provides the text; default off).
@@ -252,4 +269,6 @@ Until the listener exists, the owner finds new accounts in Users, sorted by crea
       dev today).
 - [ ] Link GitHub to the same account from the account console; sign in with GitHub; same user.
 - [ ] An admin login asks for OTP.
+- [ ] "Forgot password" for the test account resets its password; for an admin account, following the mailed link
+      is denied and the password and authenticator are unchanged.
 - [ ] The registration notice reached the owner (once section 6 is built).
