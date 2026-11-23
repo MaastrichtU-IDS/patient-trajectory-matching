@@ -44,6 +44,15 @@ PINS = {
 MAX_FILE = 64 * 1024 * 1024   # bytes; the largest file, chartevents, is 5.5 MB
 TIMEOUT = 60                  # seconds per request
 BUILD_TIMEOUT = 1800          # seconds for the store build
+# DuckDB's memory limit for the build. Measured (one worker, one thread, M4 Pro): the peak resident set is 1.30 GB at
+# 256MB, 1.23 GB at 512MB and 1.27 GB at the store's default 4GB, all in about 495 s and with the same snapshot id.
+# The peak is in the ingest's Python stages, not in DuckDB, so no limit brings it under 1 GB; 512MB keeps DuckDB's
+# share bounded at no cost in time.
+BUILD_MEMORY_LIMIT = '512MB'
+# The snapshot the build produces from the pinned files (measured 2026-11-23). A store found on a persistent volume is
+# reused only if it opens, content-verified, as exactly this snapshot. A build that yields another id (a change to the
+# ingest) is still served, being built from checked files, but is rebuilt at every start until this pin is updated.
+SNAPSHOT_ID = '0282b797d9356681f2484a1c59de30718cb5989f2a8190a32233b9a409aa4c78'
 ATTRIBUTION = {
     'dataset': 'MIMIC-IV Clinical Database Demo (version 2.2)',
     'citation': 'Johnson, A., Bulgarelli, L., Pollard, T., Horng, S., Celi, L. A., & Mark, R. (2023). MIMIC-IV '
@@ -100,15 +109,15 @@ def fetch(dest, base=BASE, pins=PINS, opener=None, allow_http=False):
     return dest / 'icu'
 
 
-def build(icu_dir, output, timeout=BUILD_TIMEOUT):
-    """The store from the fetched files, by the existing ingest in a child process; the snapshot's directory."""
-    # At the lowest CPU priority (`nice`), so the pod's matches keep the CPU while the build runs (about 8 minutes on
-    # one core, peak about 1.2 GB resident, measured on an M4 Pro).
+def build(icu_dir, output, timeout=BUILD_TIMEOUT, memory_limit=None):
+    """The store from the fetched files, built in a child process (this file's `--build` mode, which calls the
+    existing ingest's `stream_build` with one worker, one DuckDB thread and a DuckDB memory limit); the store root."""
+    # At the lowest CPU priority (`nice`), so the pod's matches keep the CPU while the build runs.
     nice = [shutil.which('nice'), '-n', '19'] if shutil.which('nice') else []
-    command = nice + [sys.executable, '-m', 'patterns.mimic_store_ingest', '--input-dir', str(icu_dir), '--dataset-id',
-                      DATASET_ID, '--chartevents', '--workers', '1', '--output', str(output)]
+    command = nice + [sys.executable, '-I', str(Path(__file__).resolve()), '--build', str(icu_dir), str(output),
+                      memory_limit or BUILD_MEMORY_LIMIT]
     try:
-        done = subprocess.run(command, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=timeout,
+        done = subprocess.run(command, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout,
                               env={**os.environ, 'MALLOC_ARENA_MAX': '2'})
     except subprocess.TimeoutExpired:
         raise FetchError('STORE_BUILD_TIMED_OUT') from None
@@ -120,29 +129,78 @@ def build(icu_dir, output, timeout=BUILD_TIMEOUT):
     return store
 
 
+def build_child(icu_dir, output, memory_limit):
+    """The `--build` mode: the ingest's streamed build of the demo with chartevents, as `mimic_store_ingest
+    --chartevents` does, with the DuckDB memory limit the CLI does not expose."""
+    sys.path.insert(0, str(ROOT))
+    from patterns import mimic_store_ingest as msi
+    msi.stream_build(Path(icu_dir), DATASET_ID, Path(output) / 'store', workers=1, threads=1, memory_limit=memory_limit)
+
+
+def reusable(dest, snapshot_id=SNAPSHOT_ID, pins=PINS):
+    """`dest`'s store if it may be served without rebuilding, else None. Nothing on the volume is trusted on its
+    word: the snapshot must open with every table's content re-derived from its files (`verify='content'`) and
+    match the pinned snapshot id, and `d_items` must match its pinned sha256. (The store service's content gate,
+    the demo's 100 subjects, applies again when it opens the store.)"""
+    dest = Path(dest)
+    store, items = dest / 'build' / 'store', dest / 'd_items.csv.gz'
+    try:
+        snapshots = [p for p in store.iterdir() if (p / 'manifest.json').is_file()] if store.is_dir() else []
+        if len(snapshots) != 1 or not items.is_file():
+            return None
+        if hashlib.sha256(items.read_bytes()).hexdigest() != pins['icu/d_items.csv.gz']:
+            return None
+        sys.path.insert(0, str(ROOT))
+        from patterns import execution_store as es
+        es.open_store(snapshots[0], verify='content', expected_snapshot_id=snapshot_id).close()
+        return store
+    except Exception:  # noqa: BLE001 - anything unexpected about the volume's contents means: build again
+        return None
+
+
+def prepare(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_http=False, snapshot_id=SNAPSHOT_ID):
+    """The demo's store at `dest/build/store`, and `(store, how)`: 'reused' when a verified store is already there
+    (a persistent volume across restarts), else 'built' by fetching, checking and building."""
+    store = reusable(dest, snapshot_id, pins)
+    if store is not None:
+        return store, 'reused'
+    return fetch_and_build(dest, base, pins, opener, build_store, allow_http), 'built'
+
+
 def fetch_and_build(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_http=False):
     """Fetch, check and build into `dest`: the store at `dest/build/store`, and `dest/d_items.csv.gz` for the item
-    labels. Downloads go to a scratch directory removed after the build, and a failure leaves nothing behind."""
+    labels. Everything is made in a scratch directory under `dest` and moved into place only once complete, so a
+    reader never sees a half-built store and a failure leaves nothing behind. (Two pods sharing the volume may both
+    build; the first to finish publishes, the other discards its copy.)"""
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
-    scratch = Path(tempfile.mkdtemp(prefix='mimic-demo-download-', dir=dest))
+    scratch = Path(tempfile.mkdtemp(prefix='mimic-demo-incoming-', dir=dest))
     try:
-        icu = fetch(scratch, base, pins, opener, allow_http)
-        store = build_store(icu, dest / 'build')
-        shutil.copyfile(icu / 'd_items.csv.gz', dest / 'd_items.csv.gz')  # the catalogue's item labels
-        return store
-    except FetchError:
-        shutil.rmtree(dest / 'build', ignore_errors=True)
-        raise
+        icu = fetch(scratch / 'download', base, pins, opener, allow_http)
+        build_store(icu, scratch / 'build')
+        shutil.copyfile(icu / 'd_items.csv.gz', scratch / 'd_items.csv.gz')  # the catalogue's item labels
+        stale = dest / f'.stale-{scratch.name}'
+        if (dest / 'build').exists():  # an older or unverifiable store: set aside, then removed
+            os.rename(dest / 'build', stale)
+        try:
+            os.rename(scratch / 'build', dest / 'build')
+        except OSError:  # another pod published first
+            pass
+        os.replace(scratch / 'd_items.csv.gz', dest / 'd_items.csv.gz')
+        shutil.rmtree(stale, ignore_errors=True)
+        return dest / 'build' / 'store'
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
 
 
 def main(argv=None):
-    dest = Path((argv or sys.argv[1:])[0])
+    argv = argv if argv is not None else sys.argv[1:]
+    if argv and argv[0] == '--build':
+        build_child(argv[1], argv[2], argv[3])
+        return 0
     try:
-        store = fetch_and_build(dest)
-        print(json.dumps({'ok': True, 'store': str(store)}))
+        store, how = prepare(Path(argv[0]))
+        print(json.dumps({'ok': True, 'store': str(store), 'how': how}))
         return 0
     except FetchError as error:
         print(json.dumps({'ok': False, 'error': str(error)}))

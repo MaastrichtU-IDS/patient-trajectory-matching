@@ -710,7 +710,7 @@ def serve(host='127.0.0.1', port=8090, mimic_store=None, mimic_d_items=None, dem
                 dataset.matcher = match_worker.IsolatedMatcher(
                     dataset.service.cohort_path, root, match_time_limit, memory_mib=worker_mib, on_event=log_event).start()
         elif dataset.optional:
-            dataset.start_fetch(fetch_and_build or mimic_demo_fetch.fetch_and_build, log_event)  # fetched and built now
+            dataset.start_fetch(fetch_and_build or mimic_demo_fetch.prepare, log_event)  # reused, or fetched and built
         elif hosted:
             dataset.open_in_background()  # hosted: opened now, so readiness covers it; locally at first use
     httpd.trajectory_store = first_synthetic.service if first_synthetic else None

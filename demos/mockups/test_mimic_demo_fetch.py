@@ -130,6 +130,76 @@ class FetchTests(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), [])
 
 
+class PersistedStoreTests(unittest.TestCase):
+    """A store kept on a persistent volume is reused at start only when it opens, content-verified, as the pinned
+    snapshot, with the pinned d_items; anything else is fetched and built again. The synthetic MIMIC fixture's store
+    stands in for the demo's, with its own snapshot id as the pin."""
+
+    @classmethod
+    def setUpClass(cls):
+        from test_store_query import FIXTURE
+        from patterns import mimic_store_ingest as msi
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dest = Path(cls.tmp.name) / 'volume'
+        snapshot = msi.stream_build(FIXTURE, 'mimic-iv-demo-2.2', cls.dest / 'build' / 'store')
+        cls.snapshot_id = json.loads((snapshot / 'manifest.json').read_text())['snapshot_id']
+        items = (FIXTURE / 'd_items.csv').read_bytes()
+        (cls.dest / 'd_items.csv.gz').write_bytes(items)
+        cls.pins = {**PINS, 'icu/d_items.csv.gz': hashlib.sha256(items).hexdigest()}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def copy(self):
+        import shutil
+        target = Path(tempfile.mkdtemp(dir=self.tmp.name)) / 'volume'
+        shutil.copytree(self.dest, target)
+        return target
+
+    def test_a_verified_store_is_reused_without_fetching(self):
+        def no_fetch(*args, **kwargs):
+            raise AssertionError('fetched although a verified store was on the volume')
+        with mock.patch.object(fetcher, 'fetch_and_build', no_fetch):
+            store, how = fetcher.prepare(self.copy(), pins=self.pins, snapshot_id=self.snapshot_id)
+        self.assertEqual(how, 'reused')
+
+    def test_nothing_on_the_volume_is_trusted_without_the_checks(self):
+        cases = {}
+        cases['another snapshot id pinned'] = (self.copy(), '0' * 64, self.pins)
+        tampered = self.copy()
+        parquet = next(tampered.glob('build/store/*/**/*.parquet'))
+        data = bytearray(parquet.read_bytes())
+        data[len(data) // 2] ^= 0xFF
+        parquet.write_bytes(bytes(data))
+        cases['a data file edited'] = (tampered, self.snapshot_id, self.pins)
+        no_items = self.copy()
+        (no_items / 'd_items.csv.gz').unlink()
+        cases['d_items missing'] = (no_items, self.snapshot_id, self.pins)
+        cases['d_items not the pinned file'] = (self.copy(), self.snapshot_id, PINS)
+        empty = Path(tempfile.mkdtemp(dir=self.tmp.name))
+        cases['an empty volume'] = (empty, self.snapshot_id, self.pins)
+        for name, (dest, pin, pins) in cases.items():
+            self.assertIsNone(fetcher.reusable(dest, pin, pins), name)
+
+    def test_an_unverifiable_store_is_replaced_by_a_fresh_build(self):
+        dest = self.copy()
+        standin = StandIn()
+        try:
+            def fake_build(icu, output):
+                snap = Path(output) / 'store' / 'fresh'
+                snap.mkdir(parents=True)
+                (snap / 'manifest.json').write_text('{}')
+                return Path(output) / 'store'
+            store, how = fetcher.prepare(dest, base=standin.base, pins=PINS, build_store=fake_build, allow_http=True,
+                                         snapshot_id='0' * 64)
+        finally:
+            standin.close()
+        self.assertEqual(how, 'built')
+        self.assertEqual([p.name for p in (dest / 'build' / 'store').iterdir()], ['fresh'])
+        self.assertEqual(sorted(p.name for p in dest.iterdir()), ['build', 'd_items.csv.gz'])  # no scratch left
+
+
 @unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')
 class ServedTests(unittest.TestCase):
     """The fetched dataset in the server: unavailable while building or when its source fails, never holding back

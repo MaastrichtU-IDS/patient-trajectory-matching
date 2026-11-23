@@ -40,7 +40,10 @@ Sign-in is phase 2 (the sections below marked "phase 2"). It needs the realm, th
 - **Registry:** the dataset `mimic-iv-demo` at tier `approved`, aggregate counts. It is fetched from PhysioNet at start
   and built into the emptyDir; it is never in the image.
 - **Ingress:** its match path added to `ingress-match.yaml`.
-- **Pod:** memory limit 2Gi and emptyDir 1Gi, for the demo's build.
+- **Pod:** memory limit 2Gi, for the demo's build (about 1.24 GiB peak; DuckDB settings do not lower it).
+- **Volume:** `pvc.yaml`, a 1Gi Longhorn RWO volume for the demo's store, kept across restarts. A store on it is
+  reused only when it verifies (content re-derived, the pinned snapshot id, the pinned d_items). The RWO volume
+  makes the Deployment `strategy: Recreate`, so rollouts have a gap of a few seconds.
 - **Realm:** `ids-apps` as code, in `deploy/ids3/keycloak/ids-apps-realm.json`.
 
 **Image:** phase 2 needs a new image, because the fetch module and the page's attribution are new code. After this
@@ -64,8 +67,11 @@ names the phase-1 image `0.1.0`, which cannot fetch the demo.
 - [ ] **Egress:** confirm the university parent proxy lets `physionet.org` through. The cluster's egress proxy needs
       no change: port 3128 has no destination allowlist.
 - [ ] **Readiness of the demo:** after the first phase-2 rollout, the demo answers `503 STORE_BUILDING` for about ten
-      minutes while it builds; the logs show a `mimic_demo_fetch` event when it is done. The public dataset is
-      unaffected throughout.
+      minutes while it builds onto the volume; the logs show a `mimic_demo_fetch` event (`how: built`). Later
+      restarts reuse it in seconds (`how: reused`). The public dataset is unaffected throughout.
+- [ ] **Volume:** the Longhorn RWO PVC `ptm-mimic-demo` binds. It holds MIMIC-IV demo data, so access to Longhorn
+      volumes, snapshots and any future backup target now matters (hosting plan, "Security consequence of the
+      volume").
 - [ ] **Later, a platform change:** the registration-notice provider (`KEYCLOAK-REALM.md`, section 6).
 
 **URL once deployed:** <https://ptm.k8s.semanticscience.org>

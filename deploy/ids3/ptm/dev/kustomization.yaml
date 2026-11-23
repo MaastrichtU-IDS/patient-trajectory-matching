@@ -17,6 +17,7 @@ resources:
   - allow-keycloak-egress.yaml
   - allow-traefik-ingress.yaml
   - configmap.yaml
+  - pvc.yaml
   - app.yaml
   - middleware.yaml
   - ingress.yaml

@@ -170,13 +170,15 @@ class Dataset:
                 time.sleep(wait)
                 started = time.monotonic()
                 try:
-                    fetch_and_build(dest)
+                    result = fetch_and_build(dest)
                 except Exception as error:  # noqa: BLE001 - a named failure, or any other, leaves no store
                     self.fetch_error = str(error) if str(error).isupper() else 'MIMIC_DEMO_FETCH_FAILED'
                     on_event('mimic_demo_fetch', dataset=self.id, ok=False, error=self.fetch_error,
                              seconds=round(time.monotonic() - started, 1))
                     continue
-                on_event('mimic_demo_fetch', dataset=self.id, ok=True, seconds=round(time.monotonic() - started, 1))
+                how = result[1] if isinstance(result, tuple) else 'built'  # 'reused': a verified store on the volume
+                on_event('mimic_demo_fetch', dataset=self.id, ok=True, how=how,
+                         seconds=round(time.monotonic() - started, 1))
                 self.fetch_state, self.fetch_error = 'ready', None
                 self.service.status()  # open now: the content gate decides
                 return

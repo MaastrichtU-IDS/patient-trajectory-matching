@@ -503,11 +503,57 @@ the demo in would hand it to anyone who pulls the image, and the policy is appro
 - *End to end* (`mimic_demo_fetch.py`, from the development machine on 2026-11-23): fetched from physionet.org, every
   check passed, built in 522 s at 1.27 GB peak. The store opened through the content gate under the real pin: 100
   patients, dictionary labels present.
-- *Pod sizing:* about 1.7 GB in all during the build (the server, two match workers and the build), so the phase-2
-  pod's memory limit is 2Gi and its emptyDir 1Gi. The cluster's CPU may be slower.
-- *Cost:* every pod start rebuilds the store, the demo being unavailable for about ten minutes each time.
-- *If restarts or memory become a problem:* a one-shot Job could build the store into a small PVC, with its own
-  memory limit, and the Deployment would mount it read-only. That adds a PVC and a Job to manage; it is not drafted.
+- *Build memory:* can DuckDB's `memory_limit` and threads bring the peak under 1 GB? Measured with one worker and
+  one DuckDB thread, the build already passes them, and every run took about 495 s with the same snapshot id:
+
+  | DuckDB `memory_limit` | Peak resident |
+  |---|---|
+  | 256MB | 1.30 GB |
+  | 512MB | 1.23 GB |
+  | the store's default, 4GB | 1.27 GB |
+
+  The peak is in the ingest's Python stages (the claim route), not in DuckDB, so no DuckDB setting brings it under
+  1 GB. Lowering it would mean changing `patterns/`, which needs its own measured engine increment.
+  - The build uses `512MB`, which keeps DuckDB's share bounded at no cost in time.
+  - The pod's limit stays 2Gi: about 1.24 GiB for the build, plus about 470 MiB for the server and its two match
+    workers, leaves roughly 16% headroom.
+  - With the volume, the build happens only at the first start, after the volume is lost, or after an ingest change
+    alters the pinned snapshot id; routine restarts reuse the store.
+  - The cluster's CPU may be slower than the M4 Pro.
+**Kept across restarts (a persistent volume).** A rebuild at every start would cost a ten-minute demo outage and a
+memory peak on every restart and rollout, so the store lives on a small PVC (`pvc.yaml`: `ptm-mimic-demo`, 1Gi,
+Longhorn, RWO, mounted at `/var/lib/ptm-mimic-demo`).
+- **At start,** `mimic_demo_fetch.prepare` reuses the store on the volume only if it passes every check:
+  - it opens with every table's content re-derived from its files (`verify='content'`);
+  - it is exactly the snapshot id pinned in the module (`0282b797…`, measured from the build of the pinned files);
+  - `d_items` matches its pinned sha256.
+
+  The store service's content gate then applies again. A verified store is ready in seconds (measured on a real
+  demo store under the real pins: 2 to 3 s, content verification included); anything else is fetched, checked and
+  built as above. **Nothing on the volume is trusted on its word.**
+- **Publishing:** a new build is made in a scratch directory on the volume and moved into place only once complete,
+  so no reader ever sees a half-built store.
+- **Changing the ingest:** a change that alters the snapshot id leaves the new build served (it is built from
+  checked files) but rebuilt at every start, until the pin is updated.
+- **Fallback:** without the PVC (the registry's `store` under `/tmp`), the store goes to the emptyDir and is rebuilt
+  at every start.
+- **Why RWO and `Recreate`:** RWO because Longhorn's RWX volumes are NFS-backed, where the pod's `fsGroup` does not
+  apply, so uid 10001 could not write without a root chown step. RWO in turn means `strategy: Recreate`: a new pod on
+  another node could not attach the volume while the old one held it. A rollout therefore has a short gap, of
+  seconds, where phase 1 had none.
+- **Not `longhorn-retain`:** the store is rebuildable from PhysioNet.
+
+**Security consequence of the volume.** The PVC holds MIMIC-IV demo data. The data are open (ODbL), but the policy
+serves them to approved users only, so who can read the volume now matters, as it will for full MIMIC-IV:
+- *Cluster admins* (any kubeconfig, `kubectl port-forward`) can read every volume.
+- *The Longhorn UI* can snapshot, attach and clone volumes. It sits behind oauth2-proxy and the `ids3` realm, and
+  admits only holders of the role `longhorn-admins` (`ids3/platform/longhorn/oauth2-proxy.yaml`).
+- *Backups:* Longhorn has no backup target configured today (`ids3/platform/longhorn/README.md`), so no copy leaves
+  the node. Once a backup target exists, its backups carry the demo too, and who can read the target becomes part of
+  this question.
+
+For the open demo this is acceptable and recorded here. For full MIMIC-IV it is exactly the storage and backup access
+review the owner asked for, and must be settled first.
 
 **Egress.** The services repo's egress proxy (`ids3/platform/egress-proxy/configmap.yaml`) has no destination
 allowlist on port 3128: any HTTPS destination is allowed for cluster pods and forwarded to the university parent proxy

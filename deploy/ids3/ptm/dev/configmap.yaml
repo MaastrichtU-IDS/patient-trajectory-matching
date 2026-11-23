@@ -81,10 +81,11 @@ data:
 # file key is never offered to envFrom as a variable name.
 # Phase 2: the synthetic cohort (public, per patient) and the open MIMIC-IV demo (login + approved, aggregate counts
 # only). The demo is not in the public image: the server fetches it from PhysioNet at start through the egress proxy,
-# checks every file against pinned sha256 sums, and builds the store into the pod's emptyDir (`fetch`,
-# demos/mockups/mimic_demo_fetch.py); the store's content gate (the demo's 100 subjects) still applies. Until it is
-# built, or if PhysioNet is unreachable, the demo answers 503 and the synthetic cohort is unaffected; readiness does
-# not wait for it. Full MIMIC-IV stays out until the storage and backup access review; the server refuses it.
+# checks every file against pinned sha256 sums, and builds the store onto the PVC ptm-mimic-demo (`fetch`,
+# demos/mockups/mimic_demo_fetch.py). At later starts a store on the volume is reused only if it verifies (content
+# re-derived, the pinned snapshot id, the pinned d_items). The store's content gate (the demo's 100 subjects) applies
+# either way. Until it is ready, or if PhysioNet is unreachable, the demo answers 503 and the synthetic cohort is
+# unaffected; readiness does not wait for it. Full MIMIC-IV stays out until the storage and backup access review; the server refuses it.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -106,8 +107,8 @@ data:
           "title": "MIMIC-IV Clinical Database Demo 2.2 (open data, 100 patients)",
           "access": "approved",
           "results": "aggregate",
-          "store": "/tmp/ptm-mimic-demo/build/store",
-          "d_items": "/tmp/ptm-mimic-demo/d_items.csv.gz",
+          "store": "/var/lib/ptm-mimic-demo/build/store",
+          "d_items": "/var/lib/ptm-mimic-demo/d_items.csv.gz",
           "fetch": "physionet:mimic-iv-demo-2.2"
         }
       ]
