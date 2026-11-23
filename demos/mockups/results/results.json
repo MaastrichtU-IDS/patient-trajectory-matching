@@ -424,26 +424,19 @@
    "name": "engine-default",
    "search_budget": 40000
   },
-  "build_origin": {
-   "first_built_at": "2026-11-18T03:54:18+00:00",
-   "first_built_benchmark_sha256": "029671eb3123179fc6e106c1a4423dad63da548231bda38f5220ffe02a8e77b5",
-   "first_built_commit": "6b36597dba83e8d4feb44ef134ab288dce12e5a0",
-   "first_built_report": "/Users/dumontier/ptm-local/d44b/retry-base-scaling-report.json",
-   "first_built_report_sha256": "a07ac3486e5786e523618d36349f2e044baba7af64f72994d588a14fe176ccc5",
-   "machine": "Apple M4 Pro"
-  },
+  "build_origin": null,
   "distinct_patients": 10000,
-  "generated_at": "2026-11-20T04:11:30+00:00",
+  "generated_at": "2026-11-23T12:18:41+00:00",
   "memory_limit": "4GB",
   "sizes": [
    {
-    "build_peak_gib": 0.36,
-    "build_reused": true,
-    "build_seconds": 6.5,
+    "build_peak_gib": 0.38,
+    "build_reused": false,
+    "build_seconds": 6.4,
     "events": 172754,
-    "match_max_seconds": 0.3,
+    "match_max_seconds": 0.2,
     "match_p50_seconds": 0.05,
-    "open_seconds_warm": 0.02,
+    "open_seconds_warm": 0.03,
     "patients": 1000,
     "pruned_share_mean": 0.699,
     "queries": 50,
@@ -455,13 +448,13 @@
     "verify_peak_gib": 0.18
    },
    {
-    "build_peak_gib": 0.87,
-    "build_reused": true,
-    "build_seconds": 51.4,
+    "build_peak_gib": 0.86,
+    "build_reused": false,
+    "build_seconds": 51.3,
     "events": 1731493,
     "match_max_seconds": 2.7,
-    "match_p50_seconds": 0.45,
-    "open_seconds_warm": 0.06,
+    "match_p50_seconds": 0.44,
+    "open_seconds_warm": 0.07,
     "patients": 10000,
     "pruned_share_mean": 0.699,
     "queries": 50,
@@ -469,62 +462,62 @@
     "snapshot_gb": 0.13,
     "stress_unresolved": 363,
     "unresolved": 0,
-    "verify_content_seconds": 6.7,
-    "verify_peak_gib": 0.38
+    "verify_content_seconds": 6.6,
+    "verify_peak_gib": 0.39
    },
    {
-    "build_peak_gib": 4.62,
-    "build_reused": true,
-    "build_seconds": 512.7,
+    "build_peak_gib": 4.53,
+    "build_reused": false,
+    "build_seconds": 517.7,
     "events": 17314930,
-    "match_max_seconds": 25.8,
-    "match_p50_seconds": 1.25,
-    "open_seconds_warm": 0.43,
+    "match_max_seconds": 25.6,
+    "match_p50_seconds": 1.24,
+    "open_seconds_warm": 0.44,
     "patients": 100000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 1.17,
+    "query_peak_gib": 1.18,
     "snapshot_gb": 1.23,
     "stress_unresolved": null,
     "unresolved": 0,
-    "verify_content_seconds": 65.0,
-    "verify_peak_gib": 1.75
+    "verify_content_seconds": 64.6,
+    "verify_peak_gib": 1.74
    },
    {
     "build_peak_gib": 8.03,
-    "build_reused": true,
-    "build_seconds": 1552.7,
+    "build_reused": false,
+    "build_seconds": 1564.1,
     "events": 51944790,
-    "match_max_seconds": 85.1,
-    "match_p50_seconds": 3.37,
-    "open_seconds_warm": 1.18,
+    "match_max_seconds": 84.3,
+    "match_p50_seconds": 3.34,
+    "open_seconds_warm": 1.19,
     "patients": 300000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 2.35,
+    "query_peak_gib": 2.29,
     "snapshot_gb": 3.55,
     "stress_unresolved": null,
     "unresolved": 0,
-    "verify_content_seconds": 192.3,
-    "verify_peak_gib": 1.76
+    "verify_content_seconds": 191.4,
+    "verify_peak_gib": 1.77
    },
    {
-    "build_peak_gib": 8.29,
-    "build_reused": true,
-    "build_seconds": 5213.7,
+    "build_peak_gib": 8.25,
+    "build_reused": false,
+    "build_seconds": 5197.3,
     "events": 173149300,
-    "match_max_seconds": 337.2,
-    "match_p50_seconds": 11.77,
-    "open_seconds_warm": 1.8,
+    "match_max_seconds": 336.2,
+    "match_p50_seconds": 11.82,
+    "open_seconds_warm": 1.82,
     "patients": 1000000,
     "pruned_share_mean": 0.886,
     "queries": 10,
-    "query_peak_gib": 6.88,
+    "query_peak_gib": 6.86,
     "snapshot_gb": 5.39,
     "stress_unresolved": null,
     "unresolved": 0,
-    "verify_content_seconds": 624.3,
-    "verify_peak_gib": 1.72
+    "verify_content_seconds": 629.7,
+    "verify_peak_gib": 1.73
    }
   ],
   "stress_policy": {
@@ -551,7 +544,7 @@
   },
   "scaling": {
    "path": "verification/execution-store-scaling-report.json",
-   "sha256": "3c700629e5c3eb699a77ec968f9a67d0ca2881b9f022cd3936531861f1b4586d"
+   "sha256": "9a868624a24d539dbf9d671f6d1cd720db433685de4da7c44820dfdacf444d26"
   }
  }
 }

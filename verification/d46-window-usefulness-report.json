@@ -2005,7 +2005,7 @@
  "per_seed": {
   "4621": {
    "children": 48,
-   "cohort_sha256": "efd7293aabcd69de68130927e4e78325b0792c083f9d79b46e409978bd9a17aa",
+   "cohort_sha256": "e1df3f2708bd48e886179d3ee7edaf46e7fd72381f227f7b41b8722074f08dfd",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 11,
@@ -2195,7 +2195,7 @@
   },
   "4622": {
    "children": 48,
-   "cohort_sha256": "24d19cb0d3540c49ee0b6fc2ff1cd76a7ed834588fbcea8a438e67a4de12b615",
+   "cohort_sha256": "8084c0851d573ecd79cccede034e053f28b53ee9c695e0caa989ebe4ac7ea18e",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 9,
@@ -2371,7 +2371,7 @@
   },
   "4623": {
    "children": 48,
-   "cohort_sha256": "d2fcb7156a642583976294183f09fe09b4510f857071d3cc737407e20cec35a5",
+   "cohort_sha256": "0311fff56e281184aae5acc49025260565597ebd750c1183a30cde2323fa0939",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 5,
@@ -2544,7 +2544,7 @@
   },
   "4624": {
    "children": 48,
-   "cohort_sha256": "28b16b53dda913bbb5e88acfd5aeac07dfe96c3963184bc86e8e2df6ec05e0ce",
+   "cohort_sha256": "b107c43f83cb76d8bb8255af6b8fd6e1de4e622e0504892817ac84f99e5fe17e",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -2710,7 +2710,7 @@
   },
   "4625": {
    "children": 48,
-   "cohort_sha256": "8d16c7ae960f667ca5bc1b8fbac88dca4cdfffe3b1dc79f267e71f52869e0938",
+   "cohort_sha256": "2206704eda2f05f5c61120602b39985a9ac200abfefb0bff92a5187b87b3e539",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -2892,7 +2892,7 @@
   },
   "4626": {
    "children": 48,
-   "cohort_sha256": "bde98e958df7e1a68c321a943f856d74331fc1c79b16f11d30d7b48d01b0e3a0",
+   "cohort_sha256": "798cfa97f650aba72b2427cd413ceb42d1dc3ddcd6cfebec522039e03f117b10",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -3066,7 +3066,7 @@
   },
   "4627": {
    "children": 48,
-   "cohort_sha256": "c727e2c6578096ff037bd845d5b69eefb3ffd740c0cfb62f3cec2b781ab7df07",
+   "cohort_sha256": "1d554cfe5095724654c58e351a22ebabcecdd30b268cef4bc5a64e68c5c5e7c3",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -3251,7 +3251,7 @@
   },
   "4628": {
    "children": 48,
-   "cohort_sha256": "29b6107a4021cfea7043ba33a541c6d855480de97571a6e89dfadeae23b0fc0d",
+   "cohort_sha256": "25921c136e4fa3c382c77373a2607f96a1751442b65a209165b69a379140217f",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 9,
@@ -3417,7 +3417,7 @@
   },
   "4629": {
    "children": 48,
-   "cohort_sha256": "e25df982515193508a87ea1877a21b17191318959e8212c2e993a3fee5f999eb",
+   "cohort_sha256": "485c698601eabb9b97e4f3da34b4646efb5eace3d49f983159bd9e7646edb983",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 5,
@@ -3591,7 +3591,7 @@
   },
   "4630": {
    "children": 48,
-   "cohort_sha256": "7ca4f732dcbfc6e3572d85ff49110d825fb0fd4a2ae284f3e721c5913bae9c97",
+   "cohort_sha256": "46caf022b4853a34d28205d3a9fe4462775094881e49a032317eaa74c87f115c",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -3763,7 +3763,7 @@
   },
   "4631": {
    "children": 48,
-   "cohort_sha256": "f90375edc2c1f8a37a642ed9631b56e8cc2b9dfe51f0600de8e272d374568872",
+   "cohort_sha256": "f7fa67d81d9c33898159ec71c05c38b57770be91f8dc630fff506aa741a35489",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 8,
@@ -3945,7 +3945,7 @@
   },
   "4632": {
    "children": 48,
-   "cohort_sha256": "094a42883c6561f686fd3bd8c3e8e66eeb26c8177de970488a7f8b94f039117d",
+   "cohort_sha256": "753360e95e42aa08c00fecb9ebbf81c63018fd9ce0d4a53b72ef6be6a6dabe09",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -4117,7 +4117,7 @@
   },
   "4633": {
    "children": 48,
-   "cohort_sha256": "577f9cb0903fe99d727d734b372907a4304f81b315df94151e7b58a2da1c5d9c",
+   "cohort_sha256": "45dfb7c00972726bbcf2643905431cf5f688d02ef08cea2175ee3b3b57d5d473",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 5,
@@ -4293,7 +4293,7 @@
   },
   "4634": {
    "children": 48,
-   "cohort_sha256": "ba5c00f34493e6cab2d366d64dc27f1aca6039fbfa6d0536909e15d52b6df97c",
+   "cohort_sha256": "127fe408a3e02362758c7e6eca78351959ab2579f77f424d31b5ba2989418faf",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 8,
@@ -4469,7 +4469,7 @@
   },
   "4635": {
    "children": 48,
-   "cohort_sha256": "1fd8547621a217231249c49a0a0b9889f1ca12ee16046ae7d6f8820d96993c8d",
+   "cohort_sha256": "54d545721c1c11e5835c6aedc0336a686e6bc4dd28c342df17d13855fa301abc",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 10,
@@ -4639,7 +4639,7 @@
   },
   "4636": {
    "children": 48,
-   "cohort_sha256": "b067985618bbfe4dcf18ad4a5869d4b34e6ee3a32545c6939144bc0271aa15b6",
+   "cohort_sha256": "444dab13f566fca89c3156acf0b9301e4d95364b753b1a755d0c0805f95bca91",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -4803,7 +4803,7 @@
   },
   "4637": {
    "children": 48,
-   "cohort_sha256": "3045d68b4bf454a88eef12984b1b73d55a55f2dad7bb8f33fb5668634a2bd19d",
+   "cohort_sha256": "317ae8a4072647b4a848d34fa83c305fa761df81609da65f8172d497fcc42517",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -4979,7 +4979,7 @@
   },
   "4638": {
    "children": 48,
-   "cohort_sha256": "7f4e2a58f026451acfb4c64d09b372877e8f95ca2c8b19b6b31151bfc710a45d",
+   "cohort_sha256": "92f97f763364f058d74c149fc33f2c2156ced3b66ebd3b238e26dd6a5fcb1bba",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 3,
@@ -5142,7 +5142,7 @@
   },
   "4639": {
    "children": 48,
-   "cohort_sha256": "547ba78335ba8ba219ce3e5088021aa1ed25cd08829ebfb737dea9ccd28543ea",
+   "cohort_sha256": "7956c130f652afdf4935203d4aae0fa23017cd486456c381d334fb0f3689269a",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -5320,7 +5320,7 @@
   },
   "4640": {
    "children": 48,
-   "cohort_sha256": "ec2252bd0e5ae14dee59fca5c2c9c205c0f57f8b9bb665982f381d58602b1eca",
+   "cohort_sha256": "b1adc2e2bde6025f03b6639475a1772f82ec96ee1ab202175254b12555b9d1ac",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -5501,7 +5501,7 @@
   },
   "4641": {
    "children": 48,
-   "cohort_sha256": "1118a05d569c944c6bf099ea0b256f8f3661a93631563661627ff54948f2a40a",
+   "cohort_sha256": "34b65624efe99f5dcc6251abecf395d88b111a3e44d50666e295bbca72d9322a",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -5679,7 +5679,7 @@
   },
   "4642": {
    "children": 48,
-   "cohort_sha256": "dc04dcb2f7414eee2f3329f1edc85ae50409b80ad959b7a508732f482c84ba93",
+   "cohort_sha256": "b53686ffeb51092f3f7773e5902819c7bfdc4e5a8bd8483894348ac2b7a7566e",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -5852,7 +5852,7 @@
   },
   "4643": {
    "children": 48,
-   "cohort_sha256": "56dcc5deac328974dcd75df824fdb90fba9aca92e08672d66fab77b1c136b142",
+   "cohort_sha256": "5e598a9fdfdd0b677451367b65812222a70dd95437bb5232d5cc2eaea3856e92",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -6014,7 +6014,7 @@
   },
   "4644": {
    "children": 48,
-   "cohort_sha256": "231e067009b763901fcf4a737b91d1be2e17d2cafa56de2f51847833bb871f6e",
+   "cohort_sha256": "ec510769382a00b11031d954dfc68c83caee4f8220e687a0d6490bc0dea7edc7",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -6184,7 +6184,7 @@
   },
   "4645": {
    "children": 48,
-   "cohort_sha256": "f634f16cdbbb475ba80d9f7ad6c88cfebcd4123447985c6083d01336e2d12aba",
+   "cohort_sha256": "795c05bf3dede7c36e7ec7ce083dc518e529b0b6d900480dd4ab6c0381109296",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 6,
@@ -6355,7 +6355,7 @@
   },
   "4646": {
    "children": 48,
-   "cohort_sha256": "37c126f3c023d47e92af14deffbe8fc6d19734ac0b6e8e3910958319ab9295ad",
+   "cohort_sha256": "4400e3c6c394c10ee168562b7b9040c65f0fc92f1b4b1cacb7dd4419f518904b",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 8,
@@ -6521,7 +6521,7 @@
   },
   "4647": {
    "children": 48,
-   "cohort_sha256": "083973068e7f78980732eb2167275e511027b4274ce745aa625ff48b0a6d6cd8",
+   "cohort_sha256": "c0c1cc63fac6a88b762eea90ae509730963cdf9e8b042e70cd1c0b00b8c30ef2",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 8,
@@ -6695,7 +6695,7 @@
   },
   "4648": {
    "children": 48,
-   "cohort_sha256": "0b35019679fe83dd2e436e832681a8ac5003a4fd357eb907c3bdf48c9a8d7b02",
+   "cohort_sha256": "3f493c27b4d28060e62b2de2ee411e225ba181f2666670c2ce165c1bf705eebc",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 8,
@@ -6871,7 +6871,7 @@
   },
   "4649": {
    "children": 48,
-   "cohort_sha256": "2877944a2e28a8a1e47e38b8bb23f6d883b3dbbaf0a858a81a58190f488b44c1",
+   "cohort_sha256": "35310e015915a074ede52f1c8b8aa3eb407663ddb3dba45724a797fa32233b1e",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 7,
@@ -7057,7 +7057,7 @@
   },
   "4650": {
    "children": 48,
-   "cohort_sha256": "90c881a90a94cb244816a4f78f36516486625b1adafc75a6e320bc9e19b04696",
+   "cohort_sha256": "8d41f86f5955de6e5c2be873ba6726951042c9632fb0f618a04282b9a7c122d7",
    "templates": {
     "sequence, stated findings @here": {
      "candidates": 5,
@@ -7238,7 +7238,7 @@
   "demos/mockups/trajectory/store_request.js": "1f0062087aa0c268bcc1fa60646d7e99da62a8006d83c25d75fb1bc617d7558e",
   "demos/mockups/trajectory/app.js": "4dc9bdbe04167c45e023729b5ab60cc4b484303a18ae8a7aff8daffea6679149",
   "demos/mockups/shared/core.js": "eb69e17431f52563e3b6cc946ea757677c53044a1231b94023c8348846eefacf",
-  "demos/mockups/synthetic/generate.py": "d3f7b70aa4d15848ef0b895a308ae43a7172646202ed8982792ee9c44f52223c",
+  "demos/mockups/synthetic/generate.py": "4a26cfa1f3f7fc17a1c58f8d1ea527a3e306ef11d26b4f1239da4cb11b8d3804",
   "patterns/store_conditions.py": "89319858350209606a1833c8ed2635510346e0aba17ec9c8b9f2fe42c159a895",
   "patterns/store_conditions_coded.py": "e66ee91491433512f2c11d6a0149c356a5f5ae943b25d17402642ece00bce3ed",
   "patterns/store_conditions_gene.py": "35da9259b7d2a0f93dcd1ffd255e3fe6eb8d6a9ac7ed4e753434f1caedb689c6",
