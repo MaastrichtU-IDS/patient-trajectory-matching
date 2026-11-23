@@ -70,11 +70,11 @@ browser ──TLS──> keycloak.k8s.semanticscience.org (sign-in: PKCE; ORCID,
   SIGTERM (which removes the store's build).
 - **Tags: never `latest`.** The image is published as `ghcr.io/maastrichtu-ids/patient-trajectory-matching/mockups:X.Y.Z`
   by a workflow triggered by a tag `mockups-vX.Y.Z`, and deployed by `X.Y.Z@sha256:<digest>` in `app.yaml`. A
-  deploy is then a one-line, reviewable, revertable services-repo PR. The workflow is a draft
-  ([`deploy/ids3/mockups-image.workflow.yml`](../deploy/ids3/mockups-image.workflow.yml)), outside
-  `.github/workflows/` so that nothing publishes until the owner moves it in. Before publishing, it starts the image
+  deploy is then a one-line, reviewable, revertable services-repo PR. The workflow is
+  [`.github/workflows/mockups-image.yml`](../.github/workflows/mockups-image.yml), activated on 2026-11-23 for phase 1
+  after each pinned action SHA was checked against the release named beside it. Before publishing, it starts the image
   read-only and checks health, readiness, the anonymous dataset list, that no MIMIC store is configured, and that no
-  MIMIC file or variable is in the image.
+  MIMIC file or variable is in the image. On a pull request touching the image's inputs it builds and checks only.
 
 ## 3. Accounts and access
 
@@ -447,9 +447,8 @@ found one medium and nine low issues, all fixed:
 
 1. Owner: name the backup admin, register the OAuth apps. Platform admin: the registration-notice provider.
 2. Realm admin: `KEYCLOAK-REALM.md`.
-3. Owner: check each pinned action SHA in `deploy/ids3/mockups-image.workflow.yml` against the release named beside
-   it (in the action's own repository), then move the workflow into `.github/workflows/`, push `mockups-v0.1.0`,
-   and take the digest.
+3. Check each pinned action SHA in `.github/workflows/mockups-image.yml` against the release named beside it (done
+   2026-11-23, all six matched), push `mockups-v0.1.0`, and take the digest from the workflow's log.
 4. Services-repo PR: copy `deploy/ids3/ptm/dev/` to `ids3/projects/ptm/dev/`, put the digest into `app.yaml`, complete
    the README checklists, merge (ArgoCD syncs at once; with no secret there is nothing to wait for in Vault).
 5. Verify (README, "Verify after deploy"). Roll back by reverting the image line; remove by deleting the directory.
