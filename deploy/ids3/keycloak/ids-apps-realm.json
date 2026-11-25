@@ -72,10 +72,6 @@
         "description": "Approved by the owner; required by every non-public dataset."
       },
       {
-        "name": "dataset:mimic-iv:read",
-        "description": "Full MIMIC-IV: granted only after the owner has verified and recorded the user's own PhysioNet credentialing. Assigned to nobody until the storage and backup access review."
-      },
-      {
         "name": "default-roles-ids-apps",
         "description": "The roles every new account gets: the account console only.",
         "composite": true,
@@ -116,7 +112,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "frontchannelLogout": true,
-      "fullScopeAllowed": true,
+      "fullScopeAllowed": false,
       "rootUrl": "https://ptm.k8s.semanticscience.org",
       "baseUrl": "/",
       "redirectUris": [
@@ -159,6 +155,14 @@
             "lightweight.claim": "false"
           }
         }
+      ]
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "ptm-mockups",
+      "roles": [
+        "approved"
       ]
     }
   ],
