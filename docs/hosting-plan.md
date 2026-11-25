@@ -97,14 +97,16 @@ browser ──TLS──> keycloak.k8s.semanticscience.org (sign-in: PKCE; ORCID,
 
 ### The realm
 
-Set up by hand from [`KEYCLOAK-REALM.md`](../deploy/ids3/ptm/dev/KEYCLOAK-REALM.md) (by hand, not by realm import,
-so that no provider secret is ever in a file). Realm **`ids-apps`**. In short:
+Set up from [`KEYCLOAK-REALM.md`](../deploy/ids3/ptm/dev/KEYCLOAK-REALM.md): import
+`deploy/ids3/keycloak/ids-apps-realm.json` (no secret, no user, placeholder provider client ids), then enter the
+provider secrets in the admin console, so no provider secret is ever in a file. Realm **`ids-apps`**, shared by
+external-facing apps (design discussion: MaastrichtU-IDS/services#751). In short:
 
 - Registration on, verify email on, login with email, no duplicate emails, brute-force detection, a password policy.
 - Default roles stripped to the account console's `view-profile` and `manage-account`, so a new account holds no
   app role but can link providers. Realm role `approved`, granted only through group `approved`. Realm role
   `dataset:mimic-iv:read`, created and assigned to nobody.
-- Identity providers: GitHub and ORCID with trust-email off, Google with trust-email allowed; the built-in first
+- Identity providers: GitHub, Google and ORCID, all with trust-email off (security review of phase 2); the built-in first
   broker login flow, which links to an existing account only after email verification or re-authentication. Users
   link more providers themselves in the account console.
 - Client `ptm-mockups`: public, PKCE S256, exact redirect URIs and web origin, an audience mapper adding `ptm-api` to
