@@ -41,7 +41,7 @@ format (the representation classes of the platform's version, 26.8.1).
    provider's "Post login flow" is `post broker admin OTP`, and that the reset credentials flow is `reset
    credentials, not for admins`. An admin login asks for OTP, whether by password or through a provider; a non-admin
    login does not.
-6. Section 6 (the registration notice) is a platform change, outside the file.
+6. Section 6 (the registration notice) is a platform-side poller, outside the file.
 7. Verify as in section 7.
 
 If the import is refused, or a setting differs after import, follow (B) for that part. The file is the reference
@@ -60,7 +60,7 @@ for the values either way.
       authentication (the MU relay, unauthenticated on :25, as ontoexplorer and realm-os use); From `MAIL_FROM`.
       Send a test email. **Confirm Keycloak's pod can reach `137.120.1.21:25`**: if the `platform` namespace is
       egress-locked, it needs an SMTP allow like `ids3/projects/ontoexplorer/dev/allow-smtp-egress.yaml`, selecting
-      `app: keycloak`. Without it, verification emails and the registration notice fail silently.
+      `app: keycloak`. Without it, verification emails fail silently.
 - [ ] **Realm settings → Security defenses → Brute force detection:** on (lockout temporary, defaults).
 - [ ] **Authentication → Policies → Password policy:** minimum length 12, not username, not email, password history 3.
 - [ ] **Realm settings → Sessions / Tokens:** access token lifespan 5 min (default); SSO session idle 30 min, max
@@ -87,18 +87,16 @@ for the values either way.
       `uma_authorization`. Keep only the `account` client's `view-profile` and `manage-account` (users need them to
       open the account console and link providers). A new account therefore holds no app role.
 - [ ] **Realm roles → Create role** `approved` ("approved by the owner; required by every non-public dataset").
-- [ ] **Realm roles → Create role** `dataset:mimic-iv:read` ("full MIMIC-IV: granted only after the owner has
-      verified and recorded the user's own PhysioNet credentialing"). Create it now, assign it to nobody: the server
-      refuses to serve full MIMIC-IV until the storage and backup access review (hosting plan, section 7).
-      Later dataset roles follow the pattern `dataset:<dataset-id>:read`.
+- [ ] **No other realm role.** The shared realm holds broad grants only (`approved` and the admin roles; D56,
+      MaastrichtU-IDS/services#751). Detailed grants, such as full MIMIC-IV, live in the app that needs them:
+      ptm will keep its own grant store and append-only grant log when full MIMIC-IV is hosted, after the storage
+      and backup access review (hosting plan, section 7). Until then nobody can hold a full MIMIC-IV grant.
 - [ ] **Groups → Create group** `approved`; **Role mapping → Assign role** `approved`. Approving a user is adding
       them to this group; removing them withdraws access at their next token (at most 5 min).
-- [ ] Do **not** put `approved` or any dataset role in the default roles, and do not enable any "default group".
-- [ ] **Recording a credentialing check** (owner): before assigning `dataset:mimic-iv:read`, check the user's
-      PhysioNet credentialed status and their signed MIMIC-IV data use agreement on PhysioNet, then record it on the
-      user (Users → user → Attributes, admin-only attributes): `physionet_username`, `physionet_verified_on`
-      (date), `physionet_verified_by`. Mark these attributes as admin-edit only in the user profile (users cannot
-      view or edit). The admin event of the role grant records when and by whom.
+- [ ] Do **not** put `approved` in the default roles, and do not enable any "default group".
+- [ ] **Credentialing checks are not recorded in Keycloak.** The owner's check of a user's PhysioNet credentialing
+      and signed MIMIC-IV data use agreement is recorded in ptm, with the grant it supports, when full MIMIC-IV is
+      built (D56). No PhysioNet user attributes in the realm.
 
 ## 3. The ptm client
 
@@ -117,13 +115,15 @@ for the values either way.
       → Audience: name `ptm-api-audience`, Included Custom Audience `ptm-api` (must equal `PTM_OIDC_AUDIENCE`), add
       to access token **on**, to ID token off. The server refuses any token without it.
 - [ ] **Realm roles in the access token:** the default `roles` client scope must stay assigned to the client (it
-      puts `realm_access.roles` in the access token, which is where the server reads `approved` and dataset roles).
+      puts `realm_access.roles` in the access token, which is where the server reads `approved`).
       Check with Client scopes → Evaluate → a test user → Generated access token.
 - [ ] Keep the default `basic` client scope on the client (it puts `sub` in the access token, which the request log
       records) and do not enable "lightweight access tokens": the server requires the access token's `typ` claim
       (`Bearer`), `iat`, `exp`, `iss` and `aud`.
-- [ ] Full scope allowed may stay on for now (the realm's realm roles are all app-facing). When a second app joins
-      and has roles ptm should not see, turn it off and add `approved` and the dataset roles to the client's scope.
+- [ ] **Full scope allowed off** (D56, services#751): `ptm-mockups` → Client scopes → `ptm-mockups-dedicated` →
+      Scope → Full scope allowed **off**, then Assign role → realm role `approved` only. A ptm token then carries no
+      other app's roles, whatever else the shared realm holds. Evaluate (above) must show `realm_access.roles`
+      containing `approved` for an approved test user, and nothing else.
 
 ## 4. Identity providers (brokering) and account linking
 
@@ -165,7 +165,7 @@ Each yields a client id and a client secret. They go into the identity-provider 
       client role `realm-management` → `realm-admin`. They administer at
       `https://keycloak.k8s.semanticscience.org/admin/ids-apps/console/`, with no `master` realm access.
 - [ ] **The admin-capable roles** (security review of phase 2 and its re-check): every `realm-management` role
-      that can grant `approved` or a `dataset:*` role, change who may sign in, or act as another user:
+      that can grant `approved` or an app's role, change who may sign in, or act as another user:
       `realm-admin` (which includes all the others), `manage-users` (membership and role mappings),
       `manage-realm` (roles, groups and flows), `manage-clients`, `manage-identity-providers` and
       `impersonation`. Their holders must use OTP at every login and cannot reset their credentials by email.
@@ -173,7 +173,8 @@ Each yields a client id and a client secret. They go into the identity-provider 
       granting any other, add it to the list above: to `ADMIN_ROLES` in `deploy/ids3/keycloak/gen_realm.py` (the OTP
       conditions and the reset denial) and in `deploy/ids3/keycloak/check_realm.py`, which checks the import for
       exactly this. If fine-grained admin
-      permissions are ever enabled, any role they let assign `approved` or `dataset:*` joins the list too.
+      permissions are ever enabled (services#751 plans them for per-app admins), any role they let assign `approved`
+      joins the list, and their holders' query roles get the same OTP and no-reset rules.
 - [ ] **Authentication → Flows → duplicate `browser`** as `browser with admin OTP`. Under the username/password form,
       add one CONDITIONAL subflow per admin-capable role, in the order above, each ending in the OTP form
       (Required). Subflow *k* has "Condition - user role" for role *k*, plus the same condition with *negate* on for
@@ -210,57 +211,30 @@ Each yields a client id and a client secret. They go into the identity-provider 
 - [ ] Required actions enabled: Verify Email, Configure OTP, Update Password, Terms and Conditions (enable when the
       owner provides the text; default off).
 
-## 6. Registration notice to the owner: an event-listener provider (PLATFORM CHANGE, needs the platform admin)
+## 6. Registration notice to the owner: a platform-side poller (built by the platform admin)
 
-Decided 2026-11-20: option (a). The owner is emailed at every new registration, to approve or ignore it. This is a
-**specification for the platform admin**: it changes the platform Keycloak's Deployment (`ids3/platform/keycloak/`),
-which every realm, including `ids3`, depends on, so only the platform admin builds, reviews and deploys it. Nothing in
-this repository implements it.
+Decided 2026-11-20 (the owner is emailed at every new registration, to approve or ignore it); mechanism revised
+2026-11-25 on the platform admin's proposal in MaastrichtU-IDS/services#751 (D56), replacing the earlier
+event-listener plugin. Nothing in this repository implements it.
 
-**What it does.** On a user event of type `REGISTER` in a realm where the listener is enabled, send one plain-text
-email to a configured recipient. Nothing else: no other event type, no admin events, no outbound call except mail.
+**Mechanism (platform admin):** a small poller reads Keycloak's database through a **read-only database role** that
+can select only from a **view** filtered to realm `ids-apps` and event type `REGISTER`. It therefore holds no
+Keycloak credential and sees no `ids3` (or other realm) events. It mails the owner through the MU relay
+(`smtp.maastrichtuniversity.nl:25`, an SMTP egress allow in its namespace).
 
-**Implementation (a small Java provider in its own repository, e.g. `maastrichtu-ids/keycloak-registration-notice`):**
-- `RegistrationNoticeProviderFactory implements EventListenerProviderFactory`, id `registration-notice`; reads its
-  configuration in `init(Config.Scope)`: `recipient` (required; an email address) and `admin-console-base`
-  (default `https://keycloak.k8s.semanticscience.org/admin/master/console/`). A missing or malformed recipient
-  disables the listener with one warning in the log, never a startup failure.
-- `RegistrationNoticeProvider implements EventListenerProvider`: in `onEvent(Event)`, return unless
-  `event.getType() == EventType.REGISTER`. Look up the user (`session.users().getUserById(realm, event.getUserId())`);
-  build the message from: realm name, username, email (or "none given"), identity provider (`event.getDetails()`
-  key `identity_provider`, or "email registration"), time (UTC), and the link
-  `<admin-console-base>#/<realm>/users/<user id>/settings`. Never include a token, a code, a password, an IP
-  address or the event's other details.
-- Send with Keycloak's own `EmailSenderProvider` (`session.getProvider(EmailSenderProvider.class).send(
-  realm.getSmtpConfig(), recipient, subject, text, null)`), so the realm's SMTP settings (section 1, the MU relay)
-  apply and the provider holds no credential. Send after the transaction commits
-  (`session.getTransactionManager().enlistAfterCompletion(...)`), so a failed registration sends nothing.
-- A send failure is logged at WARN (realm, user id, exception class) and swallowed: registration must never fail
-  because mail did.
-- `onEvent(AdminEvent, boolean)`: no-op. Unit tests with a mocked session for: REGISTER sends exactly one message to
-  the recipient with the fields above; LOGIN and other types send nothing; no recipient means no send; an SMTP
-  exception does not propagate.
-- Build against the same Keycloak version as the platform (26.8.x), Java 21; publish the jar in a small image
-  pinned by digest (for example `ghcr.io/maastrichtu-ids/keycloak-registration-notice:<version>@sha256:...`).
+**What the realm must provide (already in `ids-apps-realm.json`):** "Save events" on, `REGISTER` among the saved
+event types, user events kept 90 days (longer than any poller outage that matters).
 
-**Deployment (platform admin):**
-- In `ids3/platform/keycloak/keycloak.yaml`: an initContainer from that image copies the jar into an `emptyDir`
-  mounted at `/opt/keycloak/providers` (the Keycloak image stays upstream). `start` without `--optimized` rebuilds
-  with the provider at startup.
-- Environment: `KC_SPI_EVENTS_LISTENER_REGISTRATION_NOTICE_RECIPIENT=<OWNER_EMAIL>`.
-- Before rolling it out: `kc.sh update-compatibility check` as for any Keycloak change (`keycloak.yaml` header).
-- In realm `ids-apps` only: Realm settings → Events → Event listeners → add `registration-notice` (keep
-  `jboss-logging`). No other realm is affected unless its admin adds the listener.
-- The `platform` namespace must reach `137.120.1.21:25` (section 1).
-- Verify: register a test account; the owner receives one email with the link; a login sends nothing.
+**What ptm asks of the notice:**
+- one email per registration, never repeated after a restart, none missed (the poller keeps its position, for example
+  the last event time and id);
+- contents: realm, username, email (or "none given"), how they registered (email or which provider), time (UTC), and
+  the admin console link `https://keycloak.k8s.semanticscience.org/admin/ids-apps/console/#/ids-apps/users/<id>/settings`;
+- `REGISTER` fires **before** email verification, so the email says the address was unverified at registration;
+  the owner approves only after Users shows it verified;
+- never a token, code, password, IP address or the event's other details.
 
-**Fallback, documented only: (b) a poller in an app namespace.** If the platform change is not wanted, a stdlib
-Python loop that reads `GET /admin/realms/ids-apps/events?type=REGISTER` every few minutes with a confidential
-service-account client holding `realm-management` → `view-events` and `view-users`, and mails through the relay
-(an SMTP egress policy like ontoexplorer's). No platform change, but it adds a client secret (Vault, so `vault.yaml`
-in that namespace), a polling delay, and state to avoid repeating or missing a notice across restarts.
-
-Until the listener exists, the owner finds new accounts in Users, sorted by creation, or in Events filtered by
+Until the poller exists, the owner finds new accounts in Users, sorted by creation, or in Events filtered by
 `REGISTER`.
 
 ## 7. Verify
@@ -274,4 +248,4 @@ Until the listener exists, the owner finds new accounts in Users, sorted by crea
 - [ ] An admin login asks for OTP.
 - [ ] "Forgot password" for the test account resets its password; for an admin account, following the mailed link
       is denied and the password and authenticator are unchanged.
-- [ ] The registration notice reached the owner (once section 6 is built).
+- [ ] The registration notice reached the owner, and says the address was unverified (once section 6 is built).

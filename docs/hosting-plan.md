@@ -17,8 +17,8 @@ PR #153: the target is now ids3 (owner decisions of 2026-11-17 to 2026-11-20, re
   until the owner adds the account to group `approved`; the owner emailed at each registration; a backup realm admin
   still to be named.
 - **Dataset tiers:** small synthetic, public without login; MIMIC-IV demo, login plus `approved`; full MIMIC-IV, login
-  plus `approved` plus a role such as `dataset:mimic-iv:read`, granted by the owner after verifying and recording the
-  user's own PhysioNet credentialing.
+  plus `approved` plus a grant held in ptm (not a Keycloak role: the shared realm keeps broad grants only, D56),
+  given by the owner after verifying and recording the user's own PhysioNet credentialing.
 - **Full MIMIC-IV** is hosted only after a storage and backup access review. Credentialed users may then see
   per-patient results. Until then no credentialed data on hosting, and the aggregate-only endpoint is not disclosure
   control.
@@ -104,23 +104,22 @@ external-facing apps (design discussion: MaastrichtU-IDS/services#751). In short
 
 - Registration on, verify email on, login with email, no duplicate emails, brute-force detection, a password policy.
 - Default roles stripped to the account console's `view-profile` and `manage-account`, so a new account holds no
-  app role but can link providers. Realm role `approved`, granted only through group `approved`. Realm role
-  `dataset:mimic-iv:read`, created and assigned to nobody.
+  app role but can link providers. Realm role `approved`, granted only through group `approved`, and no other
+  realm role: detailed grants live in each app (D56, services#751).
 - Identity providers: GitHub, Google and ORCID, all with trust-email off (security review of phase 2); the built-in first
   broker login flow, which links to an existing account only after email verification or re-authentication. Users
   link more providers themselves in the account console.
 - Client `ptm-mockups`: public, PKCE S256, exact redirect URIs and web origin, an audience mapper adding `ptm-api` to
-  the access token.
+  the access token, Full scope allowed off with `approved` its only scoped role (D56).
 - MFA for admins: a browser flow that requires OTP for holders of `realm-management/realm-admin`. The owner and a
   backup admin (**to be named by the owner**) administer the realm from its own admin console, without `master`.
-- Events: user events (90 days) and admin events (one year) saved, so registrations, approvals and dataset-role
-  grants are recorded. A credentialing check is recorded as admin-only user attributes before the role is granted.
-- **Registration notice: (a), decided.** A small Java event-listener provider in the platform Keycloak mails the
-  owner on `REGISTER` through the realm's own SMTP settings (the MU relay): no secret, no delay. It is a **platform
-  change that needs the platform admin**; `KEYCLOAK-REALM.md` section 6 is its specification. The documented
-  fallback, (b), is a poller in an app namespace reading the events API with a service-account client (a client
-  secret in Vault, a delay, state across restarts). Either way the platform Keycloak must reach
-  `smtp.maastrichtuniversity.nl:25`, which the admin confirms (verification emails need it anyway).
+- Events: user events (90 days) and admin events (one year) saved, so registrations and approvals are recorded.
+  Full MIMIC-IV grants and the credentialing checks behind them are recorded in ptm, in an append-only log kept at
+  least a year, when that dataset is built (D56).
+- **Registration notice (revised 2026-11-25, D56):** a platform-side poller reading a read-only database view of
+  `ids-apps` `REGISTER` events, built by the platform admin (services#751); no Keycloak credential, no plugin.
+  `KEYCLOAK-REALM.md` section 6 says what ptm asks of it. The platform Keycloak must still reach
+  `smtp.maastrichtuniversity.nl:25` for verification emails.
 
 ### The token check (server side)
 
@@ -161,11 +160,12 @@ A dataset has an **id**, a **kind** (which backend serves it), an **access** pol
 
 - **Each kind has a floor the configuration cannot lower:** synthetic is at least public and answers per patient;
   the MIMIC-IV demo is at least `approved` and answers aggregates only; full MIMIC-IV is at least
-  `{"role": "dataset:mimic-iv:read"}`. A registry entry may raise a policy (for instance a synthetic dataset behind a
+  `{"role": "dataset:mimic-iv:read"}` (a placeholder: D56 moves this grant from the token into ptm before the kind
+  is hostable). A registry entry may raise a policy (for instance a synthetic dataset behind a
   role, which the tests use), never lower it. An entry whose `results` differs from what its backend can produce is
   refused, since the field describes the backend and does not change it.
 - **`mimic-iv` is refused outright** (`DATASET_KIND_NOT_HOSTABLE`) until the access review and a backend exist; the
-  tier is reserved so the policy model and the realm role are in place.
+  tier is reserved so the policy model is in place.
 - **The content gates stay** and are independent of the policy: the MIMIC demo service serves only a snapshot whose
   patients hash to the open demo's 100 subjects, and the trajectory store only the generator's cohort, checked
   against the file served.
@@ -455,8 +455,9 @@ found one medium and nine low issues, all fixed:
   attribution and the note that counts-only is not disclosure control.
 - **Full MIMIC-IV** only after the storage and backup access review: where the store lives, who can read the volume
   and its backups (cluster admins can read any Secret and any hostpath volume), encryption at rest, and retention.
-  Then a backend, the `mimic-iv` kind enabled with role `dataset:mimic-iv:read`, per-patient results for credentialed
-  users, and each grant backed by a recorded PhysioNet check. Until then the server refuses the kind, and nothing
+  Then a backend, the `mimic-iv` kind enabled with a ptm-side grant (D56: grant store, append-only log kept at least
+  a year and backed up, the credentialing record beside each grant), per-patient results for credentialed users.
+  The review also requires an off-site backup of Keycloak's database (services#751: not in place today). Until then the server refuses the kind, and nothing
   credentialed goes near hosting.
 - **The aggregate-only endpoint is not disclosure control** (D29: differencing isolated one patient's value in 17
   queries). It is acceptable for the open demo only; the role tier exists because credentialed data need credentialed
@@ -657,7 +658,7 @@ with the reviewer's own shapes, and M2 fixed for identity-provider logins. One m
 ## 9. Open questions
 
 1. The backup realm admin (owner to name).
-2. Whether the platform admin takes on the registration-notice provider (specification in `KEYCLOAK-REALM.md`).
+2. ~~Registration-notice provider~~: the platform admin builds a database-view poller instead (services#751, D56).
 3. Whether the platform Keycloak can already reach the SMTP relay (verification emails need it).
 4. Publishing: may the image workflow move into `.github/workflows/`, and should the GHCR package be public?
 5. Whether the MIMIC-IV demo should be hosted at all on dev, and by which delivery route (section 7).

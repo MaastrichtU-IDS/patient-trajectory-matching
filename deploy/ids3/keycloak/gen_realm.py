@@ -16,7 +16,7 @@ PAGES = [HOST + '/', HOST + '/store-query/']
 DAY = 86400
 
 # Admin-capable roles (security review of phase 2, M2, and its re-check): every realm-management role that can grant
-# `approved` or a `dataset:*` role, change who may sign in, or act as another user. realm-admin includes them all;
+# `approved` or an app's role, change who may sign in, or act as another user. realm-admin includes them all;
 # it is listed so that the checks name it. Holders must use OTP at every login, by password or through a provider,
 # and cannot reset their credentials by email (another admin resets them in the console).
 ADMIN_ROLES = ['realm-admin', 'manage-users', 'manage-realm', 'manage-clients', 'manage-identity-providers',
@@ -149,9 +149,6 @@ realm = {
     'roles': {
         'realm': [
             {'name': 'approved', 'description': 'Approved by the owner; required by every non-public dataset.'},
-            {'name': 'dataset:mimic-iv:read',
-             'description': "Full MIMIC-IV: granted only after the owner has verified and recorded the user's own "
-                            'PhysioNet credentialing. Assigned to nobody until the storage and backup access review.'},
             {'name': 'default-roles-ids-apps', 'description': 'The roles every new account gets: the account console only.',
              'composite': True, 'composites': {'client': {'account': ['view-profile', 'manage-account']}}},
         ],
@@ -170,7 +167,7 @@ realm = {
         'directAccessGrantsEnabled': False,
         'serviceAccountsEnabled': False,
         'frontchannelLogout': True,
-        'fullScopeAllowed': True,
+        'fullScopeAllowed': False,  # its tokens carry only the roles scoped to it (D56, services#751)
         'rootUrl': HOST,
         'baseUrl': '/',
         'redirectUris': PAGES,
@@ -193,6 +190,8 @@ realm = {
                        'lightweight.claim': 'false'},
         }],
     }],
+    # Realm roles ptm's tokens may carry: `approved` only. Detailed grants live in each app (D56).
+    'scopeMappings': [{'client': 'ptm-mockups', 'roles': ['approved']}],
     # 4. Identity providers: placeholder client ids, NO secrets (entered in the admin console after import)
     'identityProviders': [
         {'alias': 'github', 'displayName': 'GitHub', 'providerId': 'github', 'enabled': True, 'trustEmail': False,

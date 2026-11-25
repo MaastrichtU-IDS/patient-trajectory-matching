@@ -111,7 +111,7 @@ Access per dataset (`configmap.yaml`, `ptm-mockups-datasets`):
 |---|---|---|---|
 | public | anyone, no login | per patient (synthetic only) | `synthetic-paediatric-rare` |
 | approved | signed in, in group `approved` | aggregate counts only | not configured |
-| role | approved and holding e.g. `dataset:mimic-iv:read` | per patient | refused by the server until the access review |
+| granted | approved and holding a ptm-side grant (full MIMIC-IV; not a Keycloak role, D56) | per patient | refused by the server until the access review |
 
 `GET /api/datasets` lists the datasets the caller may use; the pages show only those. A dataset the caller may not
 use is a 404, like one that does not exist. `GET /api/auth-config` gives the page the issuer and client id (public
@@ -156,8 +156,8 @@ Phase 2 (sign-in; not needed now):
 - [ ] Name the backup realm admin for `ids-apps`.
 - [ ] Register the OAuth apps at ORCID, GitHub and Google (redirect URIs in `KEYCLOAK-REALM.md`, section 4) and hand
       their client ids and secrets to the realm admin out of band; they go into Keycloak, not Vault, not git.
-- [ ] Approve users by adding them to group `approved`. Grant `dataset:mimic-iv:read` only after verifying and
-      recording the user's own PhysioNet credentialing (`KEYCLOAK-REALM.md`, section 2) — and only once full
+- [ ] Approve users by adding them to group `approved`. Full MIMIC-IV grants are not Keycloak roles: they will be
+      granted in ptm, each backed by a recorded PhysioNet check and an append-only grant log (D56), once full
       MIMIC-IV hosting has passed its storage and backup access review.
 
 ## Admin checklist — before merging
@@ -179,8 +179,8 @@ Phase 2 (sign-in; not needed now):
 
 - [ ] Everything in `KEYCLOAK-REALM.md`, sections 1 to 5 (realm, roles and the `approved` group, client
       `ptm-mockups` with the `ptm-api` audience mapper, identity providers, admin OTP).
-- [ ] **Platform change (platform admin):** the registration-notice event-listener provider in the platform
-      Keycloak, `KEYCLOAK-REALM.md` section 6. Not needed for the first deploy; until it exists the owner checks
+- [ ] **Platform side (platform admin):** the registration-notice poller (a read-only database view of `ids-apps`
+      `REGISTER` events), `KEYCLOAK-REALM.md` section 6. Not needed for the first deploy; until it exists the owner checks
       new accounts in the admin console.
 
 ### Vault (only when the first secret arrives; nothing to do for phase 1)

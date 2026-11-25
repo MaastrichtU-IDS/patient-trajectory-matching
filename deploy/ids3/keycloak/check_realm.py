@@ -9,7 +9,7 @@ every admin-capable role, the reset-credentials flow denies those roles, and no 
 view-* and query-* is granted.
 With --keycloak-src, a directory holding Keycloak's representation sources (`<Name>.java` for Realm, Client,
 IdentityProvider, Group, Role, Roles, ProtocolMapper, AuthenticationFlow, AuthenticationExecutionExport,
-AbstractAuthenticationExecution, AuthenticatorConfig, RequiredActionProvider, from
+AbstractAuthenticationExecution, AuthenticatorConfig, RequiredActionProvider, ScopeMapping, from
 core/src/main/java/org/keycloak/representations/idm/<Name>Representation.java at the platform's tag, 26.8.1, and
 optionally EventType.java from server-spi-private/src/main/java/org/keycloak/events/):
 every key used is a field of the representation it belongs to. This is a format check only: whether Keycloak
@@ -35,7 +35,7 @@ def fields(src, *names):
     return out
 
 
-# Every realm-management role that can grant `approved` or a `dataset:*` role, change who may sign in, or act as
+# Every realm-management role that can grant `approved` or an app's role, change who may sign in, or act as
 # another user (security review of phase 2, M2 and its re-check). Holders must use OTP in the browser flow and after
 # every provider login, and are denied reset by email. Any other realm-management role a group or composite grants
 # must be view-* or query-* (read only).
@@ -142,7 +142,8 @@ def check(realm, src=None):
                        'eventsEnabled': True, 'adminEventsEnabled': True, 'adminEventsDetailsEnabled': False}.items():
         need(realm.get(key) == value, f'{key} should be {value!r}')
     roles = {r['name']: r for r in realm['roles']['realm']}
-    need({'approved', 'dataset:mimic-iv:read'} <= set(roles), 'realm roles approved and dataset:mimic-iv:read')
+    # D56 (services#751): the shared realm holds broad grants only; detailed grants (full MIMIC-IV) live in ptm
+    need(set(roles) == {'approved', realm['defaultRole']['name']}, 'realm roles: approved and the default role only')
     default = roles.get(realm['defaultRole']['name'], {})
     need(default.get('composites') == {'client': {'account': ['view-profile', 'manage-account']}},
          'default roles must be the account console only')
@@ -155,6 +156,10 @@ def check(realm, src=None):
     need(client['webOrigins'] == [HOST], 'web origin')
     need(client['attributes']['pkce.code.challenge.method'] == 'S256', 'PKCE S256')
     need({'roles', 'basic'} <= set(client['defaultClientScopes']), 'roles and basic scopes')
+    need(client.get('fullScopeAllowed') is False, 'ptm-mockups: Full scope allowed off')
+    need(realm.get('scopeMappings') == [{'client': 'ptm-mockups', 'roles': ['approved']}],
+         'ptm-mockups scope: realm role approved only')
+    need(not realm.get('clientScopeMappings'), 'no client-role scope mappings for ptm-mockups')
     aud = [m for m in client['protocolMappers'] if m['protocolMapper'] == 'oidc-audience-mapper']
     need(aud and aud[0]['config']['included.custom.audience'] == 'ptm-api'
          and aud[0]['config']['access.token.claim'] == 'true', 'the ptm-api audience mapper on the access token')
@@ -203,6 +208,8 @@ def check(realm, src=None):
         for r in realm['roles']['realm']:
             known(r, fields(src, 'Role'), f'role {r["name"]}')
         known(realm['defaultRole'], fields(src, 'Role'), 'defaultRole')
+        for m in realm.get('scopeMappings', []):
+            known(m, fields(src, 'ScopeMapping'), f'scope mapping for {m.get("client")}')
         for g in realm['groups']:
             known(g, fields(src, 'Group'), f'group {g["name"]}')
         for c in realm['clients']:
