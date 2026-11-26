@@ -43,7 +43,11 @@ ADMIN_ROLES = {f'realm-management.{r}' for r in ('realm-admin', 'manage-users', 
                                                  'manage-identity-providers', 'impersonation')}
 READ_ONLY = re.compile(r'realm-management\.(view|query)-[a-z-]+')
 AUDITED = {'REGISTER', 'LOGIN_ERROR', 'IDENTITY_PROVIDER_LINK_ACCOUNT', 'UPDATE_TOTP', 'REMOVE_TOTP', 'UPDATE_PASSWORD',
-           'RESET_PASSWORD', 'IDENTITY_PROVIDER_LOGIN', 'IDENTITY_PROVIDER_FIRST_LOGIN'}
+           'RESET_PASSWORD', 'IDENTITY_PROVIDER_LOGIN', 'IDENTITY_PROVIDER_FIRST_LOGIN',
+           # provider and linking failures (D58: without them a failed link left no error code)
+           'FEDERATED_IDENTITY_LINK', 'FEDERATED_IDENTITY_LINK_ERROR', 'IDENTITY_PROVIDER_LINK_ACCOUNT_ERROR',
+           'IDENTITY_PROVIDER_LOGIN_ERROR', 'IDENTITY_PROVIDER_FIRST_LOGIN_ERROR', 'IDENTITY_PROVIDER_POST_LOGIN_ERROR',
+           'IDENTITY_PROVIDER_RESPONSE_ERROR'}
 
 
 def otp_roles(alias, flows, configs):

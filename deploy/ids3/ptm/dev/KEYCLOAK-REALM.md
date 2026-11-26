@@ -138,9 +138,11 @@ What the owner registers with each provider:
 |---|---|---|---|
 | GitHub | GitHub → Settings → Developer settings → OAuth Apps (or an org's OAuth App) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/github/endpoint` | Homepage URL `https://ptm.k8s.semanticscience.org` |
 | Google | Google Cloud console → APIs & Services → Credentials → OAuth client ID, type "Web application" | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/google/endpoint` | Consent screen: scopes `openid`, `email`, `profile` |
-| ORCID | ORCID → Developer tools (public API client) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/orcid/endpoint` | ORCID usually returns no email; Keycloak then asks for one and verifies it |
+| ORCID | ORCID → Developer tools (public API client) | `https://keycloak.k8s.semanticscience.org/realms/ids-apps/broker/orcid/endpoint` | ORCID usually returns no email; Keycloak then asks for one and verifies it. **One public API client per ORCID account:** if the owner already has one (ontoexplorer's), add this redirect URI to it and reuse its id and secret; never reset its secret without updating every realm (and Vault) that uses it |
 
-Each yields a client id and a client secret. They go into the identity-provider form in Keycloak, not into git.
+GitHub OAuth apps have **one** callback URL (a redirect must lie under its path), so an app registered for another realm
+does not cover `ids-apps`: register a new one (done, 2026-11-26), or set the callback to `https://keycloak.k8s.semanticscience.org/realms/`.
+Google's client secret is shown only at creation. Each yields a client id and a client secret. They go into the identity-provider form in Keycloak, not into git.
 
 - [ ] **GitHub** (built-in provider, alias `github`): scope `user:email`. Trust email **off**.
 - [ ] **Google** (built-in, alias `google`): Trust email **off** too (security review of phase 2): every address is
