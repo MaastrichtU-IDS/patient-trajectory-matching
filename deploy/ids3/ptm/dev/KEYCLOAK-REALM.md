@@ -184,8 +184,10 @@ Each yields a client id and a client secret. They go into the identity-provider 
       triggered automatically) and use it at every login; other users are not asked.
 - [ ] **The same after an identity-provider login** (security review of phase 2, M2). Without it, an admin who
       linked GitHub, Google or ORCID could sign in through the provider and skip OTP. Create a top-level flow
-      `post broker admin OTP` with the same CONDITIONAL subflows, and set it as **Post login flow** on all three
-      providers.
+      `post broker admin OTP` with the same CONDITIONAL subflows, **then a last step "Allow access", Required**, and
+      set it as **Post login flow** on all three providers. Without "Allow access" the flow holds only conditional
+      steps, a non-admin matches none, the flow does not succeed, and every provider login of a non-admin ends in
+      "Invalid username or password" (found live on 2026-11-26; `check_realm.py` now refuses such a flow).
 - [ ] **Admins keep local credentials and do not link identity providers.** An admin account signs in with its
       username, a strong local password and OTP. The post-broker flow covers a linked provider anyway, but an
       unlinked admin account has no provider in its trust chain at all.

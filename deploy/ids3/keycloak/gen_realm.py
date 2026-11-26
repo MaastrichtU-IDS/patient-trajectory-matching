@@ -81,7 +81,12 @@ FLOWS = [
      'authenticationExecutions': [execution('auth-username-password-form', priority=10)] + browser_steps},
     *browser_otp,
     {'alias': 'post broker admin OTP', 'description': 'After an identity-provider login: OTP for admin-capable users.',
-     'providerId': 'basic-flow', 'topLevel': True, 'builtIn': False, 'authenticationExecutions': broker_steps},
+     'providerId': 'basic-flow', 'topLevel': True, 'builtIn': False,
+     # A top-level flow succeeds only if some execution runs and succeeds (DefaultAuthenticationFlow.processFlow): with
+     # only CONDITIONAL subflows, a non-admin matches none, the flow fails and Keycloak answers "Invalid username or
+     # password" after every provider login (found live, 2026-11-26). "Allow access" closes the flow for everyone, after
+     # the OTP subflows have run for admins.
+     'authenticationExecutions': broker_steps + [execution('allow-access-authenticator', priority=200)]},
     *broker_otp,
     # Keycloak's default reset flow ends in "Reset - Conditional OTP", whose reset-otp only adds CONFIGURE_TOTP: so
     # whoever held an admin's mailbox could set a password, enrol their own OTP and get in. Here the link is still

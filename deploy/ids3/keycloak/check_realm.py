@@ -179,6 +179,17 @@ def check(realm, src=None):
                 need(e['flowAlias'] in flows, f'flow {e["flowAlias"]} is defined')
             if 'authenticatorConfig' in e:
                 need(e['authenticatorConfig'] in configs, f'authenticator config {e["authenticatorConfig"]} exists')
+    # A flow succeeds only if some execution runs and succeeds (DefaultAuthenticationFlow.processFlow): a top-level
+    # flow, or a REQUIRED/ALTERNATIVE subflow, made only of CONDITIONAL subflows fails for a user who matches none of
+    # them, and Keycloak answers "Invalid username or password" (the post-broker flow did, live, 2026-11-26).
+    must_succeed = {a for a, f in flows.items() if f.get('topLevel')}
+    must_succeed |= {e['flowAlias'] for f in flows.values() for e in f['authenticationExecutions']
+                     if e.get('authenticatorFlow') and e['requirement'] in ('REQUIRED', 'ALTERNATIVE')}
+    for alias in sorted(must_succeed & set(flows)):
+        unconditional = [e for e in flows[alias]['authenticationExecutions'] if e['requirement'] in ('REQUIRED', 'ALTERNATIVE')
+                         and not str(e.get('authenticator', '')).startswith('conditional-')]
+        need(unconditional, f'flow {alias}: needs a REQUIRED or ALTERNATIVE step that is not conditional, or it fails '
+                            'for users who match none of its conditions')
     # OTP for everyone who can change membership or grant roles, in the browser flow and after every provider login.
     for name, flow in [('browser flow', realm['browserFlow'])] + [(f'{a}: post-broker flow', p.get('postBrokerLoginFlowAlias'))
                                                                     for a, p in idps.items()]:

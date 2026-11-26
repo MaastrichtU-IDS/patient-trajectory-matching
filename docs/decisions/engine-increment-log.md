@@ -6505,3 +6505,9 @@ Reported beside: `d52_anchor.cjs requests` gives a file identical to `~/ptm-loca
 *Unchanged:* the server code (it reads roles from `realm_access.roles`; with full scope off an approved user's token still carries `approved`, and nobody could hold the removed role). Phase 2's staged services PR needs no change (it carries no realm content).
 
 *Status:* shipped as docs and realm file only.
+
+## D57 The post-broker flow ends in "Allow access": a non-admin's provider login no longer fails
+
+*Found live, 2026-11-26:* the owner's first Google sign-in to the freshly imported `ids-apps` realm ended in "Invalid username or password". Cause, read in Keycloak 26.8.1's source: `DefaultAuthenticationFlow.processFlow` marks a flow successful only when some execution runs and succeeds. `post broker admin OTP` held only CONDITIONAL subflows (OTP per admin role); for a non-admin every condition is false, all are dropped, the flow ends unsuccessful, and `AuthenticationProcessor` reports the resulting `AuthenticationFlowException` (INTERNAL_ERROR) as `Messages.INVALID_USER`. The browser and reset flows were not affected (each has a REQUIRED step). Neither the offline check nor the three security-review rounds caught it: they checked that admins are covered, not that non-admins get through.
+
+*Fix:* `gen_realm.py` appends `allow-access-authenticator` (REQUIRED, priority 200) to `post broker admin OTP`, after the OTP subflows, so admins still meet OTP first. `check_realm.py` now requires every top-level flow, and every REQUIRED or ALTERNATIVE subflow, to hold a REQUIRED or ALTERNATIVE step that is not a `conditional-*` authenticator; on the previous realm file it reports exactly this flow. The live realm gets the same step by hand (Authentication → `post broker admin OTP` → Add step → Allow access → Required). `KEYCLOAK-REALM.md` section 5 updated.

@@ -766,6 +766,14 @@
           "autheticatorFlow": true,
           "userSetupAllowed": false,
           "flowAlias": "post broker OTP: impersonation"
+        },
+        {
+          "requirement": "REQUIRED",
+          "priority": 200,
+          "authenticatorFlow": false,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false,
+          "authenticator": "allow-access-authenticator"
         }
       ]
     },
