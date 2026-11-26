@@ -145,7 +145,11 @@ realm = {
                           # admin forensics (security review of phase 2, L4)
                           'UPDATE_TOTP', 'REMOVE_TOTP', 'UPDATE_CREDENTIAL', 'REMOVE_CREDENTIAL', 'UPDATE_PASSWORD',
                           'RESET_PASSWORD', 'SEND_RESET_PASSWORD', 'IDENTITY_PROVIDER_LOGIN',
-                          'IDENTITY_PROVIDER_FIRST_LOGIN'],
+                          'IDENTITY_PROVIDER_FIRST_LOGIN',
+                          # Linking and provider failures, so an error code is on record (none were, 2026-11-26)
+                          'FEDERATED_IDENTITY_LINK', 'FEDERATED_IDENTITY_LINK_ERROR', 'REMOVE_FEDERATED_IDENTITY_ERROR', 'IDENTITY_PROVIDER_LINK_ACCOUNT_ERROR',
+                          'IDENTITY_PROVIDER_LOGIN_ERROR', 'IDENTITY_PROVIDER_FIRST_LOGIN_ERROR', 'IDENTITY_PROVIDER_POST_LOGIN_ERROR', 'IDENTITY_PROVIDER_RESPONSE_ERROR',
+                          'REGISTER_ERROR', 'VERIFY_EMAIL_ERROR', 'RESET_PASSWORD_ERROR'],
     'eventsListeners': ['jboss-logging'],
     'adminEventsEnabled': True,
     'adminEventsDetailsEnabled': False,
