@@ -222,6 +222,17 @@ function renderStore() {
     box.innerHTML = `<div class="note"><b>Not available to you.</b> ${esc(why)} <span class="muted">(${esc(state.denied)})</span></div>`;
     return;
   }
+  if (state.serverRefusal) {
+    const code = state.serverRefusal;
+    const why = code === 'STORE_BUILDING'
+      ? 'The server is preparing the open MIMIC-IV demo: after a restart it downloads the demo from PhysioNet, checks every file and builds the store, which takes about ten minutes. Reload this page in a few minutes.'
+      : code === 'BUSY' ? 'The server is busy. Try again in a moment.'
+      : /^(PHYSIONET|FETCH|CHECKSUM|FILE_TOO|NOT_HTTPS|MIMIC_DEMO)/.test(code)
+        ? 'The server could not fetch or verify the open MIMIC-IV demo from PhysioNet, so there is no store to query. The site\'s administrators need to look at the server log; reloading will not help.'
+        : 'The server cannot answer queries on this dataset right now.';
+    box.innerHTML = `<div class="${code === 'STORE_BUILDING' || code === 'BUSY' ? 'note' : 'bad'}"><b>${code === 'STORE_BUILDING' ? 'Being prepared.' : 'Not available right now.'}</b> ${esc(why)} <span class="muted">(${esc(code)})</span></div>`;
+    return;
+  }
   if (!s) {
     box.innerHTML = `<div class="bad"><b>No server is answering.</b> Open this page through <code>demos/mockups/server.py</code>, not as a file or from static hosting: the query runs in the execution store on the server. ${state.error ? `(${esc(state.error)})` : ''}</div>`;
     return;
@@ -513,7 +524,13 @@ async function main() {
       state.denied = (await response.json()).error;
       return render();
     }
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      // A server that answers with a reason (hosted: the demo is still being fetched and built, or its fetch failed)
+      // is a server; only a missing or non-JSON answer means no server (found live on ids3, 2026-11-27).
+      const reason = await response.json().then(v => v && v.error, () => null);
+      if (reason) { state.serverRefusal = reason; return render(); }
+      throw new Error(`HTTP ${response.status}`);
+    }
     state.status = await response.json();
     // D50: with a realm, a dataset the caller may not use is answered as "no store"; say why instead.
     if (!state.status.available && state.status.error === 'STORE_NOT_CONFIGURED' && await PtmAuth.enabled()) {
