@@ -45,7 +45,13 @@ MAX_FILE = 64 * 1024 * 1024   # bytes; the largest file, chartevents, is 5.5 MB
 TIMEOUT = 60                  # seconds per request
 FETCH_DEADLINE = 300          # seconds for the whole download (security review of phase 2, L5)
 CHUNK = 1 << 16               # bytes per read, the deadline checked after each
-BUILD_TIMEOUT = 1800          # seconds for the store build
+# Seconds for the store build. 495 s on an M4 Pro, but over 1,800 s on ids3 (2026-11-27): one CPU at most, a 0.1 CPU
+# request on a shared node, and the build then wrote onto the Longhorn volume (133 MB/s against 791 MB/s locally,
+# measured in the pod). The build now runs on node-local scratch (PTM_MIMIC_SCRATCH); the limit is an hour.
+BUILD_TIMEOUT = 3600
+# Where the build runs when set (hosted: an emptyDir on the node's disk); only the finished store is copied onto the
+# volume. Unset, the build runs under the destination itself, as before.
+SCRATCH_ENV = 'PTM_MIMIC_SCRATCH'
 # The build child's address-space limit (RLIMIT_AS, Linux), so a runaway build fails by itself instead of getting the
 # whole pod OOM-killed (security review L2): 1,228 MiB of address space measured in a Linux container, times 1.3
 # (the hosting plan, "Phase 2").
@@ -77,7 +83,12 @@ ATTRIBUTION = {
 
 
 class FetchError(RuntimeError):
-    """A named failure: the message is the code."""
+    """A named failure: the message is the code; `detail` (for the log only, never shown to a caller) says more, such
+    as the HTTP status PhysioNet answered."""
+
+    def __init__(self, code, detail=None):
+        super().__init__(code)
+        self.detail = detail
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -115,8 +126,11 @@ def get(url, limit=MAX_FILE, opener=None, allow_http=False, deadline=None):
                     raise FetchError('FETCH_DEADLINE_EXCEEDED')
     except FetchError:
         raise
-    except (urllib.error.URLError, OSError, ValueError):
-        raise FetchError('PHYSIONET_UNREACHABLE') from None
+    except urllib.error.HTTPError as error:  # an answer, but not the file: 429 or 403 when rate-limited, for example
+        raise FetchError('PHYSIONET_UNREACHABLE', f'HTTP {error.code}') from None
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        reason = getattr(error, 'reason', error)
+        raise FetchError('PHYSIONET_UNREACHABLE', type(reason).__name__) from None
     if deadline is not None and time.monotonic() > deadline:
         raise FetchError('FETCH_DEADLINE_EXCEEDED')
     if size > limit:
@@ -226,7 +240,10 @@ def prepare(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_ht
     store = reusable(dest, snapshot_id, pins)
     if store is not None:
         return store, 'reused'
-    return fetch_and_build(dest, base, pins, opener, build_store, allow_http, snapshot_id), 'built'
+    scratch_root = os.environ.get(SCRATCH_ENV) or None
+    if scratch_root:
+        clear_leftovers(scratch_root)
+    return fetch_and_build(dest, base, pins, opener, build_store, allow_http, snapshot_id, scratch_root), 'built'
 
 
 def built_snapshot_id(store):
@@ -241,33 +258,72 @@ def built_snapshot_id(store):
         raise FetchError('STORE_BUILD_FAILED') from None
 
 
+def cached_download(dest, pins=PINS):
+    """`dest/download/icu` if every pinned file is there and matches its sha256, else None (and an unverifiable cache
+    is removed). A verified download is kept on the volume so that a failed build, a retry or a restart never
+    downloads from PhysioNet again (ids3, 2026-11-27: retries right after a full download were refused)."""
+    root = Path(dest) / 'download'
+    try:
+        if all(hashlib.sha256((root / path).read_bytes()).hexdigest() == digest for path, digest in pins.items()):
+            return root / 'icu'
+    except OSError:
+        pass
+    shutil.rmtree(root, ignore_errors=True)
+    return None
+
+
 def fetch_and_build(dest, base=BASE, pins=PINS, opener=None, build_store=build, allow_http=False,
-                    snapshot_id=SNAPSHOT_ID):
+                    snapshot_id=SNAPSHOT_ID, scratch_root=None):
     """Fetch, check and build into `dest`: the store at `dest/build/store`, and `dest/d_items.csv.gz` for the item
-    labels. Everything is made in a scratch directory under `dest` and moved into place only once complete, so a
-    reader never sees a half-built store and a failure leaves nothing behind. (Two pods sharing the volume may both
-    build; the first to finish publishes, the other discards its copy.)"""
+    labels. The checked download is kept at `dest/download` (re-checked before every use). The build runs in a scratch
+    directory under `scratch_root` (node-local when hosted) or else under `dest`; the finished store is copied into a
+    staging directory under `dest` and moved into place only once complete, so a reader never sees a half-built store
+    and a failure leaves no store behind. (Two pods sharing the volume may both build; the first to finish publishes,
+    the other discards its copy.)"""
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
-    scratch = Path(tempfile.mkdtemp(prefix='mimic-demo-incoming-', dir=dest))
+    icu = cached_download(dest, pins)
+    if icu is None:
+        incoming = Path(tempfile.mkdtemp(prefix='mimic-demo-incoming-', dir=dest))
+        try:
+            fetch(incoming / 'download', base, pins, opener, allow_http)
+            try:
+                os.rename(incoming / 'download', dest / 'download')
+            except OSError:  # another pod kept its download first; it is checked like any other
+                pass
+        finally:
+            shutil.rmtree(incoming, ignore_errors=True)
+        icu = cached_download(dest, pins)
+        if icu is None:
+            raise FetchError('CHECKSUM_MISMATCH')
+    scratch_parent = Path(scratch_root) if scratch_root else dest
+    scratch_parent.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix='mimic-demo-incoming-', dir=scratch_parent))
+    staging = None
     try:
-        icu = fetch(scratch / 'download', base, pins, opener, allow_http)
         store = build_store(icu, scratch / 'build')
         if snapshot_id is not None and built_snapshot_id(store) != snapshot_id:
             raise FetchError('SNAPSHOT_ID_NOT_PINNED')  # never published: the store service would refuse it anyway
-        shutil.copyfile(icu / 'd_items.csv.gz', scratch / 'd_items.csv.gz')  # the catalogue's item labels
-        stale = dest / f'.stale-{scratch.name}'
+        if scratch_parent == dest:
+            staging = scratch
+        else:  # node-local scratch: copy the finished store onto the volume, then publish it there
+            staging = Path(tempfile.mkdtemp(prefix='mimic-demo-incoming-', dir=dest))
+            shutil.copytree(scratch / 'build', staging / 'build')
+        shutil.copyfile(icu / 'd_items.csv.gz', staging / 'd_items.csv.gz')  # the catalogue's item labels
+        stale = dest / f'.stale-{staging.name}'
         if (dest / 'build').exists():  # an older or unverifiable store: set aside, then removed
             os.rename(dest / 'build', stale)
         try:
-            os.rename(scratch / 'build', dest / 'build')
+            os.rename(staging / 'build', dest / 'build')
         except OSError:  # another pod published first
             pass
-        os.replace(scratch / 'd_items.csv.gz', dest / 'd_items.csv.gz')
+        os.replace(staging / 'd_items.csv.gz', dest / 'd_items.csv.gz')
         shutil.rmtree(stale, ignore_errors=True)
         return dest / 'build' / 'store'
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
 
 
 def main(argv=None):

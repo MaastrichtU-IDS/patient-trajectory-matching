@@ -36,14 +36,19 @@ class StandIn:
 
     def __init__(self):
         self.files = dict(FILES)
+        self.status = None  # a test may make every answer this HTTP status (429: rate-limited)
+        self.requests = 0
         self.sums = ''.join(f'{d} {p}\n' for p, d in PINS.items()) + 'deadbeef hosp/patients.csv.gz\n'
         outer = self
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):
                 path = self.path.lstrip('/')
+                outer.requests += 1
                 body = outer.sums.encode() if path == 'SHA256SUMS.txt' else outer.files.get(path)
-                self.send_response(200 if body is not None else 404)
+                if outer.status is not None:
+                    body = None
+                self.send_response(outer.status or (200 if body is not None else 404))
                 self.send_header('Content-Length', str(len(body or b'')))
                 self.end_headers()
                 self.wfile.write(body or b'')
@@ -98,7 +103,7 @@ class FetchTests(unittest.TestCase):
         self.assertEqual(store, Path(self.tmp.name) / 'build' / 'store')
         self.assertEqual(self.built, [['chartevents.csv.gz', 'd_items.csv.gz', 'icustays.csv.gz', 'inputevents.csv.gz']])
         self.assertEqual((Path(self.tmp.name) / 'd_items.csv.gz').read_bytes(), b'items')
-        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), ['build', 'd_items.csv.gz'])
+        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), ['build', 'd_items.csv.gz', 'download'])
 
     def test_a_file_that_does_not_match_its_pin_is_refused(self):
         self.standin.files['icu/chartevents.csv.gz'] = b'tampered'
@@ -127,7 +132,8 @@ class FetchTests(unittest.TestCase):
         with self.assertRaises(fetcher.FetchError) as caught:
             self.run_fetch(snapshot_id='another-snapshot')
         self.assertEqual(str(caught.exception), 'SNAPSHOT_ID_NOT_PINNED')
-        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), [], 'nothing published or left behind')
+        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), ['download'],
+                         'nothing published or left behind but the checked download')
 
     def test_redirects_are_refused_and_the_download_has_a_deadline(self):
         import http.server
@@ -216,7 +222,7 @@ class FetchTests(unittest.TestCase):
         (dest / 'keep.txt').write_text('x')
         self.run_fetch()  # through fetch_and_build: prepare's clearing is tested on its own below
         fetcher.clear_leftovers(dest)
-        self.assertEqual(sorted(p.name for p in dest.iterdir()), ['build', 'd_items.csv.gz', 'keep.txt'])
+        self.assertEqual(sorted(p.name for p in dest.iterdir()), ['build', 'd_items.csv.gz', 'download', 'keep.txt'])
         with mock.patch.object(fetcher, 'reusable', lambda *a: dest / 'build' / 'store'):
             (dest / 'mimic-demo-incoming-ghi').mkdir()
             fetcher.prepare(dest)
@@ -228,7 +234,58 @@ class FetchTests(unittest.TestCase):
         with self.assertRaises(fetcher.FetchError):
             fetcher.fetch_and_build(self.tmp.name, base=self.standin.base, pins=PINS, build_store=failing,
                                     allow_http=True)
-        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), [])
+        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), ['download'])
+
+    def test_a_retry_after_a_failed_build_does_not_download_again(self):
+        def failing(icu, output):
+            raise fetcher.FetchError('STORE_BUILD_TIMED_OUT')
+        with self.assertRaises(fetcher.FetchError):
+            fetcher.fetch_and_build(self.tmp.name, base=self.standin.base, pins=PINS, build_store=failing,
+                                    allow_http=True)
+        asked = self.standin.requests
+        self.standin.close()  # PhysioNet now unreachable (or refusing): the checked download is enough
+        store = self.run_fetch()
+        self.assertEqual(store, Path(self.tmp.name) / 'build' / 'store')
+        self.assertEqual(asked, 5, 'the sums and the four files, once')
+
+    def test_a_kept_download_that_no_longer_matches_its_pins_is_fetched_again(self):
+        self.run_fetch()
+        cached = Path(self.tmp.name) / 'download' / 'icu' / 'icustays.csv.gz'
+        cached.write_bytes(b'altered on the volume')
+        asked = self.standin.requests
+        self.run_fetch()
+        self.assertEqual(self.standin.requests - asked, 5, 'fetched again in full')
+        self.assertEqual(cached.read_bytes(), b'stays')
+        self.standin.close()
+        cached.write_bytes(b'altered again')
+        self.assertEqual(self.failure_keeping_store(), 'PHYSIONET_UNREACHABLE')
+        self.assertFalse((Path(self.tmp.name) / 'download').exists(), 'an unverifiable download is removed')
+
+    def failure_keeping_store(self):
+        with self.assertRaises(fetcher.FetchError) as caught:
+            self.run_fetch()
+        return str(caught.exception)
+
+    def test_the_build_runs_on_scratch_and_only_the_finished_store_reaches_the_volume(self):
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        outputs = []
+
+        def build(icu, output):
+            outputs.append(Path(output))
+            return self.fake_build(icu, output)
+        store = fetcher.fetch_and_build(self.tmp.name, base=self.standin.base, pins=PINS, build_store=build,
+                                        allow_http=True, snapshot_id='fake-snapshot', scratch_root=scratch.name)
+        self.assertEqual(outputs[0].parents[1], Path(scratch.name), 'built under the scratch root')
+        self.assertTrue((store / 'snap' / 'manifest.json').is_file())
+        self.assertEqual(list(Path(scratch.name).iterdir()), [], 'scratch emptied')
+        self.assertEqual(sorted(p.name for p in Path(self.tmp.name).iterdir()), ['build', 'd_items.csv.gz', 'download'])
+
+    def test_a_refusal_by_physionet_is_logged_with_its_status(self):
+        self.standin.status = 429
+        with self.assertRaises(fetcher.FetchError) as caught:
+            self.run_fetch()
+        self.assertEqual((str(caught.exception), caught.exception.detail), ('PHYSIONET_UNREACHABLE', 'HTTP 429'))
 
 
 class PersistedStoreTests(unittest.TestCase):
@@ -298,7 +355,7 @@ class PersistedStoreTests(unittest.TestCase):
             standin.close()
         self.assertEqual(how, 'built')
         self.assertEqual([p.name for p in (dest / 'build' / 'store').iterdir()], ['fresh'])
-        self.assertEqual(sorted(p.name for p in dest.iterdir()), ['build', 'd_items.csv.gz'])  # no scratch left
+        self.assertEqual(sorted(p.name for p in dest.iterdir()), ['build', 'd_items.csv.gz', 'download'])  # no scratch left
 
 
 @unittest.skipUnless(store_trajectory.COHORT.is_file(), 'run demos/mockups/synthetic/generate.py first')

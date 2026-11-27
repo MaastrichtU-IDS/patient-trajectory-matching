@@ -65,6 +65,10 @@ spec:
             - { name: tmp, mountPath: /tmp }
             # the MIMIC-IV demo's store (phase 2): written only by the server's fetch-and-build, read by its store
             - { name: mimic-demo, mountPath: /var/lib/ptm-mimic-demo }
+            # the MIMIC-IV demo's build runs here, on the node's disk (PTM_MIMIC_SCRATCH); only the finished store
+            # (about 50 MB) is copied onto the volume. On ids3 the build on the Longhorn volume overran 30 min
+            # (2026-11-27; the pod measured 791 MB/s here and 133 MB/s on the volume).
+            - { name: build-scratch, mountPath: /var/tmp/ptm-build }
             - { name: datasets, mountPath: /etc/ptm, readOnly: true }
           # /api/health answers as soon as the socket is bound, during the store build too (checked by a test).
           # /api/ready answers 200 only once every configured dataset is ready, so a pod whose synthetic store fails
@@ -100,13 +104,17 @@ spec:
           # 2 x 600 + 2 x 400 + the server (~230) = 2,230 MiB; 3Gi leaves 16% and 27%. The hosting plan, "The phase 2
           # security review", has the arithmetic.
           resources:
-            requests: { cpu: 100m, memory: 512Mi }
+            # 250m: the floor share the MIMIC-IV demo's one-time build gets when the shared node is busy (100m let it
+            # overrun its limit on 2026-11-27); serving needs far less.
+            requests: { cpu: 250m, memory: 512Mi }
             limits: { cpu: "1", memory: 3Gi }
       volumes:
         - name: tmp
           emptyDir: { sizeLimit: 512Mi }
         - name: mimic-demo
           persistentVolumeClaim: { claimName: ptm-mimic-demo }
+        - name: build-scratch
+          emptyDir: { sizeLimit: 2Gi }  # the demo's build: its store and DuckDB's spill files, removed when done
         - name: datasets
           configMap: { name: ptm-mockups-datasets }
       terminationGracePeriodSeconds: 10

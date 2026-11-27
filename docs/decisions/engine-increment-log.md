@@ -6519,3 +6519,16 @@ Reported beside: `d52_anchor.cjs requests` gives a file identical to `~/ptm-loca
 *Change:* the realm file's saved event types add `FEDERATED_IDENTITY_LINK` and its error, `REMOVE_FEDERATED_IDENTITY_ERROR`, `IDENTITY_PROVIDER_LINK_ACCOUNT_ERROR`, `IDENTITY_PROVIDER_LOGIN_ERROR`, `IDENTITY_PROVIDER_FIRST_LOGIN_ERROR`, `IDENTITY_PROVIDER_POST_LOGIN_ERROR`, `IDENTITY_PROVIDER_RESPONSE_ERROR`, `REGISTER_ERROR`, `VERIFY_EMAIL_ERROR` and `RESET_PASSWORD_ERROR` (all in Keycloak 26.8.1's `EventType`); `check_realm.py` requires the provider and linking ones. `KEYCLOAK-REALM.md` section 4 records the ORCID one-client rule, GitHub's single callback URL, and Google's secret shown only once. The live realm gets the same saved types by hand (Realm settings → Events → User events settings).
 
 *Checked from outside after the import:* the issuer is `https://keycloak.k8s.semanticscience.org/realms/ids-apps` (equal to `PTM_OIDC_ISSUER`), the JWKS has an RS256 signing key, `ptm-mockups` serves its login page for its registered redirect and refuses another with 400.
+
+## D59 The MIMIC-IV demo builds on node-local scratch, keeps its checked download, and has an hour
+
+*Found live on ids3, 2026-11-27 (phase 2's first deploy):* the approved test account's store query answered 503. The pod log showed the first attempt downloaded and checked the demo, then hit `STORE_BUILD_TIMED_OUT` after 1,819 s (495 s on an M4 Pro). The two retries failed in 1.2 s and 21 s with `PHYSIONET_UNREACHABLE`, although PhysioNet answered 200 from the pod an hour later. Measured in the pod: 791 MB/s on its emptyDir and 133 MB/s on the Longhorn volume, where the build wrote its store and DuckDB's spill files. The pod requested 0.1 CPU on a shared node. Each retry downloaded everything again, and PhysioNet most likely refused the repeats; the fetcher hid the HTTP status. The pod never restarted (memory was fine).
+
+*Changes (coordinator, as delegate):*
+- `mimic_demo_fetch.fetch_and_build` builds under `PTM_MIMIC_SCRATCH` when set (hosted: a 2Gi emptyDir `build-scratch` at `/var/tmp/ptm-build`). It copies the finished store into a staging directory on the volume and publishes it there as before, so a reader still never sees a half-built store. Scratch leftovers are cleared at start.
+- The checked download is kept at `dest/download` and re-checked against the pins before every use; an unverifiable one is removed and fetched again. A failed build, a retry or a restart therefore never downloads again.
+- `BUILD_TIMEOUT` 1,800 → 3,600 s; the pod's CPU request 100m → 250m.
+- `FetchError.detail` carries the HTTP status (or the network error's type) into the `mimic_demo_fetch` log line only; callers still see the named code.
+- Tests: retry after a failed build without downloading, an altered kept download fetched again, build on scratch with only the store reaching the volume, a 429 logged with its status. Existing expectations now include the kept `download`.
+
+*With:* PR #194 (the store-query page shows the server's reason for a 503) ships in the same image, 0.2.1.

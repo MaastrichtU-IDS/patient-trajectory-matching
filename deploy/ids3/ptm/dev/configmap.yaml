@@ -8,6 +8,8 @@ metadata:
 data:
   # The dataset registry: the file from ConfigMap ptm-mockups-datasets (below), mounted by app.yaml.
   PTM_DATASETS: /etc/ptm/datasets.json
+  # The MIMIC-IV demo's build runs on this node-local emptyDir (app.yaml, build-scratch), not on the volume.
+  PTM_MIMIC_SCRATCH: /var/tmp/ptm-build
 
   # ── Authentication (phase 2): the platform Keycloak's shared user realm `ids-apps` ──────────────────────────
   # The realm is set up from deploy/ids3/keycloak/ids-apps-realm.json (KEYCLOAK-REALM.md, "Two ways"). It is NOT the
