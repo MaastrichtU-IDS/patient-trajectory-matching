@@ -190,8 +190,9 @@ class Dataset:
                 except Exception as error:  # noqa: BLE001 - a named failure, or any other, leaves no store
                     from mimic_demo_fetch import FETCH_ERRORS
                     self.fetch_error = str(error) if str(error) in FETCH_ERRORS else 'MIMIC_DEMO_FETCH_FAILED'
+                    detail = getattr(error, 'detail', None)  # e.g. the HTTP status; logged only
                     on_event('mimic_demo_fetch', dataset=self.id, ok=False, error=self.fetch_error,
-                             seconds=round(time.monotonic() - started, 1))
+                             **({'detail': detail} if detail else {}), seconds=round(time.monotonic() - started, 1))
                     continue
                 how = result[1] if isinstance(result, tuple) else 'built'  # 'reused': a verified store on the volume
                 on_event('mimic_demo_fetch', dataset=self.id, ok=True, how=how,
